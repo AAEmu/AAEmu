@@ -63,16 +63,19 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
             {
                 // Delegate also to other team members
                 var myTeam = TeamManager.Instance.GetTeamByObjId(player.ObjId);
-                foreach (var teamMember in myTeam.Members)
+                if (myTeam != null)
                 {
-                    // Skip self
-                    if (teamMember.Character.Id == player.Id)
-                        continue;
-                    
-                    // TODO: Range check?
+                    foreach (var teamMember in myTeam.Members)
+                    {
+                        // Skip self
+                        if (teamMember.Character.Id == player.Id)
+                            continue;
 
-                    // Directly call OnInteraction on team members to avoid loops/duplicates
-                    teamMember.Character.Events.OnInteraction(sender, args);
+                        // TODO: Range check?
+
+                        // Directly call OnInteraction on team members to avoid loops/duplicates
+                        teamMember.Character.Events.OnInteraction(sender, args);
+                    }
                 }
             }
         }

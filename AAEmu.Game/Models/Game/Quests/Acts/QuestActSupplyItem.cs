@@ -31,7 +31,7 @@ public class QuestActSupplyItem(QuestComponentTemplate parentComponent) : QuestA
 
         var toAddCount = Count;
 
-        if (quest.Owner.Inventory.GetAllItemsByTemplate(null, ItemId, -1, out _, out var foundCount))
+        if (ParentComponent.KindId < QuestComponentKind.Reward && quest.Owner.Inventory.GetAllItemsByTemplate(null, ItemId, -1, out _, out var foundCount))
             toAddCount -= foundCount;
 
         if (toAddCount < 0)

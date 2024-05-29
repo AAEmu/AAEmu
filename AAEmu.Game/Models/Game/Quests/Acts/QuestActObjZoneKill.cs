@@ -113,16 +113,19 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
             {
                 // Delegate also to other team members
                 var myTeam = TeamManager.Instance.GetTeamByObjId(player.ObjId);
-                foreach (var teamMember in myTeam.Members)
+                if (myTeam != null)
                 {
-                    // Skip self
-                    if (teamMember.Character.Id == player.Id)
-                        continue;
-                    
-                    // TODO: Range check?
+                    foreach (var teamMember in myTeam.Members)
+                    {
+                        // Skip self
+                        if (teamMember.Character.Id == player.Id)
+                            continue;
 
-                    // Directly call OnZoneKill on team members to avoid loops/duplicates
-                    teamMember.Character.Events.OnZoneKill(sender, args);
+                        // TODO: Range check?
+
+                        // Directly call OnZoneKill on team members to avoid loops/duplicates
+                        teamMember.Character.Events.OnZoneKill(sender, args);
+                    }
                 }
             }
         }

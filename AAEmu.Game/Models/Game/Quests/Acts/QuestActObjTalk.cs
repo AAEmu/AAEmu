@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -52,22 +53,25 @@ public class QuestActObjTalk(QuestComponentTemplate parentComponent) : QuestActT
         if (player.Id == args.SourcePlayer.Id)
         {
             // Handle interaction that only apply to source player
-            
+
             // Handle Team sharing (if needed)
             if (TeamShare)
             {
                 // Delegate also to other team members
                 var myTeam = TeamManager.Instance.GetTeamByObjId(player.ObjId);
-                foreach (var teamMember in myTeam.Members)
+                if (myTeam != null)
                 {
-                    // Skip self
-                    if (teamMember.Character.Id == player.Id)
-                        continue;
-                    
-                    // TODO: Range check?
+                    foreach (var teamMember in myTeam.Members)
+                    {
+                        // Skip self
+                        if (teamMember.Character.Id == player.Id)
+                            continue;
 
-                    // Directly call OnTalkMade on team members to avoid loops/duplicates
-                    teamMember.Character.Events.OnTalkMade(sender, args);
+                        // TODO: Range check?
+
+                        // Directly call OnTalkMade on team members to avoid loops/duplicates
+                        teamMember.Character.Events.OnTalkMade(sender, args);
+                    }
                 }
             }
         }
