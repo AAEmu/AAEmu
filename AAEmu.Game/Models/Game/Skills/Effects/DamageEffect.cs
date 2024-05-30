@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -369,7 +370,7 @@ public class DamageEffect : EffectTemplate
         {
             if (!trg.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
-                ((Unit)caster).SetCriminalState(true);
+                ((Unit)caster).SetCriminalState(true, trg);
             }
         }
 
