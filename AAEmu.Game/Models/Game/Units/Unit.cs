@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -661,10 +662,14 @@ public class Unit : BaseUnit, IUnit
         AppConfiguration.Instance.World.MOTD = value;
     }
 #pragma warning restore CA1822 // Mark members as static
-    public void SetCriminalState(bool criminalState)
+    public void SetCriminalState(bool criminalState, BaseUnit attackedTarget)
     {
         if (criminalState)
         {
+            // Don't trigger Retribution (purple) when target is a Npc (except for player portals)
+            if ((attackedTarget is Npc) && (attackedTarget is not Portal))
+                return;
+
             var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Retribution);
             var casterObj = new SkillCasterUnit(ObjId);
             Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow));
