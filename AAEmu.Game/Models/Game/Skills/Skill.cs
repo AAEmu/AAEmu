@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -854,6 +855,7 @@ public class Skill
 
             foreach (var target in effectedTargets)
             {
+                var targetNpc = target as Npc;
                 var relationState = caster.GetRelationStateTo(target);
                 if (effect.StartLevel > unit.Level || effect.EndLevel < unit.Level)
                 {
@@ -906,6 +908,14 @@ public class Skill
                 if (effect.TargetNpcTagId > 0 && target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNpcTagId)))
                 {
                     continue;
+                }
+
+                if (effect.TargetNpcTagId > 0)
+                {
+                    if (targetNpc == null || !TagsGameData.Instance
+                            .GetIdsByTagId(TagsGameData.TagType.Npcs, effect.TargetNpcTagId)
+                            .Contains(targetNpc.TemplateId))
+                        continue;
                 }
 
                 if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
