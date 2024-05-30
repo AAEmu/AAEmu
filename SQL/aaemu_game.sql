@@ -37,7 +37,7 @@ CREATE TRIGGER update_timestamps
 BEFORE UPDATE ON accounts
 FOR EACH ROW
 BEGIN
-    SET NEW.last_updated = NOW();
+    SET NEW.last_updated = UTC_TIMESTAMP();
 END;
 //
 DELIMITER ;
