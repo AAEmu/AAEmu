@@ -14,8 +14,6 @@ public class DoodadFuncDevote : DoodadFuncTemplate
     public int ItemCount { get; set; }
     public uint ItemId { get; set; }
 
-    private int CurrentCount { get; set; }
-
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         Logger.Debug($"DoodadFuncDevote: Count={Count}, ItemCount={ItemCount}, ItemId={ItemId}");
@@ -31,17 +29,20 @@ public class DoodadFuncDevote : DoodadFuncTemplate
             return;
         }
 
-        CurrentCount += ItemCount;
-        if (CurrentCount >= Count)
+        var currentCount = ResidentManager.Instance.GetResidentTokenCount(character);
+        currentCount += ItemCount;
+        ResidentManager.Instance.UpdateResidentTokenCount(character, currentCount);
+
+        if (currentCount >= Count)
         {
-            CurrentCount = 0;
-            character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, CurrentCount));
+            currentCount = 0;
+            character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, currentCount));
             ResidentManager.Instance.UpdateDevelopmentStage(character);
             owner.ToNextPhase = true;
             return;
         }
 
-        character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, CurrentCount));
+        character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, currentCount));
         owner.ToNextPhase = false;
     }
 }

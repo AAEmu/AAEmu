@@ -103,6 +103,9 @@ public class SaveManager : Singleton<SaveManager>
                                 savedSlaves++;
                         }
 
+                        // Residents
+                        ResidentManager.Instance.SaveDirectlyToDatabase();
+
                         var totalCommits = 0;
                         totalCommits += savedHouses.Item1 + savedHouses.Item2;
                         totalCommits += savedMails.Item1 + savedMails.Item2;

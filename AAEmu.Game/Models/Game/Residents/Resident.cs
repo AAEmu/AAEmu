@@ -19,6 +19,7 @@ public class Resident : PacketMarshaler
     public uint Id { get; set; } // порядковый номер, в 3.0.3.0 - 29 зон
     public ushort ZoneGroupId { get; set; }
     public int Point { get; set; }
+    public int ResidentTokenCount { get; set; }
     public int ZonePoint { get; set; }
     public byte DevelopmentStage { get; set; } // этап развития
     public Option Option { get; set; }
@@ -38,17 +39,17 @@ public class Resident : PacketMarshaler
 
     public int MembersCount()
     {
-        return Members.Count(member => member?.Character != null);
+        return Members.Count(member => member != null);
     }
 
     public int MembersOnlineCount()
     {
-        return Members.Count(member => member?.Character is { IsOnline: true });
+        return Members.Count(member => member?.IsOnline is true);
     }
 
     public bool IsMember(uint id)
     {
-        return Members.Any(member => member?.Character?.Id == id);
+        return Members.Any(member => member?.Id == id);
     }
 
     public void AddMember(ResidentMember member)
@@ -63,7 +64,7 @@ public class Resident : PacketMarshaler
 
     public ResidentMember GetMember(uint id)
     {
-        return Members.FirstOrDefault(member => member.Character.Id == id);
+        return Members.FirstOrDefault(member => member.Id == id);
     }
 
     public override PacketStream Write(PacketStream stream)

@@ -30,7 +30,7 @@ public class ResidentServicePoint : SpecialEffectAction
             var resident = ResidentManager.Instance.GetResidentByZoneId(character.Transform.ZoneId);
             resident.ZonePoint += value1;
             resident.Point += 1; // количество 
-            foreach (var member in resident.Members.Where(member => member.Character.Id == character.Id))
+            foreach (var member in resident.Members.Where(member => member.Id == character.Id))
             {
                 member.ServicePoint += value1;
                 character.SendPacket(new SCResidentInfoPacket(resident.ZoneGroupId, member));
