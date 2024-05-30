@@ -5,7 +5,10 @@ namespace AAEmu.Game.Models.Game.Residents;
 
 public class ResidentMember : PacketMarshaler
 {
-    public Character Character { get; set; }
+    public uint Id { get; set; }
+    public string Name { get; set; }
+    public byte Level { get; set; }
+    public uint Family { get; set; }
     public int ServicePoint { get; set; }
     public bool IsInParty { get; set; }
     public bool IsOnline { get; set; }
@@ -16,30 +19,40 @@ public class ResidentMember : PacketMarshaler
 
     public ResidentMember(Character character)
     {
-        Character = character;
-        IsOnline = true;
+        Id = character.Id;
+        Name = character.Name;
+        Level = character.Level;
+        Family = character.Family;
+        IsInParty = character.InParty;
+        IsOnline = character.IsOnline;
     }
+
     public ResidentMember(Character character, int point)
     {
-        Character = character;
+        Id = character.Id;
+        Name = character.Name;
+        Level = character.Level;
+        Family = character.Family;
+        IsInParty = character.InParty;
+        IsOnline = character.IsOnline;
         ServicePoint = point;
-        IsOnline = true;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Character.Id);
+        stream.Write(Id);
         stream.Write(ServicePoint);
         return stream;
     }
+
     public PacketStream WriteMemberInfo(PacketStream stream)
     {
         stream.Write(ServicePoint);
-        stream.Write(Character.Id);
-        stream.Write(Character.Name);
-        stream.Write(Character.Level);
-        stream.Write(Character.Family);
-        stream.Write(Character.IsOnline);
+        stream.Write(Id);
+        stream.Write(Name);
+        stream.Write(Level);
+        stream.Write(Family);
+        stream.Write(IsOnline);
         stream.Write(IsInParty);
         return stream;
     }

@@ -110,7 +110,8 @@ public sealed class GameService : IHostedService, IDisposable
         SphereQuestManager.Instance.Load();
         SphereQuestManager.Instance.Initialize();
 
-        ResidentManager.Instance.Initialize();
+        //ResidentManager.Instance.Initialize();
+        ResidentManager.Instance.Load();
 
         FormulaManager.Instance.Load();
         ExperienceManager.Instance.Load();
