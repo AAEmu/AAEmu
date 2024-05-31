@@ -1350,6 +1350,7 @@ public partial class Character : Unit, ICharacter
         {
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
             //StartRegen();
+            ResidentManager.Instance.AddResidenMemberInfo(this);
         }
     }
 
