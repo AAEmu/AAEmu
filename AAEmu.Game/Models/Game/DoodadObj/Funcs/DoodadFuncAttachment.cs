@@ -20,7 +20,7 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
         Logger.Trace("DoodadFuncAttachment");
         if (caster is Character character)
         {
-            if (BondKindId > BondKind.BondInvalid)
+            if (BondKindId > BondKind.BondInvalid || BondKindId == BondKind.None)
             {
                 var spot = owner.Seat.LoadPassenger(character, owner.ObjId, Space); // ask for a free meta number for landing
                 if (spot == -1)

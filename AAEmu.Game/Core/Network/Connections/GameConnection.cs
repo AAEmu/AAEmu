@@ -174,5 +174,6 @@ public class GameConnection
         // Do a manual save here as it's no longer in _characters at this point
         // TODO: might need a better option like saving this transaction for later to be used by the SaveMananger
         ActiveChar.SaveDirectlyToDatabase();
+        ResidentManager.Instance.UpdateAtExit(ActiveChar);
     }
 }

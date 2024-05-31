@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 
 using AAEmu.Commons.Utils;
@@ -103,8 +102,17 @@ public class ResidentManager : Singleton<ResidentManager>
             var resident = GetResidentByZoneGroupId(zoneGroupId);
             if (resident == null) { return; }
 
-            var residentMember = new ResidentMember(character);
-            resident.AddMember(residentMember);
+            if (resident.IsMember(character.Id))
+            {
+                var m = resident.GetMember(character.Id);
+                m.IsOnline = character.IsOnline;
+                m.IsInParty = character.InParty;
+            }
+            else
+            {
+                var residentMember = new ResidentMember(character);
+                resident.AddMember(residentMember);
+            }
             character.SendPacket(new SCResidentMapPacket(resident.ZoneGroupId, Option.Insert));
         }
     }
@@ -199,6 +207,18 @@ public class ResidentManager : Singleton<ResidentManager>
                 member.IsInParty = character.InParty;
                 character.SendPacket(new SCResidentMapPacket(resident.ZoneGroupId, Option.Insert));
                 character.SendPacket(new SCResidentInfoPacket(resident.ZoneGroupId, member));
+                //return; // проверяем во всех резиденциях, так как может быть в нескольких
+            }
+        }
+    }
+    public void UpdateAtExit(Character character)
+    {
+        foreach (var resident in Residents)
+        {
+            foreach (var member in resident.Members.Where(member => member.Id == character.Id))
+            {
+                member.IsOnline = false;
+                member.IsInParty = false;
                 //return; // проверяем во всех резиденциях, так как может быть в нескольких
             }
         }
