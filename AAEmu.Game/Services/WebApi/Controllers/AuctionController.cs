@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Auction;
 using NetCoreServer;
@@ -46,10 +46,10 @@ namespace AAEmu.Game.Services.WebApi.Controllers
                 // Create a new auction item
                 var newAuctionItem = new AuctionItem
                 {
-                    ID = AuctionManager.Instance.GetNextId(),
+                    Id = AuctionManager.Instance.GetNextId(),
                     Duration = (byte)duration,
-                    ItemID = itemId,
-                    ObjectID = 0,
+                    ItemId = itemId,
+                    ObjectId = 0,
                     Grade = 0,
                     Flags = 0,
                     StackSize = quantity,
@@ -59,14 +59,14 @@ namespace AAEmu.Game.Services.WebApi.Controllers
                     LifespanMins = 0,
                     Type1 = 0,
                     WorldId = 0,
-                    UnpackDateTIme = DateTime.UtcNow,
+                    UnpackDateTime = DateTime.UtcNow,
                     UnsecureDateTime = DateTime.UtcNow,
                     WorldId2 = 0,
                     ClientId = clientId,
                     ClientName = clientName,
                     StartMoney = 0,
                     DirectMoney = price,
-                    BidWorldID = 0,
+                    BidWorldId = 0,
                     BidderId = 0,
                     BidderName = "",
                     BidMoney = 0,
