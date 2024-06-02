@@ -83,7 +83,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     public bool CheckSpawnerInGameSchedules(int spawnerId)
     {
         var res = CheckSpawnerScheduler(spawnerId);
-        return res;
+        return res.Contains(true);
     }
 
     public bool CheckDoodadInGameSchedules(uint doodadId)
@@ -99,14 +99,19 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return res.Contains(true);
     }
 
-    private bool CheckSpawnerScheduler(int spawnerId)
+    private List<bool> CheckSpawnerScheduler(int spawnerId)
     {
-        var res = false;
+        if (!_gameScheduleSpawnerIds.ContainsKey(spawnerId))
+        {
+            return new List<bool>();
+        }
+
+        var res = new List<bool>();
         foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
         {
             if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
             {
-                res = true;
+                res.Add(CheckData(gs));
             }
         }
 
