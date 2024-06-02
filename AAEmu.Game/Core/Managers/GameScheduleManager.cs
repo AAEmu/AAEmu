@@ -70,9 +70,9 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return _gameScheduleSpawnerIds.ContainsKey(spawnerId);
     }
 
-    public bool CheckDoodadInScheduleSpawners(int spawnerId)
+    public bool CheckDoodadInScheduleSpawners(int doodadId)
     {
-        return _gameScheduleDoodadIds.ContainsKey(spawnerId);
+        return _gameScheduleDoodadIds.ContainsKey(doodadId);
     }
 
     //public bool CheckDoodadInScheduleSpawners(int spawnerId)
@@ -88,9 +88,8 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
     public bool CheckDoodadInGameSchedules(uint doodadId)
     {
-        //if (!GetGameScheduleDoodadsData(doodadId)) { return false; }
         var res = CheckDoodadScheduler((int)doodadId);
-        return res.Contains(true);
+        return res;
     }
 
     public bool CheckQuestInGameSchedules(uint questId)
@@ -119,15 +118,43 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return res;
     }
 
-    private List<bool> CheckDoodadScheduler(int spawnerId)
+    private bool CheckDoodadScheduler(int doodadId)
     {
-        if (!_gameScheduleDoodadIds.ContainsKey(spawnerId))
+        var res = false;
+        foreach (var gameScheduleId in _gameScheduleDoodadIds[doodadId])
         {
-            return new List<bool>();
+            if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
+            {
+                res = true;
+            }
         }
 
+        return res;
+    }
+
+    //private List<bool> CheckDoodadScheduler(int doodadId)
+    //{
+    //    if (!_gameScheduleDoodadIds.ContainsKey(doodadId))
+    //    {
+    //        return new List<bool>();
+    //    }
+
+    //    var res = new List<bool>();
+    //    foreach (var gameScheduleId in _gameScheduleDoodadIds[doodadId])
+    //    {
+    //        if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
+    //        {
+    //            res.Add(CheckData(gs));
+    //        }
+    //    }
+
+    //    return res;
+    //}
+
+    public bool PeriodHasAlreadyBegunDoodad(int doodadId)
+    {
         var res = new List<bool>();
-        foreach (var gameScheduleId in _gameScheduleDoodadIds[spawnerId])
+        foreach (var gameScheduleId in _gameScheduleDoodadIds[doodadId])
         {
             if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
             {
@@ -135,7 +162,21 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
             }
         }
 
-        return res;
+        return res.Contains(true);
+    }
+
+    public bool PeriodHasAlreadyBegunNpc(int spawnerId)
+    {
+        var res = new List<bool>();
+        foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
+        {
+            if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
+            {
+                res.Add(CheckData(gs));
+            }
+        }
+
+        return res.Contains(true);
     }
 
     private List<bool> CheckScheduler()
@@ -161,6 +202,26 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         }
 
         foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
+        {
+            if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
+
+            var gameSchedules = _gameSchedules[gameScheduleId];
+
+            cronExpression = start ? GetCronExpression(gameSchedules, true) : GetCronExpression(gameSchedules, false);
+        }
+
+        return cronExpression;
+    }
+
+    public string GetDoodadCronRemainingTime(int doodadId, bool start = true)
+    {
+        var cronExpression = Empty;
+        if (!_gameScheduleDoodadIds.ContainsKey(doodadId))
+        {
+            return cronExpression;
+        }
+
+        foreach (var gameScheduleId in _gameScheduleDoodadIds[doodadId])
         {
             if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
 

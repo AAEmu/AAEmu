@@ -326,7 +326,6 @@ public class NpcSpawner : Spawner<Npc>
         }
 
         #region Schedule
-
         _isScheduled = false;
         // Check if Time Of Day matches Template.StartTime or Template.EndTime
         if (Template.StartTime > 0.0f | Template.EndTime > 0.0f)
@@ -352,46 +351,56 @@ public class NpcSpawner : Spawner<Npc>
                 return true;
             }
         }
-        // First, let's check if the schedule has such an spawnerId
-        else if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id))
+        else
         {
-            _isScheduled = true; // Npc is on the schedule
-
-            // if there is, we'll check the time for the spawning
-            if (GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)Template.Id))
+            // спавнер присутствует в расписании `game_schedule_doodads`
+            // First, let's check if the schedule has such an spawnerId
+            var scheduleSpawner = GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id);
+            if (scheduleSpawner)
             {
-                // есть в расписании, надо спавнить сейчас
-                // is in the schedule, we need to spawn now
-                return false;
-            }
+                // спавнер присутствует в расписании `game_schedules`
+                // if there is, we'll check the time for the spawning
+                var inGameSchedule = GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)Template.Id);
+                if (inGameSchedule)
+                {
+                    _isScheduled = true; // Npc is on the schedule
+                    // период уже начался
+                    // period has already started
+                    var alreadyBegun = GameScheduleManager.Instance.PeriodHasAlreadyBegunNpc((int)Template.Id);
+                    // есть в расписании такой spawner и есть время спавна
+                    // there is such a spawner in the schedule and there is a spawn time
+                    if (!alreadyBegun)
+                    {
+                        // есть в расписании, надо запланировать
+                        // is on the schedule, needs to be scheduled
+                        var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
+                        if (cronExpression is "" or "0 0 0 0 0 ?")
+                        {
+                            Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn Npc {UnitId} from spawnerId {Template.Id}");
+                            Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                            _isScheduled = false;
+                            return false;
+                        }
 
-            // есть в расписании, надо запланировать
-            // is on the schedule, needs to be scheduled
-            var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
+                        try
+                        {
+                            TaskManager.Instance.CronSchedule(new NpcSpawnerDoSpawnTask(this), cronExpression);
+                        }
+                        catch (Exception)
+                        {
+                            Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn Npc {UnitId} from spawnerId {Template.Id}");
+                            Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                            _isScheduled = false;
+                            return false;
+                        }
 
-            if (cronExpression is "" or "0 0 0 0 0 ?")
-            {
-                Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawnerId {Template.Id}");
-                Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
-                return false;
+                        return true; // Reschedule when OK
+                        // couldn't find it on the schedule, but it should have been!
+                        // no entries found for this unit in Game_Schedule table
+                    }
+                }
             }
-
-            try
-            {
-                TaskManager.Instance.CronSchedule(new NpcSpawnerDoSpawnTask(this), cronExpression);
-            }
-            catch (Exception)
-            {
-                Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn npc {UnitId} from spawnerId {Template.Id}");
-                Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
-                return false;
-            }
-
-            return true; // Reschedule when OK
-            // couldn't find it on the schedule, but it should have been!
-            // no entries found for this unit in Game_Schedule table
         }
-
         #endregion Schedule
 
         return false;
@@ -406,7 +415,6 @@ public class NpcSpawner : Spawner<Npc>
     private void DoDespawnSchedule(Npc npc, bool all = false, float timeToDespawn = 0)
     {
         #region Schedule
-
         // удалим по запросу
         if (timeToDespawn > 0)
         {
@@ -437,32 +445,53 @@ public class NpcSpawner : Spawner<Npc>
                 return; // Reschedule when OK
             }
         }
-        // First, let's check if the schedule has such an Template.Id
-        else if (GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id))
+        else
         {
-            var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
-
-            if (cronExpression is "" or "0 0 0 0 0 ?")
+            // спавнер присутствует в расписании `game_schedule_doodads`
+            // First, let's check if the schedule has such an spawnerId
+            var scheduleSpawner = GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id);
+            if (scheduleSpawner)
             {
-                Logger.Warn($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawnerId {Template.Id}");
-                Logger.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
-                return;
-            }
+                // спавнер присутствует в расписании `game_schedules`
+                // if there is, we'll check the time for the spawning
+                var inGameSchedule = GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)Template.Id);
+                if (inGameSchedule)
+                {
+                    // период уже начался
+                    // period has already started
+                    var alreadyBegun = GameScheduleManager.Instance.PeriodHasAlreadyBegunNpc((int)Template.Id);
+                    // есть в расписании такой spawner и есть время спавна
+                    // there is such a spawner in the schedule and there is a spawn time
+                    if (!alreadyBegun)
+                    {
+                        // есть в расписании, надо запланировать
+                        // is on the schedule, needs to be scheduled
+                        var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, false);
+                        if (cronExpression is "" or "0 0 0 0 0 ?")
+                        {
+                            Logger.Warn($"DoDespawnSchedule: Can't reschedule despawn Npc {UnitId} from spawnerId {Template.Id}");
+                            Logger.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
+                            return;
+                        }
 
-            try
-            {
-                TaskManager.Instance.CronSchedule(new NpcSpawnerDoDespawnTask(npc), cronExpression);
-            }
-            catch (Exception)
-            {
-                Logger.Warn($"DoDespawnSchedule: Can't reschedule despawn npc {UnitId} from spawnerId {Template.Id}");
-                Logger.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
-                return;
-            }
+                        try
+                        {
+                            TaskManager.Instance.CronSchedule(new NpcSpawnerDoDespawnTask(npc), cronExpression);
+                        }
+                        catch (Exception)
+                        {
+                            Logger.Warn($"DoDespawnSchedule: Can't reschedule despawn Npc {UnitId} from spawnerId {Template.Id}");
+                            Logger.Warn($"DoDespawnSchedule: cronExpression {cronExpression}");
+                            return;
+                        }
+                        // couldn't find it on the schedule, but it should have been!
+                        // no entries found for this unit in Game_Schedule table
+                    }
+                }
 
-            return; // Reschedule when OK
+                return; // Reschedule when OK
+            }
         }
-
         #endregion Schedule
 
         DoDespawn(npc, all);
