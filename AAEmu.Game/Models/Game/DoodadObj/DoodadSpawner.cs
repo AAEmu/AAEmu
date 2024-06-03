@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -169,52 +170,130 @@ public class DoodadSpawner : Spawner<Doodad>
     public void DoDespawn(Doodad doodad)
     {
         #region Schedule
+        // спавнер присутствует в расписании `game_schedule_doodads`
         // First, let's check if the schedule has such an spawnerId
-        if (GameScheduleManager.Instance.CheckDoodadInScheduleSpawners((int)doodad.TemplateId))
+        var scheduleSpawner = GameScheduleManager.Instance.CheckDoodadInScheduleSpawners((int)UnitId);
+        if (scheduleSpawner)
         {
+            // спавнер присутствует в расписании `game_schedules`
             // if there is, we'll check the time for the spawning
-            if (GameScheduleManager.Instance.CheckDoodadInGameSchedules(doodad.TemplateId))
+            var inGameSchedule = GameScheduleManager.Instance.CheckDoodadInGameSchedules(UnitId);
+            if (inGameSchedule)
             {
-                var delay = GameScheduleManager.Instance.GetRemainingTime((int)doodad.TemplateId, false);
-                Logger.Debug("DoDespawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
-                Logger.Debug("DoDespawn: delay {0}", delay.ToString());
-                TaskManager.Instance.Schedule(new DoodadSpawnerDoDespawnTask(doodad), delay);
-                return; // Reschedule when OK
+                // период уже начался
+                // period has already started
+                var alreadyBegun = GameScheduleManager.Instance.PeriodHasAlreadyBegunDoodad((int)UnitId);
+                // есть в расписании такой spawner и есть время спавна
+                // there is such a spawner in the schedule and there is a spawn time
+                if (!alreadyBegun)
+                {
+                    // есть в расписании, надо запланировать
+                    // is on the schedule, needs to be scheduled
+                    var cronExpression =
+                        GameScheduleManager.Instance.GetDoodadCronRemainingTime((int)doodad.TemplateId, false);
+                    if (cronExpression is "" or "0 0 0 0 0 ?")
+                    {
+                        Logger.Warn($"DoSpawnSchedule: Can't reschedule despawn Doodad templateId={doodad.TemplateId} objId={doodad.ObjId}");
+                        Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            TaskManager.Instance.CronSchedule(new DoodadSpawnerDoDespawnTask(doodad), cronExpression);
+                            return; // Reschedule when OK
+                        }
+                        catch (Exception)
+                        {
+                            Logger.Warn($"DoSpawnSchedule: Can't reschedule despawn Doodad templateId={doodad.TemplateId} objId={doodad.ObjId}");
+                            Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                        }
+                    }
+                    // couldn't find it on the schedule, but it should have been!
+                    // no entries found for this unit in Game_Schedule table
+                    // All the same, we will be Spawn Doodad, since there was no record in Scheduler
+                    // Тем не менее, мы будем спавнить doodad, так как в планировщике не было никаких записей
+                }
             }
-
-            // couldn't find it on the schedule, but it should have been!
-            // no entries found for this unit in Game_Schedule table
-            return;
         }
         #endregion Schedule
 
         Despawn(doodad);
-        Logger.Debug("DoDespawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} spawn [2] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
-        TaskManager.Instance.Schedule(new DoodadSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(1));
+        if (scheduleSpawner)
+        {
+            var cronExpression = GameScheduleManager.Instance.GetDoodadCronRemainingTime((int)UnitId, false);
+            if (cronExpression is "" or "0 0 0 0 0 ?")
+            {
+                Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn Doodad templateId={UnitId} objId={Last.ObjId}");
+                Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+            }
+            else
+            {
+                try
+                {
+                    Logger.Debug($"DoDespawn: Doodad TemplateId {doodad.TemplateId}, objId {doodad.ObjId} FuncGroupId {doodad.FuncGroupId}, cronExpression={cronExpression} spawn reschedule next time...");
+                    TaskManager.Instance.CronSchedule(new DoodadSpawnerDoSpawnTask(this), cronExpression);
+                }
+                catch (Exception)
+                {
+                    Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn Doodad templateId={UnitId} objId={Last.ObjId}");
+                    Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                }
+            }
+        }
     }
 
     public void DoSpawn()
     {
         #region Schedule
+        // спавнер присутствует в расписании `game_schedule_doodads`
         // First, let's check if the schedule has such an spawnerId
-        if (GameScheduleManager.Instance.CheckDoodadInScheduleSpawners((int)UnitId))
+        var scheduleSpawner = GameScheduleManager.Instance.CheckDoodadInScheduleSpawners((int)UnitId);
+        if (scheduleSpawner)
         {
+            // спавнер присутствует в расписании `game_schedules`
             // if there is, we'll check the time for the spawning
-            if (GameScheduleManager.Instance.CheckDoodadInGameSchedules(UnitId))
+            var inGameSchedule = GameScheduleManager.Instance.CheckDoodadInGameSchedules(UnitId);
+            if (inGameSchedule)
             {
-                var delay = GameScheduleManager.Instance.GetRemainingTime((int)UnitId, true);
                 _permanent = false; // Doodad on the schedule.
-                Logger.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [1] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
-                Logger.Debug("DoSpawn: delay {0}", delay.ToString());
-                TaskManager.Instance.Schedule(new DoodadSpawnerDoSpawnTask(this), delay);
-                return; // Reschedule when OK
-            }
+                // период уже начался
+                // period has already started
+                var alreadyBegun = GameScheduleManager.Instance.PeriodHasAlreadyBegunDoodad((int)UnitId);
+                // есть в расписании такой spawner и есть время спавна
+                // there is such a spawner in the schedule and there is a spawn time
+                if (!alreadyBegun)
+                {
+                    // есть в расписании, надо запланировать
+                    // is on the schedule, needs to be scheduled
+                    var cronExpression = GameScheduleManager.Instance.GetDoodadCronRemainingTime((int)UnitId, true);
+                    if (cronExpression is "" or "0 0 0 0 0 ?")
+                    {
+                        Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn Doodad templateId={UnitId} objId={Last.ObjId}");
+                        Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                        _permanent = true;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            TaskManager.Instance.CronSchedule(new DoodadSpawnerDoSpawnTask(this), cronExpression);
+                            return; // Reschedule when OK
+                        }
+                        catch (Exception)
+                        {
+                            Logger.Warn($"DoSpawnSchedule: Can't reschedule spawn Doodad templateId={UnitId} objId={Last.ObjId}");
+                            Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                            _permanent = true;
+                        }
+                    }
 
-            // couldn't find it on the schedule, but it should have been!
-            // no entries found for this unit in Game_Schedule table
-            //return;
-            // All the same, we will be Spawn Doodad, since there was no record in Scheduler
-            // Тем не менее, мы будем спавнить doodad, так как в планировщике не было никаких записей
+                    // couldn't find it on the schedule, but it should have been!
+                    // no entries found for this unit in Game_Schedule table
+                    // All the same, we will be Spawn Doodad, since there was no record in Scheduler
+                    // Тем не менее, мы будем спавнить doodad, так как в планировщике не было никаких записей
+                }
+            }
         }
         #endregion Schedule
 
@@ -234,11 +313,6 @@ public class DoodadSpawner : Spawner<Doodad>
         }
 
         _spawned.Add(Last);
-        if (!_permanent)
-        {
-            Logger.Debug("DoSpawn: Doodad TemplateId {0}, objId {1} FuncGroupId {2} despawn [2] reschedule next time...", UnitId, Last.ObjId, Last.FuncGroupId);
-            TaskManager.Instance.Schedule(new DoodadSpawnerDoDespawnTask(Last), TimeSpan.FromSeconds(1));
-        }
 
         if (_scheduledCount > 0)
         {
@@ -248,6 +322,29 @@ public class DoodadSpawner : Spawner<Doodad>
         if (_spawnCount < 0)
         {
             _spawnCount = 0;
+        }
+
+        if (!_permanent)
+        {
+            var cronExpression = GameScheduleManager.Instance.GetDoodadCronRemainingTime((int)Last.TemplateId, false);
+            if (cronExpression is "" or "0 0 0 0 0 ?")
+            {
+                Logger.Warn($"DoSpawnSchedule: Can't reschedule despawn Doodad templateId={Last.TemplateId} objId={Last.ObjId}");
+                Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+            }
+            else
+            {
+                try
+                {
+                    TaskManager.Instance.CronSchedule(new DoodadSpawnerDoDespawnTask(Last), cronExpression);
+                }
+                catch (Exception)
+                {
+                    Logger.Warn($"DoSpawnSchedule: Can't reschedule despawn Doodad templateId={Last.TemplateId} objId={Last.ObjId}");
+                    Logger.Warn($"DoSpawnSchedule: cronExpression {cronExpression}");
+                }
+            }
+            //TaskManager.Instance.Schedule(new DoodadSpawnerDoDespawnTask(Last), TimeSpan.FromSeconds(1));
         }
     }
 }
