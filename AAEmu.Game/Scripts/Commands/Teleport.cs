@@ -628,35 +628,34 @@ public class Teleport : ICommand
         {
             var n = args[0].ToLower();
 
-            //    if (AllowPingPos && (n == "."))
-            //    {
-            //        if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))
-            //        {
-            //            character.SendMessage("|cFFFFFF00[Teleport] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, before using this teleport function.\n" +
-            //                "If required, you can use the /soloparty command to make a party of just yourself.|r");
-            //        }
-            //        else
-            //        {
-            //            var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
-            //            if (height == 0f)
-            //            {
-            //                character.SendMessage("|cFFFF0000[Teleport] Target height was |cFFFFFFFFzero|cFFFF0000. " +
-            //                    "You likely tried to teleport out of bounds, or no heightmaps where loaded on the server.\n" +
-            //                    "If you still want to move to the target location, you can use |cFFFFFFFF/move|cFFFF0000 to go to the following location|cFF40FF40\n" +
-            //                    "X:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + "|r");
-            //            }
-            //            else
-            //            {
-            //                height += 2.5f; // compensate a bit for terrain irregularities
-            //                character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" + character.LocalPingPosition.Y + " Z:" + height + "|r");
-            //                character.ForceDismount();
-            //                character.DisabledSetPosition = true;
-            //                character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
-            //            }
-            //        }
-            //    }
-            //    else
-            if (character.InstanceId != WorldManager.DefaultInstanceId)
+            if (AllowPingPos && (n == "."))
+            {
+                if ((character.LocalPingPosition.Positions[1].X == 0f) && (character.LocalPingPosition.Positions[1].Y == 0f))
+                {
+                    character.SendMessage("|cFFFFFF00[Teleport] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, before using this teleport function.\n" +
+                        "If required, you can use the /soloparty command to make a party of just yourself.|r");
+                }
+                else
+                {
+                    var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.Positions[1].X, character.LocalPingPosition.Positions[1].Y);
+                    if (height == 0f)
+                    {
+                        character.SendMessage("|cFFFF0000[Teleport] Target height was |cFFFFFFFFzero|cFFFF0000. " +
+                            "You likely tried to teleport out of bounds, or no heightmaps where loaded on the server.\n" +
+                            "If you still want to move to the target location, you can use |cFFFFFFFF/move|cFFFF0000 to go to the following location|cFF40FF40\n" +
+                            "X:" + character.LocalPingPosition.Positions[1].X.ToString("0.0") + " Y:" + character.LocalPingPosition.Positions[1].Y.ToString("0.0") + "|r");
+                    }
+                    else
+                    {
+                        height += 2.5f; // compensate a bit for terrain irregularities
+                        character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.Positions[1].X + " Y:" + character.LocalPingPosition.Positions[1].Y + " Z:" + height + "|r");
+                        character.ForceDismount();
+                        character.DisabledSetPosition = true;
+                        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, ErrorMessageType.NoErrorMessage, character.LocalPingPosition.Positions[1].X, character.LocalPingPosition.Positions[1].Y, height, 0));
+                    }
+                }
+            }
+            else if (character.InstanceId != WorldManager.DefaultInstanceId)
             {
                 character.SendMessage("|cFFFFFF00[Teleport] Named teleports are not allowed inside a instance.|r");
             }
