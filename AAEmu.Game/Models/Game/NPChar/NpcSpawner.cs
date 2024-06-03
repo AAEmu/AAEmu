@@ -195,15 +195,10 @@ public class NpcSpawner : Spawner<Npc>
             }
             else
             {
-                // если это первый старт сервера, то спавним только - NpcSpawnerCategory.Autocreated;
-                // if this is the first start of the server, then only spawn - NpcSpawnerCategory.Autocreated;
-                if (template.NpcSpawnerCategoryId != NpcSpawnerCategory.Autocreated && npcSpawnerIds.Count > 1 && beginning)
-                {
-                    continue;
-                }
-                // если это обычный спавн Npc, то пропускаем NpcSpawnerCategory.Autocreated
-                // if it's a normal Npc spawn then skip NpcSpawnerCategory.Autocreated
-                if (template.NpcSpawnerCategoryId == NpcSpawnerCategory.Autocreated && npcSpawnerIds.Count > 1 && !beginning)
+                // cпавним всегда по возможности NpcSpawnerCategory.Autocreated
+                // если это обычный спавн Npc, то пропускаем NpcSpawnerCategory.Normal
+                // if it's a normal Npc spawn then skip NpcSpawnerCategory.Normal
+                if (template.NpcSpawnerCategoryId == NpcSpawnerCategory.Normal && npcSpawnerIds.Count > 1)
                 {
                     continue;
                 }
@@ -462,7 +457,7 @@ public class NpcSpawner : Spawner<Npc>
                     var alreadyBegun = GameScheduleManager.Instance.PeriodHasAlreadyBegunNpc((int)Template.Id);
                     // есть в расписании такой spawner и есть время спавна
                     // there is such a spawner in the schedule and there is a spawn time
-                    if (!alreadyBegun)
+                    if (alreadyBegun)
                     {
                         // есть в расписании, надо запланировать
                         // is on the schedule, needs to be scheduled

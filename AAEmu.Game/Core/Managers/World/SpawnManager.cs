@@ -93,8 +93,14 @@ public class SpawnManager : Singleton<SpawnManager>
                 foreach (var id in npcSpawnerIds)
                 {
                     npcSpawner.NpcSpawnerIds.Add(id);
+                    var template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                    if (template.NpcSpawnerCategoryId == NpcSpawnerCategory.Normal && npcSpawnerIds.Count > 1)
+                    {
+                        continue;
+                    }
+                    // сохраняем npcSpawner.Id для NpcSpawnerCategory.Autocreated
                     npcSpawner.Id = id;
-                    npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                    npcSpawner.Template = template;
                     foreach (var n in npcSpawner.Template.Npcs)
                     {
                         n.Position = npcSpawner.Position;

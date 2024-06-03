@@ -261,7 +261,10 @@ public class ZoneManager : Singleton<ZoneManager>
             doodad.Transform.ZoneId = zoneId;
         }
         var zone = ZoneManager.Instance.GetZoneByKey(doodad.Transform.ZoneId);
-
+        if (zone == null)
+        {
+            return false;
+        }
         // Get the climates list for this zone
         var zoneClimates = ZoneManager.Instance.GetClimatesByZone(zone);
 
