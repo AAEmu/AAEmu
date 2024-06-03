@@ -439,84 +439,81 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             for (var cellX = 0; cellX < world.CellX; cellX++)
             {
                 var cellFileName = $"{cellX:000}_{cellY:000}";
-                var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
-                    "terrain", "heightmap.dat");
+                var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "terrain", "heightmap.dat");
                 if (ClientFileManager.FileExists(heightMapFile))
-                    using (var stream = ClientFileManager.GetFileStream(heightMapFile))
+                {
+                    using var stream = ClientFileManager.GetFileStream(heightMapFile);
+                    if (stream == null)
                     {
-                        if (stream == null)
-                        {
-                            //Logger.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
-                            continue;
-                        }
-
-                        // Read the cell hmap data
-                        using (var br = new BinaryReader(stream))
-                        {
-                            var hmap = new Hmap();
-
-                            var disableReCalc = false; // (version == VersionCalc.V1) // Version is never VersionCalc.V1
-                            if (hmap.Read(br, disableReCalc) < 0)
-                            {
-                                Logger.Error($"Error reading {heightMapFile}");
-                                continue;
-                            }
-
-                            var nodes = hmap.Nodes
-                                .OrderBy(cell => cell.BoxHeightmap.Min.X)
-                                .ThenBy(cell => cell.BoxHeightmap.Min.Y)
-                                .Where(x => x.pHMData.Length > 0)
-                                .ToList();
-
-                            // Read nodes into heightmap array
-
-                            #region ReadNodes
-
-                            for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
-                                for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
-                                    for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
-                                        for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
-                                        {
-                                            var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
-                                            var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
-                                            var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
-
-                                            ushort value;
-                                            switch (version)
-                                            {
-                                                case VersionCalc.V1:
-                                                    {
-                                                        var doubleValue = node.fRange * 100000d;
-                                                        var rawValue = node.RawDataByIndex(unitX, unitY);
-
-                                                        value = (ushort)((doubleValue / 1.52604335620711f) *
-                                                                         world.HeightMaxCoefficient /
-                                                                         ushort.MaxValue * rawValue +
-                                                                         node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
-                                                    }
-                                                    break;
-                                                case VersionCalc.V2:
-                                                    {
-                                                        value = node.RawDataByIndex(unitX, unitY);
-                                                        var height = node.RawDataToHeight(value);
-                                                    }
-                                                    break;
-                                                case VersionCalc.Draft:
-                                                    {
-                                                        var height = node.GetHeight(unitX, unitY);
-                                                        value = (ushort)(height * world.HeightMaxCoefficient);
-                                                    }
-                                                    break;
-                                                default:
-                                                    throw new NotSupportedException(nameof(version));
-                                            }
-
-                                            world.HeightMaps[oX, oY] = value;
-                                        }
-
-                            #endregion
-                        }
+                        //Logger.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
+                        continue;
                     }
+
+                    // Read the cell hmap data
+                    using var br = new BinaryReader(stream);
+                    var hmap = new Hmap();
+
+                    var disableReCalc = false; // (version == VersionCalc.V1) // Version is never VersionCalc.V1
+                    if (hmap.Read(br, disableReCalc) < 0)
+                    {
+                        Logger.Error($"Error reading {heightMapFile}");
+                        continue;
+                    }
+
+                    var nodes = hmap.Nodes
+                        .OrderBy(cell => cell.BoxHeightmap.Min.X)
+                        .ThenBy(cell => cell.BoxHeightmap.Min.Y)
+                        .Where(x => x.pHMData.Length > 0)
+                        .ToList();
+
+                    // Read nodes into heightmap array
+
+                    #region ReadNodes
+
+                    for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
+                    for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
+                    for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
+                    for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
+                    {
+                        var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
+                        var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
+                        var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
+
+                        ushort value;
+                        switch (version)
+                        {
+                            case VersionCalc.V1:
+                                {
+                                    var doubleValue = node.fRange * 100000d;
+                                    var rawValue = node.RawDataByIndex(unitX, unitY);
+
+                                    value = (ushort)((doubleValue / 1.52604335620711f) *
+                                                     world.HeightMaxCoefficient /
+                                                     ushort.MaxValue * rawValue +
+                                                     node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
+                                }
+                                break;
+                            case VersionCalc.V2:
+                                {
+                                    value = node.RawDataByIndex(unitX, unitY);
+                                    var height = node.RawDataToHeight(value);
+                                }
+                                break;
+                            case VersionCalc.Draft:
+                                {
+                                    var height = node.GetHeight(unitX, unitY);
+                                    value = (ushort)(height * world.HeightMaxCoefficient);
+                                }
+                                break;
+                            default:
+                                throw new NotSupportedException(nameof(version));
+                        }
+
+                        world.HeightMaps[oX, oY] = value;
+                    }
+
+                    #endregion
+                }
             }
 
         Logger.Info("{0} heightmap loaded", world.Name);

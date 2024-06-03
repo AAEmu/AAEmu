@@ -18,7 +18,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.FishSchools;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -37,7 +36,6 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
-using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Char;
 
