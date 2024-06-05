@@ -91,13 +91,13 @@ public class SpawnManager : Singleton<SpawnManager>
             else
             {
                 // TODO добавил список спавнеров // added a list of spawners
+                var pattern = $@"\b{Regex.Escape(npcSpawner.UnitId.ToString())}\b";
+                var regex = new Regex(pattern);
                 foreach (var id in npcSpawnerIds)
                 {
                     // в template.Name обычно должно присутствовать templateId для нашего Npc, по нему будем брать нужный spawnerId
                     // in template.Name there should usually be a templateId for our Npc, we will use it to take the required spawnerId 
                     var template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
-                    var pattern = $@"\b{Regex.Escape(npcSpawner.UnitId.ToString())}\b";
-                    var regex = new Regex(pattern);
                     var containsId = regex.IsMatch(template.Name);
                     if (containsId)
                     {

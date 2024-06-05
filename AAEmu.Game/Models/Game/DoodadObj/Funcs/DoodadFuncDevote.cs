@@ -29,20 +29,47 @@ public class DoodadFuncDevote : DoodadFuncTemplate
             return;
         }
 
-        var currentCount = ResidentManager.Instance.GetResidentTokenCount(character);
-        currentCount += ItemCount;
-        ResidentManager.Instance.UpdateResidentTokenCount(character, currentCount);
+        // сохраним инфу о doodad.Data в базе
+        owner.Data += ItemCount;
 
-        if (currentCount >= Count)
+        // если это база на o_shining_shore_1 или o_shining_shore_2
+        if (character.Transform.ZoneId == 282 || character.Transform.ZoneId == 301)
         {
-            currentCount = 0;
-            character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, currentCount));
-            ResidentManager.Instance.UpdateDevelopmentStage(character);
-            owner.ToNextPhase = true;
-            return;
+            if (owner.Data >= Count)
+            {
+                owner.Data = 0;
+                SaveDoodadData(owner);
+                character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, owner.Data));
+                owner.ToNextPhase = true;
+                return;
+            }
+        }
+        else
+        {
+            // если это Residents
+            ResidentManager.Instance.UpdateResidentTokenCount(character, owner.Data);
+            if (owner.Data >= Count)
+            {
+                owner.Data = 0;
+                SaveDoodadData(owner);
+                character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, owner.Data));
+                ResidentManager.Instance.UpdateDevelopmentStage(character);
+                owner.ToNextPhase = true;
+                return;
+            }
         }
 
-        character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, currentCount));
+        SaveDoodadData(owner);
+        character.SendPacket(new SCDoodadChangedPacket(owner.ObjId, owner.Data));
         owner.ToNextPhase = false;
+    }
+
+    private static void SaveDoodadData(Doodad owner)
+    {
+        var persistent = owner.IsPersistent;
+        if (!owner.IsPersistent)
+            owner.IsPersistent = true;
+        owner.Save();
+        owner.IsPersistent = persistent;
     }
 }
