@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Auction;
 using NetCoreServer;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using NLog;
+using System.Web;
 
 namespace AAEmu.Game.Services.WebApi.Controllers
 {
@@ -14,8 +18,6 @@ namespace AAEmu.Game.Services.WebApi.Controllers
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         /// Adds an item to the auction house.
-        /// "request" The HTTP request containing the item details.
-        /// "matches" The regex matches from the route.
         /// Returns A JSON response indicating success or failure.
         [WebApiPost("/api/auction/add")]
         public HttpResponse AddAuctionItem(HttpRequest request, MatchCollection matches)
@@ -85,26 +87,75 @@ namespace AAEmu.Game.Services.WebApi.Controllers
                 return BadRequestJson(new { error = "Internal server error", details = ex.Message });
             }
         }
-    }
 
-    /// Represents a request to add an auction item.
-    public class AuctionItemRequest
-    {
-        public uint ItemId { get; set; }
-        public uint Quantity { get; set; }
-        public int Price { get; set; }
-        public int Duration { get; set; }
-        public uint ClientId { get; set; }
-        public string ClientName { get; set; }
+        /// Returns A JSON response with the list of all auction items.
+        [WebApiGet("/api/auction/list")]
+        public HttpResponse GetAllAuctionItems(HttpRequest request, MatchCollection matches)
+        {
+            try
+            {
+                var auctionItems = AuctionManager.Instance._auctionItems;
+                return OkJson(new { items = auctionItems });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error retrieving auction items");
+                return BadRequestJson(new { error = "Internal server error", details = ex.Message });
+            }
+        }
+
+
+        /// Returns A JSON response with the filtered list of auction items.
+        [WebApiGet("/api/auction/search")]
+        public HttpResponse SearchAuctionItems(HttpRequest request, MatchCollection matches)
+        {
+            try
+            {
+                var query = AuctionManager.Instance._auctionItems.AsQueryable();
+
+                // Extract query parameters from the URL
+                var queryParams = HttpUtility.ParseQueryString(request.Url.Split('?').Length > 1 ? request.Url.Split('?')[1] : "");
+
+                // Apply filters
+                if (queryParams["itemId"] != null)
+                {
+                    uint itemId = uint.Parse(queryParams["itemId"]);
+                    query = query.Where(item => item.ItemID == itemId);
+                }
+                if (queryParams["clientName"] != null)
+                {
+                    string clientName = queryParams["clientName"];
+                    query = query.Where(item => item.ClientName.Equals(clientName, StringComparison.OrdinalIgnoreCase));
+                }
+                if (queryParams["stackSize"] != null)
+                {
+                    uint stackSize = uint.Parse(queryParams["stackSize"]);
+                    query = query.Where(item => item.StackSize == stackSize);
+                }
+                if (queryParams["directMoney"] != null)
+                {
+                    int directMoney = int.Parse(queryParams["directMoney"]);
+                    query = query.Where(item => item.DirectMoney == directMoney);
+                }
+                if (queryParams["bidMoney"] != null)
+                {
+                    int bidMoney = int.Parse(queryParams["bidMoney"]);
+                    query = query.Where(item => item.BidMoney == bidMoney);
+                }
+                if (queryParams["bidderName"] != null)
+                {
+                    string bidderName = queryParams["bidderName"];
+                    query = query.Where(item => item.BidderName.Equals(bidderName, StringComparison.OrdinalIgnoreCase));
+                }
+
+                var auctionItems = query.ToList();
+                return OkJson(new { items = auctionItems });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error retrieving auction items");
+                return BadRequestJson(new { error = "Internal server error", details = ex.Message });
+            }
+        }
     }
 }
-
-/// Example api JSON Payload to POST
-///{
-///    "itemId": 1234,
-///    "quantity": 10,
-///    "price": 5000,
-///    "duration": 3600,
-///    "clientId": 5678,
-///    "clientName": "PlayerName"
-///}
