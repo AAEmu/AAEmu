@@ -2,4 +2,4 @@
 echo "Please wait while compiling the Login server"
 cd ../AAEmu.Login
 dotnet run
-read -p "Press enter to conitnue ..."
+read -p "Press enter to continue ..."
