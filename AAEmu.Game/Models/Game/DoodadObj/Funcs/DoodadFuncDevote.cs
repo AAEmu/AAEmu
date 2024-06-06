@@ -14,6 +14,8 @@ public class DoodadFuncDevote : DoodadFuncTemplate
     public int ItemCount { get; set; }
     public uint ItemId { get; set; }
 
+    private const uint AbyssalAdept = 42931u;
+
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         Logger.Debug($"DoodadFuncDevote: Count={Count}, ItemCount={ItemCount}, ItemId={ItemId}");
@@ -35,6 +37,7 @@ public class DoodadFuncDevote : DoodadFuncTemplate
         // если это база на o_shining_shore_1 или o_shining_shore_2
         if (character.Transform.ZoneId == 282 || character.Transform.ZoneId == 301)
         {
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, AbyssalAdept, 1);
             if (owner.Data >= Count)
             {
                 owner.Data = 0;
