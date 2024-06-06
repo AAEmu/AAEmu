@@ -83,12 +83,13 @@ public class GameController : Singleton<GameController>
                         var id = reader.GetByte("id");
                         var name = reader.GetString("name");
                         var loadedHost = reader.GetString("host");
-                        var host = ResolveHostName(loadedHost);
+                        var host = AppConfiguration.Instance.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
                         var port = reader.GetUInt16("port");
                         var gameServer = new GameServer(id, name, host, port);
                         _gameServers.Add(gameServer.Id, gameServer);
 
-                        var extraInfo = host != loadedHost ? "from " + loadedHost : "";
+                        var extraInfo = host != loadedHost ? "from " + loadedHost :
+                            AppConfiguration.Instance.SkipHostResolve ? " (unresolved)" : "";
                         Logger.Info($"Game Server {id}: {name} -> {host}:{port} {extraInfo}");
                     }
                 }
