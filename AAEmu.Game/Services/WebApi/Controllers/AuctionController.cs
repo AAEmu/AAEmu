@@ -120,7 +120,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers
                 if (queryParams["itemId"] != null)
                 {
                     uint itemId = uint.Parse(queryParams["itemId"]);
-                    query = query.Where(item => item.ItemID == itemId);
+                    query = query.Where(item => item.ItemId == itemId);
                 }
                 if (queryParams["clientName"] != null)
                 {
