@@ -185,11 +185,13 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         }
 
         foreach (var exp in _expeditions.Values)
+        {
             if (name.Equals(exp.Name))
             {
                 connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionNameExist);
                 return;
             }
+        }
 
         // ----------------- Conditions, can change this...
         var team = TeamManager.Instance.GetActiveTeamByUnit(owner.Id);
@@ -201,8 +203,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         }
 
         // Check the number of members in the party that meet the requirements
-        List<TeamMember> validMembers = new List<TeamMember>();
-        List<TeamMember> teamMembers = new List<TeamMember>();
+        var validMembers = new List<TeamMember>();
+        var teamMembers = new List<TeamMember>();
         teamMembers.AddRange(team.Members.ToList());
 
         foreach (var m in teamMembers)
@@ -241,15 +243,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         }
 
         owner.Money -= AppConfiguration.Instance.Expedition.Create.Cost;
-        owner.SendPacket(
-            new SCItemTaskSuccessPacket(
-                ItemTaskType.ExpeditionCreation,
-                new List<ItemTask>
-                {
-                    new MoneyChange(-AppConfiguration.Instance.Expedition.Create.Cost)
-                },
-                new List<ulong>())
-        );
+        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ExpeditionCreation, new List<ItemTask> { new MoneyChange(-AppConfiguration.Instance.Expedition.Create.Cost) }, new List<ulong>()));
         // -----------------
 
         var expedition = Create(name, owner);
@@ -257,13 +251,10 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         owner.Expedition = expedition;
 
-        owner.SendPacket(
-            new SCFactionCreatedPacket(expedition, owner.ObjId, new[] { (owner.ObjId, owner.Id, owner.Name) })
-        );
+        owner.SendPacket(new SCExpeditionCreatedPacket(expedition, owner.ObjId, new[] { (owner.ObjId, owner.Id, owner.Name) }));
 
         WorldManager.Instance.BroadcastPacketToServer(new SCSystemFactionListPacket(expedition));
-        owner.BroadcastPacket(
-            new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false),
+        owner.BroadcastPacket(new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false),
             true
         );
 
@@ -282,9 +273,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             invited.Expedition = expedition;
             expedition.Members.Add(newMember);
 
-            invited.BroadcastPacket(
-                new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false),
-                true);
+            invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false), true);
             SendExpeditionInfo(invited);
             expedition.OnCharacterLogin(invited);
             // invited.Save(); // Moved to SaveMananger
@@ -304,10 +293,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (invited == null) return;
         if (invited.Expedition != null) return;
 
-        invited.SendPacket(
-            new SCExpeditionInvitationPacket(inviter.Id, inviter.Name, inviter.Expedition.Id,
-                inviter.Expedition.Name)
-        );
+        invited.SendPacket(new SCExpeditionInvitationPacket(inviter.Id, inviter.Name, inviter.Expedition.Id, inviter.Expedition.Name));
     }
 
     public void ReplyInvite(GameConnection connection, uint id1, uint id2, bool reply)
@@ -322,9 +308,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         invited.Expedition = expedition;
         expedition.Members.Add(newMember);
 
-        invited.BroadcastPacket(
-            new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false),
-            true);
+        invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false), true);
         SendExpeditionInfo(invited);
         expedition.OnCharacterLogin(invited);
         Save(expedition);
@@ -361,15 +345,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (expedition == null) return;
 
         expedition.RemoveMember(expedition.GetMember(character));
-        var changedPacket = new SCUnitExpeditionChangedPacket(
-            character.ObjId,
-            character.Id,
-            "",
-            character.Name,
-            expedition.Id,
-            0,
-            false
-        );
+        var changedPacket = new SCUnitExpeditionChangedPacket(character.ObjId, character.Id, "", character.Name, expedition.Id, 0, false);
         character.Expedition = null;
         character.BroadcastPacket(changedPacket, true);
         expedition.SendPacket(changedPacket);
@@ -393,8 +369,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         var kickedChar = WorldManager.Instance.GetCharacterById(kickedId);
 
-        var changedPacket = new SCUnitExpeditionChangedPacket(kickedChar?.ObjId ?? 0,
-            kicked.CharacterId, character.Name, kicked.Name, expedition.Id, 0, true);
+        var changedPacket = new SCUnitExpeditionChangedPacket(kickedChar?.ObjId ?? 0, kicked.CharacterId, character.Name, kicked.Name, expedition.Id, 0, true);
 
         if (kickedChar is not null)
         {
@@ -422,9 +397,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             return;
 
         changedMember.Role = newRole;
-        expedition.SendPacket(
-            new SCExpeditionRoleChangedPacket(changedMember.CharacterId, changedMember.Role, changedMember.Name)
-        );
+        expedition.SendPacket(new SCExpeditionMemberRoleChangedPacket(changedMember.CharacterId, changedMember.Role, changedMember.Name));
         Save(expedition);
     }
 
@@ -445,19 +418,9 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         expedition.OwnerId = newOwnerId;
 
-        expedition.SendPacket(
-            new SCExpeditionOwnerChangedPacket(
-                ownerMember.CharacterId,
-                newOwnerMember.CharacterId,
-                newOwnerMember.Name
-            )
-        );
-        expedition.SendPacket(
-            new SCExpeditionRoleChangedPacket(ownerMember.CharacterId, ownerMember.Role, ownerMember.Name)
-        );
-        expedition.SendPacket(
-            new SCExpeditionRoleChangedPacket(newOwnerMember.CharacterId, newOwnerMember.Role, newOwnerMember.Name)
-        );
+        expedition.SendPacket(new SCExpeditionOwnerChangedPacket(ownerMember.CharacterId, newOwnerMember.CharacterId, newOwnerMember.Name));
+        expedition.SendPacket(new SCExpeditionMemberRoleChangedPacket(ownerMember.CharacterId, ownerMember.Role, ownerMember.Name));
+        expedition.SendPacket(new SCExpeditionMemberRoleChangedPacket(newOwnerMember.CharacterId, newOwnerMember.Role, newOwnerMember.Name));
         Save(expedition);
     }
 

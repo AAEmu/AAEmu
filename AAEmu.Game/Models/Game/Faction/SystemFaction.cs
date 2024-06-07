@@ -65,8 +65,7 @@ public class SystemFaction : PacketMarshaler
         stream.Write(PoliticalSystem);   // PoliticalSystem Byte
         stream.Write(Created);           // createdTime
         stream.Write(AggroLink);         // aggroLink
-        stream.Write(true);              // dTarget
-        //stream.Write(DiplomacyTarget); // нет в 3.0.3.0.
+        stream.Write(DiplomacyTarget);   // dTarget
         stream.Write(AllowChangeName);   // allowChangeName
         stream.Write(0L);                // renameTime
         return stream;
