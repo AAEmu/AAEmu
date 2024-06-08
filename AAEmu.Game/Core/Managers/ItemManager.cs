@@ -180,7 +180,7 @@ public class ItemManager : Singleton<ItemManager>
         // Check all people with a claim on the NPC
 
         HashSet<Character> eligiblePlayers = new HashSet<Character>();
-        if ( unit.CharacterTagging.TagTeam != 0)
+        if (unit.CharacterTagging.TagTeam != 0)
         {
             //A team has tagging rights
             var team = TeamManager.Instance.GetActiveTeam(unit.CharacterTagging.TagTeam);
@@ -245,7 +245,7 @@ public class ItemManager : Singleton<ItemManager>
             lootGoldRate *= (100f + player.LootGoldMul) / 100f;
             Logger.Info($"Unit killed without aggro: {unit.ObjId} ({unit.TemplateId}) by {player.Name}");
         }
-      
+
         // Base ID used for identifying the loot
         var baseId = ((ulong)unit.ObjId << 32) + 65536;
 
@@ -1518,19 +1518,17 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var entry = new ItemSet()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            KindId = reader.GetUInt32("kind_id"),
-                            Name = reader.GetString("name")
-                        };
-                        
+                        var entry = new ItemSet();
+                        entry.Id = reader.GetUInt32("id");
+                        entry.KindId = reader.GetUInt32("kind_id");
+                        //entry.Name = reader.GetString("name"); // there is no such field in the database for version 3.0.3.0
+
                         if (!_itemSets.TryAdd(entry.Id, entry))
                             Logger.Warn($"Duplicate entry for item_sets {entry.Id}");
                     }
                 }
             }
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM item_set_items";
@@ -1539,13 +1537,11 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var entry = new ItemSetItem()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            ItemSetId = reader.GetUInt32("item_set_id"),
-                            ItemId = reader.GetUInt32("item_id"),
-                            Count = reader.GetInt32("count"),
-                        };
+                        var entry = new ItemSetItem();
+                        entry.Id = reader.GetUInt32("id");
+                        entry.ItemSetId = reader.GetUInt32("item_set_id");
+                        entry.ItemId = reader.GetUInt32("item_id");
+                        entry.Count = reader.GetInt32("count");
 
                         if (_itemSets.TryGetValue(entry.ItemSetId, out var itemSet))
                         {
@@ -1555,11 +1551,11 @@ public class ItemManager : Singleton<ItemManager>
                         {
                             Logger.Warn($"Missing item set entry for item_set_items {entry.Id}");
                         }
-                            
+
                     }
                 }
             }
-            
+
             // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
             var invalidItemCount = 0;
             foreach (var i in _templates)
