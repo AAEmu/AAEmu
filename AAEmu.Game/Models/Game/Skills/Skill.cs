@@ -1004,6 +1004,21 @@ public class Skill
                 {
                     item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 }
+
+                // Implement consumption of item sets
+                if (item.effect.ItemSetId > 0)
+                {
+                    // TODO: Check what KindId does (only 1 used in 1.2)
+                    // TODO: Verify items before validating skill
+                    var itemSet = ItemManager.Instance.GetItemSet(item.effect.ItemSetId);
+                    if (itemSet != null)
+                    {
+                        foreach (var itemSetItem in itemSet.Items)
+                        {
+                            player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, itemSetItem.Value.ItemId, itemSetItem.Value.Count, null);
+                        }
+                    }
+                }
             }
             else
                 Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{item.effect.EffectId}]");
