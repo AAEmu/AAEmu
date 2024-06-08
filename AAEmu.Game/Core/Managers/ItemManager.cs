@@ -70,6 +70,8 @@ public class ItemManager : Singleton<ItemManager>
     private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
     private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
     private Dictionary<uint, EquipItemSet> _equipItemSets;
+    private Dictionary<uint, uint> _defaultDyeIds;
+    private Dictionary<uint, ItemSet> _itemSets;
 
     // Events
     public event EventHandler OnItemsLoaded;
@@ -637,6 +639,8 @@ public class ItemManager : Singleton<ItemManager>
         _armorGradeBuffs = new Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>>();
         _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
         _equipItemSets = new Dictionary<uint, EquipItemSet>();
+        _defaultDyeIds = new Dictionary<uint, uint>();
+        _itemSets = new Dictionary<uint, ItemSet>();
         _config = new ItemConfig();
         ItemTimerLock = new();
         LastTimerCheck = DateTime.UtcNow;
@@ -1506,6 +1510,56 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
 
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM item_sets";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var entry = new ItemSet()
+                        {
+                            Id = reader.GetUInt32("id"),
+                            KindId = reader.GetUInt32("kind_id"),
+                            Name = reader.GetString("name")
+                        };
+                        
+                        if (!_itemSets.TryAdd(entry.Id, entry))
+                            Logger.Warn($"Duplicate entry for item_sets {entry.Id}");
+                    }
+                }
+            }
+            
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM item_set_items";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var entry = new ItemSetItem()
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemSetId = reader.GetUInt32("item_set_id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            Count = reader.GetInt32("count"),
+                        };
+
+                        if (_itemSets.TryGetValue(entry.ItemSetId, out var itemSet))
+                        {
+                            itemSet.Items.TryAdd(entry.Id, entry);
+                        }
+                        else
+                        {
+                            Logger.Warn($"Missing item set entry for item_set_items {entry.Id}");
+                        }
+                            
+                    }
+                }
+            }
+            
             // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
             var invalidItemCount = 0;
             foreach (var i in _templates)
@@ -2200,5 +2254,10 @@ public class ItemManager : Singleton<ItemManager>
         if ((item.Template is EquipItemTemplate equipItemTemplate) && (equipItemTemplate.ChargeLifetime > 0))
             character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
         return true;
+    }
+
+    public ItemSet GetItemSet(uint itemSetId)
+    {
+        return _itemSets.GetValueOrDefault(itemSetId);
     }
 }
