@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils;
@@ -72,7 +71,7 @@ public class Skill
 
     public SkillResult Use(BaseUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
     {
-        // Check if the source is a actual Unit
+        // Check if the source is an actual Unit
         if (caster is not Unit unit)
         {
             return SkillResult.InvalidSource;
@@ -83,6 +82,14 @@ public class Skill
 
         unit.ConditionChance = true;
 
+        if (!UnitRequirementsGameData.Instance.CanUseSkill(Template, caster))
+        {
+            if (character != null)
+                Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template.Id}");
+            Cancelled = true;
+            return SkillResult.SkillReqFail;
+        }
+        
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
@@ -142,7 +149,7 @@ public class Skill
                 npc.Ai.OnNoAggroTarget();
             }
             Logger.Debug($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
-            return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
+            return SkillResult.NoTarget; // We should try to make sure this doesn't happen, but can happen with NPC skills
         }
 
         // Unmount character if skill asks for it

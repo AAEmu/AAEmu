@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -80,7 +81,10 @@ public class CSStartSkillPacket : GamePacket
             }
 
             // Use the main skill on the mate/slave
-            skill.Use(caster, skillCaster, skillCastTarget, skillObject);
+            if (skill.Use(caster, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
+            {
+                // skill.Stop(caster, null, skillCaster);
+            }
 
             // If no rider/operator skill is linked, we can stop here
             if (mountAttachedSkill == 0)
@@ -96,38 +100,55 @@ public class CSStartSkillPacket : GamePacket
         {
             // Is it a common skill?
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            if (skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
+            {
+                // skill.Stop(Connection.ActiveChar, null, skillCaster);
+            }
         }
         else if (skillCaster is SkillItem si)
         {
             // A skill triggered by a item
-            var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
+            var player = Connection.ActiveChar; 
+            var item = player.Inventory.GetItemById(si.ItemId);
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
             if (item == null || skillId != item.Template.UseSkillId && item.Template.BindType != ItemBindType.BindOnPickup)
                 return;
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            if (skill.Use(player, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
+            {
+                // skill.Stop(player, null, skillCaster);
+                // TODO: Make it so the skill get properly cancelled and doesn't lock the item
+            }
         }
         else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
         {
             // Is it one of our learned character skills?
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
             var skill = new Skill(template, Connection.ActiveChar);
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            if (skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
+            {
+                // skill.Stop(Connection.ActiveChar, null, skillCaster);
+            }
         }
         else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
         {
             // Variant of learned skill?
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            if (skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
+            {
+                // skill.Stop(Connection.ActiveChar, null, skillCaster);
+            }
         }
         else
         {
             // No idea what this is
-            Logger.Warn("StartSkill: Id {0}, undefined use type", skillId);
-            //If its a valid skill cast it. This fixes interactions with quest items/doodads.
-            var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            Logger.Warn($"StartSkill: Id {skillId}, undefined use type");
+            // If it's a valid skill cast it. This fixes interactions with quest items/doodads.
+            var unSkill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            if (unSkill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
+            {
+                // unSkill.Stop(Connection.ActiveChar, null, skillCaster);
+            }
         }
     }
 }

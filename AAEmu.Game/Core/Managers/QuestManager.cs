@@ -2037,4 +2037,9 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         }
         return res;
     }
+
+    public QuestComponentTemplate GetComponent(uint componentId)
+    {
+        return _componentTemplates.GetValueOrDefault(componentId);
+    }
 }

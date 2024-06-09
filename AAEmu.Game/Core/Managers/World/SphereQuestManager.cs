@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
@@ -26,6 +27,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     private List<SphereQuestTrigger> _addQueue;
     private List<SphereQuestTrigger> _removeQueue;
     private List<SphereQuestStarter> _questStartingSpheres;
+    private List<SphereQuestStarter> _questSpheresBasic;
     // PlayerId, Pos
     private Dictionary<uint, Vector3> _questStartingLastPositionChecks;
 
@@ -38,6 +40,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
         _addQueue = new List<SphereQuestTrigger>();
         _removeQueue = new List<SphereQuestTrigger>();
         _questStartingSpheres = new List<SphereQuestStarter>();
+        _questSpheresBasic = new List<SphereQuestStarter>();
         _questStartingLastPositionChecks = new Dictionary<uint, Vector3>();
     }
 
@@ -53,22 +56,31 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
 
         // Link quest starters to spheres
         _questStartingSpheres.Clear();
-        foreach (var (key, val) in _sphereQuests)
+        foreach (var (componentId, sphereQuestList) in _sphereQuests)
         {
-            foreach (var sphereQuest in val)
+            // Get the relevant QuestComponentTemplate
+            var questComponent = QuestManager.Instance.GetComponent(componentId);
+            if (questComponent == null)
+                continue;
+
+            var sphereIdToAdd = SphereGameData.Instance.GetSphereIdFromQuest(questComponent.ParentQuestTemplate.Id);
+            if (sphereIdToAdd <= 0)
+                continue;
+            
+            foreach (var sphereQuest in sphereQuestList)
             {
-                var acts = QuestManager.Instance.GetActsInComponent(sphereQuest.ComponentId);
-                foreach (var actTemplate in acts)
+                var newSphere = new SphereQuestStarter();
+                newSphere.Sphere = sphereQuest;
+                newSphere.QuestTemplateId = questComponent.ParentQuestTemplate.Id;
+                newSphere.SphereId = sphereIdToAdd;
+                _questSpheresBasic.Add(newSphere);            
+                
+                foreach (var actTemplate in questComponent.ActTemplates)
                 {
-                    if (actTemplate is not QuestActConAcceptSphere questActConAcceptSphere)
-                        continue;
-                    var newStarter = new SphereQuestStarter
+                    if (actTemplate is QuestActConAcceptSphere _)
                     {
-                        Sphere = sphereQuest, 
-                        QuestTemplateId = questActConAcceptSphere.ParentQuestTemplate.Id,
-                        SphereId = questActConAcceptSphere.SphereId
-                    };
-                    _questStartingSpheres.Add(newStarter);
+                        _questStartingSpheres.Add(newSphere);
+                    }
                 }
             }
         }
@@ -180,7 +192,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                 foreach (var region in questStartingSphere.Region.GetNeighbors())
                 {
                     var playersInRegion = new List<Character>();
-                    region.GetList<Character>(playersInRegion, 0);
+                    region.GetList(playersInRegion, 0);
                     foreach (var character in playersInRegion)
                         playersInNearbyRegion.TryAdd(character.Id, character);
                 }
@@ -238,7 +250,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     {
         Logger.Info("Loading SphereQuest...");
         var worlds = WorldManager.Instance.GetWorlds();
-        Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
         var sphereQuests = new Dictionary<uint, List<SphereQuest>>();
         foreach (var world in worlds)
@@ -249,7 +261,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
             {
                 if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))), out var zoneId))
                 {
-                    Logger.Warn("Unable to parse zoneId from {0}", pathFileName);
+                    Logger.Warn($"Unable to parse zoneId from {pathFileName}");
                     continue;
                 }
                 var contents = ClientFileManager.GetFileAsString(pathFileName);
@@ -316,5 +328,15 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
             }
         }
         return sphereQuests;
+    }
+
+    public List<SphereQuest> GetSpheresForQuest(uint questSphereQuestId)
+    {
+        var res = new List<SphereQuest>();
+
+        foreach (var questSpheres in _sphereQuests.Values)
+            res.AddRange(questSpheres.Where(x => x.QuestId == questSphereQuestId).ToList());
+
+        return res;
     }
 }
