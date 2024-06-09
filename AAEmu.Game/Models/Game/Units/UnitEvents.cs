@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Numerics;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
@@ -180,11 +180,15 @@ public class OnAbilityLevelUpArgs : EventArgs
 public class OnEnterSphereArgs : EventArgs
 {
     public SphereQuest SphereQuest { get; set; }
+    public Vector3 OldPosition { get; set; }
+    public Vector3 NewPosition { get; set; }
 }
 
 public class OnExitSphereArgs : EventArgs
 {
     public SphereQuest SphereQuest { get; set; }
+    public Vector3 OldPosition { get; set; }
+    public Vector3 NewPosition { get; set; }
 }
 
 public class OnZoneKillArgs : EventArgs

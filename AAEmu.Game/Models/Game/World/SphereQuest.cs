@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -19,6 +18,9 @@ public enum AreaSphereTriggerCondition
     TriggerEveryNTimeAfter = 3
 }
 
+/// <summary>
+/// Sphere location data
+/// </summary>
 public class SphereQuest
 {
     public uint ZoneId { get; set; }
@@ -34,6 +36,9 @@ public class SphereQuest
     }
 }
 
+/// <summary>
+/// Per user sphere trigger data
+/// </summary>
 public class SphereQuestTrigger
 {
     /// <summary>
@@ -103,15 +108,26 @@ public class SphereQuestTrigger
 
             if (!oldInside && newInside)
             {
-                QuestManager.Instance.DoOnEnterSphereEvents(Owner, Sphere);
+                QuestManager.Instance.DoOnEnterSphereEvents(Owner, Sphere, LastCheckLocation);
             }
             else if (oldInside && !newInside)
             {
-                QuestManager.Instance.DoOnExitSphereEvents(Owner, Sphere);
+                QuestManager.Instance.DoOnExitSphereEvents(Owner, Sphere, LastCheckLocation);
             }
 
             LastCheckLocation = Owner?.Transform?.World?.Position ?? Vector3.Zero;
             LastTick = DateTime.UtcNow;
         }
     }
+}
+
+/// <summary>
+/// Global quest starter triggers
+/// </summary>
+public class SphereQuestStarter
+{
+    public SphereQuest Sphere { get; set; }
+    public uint QuestTemplateId { get; set; }
+    public uint SphereId { get; set; }
+    public Region Region { get; set; }
 }

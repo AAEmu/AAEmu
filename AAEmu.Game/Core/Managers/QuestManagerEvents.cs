@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -293,14 +294,17 @@ public partial class QuestManager
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="sphereQuest"></param>
-    public void DoOnEnterSphereEvents(ICharacter owner, SphereQuest sphereQuest)
+    /// <param name="oldPosition"></param>
+    public void DoOnEnterSphereEvents(ICharacter owner, SphereQuest sphereQuest, Vector3 oldPosition)
     {
         // Check if there's an active quest attached to this sphere
         // var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
 
         owner.Events?.OnEnterSphere(owner, new OnEnterSphereArgs
         {
-            SphereQuest = sphereQuest
+            SphereQuest = sphereQuest,
+            OldPosition = oldPosition,
+            NewPosition = owner.Transform.World.Position
         });
     }
 
@@ -309,14 +313,17 @@ public partial class QuestManager
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="sphereQuest"></param>
-    public void DoOnExitSphereEvents(ICharacter owner, SphereQuest sphereQuest)
+    /// <param name="oldPosition"></param>
+    public void DoOnExitSphereEvents(ICharacter owner, SphereQuest sphereQuest, Vector3 oldPosition)
     {
         // Check if there's an active quest attached to this sphere
         // var quest = owner.Quests.ActiveQuests.GetValueOrDefault(sphereQuest.QuestId);
 
         owner.Events?.OnExitSphere(owner, new OnExitSphereArgs
         {
-            SphereQuest = sphereQuest
+            SphereQuest = sphereQuest,
+            OldPosition = oldPosition,
+            NewPosition = owner.Transform.World.Position
         });
     }
 
@@ -328,5 +335,19 @@ public partial class QuestManager
     public void OnTimerExpired(ICharacter owner, uint questId)
     {
         owner?.Events?.OnTimerExpired(owner, new OnTimerExpiredArgs() { QuestId = questId });
+    }
+
+    /// <summary>
+    /// Triggered when a player enters a sphere marked as a quest starter
+    /// </summary>
+    /// <param name="player"></param>
+    /// <param name="sphereQuestStarter"></param>
+    /// <param name="oldPosition"></param>
+    public void DoOnEnterQuestStarterSphere(ICharacter player, SphereQuestStarter sphereQuestStarter, Vector3 oldPosition)
+    {
+        if (player.Quests.HasQuestCompleted(sphereQuestStarter.QuestTemplateId) || player.Quests.HasQuest(sphereQuestStarter.QuestTemplateId))
+            return;
+        player.Quests.AddQuestFromSphere(sphereQuestStarter.QuestTemplateId, sphereQuestStarter.SphereId);
+
     }
 }
