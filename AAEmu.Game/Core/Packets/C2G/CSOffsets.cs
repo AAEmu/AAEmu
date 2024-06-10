@@ -326,7 +326,7 @@ public static class CSOffsets
     public const ushort CSGetExpeditionApplicantsPacket = 0x0E7;
     public const ushort CSExpeditionApplicantAddPacket = 0x18A;
     public const ushort CSExpeditionApplicantDeletePacket = 0x139;
-    public const ushort CSExpeditionApplicantAccept0EchPacket = 0x0C5;
+    public const ushort CSExpeditionApplicantAcceptPacket = 0x0C5;
     public const ushort CSExpeditionApplicantRejectPacket = 0x0E6;
     public const ushort CSExpeditionSummonPacket = 0x12B;
     public const ushort CSExpeditionSummonReplyPacket = 0x047;
