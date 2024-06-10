@@ -12,7 +12,7 @@ public class SCFactionRelationListPacket : GamePacket
 
     public SCFactionRelationListPacket() : base(SCOffsets.SCFactionRelationListPacket, 5)
     {
-        _relations = new FactionRelation[] { };
+        _relations = [];
     }
 
     public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 5)

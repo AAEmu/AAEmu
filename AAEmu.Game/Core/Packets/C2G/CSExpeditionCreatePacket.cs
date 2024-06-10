@@ -13,7 +13,7 @@ public class CSExpeditionCreatePacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();
-        var id = stream.ReadUInt32(); // TODO character id?
+        var id = stream.ReadUInt32(); // motherId
 
         Logger.Debug($"CreateExpedition, name: {name}, id: {id}");
         ExpeditionManager.Instance.CreateExpedition(name, Connection);

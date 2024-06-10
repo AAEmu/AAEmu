@@ -275,4 +275,30 @@ public static class Helpers
 
         return (T)inst?.Invoke(obj, null);
     }
+
+
+    // Метод для разделения списка на несколько списков с указанным размером
+    // Method for splitting a list into several lists with a specified size
+    public static List<List<T>> SplitList<T>(List<T> list, int size)
+    {
+        return list.Select((x, i) => new { Index = i, Value = x })
+            .GroupBy(x => x.Index / size)
+            .Select(x => x.Select(v => v.Value).ToList())
+            .ToList();
+    }
+    public static T[][] SplitArray<T>(T[] array, int size)
+    {
+        var arraysCount = (int)Math.Ceiling((double)array.Length / size);
+        var arrays = new T[arraysCount][];
+
+        for (var i = 0; i < arraysCount; i++)
+        {
+            var elementsCount = Math.Min(size, array.Length - i * size);
+            arrays[i] = new T[elementsCount];
+            Array.Copy(array, i * size, arrays[i], 0, elementsCount);
+        }
+
+        return arrays;
+    }
+
 }

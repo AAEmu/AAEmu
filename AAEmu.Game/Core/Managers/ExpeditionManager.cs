@@ -11,7 +11,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
@@ -31,6 +30,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     {
         var expedition = new Expedition();
         expedition.Id = ExpeditionIdManager.Instance.GetNextId();
+        expedition.Level = 0;
         expedition.MotherId = owner.Faction.Id;
         expedition.Name = name;
         expedition.OwnerId = owner.Id;
@@ -42,6 +42,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         expedition.DiplomacyTarget = false;
         expedition.Members = new List<ExpeditionMember>();
         expedition.Policies = GetDefaultPolicies(expedition.Id);
+        expedition.Recruitments = new List<ExpeditionRecruitment>();
 
         var member = GetMemberFromCharacter(expedition, owner, true);
 
@@ -76,6 +77,11 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                         expedition.Created = reader.GetDateTime("created_at");
                         expedition.AggroLink = false;
                         expedition.DiplomacyTarget = false;
+                        expedition.Level = reader.GetUInt32("level");
+
+                        expedition.Members = new List<ExpeditionMember>();
+                        expedition.Policies = new List<ExpeditionRolePolicy>();
+                        expedition.Recruitments = new List<ExpeditionRecruitment>();
 
                         _expeditions.Add(expedition.Id, expedition);
                     }
@@ -101,10 +107,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                             member.LastWorldLeaveTime = reader.GetDateTime("last_leave_time");
                             member.Name = reader.GetString("name");
                             member.Level = reader.GetByte("level");
-                            member.Abilities = new byte[]
-                            {
-                                reader.GetByte("ability1"), reader.GetByte("ability2"), reader.GetByte("ability3")
-                            };
+                            member.Abilities = [reader.GetByte("ability1"), reader.GetByte("ability2"), reader.GetByte("ability3")];
                             member.IsOnline = false;
                             member.InParty = false;
                             expedition.Members.Add(member);
@@ -114,8 +117,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText =
-                        "SELECT * FROM expedition_role_policies WHERE expedition_id = @expedition_id";
+                    command.CommandText = "SELECT * FROM expedition_role_policies WHERE expedition_id = @expedition_id";
                     command.Parameters.AddWithValue("@expedition_id", expedition.Id);
                     command.Prepare();
                     using (var reader = command.ExecuteReader())
@@ -136,6 +138,31 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                             policy.SiegeMaster = reader.GetBoolean("siege_master");
                             policy.JoinSiege = reader.GetBoolean("join_siege");
                             expedition.Policies.Add(policy);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM expedition_recruitments WHERE expedition_id = @expedition_id";
+                    command.Parameters.AddWithValue("@expedition_id", expedition.Id);
+                    command.Prepare();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var recruitment = new ExpeditionRecruitment();
+                            recruitment.ExpeditionId = reader.GetUInt32("expedition_id");
+                            recruitment.Name = reader.GetString("name");
+                            recruitment.Level = reader.GetUInt32("level");
+                            recruitment.OwnerName = reader.GetString("owner_name");
+                            recruitment.Introduce = reader.GetString("introduce");
+                            recruitment.RegTime = reader.GetDateTime("reg_time");
+                            recruitment.EndTime = reader.GetDateTime("end_time");
+                            recruitment.Interest = reader.GetUInt16("interest");
+                            recruitment.MemberCount = reader.GetInt32("member_count");
+                            recruitment.Apply = reader.GetBoolean("apply");
+                            expedition.Recruitments.Add(recruitment);
                         }
                     }
                 }
@@ -161,6 +188,11 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (_expeditions.TryGetValue(id, out var expedition))
             return expedition;
         return null;
+    }
+
+    private List<Expedition> GetExpeditions()
+    {
+        return _expeditions.Values.ToList();
     }
 
     public void CreateExpedition(string name, GameConnection connection)
@@ -439,7 +471,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             owner.SendErrorMessage(ErrorMessageType.OnlyExpeditionOwner);
             return false;
         }
-        for (int i = guild.Members.Count - 1; i >= 0; i--)
+        for (var i = guild.Members.Count - 1; i >= 0; i--)
         {
             var c = WorldManager.Instance.GetCharacterById(guild.Members[i].CharacterId);
             if (c != null)
@@ -460,17 +492,20 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     public static void SendExpeditionInfo(Character character)
     {
         character.SendPacket(new SCExpeditionRolePolicyListPacket(character.Expedition.Policies));
-        character.SendPacket(new SCExpeditionMemberListPacket(character.Expedition));
+
+        var total = (uint)character.Expedition.Members.Count;
+        var dividedLists = Helpers.SplitList(character.Expedition.Members, 20); // Разделяем список на списки по 20 записей
+        foreach (var members in dividedLists)
+            character.SendPacket(new SCExpeditionMemberListPacket(total, character.Expedition.Id, members));
+        character.SendPacket(new SCExpeditionMemberListEndPacket(character.Expedition));
     }
 
     public static void Save(Expedition expedition)
     {
-        using (var connection = MySQL.CreateConnection())
-        using (var transaction = connection.BeginTransaction())
-        {
-            expedition.Save(connection, transaction);
-            transaction.Commit();
-        }
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+        expedition.Save(connection, transaction);
+        transaction.Commit();
     }
 
     public static ExpeditionMember GetMemberFromCharacter(Expedition expedition, Character character, bool owner)
@@ -483,8 +518,26 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         member.Memo = "";
         member.Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
         member.ZoneId = character.Transform.ZoneId;
-        member.Abilities = new[]
-            {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
+        member.Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];
+        member.ExpeditionId = expedition.Id;
+        member.CharacterId = character.Id;
+
+        return member;
+    }
+
+    public static ExpeditionMember GetMemberFromCharacter(uint characterId)
+    {
+        var character = WorldManager.Instance.GetCharacterById(characterId);
+        var expedition = character.Expedition;
+        var member = new ExpeditionMember();
+        member.IsOnline = true;
+        member.Name = character.Name;
+        member.Level = character.Level;
+        member.Role = (byte)(expedition.OwnerId == character.Id ? 255 : 0);
+        member.Memo = "";
+        member.Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
+        member.ZoneId = character.Transform.ZoneId;
+        member.Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];
         member.ExpeditionId = expedition.Id;
         member.CharacterId = character.Id;
 
@@ -496,19 +549,128 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (_expeditions.Values.Count > 0)
         {
             var expeditions = _expeditions.Values.ToArray();
-            for (var i = 0; i < expeditions.Length; i += 20)
-            {
-                var temp = new SystemFaction[expeditions.Length - i <= 20 ? expeditions.Length - i : 20];
-                Array.Copy(expeditions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCSystemFactionListPacket(temp));
-            }
+            var dividedArrays = Helpers.SplitArray(expeditions, 20); // Разделяем массив на массивы по 20 значений
+            foreach (SystemFaction[] t in dividedArrays)
+                character.SendPacket(new SCSystemFactionListPacket(t));
+            // вылетает клиент из-за этого пакета
+            //character.SendPacket(new SCExpeditionDescReceivedPacket(character.Expedition));
         }
-
-        character.SendPacket(new SCExpeditionRolePolicyListPacket(new List<ExpeditionRolePolicy>()));
     }
 
     public uint GetExpeditionOfCharacter(uint characterId)
     {
         return (from guild in _expeditions.Values from member in guild.Members where member.CharacterId == characterId select guild.Id).FirstOrDefault();
+    }
+
+    public void SendExpeditionMyRecruitmentsInfo(GameConnection connection, bool my, short page, ushort interest, uint levelFrom, uint levelTo, string name, byte sortType)
+    { 
+        var expeditions = GetExpeditions();
+
+        var recruitments = new List<ExpeditionRecruitment>();
+        var total = expeditions.Count;
+
+        if (expeditions is { Count: not 0 })
+        {
+            foreach (var expedition in expeditions)
+            {
+                foreach (var er in expedition.Recruitments)
+                {
+                    if (my)
+                    {
+                        if (er.OwnerName != connection.ActiveChar.Name) { continue; }
+
+                        recruitments.Add(er);
+                    }
+                    else if (er.Interest == interest)
+                    {
+                        if (er.Level < levelFrom || er.Level > levelTo) { continue; }
+
+                        if (er.Name != string.Empty && er.Name == name)
+                        {
+                            recruitments.Add(er);
+                        }
+                        else
+                        {
+                            recruitments.Add(er);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (page == 0) { page = 1; }
+        var dividedLists = Helpers.SplitList(recruitments, 15); // Разделяем список на списки по 15 записей
+        // Выводим информацию о созданных списках
+        if (dividedLists.Count > 0)
+            recruitments = dividedLists[page - 1];
+
+        var count = recruitments.Count;
+
+        // Дополнение списка пустыми элементами до 15, если требуется
+        var emptySlots = 15 - recruitments.Count;
+        if (emptySlots > 0)
+        {
+            for (var i = 0; i < emptySlots; i++)
+            {
+                var newRecruitment = new ExpeditionRecruitment
+                {
+                    ExpeditionId = 0,
+                    Name = "",
+                    Level = 0,
+                    OwnerName = "",
+                    Interest = 0,
+                    Introduce = "",
+                    MemberCount = 0,
+                    Apply = false,
+                    RegTime = DateTime.MinValue,
+                    EndTime = DateTime.MinValue
+                };
+                recruitments.Add(newRecruitment);
+            }
+            connection.ActiveChar.SendPacket(new SCExpeditionRecruitmentsGetPacket((uint)total, (uint)page, (uint)count, recruitments));
+        }
+    }
+
+    public void RecruitmentAdd(GameConnection connection, ushort interest, int day, string introduce)
+    {
+        if (connection.ActiveChar.Expedition == null)
+            return;
+
+        var expedition = GetExpedition(connection.ActiveChar.Expedition.Id);
+
+        if (expedition.Recruitments == null || expedition.Recruitments.Count == 0)
+            expedition.Recruitments = new List<ExpeditionRecruitment>();
+
+        var newRecruitment = new ExpeditionRecruitment
+        {
+            ExpeditionId = expedition.Id,
+            Name = expedition.Name,
+            Level = expedition.Level,
+            OwnerName = expedition.OwnerName,
+            Interest = interest,
+            Introduce = introduce,
+            MemberCount = expedition.Members.Count,
+            Apply = true,
+            RegTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow + TimeSpan.FromDays(day)
+        };
+        expedition.Recruitments.Add(newRecruitment);
+        connection.ActiveChar.SendPacket(new SCExpeditionRecruitmentAddPacket());
+        Save(expedition);
+    }
+
+    public void RecruitmentRemove(GameConnection connection)
+    {
+        if (connection.ActiveChar.Expedition == null)
+            return;
+
+        var expedition = GetExpedition(connection.ActiveChar.Expedition.Id);
+
+        if (expedition.Recruitments == null || expedition.Recruitments.Count == 0)
+            return;
+
+        expedition.Recruitments = new List<ExpeditionRecruitment>();
+        connection.ActiveChar.SendPacket(new SCExpeditionRecruitmentDeletePacket());
+        Save(expedition);
     }
 }

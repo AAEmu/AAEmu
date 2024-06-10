@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -16,10 +18,11 @@ public class Expedition : SystemFaction
 
     public List<ExpeditionMember> Members { get; set; }
     public List<ExpeditionRolePolicy> Policies { get; set; }
+    public List<ExpeditionRecruitment> Recruitments { get; set; }
 
+    public uint Level { get; set; }
     public bool isDisbanded { get; set; }
-
-
+    
     public Expedition()
     {
         _removedMembers = new List<uint>();
@@ -157,14 +160,14 @@ public class Expedition : SystemFaction
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText =
-                    "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at)";
+                command.CommandText = "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`,`level`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at, @level)";
                 command.Parameters.AddWithValue("@id", this.Id);
                 command.Parameters.AddWithValue("@owner", this.OwnerId);
                 command.Parameters.AddWithValue("@owner_name", this.OwnerName);
                 command.Parameters.AddWithValue("@name", this.Name);
                 command.Parameters.AddWithValue("@mother", this.MotherId);
                 command.Parameters.AddWithValue("@created_at", this.Created);
+                command.Parameters.AddWithValue("@level", this.Level);
                 command.ExecuteNonQuery();
             }
 
@@ -173,6 +176,30 @@ public class Expedition : SystemFaction
 
             foreach (var policy in Policies)
                 policy.Save(connection, transaction);
+
+            foreach (var recruitment in Recruitments)
+                recruitment.Save(connection, transaction);
         }
+    }
+
+    public PacketStream WriteInfo(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(Level);           // type
+        stream.Write(0);               // exp
+        stream.Write(DateTime.UtcNow + TimeSpan.FromDays(1)); // protectDate
+        stream.Write(0);               // warDeposit
+        stream.Write(0);               // dailyExp
+        stream.Write(DateTime.UtcNow); // lastExpUpdateTime
+        stream.Write(false);           // isLevelUpdate
+        stream.Write((short)63);       // interest
+        stream.Write("ipsus lipsus");  // motdTitle
+        stream.Write("mopus dopus");   // motdContent
+        stream.Write(0);   // win
+        stream.Write(0);   // lose
+        stream.Write(0);   // draw
+        stream.Write(0);   // type
+        stream.Write(0u);  // type
+        return stream;
     }
 }
