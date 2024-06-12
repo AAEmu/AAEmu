@@ -112,6 +112,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         //ResidentManager.Instance.Initialize();
         ResidentManager.Instance.Load();
+        //AttendanceManager.Instance.Load();
 
         FormulaManager.Instance.Load();
         ExperienceManager.Instance.Load();

@@ -1,25 +1,25 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Collections.Generic;
+
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Attendance;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAccountAttendancePacket : GamePacket
 {
-    private readonly uint _count;
-    private readonly ulong _accountAttendance;
+    private readonly List<Attendances> _attendances;
 
-    public SCAccountAttendancePacket(uint count) : base(SCOffsets.SCAccountAttendancePacket, 5)
+    public SCAccountAttendancePacket(List<Attendances> attendances) : base(SCOffsets.SCAccountAttendancePacket, 5)
     {
-        _count = count;
-        _accountAttendance = 0;
-
+        _attendances = attendances;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        for (var i = 0; i < _count; i++)
+        foreach (var attendance in _attendances)
         {
-            stream.Write(_accountAttendance);
+            attendance.Write(stream);
         }
 
         return stream;

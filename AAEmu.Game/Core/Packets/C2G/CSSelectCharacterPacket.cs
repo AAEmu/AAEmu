@@ -128,6 +128,8 @@ public class CSSelectCharacterPacket : GamePacket
 
             character.Breath = character.LungCapacity;
 
+            Connection.SendPacket(new SCScheduledEventStartedPacket());
+
             Connection.ActiveChar.OnZoneChange(0, Connection.ActiveChar.Transform.ZoneId);
         }
         else

@@ -15,6 +15,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Attendance;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -148,6 +149,7 @@ public partial class Character : Unit, ICharacter
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
     public CharacterMates Mates { get; set; }
+    public CharacterAttendances Attendances { get; set; }
 
     public byte ExpandedExpert { get; set; }
     public CharacterActability Actability { get; set; }
@@ -2288,6 +2290,8 @@ public partial class Character : Unit, ICharacter
             Quests.CheckDailyResetAtLogin();
             Mates = new CharacterMates(this);
             Mates.Load(connection);
+            Attendances = new CharacterAttendances(this);
+            Attendances.Load(connection);
 
             LoadActionSlots(connection);
         }
@@ -2452,6 +2456,7 @@ public partial class Character : Unit, ICharacter
             Skills?.Save(connection, transaction);
             Quests?.Save(connection, transaction);
             Mates?.Save(connection, transaction);
+            Attendances?.Save(connection, transaction);
             result = true;
         }
         catch (Exception ex)
