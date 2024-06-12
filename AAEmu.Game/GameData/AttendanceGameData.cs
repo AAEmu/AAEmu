@@ -13,105 +13,12 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class AttendanceGameData : Singleton<AttendanceGameData>, IGameDataLoader
 {
-    // подарки         год             месяц     по дням
     private Dictionary<int, Dictionary<int, List<AccountAttendanceReward>>> _rewards;
-    // доп подарки     год             месяц     по дням
     private Dictionary<int, Dictionary<int, List<AccountAttendanceReward>>> _additionalRewards;
-
-    //public void Load2(SqliteConnection connection, SqliteConnection connection2)
-    //{
-    //    // подарки                год             месяц     по дням
-    //    _rewards = new Dictionary<int, Dictionary<int, List<AccountAttendanceReward>>>();
-    //    // доп подарки                      год             месяц     по дням
-    //    _additionalRewards = new Dictionary<int, Dictionary<int, List<AccountAttendanceReward>>>();
-    //    // посещения          characterId  DayCount
-    //    _attendances = new Dictionary<int, AccountAttendanceReward>();
-
-    //    var monthRewards = new Dictionary<int, List<AccountAttendanceReward>>();
-    //    var monthAdittionalRewards = new Dictionary<int, List<AccountAttendanceReward>>();
-    //    var rewards = new List<AccountAttendanceReward>();
-    //    var adittionalRewards = new List<AccountAttendanceReward>();
-
-    //    var indx = 0;
-
-    //    using var command = connection.CreateCommand();
-    //    command.CommandText = "SELECT * FROM account_attendance_rewards ORDER BY year, month;";
-    //    command.Prepare();
-    //    using var sqliteReader = command.ExecuteReader();
-    //    using var reader = new SQLiteWrapperReader(sqliteReader);
-    //    while (reader.Read())
-    //    {
-    //        var template = new AccountAttendanceReward();
-    //        template.Id = reader.GetUInt32("id");
-    //        template.AdditionalReward = reader.GetBoolean("additional_reward", false);
-    //        template.DayCount = reader.GetInt32("day_count");
-    //        template.ItemCount = reader.GetInt32("item_count");
-    //        template.ItemGradeId = reader.GetInt32("item_grade_id");
-    //        template.ItemId = reader.GetUInt32("item_id");
-    //        template.Month = reader.GetInt32("month");
-    //        template.Year = reader.GetInt32("year");
-
-    //        if (template.AdditionalReward)
-    //        {
-    //            _additionalRewards[template.Year][template.Month].Add(template);
-    //        }
-    //        else
-    //        {
-    //            if (_rewards.TryGetValue(template.Year, out monthRewards))
-    //            {
-    //                if (monthRewards.TryGetValue(template.Month, out rewards))
-    //                {
-    //                    _rewards[template.Year][template.Month].Add(template);
-    //                }
-    //                else
-    //                {
-
-    //                }
-    //            }
-    //            else
-    //            {
-    //                monthRewards = new Dictionary<int, List<AccountAttendanceReward>>();
-    //                rewards.Add(template);
-    //                monthRewards.TryAdd(template.Month, rewards);
-    //                _rewards.TryAdd(template.Year, monthRewards);
-    //            }
-    //        }
-
-    //        indx++;
-    //        if (indx <= 25)
-    //        {
-    //            rewards.Add(template);
-    //        }
-    //        else if (indx <= 28)
-    //        {
-    //            adittionalRewards.Add(template);
-    //        }
-
-    //        if (indx == 28 && template.Month <= 12)
-    //        {
-    //            var res = monthRewards.TryAdd(template.Month, rewards);
-    //            monthAdittionalRewards.TryAdd(template.Month, adittionalRewards);
-
-    //            rewards = new List<AccountAttendanceReward>();
-    //            adittionalRewards = new List<AccountAttendanceReward>();
-    //            indx = 0;
-    //        }
-    //        if (indx == 0 && template.Month == 12)
-    //        {
-    //            _rewards.TryAdd(template.Year, monthRewards);
-    //            _additionalRewards.TryAdd(template.Year, monthAdittionalRewards);
-
-    //            monthRewards = new Dictionary<int, List<AccountAttendanceReward>>();
-    //            monthAdittionalRewards = new Dictionary<int, List<AccountAttendanceReward>>();
-    //        }
-    //    }
-    //}
 
     public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
-        // подарки                год             месяц     по дням
         _rewards = new Dictionary<int, Dictionary<int, List<AccountAttendanceReward>>>();
-        // доп подарки                      год             месяц     по дням
         _additionalRewards = new Dictionary<int, Dictionary<int, List<AccountAttendanceReward>>>();
 
         using var command = connection.CreateCommand();
@@ -185,6 +92,31 @@ public class AttendanceGameData : Singleton<AttendanceGameData>, IGameDataLoader
             itemId = reward.ItemId;
             countItem = reward.ItemCount;
         }
+        return (itemId, countItem);
+    }
+
+    public (uint, int) GetAdditionalReward(int year, int month, int dayCount)
+    {
+        var itemId = 0u;
+        var countItem = 0;
+
+        foreach (KeyValuePair<int, Dictionary<int, List<AccountAttendanceReward>>> ary in _rewards)
+        {
+            if (ary.Key == year)
+                foreach (KeyValuePair<int, List<AccountAttendanceReward>> ar in ary.Value)
+                {
+                    if (ar.Key == month)
+                        foreach (AccountAttendanceReward reward in ar.Value)
+                        {
+                            if (reward.DayCount >= dayCount && reward.AdditionalReward)
+                            {
+                                itemId = reward.ItemId;
+                                countItem = reward.ItemCount;
+                            }
+                        }
+                }
+        }
+
         return (itemId, countItem);
     }
 }

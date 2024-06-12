@@ -20,7 +20,7 @@ CREATE TABLE `abilities` (
 
 DROP TABLE IF EXISTS `accounts`;
 CREATE TABLE `accounts` (
-  `account_id` INT(11) NOT NULL,
+  `account_id` BIGINT UNSIGNED NOT NULL,
   `access_level` INT(11) NOT NULL DEFAULT '0',
   `labor` INT(11) NOT NULL DEFAULT '0',
   `credits` INT(11) NOT NULL DEFAULT '0',
@@ -655,7 +655,7 @@ CREATE TABLE `resident_members`  (
 DROP TABLE IF EXISTS `attendances`;
 CREATE TABLE `attendances`  (
   `id` tinyint unsigned NOT NULL,
-  `owner` int NOT NULL,
+  `owner` BIGINT UNSIGNED NOT NULL,
   `account_attendance` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `accept` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`,`owner`) USING BTREE

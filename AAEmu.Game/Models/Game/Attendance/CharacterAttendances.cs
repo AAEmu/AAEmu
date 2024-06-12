@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -18,20 +19,27 @@ public class CharacterAttendances
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public List<Attendances> Attendances { get; set; }
-    public Character Owner { get; set; }
-    public int AttendanceCount { get; set; } = 31;
+    public ulong AccountId { get; set; }
+    private Character Owner { get; set; }
+    private int AttendanceCount { get; set; } = 31;
 
     public CharacterAttendances()
     {
-        Attendances = new List<Attendances>();
     }
+
     public CharacterAttendances(Character owner)
     {
         Owner = owner;
-        CreateAttendances();
+        AccountId = owner.AccountId;
+
+        Load(MySQL.CreateConnection());
+        if (Attendances is not { Count: not 0 })
+        {
+            CreateAttendances();
+        }
     }
 
-    public void CreateAttendances()
+    private void CreateAttendances()
     {
         Attendances = new List<Attendances>();
         for (var i = 0; i < AttendanceCount; i++)
@@ -47,7 +55,7 @@ public class CharacterAttendances
         var month = currentDate.Month;
         var day = currentDate.Day;
 
-        if (Checking (day))
+        if (Checking(day, character.AccountId))
         {
             return; // already received a gift
         }
@@ -58,16 +66,23 @@ public class CharacterAttendances
         var dayCount = DayCount();
 
         var (itemId, itemCount) = AttendanceGameData.Instance.GetReward(year, month, dayCount);
-        var res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, itemId, itemCount);
+        if (itemCount > 0 && itemId > 0)
+        {
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, itemId, itemCount);
+        }
+        var (additionalItemId, additionalItemCount) = AttendanceGameData.Instance.GetAdditionalReward(year, month, dayCount);
+        if (additionalItemCount > 0 && additionalItemId > 0)
+        {
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, additionalItemId, additionalItemCount);
+        }
+        character.SendPacket(new SCDbAttendanceTimePacket(true, currentDate));
 
-        Owner.SendPacket(new SCDbAttendanceTimePacket(true, currentDate));
-    
         Logger.Warn($"Attendance: {character.Name}:{character.Id} received a gift");
     }
 
-    private bool Checking (int day)
+    private bool Checking(int day, ulong accountId)
     {
-        return Attendances[day].Accept;
+        return Attendances[day].Accept && AccountId == accountId;
     }
 
     private int DayCount()
@@ -96,13 +111,13 @@ public class CharacterAttendances
         Attendances = new List<Attendances>();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT * FROM attendances WHERE `owner` = @owner";
-        command.Parameters.AddWithValue("@owner", Owner.Id);
+        command.Parameters.AddWithValue("@owner", AccountId);
         command.Prepare();
         using var reader = command.ExecuteReader();
         while (reader.Read())
         {
             var template = new Attendances();
-            Owner.Id = reader.GetUInt32("owner");
+            //Owner.AccountId = reader.GetUInt32("owner");
             template.AccountAttendance = reader.GetDateTime("account_attendance");
             template.Accept = reader.GetBoolean("accept");
             Attendances.Add(template);
@@ -121,7 +136,7 @@ public class CharacterAttendances
             command.CommandText = "REPLACE INTO attendances(`id`,`owner`,`account_attendance`,`accept`) " +
                                   "VALUES (@id, @owner, @account_attendance, @accept)";
             command.Parameters.AddWithValue("@id", indx);
-            command.Parameters.AddWithValue("@owner", Owner.Id);
+            command.Parameters.AddWithValue("@owner", AccountId);
             command.Parameters.AddWithValue("@account_attendance", attendance.AccountAttendance);
             command.Parameters.AddWithValue("@accept", attendance.Accept);
             command.ExecuteNonQuery();
