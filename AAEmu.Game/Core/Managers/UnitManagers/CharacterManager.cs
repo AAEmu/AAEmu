@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Attendance;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
 using AAEmu.Game.Models.Game.Chat;
@@ -553,6 +554,7 @@ public class CharacterManager : Singleton<CharacterManager>
         character.Mails = new CharacterMails(character);
         character.Portals = new CharacterPortals(character);
         character.Friends = new CharacterFriends(character);
+        character.Attendances = new CharacterAttendances(character);
 
         character.Hp = character.MaxHp;
         character.Mp = character.MaxMp;

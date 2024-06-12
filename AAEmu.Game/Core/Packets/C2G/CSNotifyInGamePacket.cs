@@ -36,6 +36,15 @@ public class CSNotifyInGamePacket : GamePacket
         TeamManager.Instance.UpdateAtLogin(Connection.ActiveChar);
         Connection.ActiveChar.Expedition?.OnCharacterLogin(Connection.ActiveChar);
 
+        if (Connection.ActiveChar.Attendances.Attendances?.Count == 0)
+        {
+            Connection.ActiveChar.Attendances.SendEmptyAttendances();
+        }
+        else
+        {
+            Connection.ActiveChar.Attendances.Send();
+        }
+
         Connection.ActiveChar.UpdateGearBonuses(null, null);
 
         Logger.Info("NotifyInGame");

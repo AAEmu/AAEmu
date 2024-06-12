@@ -8,6 +8,7 @@ SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
 
+
 DROP TABLE IF EXISTS `abilities`;
 CREATE TABLE `abilities` (
   `id` tinyint unsigned NOT NULL,
@@ -32,6 +33,7 @@ CREATE TABLE `accounts` (
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account specific values not related to login';
 
+
 DELIMITER //
 CREATE TRIGGER update_timestamps
 BEFORE UPDATE ON accounts
@@ -41,7 +43,6 @@ BEGIN
 END;
 //
 DELIMITER ;
-
 
 
 DROP TABLE IF EXISTS `actabilities`;
@@ -311,6 +312,7 @@ CREATE TABLE `housings` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player buildings';
 
+
 -- ----------------------------
 -- Records of housings
 -- ----------------------------
@@ -327,13 +329,14 @@ INSERT INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 248
 INSERT INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
 INSERT INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
 
+
 DROP TABLE IF EXISTS `items`;
 CREATE TABLE `items` (
   `id` bigint unsigned NOT NULL,
   `type` varchar(100) NOT NULL,
   `template_id` int unsigned NOT NULL,
   `container_id` int unsigned NOT NULL DEFAULT '0',
-  `slot_type` ENUM('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'Internal Container Type',
+  `slot_type` ENUM('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'Internal Container Type',
   `slot` int NOT NULL,
   `count` int NOT NULL,
   `details` blob,
@@ -495,13 +498,13 @@ CREATE TABLE `music` (
 DROP TABLE IF EXISTS `item_containers`;
 CREATE TABLE `item_containers` (
   `container_id` int unsigned NOT NULL,
-  `container_type` varchar(64) COLLATE 'utf8mb4_general_ci' NOT NULL DEFAULT 'ItemContainer' COMMENT 'Partial Container Class Name',
-  `slot_type` ENUM('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'Internal Container Type',
+  `container_type` varchar(64) COLLATE 'utf8_general_ci' NOT NULL DEFAULT 'ItemContainer' COMMENT 'Partial Container Class Name',
+  `slot_type` ENUM('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'Internal Container Type',
   `container_size` int NOT NULL DEFAULT '50' COMMENT 'Maximum Container Size',
   `owner_id` int unsigned NOT NULL COMMENT 'Owning Character Id',
   `mate_id` INT UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Owning Mate Id',
   PRIMARY KEY (`container_id`) 
-) COLLATE 'utf8mb4_general_ci';
+) COLLATE 'utf8_general_ci';
 
 
 DROP TABLE IF EXISTS `slaves`;
@@ -510,7 +513,7 @@ CREATE TABLE `slaves` (
 	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
 	`template_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Slave template Id of this vehicle',
 	`attach_point` INT(10) NULL DEFAULT NULL COMMENT 'Binding point Id',
-	`name` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+	`name` TEXT NULL DEFAULT NULL COLLATE 'utf8_general_ci',
 	`owner_type` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit type',
 	`owner_id` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit DB Id',
 	`summoner` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Owning player',
@@ -522,7 +525,7 @@ CREATE TABLE `slaves` (
 	`y` FLOAT NULL DEFAULT NULL,
 	`z` FLOAT NULL DEFAULT NULL,
 	PRIMARY KEY (`id`) USING BTREE
-) COMMENT='Player vehicles summons' COLLATE 'utf8mb4_general_ci' ENGINE=InnoDB;
+) COMMENT='Player vehicles summons' COLLATE 'utf8_general_ci' ENGINE=InnoDB;
 
 
 DROP TABLE IF EXISTS `ics_skus`;
@@ -545,7 +548,7 @@ CREATE TABLE `ics_skus` (
     PRIMARY KEY (`sku`) USING BTREE
 )
 COMMENT='Has the actual sales items for the details'
-COLLATE='utf8mb4_general_ci'
+COLLATE='utf8_general_ci'
 ENGINE=InnoDB
 AUTO_INCREMENT=1000000
 ;
@@ -555,7 +558,7 @@ DROP TABLE IF EXISTS `ics_shop_items`;
 CREATE TABLE `ics_shop_items` (
     `shop_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU item id',
     `display_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Item who\'s icon to use for displaying in the shop, leave 0 for first item in the group',
-    `name` TEXT NULL DEFAULT NULL COMMENT 'Can be used to override the name in the shop' COLLATE 'utf8mb4_general_ci',
+    `name` TEXT NULL DEFAULT NULL COMMENT 'Can be used to override the name in the shop' COLLATE 'utf8_general_ci',
     `limited_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Enables limited stock mode if non-zero, Account(1), Chracter(2)',
     `limited_stock_max` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of items left in stock for this SKU if limited stock is enabled',
     `level_min` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Minimum level to buy the item (does not show on UI)',
@@ -571,7 +574,7 @@ CREATE TABLE `ics_shop_items` (
     PRIMARY KEY (`shop_id`) USING BTREE
 )
 COMMENT='Possible Item listings that are for sale'
-COLLATE='utf8mb4_general_ci'
+COLLATE='utf8_general_ci'
 ENGINE=InnoDB
 AUTO_INCREMENT=2000000
 ;
@@ -587,7 +590,7 @@ CREATE TABLE `ics_menu` (
     PRIMARY KEY (`id`) USING BTREE
 )
 COMMENT='Contains what item will be displayed on which tab'
-COLLATE='utf8mb4_general_ci'
+COLLATE='utf8_general_ci'
 ENGINE=InnoDB
 AUTO_INCREMENT=100
 ;
@@ -605,7 +608,7 @@ CREATE TABLE `audit_ics_sales` (
     `sku` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'SKU of the sold item',
     `sale_cost` INT(11) NOT NULL DEFAULT '0' COMMENT 'Amount this item was sold for',
     `sale_currency` TINYINT(4) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Which currency was used',
-    `description` TEXT NOT NULL COMMENT 'Added description of this transaction' COLLATE 'utf8mb4_general_ci',
+    `description` TEXT NOT NULL COMMENT 'Added description of this transaction' COLLATE 'utf8_general_ci',
     PRIMARY KEY (`id`) USING BTREE,
     INDEX `buyer_account` (`buyer_account`) USING BTREE,
     INDEX `buyer_char` (`buyer_char`) USING BTREE,
@@ -613,9 +616,10 @@ CREATE TABLE `audit_ics_sales` (
     INDEX `target_char` (`target_char`) USING BTREE
 )
 COMMENT='Sales history for the ICS'
-COLLATE='utf8mb4_general_ci'
+COLLATE='utf8_general_ci'
 ENGINE=InnoDB
 ;
+
 
 -- ----------------------------
 -- Table structure for residents
@@ -630,7 +634,8 @@ CREATE TABLE `residents`  (
   `zone_point` int NULL DEFAULT NULL,
   `charge` datetime NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
 
 -- ----------------------------
 -- Table structure for resident_members
@@ -639,9 +644,19 @@ DROP TABLE IF EXISTS `resident_members`;
 CREATE TABLE `resident_members`  (
   `id` int NOT NULL,
   `resident_id` int NOT NULL,
-  `name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `level` tinyint(1) NOT NULL,
   `family` int NULL DEFAULT NULL,
   `service_point` int NULL DEFAULT NULL,
   PRIMARY KEY (`id`, `resident_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
+
+DROP TABLE IF EXISTS `attendances`;
+CREATE TABLE `attendances`  (
+  `id` tinyint unsigned NOT NULL,
+  `owner` int NOT NULL,
+  `account_attendance` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `accept` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`,`owner`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci;

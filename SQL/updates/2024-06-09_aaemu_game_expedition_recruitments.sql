@@ -14,4 +14,4 @@ CREATE TABLE `expedition_recruitments`  (
   `interest` int NULL DEFAULT NULL,
   `apply` tinyint(1) NOT NULL,
   PRIMARY KEY (`expedition_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8_general_ci COMMENT = 'Guild recruitments';
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Guild recruitments';
