@@ -1,5 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Collections.Generic;
+using System.Numerics;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Units;
@@ -16,26 +21,54 @@ public class UnitReqs
     public uint Value1 { get; set; }
     public uint Value2 { get; set; }
 
-    public bool Validate(BaseUnit ownerUnit)
+    public bool Validate(BaseUnit owner)
     {
+        var unit = owner as Unit;
+        var player = owner as Character;
         switch (KindType)
         {
-            // case UnitReqsKindType.Level:
-            // case UnitReqsKindType.Ability:
-            // case UnitReqsKindType.Race:
-            // case UnitReqsKindType.Gender:
-            // case UnitReqsKindType.EquipSlot:
-            // case UnitReqsKindType.EquipItem:
-            // case UnitReqsKindType.OwnItem:
-            // case UnitReqsKindType.TrainedSkill:
-            // case UnitReqsKindType.Combat:
+            case UnitReqsKindType.Level:
+                return unit != null && (unit.Level >= Value1 && unit.Level <= Value2);
+            case UnitReqsKindType.Ability:
+                return player != null && player.Abilities.GetAbilityLevel((AbilityType)Value1) >= Value2;
+            case UnitReqsKindType.Race:
+                return player != null && player.Race == (Race)Value1;
+            case UnitReqsKindType.Gender:
+                return player != null && player.Gender == (Gender)Value1;
+            case UnitReqsKindType.EquipSlot:
+                return unit != null && unit.Equipment.GetItemBySlot((int)Value1) != null;
+            case UnitReqsKindType.EquipItem:
+                return unit != null && unit.Equipment.GetAllItemsByTemplate(Value1, -1, out _, out _);
+            case UnitReqsKindType.OwnItem:
+                return player != null && player.Inventory.GetAllItemsByTemplate(null, Value1, -1, out _, out _);
+            case UnitReqsKindType.TrainedSkill:
+                // unused
+                return player != null && player.Skills.Skills.GetValueOrDefault(Value1) != null;
+            case UnitReqsKindType.Combat:
+                // Only OUTSIDE OF combat
+                return unit != null && !unit.IsInBattle;
             // case UnitReqsKindType.Stealth:
             // case UnitReqsKindType.Health:
-            // case UnitReqsKindType.Buff:
-            // case UnitReqsKindType.TargetBuff:
-            // case UnitReqsKindType.TargetCombat:
+            case UnitReqsKindType.Buff:
+                return unit != null && unit.Buffs.CheckBuff(Value1);
+            case UnitReqsKindType.TargetBuff:
+                return unit != null && unit.Buffs.CheckBuffTag(Value1);
+            case UnitReqsKindType.TargetCombat:
+                return (unit?.CurrentTarget is Unit { IsInBattle: true });
             // case UnitReqsKindType.CanLearnCraft:
-            // case UnitReqsKindType.DoodadRange:
+            //     // Learnable crafts is not implemented
+            //     return player != null && !player.Craft.LearnedCraft(Value1);
+            case UnitReqsKindType.DoodadRange:
+                if (owner == null)
+                    return false;
+                var rangeCheck = Value2 / 1000f;
+                var doodads = WorldManager.GetAround<Doodad>(owner, rangeCheck * 2f, true);
+                foreach (var doodad in doodads)
+                {
+                    
+                }
+
+                return false;
             // case UnitReqsKindType.EquipShield:
             // case UnitReqsKindType.NoBuff:
             // case UnitReqsKindType.TargetBuffTag:
@@ -52,7 +85,7 @@ public class UnitReqs
             // case UnitReqsKindType.TargetNpcGroup:
             case UnitReqsKindType.AreaSphere:
                 // Check Sphere for Quest
-                return SphereGameData.Instance.IsInsideAreaSphere(Value1, Value2, ownerUnit?.Transform?.World?.Position ?? Vector3.Zero);
+                return SphereGameData.Instance.IsInsideAreaSphere(Value1, Value2, owner?.Transform?.World?.Position ?? Vector3.Zero);
             // case UnitReqsKindType.ExceptCompleteQuestContext:
             // case UnitReqsKindType.PreCompleteQuestContext:
             // case UnitReqsKindType.TargetOwnerType:

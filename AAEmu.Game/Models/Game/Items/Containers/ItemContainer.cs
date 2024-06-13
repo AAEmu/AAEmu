@@ -733,7 +733,7 @@ public class ItemContainer
     /// </summary>
     /// <param name="templateId">templateId to search for</param>
     /// <param name="foundItems">List of found item objects</param>
-    /// <param name="gradeToFind">Only lists items of specific grade is gradeToFind >= </param>
+    /// <param name="gradeToFind">Only lists items of specific grade equal to gradeToFind or any grade if -1 was provided</param>
     /// <param name="unitsOfItemFound">Total count of the count values of the found items</param>
     /// <returns>True if any item was found</returns>
     public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems, out int unitsOfItemFound)
