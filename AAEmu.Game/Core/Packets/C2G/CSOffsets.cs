@@ -243,6 +243,7 @@ public static class CSOffsets
     public const ushort CSCharDetailPacket = 0x106;
     public const ushort CSAddBlockedUserPacket = 0x107;
     public const ushort CSDeleteBlockedUserPacket = 0x108;
+    public const ushort CSRequestCommonFarmList = 0x10b;
     public const ushort CSNotifySubZonePacket = 0x112;
     public const ushort CSResturnAddrsPacket = 0x115;
     public const ushort CSRequestUIDataPacket = 0x117;

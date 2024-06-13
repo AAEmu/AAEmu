@@ -23,18 +23,24 @@ public class PutDownBackpackEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("PutDownBackpackEffect");
+        Logger.Debug("PutDownBackpackEffect");
 
-        Character character = (Character)caster;
+        var character = (Character)caster;
         if (character == null) return;
 
-        SkillItem packItem = (SkillItem)casterObj;
+        var packItem = (SkillItem)casterObj;
         if (packItem == null) return;
 
-        Item item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
+        var item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
         if (item == null) return;
 
-        Item previousGlider = character.Inventory.Bag.GetItemByItemId(character.Inventory.PreviousBackPackItemId);
+        if (PublicFarmManager.Instance.InPublicFarm(character.Transform.WorldId, character.Transform.World.Position.X, character.Transform.World.Position.Y))
+        {
+            character.SendErrorMessage(ErrorMessageType.CommonFarmNotAllowedType);
+            return;
+        }
+
+        var previousGlider = character.Inventory.Bag.GetItemByItemId(character.Inventory.PreviousBackPackItemId);
         // If no longer valid, reset the value here
         if ((previousGlider == null) || (previousGlider.SlotType != SlotType.Inventory))
             character.Inventory.PreviousBackPackItemId = 0;
@@ -58,7 +64,7 @@ public class PutDownBackpackEffect : EffectTemplate
         if (character.Inventory.SystemContainer.AddOrMoveExistingItem(Items.Actions.ItemTaskType.DropBackpack, item))
         {
             // Spawn doodad
-            Logger.Trace("PutDownPackEffect");
+            Logger.Debug("PutDownPackEffect");
 
             var doodad = DoodadManager.Instance.Create(0, BackpackDoodadId, character, true);
             if (doodad == null)

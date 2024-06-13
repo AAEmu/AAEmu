@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -147,7 +147,7 @@ public class Doodad : BaseUnit
             }
         }
     }
-
+    public uint FarmType { get; set; } 
     public uint QuestGlow { get; set; } //0 off // 1 on
     public int PuzzleGroup { get; set; } = -1; // -1 off
     public DoodadSpawner Spawner { get; set; }

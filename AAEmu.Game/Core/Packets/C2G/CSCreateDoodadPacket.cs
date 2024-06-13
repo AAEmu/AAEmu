@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -22,6 +23,23 @@ public class CSCreateDoodadPacket : GamePacket
         var itemId = stream.ReadUInt64();
 
         Logger.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
-        DoodadManager.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId);
+
+        var InPublicFarm = PublicFarmManager.Instance.InPublicFarm(Connection.ActiveChar.Transform.WorldId, x, y);
+
+
+        if (!InPublicFarm)
+        {
+            Logger.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
+            DoodadManager.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId);
+        }
+        else
+        {
+            var farmType = PublicFarmManager.Instance.GetFarmType(Connection.ActiveChar.Transform.WorldId, x, y);
+            if (PublicFarmManager.Instance.CanPlace(Connection.ActiveChar, farmType, id))
+            {
+                Logger.Warn("CreateFarmDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
+                DoodadManager.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId, (uint)farmType);
+            }
+        }
     }
 }

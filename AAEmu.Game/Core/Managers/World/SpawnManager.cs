@@ -422,6 +422,36 @@ public class SpawnManager : Singleton<SpawnManager>
         _loaded = true;
     }
 
+    public List<Doodad> GetPlayerDoodads(uint charId)
+    {
+        var doodads = new List<Doodad>();
+        foreach (var d in _playerDoodads)
+        {
+            if (d.OwnerId == charId)
+                doodads.Add(d);
+        }
+
+        return doodads;
+    }
+
+    public List<Doodad> GetAllPlayerDoodads()
+    {
+        return _playerDoodads;
+    }
+
+    public void RemovePlayerDoodad(Doodad doodad)
+    {
+        if (_playerDoodads.Contains(doodad))
+        {
+            _playerDoodads.Remove(doodad);
+        }
+    }
+
+    public void AddPlayerDoodad(Doodad doodad)
+    {
+        _playerDoodads.Add(doodad);
+    }
+
     /// <summary>
     /// Load Persistent Doodads from the DataBase
     /// </summary>
