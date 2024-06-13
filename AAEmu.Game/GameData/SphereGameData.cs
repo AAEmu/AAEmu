@@ -332,7 +332,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     /// <param name="sphereId">Sphere Id as defined in a Quest Act</param>
     /// <param name="value2">Unknown, always one except for skill 13305 (plant unidentified tree)</param>
     /// <returns>True if inside the sphere</returns>
-    public bool IsInsideQuestSphere(uint sphereId, uint value2, Vector3 worldPosition)
+    public bool IsInsideAreaSphere(uint sphereId, uint value2, Vector3 worldPosition)
     {
         if (!_spheres.TryGetValue(sphereId, out var dbSphere))
             return false;

@@ -1,40 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 using NLog;
 
 namespace AAEmu.Game.GameData;
-
-public class UnitReqs
-{
-    public uint Id { get; set; }
-    public uint OwnerId { get; set; }
-    /// <summary>
-    /// Possible values: AchievementObjective, AiEvent, ItemArmor, ItemWeapon, QuestComponent, Skill, Sphere
-    /// </summary>
-    public string OwnerType { get; set; }
-    public uint KindId { get; set; }
-    public uint Value1 { get; set; }
-    public uint Value2 { get; set; }
-
-    public bool Validate(BaseUnit ownerUnit)
-    {
-        switch (KindId)
-        {
-            case 35:
-                // Check Sphere for Quest
-                return SphereGameData.Instance.IsInsideQuestSphere(Value1, Value2, ownerUnit?.Transform?.World?.Position ?? Vector3.Zero);
-            default:
-                return true;
-        }
-    }
-}
 
 [GameData]
 public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGameDataLoader
@@ -69,7 +44,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             t.Id = reader.GetUInt32("id");
             t.OwnerId = reader.GetUInt32("owner_id");
             t.OwnerType = reader.GetString("owner_type");
-            t.KindId = reader.GetUInt32("kind_id");
+            t.KindType = (UnitReqsKindType)reader.GetUInt32("kind_id");
             t.Value1 = reader.GetUInt32("value1");
             t.Value2 = reader.GetUInt32("value2");
 
