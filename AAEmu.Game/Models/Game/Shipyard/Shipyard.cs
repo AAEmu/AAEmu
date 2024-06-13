@@ -22,6 +22,7 @@ public sealed class Shipyard : Unit
     private ShipyardsTemplate _template;
 
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Shipyard;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Shipyard;
     public override UnitCustomModelParams ModelParams { get; set; }
     public ShipyardData ShipyardData { get; set; }
     public ShipyardsTemplate Template

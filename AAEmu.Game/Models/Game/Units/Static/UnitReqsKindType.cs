@@ -56,7 +56,7 @@ public enum UnitReqsKindType : uint
     LivingPoint = 0x32,                 // unused, unused, there are no entries using this
     InZone = 0x33,                      // Zone ID, unused, Must be inside Zone ID
     OutZone = 0x34,                     // Zone ID, unused, Must be outside Zone ID (unused)
-    DominionOwner = 0x35,               // unused, unused, looks like this is meant for castle area rules (or maybe nation)
+    DominionOwner = 0x35,               // unused, unused, looks like this is meant for castle area rulers
     VerdictOnly = 0x36,                 // unused, unused, target must be suspect (used to catch bots)
     FactionMatchOnly = 0x37,            // FactionId, unused, must be of faction (used for pirates 161)
     MotherFactionOnly = 0x38,           // FactionId, unused, must be of given mother faction

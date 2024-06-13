@@ -34,6 +34,7 @@ namespace AAEmu.Game.Models.Game.Units;
 public class Unit : BaseUnit, IUnit
 {
     public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
+    public virtual BaseUnitType BaseUnitType { get; set; } = BaseUnitType.Invalid;
 
     public virtual UnitEvents Events { get; }
     private Task _regenTask;
@@ -59,6 +60,16 @@ public class Unit : BaseUnit, IUnit
     public byte Level { get; set; }
 
     public int Hp { get; set; }
+
+    public int Hpp
+    {
+        get
+        {
+            if (MaxHp <= 0)
+                return 0;
+            return Math.Clamp((int)Math.Ceiling(Hp * 100f / MaxHp), 0, 100);
+        }
+    }
 
     public DateTime LastCombatActivity { get; set; }
 
@@ -759,44 +770,6 @@ public class Unit : BaseUnit, IUnit
     public void SendErrorMessage(ErrorMessageType type)
     {
         SendPacket(new SCErrorMsgPacket(type, 0, true));
-    }
-
-    /// <summary>
-    /// Get distance between two units taking into account their model sizes
-    /// </summary>
-    /// <param name="baseUnit"></param>
-    /// <param name="includeZAxis"></param>
-    /// <returns></returns>
-    public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
-    {
-        if (baseUnit == null)
-            return 0.0f;
-
-        if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
-            return 0.0f;
-
-        var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
-        if (baseUnit is Shipyard.Shipyard shipyard)
-        {
-            // Let's use the build radius for this, as it doesn't really have a easy to grab model to get it from 
-            rawDist -= ShipyardManager.Instance._shipyardsTemplate[shipyard.ShipyardData.TemplateId].BuildRadius;
-        }
-        else
-        if (baseUnit is House house)
-        {
-            // Subtract house radius, this should be fair enough for building
-            rawDist -= (house.Template.GardenRadius * house.Scale);
-        }
-        else
-        {
-            // If target is a Unit, then use it's model for radius
-            if (baseUnit is Unit unit)
-                rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
-        }
-        // Subtract own radius
-        rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
-
-        return Math.Max(rawDist, 0);
     }
 
     public virtual int GetAbLevel(AbilityType type)

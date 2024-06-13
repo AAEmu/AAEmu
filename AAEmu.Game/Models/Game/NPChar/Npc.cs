@@ -30,6 +30,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 public class Npc : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Npc;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Npc;
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
