@@ -1034,6 +1034,8 @@ public class Skill
                 else
                 {
                     item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+
+                    if (player is { SkillCancelled: true }) { Cancelled = true; }
                 }
 
                 // Implement consumption of item sets

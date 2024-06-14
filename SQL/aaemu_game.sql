@@ -199,6 +199,7 @@ CREATE TABLE `doodads` (
   `item_template_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'ItemTemplateId of associated item',
   `item_container_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'ItemContainer Id for Coffers',
   `data` int NOT NULL DEFAULT '0' COMMENT 'Doodad specific data',
+  `farm_type` int NOT NULL DEFAULT '0' COMMENT 'farm type for Public Farm',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Persistent doodads (e.g. tradepacks, furniture)';
 

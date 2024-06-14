@@ -38,7 +38,7 @@ public class GameNetwork : Singleton<GameNetwork>
         //RegisterPacket(CSOffsets.CSRemoveClientNpcPacket, 5, typeof(CSRemoveClientNpcPacket));
         RegisterPacket(CSOffsets.CSMoveUnitPacket, 5, typeof(CSMoveUnitPacket));
         RegisterPacket(CSOffsets.CSCofferInteractionPacket, 5, typeof(CSCofferInteractionPacket));
-        //RegisterPacket(CSOffsets.CSRequestCommonFarmListPacket, 5, typeof(CSRequestCommonFarmListPacket));
+        RegisterPacket(CSOffsets.CSRequestCommonFarmListPacket, 5, typeof(CSRequestCommonFarmListPacket));
         RegisterPacket(CSOffsets.CSChallengeDuelPacket, 5, typeof(CSChallengeDuelPacket));
         RegisterPacket(CSOffsets.CSStartDuelPacket, 5, typeof(CSStartDuelPacket));
         //RegisterPacket(CSOffsets.CSHeroRankingListPacket, 5, typeof(CSHeroRankingListPacket));

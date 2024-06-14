@@ -42,6 +42,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     private Dictionary<uint, InstanceWorld> _worlds;
     private Dictionary<uint, uint> _worldIdByZoneId;
+    private Dictionary<uint, List<uint>> _zonesByWorldId;
     private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
     public bool IsSnowing = false;
     private readonly ConcurrentDictionary<uint, GameObject> _objects;
@@ -202,6 +203,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         _worlds = new Dictionary<uint, InstanceWorld>();
         _worldIdByZoneId = new Dictionary<uint, uint>();
         _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
+        _zonesByWorldId = new Dictionary<uint, List<uint>>();
 
         Logger.Info("Loading world data...");
 
@@ -239,7 +241,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             var worldName = worldNames[(int)id];
             if (worldName == "main_world")
-                WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
+                DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
 
             using var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
             var xml = new XmlDocument();
@@ -272,7 +274,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
                 // cache zone keys to world reference
                 foreach (var zoneKey in world.ZoneKeys)
+                {
                     _worldIdByZoneId.Add(zoneKey, id);
+
+                    if (!_zonesByWorldId.ContainsKey(id))
+                        _zonesByWorldId.Add(world.Id, new List<uint>());
+                    _zonesByWorldId[id].Add(zoneKey);
+                }
 
                 world.Water = new WaterBodies();
             }
@@ -592,6 +600,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return null;
     }
 
+    public List<uint> GetZonesByWorldId(uint worldId)
+    {
+        if (_zonesByWorldId.ContainsKey(worldId))
+            return _zonesByWorldId[worldId];
+        return new List<uint>();
+    }
+
     public uint GetZoneId(uint worldId, float x, float y)
     {
         if (!_worlds.TryGetValue(worldId, out var world))
@@ -787,7 +802,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         FirstNonNameArgument = 0;
         if ((TargetName != null) && (TargetName != string.Empty))
         {
-            var player = WorldManager.Instance.GetCharacter(TargetName);
+            var player = Instance.GetCharacter(TargetName);
             if (player != null)
             {
                 FirstNonNameArgument = 1;
