@@ -44,12 +44,18 @@ namespace AAEmu.Game.Core.Managers
                 if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(guardTime)) { continue; }
                 if (doodad.FarmType == FarmType.Invalid) { continue; }
 
+                // закончилось время защиты
+                doodad.OwnerId = 0;
+                doodad.OwnerType = DoodadOwnerType.System;
+                doodad.FarmType = FarmType.Invalid;
+                doodad.Save();
                 _deleted.Add(doodad);
             }
 
             foreach (var doodad in _deleted)
             {
-                doodad.Delete();
+                //doodad.Delete();
+                SpawnManager.Instance.RemovePlayerDoodad(doodad);
             }
         }
 
