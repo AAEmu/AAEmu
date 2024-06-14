@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -2846,8 +2847,7 @@ public class DoodadManager : Singleton<DoodadManager>
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null,
-        bool skipPhaseInitialization = false)
+    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
     {
         if (!_templates.TryGetValue(templateId, out var template))
         {
@@ -3047,8 +3047,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// <summary>
     /// Saves and creates a doodad
     /// </summary>
-    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot,
-        float scale, ulong itemId)
+    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid)
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
@@ -3062,6 +3061,7 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.Transform.Local.SetZRotation(zRot);
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
+        doodad.FarmType = farmType;
         if (targetHouse != null)
         {
             doodad.OwnerDbId = targetHouse.Id;
@@ -3105,13 +3105,13 @@ public class DoodadManager : Singleton<DoodadManager>
 
         foreach (var item in items)
         {
-            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1,
-                preferredItem);
+            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
         }
 
         doodad.InitDoodad();
         doodad.Spawn();
         doodad.Save();
+        SpawnManager.Instance.AddPlayerDoodad(doodad);
 
         return doodad;
     }

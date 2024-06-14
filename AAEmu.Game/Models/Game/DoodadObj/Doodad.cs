@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -147,7 +148,7 @@ public class Doodad : BaseUnit
             }
         }
     }
-
+    public FarmType FarmType { get; set; } 
     public uint QuestGlow { get; set; } //0 off // 1 on
     public int PuzzleGroup { get; set; } = -1; // -1 off
     public DoodadSpawner Spawner { get; set; }
@@ -720,6 +721,7 @@ public class Doodad : BaseUnit
                 }
             }
 
+            SpawnManager.Instance.RemovePlayerDoodad(this);
             IsPersistent = false;
         }
     }
@@ -744,8 +746,8 @@ public class Doodad : BaseUnit
                 }
 
                 command.CommandText =
-                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
-                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
+                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`, `farm_type`) " +
+                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data, @farm_type)";
                 command.Parameters.AddWithValue("@id", DbId);
                 command.Parameters.AddWithValue("@owner_id", OwnerId);
                 command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -769,6 +771,7 @@ public class Doodad : BaseUnit
                 command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
                 command.Parameters.AddWithValue("@item_container_id", GetItemContainerId());
                 command.Parameters.AddWithValue("@data", Data);
+                command.Parameters.AddWithValue("@farm_type", FarmType);
                 command.Prepare();
                 command.ExecuteNonQuery();
             }
