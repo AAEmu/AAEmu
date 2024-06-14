@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.CommonFarm;
+﻿namespace AAEmu.Game.Models.Game.CommonFarm;
 
 class FarmGroup
 {

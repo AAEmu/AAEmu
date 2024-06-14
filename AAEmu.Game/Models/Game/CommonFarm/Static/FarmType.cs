@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.CommonFarm.Static;
+﻿namespace AAEmu.Game.Models.Game.CommonFarm.Static;
 
 public enum FarmType
 {

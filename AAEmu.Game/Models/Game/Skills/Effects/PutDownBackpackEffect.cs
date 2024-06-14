@@ -34,7 +34,7 @@ public class PutDownBackpackEffect : EffectTemplate
         var item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
         if (item == null) return;
 
-        if (PublicFarmManager.Instance.InPublicFarm(character.Transform.WorldId, character.Transform.World.Position.X, character.Transform.World.Position.Y))
+        if (PublicFarmManager.Instance.InPublicFarm(character.Transform.WorldId, character.Transform.World.Position))
         {
             character.SendErrorMessage(ErrorMessageType.CommonFarmNotAllowedType);
             return;

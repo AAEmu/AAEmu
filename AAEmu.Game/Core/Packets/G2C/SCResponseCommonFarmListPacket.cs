@@ -4,7 +4,7 @@ using System.Linq;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.CommonFarm.Static;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -26,13 +26,13 @@ public class SCResponseCommonFarmListPacket : GamePacket
         stream.Write(_allPlanted.Values.Sum(l => l.Count));
         stream.Write(_allPlanted.Values.Sum(l => l.Count));
 
-        foreach (int type in Enum.GetValues(typeof(FarmType)))
+        foreach (FarmType type in Enum.GetValues(typeof(FarmType)))
         {
-            if (_allPlanted.TryGetValue((FarmType)type, out var doodadList))
+            if (_allPlanted.TryGetValue(type, out var doodadList))
             {
                 foreach (var doodad in doodadList)
                 {
-                    stream.Write(type);
+                    stream.Write((uint)type);
                     stream.Write(doodad.TemplateId);
                     stream.Write(doodad.TimeLeft);
                     stream.Write(doodad.FuncGroupId);

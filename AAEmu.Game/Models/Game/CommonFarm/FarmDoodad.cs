@@ -1,7 +1,7 @@
-﻿using AAEmu.Game.Models.CommonFarm.Static;
+﻿using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 
-namespace AAEmu.Game.Models.CommonFarm;
+namespace AAEmu.Game.Models.Game.CommonFarm;
 
 public class FarmDoodad
 {

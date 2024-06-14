@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
-using AAEmu.Game.Models.CommonFarm.Static;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Tasks.PublicFarm;
 
@@ -17,11 +19,7 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger Logger = LogManager.GetCurrentClassLogger();
 
-        private List<uint> _farmZones;
-        private Dictionary<uint, FarmType> _farmZonesTypes;
-
-        private const int protectedTime = 1;
-        private const int deletionTime = 3;
+        private Dictionary<uint, FarmType> _farmZones;
 
         public void Initialize()
         {
@@ -29,7 +27,7 @@ namespace AAEmu.Game.Core.Managers
             PublicFarmTickStart();
         }
 
-        public void PublicFarmTickStart()
+        private void PublicFarmTickStart()
         {
             Logger.Warn("PublicFarmTickTask: Started");
 
@@ -42,13 +40,11 @@ namespace AAEmu.Game.Core.Managers
             var _deleted = new List<Doodad>();
             foreach (var doodad in SpawnManager.Instance.GetAllPlayerDoodads())
             {
-                if (DateTime.UtcNow >= doodad.PlantTime.AddDays(protectedTime))
-                {
-                    if (doodad.FarmType != (uint)FarmType.Invalid)
-                    {
-                        _deleted.Add(doodad);
-                    }
-                }
+                var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
+                if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(guardTime)) { continue; }
+                if (doodad.FarmType == FarmType.Invalid) { continue; }
+
+                _deleted.Add(doodad);
             }
 
             foreach (var doodad in _deleted)
@@ -57,58 +53,28 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public bool InPublicFarm(uint worldId, float x, float y)
+        public bool InPublicFarm(uint worldId, Vector3 pos)
         {
-            var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldId, x, y);
-
-            if (subZoneList.Count > 0)
-            {
-                foreach (var subzoneId in subZoneList)
-                {
-                    if (_farmZones.Contains(subzoneId))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+            var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldId, pos);
+            return subZoneList.Count > 0 && subZoneList.Any(subZoneId => _farmZones.ContainsKey(subZoneId));
         }
 
-        public uint GetFarmId(uint worldId, float x, float y)
+        private uint GetFarmId(uint worldId, Vector3 pos)
         {
-            var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldId, x, y);
+            var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldId, pos);
 
-            if (subZoneList.Count > 0)
-            {
-                foreach (var subzoneId in subZoneList)
-                {
-                    if (_farmZones.Contains(subzoneId))
-                    {
-                        return subzoneId;
-                    }
-                }
-            }
-
-            return 0;
+            return subZoneList.Count > 0 ? subZoneList.FirstOrDefault(subZoneId => _farmZones.ContainsKey(subZoneId)) : 0;
         }
 
-        public FarmType GetFarmType(uint worldId, float x, float y)
+        public FarmType GetFarmType(uint worldId, Vector3 pos)
         {
-            var subzoneId = GetFarmId(worldId, x, y);
-
-            if (_farmZonesTypes.TryGetValue(subzoneId, out var type))
-            {
-                return type;
-            }
-            else
-                return FarmType.Invalid;
+            var subZoneId = GetFarmId(worldId, pos);
+            return _farmZones.GetValueOrDefault(subZoneId, FarmType.Invalid);
         }
 
         public bool CanPlace(Character character, FarmType farmType, uint doodadId)
         {
             var allPlanted = GetCommonFarmDoodads(character);
-
             if (allPlanted.TryGetValue(farmType, out var doodadList))
             {
                 if (doodadList.Count >= CommonFarmGameData.Instance.GetFarmGroupMaxCount(farmType))
@@ -118,14 +84,10 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
-            var alloweDoodads = CommonFarmGameData.Instance.GetAllowedDoodads(farmType);
-
-            foreach (var id in alloweDoodads)
+            var allowedDoodads = CommonFarmGameData.Instance.GetAllowedDoodads(farmType);
+            if (allowedDoodads.Any(id => doodadId == id))
             {
-                if (doodadId == id)
-                {
-                    return true;
-                }
+                return true;
             }
 
             character.SendErrorMessage(Models.Game.ErrorMessageType.CommonFarmNotAllowedType);
@@ -134,56 +96,45 @@ namespace AAEmu.Game.Core.Managers
 
         public Dictionary<FarmType, List<Doodad>> GetCommonFarmDoodads(Character character)
         {
-            var _list = new Dictionary<FarmType, List<Doodad>>();
+            var list = new Dictionary<FarmType, List<Doodad>>();
 
             var playerDoodads = SpawnManager.Instance.GetPlayerDoodads(character.Id);
 
             foreach (var doodad in playerDoodads)
             {
-                if (InPublicFarm(character.Transform.WorldId, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y))
+                if (InPublicFarm(character.Transform.WorldId, doodad.Transform.World.Position))
                 {
-                    var farmType = GetFarmType(character.Transform.WorldId, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y);
+                    var farmType = GetFarmType(character.Transform.WorldId, doodad.Transform.World.Position);
 
-                    if (doodad.FarmType == (uint)farmType)
+                    if (doodad.FarmType == farmType)
                     {
-                        if (!_list.ContainsKey(farmType))
-                            _list.Add(farmType, new List<Doodad>());
-                        _list[farmType].Add(doodad);
+                        if (!list.ContainsKey(farmType))
+                            list.Add(farmType, new List<Doodad>());
+                        list[farmType].Add(doodad);
                     }
                 }
             }
 
-            return _list;
+            return list;
         }
 
-        public bool IsProtected(Doodad doodad)
+        public static bool IsProtected(Doodad doodad)
         {
-            var protectionTime = doodad.PlantTime.AddDays(protectedTime);
+            var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
+            var protectionTime = doodad.PlantTime.AddSeconds(guardTime);
 
-            if (doodad.PlantTime >= protectionTime)
-            {
-                return false;
-            }
-
-            return true;
+            return doodad.PlantTime < protectionTime;
         }
 
         public void Load()
         {
             //common farm subzone ID's
-            _farmZones = new List<uint>();
-            _farmZones.Add(998);
-            _farmZones.Add(966);
-            _farmZones.Add(968);
-            _farmZones.Add(967);
-            _farmZones.Add(974);
-
-            _farmZonesTypes = new Dictionary<uint, FarmType>();
-            _farmZonesTypes.Add(998, FarmType.Farm);
-            _farmZonesTypes.Add(966, FarmType.Farm);
-            _farmZonesTypes.Add(968, FarmType.Nursery);
-            _farmZonesTypes.Add(967, FarmType.Ranch);
-            _farmZonesTypes.Add(974, FarmType.Stable);
+            _farmZones = new Dictionary<uint, FarmType>();
+            _farmZones.Add(998, FarmType.Farm);
+            _farmZones.Add(966, FarmType.Farm);
+            _farmZones.Add(968, FarmType.Nursery);
+            _farmZones.Add(967, FarmType.Ranch);
+            _farmZones.Add(974, FarmType.Stable);
         }
 
     }

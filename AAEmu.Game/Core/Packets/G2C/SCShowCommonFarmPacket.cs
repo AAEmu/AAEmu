@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Numerics;
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 
@@ -12,13 +13,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _y;
         private readonly float _z;
 
-        public SCShowCommonFarmPacket(int farmType, int count, float x, float y, float z) : base(SCOffsets.SCShowCommonFarmPacket, 1)
+        public SCShowCommonFarmPacket(int farmType, int count, Vector3 pos) : base(SCOffsets.SCShowCommonFarmPacket, 1)
         {
             _farmType = farmType;
             _count = count;
-            _x = x;
-            _y = y;
-            _z = z;
+            _x = pos.X;
+            _y = pos.Y;
+            _z = pos.Z;
         }
 
         public override PacketStream Write(PacketStream stream)

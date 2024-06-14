@@ -18,14 +18,15 @@ public class CropHarvest : IWorldInteraction
     {
         if (target is Doodad doodad)
         {
-            if (PublicFarmManager.Instance.InPublicFarm(doodad.Transform.WorldId, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y))
+            if (PublicFarmManager.Instance.InPublicFarm(doodad.Transform.WorldId, doodad.Transform.World.Position))
             {
-                if (PublicFarmManager.Instance.IsProtected(doodad))
+                if (PublicFarmManager.IsProtected(doodad))
                 {
-                    if(caster is Character character)
+                    if(caster is Character character && doodad.OwnerId != character.Id)
                     {
                         character.SendErrorMessage(ErrorMessageType.CannotHarvestYet);
                         Logger.Debug($"This should never happen character {character.Name} attempted to bypass harvest protection (clienthacks?)");
+                        character.SkillCancelled = true;
                         return;
                     }
                 }

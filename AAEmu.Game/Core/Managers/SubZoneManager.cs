@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.Utils;
@@ -315,6 +316,11 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
     }
 
+    public List<uint> GetSubZoneByPosition(uint worldId, Vector3 pos)
+    {
+        return GetSubZoneByPosition(worldId, pos.X, pos.Y);
+    }
+ 
     public List<uint> GetSubZoneByPosition(uint worldId, float x, float y)
     {
         var zoneId = WorldManager.Instance.GetZoneId(worldId, x, y);
