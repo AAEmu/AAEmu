@@ -1,14 +1,16 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -22,7 +24,9 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 // ReSharper disable ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
@@ -2757,8 +2761,7 @@ public class DoodadManager : Singleton<DoodadManager>
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null,
-        bool skipPhaseInitialization = false)
+    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
     {
         if (!_templates.TryGetValue(templateId, out var template))
         {
@@ -2898,7 +2901,6 @@ public class DoodadManager : Singleton<DoodadManager>
         return funcs.GetValueOrDefault(funcId);
     }
 
-
     /// <summary>
     /// GetDoodadFuncGroups - Get a group of functions for a given TemplateId
     /// </summary>
@@ -2959,8 +2961,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// <summary>
     /// Saves and creates a doodad
     /// </summary>
-    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot,
-        float scale, ulong itemId)
+    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid)
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
@@ -2974,6 +2975,7 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.Transform.Local.SetZRotation(zRot);
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
+        doodad.FarmType = farmType;
         if (targetHouse != null)
         {
             doodad.OwnerDbId = targetHouse.Id;
@@ -3017,13 +3019,13 @@ public class DoodadManager : Singleton<DoodadManager>
 
         foreach (var item in items)
         {
-            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1,
-                preferredItem);
+            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
         }
 
         doodad.InitDoodad();
         doodad.Spawn();
         doodad.Save();
+        SpawnManager.Instance.AddPlayerDoodad(doodad);
 
         return doodad;
     }
@@ -3138,7 +3140,7 @@ public class DoodadManager : Singleton<DoodadManager>
         {
             if (transaction != null)
                 command.Transaction = transaction;
-            
+
             // First grab item related data
             command.CommandText = "SELECT * FROM doodads WHERE id = @id LIMIT 1";
             command.Parameters.AddWithValue("@id", dbId);
@@ -3151,7 +3153,7 @@ public class DoodadManager : Singleton<DoodadManager>
                     attachedContainer = reader.GetUInt32("item_container_id");
                 }
             }
-            
+
             // Actually delete the doodad from DB
             command.CommandText = "DELETE FROM doodads WHERE id = @id";
             // command.Parameters.AddWithValue("@id", dbId); // recycled from above
@@ -3163,7 +3165,7 @@ public class DoodadManager : Singleton<DoodadManager>
             }
         }
         DoodadIdManager.Instance.ReleaseId(dbId); // Free up the Id
-        
+
         // Handle attached items
         if (attachedItemId > 0)
         {

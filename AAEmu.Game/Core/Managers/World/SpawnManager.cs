@@ -13,6 +13,7 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
@@ -422,6 +423,29 @@ public class SpawnManager : Singleton<SpawnManager>
         _loaded = true;
     }
 
+    public List<Doodad> GetPlayerDoodads(uint charId)
+    {
+        return _playerDoodads.Where(d => d.OwnerId == charId).ToList();
+    }
+
+    public List<Doodad> GetAllPlayerDoodads()
+    {
+        return _playerDoodads;
+    }
+
+    public void RemovePlayerDoodad(Doodad doodad)
+    {
+        if (_playerDoodads.Contains(doodad))
+        {
+            _playerDoodads.Remove(doodad);
+        }
+    }
+
+    public void AddPlayerDoodad(Doodad doodad)
+    {
+        _playerDoodads.Add(doodad);
+    }
+
     /// <summary>
     /// Load Persistent Doodads from the DataBase
     /// </summary>
@@ -439,7 +463,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             // Sorting required to make sure parenting doesn't produce invalid parents (normally)
 
-            command.CommandText = "SELECT * FROM doodads  WHERE owner_type = @OwnerType";
+            command.CommandText = "SELECT * FROM doodads WHERE owner_type = @OwnerType";
             if (ownerToSpawnId >= 0)
                 command.CommandText += " AND house_id = @OwnerId";
             command.CommandText += " ORDER BY `plant_time`";
@@ -473,6 +497,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     var itemTemplateId = reader.GetUInt32("item_template_id");
                     var itemContainerId = reader.GetUInt64("item_container_id");
                     var data = reader.GetInt32("data");
+                    var farmType = (FarmType)reader.GetUInt32("farm_type");
 
                     var doodad = DoodadManager.Instance.Create(0, templateId, null, true);
 
@@ -497,6 +522,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     // Grab Ucc from its old source item
                     doodad.UccId = sourceItem?.UccId ?? 0;
                     doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
+                    doodad.FarmType = farmType;
 
                     // Apparently this is only a reference value, so might not actually need to parent it
                     if (parentDoodad > 0)

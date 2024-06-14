@@ -148,6 +148,9 @@ public sealed class GameService : IHostedService, IDisposable
         GimmickManager.Instance.Load();
         ShipyardManager.Instance.Load();
 
+        SubZoneManager.Instance.Load();
+        PublicFarmManager.Instance.Load();
+
         SpawnManager.Instance.Load();
 
         AccessLevelManager.Instance.Load();
@@ -184,6 +187,7 @@ public sealed class GameService : IHostedService, IDisposable
         GameDataManager.Instance.PostLoadGameData();
         FishSchoolManager.Instance.Initialize();
         RadarManager.Instance.Initialize();
+        PublicFarmManager.Instance.Initialize();
 
         if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
         {
