@@ -14,6 +14,9 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Tasks.PublicFarm;
+using AAEmu.Game.Models.Tasks.Quests;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Quests;
 

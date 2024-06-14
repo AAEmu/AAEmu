@@ -969,7 +969,7 @@ public class Skill
 
         // Check if any of the effects use Weight, and pick a random value
         var weightedTotal = 0;
-        var selectedWeight = -1; 
+        var selectedWeight = -1;
         foreach (var item in effectsToApply)
             weightedTotal += item.effect.Weight;
         if (weightedTotal > 0)
@@ -1010,6 +1010,8 @@ public class Skill
                 else
                 {
                     item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+
+                    if (player is { SkillCancelled: true }) { Cancelled = true; }
                 }
 
                 // Implement consumption of item sets

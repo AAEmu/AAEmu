@@ -6,7 +6,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
-
+using AAEmu.Game.Models.Game.World.Zones;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -28,10 +28,18 @@ public class World
     public ushort[,] HeightMaps { get; set; }
     public List<uint> ZoneKeys { get; set; } = new();
     public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
-
     public BoatPhysicsManager Physics { get; set; }
     public WaterBodies Water { get; set; }
     public WorldEvents Events { get; set; } = new();
+    public Dictionary<uint, List<Area>> SubZones { get; set; } // uint is zoneid 
+    public Dictionary<uint, List<Area>> HousingZones { get; set; } // uint is zoneid 
+
+    public World()
+    {
+        Events = new WorldEvents();
+        SubZones = new Dictionary<uint, List<Area>>();
+        HousingZones = new Dictionary<uint, List<Area>>();
+    }
 
     ~World()
     {

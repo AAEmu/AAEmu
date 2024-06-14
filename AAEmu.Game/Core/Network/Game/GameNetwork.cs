@@ -261,6 +261,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSCharDetailPacket, 1, typeof(CSCharDetailPacket));
         RegisterPacket(CSOffsets.CSAddBlockedUserPacket, 1, typeof(CSAddBlockedUserPacket));
         RegisterPacket(CSOffsets.CSDeleteBlockedUserPacket, 1, typeof(CSDeleteBlockedUserPacket));
+        RegisterPacket(CSOffsets.CSRequestCommonFarmList, 1, typeof(CSRequestCommonFarmList));
         RegisterPacket(CSOffsets.CSNotifySubZonePacket, 1, typeof(CSNotifySubZonePacket));
         RegisterPacket(CSOffsets.CSResturnAddrsPacket, 1, typeof(CSResturnAddrsPacket));
         RegisterPacket(CSOffsets.CSRequestUIDataPacket, 1, typeof(CSRequestUIDataPacket));

@@ -41,6 +41,7 @@ public class InteractionEffect : EffectTemplate
         }
 
         if (caster is not Character character) { return; }
+        if (character.SkillCancelled) { return; }
         if (target is Doodad doodad)
         {
             //character.Quests.OnInteraction(WorldInteraction, target);

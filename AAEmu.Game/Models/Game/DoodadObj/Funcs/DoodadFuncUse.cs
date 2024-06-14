@@ -26,6 +26,20 @@ public class DoodadFuncUse : DoodadFuncTemplate
             return;
         }
 
+        if (PublicFarmManager.Instance.InPublicFarm(owner.Transform.WorldId, owner.Transform.World.Position))
+        {
+            if (PublicFarmManager.IsProtected(owner) && owner.OwnerId != 0)
+            {
+                if(caster is Character character && owner.OwnerId != character.Id)
+                {
+                    character.SendErrorMessage(ErrorMessageType.CannotHarvestYet);
+                    Logger.Debug($"This should never happen character {character.Name} attempted to bypass harvest protection (clienthacks?)");
+                    character.SkillCancelled = true;
+                    return;
+                }
+            }
+        }
+
         if (owner.OwnerDbId > 0 && caster is Character player)
         {
             // If it's on a house, need to check permissions
