@@ -325,6 +325,11 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
         }
         return 0;
     }
+
+    public Spheres GetSphere(uint sphereId)
+    {
+        return _spheres.GetValueOrDefault(sphereId);
+    }
     
     /// <summary>
     /// Checks if a position is inside the given SphereId

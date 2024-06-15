@@ -212,8 +212,14 @@ public partial class Quest
             var score = 0;
             // Loop through all components and acts to calculate their score
             foreach (var questComponent in questComponents)
-            foreach (var questComponentAct in questComponent.Acts)
-                score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+            {
+                if (!questComponent.IsCurrentlyActive)
+                    continue;
+
+                foreach (var questComponentAct in questComponent.Acts)
+                    score += questComponentAct.Template.Count *
+                             Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+            }
 
             // Check the score results
             if (Template.LetItDone && score >= (int)Math.Ceiling(Template.Score * 3f / 2f))
@@ -230,16 +236,25 @@ public partial class Quest
 
         // Check individual act counts if it's not score based
         foreach (var questComponent in questComponents)
-        foreach (var questComponentAct in questComponent.Acts)
         {
-            if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 3 / 2)
-                return QuestObjectiveStatus.Overachieved;
-            if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] > questComponentAct.Template.Count)
-                return QuestObjectiveStatus.ExtraProgress;
-            if (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count)
-                return QuestObjectiveStatus.QuestComplete;
-            if (Template.LetItDone && (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2))
-                return QuestObjectiveStatus.CanEarlyComplete;
+            if (!questComponent.IsCurrentlyActive)
+                continue;
+
+            foreach (var questComponentAct in questComponent.Acts)
+            {
+                if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
+                    questComponentAct.Template.Count * 3 / 2)
+                    return QuestObjectiveStatus.Overachieved;
+                if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >
+                    questComponentAct.Template.Count)
+                    return QuestObjectiveStatus.ExtraProgress;
+                if (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
+                    questComponentAct.Template.Count)
+                    return QuestObjectiveStatus.QuestComplete;
+                if (Template.LetItDone && (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
+                                           questComponentAct.Template.Count * 1 / 2))
+                    return QuestObjectiveStatus.CanEarlyComplete;
+            }
         }
 
         return QuestObjectiveStatus.NotReady;
@@ -261,8 +276,14 @@ public partial class Quest
             var score = 0;
             // Loop through all components and acts to calculate their score
             foreach (var questComponent in questComponents)
-            foreach (var questComponentAct in questComponent.Acts)
-                score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+            {
+                if (!questComponent.IsCurrentlyActive)
+                    continue;
+
+                foreach (var questComponentAct in questComponent.Acts)
+                    score += questComponentAct.Template.Count *
+                             Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+            }
 
             // Check the score cap results
             if (Template.LetItDone && score >= (int)Math.Ceiling(Template.Score * 3f / 2f))
@@ -274,15 +295,23 @@ public partial class Quest
         // Check individual act counts if it's not score based
         var highest = 0f;
         foreach (var questComponent in questComponents)
-        foreach (var questComponentAct in questComponent.Acts)
         {
-            if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
-                questComponentAct.Template.Count * 3 / 2)
-            {
-                highest = Math.Max(highest, questComponentAct.Template.Count * 3f / 2f);
+            if (!questComponent.IsCurrentlyActive)
                 continue;
+
+            foreach (var questComponentAct in questComponent.Acts)
+            {
+                if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
+                    questComponentAct.Template.Count * 3 / 2)
+                {
+                    highest = Math.Max(highest, questComponentAct.Template.Count * 3f / 2f);
+                    continue;
+                }
+
+                highest = Math.Max(highest,
+                    1f / questComponentAct.Template.Count *
+                    Objectives[questComponentAct.Template.ThisComponentObjectiveIndex]);
             }
-            highest = Math.Max(highest, 1f / questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex]);
         }
 
         return highest;

@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests;
@@ -80,25 +81,14 @@ public class CharacterQuests
             Logger.Error($"Failed to start new Quest {questId}, invalid Id");
             return false;
         }
-
-        // TODO: Check/validate if this is needed
-        // Verify if the quest zone is "friendly" towards the player before they can accept it.
-        var questZoneKeyCheck = template.ZoneId;
-        if ((template.ZoneId == 1) && (template.CategoryId != 9)) // zoneKey 1 = Gweonid Forest, Category 9 = Gweonid Forest
+        
+        // Check if start step components are active
+        var startComponentTemplate = template.GetComponents(QuestComponentKind.Start);
+        foreach (var questComponentTemplate in startComponentTemplate)
         {
-            // Probably a generic non-zone specific quest
-            questZoneKeyCheck = 0;
-        }
-        if (questZoneKeyCheck > 0)
-        {
-            var zone = ZoneManager.Instance.GetZoneById(questZoneKeyCheck);
-            var zoneFaction = FactionManager.Instance.GetFaction(zone?.FactionId ?? FactionsEnum.Neutral);
-            var relation = zoneFaction?.GetRelationState(Owner.Faction) ?? RelationState.Neutral;
-            if (relation == RelationState.Hostile)
+            if (!UnitRequirementsGameData.Instance.CanComponentRun(questComponentTemplate, Owner))
             {
-                // Quest not allowed in hostile zones?
-                Logger.Warn($"AddQuest trying to add a quest from a hostile zone, Player: {Owner.Name} ({Owner.Id}) {Owner.Faction.Name} ({Owner.Faction.Id}) for quest {questId} with ZoneKey: {questZoneKeyCheck}, Faction: {zoneFaction.Name} ({zoneFaction.Id})");
-                Owner.SendMessage($"[AAEmu] AddQuest trying to add a quest from a hostile zone, Player: {Owner.Name} ({Owner.Id}) {Owner.Faction.Name} ({Owner.Faction.Id}) for quest {questId} with ZoneKey: {questZoneKeyCheck}, Faction: {zoneFaction.Name} ({zoneFaction.Id}), please report this to the admins with a screenshot attached");
+                Logger.Trace($"User {Owner.Name} ({Owner.Id}) does not meet requirements to start new Quest {questId}, ComponentId {questComponentTemplate.Id}");
                 return false;
             }
         }

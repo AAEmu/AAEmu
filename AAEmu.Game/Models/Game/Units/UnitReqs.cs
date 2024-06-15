@@ -37,7 +37,7 @@ public class UnitReqs
         switch (KindType)
         {
             case UnitReqsKindType.Level:
-                return unit != null && (unit.Level >= Value1 && unit.Level <= Value2);
+                return unit != null && (unit.Level >= Value1 && (Value2 == 0 || unit.Level <= Value2));
 
             case UnitReqsKindType.Ability:
                 return player != null && player.Abilities.GetAbilityLevel((AbilityType)Value1) >= Value2;

@@ -14,6 +14,11 @@ public class QuestComponent : IQuestComponent
     public QuestStep Parent { get; set; }
     public List<IQuestAct> Acts { get; set; } = new();
 
+    /// <summary>
+    /// This is set internally to cache the enabled/disabled state for this component base of it's UnitReqs
+    /// </summary>
+    public bool IsCurrentlyActive { get; set; } = true;
+
     public QuestComponent(QuestStep parent, QuestComponentTemplate template)
     {
         Parent = parent;

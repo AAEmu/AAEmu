@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
-
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
@@ -53,12 +54,19 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     {
         var res = true;
 
+        // Cache which components are active
+        foreach (var questComponent in Components.Values)
+            questComponent.IsCurrentlyActive = UnitRequirementsGameData.Instance.CanComponentRun(questComponent.Template, (BaseUnit)Parent.Owner);
+
         if (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress)
         {
             // Require only one of the components to be true in the progress step is quest has selective flag
             res = false;
             foreach (var questComponent in Components.Values)
             {
+                if (!questComponent.IsCurrentlyActive)
+                    continue;
+
                 var componentResult = questComponent.RunComponent();
                 if (componentResult)
                     Parent.ComponentId = questComponent.Template.Id;
@@ -70,6 +78,12 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             // Requires all components to be true
             foreach (var questComponent in Components.Values)
             {
+                if (!questComponent.IsCurrentlyActive)
+                {
+                    res = false;
+                    continue;
+                }
+
                 res &= questComponent.RunComponent();
                 if (res)
                     Parent.ComponentId = questComponent.Template.Id;
@@ -82,8 +96,14 @@ public class QuestStep(QuestComponentKind step, Quest parent)
             // Validate using Score combined from all components
             var score = 0;
             foreach (var questComponent in Components.Values)
-            foreach (var questAct in questComponent.Acts)
-                score += questAct.GetObjective(Parent) * questAct.Template.Count;
+            {
+                if (!questComponent.IsCurrentlyActive)
+                    continue;
+
+                foreach (var questAct in questComponent.Acts)
+                    score += questAct.GetObjective(Parent) * questAct.Template.Count;
+            }
+
             res = score >= Parent.Template.Score;
             var objectiveStatus = Parent.GetQuestObjectiveStatus();
             Parent.Status = objectiveStatus >= QuestObjectiveStatus.QuestComplete

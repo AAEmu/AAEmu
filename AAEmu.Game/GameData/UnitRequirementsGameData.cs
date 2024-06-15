@@ -2,9 +2,11 @@
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 using NLog;
@@ -120,6 +122,50 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             var reqRes = unitReq.Validate(ownerUnit);
 
             if (skillTemplate.OrUnitReqs)
+            {
+                // If OrUnitReqs is set, stop checking at the first hit
+                res = true;
+                break;
+            }
+
+            res &= reqRes;
+        }
+        return res;
+    }
+    
+    public bool CanTriggerSphere(Spheres sphere, BaseUnit ownerUnit)
+    {
+        var reqs = GetSphereRequirements(sphere.Id);
+        if (reqs.Count == 0)
+            return true; // No requirements, we're good
+        var res = !sphere.OrUnitReqs;
+        foreach (var unitReq in reqs)
+        {
+            var reqRes = unitReq.Validate(ownerUnit);
+
+            if (sphere.OrUnitReqs)
+            {
+                // If OrUnitReqs is set, stop checking at the first hit
+                res = true;
+                break;
+            }
+
+            res &= reqRes;
+        }
+        return res;
+    }
+    
+    public bool CanComponentRun(QuestComponentTemplate questComponent, BaseUnit ownerUnit)
+    {
+        var reqs = GetQuestComponentRequirements(questComponent.Id);
+        if (reqs.Count == 0)
+            return true; // No requirements, we're good
+        var res = !questComponent.OrUnitReqs;
+        foreach (var unitReq in reqs)
+        {
+            var reqRes = unitReq.Validate(ownerUnit);
+
+            if (questComponent.OrUnitReqs)
             {
                 // If OrUnitReqs is set, stop checking at the first hit
                 res = true;

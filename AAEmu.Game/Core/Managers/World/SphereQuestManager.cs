@@ -206,7 +206,9 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                     
                     if (!oldInside && newInside)
                     {
-                        QuestManager.Instance.DoOnEnterQuestStarterSphere(character, questStartingSphere, lastCheckLocation);
+                        if (questStartingSphere.Sphere.DbSphere == null ||
+                            UnitRequirementsGameData.Instance.CanTriggerSphere(questStartingSphere.Sphere.DbSphere, character))
+                            QuestManager.Instance.DoOnEnterQuestStarterSphere(character, questStartingSphere, lastCheckLocation);
                     }
                     //else if (oldInside && !newInside)
                     //{
