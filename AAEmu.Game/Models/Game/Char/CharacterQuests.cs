@@ -89,7 +89,8 @@ public class CharacterQuests
             if (!UnitRequirementsGameData.Instance.CanComponentRun(questComponentTemplate, Owner))
             {
                 Logger.Trace($"User {Owner.Name} ({Owner.Id}) does not meet requirements to start new Quest {questId}, ComponentId {questComponentTemplate.Id}");
-                return false;
+                if (!forcibly)
+                    return false;
             }
         }
 

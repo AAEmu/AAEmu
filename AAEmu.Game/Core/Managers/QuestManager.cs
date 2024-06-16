@@ -213,7 +213,8 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                 // Assign references to parents
                 foreach (var questAct in questActs)
                 {
-                    questAct.ThisComponentObjectiveIndex = actIndex;
+                    var usesObjectiveIndex = (questAct is not QuestActEtcItemObtain);
+                    questAct.ThisComponentObjectiveIndex = usesObjectiveIndex ? actIndex : (byte)0xFF;
                     // questAct.ParentComponent = questComponentValue;
                     questAct.ParentQuestTemplate = questTemplate;
 
@@ -224,7 +225,8 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                         questAct.ThisSelectiveIndex = selectiveRewardIndex;
                     }
 
-                    actIndex++;
+                    if (usesObjectiveIndex)
+                        actIndex++;
                 }
 
                 // Actually add them

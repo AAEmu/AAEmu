@@ -25,7 +25,8 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
-        return currentObjectiveCount >= Count;
+        return true;
+        //return currentObjectiveCount >= Count;
     }
 
     public override void InitializeAction(Quest quest, IQuestAct questAct)
@@ -42,6 +43,7 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
 
     public override void OnItemGather(IQuestAct questAct, object sender, OnItemGatherArgs e)
     {
+        return;
         // Check if obtained the specified item, there is no check for removing for EtcItemObtain
         if ((questAct.Id == ActId) && (e.ItemId == ItemId) && (e.Count > 0))
             AddObjective(questAct, e.Count);

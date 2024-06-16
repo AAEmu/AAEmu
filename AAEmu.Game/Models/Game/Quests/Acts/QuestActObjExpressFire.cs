@@ -40,7 +40,7 @@ public class QuestActObjExpressFire(QuestComponentTemplate parentComponent) : Qu
     {
         if (questAct.Id != ActId)
             return;
-
+        
         if (args.EmotionId != ExpressKeyId)
             return;
       

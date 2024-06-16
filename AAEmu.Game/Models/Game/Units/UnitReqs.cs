@@ -86,7 +86,7 @@ public class UnitReqs
                     return false;
                 var rangeCheck = Value2 / 1000f;
                 var doodads = WorldManager.GetAround<Doodad>(owner, rangeCheck * 2f, true);
-                return doodads.Any(doodad => owner.GetDistanceTo(doodad, true) <= rangeCheck);
+                return doodads.Any(doodad => owner.GetDistanceTo(doodad, true) <= rangeCheck && doodad.TemplateId == Value1);
 
             case UnitReqsKindType.EquipShield:
                 // TODO: Validate shield type (value2)
