@@ -22,6 +22,6 @@ public class CSGetExpeditionMyRecruitmentsPacket : GamePacket
 
         Logger.Debug("GetExpeditionMyRecruitments");
 
-        ExpeditionManager.Instance.SendExpeditionMyRecruitmentsInfo(Connection, my, page, interest, levelFrom, levelTo, name, sortType);
+        ExpeditionManager.Instance.SendMyExpeditionRecruitmentsInfo(Connection.ActiveChar, my, page, interest, levelFrom, levelTo, name, sortType);
     }
 }

@@ -114,8 +114,8 @@ public class FactionManager : Singleton<FactionManager>
         {
             var factions = _systemFactions.Values.ToArray();
             var dividedArrays = Helpers.SplitArray(factions, 20); // Разделяем массив на массивы по 20 значений
-            foreach (var t in dividedArrays)
-                character.SendPacket(new SCSystemFactionListPacket(t));
+            foreach (var systemFaction in dividedArrays)
+                character.SendPacket(new SCSystemFactionListPacket(systemFaction));
         }
     }
 

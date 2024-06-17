@@ -10,7 +10,7 @@ public class SCExpeditionRecruitmentsGetPacket : GamePacket
     private readonly uint _total;
     private readonly uint _page;
     private readonly uint _count;
-    private readonly sbyte _applyCount;
+    private sbyte _applyCount;
     private readonly List<ExpeditionRecruitment> _recruitments;
 
     public SCExpeditionRecruitmentsGetPacket(List<ExpeditionRecruitment> recruitments)
@@ -38,7 +38,14 @@ public class SCExpeditionRecruitmentsGetPacket : GamePacket
         stream.Write(_page);
         stream.Write(_count);
         foreach (var member in _recruitments) // 15 на страницу
+        {
             member.Write(stream);
+            if (member.Apply)
+            {
+                _applyCount++;
+            }
+        }
+
         stream.Write(_applyCount);
         return stream;
     }

@@ -35,6 +35,7 @@ public class CSNotifyInGamePacket : GamePacket
         // TODO - MAYBE MOVE TO SPAWN CHARACTER
         TeamManager.Instance.UpdateAtLogin(Connection.ActiveChar);
         Connection.ActiveChar.Expedition?.OnCharacterLogin(Connection.ActiveChar);
+        ExpeditionManager.SendMyExpeditionDescInfo(Connection.ActiveChar);
 
         if (Connection.ActiveChar.Attendances.Attendances?.Count == 0)
         {

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions;
@@ -19,16 +20,34 @@ public class Expedition : SystemFaction
     public List<ExpeditionMember> Members { get; set; }
     public List<ExpeditionRolePolicy> Policies { get; set; }
     public List<ExpeditionRecruitment> Recruitments { get; set; }
+    public List<Applicant> Pretenders { get; set; }
 
     public uint Level { get; set; }
-    public bool isDisbanded { get; set; }
-    
+    public uint Exp { get; set; }
+    public DateTime ProtectTime { get; set; }
+    public uint WarDeposit { get; set; }
+    public uint DailyExp { get; set; }
+    public DateTime LastExpUpdateTime { get; set; }
+    public bool IsLevelUpdate { get; set; }
+    public short Interest { get; set; }
+    public string MotdTitle { get; set; }
+    public string MotdContent { get; set; }
+    public uint Win { get; set; }
+    public uint Lose { get; set; }
+    public uint Draw { get; set; }
+    public bool IsDisbanded { get; set; }
+
     public Expedition()
     {
         _removedMembers = new List<uint>();
         Members = new List<ExpeditionMember>();
         Policies = new List<ExpeditionRolePolicy>();
-        isDisbanded = false;
+        Recruitments = new List<ExpeditionRecruitment>();
+        Pretenders = new List<Applicant>();
+        IsDisbanded = false;
+        IsLevelUpdate = false;
+        MotdTitle = "";
+        MotdContent = "";
     }
 
     public void RemoveMember(ExpeditionMember member)
@@ -37,6 +56,53 @@ public class Expedition : SystemFaction
         ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
         Members.Remove(member);
         _removedMembers.Add(member.CharacterId);
+    }
+
+    public void PretenderAdd(Applicant pretender)
+    {
+        // оставляем только одну запись на гильдию
+        var p = GetPretender(pretender.ExpeditionId);
+        if (p == null)
+        {
+            Pretenders.Add(pretender);
+        }
+        else
+        {
+            p.ExpeditionId = pretender.ExpeditionId;
+            p.Memo = pretender.Memo;
+            p.CharacterId = pretender.CharacterId;
+        }
+
+        var r = GetRecruitment(pretender.ExpeditionId);
+        if (r != null)
+        {
+            r.Apply = true;
+        }
+    }
+
+    public void PretenderRemove(Applicant pretender)
+    {
+        var r = GetRecruitment(pretender.ExpeditionId);
+        if (r != null)
+        {
+            r.Apply = false;
+        }
+        Pretenders.Remove(pretender);
+    }
+
+    public Applicant GetPretender(uint expeditionId)
+    {
+        return Pretenders.FirstOrDefault(pretender => pretender.ExpeditionId == expeditionId);
+    }
+
+    public  List<Applicant> GetPretenders()
+    {
+        return Pretenders;
+    }
+
+    private ExpeditionRecruitment GetRecruitment(uint expeditionId)
+    {
+        return Recruitments.FirstOrDefault(recruitment => recruitment.ExpeditionId == expeditionId);
     }
 
     public void OnCharacterLogin(Character character)
@@ -124,7 +190,7 @@ public class Expedition : SystemFaction
             _removedMembers.Clear();
         }
 
-        if (isDisbanded)
+        if (IsDisbanded)
         {
             using (var command = connection.CreateCommand())
             {
@@ -160,7 +226,8 @@ public class Expedition : SystemFaction
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`,`level`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at, @level)";
+                command.CommandText = "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`,`level`,`exp`,`protect_time`,`war_deposit`,`daily_exp`,`last_exp_update_time`,`is_level_update`,`interest`,`motd_title`,`motd_content`,`win`,`lose`,`draw`)" +
+                                      " VALUES (@id, @owner, @owner_name, @name, @mother, @created_at, @level, @exp, @protect_time, @war_deposit, @daily_exp, @last_exp_update_time, @is_level_update, @interest, @motd_title, @motd_content, @win, @lose, @draw)";
                 command.Parameters.AddWithValue("@id", this.Id);
                 command.Parameters.AddWithValue("@owner", this.OwnerId);
                 command.Parameters.AddWithValue("@owner_name", this.OwnerName);
@@ -168,6 +235,18 @@ public class Expedition : SystemFaction
                 command.Parameters.AddWithValue("@mother", this.MotherId);
                 command.Parameters.AddWithValue("@created_at", this.Created);
                 command.Parameters.AddWithValue("@level", this.Level);
+                command.Parameters.AddWithValue("@exp", this.Exp);
+                command.Parameters.AddWithValue("@protect_time", this.ProtectTime);
+                command.Parameters.AddWithValue("@war_deposit", this.WarDeposit);
+                command.Parameters.AddWithValue("@daily_exp", this.DailyExp);
+                command.Parameters.AddWithValue("@last_exp_update_time", this.LastExpUpdateTime);
+                command.Parameters.AddWithValue("@is_level_update", this.IsLevelUpdate);
+                command.Parameters.AddWithValue("@interest", this.Interest);
+                command.Parameters.AddWithValue("@motd_title", this.MotdTitle);
+                command.Parameters.AddWithValue("@motd_content", this.MotdContent);
+                command.Parameters.AddWithValue("@win", this.Win);
+                command.Parameters.AddWithValue("@lose", this.Lose);
+                command.Parameters.AddWithValue("@draw", this.Draw);
                 command.ExecuteNonQuery();
             }
 
@@ -179,27 +258,30 @@ public class Expedition : SystemFaction
 
             foreach (var recruitment in Recruitments)
                 recruitment.Save(connection, transaction);
+
+            foreach (var pretender in Pretenders)
+                pretender.Save(connection, transaction);
         }
     }
 
     public PacketStream WriteInfo(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write(Level);           // type
-        stream.Write(0);               // exp
-        stream.Write(DateTime.UtcNow + TimeSpan.FromDays(1)); // protectDate
-        stream.Write(0);               // warDeposit
-        stream.Write(0);               // dailyExp
-        stream.Write(DateTime.UtcNow); // lastExpUpdateTime
-        stream.Write(false);           // isLevelUpdate
-        stream.Write((short)63);       // interest
-        stream.Write("ipsus lipsus");  // motdTitle
-        stream.Write("mopus dopus");   // motdContent
-        stream.Write(0);   // win
-        stream.Write(0);   // lose
-        stream.Write(0);   // draw
-        stream.Write(0);   // type
-        stream.Write(0u);  // type
+        stream.Write(Level);             // type
+        stream.Write(Exp);               // exp
+        stream.Write(ProtectTime);       // protectDate
+        stream.Write(WarDeposit);        // warDeposit
+        stream.Write(DailyExp);          // dailyExp
+        stream.Write(LastExpUpdateTime); // lastExpUpdateTime
+        stream.Write(IsLevelUpdate);     // isLevelUpdate
+        stream.Write(Interest);          // interest
+        stream.Write(MotdTitle);         // motdTitle
+        stream.Write(MotdContent);       // motdContent
+        stream.Write(Win);               // win
+        stream.Write(Lose);              // lose
+        stream.Write(Draw);              // draw
+        stream.Write(0);                 // type
+        stream.Write(0u);                // type
         return stream;
     }
 }
