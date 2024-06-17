@@ -35,7 +35,8 @@ public class ExpeditionMember : PacketMarshaler
 
     public void Refresh(Character character)
     {
-        IsOnline = true;
+        IsOnline = character.IsOnline;
+        InParty = character.InParty;
         Position = character.Transform.World.Position;
         ZoneId = character.Transform.ZoneId;
         Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];
@@ -91,6 +92,7 @@ public class ExpeditionMember : PacketMarshaler
         else
         {
             IsOnline = true;
+            InParty = false;
             Position = character.Transform.World.Position;
             ZoneId = character.Transform.ZoneId;
             Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];

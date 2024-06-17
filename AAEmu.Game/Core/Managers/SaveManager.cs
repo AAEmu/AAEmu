@@ -106,6 +106,14 @@ public class SaveManager : Singleton<SaveManager>
                         // Residents
                         ResidentManager.Instance.SaveDirectlyToDatabase();
 
+                        //Expeditions
+                        var savedExpeditions = 0;
+                        foreach (var expedition in ExpeditionManager.Instance.GetExpeditions())
+                        {
+                            expedition.Save(connection, transaction);
+                            savedExpeditions++;
+                        }
+
                         var totalCommits = 0;
                         totalCommits += savedHouses.Item1 + savedHouses.Item2;
                         totalCommits += savedMails.Item1 + savedMails.Item2;
@@ -113,6 +121,7 @@ public class SaveManager : Singleton<SaveManager>
                         totalCommits += savedAuctionHouse.Item1 + savedAuctionHouse.Item2;
                         totalCommits += savedCharacters;
                         totalCommits += savedSlaves;
+                        totalCommits += savedExpeditions;
 
                         if (totalCommits <= 0)
                         {
@@ -139,6 +148,8 @@ public class SaveManager : Singleton<SaveManager>
                                     Logger.Debug($"Updated {savedCharacters} characters ...");
                                 if (savedSlaves > 0)
                                     Logger.Debug($"Updated {savedSlaves} slaves ...");
+                                if (savedExpeditions > 0)
+                                    Logger.Debug($"Updated {savedExpeditions} expeditions ...");
 
                                 saved = true;
                             }

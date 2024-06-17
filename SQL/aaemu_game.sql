@@ -254,17 +254,47 @@ CREATE TABLE `expedition_recruitments`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Guild recruitments';
 
 
+-- ----------------------------
+-- Table structure for expedition_applicants
+-- ----------------------------
+DROP TABLE IF EXISTS `expedition_applicants`;
+CREATE TABLE `expedition_applicants`  (
+  `expedition_id` int NOT NULL,
+  `character_id` int NOT NULL,
+  `character_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `character_level` tinyint(1) NOT NULL,
+  `memo` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `reg_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  PRIMARY KEY (`expedition_id`, `character_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
+
+-- ----------------------------
+-- Table structure for expeditions
+-- ----------------------------
 DROP TABLE IF EXISTS `expeditions`;
-CREATE TABLE `expeditions` (
+CREATE TABLE `expeditions`  (
   `id` int NOT NULL,
-  `owner` int NOT NULL,
+  `owner` int NOT NULL DEFAULT 0,
   `owner_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `mother` int NOT NULL,
+  `mother` int NOT NULL DEFAULT 0,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `level` int NOT NULL DEFAULT '0',
+  `level` int NOT NULL DEFAULT 0,
+  `exp` int NOT NULL DEFAULT 0,
+  `protect_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `war_deposit` int NOT NULL DEFAULT 0,
+  `daily_exp` int NOT NULL DEFAULT 0,
+  `last_exp_update_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `is_level_update` TINYINT(1) NOT NULL DEFAULT '0',
+  `interest` int NOT NULL DEFAULT 0,
+  `motd_title` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `motd_content` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `win` int NOT NULL DEFAULT 0,
+  `lose` int NOT NULL DEFAULT 0,
+  `draw` int NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guilds';
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Guilds' ROW_FORMAT = Dynamic;
 
 
 DROP TABLE IF EXISTS `family_members`;
