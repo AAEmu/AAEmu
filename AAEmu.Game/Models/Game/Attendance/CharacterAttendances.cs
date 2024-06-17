@@ -50,7 +50,7 @@ public class CharacterAttendances
 
     public void Add(Character character)
     {
-        var currentDate = DateTime.Now;
+        var currentDate = DateTime.UtcNow;
         var year = currentDate.Year;
         var month = currentDate.Month;
         var day = currentDate.Day;
