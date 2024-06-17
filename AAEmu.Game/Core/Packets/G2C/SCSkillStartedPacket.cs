@@ -17,7 +17,13 @@ public class SCSkillStartedPacket : GamePacket
     private readonly Skill _skill;
     private readonly SkillObject _skillObject;
 
-    public int CastTime { get; set; }
+    public ushort RealCastTimeDiv10 { get; set; }
+    public ushort BaseCastTimeDiv10 { get; set; }
+    public byte CastSynergy { get; set; }
+    public byte ExtraData { get; set; }
+    public byte ExtraDataByte { get; set; }
+    public ushort ExtraDataUShort { get; set; }
+    public uint ExtraDataUInt { get; set; }
 
     public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject)
         : base(SCOffsets.SCSkillStartedPacket, 1)
@@ -38,10 +44,22 @@ public class SCSkillStartedPacket : GamePacket
         stream.Write(_target);
         stream.Write(_skillObject);
 
-        stream.Write((short)(CastTime / 10));
-        stream.Write((short)(CastTime / 10));
-        stream.Write(false); // castSynergy // (short)0
-        stream.Write((byte)0); // f
+        stream.Write(RealCastTimeDiv10);
+        stream.Write(BaseCastTimeDiv10);
+        stream.Write(CastSynergy); // castSynergy // (short)0
+        stream.Write(ExtraData); // f
+        switch (ExtraData)
+        {
+            case 1:
+                stream.Write(ExtraDataByte);
+                break;
+            case 2:
+                stream.Write(ExtraDataUShort);
+                break;
+            case 4:
+                stream.Write(ExtraDataUInt);
+                break;
+        }
         return stream;
     }
 

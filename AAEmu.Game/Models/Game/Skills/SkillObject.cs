@@ -51,6 +51,7 @@ public class SkillObject : PacketMarshaler
             case SkillObjectType.ItemGradeEnchantingSupport:
                 obj = new SkillObjectItemGradeEnchantingSupport();
                 break;
+            case SkillObjectType.None:
             default:
                 obj = new SkillObject();
                 break;

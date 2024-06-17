@@ -87,6 +87,8 @@ public class Skill
             if (character != null)
                 Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template.Id}");
             Cancelled = true;
+            //if (caster is Character player)
+            //    player.SendErrorMessage(ErrorMessageType.SkillCannotUseHere, Template.Id, true);
             return SkillResult.SkillReqFail;
         }
         
@@ -245,7 +247,8 @@ public class Skill
             // Has casting time, schedule a task for it
             caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
             {
-                CastTime = castTime
+                BaseCastTimeDiv10 = (ushort)(castTime / 10),
+                RealCastTimeDiv10 = (ushort)(castTime / 10), // calculate with adjustments
             }, true);
 
             unit.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);

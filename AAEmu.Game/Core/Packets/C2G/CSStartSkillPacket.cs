@@ -4,8 +4,11 @@ using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
@@ -116,8 +119,14 @@ public class CSStartSkillPacket : GamePacket
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             if (skill.Use(player, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
             {
-                // skill.Stop(player, null, skillCaster);
-                // TODO: Make it so the skill get properly cancelled and doesn't lock the item
+                // It actually sends a skill started packet, but not a skill fired or stopped
+                var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject);
+                scSkillStartedPacket.RealCastTimeDiv10 = 0;
+                scSkillStartedPacket.BaseCastTimeDiv10 = 0;
+                // ExtraData at the end of the packet is used to mark a use error
+                scSkillStartedPacket.ExtraData = 1;
+                scSkillStartedPacket.ExtraDataByte = 1; // "Can't use this" (example captures of 5.0.7.0 show 0x66 here for skill 20444 (Drop the Vase Near the River)
+                player.BroadcastPacket(scSkillStartedPacket, true);
             }
         }
         else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
