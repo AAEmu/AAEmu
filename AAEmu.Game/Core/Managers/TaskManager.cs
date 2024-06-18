@@ -266,7 +266,7 @@ public sealed class TaskJob : IJob
 {
     public ThreadTask Execute(IJobExecutionContext context)
     {
-        var log = (Logger)context.MergedJobDataMap.Get("Logger");
+        //var log = (Logger)context.MergedJobDataMap.Get("Logger");
         try
         {
             var task = (Task)context.MergedJobDataMap.Get("Task");
@@ -281,7 +281,7 @@ public sealed class TaskJob : IJob
         }
         catch (Exception e)
         {
-            log.Error(e);
+            //log.Error(e);
         }
 
         return ThreadTask.CompletedTask;
