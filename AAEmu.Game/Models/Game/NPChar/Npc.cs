@@ -969,22 +969,25 @@ public class Npc : Unit
             return;
 
         var player = unit as Character;
+        player?.SendMessage(Chat.ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
-        // player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
-
-        var lastAggroCount = AggroTable.Count;
-        if (AggroTable.TryRemove(unit.ObjId, out var value))
+        var aggroTableChanged = false;
+        if (AggroTable.Count > 0)
         {
-            unit.Events.OnHealed -= OnAbuserHealed;
-            unit.Events.OnDeath -= OnAbuserDied;
-        }
-        else
-        {
-            Logger.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
+            if (AggroTable.TryRemove(unit.ObjId, out var value))
+            {
+                unit.Events.OnHealed -= OnAbuserHealed;
+                unit.Events.OnDeath -= OnAbuserDied;
+                aggroTableChanged = true;
+            }
+            else
+            {
+                Logger.Warn($"Failed to remove unit[{unit.ObjId}] aggro from NPC[{ObjId}]");
+            }
         }
 
-        if (AggroTable.Count != lastAggroCount)
-            CheckIfEmptyAggroToReturn(unit);
+        if (aggroTableChanged)
+            CheckIfEmptyAggroToReturn();
     }
 
     //Tagging!
