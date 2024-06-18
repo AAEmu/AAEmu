@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -10,5 +11,5 @@ public interface IUnit : IBaseUnit
     BaseUnit CurrentInteractionObject { get; set; }
     ItemContainer Equipment { get; set; }
     void SendPacket(GamePacket packet);
-    void UseSkill(uint skillId, IUnit target);
+    SkillResult UseSkill(uint skillId, IUnit target);
 }

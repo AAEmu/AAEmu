@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -940,7 +941,7 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public virtual void UseSkill(uint skillId, IUnit target)
+    public virtual SkillResult UseSkill(uint skillId, IUnit target)
     {
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
 
@@ -950,7 +951,7 @@ public class Unit : BaseUnit, IUnit
         var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
         sct.ObjId = target.ObjId;
 
-        skill.Use(this, caster, sct, null, true);
+        return skill.Use(this, caster, sct, null, true);
     }
 
     public static void ModelPosture(PacketStream stream, Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF)

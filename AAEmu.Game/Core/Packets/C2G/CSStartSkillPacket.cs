@@ -58,6 +58,9 @@ public class CSStartSkillPacket : GamePacket
         if (flagType > 0) skillObject.Read(stream);
 
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
+        
+        var skillResult = SkillResult.Success;
+        Skill skill = null;
 
         if (skillCaster is SkillCasterUnit scu)
         {
@@ -70,7 +73,7 @@ public class CSStartSkillPacket : GamePacket
         {
             // Mount or Slave skill
             Logger.Trace($"SkillCasterMount - MountSkillTemplateId {scm.MountSkillTemplateId}");
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
 
             var caster = WorldManager.Instance.GetBaseUnit(skillCaster.ObjId);
             var mate = caster as Mate;
@@ -97,16 +100,13 @@ public class CSStartSkillPacket : GamePacket
             var riderTarget = Connection.ActiveChar.CurrentTarget as Unit;
 
             // Execute the rider/operator skill as the player using either target or self
-            Connection.ActiveChar.UseSkill(mountAttachedSkill, riderTarget ?? Connection.ActiveChar);
+            skillResult = Connection.ActiveChar.UseSkill(mountAttachedSkill, riderTarget ?? Connection.ActiveChar);
         }
         else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
         {
             // Is it a common skill?
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
-            if (skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
-            {
-                // skill.Stop(Connection.ActiveChar, null, skillCaster);
-            }
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
         else if (skillCaster is SkillItem si)
         {
@@ -116,48 +116,56 @@ public class CSStartSkillPacket : GamePacket
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
             if (item == null || skillId != item.Template.UseSkillId && item.Template.BindType != ItemBindType.BindOnPickup)
                 return;
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            if (skill.Use(player, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
-            {
-                // It actually sends a skill started packet, but not a skill fired or stopped
-                var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject);
-                scSkillStartedPacket.RealCastTimeDiv10 = 0;
-                scSkillStartedPacket.BaseCastTimeDiv10 = 0;
-                // ExtraData at the end of the packet is used to mark a use error
-                scSkillStartedPacket.ExtraData = 1;
-                scSkillStartedPacket.ExtraDataByte = 1; // "Can't use this" (example captures of 5.0.7.0 show 0x66 here for skill 20444 (Drop the Vase Near the River)
-                player.BroadcastPacket(scSkillStartedPacket, true);
-            }
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject);
         }
         else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
         {
             // Is it one of our learned character skills?
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
-            var skill = new Skill(template, Connection.ActiveChar);
-            if (skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
-            {
-                // skill.Stop(Connection.ActiveChar, null, skillCaster);
-            }
+            skill = new Skill(template, Connection.ActiveChar);
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
         else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
         {
             // Variant of learned skill?
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            if (skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
-            {
-                // skill.Stop(Connection.ActiveChar, null, skillCaster);
-            }
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
         else
         {
             // No idea what this is
             Logger.Warn($"StartSkill: Id {skillId}, undefined use type");
             // If it's a valid skill cast it. This fixes interactions with quest items/doodads.
-            var unSkill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            if (unSkill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
-            {
-                // unSkill.Stop(Connection.ActiveChar, null, skillCaster);
-            }
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+        }
+        
+        if (skillResult != SkillResult.Success)
+        {
+            // It actually sends a skill started packet, but not a skill fired or stopped
+            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject);
+            scSkillStartedPacket.RealCastTimeDiv10 = 0;
+            scSkillStartedPacket.BaseCastTimeDiv10 = 0;
+            // ExtraData at the end of the packet is used to mark a use error
+            scSkillStartedPacket.ExtraData = 1;
+            scSkillStartedPacket.ExtraDataByte = 1; // "Can't use this" (example captures of 5.0.7.0 show 0x66 here for skill 20444 (Drop the Vase Near the River)
+            // 1 - Can't use
+            // 2 - Can't be used while dead
+            // 3 - Can only be used while dead
+            // 4 - Can't be used on a dead target
+            // 5 - Target is already destroyed
+            // 6 - Can't be used on a living target
+            // 7 - Already performing a action
+            // 8 - Can't be used right now
+            // 9 - Select a target
+            // 10 - Insufficient health to use this
+            // 11 - Insufficient mana to use this
+            // 12 - No line of sight
+            // 13 - Target is on a different elevation
+            
+            
+            Connection.ActiveChar.BroadcastPacket(scSkillStartedPacket, true);
         }
     }
 }
