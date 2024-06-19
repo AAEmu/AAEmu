@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.Game.Skills.Static;
 
-public enum SkillResult
+public enum SkillResult : byte
 {
     Success = 0x0,
     Failure = 0x1,
@@ -73,7 +73,7 @@ public enum SkillResult
     LackHighAbilityResource = 0x44,
     LackSourceItemSet = 0x45,
     LackActability = 0x46,
-    UrkStart = 0x47,
+    UrkStart = 0x46, // Start offset for UnitReqsKindType
 #pragma warning disable CA1069 // Enums values should not be duplicated
     UrkLevel = 0x47,
 #pragma warning restore CA1069 // Enums values should not be duplicated

@@ -82,14 +82,13 @@ public class Skill
 
         unit.ConditionChance = true;
 
-        if (!UnitRequirementsGameData.Instance.CanUseSkill(Template, caster))
+        var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster);
+        if (requirementResult != SkillResult.Success)
         {
             if (character != null)
                 Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template.Id}");
             Cancelled = true;
-            //if (caster is Character player)
-            //    player.SendErrorMessage(ErrorMessageType.SkillCannotUseHere, Template.Id, true);
-            return SkillResult.SkillReqFail;
+            return requirementResult;
         }
         
         _bypassGcd = bypassGcd;

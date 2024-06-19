@@ -148,15 +148,15 @@ public class CSStartSkillPacket : GamePacket
             scSkillStartedPacket.RealCastTimeDiv10 = 0;
             scSkillStartedPacket.BaseCastTimeDiv10 = 0;
             // ExtraData at the end of the packet is used to mark a use error
-            scSkillStartedPacket.ExtraData = 1;
-            scSkillStartedPacket.ExtraDataByte = 1; // "Can't use this" (example captures of 5.0.7.0 show 0x66 here for skill 20444 (Drop the Vase Near the River)
+            scSkillStartedPacket.SetSkillResult(SkillResult.Failure);
+            // 1 = "Can't use this" (example captures of 5.0.7.0 shows 0x66 here for skill 20444 (Drop the Vase Near the River) when not used at the correct location
             // 1 - Can't use
             // 2 - Can't be used while dead
             // 3 - Can only be used while dead
             // 4 - Can't be used on a dead target
             // 5 - Target is already destroyed
             // 6 - Can't be used on a living target
-            // 7 - Already performing a action
+            // 7 - Already performing an action
             // 8 - Can't be used right now
             // 9 - Select a target
             // 10 - Insufficient health to use this

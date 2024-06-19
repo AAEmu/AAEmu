@@ -3,6 +3,8 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -111,14 +113,16 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     /// <param name="skillTemplate"></param>
     /// <param name="ownerUnit"></param>
     /// <returns></returns>
-    public bool CanUseSkill(SkillTemplate skillTemplate, BaseUnit ownerUnit)
+    public SkillResult CanUseSkill(SkillTemplate skillTemplate, BaseUnit ownerUnit)
     {
         var reqs = GetSkillRequirements(skillTemplate.Id);
         if (reqs.Count == 0)
-            return true; // No requirements, we're good
+            return SkillResult.Success; // No requirements, we're good
         var res = !skillTemplate.OrUnitReqs;
+        var lastCheckKind = UnitReqsKindType.None;
         foreach (var unitReq in reqs)
         {
+            lastCheckKind = unitReq.KindType;
             var reqRes = unitReq.Validate(ownerUnit);
 
             if (skillTemplate.OrUnitReqs)
@@ -130,7 +134,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
 
             res &= reqRes;
         }
-        return res;
+        return res ? SkillResult.Success : (SkillResult)((byte)SkillResult.UrkStart + (byte)lastCheckKind);
     }
     
     public bool CanTriggerSphere(Spheres sphere, BaseUnit ownerUnit)

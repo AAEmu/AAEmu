@@ -1,10 +1,21 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using System.Collections.Generic;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 #pragma warning disable IDE0052 // Remove unread private members
+
+[Flags]
+public enum ExtraDataFlags
+{
+    HasByte = 1,
+    HasUShort = 2,
+    HasUInt = 4,
+}
 
 public class SCSkillStartedPacket : GamePacket
 {
@@ -20,10 +31,10 @@ public class SCSkillStartedPacket : GamePacket
     public ushort RealCastTimeDiv10 { get; set; }
     public ushort BaseCastTimeDiv10 { get; set; }
     public byte CastSynergy { get; set; }
-    public byte ExtraData { get; set; }
-    public byte ExtraDataByte { get; set; }
-    public ushort ExtraDataUShort { get; set; }
-    public uint ExtraDataUInt { get; set; }
+    private ExtraDataFlags ExtraDataFlag { get; set; }
+    private byte ExtraDataByte { get; set; }
+    private ushort ExtraDataUShort { get; set; }
+    private uint ExtraDataUInt { get; set; }
 
     public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject)
         : base(SCOffsets.SCSkillStartedPacket, 1)
@@ -47,32 +58,48 @@ public class SCSkillStartedPacket : GamePacket
         stream.Write(RealCastTimeDiv10);
         stream.Write(BaseCastTimeDiv10);
         stream.Write(CastSynergy); // castSynergy // (short)0
-        stream.Write(ExtraData); // f
-        switch (ExtraData)
-        {
-            case 1:
-                stream.Write(ExtraDataByte);
-                break;
-            case 2:
-                stream.Write(ExtraDataUShort);
-                break;
-            case 4:
-                stream.Write(ExtraDataUInt);
-                break;
-        }
+        stream.Write((byte)ExtraDataFlag); // f
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasByte))
+            stream.Write(ExtraDataByte);
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUShort))
+            stream.Write(ExtraDataUShort);
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUInt))
+            stream.Write(ExtraDataUInt);
         return stream;
     }
 
-    // TODO block with f flag
-    /*
-          a2->Reader->ReadByte("f", (unsigned __int8 *)&v5, 0);
-          if ( v5 & 1 )
-            a2->Reader->ReadByte("c", (unsigned __int8 *)v2, 0);
-          if ( v5 & 2 )
-            a2->Reader->ReadUInt16((struc_1 *)a2, "e", v3, 0);
-          if ( v5 & 4 )
-            a2->Reader->ReadUInt32("p", v4, 0);
-     */
+    public SCSkillStartedPacket SetSkillResult(SkillResult skillResult)
+    {
+        if (skillResult != SkillResult.Success)
+            ExtraDataFlag |= ExtraDataFlags.HasByte;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasByte;
+        ExtraDataByte = (byte)skillResult;
+
+        return this;
+    }
+
+    public SCSkillStartedPacket SetResultUShort(ushort val)
+    {
+        if (val != 0)
+            ExtraDataFlag |= ExtraDataFlags.HasUShort;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasUShort;
+        ExtraDataUShort = val;
+
+        return this;
+    }
+
+    public SCSkillStartedPacket SetResultUInt(uint val)
+    {
+        if (val != 0)
+            ExtraDataFlag |= ExtraDataFlags.HasUInt;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasUInt;
+        ExtraDataUInt = val;
+
+        return this;
+    }
 
     public override string Verbose()
     {
