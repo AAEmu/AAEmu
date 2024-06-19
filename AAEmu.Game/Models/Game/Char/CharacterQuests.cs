@@ -647,4 +647,29 @@ public class CharacterQuests
         quest.SelectedRewardIndex = selectedReward;
         quest.Step = QuestComponentKind.Reward;
     }
+
+    /// <summary>
+    /// Needed to fix the daily flowerpot quests
+    /// </summary>
+    /// <param name="itemId"></param>
+    /// <returns></returns>
+    public List<QuestAct> GetActiveActsWithUseItem(ulong itemId)
+    {
+        var res = new List<QuestAct>();
+        foreach (var (_, activeQuest) in ActiveQuests)
+        {
+            foreach (var component in activeQuest.CurrentStep.Components.Values)
+            {
+                foreach (var act in component.Acts)
+                {
+                    if (act.Template is QuestActObjItemUse questActObjItemUse)
+                    {
+                        if (questActObjItemUse.ItemId == itemId)
+                            res.Add((QuestAct)act);
+                    }
+                }
+            }
+        }
+        return res;
+    }
 }

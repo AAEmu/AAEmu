@@ -14,7 +14,7 @@ public class Use : IWorldInteraction
     public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
         uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
     {
-        Logger.Debug("World interaction SkillID: {0}", skillId);
+        Logger.Debug($"World interaction SkillID: {skillId}");
         if (target is Doodad doodad)
         {
             doodad.Use(caster, skillId);

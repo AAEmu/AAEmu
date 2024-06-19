@@ -135,7 +135,7 @@ public class UnitReqs
 
             case UnitReqsKindType.AreaSphere:
                 // Check Sphere for Quest
-                return SphereGameData.Instance.IsInsideAreaSphere(Value1, Value2, owner?.Transform?.World?.Position ?? Vector3.Zero);
+                return SphereGameData.Instance.IsInsideAreaSphere(Value1, Value2, owner?.Transform?.World?.Position ?? Vector3.Zero) != null;
 
             case UnitReqsKindType.ExceptCompleteQuestContext:
                 return !player?.Quests.HasQuestCompleted(Value1) ?? false;

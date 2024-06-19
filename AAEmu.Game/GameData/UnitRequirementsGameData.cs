@@ -1,7 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -113,17 +116,50 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     /// <param name="skillTemplate"></param>
     /// <param name="ownerUnit"></param>
     /// <returns></returns>
-    public SkillResult CanUseSkill(SkillTemplate skillTemplate, BaseUnit ownerUnit)
+    public SkillResult CanUseSkill(SkillTemplate skillTemplate, BaseUnit ownerUnit, SkillCaster skillCaster)
     {
         var reqs = GetSkillRequirements(skillTemplate.Id);
         if (reqs.Count == 0)
             return SkillResult.Success; // No requirements, we're good
+
+        // Used for special handling hack for AreaSphere requirement
+        // Example QuestId: 5079 & 5080 - Guerilla Marketing
+        var validQuestComponents = new List<uint>();
+        
+        // For skill for "item use" for specific quests
+        if ((skillCaster is SkillItem skillItem) && (ownerUnit is Character player))
+        {
+            var actsUsingItem = player.Quests.GetActiveActsWithUseItem(skillItem.ItemTemplateId);
+            foreach (var act in actsUsingItem)
+            {
+                if (!validQuestComponents.Contains(act.Template.ParentComponent.Id))
+                    validQuestComponents.Add(act.Template.ParentComponent.Id);
+            }
+        }
+        // TODO: check if there are any other skill types that required to be used in a specific area of multiple quest spheres
+        
         var res = !skillTemplate.OrUnitReqs;
         var lastCheckKind = UnitReqsKindType.None;
         foreach (var unitReq in reqs)
         {
             lastCheckKind = unitReq.KindType;
-            var reqRes = unitReq.Validate(ownerUnit);
+
+            var reqRes = false;
+            if ((unitReq.KindType == UnitReqsKindType.AreaSphere) && (validQuestComponents.Count > 0))
+            {
+                // Special handling for quests spheres with items
+                foreach (var requiredComponentId in validQuestComponents)
+                {
+                    var foundSphere = SphereGameData.Instance.IsInsideAreaSphere(unitReq.Value1, unitReq.Value2, ownerUnit?.Transform?.World?.Position ?? Vector3.Zero, requiredComponentId);
+                    reqRes = foundSphere != null;
+                    if (reqRes)
+                        break;
+                }
+            }
+            else
+            {
+                reqRes = unitReq.Validate(ownerUnit);                
+            }
 
             if (skillTemplate.OrUnitReqs)
             {

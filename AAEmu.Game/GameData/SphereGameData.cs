@@ -9,6 +9,7 @@ using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Utils.DB;
 
@@ -336,26 +337,26 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     /// </summary>
     /// <param name="sphereId">Sphere Id as defined in a Quest Act</param>
     /// <param name="value2">Unknown, always one except for skill 13305 (plant unidentified tree)</param>
-    /// <returns>True if inside the sphere</returns>
-    public bool IsInsideAreaSphere(uint sphereId, uint value2, Vector3 worldPosition)
+    /// <returns>SphereQuest that was hit, null if none found</returns>
+    public SphereQuest IsInsideAreaSphere(uint sphereId, uint value2, Vector3 worldPosition, uint requiredComponentId = 0)
     {
         if (!_spheres.TryGetValue(sphereId, out var dbSphere))
-            return false;
+            return null;
 
         if (dbSphere.SphereDetailType != "SphereQuest")
-            return false;
+            return null;
 
         if (!_sphereQuests.TryGetValue(dbSphere.SphereDetailId, out var dbSphereQuest))
-            return false;
+            return null;
 
         var pakDataSpheres = SphereQuestManager.Instance.GetSpheresForQuest(dbSphereQuest.QuestId);
         foreach (var pakDataSphere in pakDataSpheres)
         {
-            if (pakDataSphere.Contains(worldPosition))
-                return true;
+            if (pakDataSphere.Contains(worldPosition) && (requiredComponentId == 0 || pakDataSphere.ComponentId == requiredComponentId))
+                return pakDataSphere;
         }
 
-        return false;
+        return null;
     }
 
 }

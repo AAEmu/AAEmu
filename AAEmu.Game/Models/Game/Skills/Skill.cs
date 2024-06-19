@@ -82,7 +82,7 @@ public class Skill
 
         unit.ConditionChance = true;
 
-        var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster);
+        var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster, casterCaster);
         if (requirementResult != SkillResult.Success)
         {
             if (character != null)
