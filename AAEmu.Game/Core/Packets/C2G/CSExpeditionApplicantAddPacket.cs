@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Logger.Debug($"CSExpeditionApplicantAddPacket: character={Connection.ActiveChar.Name}:{Connection.ActiveChar.Id}, expeditionId={expeditionId}, memo={memo}");
 
-            ExpeditionManager.Instance.PretenderAdd(Connection.ActiveChar, expeditionId, memo);
+            ExpeditionManager.Instance.AddPretender(Connection.ActiveChar, expeditionId, memo);
         }
     }
 }

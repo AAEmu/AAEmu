@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions;
@@ -15,7 +16,22 @@ public class ExpeditionRecruitment : PacketMarshaler
     public DateTime RegTime { get; set; }
     public DateTime EndTime { get; set; }
     public ushort Interest { get; set; }
-    public int MemberCount { get; set; }
+
+    private int _memberCount;
+    public int MemberCount
+    {
+        get
+        {
+            var expedition = ExpeditionManager.Instance.GetExpedition(ExpeditionId);
+            if (expedition != null)
+            {
+                _memberCount = expedition.Members.Count;
+            }
+
+            return _memberCount;
+        }
+        set { _memberCount = value; }
+    }
     public bool Apply { get; set; }
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction)

@@ -15,16 +15,22 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Team;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Transform;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers;
 
 public class ExpeditionManager : Singleton<ExpeditionManager>
 {
-    //private ExpeditionConfig _config;
     private Regex _nameRegex;
 
+    private List<uint> _removedMembers;
     private Dictionary<uint, Expedition> _expeditions;
+    public List<ExpeditionRecruitment> _recruitments { get; set; }
+    public List<Applicant> _pretenders { get; set; }
 
     public static Expedition Create(string name, Character owner)
     {
@@ -42,9 +48,10 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         expedition.DiplomacyTarget = false;
         expedition.Members = new List<ExpeditionMember>();
         expedition.Policies = GetDefaultPolicies(expedition.Id);
-        expedition.Recruitments = new List<ExpeditionRecruitment>();
+        //expedition.Recruitments = new List<ExpeditionRecruitment>();
 
         var member = GetMemberFromCharacter(expedition, owner, true);
+        member.LastWorldLeaveTime = DateTime.UtcNow;
 
         expedition.Members.Add(member);
 
@@ -53,6 +60,9 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
     public void Load()
     {
+        _removedMembers = new List<uint>();
+        _recruitments = new List<ExpeditionRecruitment>();
+        _pretenders = new List<Applicant>();
         _expeditions = new Dictionary<uint, Expedition>();
         _nameRegex = new Regex(AppConfiguration.Instance.Expedition.NameRegex, RegexOptions.Compiled);
 
@@ -93,7 +103,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
                         expedition.Members = new List<ExpeditionMember>();
                         expedition.Policies = new List<ExpeditionRolePolicy>();
-                        expedition.Recruitments = new List<ExpeditionRecruitment>();
+                        //expedition.Recruitments = new List<ExpeditionRecruitment>();
 
                         _expeditions.Add(expedition.Id, expedition);
                     }
@@ -174,7 +184,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                             recruitment.Interest = reader.GetUInt16("interest");
                             recruitment.MemberCount = reader.GetInt32("member_count");
                             recruitment.Apply = reader.GetBoolean("apply");
-                            expedition.Recruitments.Add(recruitment);
+                            _recruitments.Add(recruitment);
                         }
                     }
                 }
@@ -195,7 +205,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                             pretender.CharacterLevel = reader.GetByte("character_level");
                             pretender.Memo = reader.GetString("memo");
                             pretender.RegTime = reader.GetDateTime("reg_time");
-                            expedition.Pretenders.Add(pretender);
+                            _pretenders.Add(pretender);
                         }
                     }
                 }
@@ -331,10 +341,9 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         {
             if (m.Character.Id == owner.Id)
             {
+                owner.BroadcastPacket(new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false), true);
                 SendMyExpeditionInfo(owner);
-                //owner.BroadcastPacket(new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false), true);
                 ChatManager.Instance.GetGuildChat(expedition).JoinChannel(owner);
-
                 continue;
             }
 
@@ -344,19 +353,24 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             invited.Expedition = expedition;
             expedition.Members.Add(newMember);
 
+            invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false), true);
             SendMyExpeditionInfo(invited);
-            //invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false), true);
             expedition.OnCharacterLogin(invited);
         }
 
         SendMyExpeditionDescInfo(owner);
 
         // закомментируйте, это для проверки работы "Набор игроков"
-        RecruitmentAdd(owner, 63, 3, "Welcome!");
+        AddRecruitment(owner, 63, 3, "Welcome!");
 
         Save(expedition);
     }
 
+    /// <summary>
+    /// Пригласить в гильдию по имени
+    /// </summary>
+    /// <param name="connection">Это тот. Кто приглашает.</param>
+    /// <param name="invitedName">Имя приглашенного</param>
     public static void Invite(GameConnection connection, string invitedName)
     {
         var inviter = connection.ActiveChar;
@@ -372,13 +386,20 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         invited.SendPacket(new SCExpeditionInvitationPacket(inviter.Id, inviter.Name, inviter.Expedition.Id, inviter.Expedition.Name));
     }
 
-    public void ReplyInvite(GameConnection connection, uint id1, uint id2, bool reply)
+    /// <summary>
+    /// Согласие или отказ на приглашение в гильдию
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <param name="expeditionId">Id гильдии</param>
+    /// <param name="id2"></param>
+    /// <param name="reply">Согласие или отказ</param>
+    public void ReplyInvite(GameConnection connection, uint expeditionId, uint id2, bool reply)
     {
         var invited = connection.ActiveChar;
         if (!reply)
             return;
 
-        var expedition = _expeditions[id1];
+        var expedition = _expeditions[expeditionId];
         var newMember = GetMemberFromCharacter(expedition, invited, false);
 
         invited.Expedition = expedition;
@@ -422,6 +443,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         character.Expedition = null;
         character.BroadcastPacket(changedPacket, true);
         expedition.SendPacket(changedPacket);
+
+        // TODO Добавить штраф на вступление в гильдии. Вынести настройку штрафа в конфиг.
     }
 
     public static void Kick(GameConnection connection, uint kickedId)
@@ -522,6 +545,12 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         guild.OwnerId = 0;
         guild.IsDisbanded = true;
 
+        Instance.RemoveRecruitments(guild);
+        Instance.RemovePretenders(guild);
+
+        // TODO Добавить штраф на создание гильдии. Вынести настройку штрафа в конфиг.
+        Save(guild);
+
         return true;
     }
 
@@ -556,12 +585,49 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         }
     }
 
-    public static void Save(Expedition expedition)
+    private static void Save(Expedition expedition)
     {
         using var connection = MySQL.CreateConnection();
         using var transaction = connection.BeginTransaction();
+
+        Instance.Save(connection, transaction);
+
+        foreach (var recruitment in Instance._recruitments)
+            recruitment.Save(connection, transaction);
+
+        foreach (var pretender in Instance._pretenders)
+            pretender.Save(connection, transaction);
+
         expedition.Save(connection, transaction);
         transaction.Commit();
+    }
+
+    private void Save(MySqlConnection connection, MySqlTransaction transaction)
+    {
+        if (_removedMembers.Count <= 0) { return; }
+        var removedMembers = string.Join(",", _removedMembers);
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Connection = connection;
+            command.Transaction = transaction;
+
+            command.CommandText = $"DELETE FROM expedition_recruitments WHERE expedition_id IN ({removedMembers})";
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Connection = connection;
+            command.Transaction = transaction;
+
+            command.CommandText = $"DELETE FROM expedition_applicants WHERE expedition_id IN ({removedMembers})";
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+
+        _removedMembers.Clear();
     }
 
     private static ExpeditionMember GetMemberFromCharacter(Expedition expedition, Character character, bool owner)
@@ -609,9 +675,6 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             var dividedArrays = Helpers.SplitArray(expeditions, 20); // Разделяем массив на массивы по 20 значений
             foreach (SystemFaction[] expedition in dividedArrays)
                 character.SendPacket(new SCSystemFactionListPacket(expedition));
-
-            // вылетает клиент из-за этого пакета
-            //character.SendPacket(new SCExpeditionDescReceivedPacket(character.Expedition));
         }
     }
 
@@ -641,9 +704,9 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         if (expeditions is { Count: not 0 })
         {
-            foreach (var expedition in expeditions)
+            //foreach (var expedition in expeditions)
             {
-                foreach (var er in expedition.Recruitments)
+                foreach (var er in _recruitments)
                 {
                     if (my)
                     {
@@ -699,26 +762,51 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     public void SendMyExpeditionApplicantsInfo(Character character)
     {
         var expedition = GetExpedition(GetExpeditionOfCharacter(character.Id));
-        var expeditionPretenders = expedition?.GetPretenders();
+        var expeditionPretenders = GetPretenders(expedition.Id);
         if (expeditionPretenders is not { Count: not 0 }) { return; }
         var total = expeditionPretenders.Count;
         var dividedLists = Helpers.SplitList(expeditionPretenders, 50); // Разделяем список на списки по 50 записей
         foreach (var pretenders in dividedLists)
         {
-            character.SendPacket(new SCExpeditionApplicantsGetPacket(total, pretenders));
-            break; // шлем только первую часть, остальное увидим после рассмотрения из этого списка
+            var count = pretenders.Count;
+            var emptySlots = 50 - pretenders.Count; // Дополнение списка пустыми элементами до 50, если требуется
+            if (emptySlots <= 0) { return; }
+            for (var i = 0; i < emptySlots; i++)
+            {
+                var newPretender = new Applicant
+                {
+                    ExpeditionId = 0,
+                    Memo = "",
+                    CharacterId = 0,
+                    CharacterName = "",
+                    CharacterLevel = 0,
+                    RegTime = DateTime.MinValue,
+                };
+                pretenders.Add(newPretender);
+            }
+            character.SendPacket(new SCExpeditionApplicantsGetPacket(total, count, pretenders));
         }
     }
 
-    public void RecruitmentAdd(Character owner, ushort interest, int day, string introduce)
+    /// <summary>
+    /// Информация о "наборе персонала".
+    /// Должна быть только одна заявка от гильдии.
+    /// </summary>
+    /// <param name="expeditionId">Id гильдии</param>
+    /// <param name="owner">глава гильдии</param>
+    /// <param name="interest">интересы гильдии</param>
+    /// <param name="day">продолжительность рекламы</param>
+    /// <param name="introduce">информация для претендентов</param>
+    /// <returns></returns>
+    public void AddRecruitment(Character owner, ushort interest, int day, string introduce)
     {
         if (owner.Expedition == null)
             return;
 
         var expedition = GetExpedition(owner.Expedition.Id);
 
-        if (expedition.Recruitments == null || expedition.Recruitments.Count == 0)
-            expedition.Recruitments = new List<ExpeditionRecruitment>();
+        if (_recruitments == null || _recruitments.Count == 0)
+            _recruitments = new List<ExpeditionRecruitment>();
 
         var newRecruitment = new ExpeditionRecruitment
         {
@@ -733,25 +821,54 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             RegTime = DateTime.UtcNow,
             EndTime = DateTime.UtcNow + TimeSpan.FromDays(day)
         };
-        expedition.Recruitments.Add(newRecruitment);
+
+        _recruitments.Add(newRecruitment);
         owner.SendPacket(new SCExpeditionRecruitmentAddPacket());
     }
 
-    public void RecruitmentRemove(GameConnection connection)
+    /// <summary>
+    /// Удалить информацию о "наборе персонала".
+    /// </summary>
+    /// <param name="expeditionId">Id гильдии</param>
+    /// <param name="connection"></param>
+    /// <returns></returns>
+    public void RemoveRecruitment(GameConnection connection)
     {
         if (connection.ActiveChar.Expedition == null)
             return;
 
         var expedition = GetExpedition(connection.ActiveChar.Expedition.Id);
 
-        if (expedition.Recruitments == null || expedition.Recruitments.Count == 0)
+        if (_recruitments == null || _recruitments.Count == 0)
             return;
 
-        expedition.Recruitments = new List<ExpeditionRecruitment>();
+        _recruitments = new List<ExpeditionRecruitment>();
         connection.ActiveChar.SendPacket(new SCExpeditionRecruitmentDeletePacket());
     }
 
-    public void PretenderAdd(Character character, uint expeditionId, string memo)
+    /// <summary>
+    /// Удалить информацию о "наборе персонала" при расформировании гильдии.
+    /// </summary>
+    /// <param name="expedition">гильдия</param>
+    /// <returns></returns>
+    private void RemoveRecruitments(Expedition expedition)
+    {
+        _recruitments.RemoveAll(recruitment => recruitment.ExpeditionId == expedition.Id);
+        _removedMembers.Add(expedition.Id);
+    }
+
+    /// <summary>
+    /// Получить информацию о "наборе персонала".
+    /// Должна быть только одна заявка от гильдии.
+    /// </summary>
+    /// <param name="expeditionId">Id гильдии</param>
+    /// <returns></returns>
+    private ExpeditionRecruitment GetRecruitment(uint expeditionId)
+    {
+        return _recruitments.FirstOrDefault(recruitment => recruitment.ExpeditionId == expeditionId);
+    }
+
+    public void AddPretender(Character character, uint expeditionId, string memo)
     {
         var expedition = GetExpedition(expeditionId);
         var pretender = new Applicant
@@ -763,16 +880,123 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             CharacterLevel = character.Level,
             RegTime = DateTime.UtcNow
         };
-        expedition.PretenderAdd(pretender);
+        AddPretender(pretender);
         character.SendPacket(new SCExpeditionApplicantAddPacket(expeditionId));
     }
 
-    public void PretenderRemove(Character character, uint expeditionId)
+    public void RemovePretender(Character character, uint expeditionId)
     {
         var expedition = GetExpedition(expeditionId);
-        var pretender = expedition.GetPretender(expeditionId);
-        expedition.PretenderRemove(pretender);
+        var pretender = GetPretender(expeditionId, character.Id);
+        RemovePretender(pretender);
         character.SendPacket(new SCExpeditionApplicantDeletePacket(expeditionId));
+    }
+
+    /// <summary>
+    /// Удалить всех претендентов в гильдию
+    /// </summary>
+    /// <param name="expedition">гильдия</param>
+    private void RemovePretenders(Expedition expedition)
+    {
+        _pretenders.RemoveAll(pretender => pretender.ExpeditionId == expedition.Id);
+        _removedMembers.Add(expedition.Id);
+    }
+
+    /// <summary>
+    /// Удалить претендента
+    /// </summary>
+    /// <param name="character">претендент</param>
+    /// <param name="expedition">гильдия</param>
+    private void RemovePretender(Character character, Expedition expedition)
+    {
+        var pretender = GetPretender(expedition.Id, character.Id);
+        if (pretender == null)
+        {
+            return;
+        }
+        //RemovePretender(pretender);
+        var r = GetRecruitment(pretender.ExpeditionId);
+        if (r != null)
+        {
+            r.Apply = false;
+        }
+        //_pretenders.Remove(pretender);
+
+        // Находим объект по имени
+        var personToRemove = _pretenders.Find(p => p.ExpeditionId == expedition.Id && p.CharacterId == character.Id);
+        if (personToRemove != null)
+        {
+            // Удаляем найденный объект
+            _pretenders.Remove(personToRemove);
+        }
+        character.SendPacket(new SCExpeditionApplicantDeletePacket(expedition.Id));
+    }
+
+    /// <summary>
+    /// Добавить претендента
+    /// может быть только 5 заявок от претендента в разные гильдии
+    /// </summary>
+    /// <param name="pretender">претендент</param>
+    private void AddPretender(Applicant pretender)
+    {
+        // оставляем только одну запись на гильдию
+        var p = GetPretender(pretender.ExpeditionId, pretender.CharacterId);
+        if (p == null)
+        {
+            _pretenders.Add(pretender);
+        }
+        else
+        {
+            p.ExpeditionId = pretender.ExpeditionId;
+            p.Memo = pretender.Memo;
+            p.CharacterId = pretender.CharacterId;
+        }
+
+        var r = GetRecruitment(pretender.ExpeditionId);
+        if (r != null)
+        {
+            r.Apply = true;
+        }
+    }
+
+    /// <summary>
+    /// Удалить претендента
+    /// </summary>
+    /// <param name="pretender">претендент</param>
+    private void RemovePretender(Applicant pretender)
+    {
+        var r = GetRecruitment(pretender.ExpeditionId);
+        if (r != null)
+        {
+            r.Apply = false;
+        }
+        _pretenders.Remove(pretender);
+    }
+
+    /// <summary>
+    /// Получить претендента на вступление в гильдию
+    /// </summary>
+    /// <param name="expeditionId">Id гильдии</param>
+    /// <param name="characterId">Id претендента на вступлению в гильдию</param>
+    /// <returns></returns>
+    private Applicant GetPretender(uint expeditionId, uint characterId)
+    {
+        return _pretenders.FirstOrDefault(pretender => pretender.ExpeditionId == expeditionId && pretender.CharacterId == characterId);
+    }
+
+    /// <summary>
+    /// Получить всех претендентов на вступление в гильдию
+    /// </summary>
+    /// <param name="expeditionId">Id гильдии</param>
+    /// <returns></returns>
+    private List<Applicant> GetPretenders(uint expeditionId)
+    {
+        return _pretenders.Where(pretender => pretender.ExpeditionId == expeditionId).ToList();
+    }
+
+    public List<Applicant> GetAllPretenders()
+    {
+        return _pretenders;
     }
 
     public void SetMotd(Character character, string motdTitle, string motdContent)
@@ -782,5 +1006,85 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         expedition.MotdContent = motdContent;
 
         SendMyExpeditionDescInfo(character);
+    }
+
+    public void ExpeditionApplicantAccept(Character character, List<uint> pretenderIds)
+    {
+        var expedition = GetExpedition(GetExpeditionOfCharacter(character.Id));
+        foreach (var pretenderId in pretenderIds)
+        {
+            var pretender = WorldManager.Instance.GetCharacterById(pretenderId) ?? GetOfflineCharacterInfo(pretenderId);
+
+            if (pretender == null) { return; }
+
+            pretender.Expedition = expedition;
+            var newMember = GetMemberFromCharacter(expedition, pretender, false);
+            expedition.Members.Add(newMember);
+
+            // отсылаем информацию главе клана
+            character.SendPacket(new SCExpeditionApplicantAcceptPacket(pretenderId));
+
+            // отсылаем информацию претенденту
+            var changedPacket = new SCUnitExpeditionChangedPacket(pretender.ObjId, pretenderId, "", pretender.Name, 0, expedition.Id, false);
+            pretender.BroadcastPacket(changedPacket, true);
+            expedition.SendPacket(changedPacket);
+            SendMyExpeditionInfo(pretender);
+            expedition.OnCharacterLogin(pretender);
+
+            RemovePretender(pretender, expedition);
+        }
+    }
+
+    public void ExpeditionApplicantReject(Character character, List<uint> pretenderIds)
+    {
+        var expedition = GetExpedition(GetExpeditionOfCharacter(character.Id));
+        foreach (var characterId in pretenderIds)
+        {
+            var pretender = WorldManager.Instance.GetCharacterById(characterId);
+            var newMember = GetMemberFromCharacter(expedition, pretender, false);
+
+            // отсылаем информацию главе клана
+            character.SendPacket(new SCExpeditionApplicantRejectPacket(characterId));
+
+            // отсылаем информацию претенденту
+            //pretender.Expedition = expedition;
+            //expedition.Members.Add(newMember);
+
+            //pretender.BroadcastPacket(new SCUnitExpeditionChangedPacket(pretender.ObjId, pretender.Id, "", pretender.Name, 0, expedition.Id, false), true);
+            //SendMyExpeditionInfo(pretender);
+            //expedition.OnCharacterLogin(pretender);
+        }
+    }
+
+    public Character GetOfflineCharacterInfo(uint characterId)
+    {
+        var characterInfo = new Character(new UnitCustomModelParams());
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM characters WHERE id IN(" + string.Join(",", characterId) + ")";
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            characterInfo.Id = reader.GetUInt32("id");
+            characterInfo.Name = reader.GetString("name");
+            characterInfo.Level = reader.GetByte("level");
+            var expeditionId = reader.GetUInt32("expedition_id");
+            if (expeditionId != 0)
+            {
+                var expedition = GetExpedition(expeditionId);
+                characterInfo.Expedition = expedition;
+            }
+            characterInfo.Ability1 = (AbilityType)reader.GetByte("ability1");
+            characterInfo.Ability2 = (AbilityType)reader.GetByte("ability2");
+            characterInfo.Ability3 = (AbilityType)reader.GetByte("ability3");
+            var position = new Transform(null, null, reader.GetUInt32("world_id"), reader.GetUInt32("zone_id"), 1, reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"), 0, 0, 0);
+            characterInfo.Transform = position;
+            characterInfo.Transform.ZoneId = position.ZoneId;
+            characterInfo.InParty = false;
+            characterInfo.IsOnline = false;
+        }
+
+        return characterInfo;
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -19,8 +20,8 @@ public class Expedition : SystemFaction
 
     public List<ExpeditionMember> Members { get; set; }
     public List<ExpeditionRolePolicy> Policies { get; set; }
-    public List<ExpeditionRecruitment> Recruitments { get; set; }
-    public List<Applicant> Pretenders { get; set; }
+    //public List<ExpeditionRecruitment> Recruitments { get; set; }
+    //public List<Applicant> Pretenders { get; set; }
 
     public uint Level { get; set; }
     public uint Exp { get; set; }
@@ -42,67 +43,24 @@ public class Expedition : SystemFaction
         _removedMembers = new List<uint>();
         Members = new List<ExpeditionMember>();
         Policies = new List<ExpeditionRolePolicy>();
-        Recruitments = new List<ExpeditionRecruitment>();
-        Pretenders = new List<Applicant>();
+        //Recruitments = new List<ExpeditionRecruitment>();
+        //Pretenders = new List<Applicant>();
         IsDisbanded = false;
         IsLevelUpdate = false;
         MotdTitle = "";
         MotdContent = "";
     }
 
+    /// <summary>
+    /// Удалить члена гильдии
+    /// </summary>
+    /// <param name="member">член гильдии</param>
     public void RemoveMember(ExpeditionMember member)
     {
         var character = WorldManager.Instance.GetCharacterById(member.CharacterId);
         ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
         Members.Remove(member);
         _removedMembers.Add(member.CharacterId);
-    }
-
-    public void PretenderAdd(Applicant pretender)
-    {
-        // оставляем только одну запись на гильдию
-        var p = GetPretender(pretender.ExpeditionId);
-        if (p == null)
-        {
-            Pretenders.Add(pretender);
-        }
-        else
-        {
-            p.ExpeditionId = pretender.ExpeditionId;
-            p.Memo = pretender.Memo;
-            p.CharacterId = pretender.CharacterId;
-        }
-
-        var r = GetRecruitment(pretender.ExpeditionId);
-        if (r != null)
-        {
-            r.Apply = true;
-        }
-    }
-
-    public void PretenderRemove(Applicant pretender)
-    {
-        var r = GetRecruitment(pretender.ExpeditionId);
-        if (r != null)
-        {
-            r.Apply = false;
-        }
-        Pretenders.Remove(pretender);
-    }
-
-    public Applicant GetPretender(uint expeditionId)
-    {
-        return Pretenders.FirstOrDefault(pretender => pretender.ExpeditionId == expeditionId);
-    }
-
-    public  List<Applicant> GetPretenders()
-    {
-        return Pretenders;
-    }
-
-    private ExpeditionRecruitment GetRecruitment(uint expeditionId)
-    {
-        return Recruitments.FirstOrDefault(recruitment => recruitment.ExpeditionId == expeditionId);
     }
 
     public void OnCharacterLogin(Character character)
@@ -139,6 +97,11 @@ public class Expedition : SystemFaction
         return null;
     }
 
+    /// <summary>
+    /// Получить члена гильдии
+    /// </summary>
+    /// <param name="character">искомый член гильдии</param>
+    /// <returns></returns>
     public ExpeditionMember GetMember(Character character)
     {
         foreach (var member in Members)
@@ -147,6 +110,11 @@ public class Expedition : SystemFaction
         return null;
     }
 
+    /// <summary>
+    /// Получить члена гильдии
+    /// </summary>
+    /// <param name="characterId">Id искомого члена гильдии</param>
+    /// <returns></returns>
     public ExpeditionMember GetMember(uint characterId)
     {
         foreach (var member in Members)
@@ -218,6 +186,24 @@ public class Expedition : SystemFaction
                 command.Parameters.AddWithValue("@id", this.Id);
                 command.ExecuteNonQuery();
             }
+
+            //using (var command = connection.CreateCommand())
+            //{
+            //    command.Connection = connection;
+            //    command.Transaction = transaction;
+            //    command.CommandText = "DELETE FROM expedition_recruitments WHERE `expedition_id` = @id";
+            //    command.Parameters.AddWithValue("@id", this.Id);
+            //    command.ExecuteNonQuery();
+            //}
+
+            //using (var command = connection.CreateCommand())
+            //{
+            //    command.Connection = connection;
+            //    command.Transaction = transaction;
+            //    command.CommandText = "DELETE FROM expedition_applicants WHERE `expedition_id` = @id";
+            //    command.Parameters.AddWithValue("@id", this.Id);
+            //    command.ExecuteNonQuery();
+            //}
         }
         else
         {
@@ -255,15 +241,14 @@ public class Expedition : SystemFaction
 
             foreach (var policy in Policies)
                 policy.Save(connection, transaction);
-
-            foreach (var recruitment in Recruitments)
-                recruitment.Save(connection, transaction);
-
-            foreach (var pretender in Pretenders)
-                pretender.Save(connection, transaction);
         }
     }
 
+    /// <summary>
+    /// Шлем члену гильдии информацию о гильдии
+    /// </summary>
+    /// <param name="stream"></param>
+    /// <returns></returns>
     public PacketStream WriteInfo(PacketStream stream)
     {
         base.Write(stream);

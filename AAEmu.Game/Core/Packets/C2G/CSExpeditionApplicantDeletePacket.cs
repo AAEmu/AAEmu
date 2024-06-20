@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Logger.Debug($"CSExpeditionApplicantDeletePacket: character={Connection.ActiveChar.Name}:{Connection.ActiveChar.Id}, expeditionId={expeditionId}");
 
-            ExpeditionManager.Instance.PretenderRemove(Connection.ActiveChar, expeditionId);
+            ExpeditionManager.Instance.RemovePretender(Connection.ActiveChar, expeditionId);
         }
     }
 }

@@ -12,10 +12,10 @@ public class SCExpeditionApplicantsGetPacket : GamePacket
     private readonly sbyte _applyCount;
     private readonly List<Applicant> _pretenders;
 
-    public SCExpeditionApplicantsGetPacket(int total, List<Applicant> pretenders) : base(SCOffsets.SCExpeditionApplicantsGetPacket, 5)
+    public SCExpeditionApplicantsGetPacket(int total, int count, List<Applicant> pretenders) : base(SCOffsets.SCExpeditionApplicantsGetPacket, 5)
     {
         _total = total;
-        _count = pretenders.Count;
+        _count = count;
         _pretenders = pretenders;
     }
 

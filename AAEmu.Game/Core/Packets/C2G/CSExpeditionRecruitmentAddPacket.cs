@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var introduce = stream.ReadString(); // описание, почему идти в эту гильдию
 
             Logger.Debug("CSExpeditionRecruitmentAddPacket");
-            ExpeditionManager.Instance.RecruitmentAdd(Connection.ActiveChar, interest, day, introduce);
+            ExpeditionManager.Instance.AddRecruitment(Connection.ActiveChar, interest, day, introduce);
         }
     }
 }

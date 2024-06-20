@@ -12,11 +12,11 @@ public class CSExpeditionReplyInvitationPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var id = stream.ReadUInt32(); // type(id)
+        var expeditionId = stream.ReadUInt32(); // type(id)
         var id2 = stream.ReadUInt32(); // type(id)
         var join = stream.ReadBoolean();
 
-        Logger.Debug($"ExpeditionReplyInvitation, Id: {id}, Id2: {id2}, Join: {join}");
-        ExpeditionManager.Instance.ReplyInvite(Connection, id, id2, join);
+        Logger.Debug($"ExpeditionReplyInvitation, Id: {expeditionId}, Id2: {id2}, Join: {join}");
+        ExpeditionManager.Instance.ReplyInvite(Connection, expeditionId, id2, join);
     }
 }
