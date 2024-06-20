@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             // empty body
             Logger.Debug("CSExpeditionRecruitmentDeletePacket");
-            ExpeditionManager.Instance.RecruitmentRemove(Connection);
+            ExpeditionManager.Instance.RemoveRecruitment(Connection);
         }
     }
 }

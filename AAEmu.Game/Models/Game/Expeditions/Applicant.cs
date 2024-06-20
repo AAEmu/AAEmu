@@ -26,13 +26,11 @@ public class Applicant : PacketMarshaler
 
     public override bool Equals(object obj)
     {
-        if (obj == null || GetType() != obj.GetType())
+        if (obj is Applicant other)
         {
-            return false;
+            return ExpeditionId == other.ExpeditionId && CharacterId == other.CharacterId;
         }
-
-        Applicant other = (Applicant)obj;
-        return ExpeditionId == other.ExpeditionId && CharacterId == other.ExpeditionId;
+        return false;
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -44,10 +42,10 @@ public class Applicant : PacketMarshaler
 
     public PacketStream WriteInfo(PacketStream stream)
     {
-        stream.Write(ExpeditionId);
+        stream.Write(CharacterId);
         stream.Write(CharacterName);
         stream.Write(CharacterLevel);
-        stream.Write(CharacterId);
+        stream.Write(ExpeditionId);
         stream.Write(Memo);
         stream.Write(RegTime);
         return stream;
