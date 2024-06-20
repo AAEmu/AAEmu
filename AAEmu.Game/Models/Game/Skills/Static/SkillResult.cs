@@ -1,5 +1,8 @@
 ﻿namespace AAEmu.Game.Models.Game.Skills.Static;
 
+/// <summary>
+/// Extracted enum of skill results, might not be correct
+/// </summary>
 public enum SkillResult : byte
 {
     Success = 0x0,
@@ -150,12 +153,156 @@ public enum SkillResult : byte
     UrkOwnQuestItemGroup = 0x8E,
 }
 
+// ReSharper disable InconsistentNaming
+/// <summary>
+/// Internally used enum for generating SkillResults, do not pass directly to the client
+/// </summary>
+public enum SkillResultKeys
+{
+    // NOTE: do not edit the formatting or case of these enums
+    ok,
+    skill_failure,
+    skill_source_died,
+    skill_source_alive,
+    skill_target_died,
+    skill_target_destroyed,
+    skill_target_alive,
+    skill_on_casting,
+    skill_cooldown_time,
+    skill_no_target,
+    skill_lack_health,
+    skill_lack_mana,
+    skill_obstacle,
+    skill_outof_height,
+    skill_too_close_range,
+    skill_too_far_range,
+    skill_outof_angle,
+    skill_cannot_cast_in_combat,
+    skill_cannot_cast_while_moving,
+    skill_cannot_cast_in_stun,
+    skill_cannot_cast_while_walking,
+    skill_cannot_cast_in_swimming,
+    skill_blank_minded,
+    skill_silence,
+    skill_crippled,
+    skill_cannot_cast_in_channeling,
+    skill_cannot_cast_in_prison,
+    skill_need_stealth,
+    skill_need_nocombat_target,
+    skill_target_immune,
+    skill_invalid_skill,
+    skill_inactive_ability,
+    skill_not_enough_ability_level,
+    skill_invalid_source,
+    skill_invalid_target,
+    skill_invalid_location,
+    skill_need_reagent,
+    skill_item_locked,
+    skill_need_money,
+    skill_need_labor_power,
+    skill_source_is_hanging,
+    skill_source_is_riding,
+    skill_higher_buff,
+    skill_not_pvp_area,
+    skill_not_now,
+    skill_no_perm,
+    skill_bag_full,
+    skill_protected_faction,
+    skill_protected_level,
+    skill_unit_reqs_or_fail,
+    backpack_occupied,
+    skill_obstacle_for_spawn_doodad,
+    skill_cannot_spawn_doodad_in_house,
+    skill_cannot_use_for_self,
+    skill_not_preoccupied,
+    skill_not_my_npc,
+    skill_not_checked_second_pass,
+    // SKILL_CANNOT_USE_HERE,
+    skill_invalid_grade_enchant_support_item,
+    skill_check_character_p_stat_min,
+    skill_check_character_p_stat_max,
+    skill_invalid_account_attribute,
+    skill_urk_level,
+    skill_urk_ability,
+    skill_urk_race,
+    skill_urk_gender,
+    skill_urk_equip_slot,
+    skill_urk_equip_item,
+    skill_urk_own_item,
+    skill_urk_trained_skill,
+    skill_urk_combat,
+    skill_urk_stealth,
+    skill_urk_health,
+    skill_urk_buff,
+    skill_urk_target_buff,
+    skill_urk_target_combat,
+    skill_urk_can_learn_craft,
+    skill_urk_doodad_range,
+    skill_urk_equip_shield,
+    skill_urk_nobuff,
+    skill_urk_target_buff_tag,
+    skill_urk_corpse_range,
+    skill_urk_equip_weapon_type,
+    skill_urk_target_health_less_than,
+    skill_urk_target_npc,
+    skill_urk_target_doodad,
+    skill_urk_equip_ranged,
+    skill_urk_no_buff_tag,
+    skill_urk_complete_quest_context,
+    skill_urk_progress_quest_context,
+    skill_urk_ready_quest_context,
+    skill_urk_target_npc_group,
+    skill_urk_area_sphere,
+    skill_urk_precomplete_quest_context,
+    skill_urk_target_owner_type,
+    skill_urk_not_under_water,
+    skill_urk_faction_match,
+    skill_urk_tod,
+    skill_urk_mother_faction,
+    skill_urk_actability_point,
+    skill_urk_honor_point,
+    skill_urk_living_point,
+    skill_urk_in_zone,
+    skill_urk_out_zone,
+    skill_urk_dominion_owner,
+    skill_urk_verdict_only,
+    skill_urk_faction_match_only,
+    skill_urk_mother_faction_only,
+    skill_urk_faction_match_only_not,
+    skill_urk_mother_faction_only_not,
+    skill_urk_nation_member,
+    skill_urk_nation_member_not,
+    skill_urk_housing,
+    skill_urk_mana_margin,
+    skill_urk_labor_power_margin,
+    skill_urk_unknown,
+    skill_urk_max_level,
+}
+// ReSharper restore InconsistentNaming
+
+/// <summary>
+/// Helper class to generate skill result error messages
+/// </summary>
 public static class SkillResultHelper
 {
-    public static SkillResult SkillResultErrorKeyToId(string key)
+    
+    public static SkillResult SkillResultErrorKeyToId(SkillResultKeys key)
+    {
+        // if (ClientVersion == r208022)
+        return SkillResultErrorKeyToIdFor_r208022(key.ToString());
+    }
+    
+    /// <summary>
+    /// Lookup the SkillResult for Version 1.2 r208022
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    private static SkillResult SkillResultErrorKeyToIdFor_r208022(string key)
     {
         switch (key)
         {
+            case "": return SkillResult.Success;
+            case "skill_success": return SkillResult.Success;
             case "skill_failure": return (SkillResult)1; //	Can't use this.
             case "skill_source_died": return (SkillResult)2; //	Can't be used while dead.
             case "skill_source_alive": return (SkillResult)3; //	Can only be used while dead.
@@ -272,7 +419,7 @@ public static class SkillResultHelper
             case "skill_urk_faction_match_only": return (SkillResult)114; //	You are not a member of the $1 faction.
             case "skill_urk_mother_faction_only": return (SkillResult)115; //	Your faction can't use this.
             case "skill_urk_nation_owner": return (SkillResult)116; //	89 ?? Skill_urk_nation_owner
-            case "skill_urk_faction_match_only_not": return (SkillResult)117; //	$1+ HP must be drained first.
+            case "skill_urk_faction_match_only_not": return (SkillResult)117; //	$1+ HP must be drained first. // This translation seems wrong
             case "skill_urk_mother_faction_only_not": return (SkillResult)118; //	The $1 sub faction can't do this.
             case "skill_urk_nation_member": return (SkillResult)119; //	You must be in a nation.
             case "skill_urk_nation_member_not": return (SkillResult)120; //	You can't be in a nation to do this.

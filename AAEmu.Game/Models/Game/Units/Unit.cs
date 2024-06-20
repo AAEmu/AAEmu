@@ -951,7 +951,7 @@ public class Unit : BaseUnit, IUnit
         var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
         sct.ObjId = target.ObjId;
 
-        return skill.Use(this, caster, sct, null, true);
+        return skill.Use(this, caster, sct, null, true, out _);
     }
 
     public static void ModelPosture(PacketStream stream, Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF)

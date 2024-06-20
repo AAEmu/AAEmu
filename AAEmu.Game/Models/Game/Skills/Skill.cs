@@ -69,8 +69,19 @@ public class Skill
             Level = 1;
     }
 
-    public SkillResult Use(BaseUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
+    /// <summary>
+    /// Runs the skill and returns it's error code if any
+    /// </summary>
+    /// <param name="caster"></param>
+    /// <param name="casterCaster"></param>
+    /// <param name="targetCaster"></param>
+    /// <param name="skillObject">null by default</param>
+    /// <param name="bypassGcd">false by default</param>
+    /// <param name="skillResultValueUInt">Additional skill error data</param>
+    /// <returns></returns>
+    public SkillResult Use(BaseUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject, bool bypassGcd, out uint skillResultValueUInt)
     {
+        skillResultValueUInt = 0;
         // Check if the source is an actual Unit
         if (caster is not Unit unit)
         {
@@ -83,12 +94,13 @@ public class Skill
         unit.ConditionChance = true;
 
         var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster, casterCaster);
-        if (requirementResult != SkillResult.Success)
+        if (requirementResult.ResultKey != SkillResultKeys.ok)
         {
             if (character != null)
                 Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template.Id}");
             Cancelled = true;
-            return requirementResult;
+            skillResultValueUInt = requirementResult.ResultUInt;
+            return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
         }
         
         _bypassGcd = bypassGcd;

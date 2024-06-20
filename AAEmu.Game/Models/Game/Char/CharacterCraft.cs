@@ -99,7 +99,7 @@ public class CharacterCraft
 
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
             _consumeLaborPower = skill.Template.ConsumeLaborPower;
-            skill.Use(Owner, caster, target);
+            skill.Use(Owner, caster, target, null, false, out _);
         }
     }
 

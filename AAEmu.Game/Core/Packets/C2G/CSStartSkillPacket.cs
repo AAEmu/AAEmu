@@ -60,6 +60,7 @@ public class CSStartSkillPacket : GamePacket
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
         
         var skillResult = SkillResult.Success;
+        var skillResultErrorValue = 0u;
         Skill skill = null;
 
         if (skillCaster is SkillCasterUnit scu)
@@ -87,7 +88,7 @@ public class CSStartSkillPacket : GamePacket
             }
 
             // Use the main skill on the mate/slave
-            if (skill.Use(caster, skillCaster, skillCastTarget, skillObject) != SkillResult.Success)
+            if (skill.Use(caster, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue) != SkillResult.Success)
             {
                 // skill.Stop(caster, null, skillCaster);
             }
@@ -106,7 +107,7 @@ public class CSStartSkillPacket : GamePacket
         {
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
-            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         else if (skillCaster is SkillItem si)
         {
@@ -117,20 +118,20 @@ public class CSStartSkillPacket : GamePacket
             if (item == null || skillId != item.Template.UseSkillId && item.Template.BindType != ItemBindType.BindOnPickup)
                 return;
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject);
+            skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
         {
             // Is it one of our learned character skills?
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
             skill = new Skill(template, Connection.ActiveChar);
-            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
         {
             // Variant of learned skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         else
         {
@@ -138,7 +139,7 @@ public class CSStartSkillPacket : GamePacket
             Logger.Warn($"StartSkill: Id {skillId}, undefined use type");
             // If it's a valid skill cast it. This fixes interactions with quest items/doodads.
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         
         if (skillResult != SkillResult.Success)
@@ -148,24 +149,9 @@ public class CSStartSkillPacket : GamePacket
             scSkillStartedPacket.RealCastTimeDiv10 = 0;
             scSkillStartedPacket.BaseCastTimeDiv10 = 0;
             // ExtraData at the end of the packet is used to mark a use error
-            scSkillStartedPacket.SetSkillResult(SkillResult.Failure);
-            // 1 = "Can't use this" (example captures of 5.0.7.0 shows 0x66 here for skill 20444 (Drop the Vase Near the River) when not used at the correct location
-            // 1 - Can't use
-            // 2 - Can't be used while dead
-            // 3 - Can only be used while dead
-            // 4 - Can't be used on a dead target
-            // 5 - Target is already destroyed
-            // 6 - Can't be used on a living target
-            // 7 - Already performing an action
-            // 8 - Can't be used right now
-            // 9 - Select a target
-            // 10 - Insufficient health to use this
-            // 11 - Insufficient mana to use this
-            // 12 - No line of sight
-            // 13 - Target is on a different elevation
-            
-            
-            Connection.ActiveChar.BroadcastPacket(scSkillStartedPacket, true);
+            scSkillStartedPacket.SetSkillResult(skillResult);
+            scSkillStartedPacket.SetResultUInt(skillResultErrorValue);
+            Connection.ActiveChar.SendPacket(scSkillStartedPacket);
         }
     }
 }

@@ -572,7 +572,7 @@ namespace AAEmu.Game.Models.Game.Indun
                     npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
                 }
                 Logger.Info($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-                skill.Use(npc, skillCaster, skillTarget);
+                skill.Use(npc, skillCaster, skillTarget, null, false, out _);
             }
         }
 
@@ -602,7 +602,7 @@ namespace AAEmu.Game.Models.Game.Indun
                     npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
                 }
                 Logger.Info($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-                skill.Use(npc, skillCaster, skillTarget);
+                skill.Use(npc, skillCaster, skillTarget, null, false, out _);
             }
         }
 
@@ -635,7 +635,7 @@ namespace AAEmu.Game.Models.Game.Indun
                     npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
                 }
                 Logger.Info($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-                skill.Use(npc, skillCaster, skillTarget);
+                skill.Use(npc, skillCaster, skillTarget, null, false, out _);
             }
 
             const uint Dahuta = 13310u; // Npc Id=13310 "Dahuta", 50
@@ -671,7 +671,7 @@ namespace AAEmu.Game.Models.Game.Indun
                     npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
                 }
                 Logger.Info($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-                skill.Use(npc, skillCaster, skillTarget);
+                skill.Use(npc, skillCaster, skillTarget, null, false, out _);
             }
         }
 
@@ -701,7 +701,7 @@ namespace AAEmu.Game.Models.Game.Indun
                     npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
                 }
                 Logger.Info($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-                skill.Use(npc, skillCaster, skillTarget);
+                skill.Use(npc, skillCaster, skillTarget, null, false, out _);
             }
         }
 

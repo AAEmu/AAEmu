@@ -185,7 +185,7 @@ public abstract class Behavior
         var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
         skill.Callback = OnSkillEnded;
-        var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
+        var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject, false, out _);
         // fix the eastward turn when using SelfSkill
         if (skill.Template.TargetType != SkillTargetType.Self && result == SkillResult.Success)
             Ai.Owner.LookTowards(target.Transform.World.Position);

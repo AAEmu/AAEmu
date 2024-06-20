@@ -45,7 +45,7 @@ public class DoodadFuncFakeUse : DoodadFuncTemplate
             }
 
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
-            skill.Use(caster, skillCaster, target);
+            skill.Use(caster, skillCaster, target, null, false, out _);
             owner.ToNextPhase = true;
         }
         else if (FakeSkillId != 0)
