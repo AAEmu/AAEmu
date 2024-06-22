@@ -20,7 +20,7 @@ public class QuestActConReportDoodad(QuestComponentTemplate parentComponent) : Q
     public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), DoodadId {DoodadId}");
-        return false;
+        return questAct.OverrideObjectiveCompleted;
     }
 
     public override void InitializeQuest(Quest quest, IQuestAct questAct)

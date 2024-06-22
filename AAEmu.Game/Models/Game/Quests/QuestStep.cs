@@ -18,7 +18,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     /// <summary>
     /// This step's QuestComponentKind
     /// </summary>
-    private QuestComponentKind ThisStep { get; set; } = step;
+    public QuestComponentKind ThisStep { get; private set; } = step;
 
     /// <summary>
     /// List of components inside this step by ComponentId
@@ -58,7 +58,9 @@ public class QuestStep(QuestComponentKind step, Quest parent)
         foreach (var questComponent in Components.Values)
             questComponent.IsCurrentlyActive = UnitRequirementsGameData.Instance.CanComponentRun(questComponent.Template, (BaseUnit)Parent.Owner);
 
-        if (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress)
+        var componentSOrCheck = (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress);
+
+        if (componentSOrCheck)
         {
             // Require only one of the components to be true in the progress step is quest has selective flag
             res = false;

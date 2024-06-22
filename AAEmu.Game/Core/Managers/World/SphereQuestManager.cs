@@ -98,18 +98,21 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     {
         var res = 0;
         var spheres = GetQuestSpheres(componentId);
-        foreach (var sphere in spheres)
+        if (spheres != null)
         {
-            var sphereQuestTrigger = new SphereQuestTrigger
+            foreach (var sphere in spheres)
             {
-                Quest = quest,
-                Owner = owner,
-                Sphere = sphere,
-                TickRate = 500,
-                NpcTemplate = npcTemplateId
-            };
-            AddSphereQuestTrigger(sphereQuestTrigger);
-            res++;
+                var sphereQuestTrigger = new SphereQuestTrigger
+                {
+                    Quest = quest,
+                    Owner = owner,
+                    Sphere = sphere,
+                    TickRate = 500,
+                    NpcTemplate = npcTemplateId
+                };
+                AddSphereQuestTrigger(sphereQuestTrigger);
+                res++;
+            }
         }
         return res;
     }

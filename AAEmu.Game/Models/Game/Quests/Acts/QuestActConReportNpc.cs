@@ -22,7 +22,7 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
         // TODO Verify: Does it actually have to be targeted?
-        return (quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId);
+        return questAct.OverrideObjectiveCompleted || ((quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId));
     }
 
     public override void InitializeQuest(Quest quest, IQuestAct questAct)

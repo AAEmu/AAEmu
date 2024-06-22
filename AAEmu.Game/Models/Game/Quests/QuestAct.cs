@@ -31,6 +31,7 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
             if (_overrideObjectiveCompleted == value)
                 return;
             _overrideObjectiveCompleted = value;
+            QuestComponent.OverrideObjectiveCompleted = true;
             RequestEvaluation();
         }
     }

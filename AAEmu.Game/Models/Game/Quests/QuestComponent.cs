@@ -11,6 +11,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 public class QuestComponent : IQuestComponent
 {
     public QuestComponentTemplate Template { get; set; }
+    public bool OverrideObjectiveCompleted { get; set; }
     public QuestStep Parent { get; set; }
     public List<IQuestAct> Acts { get; set; } = new();
 
@@ -47,9 +48,27 @@ public class QuestComponent : IQuestComponent
     {
         var res = true;
 
-        // Normal checks
-        foreach (var questAct in Acts)
-            res &= questAct.RunAct();
+        var actsOrCheck = (Parent.ThisStep is QuestComponentKind.Start or QuestComponentKind.Ready) && (Acts.Count > 0);
+
+        if (actsOrCheck)
+        {
+            // Or checks, needed to handle quests with multiple starters or multiple report NPCs
+            res = false;
+            foreach (var questAct in Acts)
+            {
+                res |= questAct.RunAct();
+            }
+        }
+        else
+        {
+            // Normal checks
+            foreach (var questAct in Acts)
+            {
+                res &= questAct.RunAct();
+            }
+        }
+
+        res |= OverrideObjectiveCompleted;
 
         // If acts completed, handle skill and buff effects
         if (res)
