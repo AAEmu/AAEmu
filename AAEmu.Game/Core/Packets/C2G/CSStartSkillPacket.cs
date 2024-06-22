@@ -6,6 +6,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
@@ -95,6 +96,14 @@ public class CSStartSkillPacket : GamePacket
         else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
         {
             // Is it a common skill?
+
+            // Bugfix: Prevent the player from picking up packs from the ground while already equipping one
+            if (skillId == 11361 && !Connection.ActiveChar.Inventory.CanReplaceGliderInBackpackSlot())
+            {
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.BackpackOccupied);
+                return;
+            }
+            
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
             skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
