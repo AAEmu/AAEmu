@@ -217,8 +217,12 @@ public partial class Quest
                     continue;
 
                 foreach (var questComponentAct in questComponent.Acts)
-                    score += questComponentAct.Template.Count *
-                             Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+                {
+                    if (questComponentAct.Template.ThisComponentObjectiveIndex == 0xFF)
+                        continue;
+                    
+                    score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+                }
             }
 
             // Check the score results
@@ -242,6 +246,9 @@ public partial class Quest
 
             foreach (var questComponentAct in questComponent.Acts)
             {
+                if (questComponentAct.Template.ThisComponentObjectiveIndex == 0xFF)
+                    continue;
+
                 if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
                     questComponentAct.Template.Count * 3 / 2)
                     return QuestObjectiveStatus.Overachieved;
@@ -281,8 +288,12 @@ public partial class Quest
                     continue;
 
                 foreach (var questComponentAct in questComponent.Acts)
-                    score += questComponentAct.Template.Count *
-                             Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+                {
+                    if (questComponentAct.Template.ThisComponentObjectiveIndex == 0xFF)
+                        continue;
+                    
+                    score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
+                }
             }
 
             // Check the score cap results
@@ -301,6 +312,9 @@ public partial class Quest
 
             foreach (var questComponentAct in questComponent.Acts)
             {
+                if (questComponentAct.Template.ThisComponentObjectiveIndex == 0xFF)
+                    continue;
+
                 if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
                     questComponentAct.Template.Count * 3 / 2)
                 {
