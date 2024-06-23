@@ -40,7 +40,16 @@ public class QuestActConReportDoodad(QuestComponentTemplate parentComponent) : Q
         if ((questAct.Id != ActId) || (args.DoodadId != DoodadId))
             return;
 
+        // This check is needed so that turning in a quest at a Doodad doesn't complete all active quests that
+        // need to be turned in at the same Doodad
+        var minimumProgress = questAct.Template.ParentComponent.ParentQuestTemplate.LetItDone
+            ? QuestObjectiveStatus.CanEarlyComplete
+            : QuestObjectiveStatus.QuestComplete; 
+        var isReady = questAct.QuestComponent.Parent.Parent.GetQuestObjectiveStatus() >= minimumProgress;
         // TODO: Check doodad range?
+        
+        if (!isReady)
+            return;
 
         questAct.OverrideObjectiveCompleted = true;
         if (questAct.QuestComponent.Parent.Parent.Step == QuestComponentKind.Progress)

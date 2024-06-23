@@ -199,11 +199,11 @@ public partial class Quest
     /// <summary>
     /// Checks is this specific QuestAct is completed, checks objectives
     /// </summary>
-    /// <returns></returns>
+    /// <returns>Returns the progress state, or QuestComplete if it doesn't have a Progress step</returns>
     public QuestObjectiveStatus GetQuestObjectiveStatus()
     {
         if (!QuestSteps.TryGetValue(QuestComponentKind.Progress, out var currentStep))
-            return QuestObjectiveStatus.NotReady;
+            return QuestObjectiveStatus.QuestComplete;
 
         var questComponents = currentStep.Components.Values ;
         if (Template.Score > 0)
@@ -267,7 +267,7 @@ public partial class Quest
     public float GetQuestObjectivePercent()
     {
         if (!QuestSteps.TryGetValue(QuestComponentKind.Progress, out var currentStep))
-            return 0f;
+            return 1f;
 
         var questComponents = currentStep.Components.Values;
         if (Template.Score > 0)
