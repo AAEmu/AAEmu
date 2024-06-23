@@ -963,10 +963,16 @@ public class Skill
                 {
                     foreach (var reagent in reagents)
                     {
-                        var consumeCount = player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
-                        if (consumeCount < reagent.Amount)
+                        player.Inventory.Bag.GetAllItemsByTemplate(reagent.ItemId, -1, out _, out var totalCount);
+                        if (totalCount >= reagent.Amount)
                         {
-                            player.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
+                            consumedItemTemplates.Add((reagent.ItemId, reagent.Amount));
+                        }
+                        else
+                        {
+                            // Not enough reagent items
+                            Cancelled = true;
+                            return;
                         }
                     }
                 }
@@ -1038,7 +1044,8 @@ public class Skill
                     {
                         foreach (var itemSetItem in itemSet.Items)
                         {
-                            player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, itemSetItem.Value.ItemId, itemSetItem.Value.Count, null);
+                            consumedItemTemplates.Add((itemSetItem.Value.ItemId, itemSetItem.Value.Count));
+                            // player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, itemSetItem.Value.ItemId, itemSetItem.Value.Count, null);
                         }
                     }
                 }
