@@ -13,7 +13,7 @@ public class QuestActSupplyCopper(QuestComponentTemplate parentComponent) : Ques
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Amount {Amount}");
         quest.QuestRewardCoinsPool += Amount;

@@ -126,9 +126,6 @@ public class CharacterQuests
             }
         }
 
-        // Create the step objects based on the Quest Templates
-        quest.CreateQuestSteps();
-
         // Actually start the quest by setting step to Start and send the quest start packets
         var res = quest.StartQuest();
         if (!res)
@@ -525,10 +522,8 @@ public class CharacterQuests
                     var quest = new Quest(template, Owner);
                     quest.Id = questId;
                     quest.TemplateId = templateId;
-
                     quest.Status = (QuestStatus)reader.GetByte("status");
                     var oldStatus = quest.Status;
-                    quest.CreateQuestSteps();
                     quest.ReadData((byte[])reader.GetValue("data"));
                     quest.Status = oldStatus;
                     ActiveQuests.Add(quest.TemplateId, quest);

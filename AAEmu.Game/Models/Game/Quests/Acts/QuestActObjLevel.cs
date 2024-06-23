@@ -16,7 +16,7 @@ public class QuestActObjLevel(QuestComponentTemplate parentComponent) : QuestAct
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Level {quest.Owner.Level}/{Level}");
         var res = quest.Owner.Level >= Level;
@@ -24,25 +24,25 @@ public class QuestActObjLevel(QuestComponentTemplate parentComponent) : QuestAct
         return res;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnLevelUp += questAct.OnLevelUp;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnLevelUp -= questAct.OnLevelUp;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnLevelUp(IQuestAct questAct, object sender, OnLevelUpArgs args)
+    public override void OnLevelUp(QuestAct questAct, object sender, OnLevelUpArgs args)
     {
         if (questAct.Id != ActId)
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnLevelUp: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), Level {questAct.QuestComponent.Parent.Parent.Owner.Level}/{Level}");
         var res = questAct.QuestComponent.Parent.Parent.Owner.Level >= Level;
-        SetObjective(questAct, res ? 1 : 0);
+        SetObjective((QuestAct)questAct, res ? 1 : 0);
     }
 }

@@ -83,9 +83,9 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            if (args.Length >= 3 && uint.TryParse(args[2], out var stepId))
+                            if (args.Length >= 3 && Enum.TryParse<QuestComponentKind>(args[2], out var stepId))
                             {
-                                if (character.Quests.SetStep(questId, stepId))
+                                if (character.Quests.SetStep(questId, (uint)stepId))
                                     character.SendMessage($"[Quest] set Step {stepId} for Quest {questId}");
                                 else
                                     character.SendMessage("[Quest] Proper usage: /quest step <questId> <stepId>");

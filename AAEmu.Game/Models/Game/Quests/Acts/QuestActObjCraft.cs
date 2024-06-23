@@ -18,7 +18,7 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), CraftId {CraftId}, Count {Count}");
         return ParentQuestTemplate.Score > 0
@@ -26,19 +26,19 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
             : currentObjectiveCount >= Count;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnCraft += questAct.OnCraft;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnCraft -= questAct.OnCraft;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnCraft(IQuestAct questAct, object sender, OnCraftArgs e)
+    public override void OnCraft(QuestAct questAct, object sender, OnCraftArgs e)
     {
         if ((questAct.Template.ActId == ActId) && (e.CraftId == CraftId))
         {

@@ -18,26 +18,26 @@ public class QuestActConReportNpc(QuestComponentTemplate parentComponent) : Ques
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
         // TODO Verify: Does it actually have to be targeted?
         return questAct.OverrideObjectiveCompleted || ((quest.Owner.CurrentTarget is Npc npc) && (npc.TemplateId == NpcId));
     }
 
-    public override void InitializeQuest(Quest quest, IQuestAct questAct)
+    public override void InitializeQuest(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnReportNpc += questAct.OnReportNpc;
     }
 
-    public override void FinalizeQuest(Quest quest, IQuestAct questAct)
+    public override void FinalizeQuest(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnReportNpc -= questAct.OnReportNpc;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnReportNpc(IQuestAct questAct, object sender, OnReportNpcArgs args)
+    public override void OnReportNpc(QuestAct questAct, object sender, OnReportNpcArgs args)
     {
         if ((questAct.Id != ActId) || (NpcId != args.NpcId))
             return;

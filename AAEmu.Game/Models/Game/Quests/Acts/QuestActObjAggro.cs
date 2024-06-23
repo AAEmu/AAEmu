@@ -30,19 +30,19 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Range {Range}, Ranks {Rank1}/{Rank2}/{Rank3}");
         return currentObjectiveCount > 0;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnKill += questAct.OnKill;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnKill -= questAct.OnKill;
         base.FinalizeAction(quest, questAct);
@@ -54,7 +54,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    public override void OnKill(IQuestAct questAct, object sender, OnKillArgs e)
+    public override void OnKill(QuestAct questAct, object sender, OnKillArgs e)
     {
         if (questAct.Id != ActId)
             return;

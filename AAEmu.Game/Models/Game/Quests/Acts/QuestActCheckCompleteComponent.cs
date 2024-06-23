@@ -13,7 +13,7 @@ public class QuestActCheckCompleteComponent(QuestComponentTemplate parentCompone
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent}");
         if (questAct.QuestComponent.Parent.Components.TryGetValue(CompleteComponent, out var targetComponent))

@@ -23,32 +23,32 @@ public class QuestActObjTalk(QuestComponentTemplate parentComponent) : QuestActT
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}, TeamShare {TeamShare}");
         return currentObjectiveCount > 0;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnTalkMade += questAct.OnTalkMade;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnTalkMade -= questAct.OnTalkMade;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnTalkMade(IQuestAct questAct, object sender, OnTalkMadeArgs args)
+    public override void OnTalkMade(QuestAct questAct, object sender, OnTalkMadeArgs args)
     {
         if ((questAct.Id != ActId) || (args.NpcId != NpcId))
             return;
 
         var player = questAct.QuestComponent.Parent.Parent.Owner;
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnTalkMade: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {player.Name} ({player.Id}), NpcId {args.NpcId}, Source {args.SourcePlayer.Name} ({args.SourcePlayer.Id})");
-        SetObjective(questAct, 1);
+        SetObjective((QuestAct)questAct, 1);
 
         if (player.Id == args.SourcePlayer.Id)
         {

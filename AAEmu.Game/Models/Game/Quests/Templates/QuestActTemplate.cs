@@ -53,7 +53,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Called for every QuestAct in a component when the component is activated (Step changed)
     /// </summary>
-    public virtual void InitializeAction(Quest quest, IQuestAct questAct)
+    public virtual void InitializeAction(Quest quest, QuestAct questAct)
     {
         Logger.Info($"{QuestActTemplateName}.InitializeAction({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
@@ -61,7 +61,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Called for every QuestAct in a component when the component is fully completed or cancelled (Step changed)
     /// </summary>
-    public virtual void FinalizeAction(Quest quest, IQuestAct questAct)
+    public virtual void FinalizeAction(Quest quest, QuestAct questAct)
     {
         Logger.Info($"{QuestActTemplateName}.FinalizeAction({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
@@ -69,7 +69,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Called for every QuestAct used by the Quest when creating the Quest (basically on Quest Constructor)
     /// </summary>
-    public virtual void InitializeQuest(Quest quest, IQuestAct questAct)
+    public virtual void InitializeQuest(Quest quest, QuestAct questAct)
     {
         Logger.Info($"{QuestActTemplateName}.InitializeQuest({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
@@ -77,20 +77,20 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <summary>
     /// Called for every QuestAct used by the Quest when the Quest gets removed in any way (basically on Quest Destructor)
     /// </summary>
-    public virtual void FinalizeQuest(Quest quest, IQuestAct questAct)
+    public virtual void FinalizeQuest(Quest quest, QuestAct questAct)
     {
         Logger.Info($"{QuestActTemplateName}.FinalizeQuest({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
 
-    
+
     /// <summary>
     /// Execute and check an Act for its results, called after updating objective counts, descendents should never call base()
     /// </summary>
     /// <param name="quest">Quest this RunAct is called for</param>
-    /// <param name="questAct">IQuestAct this RunAct is called from</param>
+    /// <param name="questAct">QuestAct this RunAct is called from</param>
     /// <param name="currentObjectiveCount">Current Objective Count</param>
     /// <returns>True if executed correctly, or objectives have been met</returns>
-    public virtual bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public virtual bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct, Quest {quest.TemplateId}, Owner: {quest.Owner.Name}, not implemented!");
         return false;
@@ -133,7 +133,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// </summary>
     /// <param name="questAct"></param>
     /// <param name="value"></param>
-    protected void SetObjective(IQuestAct questAct, int value) => SetObjective(questAct.QuestComponent.Parent.Parent, value); 
+    protected void SetObjective(QuestAct questAct, int value) => SetObjective(questAct.QuestComponent.Parent.Parent, value); 
 
     /// <summary>
     /// Get Current Objective Count for this Act (forwarded value from Quest)
@@ -144,7 +144,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     {
         return quest?.Objectives[ThisComponentObjectiveIndex] ?? 0;
     }
-    public int GetObjective(IQuestAct questAct) => GetObjective(questAct.QuestComponent.Parent.Parent);
+    public int GetObjective(QuestAct questAct) => GetObjective(questAct.QuestComponent.Parent.Parent);
 
     /// <summary>
     /// Set Current Objective Count for this Act (forwards to quest object)
@@ -177,7 +177,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="amount"></param>
     /// <returns>New amount for the objective</returns>
-    public int AddObjective(IQuestAct questAct, int amount) => AddObjective(questAct.QuestComponent.Parent.Parent, amount);
+    public int AddObjective(QuestAct questAct, int amount) => AddObjective(questAct.QuestComponent.Parent.Parent, amount);
 
     /// <summary>
     /// Called when a quest ended or otherwise removed, use to clean up items and tasks
@@ -207,7 +207,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnMonsterGroupHunt(IQuestAct questAct, object sender, OnMonsterGroupHuntArgs args)
+    public virtual void OnMonsterGroupHunt(QuestAct questAct, object sender, OnMonsterGroupHuntArgs args)
     {
         //
     }
@@ -218,7 +218,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnMonsterHunt(IQuestAct questAct, object sender, OnMonsterHuntArgs args)
+    public virtual void OnMonsterHunt(QuestAct questAct, object sender, OnMonsterHuntArgs args)
     {
         //
     }
@@ -229,7 +229,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnItemGather(IQuestAct questAct, object sender, OnItemGatherArgs args)
+    public virtual void OnItemGather(QuestAct questAct, object sender, OnItemGatherArgs args)
     {
         //
     }
@@ -240,7 +240,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnItemGroupGather(IQuestAct questAct, object sender, OnItemGroupGatherArgs args)
+    public virtual void OnItemGroupGather(QuestAct questAct, object sender, OnItemGroupGatherArgs args)
     {
         //
     }
@@ -251,7 +251,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnTalkMade(IQuestAct questAct, object sender, OnTalkMadeArgs args)
+    public virtual void OnTalkMade(QuestAct questAct, object sender, OnTalkMadeArgs args)
     {
         //
     }
@@ -262,7 +262,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnTalkNpcGroupMade(IQuestAct questAct, object sender, OnTalkNpcGroupMadeArgs args)
+    public virtual void OnTalkNpcGroupMade(QuestAct questAct, object sender, OnTalkNpcGroupMadeArgs args)
     {
         //
     }
@@ -273,7 +273,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnAggro(IQuestAct questAct, object sender, OnAggroArgs args)
+    public virtual void OnAggro(QuestAct questAct, object sender, OnAggroArgs args)
     {
         //
     }
@@ -284,7 +284,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnItemUse(IQuestAct questAct, object sender, OnItemUseArgs args)
+    public virtual void OnItemUse(QuestAct questAct, object sender, OnItemUseArgs args)
     {
         //
     }
@@ -295,7 +295,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnItemGroupUse(IQuestAct questAct, object sender, OnItemGroupUseArgs args)
+    public virtual void OnItemGroupUse(QuestAct questAct, object sender, OnItemGroupUseArgs args)
     {
         //
     }
@@ -306,7 +306,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnInteraction(IQuestAct questAct, object sender, OnInteractionArgs args)
+    public virtual void OnInteraction(QuestAct questAct, object sender, OnInteractionArgs args)
     {
         //
     }
@@ -317,7 +317,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnCraft(IQuestAct questAct, object sender, OnCraftArgs args)
+    public virtual void OnCraft(QuestAct questAct, object sender, OnCraftArgs args)
     {
         //
     }
@@ -328,7 +328,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnExpressFire(IQuestAct questAct, object sender, OnExpressFireArgs args)
+    public virtual void OnExpressFire(QuestAct questAct, object sender, OnExpressFireArgs args)
     {
         //
     }
@@ -339,7 +339,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnLevelUp(IQuestAct questAct, object sender, OnLevelUpArgs args)
+    public virtual void OnLevelUp(QuestAct questAct, object sender, OnLevelUpArgs args)
     {
         //
     }
@@ -350,7 +350,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnMateLevelUp(IQuestAct questAct, object sender, OnMateLevelUpArgs args)
+    public virtual void OnMateLevelUp(QuestAct questAct, object sender, OnMateLevelUpArgs args)
     {
         //
     }
@@ -361,7 +361,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnAbilityLevelUp(IQuestAct questAct, object sender, OnAbilityLevelUpArgs args)
+    public virtual void OnAbilityLevelUp(QuestAct questAct, object sender, OnAbilityLevelUpArgs args)
     {
         //
     }
@@ -372,18 +372,18 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnEnterSphere(IQuestAct questAct, object sender, OnEnterSphereArgs args)
+    public virtual void OnEnterSphere(QuestAct questAct, object sender, OnEnterSphereArgs args)
     {
         //
     }
-    
+
     /// <summary>
     /// OnExitSphere 
     /// </summary>
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnExitSphere(IQuestAct questAct, object sender, OnExitSphereArgs args)
+    public virtual void OnExitSphere(QuestAct questAct, object sender, OnExitSphereArgs args)
     {
         //
     }
@@ -394,7 +394,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnZoneKill(IQuestAct questAct, object sender, OnZoneKillArgs args)
+    public virtual void OnZoneKill(QuestAct questAct, object sender, OnZoneKillArgs args)
     {
         //
     }
@@ -405,7 +405,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnCinemaStarted(IQuestAct questAct, object sender, OnCinemaStartedArgs args)
+    public virtual void OnCinemaStarted(QuestAct questAct, object sender, OnCinemaStartedArgs args)
     {
         //
     }
@@ -416,7 +416,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnCinemaEnded(IQuestAct questAct, object sender, OnCinemaEndedArgs args)
+    public virtual void OnCinemaEnded(QuestAct questAct, object sender, OnCinemaEndedArgs args)
     {
         //
     }
@@ -427,7 +427,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnReportNpc(IQuestAct questAct, object sender, OnReportNpcArgs args)
+    public virtual void OnReportNpc(QuestAct questAct, object sender, OnReportNpcArgs args)
     {
         //
     }
@@ -438,7 +438,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnAcceptDoodad(IQuestAct questAct, object sender, OnAcceptDoodadArgs args)
+    public virtual void OnAcceptDoodad(QuestAct questAct, object sender, OnAcceptDoodadArgs args)
     {
         //
     }
@@ -449,7 +449,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnReportDoodad(IQuestAct questAct, object sender, OnReportDoodadArgs args)
+    public virtual void OnReportDoodad(QuestAct questAct, object sender, OnReportDoodadArgs args)
     {
         //
     }
@@ -460,7 +460,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnReportJournal(IQuestAct questAct, object sender, OnReportJournalArgs args)
+    public virtual void OnReportJournal(QuestAct questAct, object sender, OnReportJournalArgs args)
     {
         //
     }
@@ -471,7 +471,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnQuestComplete(IQuestAct questAct, object sender, OnQuestCompleteArgs args)
+    public virtual void OnQuestComplete(QuestAct questAct, object sender, OnQuestCompleteArgs args)
     {
         //
     }
@@ -482,7 +482,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnKill(IQuestAct questAct, object sender, OnKillArgs args)
+    public virtual void OnKill(QuestAct questAct, object sender, OnKillArgs args)
     {
         //
     }
@@ -493,7 +493,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnAttack(IQuestAct questAct, object sender, OnAttackArgs args)
+    public virtual void OnAttack(QuestAct questAct, object sender, OnAttackArgs args)
     {
         //
     }
@@ -504,7 +504,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnAttacked(IQuestAct questAct, object sender, OnAttackedArgs args)
+    public virtual void OnAttacked(QuestAct questAct, object sender, OnAttackedArgs args)
     {
         //
     }
@@ -515,7 +515,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnDamage(IQuestAct questAct, object sender, OnDamageArgs args)
+    public virtual void OnDamage(QuestAct questAct, object sender, OnDamageArgs args)
     {
         //
     }
@@ -526,7 +526,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnDamaged(IQuestAct questAct, object sender, OnDamagedArgs args)
+    public virtual void OnDamaged(QuestAct questAct, object sender, OnDamagedArgs args)
     {
         //
     }
@@ -536,7 +536,8 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// </summary>
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
-    public virtual void OnTimerExpired(IQuestAct questAct, object sender, OnTimerExpiredArgs args)
+    /// <param name="args"></param>
+    public virtual void OnTimerExpired(QuestAct questAct, object sender, OnTimerExpiredArgs args)
     {
         //
     }
@@ -547,7 +548,7 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public virtual void OnQuestStepChanged(IQuestAct questAct, object sender, OnQuestStepChangedArgs args)
+    public virtual void OnQuestStepChanged(QuestAct questAct, object sender, OnQuestStepChangedArgs args)
     {
         //
     }

@@ -14,7 +14,7 @@ public class QuestActConAcceptSkill(QuestComponentTemplate parentComponent) : Qu
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), SkillId {SkillId}");
         return quest.QuestAcceptorType == QuestAcceptorType.Skill && quest.AcceptorId == SkillId;

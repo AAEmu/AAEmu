@@ -22,14 +22,14 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
     /// <param name="quest"></param>
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
         SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
         return GetObjective(quest) >= Count;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
@@ -38,7 +38,7 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
         quest.Owner.Events.OnItemGather += questAct.OnItemGather;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         base.FinalizeAction(quest, questAct);
 
@@ -67,13 +67,13 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
         quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, cleanupCount, null);
     }
 
-    public override void OnItemGather(IQuestAct questAct, object sender, OnItemGatherArgs args)
+    public override void OnItemGather(QuestAct questAct, object sender, OnItemGatherArgs args)
     {
         if ((questAct.Id != ActId) || (args.ItemId != ItemId))
             return;
 
         // Just adding/removing the count should technically be enough without having to do a new count
         // AddObjective(questAct, args.Count, Count);
-        SetObjective(questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
+        SetObjective((QuestAct)questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
     }
 }

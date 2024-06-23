@@ -10,7 +10,7 @@ public class QuestActConFail(QuestComponentTemplate parentComponent) : QuestActT
 {
     public bool ForceChangeComponent { get; set; }
 
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         return base.RunAct(quest, questAct, currentObjectiveCount);
     }

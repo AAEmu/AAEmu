@@ -34,25 +34,25 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Zone {ZoneId}, Npc kills x {CountNpc} (Faction {NpcFactionId} Ex {NpcFactionExclusive}, Lv{LvlMinNpc}~{LvlMaxNpc}), PK x {CountPlayerKill} (Faction {PcFactionId} Ex {PcFactionExclusive}, Lv{LvlMin}~{LvlMax}), TeamShare {TeamShare}, IsParty {IsParty}");
         return (CountNpc > 0 && currentObjectiveCount >= CountNpc) || (CountPlayerKill > 0 && currentObjectiveCount >= CountPlayerKill);
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnZoneKill += questAct.OnZoneKill;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnZoneKill -= questAct.OnZoneKill;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnZoneKill(IQuestAct questAct, object sender, OnZoneKillArgs args)
+    public override void OnZoneKill(QuestAct questAct, object sender, OnZoneKillArgs args)
     {
         if (questAct.Id != ActId)
             return;
@@ -106,7 +106,7 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
         if (valid)
         {
             // TODO: Check if this would actually need 2 objective counters or not
-            AddObjective(questAct, 1);
+            AddObjective((QuestAct)questAct, 1);
             
             // Handle Team sharing (if needed)
             if (TeamShare)

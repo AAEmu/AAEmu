@@ -19,29 +19,29 @@ internal class QuestActObjItemUse(QuestComponentTemplate parentComponent) : Ques
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
         return currentObjectiveCount >= Count;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnItemUse += questAct.OnItemUse;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnItemUse -= questAct.OnItemUse;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnItemUse(IQuestAct questAct, object sender, OnItemUseArgs args)
+    public override void OnItemUse(QuestAct questAct, object sender, OnItemUseArgs args)
     {
         if ((questAct.Id != ActId) || (args.ItemId != ItemId))
             return;
 
-        AddObjective(questAct, 1);
+        AddObjective((QuestAct)questAct, 1);
     }
 }

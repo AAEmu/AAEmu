@@ -6,7 +6,7 @@ public class QuestActCheckGuard(QuestComponentTemplate parentComponent) : QuestA
 {
     public uint NpcId { get; set; }
 
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Warn($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}");
         // TODO: This seems to be related to escort quests where you need to protect the NPC

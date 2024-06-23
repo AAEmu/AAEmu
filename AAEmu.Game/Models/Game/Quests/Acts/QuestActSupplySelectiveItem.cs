@@ -15,7 +15,7 @@ public class QuestActSupplySelectiveItem(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns>Always returns true to allow progress even if this isn't the selected reward</returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {Count}, GradeId {GradeId}, Selected {quest.SelectedRewardIndex}, This {ThisSelectiveIndex}");
 

@@ -14,7 +14,7 @@ public class QuestActConAcceptComponent(QuestComponentTemplate parentComponent) 
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Warn($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), QuestContextId {QuestContextId}");
         // TODO: We don't do any actual checks here, just return true. Later maybe could check if the acceptor type is valid?

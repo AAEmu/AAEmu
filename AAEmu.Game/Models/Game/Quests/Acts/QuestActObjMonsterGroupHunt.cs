@@ -19,25 +19,25 @@ public class QuestActObjMonsterGroupHunt(QuestComponentTemplate parentComponent)
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), QuestMonsterGroupId {QuestMonsterGroupId}, Count {currentObjectiveCount}/{Count}");
         return currentObjectiveCount >= Count;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnMonsterGroupHunt += questAct.OnMonsterGroupHunt;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnMonsterGroupHunt -= questAct.OnMonsterGroupHunt;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnMonsterGroupHunt(IQuestAct questAct, object sender, OnMonsterGroupHuntArgs args)
+    public override void OnMonsterGroupHunt(QuestAct questAct, object sender, OnMonsterGroupHuntArgs args)
     {
         if (questAct.Id != ActId)
             return;
@@ -46,7 +46,7 @@ public class QuestActObjMonsterGroupHunt(QuestComponentTemplate parentComponent)
         if (QuestMonsterGroupId == args.NpcId)
         {
             Logger.Debug($"{QuestActTemplateName}({DetailId}).OnMonsterGroupHunt: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), Npc {args.NpcId}, Count {args.Count}");
-            AddObjective(questAct, (int)args.Count);
+            AddObjective((QuestAct)questAct, (int)args.Count);
         }
     }
 }

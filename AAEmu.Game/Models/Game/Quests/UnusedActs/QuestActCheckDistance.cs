@@ -23,7 +23,7 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), WithIn {WithIn}, NpcId {NpcId}, Distance {Distance}");
         // There is actually no quest left that still uses this

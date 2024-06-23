@@ -14,7 +14,7 @@ public class QuestActObjDoodadPhaseCheck(QuestComponentTemplate parentComponent)
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         return base.RunAct(quest, questAct, currentObjectiveCount);
     }

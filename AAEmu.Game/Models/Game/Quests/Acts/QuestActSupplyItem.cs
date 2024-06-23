@@ -25,7 +25,7 @@ public class QuestActSupplyItem(QuestComponentTemplate parentComponent) : QuestA
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns>False if it failed to provide the item</returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, GradeId {GradeId}, Count {Count}, ShowActionBar {ShowActionBar}, Cleanup {Cleanup}, DropWhenDestroy {DropWhenDestroy}, DestroyWhenDrop {DestroyWhenDrop}");
 

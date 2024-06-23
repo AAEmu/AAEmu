@@ -18,25 +18,25 @@ public class QuestActObjZoneMonsterHunt(QuestComponentTemplate parentComponent) 
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Zone {ZoneId}");
         return quest.Template.Score > 0 ? currentObjectiveCount * Count >= quest.Template.Score : currentObjectiveCount > Count;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnZoneKill += questAct.OnZoneKill;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnZoneKill -= questAct.OnZoneKill;
         base.FinalizeAction(quest, questAct);
     }
 
-    public override void OnZoneKill(IQuestAct questAct, object sender, OnZoneKillArgs args)
+    public override void OnZoneKill(QuestAct questAct, object sender, OnZoneKillArgs args)
     {
         if ((questAct.Id != ActId) || (args.ZoneGroupId != ZoneId))
             return;
@@ -45,6 +45,6 @@ public class QuestActObjZoneMonsterHunt(QuestComponentTemplate parentComponent) 
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnZoneKill(@QuestActObjZoneMonsterHunt): Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ZoneGroupId {args.ZoneGroupId}, NpcObjId {npc.ObjId}");
-        AddObjective(questAct, 1);
+        AddObjective((QuestAct)questAct, 1);
     }
 }

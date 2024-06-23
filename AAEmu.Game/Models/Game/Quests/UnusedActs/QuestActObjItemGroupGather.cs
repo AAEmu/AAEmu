@@ -17,7 +17,7 @@ public class QuestActObjItemGroupGather(QuestComponentTemplate parentComponent) 
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         return base.RunAct(quest, questAct, currentObjectiveCount);
     }

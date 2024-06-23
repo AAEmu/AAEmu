@@ -23,25 +23,25 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Count {currentObjectiveCount}/{Count}, WorldInteractionId {WorldInteractionId}, DoodadId {DoodadId}, TeamShare {TeamShare}, Phase {Phase}.");
         return currentObjectiveCount >= Count;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnInteraction += questAct.OnInteraction;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnInteraction -= questAct.OnInteraction;
         base.FinalizeAction(quest, questAct);
     }
     
-    public override void OnInteraction(IQuestAct questAct, object sender, OnInteractionArgs args)
+    public override void OnInteraction(QuestAct questAct, object sender, OnInteractionArgs args)
     {
         if (questAct.Id != ActId)
             return;
@@ -50,7 +50,7 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnInteraction: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), WorldInteractionId {WorldInteractionId}, DoodadId {DoodadId}, TeamShare {TeamShare}, Phase {Phase}.");
-        AddObjective(questAct, 1);
+        AddObjective((QuestAct)questAct, 1);
         
         var player = questAct.QuestComponent.Parent.Parent.Owner;
         if (player.Id == args.SourcePlayer.Id)

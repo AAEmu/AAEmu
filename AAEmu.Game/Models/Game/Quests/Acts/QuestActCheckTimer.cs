@@ -47,7 +47,7 @@ public class QuestActCheckTimer(QuestComponentTemplate parentComponent) : QuestA
     /// </summary>
     public bool IsSkillPlayer { get; set; }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         Logger.Debug($"{QuestActTemplateName}({DetailId}).InitializeAction Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
@@ -59,7 +59,7 @@ public class QuestActCheckTimer(QuestComponentTemplate parentComponent) : QuestA
         quest.Owner.Events.OnQuestStepChanged += questAct.OnQuestStepChanged;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).FinalizeAction Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
 
@@ -78,19 +78,19 @@ public class QuestActCheckTimer(QuestComponentTemplate parentComponent) : QuestA
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns>Always returns true</returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id})");
         return true;
     }
-    
+
     /// <summary>
     /// Handles what needs to be done when timer expires
     /// </summary>
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public override void OnTimerExpired(IQuestAct questAct, object sender, OnTimerExpiredArgs args)
+    public override void OnTimerExpired(QuestAct questAct, object sender, OnTimerExpiredArgs args)
     {
         if (questAct.Id != ActId)
             return;
@@ -108,7 +108,7 @@ public class QuestActCheckTimer(QuestComponentTemplate parentComponent) : QuestA
     /// <param name="questAct"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    public override void OnQuestStepChanged(IQuestAct questAct, object sender, OnQuestStepChangedArgs args)
+    public override void OnQuestStepChanged(QuestAct questAct, object sender, OnQuestStepChangedArgs args)
     {
         if (questAct.Id != ActId)
             return;

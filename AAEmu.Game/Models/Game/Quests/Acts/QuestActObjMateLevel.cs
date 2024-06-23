@@ -55,7 +55,7 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
         SetObjective(quest, 0);
         return 0;
     }
-    
+
     /// <summary>
     /// Checks if you own a mate of specified type that is at least given Level
     /// </summary>
@@ -63,20 +63,20 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
     /// <param name="questAct"></param>
     /// <param name="currentObjectiveCount"></param>
     /// <returns></returns>
-    public override bool RunAct(Quest quest, IQuestAct questAct, int currentObjectiveCount)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         var res = CalculateObjective(quest);
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Level {res}/{Level}");
         return res > 0;
     }
 
-    public override void InitializeAction(Quest quest, IQuestAct questAct)
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnMateLevelUp += questAct.OnMateLevelUp;
     }
 
-    public override void FinalizeAction(Quest quest, IQuestAct questAct)
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
         quest.Owner.Events.OnMateLevelUp -= questAct.OnMateLevelUp;
         base.FinalizeAction(quest, questAct);
@@ -88,7 +88,7 @@ public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : Ques
     /// <param name="questAct"></param>
     /// <param name="sender">Mate</param>
     /// <param name="args"></param>
-    public override void OnMateLevelUp(IQuestAct questAct, object sender, OnMateLevelUpArgs args)
+    public override void OnMateLevelUp(QuestAct questAct, object sender, OnMateLevelUpArgs args)
     {
         if (questAct.Id != ActId)
             return;
