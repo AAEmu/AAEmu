@@ -330,26 +330,23 @@ public class SubZoneManager : Singleton<SubZoneManager>
         var foundSubzones = new List<uint>();
 
         var found = false;
-        foreach (var subzoneTemplate in world.SubZones[zoneId])
+        if (world.SubZones.TryGetValue(zoneId, out var subZoneList))
         {
-            if (Point.isInside(subzoneTemplate._points.ToArray(), subzoneTemplate._points.Count, new Point(x, y, 0)))
+            foreach (var subzoneTemplate in subZoneList)
             {
-                //Logger.Debug("Is in zone {0} in subzone {1} subzone name {2}", zoneId, subzoneTemplate.Id, subzoneTemplate.Name);
-                found = true;
+                if (Point.isInside(subzoneTemplate._points.ToArray(), subzoneTemplate._points.Count, new Point(x, y, 0)))
+                {
+                    //Logger.Debug("Is in zone {0} in subzone {1} subzone name {2}", zoneId, subzoneTemplate.Id, subzoneTemplate.Name);
+                    found = true;
 
-                foundSubzones.Add(subzoneTemplate.Id);
+                    foundSubzones.Add(subzoneTemplate.Id);
+                }
             }
         }
 
-        if (found)
-        {
-            return foundSubzones;
-        }
-        else
-        {
-            Logger.Debug("No subzone found at this position!");
-            return new List<uint>();
-        }
+        if (!found)
+            Logger.Debug($"No subzone found at this position! WorldId: {worldId}, Pos: {x} , {y}");
+        return foundSubzones;
     }
 
 }
