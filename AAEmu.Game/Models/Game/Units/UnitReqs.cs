@@ -104,7 +104,7 @@ public class UnitReqs
                     return new UnitReqsValidationResult(SkillResultKeys.skill_urk_doodad_range,0,Value1);
                 var rangeCheck = Value2 / 1000f;
                 var doodads = WorldManager.GetAround<Doodad>(owner, rangeCheck * 2f, true);
-                return Ret(SkillResultKeys.skill_urk_doodad_range,
+                return RetWithValue(SkillResultKeys.skill_urk_doodad_range, Value1,
                     doodads.Any(doodad => owner.GetDistanceTo(doodad, true) <= rangeCheck && doodad.TemplateId == Value1));
 
             case UnitReqsKindType.EquipShield:
@@ -163,7 +163,7 @@ public class UnitReqs
             case UnitReqsKindType.AreaSphere:
                 // Check Sphere for Quest
                 // NOTE: There is an exception for this check in CanUseSkill that handles this separately
-                return Ret(SkillResultKeys.skill_urk_area_sphere, SphereGameData.Instance.IsInsideAreaSphere(Value1, Value2, owner?.Transform?.World?.Position ?? Vector3.Zero) != null);
+                return RetWithValue(SkillResultKeys.skill_urk_area_sphere, Value1, SphereGameData.Instance.IsInsideAreaSphere(Value1, Value2, owner?.Transform?.World?.Position ?? Vector3.Zero) != null);
 
             case UnitReqsKindType.ExceptCompleteQuestContext:
                 // No specific key for this?
