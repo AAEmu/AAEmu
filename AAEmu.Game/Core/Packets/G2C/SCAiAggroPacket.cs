@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAiAggroPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     private readonly uint _npcId;
     private readonly int _count;
     private readonly uint _hostileUnitId;

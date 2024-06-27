@@ -20,7 +20,8 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
         Logger.Trace("DoodadFuncAttachment");
         if (caster is Character character)
         {
-            if (BondKindId > BondKind.BondInvalid || BondKindId == BondKind.None)
+            //if (BondKindId > BondKind.BondInvalid || BondKindId == BondKind.None) // Ломается управление кораблем, но можно спать на кровати в Общественном Центре.
+            if (BondKindId > BondKind.BondInvalid || AttachPointId != AttachPointKind.Driver) // && owner.ParentObjId == 0))
             {
                 var spot = owner.Seat.LoadPassenger(character, owner.ObjId, Space); // ask for a free meta number for landing
                 if (spot == -1)

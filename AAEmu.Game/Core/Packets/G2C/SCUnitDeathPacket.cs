@@ -7,6 +7,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitDeathPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     private readonly uint _objId;
     private readonly KillReason _killReason;
     private readonly Unit _killer;

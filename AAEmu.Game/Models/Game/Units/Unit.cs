@@ -996,7 +996,7 @@ public class Unit : BaseUnit, IUnit
                     modelPostureType = 0;
                 }
                 stream.Write((byte)modelPostureType);
-                Logger.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
+                //Logger.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
             }
         }
         else // other
