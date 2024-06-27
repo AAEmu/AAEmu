@@ -8,6 +8,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitModelPostureChangedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     private Unit _unit;
     private BaseUnitType _baseUnitType;
     private ModelPostureType _modelPostureType;

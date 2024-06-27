@@ -6,6 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitsRemovedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     private readonly uint[] _ids;
     public const int MaxCountPerPacket = 500; // Suggested Maximum Size (originally 300)
 

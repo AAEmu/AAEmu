@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.Utils;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -902,6 +903,7 @@ public class NpcManager : Singleton<NpcManager>
         foreach (var npc in _templates.Values)
         {
             npc.AiParams = AiGameData.Instance.GetAiParamsForId((uint)npc.NpcAiParamId);
+            npc.AiParams ??= new DefaultAiParams("");
         }
     }
 

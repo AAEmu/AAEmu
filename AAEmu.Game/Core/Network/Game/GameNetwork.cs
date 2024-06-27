@@ -303,7 +303,7 @@ public class GameNetwork : Singleton<GameNetwork>
         //RegisterPacket(CSOffsets.CSUnknown0x59Packet, 5, typeof(CSUnknown0x59Packet));
         //RegisterPacket(CSOffsets.CSUnknown0x1a5Packet, 5, typeof(CSUnknown0x1a5Packet));
         //RegisterPacket(CSOffsets.CSUnknown0x30Packet, 5, typeof(CSUnknown0x30Packet));
-        //RegisterPacket(CSOffsets.CSUnknown0x5dPacket, 5, typeof(CSUnknown0x5dPacket));
+        RegisterPacket(CSOffsets.CSUnitAttachedPacket, 5, typeof(CSUnitAttachedPacket));
         RegisterPacket(CSOffsets.CSStartInteractionPacket, 5, typeof(CSStartInteractionPacket));
         RegisterPacket(CSOffsets.CSInteractNPCPacket, 5, typeof(CSInteractNPCPacket));
         RegisterPacket(CSOffsets.CSInteractNPCEndPacket, 5, typeof(CSInteractNPCEndPacket));

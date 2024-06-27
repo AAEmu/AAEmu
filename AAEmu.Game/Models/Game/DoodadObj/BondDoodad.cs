@@ -7,7 +7,7 @@ public class BondDoodad : PacketMarshaler
 {
     private Doodad _owner;
     private readonly byte _attachPoint;
-    private readonly byte _kind;
+    //private readonly byte _kind;
     private readonly int _space;
     private readonly int _spot;
     private readonly uint _animActionId;
@@ -17,7 +17,7 @@ public class BondDoodad : PacketMarshaler
     public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot, uint animActionId)
     {
         _attachPoint = (byte)attachPoint;
-        _kind = (byte)kind;
+        //_kind = (byte)kind;
         _space = space;
         _spot = spot;
         _animActionId = animActionId;
@@ -27,7 +27,7 @@ public class BondDoodad : PacketMarshaler
     {
         SetOwner(owner);
         _attachPoint = (byte)attachPoint;
-        _kind = (byte)kind;
+        //_kind = (byte)kind;
         _space = space;
         _spot = spot;
         _animActionId = animActionId;

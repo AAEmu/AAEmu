@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSSecurityReportPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     public CSSecurityReportPacket() : base(CSOffsets.CSSecurityReportPacket, 5)
     {
     }

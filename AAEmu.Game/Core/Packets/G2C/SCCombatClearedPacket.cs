@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCCombatClearedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     private readonly uint _objId;
 
     public SCCombatClearedPacket(uint objId) : base(SCOffsets.SCCombatClearedPacket, 5)

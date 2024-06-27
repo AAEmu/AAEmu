@@ -897,7 +897,14 @@ public class Npc : Unit
         character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
     }
 
-    public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
+    /// <summary>
+    /// Добавим агрессивный объект в список (наполним таблицу abuser)
+    /// </summary>
+    /// <param name="kind">что делал объект</param>
+    /// <param name="unit">объект</param>
+    /// <param name="amount"></param>
+    /// <returns>false - больше не агрессивен. true - всё ещё агрессивен</returns>
+    public bool AddUnitAggro(AggroKind kind, Unit unit, int amount)
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
         Character player = null;
@@ -911,15 +918,13 @@ public class Npc : Unit
         // check self buff tags
         if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
         {
-            ClearAggroOfUnit(unit);
-            return;
+            return ClearAggroOfUnit(unit);
         }
 
         // check target buff tags
         if ((unit.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
         {
-            ClearAggroOfUnit(unit);
-            return;
+            return ClearAggroOfUnit(unit);
         }
 
         //Add Tagging if it was damage aggro
@@ -946,30 +951,35 @@ public class Npc : Unit
             // TODO: make this party/raid wide? Take into account pets/slaves?
             // If there is a quest starter attached to this NPC, start it when unit gets added for the first time
             // to the aggro list
-            if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
+            if (Template.EngageCombatGiveQuestId > 0 && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
                     player.Quests.Add(Template.EngageCombatGiveQuestId);
             }
         }
 
-        if (player == null)
-        {
-            return;
-        }
+        if (player == null) { return true; }
+
         //player?.Quests.OnAggro(this);
         // инициируем событие
         //Task.Run(() => QuestManager.Instance.DoOnAggroEvents(player, this));
         QuestManager.Instance.DoOnAggroEvents(player, this);
+
+        return true;
     }
 
-    public void ClearAggroOfUnit(Unit unit)
+    /// <summary>
+    /// Очищаем агрессивность на объект
+    /// </summary>
+    /// <param name="unit">объект</param>
+    /// <returns>true - больше не агрессивны. false - всё ещё агрессивны</returns>
+    public bool ClearAggroOfUnit(Unit unit)
     {
         if (unit is null)
-            return;
+            return true;
 
         var player = unit as Character;
-        player?.SendMessage(Chat.ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+        //player?.SendMessage(Chat.ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
         var aggroTableChanged = false;
         if (AggroTable.Count > 0)
@@ -979,6 +989,7 @@ public class Npc : Unit
                 unit.Events.OnHealed -= OnAbuserHealed;
                 unit.Events.OnDeath -= OnAbuserDied;
                 aggroTableChanged = true;
+                CurrentAggroTarget = 0;
             }
             else
             {
@@ -986,8 +997,10 @@ public class Npc : Unit
             }
         }
 
-        if (aggroTableChanged)
-            CheckIfEmptyAggroToReturn();
+        //if (aggroTableChanged)
+        //    CheckIfEmptyAggroToReturn();
+
+        return aggroTableChanged;
     }
 
     //Tagging!
@@ -1153,15 +1166,14 @@ public class Npc : Unit
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
-        moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-        moveType.Flags = 4;
-
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 127;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.Flags = 0;
+        moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.ActorFlags = 5;     // 5-walk, 4-run, 3-stand still, 2 - swim
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         CheckMovedPosition(oldPosition);
@@ -1191,15 +1203,14 @@ public class Npc : Unit
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
-        moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-        moveType.Flags = 4;
-
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.Flags = 0;
+        moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.ActorFlags = 5;     // 5-walk, 4-run, 3-stand still
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         CheckMovedPosition(oldPosition);
@@ -1219,13 +1230,14 @@ public class Npc : Unit
         moveType.RotationX = 0;
         moveType.RotationY = 0;
         moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
-        moveType.Flags = 4;
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = (sbyte)(CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.Flags = 0;
+        moveType.Stance = 1; //(sbyte)(CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.ActorFlags = 3; // 5-walk, 4-run, 3-stand still
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
@@ -1238,6 +1250,7 @@ public class Npc : Unit
     public void SetTarget(Unit other)
     {
         CurrentTarget = other;
+        CurrentAggroTarget = other?.ObjId ?? 0;
         SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         Ai.AlreadyTargetted = other != null;
