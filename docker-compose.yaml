@@ -1,20 +1,27 @@
-version: '6.0'
-
+# If you want to use a Docker Volume :
+#   Uncomment the line "db_data:/var/lib/mysql" and comment the line "./.server_files/AAEmu.Database/mysql:/var/lib/mysql" that are in the db services
+#   Also uncomment the two volumes line at the end... This is useful if you use WSL Shell on Windows to launch the compose file.
 services:
+ 
     db:
-        image: mysql:8.0.12
+        image: mysql:8.0.36
         restart: unless-stopped
-        command: --default_authentication_plugin=mysql_native_password
+        # command: --default_authentication_plugin=mysql_native_password
         volumes:
-            - db-data:/var/lib/mysql
-            - ./SQL/aaemuLoggerin.sql:/docker-entrypoint-initdb.d/aaemuLoggerin.sql
+            - ./SQL/aaemu_login.sql:/docker-entrypoint-initdb.d/aaemu_login.sql
             - ./SQL/aaemu_game.sql:/docker-entrypoint-initdb.d/aaemu_game.sql
             - ./SQL/examples/example-server.sql:/docker-entrypoint-initdb.d/example-server.sql
-            - ./SQL/examples/test-user.sql:/docker-entrypoint-initdb.d/test-user.sql
+            - ./.server_files/AAEmu.Database/mysql:/var/lib/mysql
+            # - db_data:/var/lib/mysql
         environment:
             MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
         ports:
             - 3306:3306
+        healthcheck:
+            test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p${DB_PASSWORD}" ]
+            interval: 5s
+            timeout: 5s
+            retries: 20
 
     adminer:
         image: adminer
@@ -26,7 +33,8 @@ services:
         ports:
             - 8080:8080
         depends_on:
-            - db
+            db:
+              condition: service_healthy
 
     login:
         build:
@@ -42,12 +50,24 @@ services:
                 - DB_PASSWORD=${DB_PASSWORD}
         image: aaemu-login:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
         restart: unless-stopped
+        volumes:
+          - "./.server_files/AAEmu.Login/Config.json:/app/Config.json:ro"
         environment:
             DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
         ports:
             - 1237:1237
+        develop:
+            watch:
+                - path: ./AAEmu.Login
+                  action: rebuild
+        healthcheck:
+            test: ["CMD-SHELL", "mysql aaemu_login -h db -u root -p${DB_PASSWORD}"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
         depends_on:
-            - db
+            db:
+              condition: service_healthy
 
     game:
         build:
@@ -66,15 +86,29 @@ services:
         image: aaemu-game:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
         restart: unless-stopped
         volumes:
-          - "./AAEmu.Game/bin/${BUILD_CONFIGURATION}/${BUILD_FRAMEWORK}/ClientData:/app/ClientData:ro"
-          - "./AAEmu.Game/bin/${BUILD_CONFIGURATION}/${BUILD_FRAMEWORK}/Data:/app/Data:ro"
+          - "./.server_files/AAEmu.Game/ClientData:/app/ClientData:ro"
+          - "./.server_files/AAEmu.Game/Data:/app/Data:ro"
+          - "./.server_files/AAEmu.Game/Configurations:/app/Configurations:ro"
+          - "./.server_files/AAEmu.Game/Config.json:/app/Config.json:ro"
         environment:
             DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
         ports:
             - 1239:1239
             - 1250:1250
+        develop:
+            watch:
+                - path: ./AAEmu.Game
+                  action: rebuild
+        healthcheck:
+            test: ["CMD-SHELL", "mysql aaemu_game -h db -u root -p${DB_PASSWORD}"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
         depends_on:
-            - login
-
-volumes:
-    db-data:
+            db:
+              condition: service_healthy
+            login:
+              condition: service_healthy
+            
+# volumes:
+#   db_data:
