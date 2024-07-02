@@ -53,12 +53,29 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastLogin = DateTime.UtcNow;
                         connection.LastIp = connection.Ip;
 
-                        connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x00360204, 0));
-                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
+                    connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x00360204, 0));
+                    connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
+
+                    reader.Close();
+
+                    #region update account
+                    command.Parameters.Clear();
+                    command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+                    command.Parameters.AddWithValue("@id", connection.AccountId);
+                    command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
+                    command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Prepare();
+
+                    if (command.ExecuteNonQuery() != 1)
+                    {
+                        Logger.Warn("Database update failed, error occurred while updating account login IP and time");
                     }
+                    # endregion
                 }
             }
         }
+    }
 
         /// <summary>
         /// Eu Method Auth
@@ -104,25 +121,46 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastLogin = DateTime.UtcNow;
                         connection.LastIp = connection.Ip;
 
-                        _log.Info("{0} connected.", connection.AccountName);
-                        connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x00360204, 0));
-                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
+                    Logger.Info("{0} connected.", connection.AccountName);
+                    connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x00360204, 0));
+                    connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
+
+                    reader.Close();
+
+                    #region update account
+                    command.Parameters.Clear();
+                    command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+                    command.Parameters.AddWithValue("@id", connection.AccountId);
+                    command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
+                    command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Prepare();
+
+                    if (command.ExecuteNonQuery() != 1)
+                    {
+                        Logger.Warn("Database update failed, error occurred while updating account login IP and time");
                     }
+                    # endregion
                 }
             }
         }
+    }
 
         public static void CreateAndLoginInvalid(LoginConnection connection, string username, IEnumerable<byte> password, MySqlConnection connect)
         {
             var pass = Convert.ToBase64String(password.ToArray());
 
-            using (var command = connect.CreateCommand())
-            {
-                command.CommandText =
-                    "INSERT into users (username, password, email, last_ip) VALUES (@username, @password, \"\", \"\")";
-                command.Parameters.AddWithValue("@username", username);
-                command.Parameters.AddWithValue("@password", pass);
-                command.Prepare();
+        using (var command = connect.CreateCommand())
+        {
+            command.CommandText =
+                "INSERT into users (username, password, email, last_ip, created_at, updated_at) VALUES (@username, @password, \"\", @last_ip, @last_login, @created_at, @updated_at)";
+            command.Parameters.AddWithValue("@username", username);
+            command.Parameters.AddWithValue("@password", pass);
+            command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
+            command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
+            command.Parameters.AddWithValue("@created_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
+            command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
+            command.Prepare();
 
                 if (command.ExecuteNonQuery() != 1)
                 {
