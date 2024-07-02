@@ -55,6 +55,23 @@ public class LoginController : Singleton<LoginController>
 
                     connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
                     connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
+
+                    reader.Close();
+
+                    #region update account
+                    command.Parameters.Clear();
+                    command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+                    command.Parameters.AddWithValue("@id", connection.AccountId);
+                    command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
+                    command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Prepare();
+
+                    if (command.ExecuteNonQuery() != 1)
+                    {
+                        Logger.Warn("Database update failed, error occurred while updating account login IP and time");
+                    }
+                    # endregion
                 }
             }
         }
@@ -107,6 +124,23 @@ public class LoginController : Singleton<LoginController>
                     Logger.Info("{0} connected.", connection.AccountName);
                     connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
                     connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
+
+                    reader.Close();
+
+                    #region update account
+                    command.Parameters.Clear();
+                    command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+                    command.Parameters.AddWithValue("@id", connection.AccountId);
+                    command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
+                    command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+                    command.Prepare();
+
+                    if (command.ExecuteNonQuery() != 1)
+                    {
+                        Logger.Warn("Database update failed, error occurred while updating account login IP and time");
+                    }
+                    # endregion
                 }
             }
         }
@@ -119,9 +153,13 @@ public class LoginController : Singleton<LoginController>
         using (var command = connect.CreateCommand())
         {
             command.CommandText =
-                "INSERT into users (username, password, email, last_ip) VALUES (@username, @password, \"\", \"\")";
+                "INSERT into users (username, password, email, last_ip, created_at, updated_at) VALUES (@username, @password, \"\", @last_ip, @last_login, @created_at, @updated_at)";
             command.Parameters.AddWithValue("@username", username);
             command.Parameters.AddWithValue("@password", pass);
+            command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
+            command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
+            command.Parameters.AddWithValue("@created_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
+            command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
             command.Prepare();
 
             if (command.ExecuteNonQuery() != 1)
