@@ -1986,7 +1986,11 @@ public class ItemManager : Singleton<ItemManager>
                     item.TemplateId = itemTemplateId;
                     item.Template = GetTemplate(item.TemplateId);
                     var containerId = reader.GetUInt64("container_id");
-                    item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
+                    var slotTypeString = reader.GetString("slot_type");
+                    if (Enum.IsDefined(typeof(SlotType), slotTypeString))
+                        item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), slotTypeString, true);
+                    else
+                        item.SlotType = SlotType.System;
                     var thisItemSlot = reader.GetInt32("slot");
                     item.Slot = thisItemSlot;
                     item.Count = reader.GetInt32("count");

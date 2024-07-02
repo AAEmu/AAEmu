@@ -60,6 +60,9 @@
       <Compile Remove="Models\Tasks\Telescopes\**" />
       <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
       <None Remove="Models\Tasks\Telescopes\**" />
+      <Compile Update="Scripts\Commands\DeSpawnAll.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
     </ItemGroup>
 
     <ItemGroup>

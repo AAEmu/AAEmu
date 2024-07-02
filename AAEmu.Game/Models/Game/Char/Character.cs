@@ -1607,12 +1607,12 @@ public partial class Character : Unit, ICharacter
 
     public override int DoFallDamage(ushort fallVel)
     {
-        var fallDamage = base.DoFallDamage(fallVel);
         if (CharacterManager.Instance.GetEffectiveAccessLevel(this) >= AppConfiguration.Instance.World.IgnoreFallDamageAccessLevel)
         {
-            Logger.Debug($"{Name}'s negated {fallDamage} FallDamage because of IgnoreFallDamageAccessLevel settings");
+            Logger.Debug($"{Name} negated FallDamage because of IgnoreFallDamageAccessLevel settings");
             return 0; // GM & Admin take 0 damage from falling
         }
+        var fallDamage = base.DoFallDamage(fallVel);
         Logger.Trace($"FallDamage: {Name} - Vel {fallVel} DmgPerc: {(int)((fallVel - 8600) / 150f)}, Damage {fallDamage}");
         return fallDamage;
     }
