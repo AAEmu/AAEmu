@@ -267,7 +267,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         _loaded = true;
 
         // Start daily reset task
-        var dailyCron = "0 0 0 ? * * *";
+        var dailyCron = "0 0 0 */1 * *"; // Crontab
         // TODO: Make sure it obeys server time settings
         TaskManager.Instance.CronSchedule(new QuestDailyResetTask(), dailyCron);
     }
@@ -2027,7 +2027,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                 if ((questId == 0) || (questId == timeoutQuestId))
                 {
                     removeQuestList.Add(timeoutQuestId);
-                    _ = timeoutTask.CancelAsync(); // Cancel task, don't care about the result
+                    _ = timeoutTask.Cancel(); // Cancel task, don't care about the result
                 }
             }
 

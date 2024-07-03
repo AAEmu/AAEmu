@@ -596,7 +596,7 @@ public class Unit : BaseUnit, IUnit
             return;
         }
 
-        await character.AutoAttackTask.CancelAsync();
+        await character.AutoAttackTask.Cancel();
         character.AutoAttackTask = null;
         character.IsAutoAttack = false; // turned off auto attack
         character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
@@ -622,7 +622,7 @@ public class Unit : BaseUnit, IUnit
         {
             return;
         }
-        await _regenTask.CancelAsync();
+        await _regenTask.Cancel();
         _regenTask = null;
     }
 

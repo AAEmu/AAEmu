@@ -5,7 +5,7 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Schedules;
-
+using NCrontab;
 using NLog;
 using static System.String;
 using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
@@ -347,171 +347,41 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
     private static TimeSpan GetRemainingTimeStart(GameSchedules value)
     {
-        TimeSpan remainingDate;
-        DateTime otherDate;
-        var year = value.StYear;
-        var month = value.StMonth;
-        var day = value.StDay;
-        var hour = value.StHour;
-        var minute = value.StMin;
-
-        try
-        {
-            if (value.StartTime == 0)
-            {
-                if (value.StYear == 0) { year = DateTime.UtcNow.Year; }
-                if (value.StMonth == 0) { month = DateTime.UtcNow.Month; }
-                if (value.StDay == 0) { day = DateTime.UtcNow.Day; }
-                if (value.StHour == 0) { hour = DateTime.UtcNow.Hour; }
-            }
-            else
-            {
-                year = DateTime.UtcNow.Year;
-                month = DateTime.UtcNow.Month;
-                day = DateTime.UtcNow.Day;
-                hour = value.StartTime;
-                minute = value.StartTimeMin;
-            }
-
-            otherDate = new DateTime(year, month, day, hour, minute, 0);
-
-            remainingDate = otherDate - DateTime.UtcNow;
-            if (remainingDate.TotalHours < 0)
-            {
-                remainingDate += TimeSpan.FromHours(24);
-            }
-            if (remainingDate.Days < 0)
-            {
-                remainingDate += TimeSpan.FromDays(365);
-            }
-        }
-        catch (Exception)
-        {
-            remainingDate = TimeSpan.FromHours(24);
-        }
-
-        if (remainingDate == TimeSpan.Zero)
-        {
-            remainingDate = TimeSpan.FromHours(24);
-        }
-        return remainingDate;
+        var cronExpression = GetCronExpression(value, true);
+        var schedule = CrontabSchedule.Parse(cronExpression, TaskManager.s_crontabScheduleParseOptions);
+        return schedule.GetNextOccurrence(DateTime.UtcNow) - DateTime.UtcNow;
     }
 
     private static TimeSpan GetRemainingTimeEnd(GameSchedules value)
     {
-        TimeSpan remainingDate;
-        DateTime otherDate;
-        var year = value.EdYear;
-        var month = value.EdMonth;
-        var day = value.EdDay;
-        var hour = value.EdHour;
-        var minute = value.EdMin;
-
-        try
-        {
-            if (value.EndTime == 0)
-            {
-                if (value.EdYear == 0) { year = DateTime.UtcNow.Year; }
-                if (value.EdMonth == 0) { month = DateTime.UtcNow.Month; }
-                if (value.EdDay == 0) { day = DateTime.UtcNow.Day; }
-                if (value.EdHour == 0) { hour = DateTime.UtcNow.Hour; }
-            }
-            else
-            {
-                year = DateTime.UtcNow.Year;
-                month = DateTime.UtcNow.Month;
-                day = DateTime.UtcNow.Day;
-                hour = value.EndTime;
-                minute = value.EndTimeMin;
-            }
-
-            otherDate = new DateTime(year, month, day, hour, minute, 0);
-            remainingDate = otherDate - DateTime.Now;
-            if (remainingDate.Hours < 0)
-            {
-                remainingDate = TimeSpan.FromHours(24) - remainingDate;
-            }
-        }
-        catch (Exception)
-        {
-            remainingDate = TimeSpan.FromHours(1);
-        }
-        return remainingDate;
+        var cronExpression = GetCronExpression(value, false);
+        var schedule = CrontabSchedule.Parse(cronExpression, TaskManager.s_crontabScheduleParseOptions);
+        return schedule.GetNextOccurrence(DateTime.UtcNow) - DateTime.UtcNow;
     }
-
-    /* unused
-    private static TimeSpan GetRemainingTime(GameSchedules value)
-    {
-        var curHours = DateTime.UtcNow.TimeOfDay.Hours;
-        var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
-        var curDayOfWeek = (DayOfWeek)DateTime.UtcNow.DayOfWeek + 1;
-
-        var curDate = TimeSpan.FromHours(curHours) + TimeSpan.FromMinutes(curMinutes);
-        TimeSpan otherDate;
-
-        if (value.DayOfWeekId == DayOfWeek.Invalid)
-        {
-            if (value.EndTime == 0 && value.StHour == 0 && value.EdHour == 0)
-            {
-                return TimeSpan.Zero;
-            }
-            if (value.StartTime > 0)
-            {
-                otherDate = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
-                return curDate - otherDate;
-            }
-            if (value.EndTime > 0)
-            {
-                otherDate = TimeSpan.FromHours(value.EndTime) + TimeSpan.FromMinutes(value.EndTimeMin);
-                return curDate - otherDate;
-            }
-            if (value.StHour > 0)
-            {
-                otherDate = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
-                return curDate - otherDate;
-            }
-            if (value.EdHour > 0)
-            {
-                otherDate = TimeSpan.FromHours(value.EdHour) + TimeSpan.FromMinutes(value.EdMin);
-                return curDate - otherDate;
-            }
-        }
-        else
-        {
-            if (curDayOfWeek == value.DayOfWeekId)
-            {
-                if (value.EndTime == 0 && value.StHour == 0 && value.EdHour == 0)
-                {
-                    return TimeSpan.Zero;
-                }
-                if (value.StartTime > 0)
-                {
-                    otherDate = TimeSpan.FromHours(value.StartTime) + TimeSpan.FromMinutes(value.StartTimeMin);
-                    return curDate - otherDate;
-                }
-                if (value.EndTime > 0)
-                {
-                    otherDate = TimeSpan.FromHours(value.EndTime) + TimeSpan.FromMinutes(value.EndTimeMin);
-                    return curDate - otherDate;
-                }
-                if (value.StHour > 0)
-                {
-                    otherDate = TimeSpan.FromHours(value.StHour) + TimeSpan.FromMinutes(value.StMin);
-                    return curDate - otherDate;
-                }
-                if (value.EdHour > 0)
-                {
-                    otherDate = TimeSpan.FromHours(value.EdHour) + TimeSpan.FromMinutes(value.EdMin);
-                    return curDate - otherDate;
-                }
-            }
-        }
-        return TimeSpan.FromHours(1);
-    }*/
 
     private static string GetCronExpression(GameSchedules value, bool start = true)
     {
-        var dayOfWeek = (int)value.DayOfWeekId;
+        /*
+           1. Seconds / Секунды
+           2. Minutes / Минуты
+           3. Hours / Часы
+           4. Day of the month / День месяца
+           5. Month / Месяц
+           6. Day of the week / День недели
+           7. Year (optional field) / Год (необязательное поле) // Not supported by Crontab
+        */
+
+        var dayOfWeek = value.DayOfWeekId switch
+        {
+            DayOfWeek.Sunday => 0,
+            DayOfWeek.Monday => 1,
+            DayOfWeek.Tuesday => 2,
+            DayOfWeek.Wednesday => 3,
+            DayOfWeek.Thursday => 4,
+            DayOfWeek.Friday => 5,
+            DayOfWeek.Saturday => 6,
+            _ => 8
+        };
 
         //var stYear = value.StYear;
         var stMonth = value.StMonth;
@@ -531,63 +401,53 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
         var cronExpression = Empty;
 
-        /*
-           1.Секунды
-           2.Минуты
-           3.Часы
-           4.День месяца
-           5.Месяц
-           6.День недели
-           Год (необязательное поле)
-         */
-
         if (start)
         {
             if (value.DayOfWeekId == DayOfWeek.Invalid)
             {
                 if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
                 {
-                    cronExpression = "0 0 0 ? * * *"; // verified
+                    cronExpression = "0 0 0 ? * *";  // *"; // verified
                 }
                 if (value.EndTime > 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
                 {
-                    cronExpression = $"0 {startTimeMin} {startTime} ? * * *"; // not verified
+                    cronExpression = $"0 {startTimeMin} {startTime} ? * *"; // *"; // not verified
                 }
                 if (value.EndTime > 0 && value.StMonth > 0 && value.StDay > 0)
                 {
-                    cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} ? *"; // not verified
+                    cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} ?"; // *"; // not verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0)
                 {
-                    cronExpression = $"0 {stMinute} {stHour} ? * * *"; // verified
+                    cronExpression = $"0 {stMinute} {stHour} ? * *"; // *"; // verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
                 {
-                    cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ? *"; // verified
+                    cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ?"; // *"; // verified
                 }
-                //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ? *";
+                //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ?"; // *";
             }
             else
             {
                 if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
                 {
-                    cronExpression = "0 0 0 ? * {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 0 0 ? * {dayOfWeek}"; // *"; // not verified
                 }
                 if (value.EndTime > 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
                 {
-                    cronExpression = $"0 {startTimeMin} {startTime} ? * {dayOfWeek} *"; // verified
+                    cronExpression = $"0 {startTimeMin} {startTime} ? * {dayOfWeek}"; // *"; // verified
                 }
                 if (value.EndTime > 0 && value.StMonth > 0 && value.StDay > 0)
                 {
-                    cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} ? *"; // not verified
+                    cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} {dayOfWeek}"; // *"; // not verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0)
                 {
-                    cronExpression = $"0 {stMinute} {stHour} ? * {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 {stMinute} {stHour} ? * {dayOfWeek}"; // *"; // not verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
                 {
-                    cronExpression = $"0 {stMinute} {stHour} {edDay} {edMonth} {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 {stMinute} {stHour} {edDay} {edMonth} {dayOfWeek}"; // *"; // not verified
                 }
                 //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}";
             }
@@ -598,46 +458,46 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
             {
                 if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
                 {
-                    cronExpression = "0 0 0 ? * * *"; // not verified
+                    cronExpression = "0 0 0 ? * *"; // *"; // not verified
                 }
                 if (value.EndTime > 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
                 {
-                    cronExpression = $"0 {endTimeMin} {endTime} ? * * *"; // not verified
+                    cronExpression = $"0 {endTimeMin} {endTime} ? * *"; // *"; // not verified
                 }
                 if (value.EndTime > 0 && value.EdMonth > 0 && value.EdDay > 0)
                 {
-                    cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ? *"; // not verified
+                    cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ?"; // *"; // not verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0)
                 {
-                    cronExpression = $"0 {edMinute} {edHour} ? * * *"; // not verified
+                    cronExpression = $"0 {edMinute} {edHour} ? * *"; // *"; // not verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
                 {
-                    cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} ? *"; // not verified
+                    cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} ?"; // *"; // not verified
                 }
             }
             else
             {
                 if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
                 {
-                    cronExpression = "0 0 0 ? * {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 0 0 ? * {dayOfWeek}"; // *"; // not verified
                 }
                 if (value.EndTime > 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
                 {
-                    cronExpression = $"0 {endTimeMin} {endTime} ? * {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 {endTimeMin} {endTime} ? * {dayOfWeek}"; // *"; // not verified
                 }
                 if (value.EndTime > 0 && value.EdMonth > 0 && value.EdDay > 0)
                 {
-                    cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ? *"; // not verified
+                    cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ?"; // *"; // not verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0)
                 {
-                    cronExpression = $"0 {edMinute} {edHour} ? * {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 {edMinute} {edHour} ? * {dayOfWeek}"; // *"; // not verified
                 }
                 if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
                 {
-                    cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} {dayOfWeek} *"; // not verified
+                    cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} {dayOfWeek}"; // *"; // not verified
                 }
             }
             //cronExpression = start ?
@@ -645,6 +505,8 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
             //    :
             //    $"0 {edMinute} {edHour} {edDay} {edMonth} ?";
         }
+
+        cronExpression = cronExpression.Replace("?", "*/1"); // Crontab doesn't support ?, so we replace it with */1 instead
 
         return cronExpression;
     }

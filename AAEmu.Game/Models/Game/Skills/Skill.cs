@@ -655,7 +655,7 @@ public class Skill
     public async void StopSkill(BaseUnit caster)
     {
         if (caster is not Unit unit) { return; }
-        await unit.AutoAttackTask.CancelAsync();
+        await unit.AutoAttackTask.Cancel();
         caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
         caster.BroadcastPacket(new SCSkillStoppedPacket(unit.ObjId, Id), true);
         unit.AutoAttackTask = null;

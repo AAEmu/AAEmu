@@ -18,9 +18,8 @@ internal class StatusController : BaseController
         var playerCount = WorldManager.Instance.GetAllCharacters().Count;
         var serverUptime = new TimeSpan(0, 0, Program.UpTime);
         var responseBody = $"Server uptime: {serverUptime}<br/>" +
-                           $"Players online: {playerCount}<br/>" +
-                           $"Number of TaskManager Executing Jobs: {TaskManager.Instance.GetExecutingJobsCount().GetAwaiter().GetResult()}<br/>" +
-                           $"Total number of Schedule Requests: {TaskManager.Instance.ScheduleRequestCount}<br/>";
+                           $"Players online: {playerCount}<br/>"+
+                           $"Number of TaskManager Jobs: {TaskManager.Instance.GetQueueCount()}<br/>";
 
         return OkHtml(responseBody);
     }

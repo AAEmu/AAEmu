@@ -25,7 +25,7 @@ public partial class Quest : PacketMarshaler
     private const int MaxObjectiveCount = 5;
     private readonly ISphereQuestManager _sphereQuestManager;
     private readonly IQuestManager _questManager;
-    private readonly ITaskManager _taskManager;
+    private readonly TaskManager _taskManager;
     private readonly ISkillManager _skillManager;
     private readonly IExpressTextManager _expressTextManager;
     private readonly IWorldManager _worldManager;
@@ -207,7 +207,7 @@ public partial class Quest : PacketMarshaler
     /// <param name="expressTextManager"></param>
     /// <param name="worldManager"></param>
     public Quest(IQuestTemplate questTemplate, ICharacter owner, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
-        ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
+        TaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
         IWorldManager worldManager)
     {
         Owner = owner;
