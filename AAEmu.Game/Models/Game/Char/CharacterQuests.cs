@@ -213,7 +213,7 @@ public partial class CharacterQuests
         {
             if (QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
             {
-                _ = QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][questId].CancelAsync();
+                _ = QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][questId].Cancel();
                 _ = QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questId);
             }
         }

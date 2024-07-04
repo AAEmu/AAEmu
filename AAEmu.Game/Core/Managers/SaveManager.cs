@@ -42,7 +42,7 @@ public class SaveManager : Singleton<SaveManager>
         {
             return;
         }
-        var result = await saveTask.CancelAsync();
+        var result = await saveTask.Cancel();
         if (result)
         {
             saveTask = null;

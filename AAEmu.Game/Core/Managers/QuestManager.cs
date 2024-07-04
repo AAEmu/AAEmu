@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -147,7 +147,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         _loaded = true;
 
         // Start daily reset task
-        var dailyCron = "0 0 0 ? * * *";
+        var dailyCron = "0 0 0 */1 * *"; // Crontab
         // TODO: Make sure it obeys server time settings
         TaskManager.Instance.CronSchedule(new QuestDailyResetTask(), dailyCron);
     }
@@ -1685,33 +1685,13 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
         var npcZoneGroupId = ZoneManager.Instance.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
 
         //character.Quests.OnKill(this);
-        owner.Events?.OnMonsterHunt(this, new OnMonsterHuntArgs
-        {
-            NpcId = npc.TemplateId,
-            Count = 1,
-            Transform = npc.Transform
-        });
-        owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
-        {
-            NpcId = npc.TemplateId,
-            Count = 1,
-            Position = npc.Transform
-        });
-        owner.Events?.OnZoneKill(this, new OnZoneKillArgs
-        {
-            ZoneGroupId = npcZoneGroupId,
-            Killer = owner,
-            Victim = npc
-        });
-        owner.Events?.OnZoneMonsterHunt(this, new OnZoneMonsterHuntArgs
-        {
-            ZoneGroupId = npcZoneGroupId
-        });
-    }
-    //public void DoOnMonsterGroupHuntEvents(Character owner, Npc npc)
-    //{
-    //    if (npc == null) { return; }
-
+        owner.Events?.OnMonsterHunt(this,
+            new OnMonsterHuntArgs { NpcId = npc.TemplateId, Count = 1, Transform = npc.Transform });
+        owner.Events?.OnMonsterGroupHunt(this,
+            new OnMonsterGroupHuntArgs { NpcId = npc.TemplateId, Count = 1, Position = npc.Transform });
+        owner.Events?.OnZoneKill(this,
+            new OnZoneKillArgs { ZoneGroupId = npcZoneGroupId, Killer = owner, Victim = npc });
+        owner.Events?.OnZoneMonsterHunt(this, new OnZoneMonsterHuntArgs { ZoneGroupId = npcZoneGroupId });
     //    //character.Quests.OnKill(this);
     //    owner.Events?.OnMonsterGroupHunt(this, new OnMonsterGroupHuntArgs
     //    {
@@ -1720,6 +1700,7 @@ public class QuestManager : Singleton<QuestManager>, IQuestManager
     //        Position = npc.Transform
     //    });
     //}
+    }
 
     public void DoOnAggroEvents(ICharacter owner, Npc npc)
     {

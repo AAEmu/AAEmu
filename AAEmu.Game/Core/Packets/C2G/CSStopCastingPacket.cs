@@ -45,7 +45,7 @@ public class CSStopCastingPacket : GamePacket
             return;
         }
 
-        await Connection.ActiveChar.SkillTask.CancelAsync();
+        await Connection.ActiveChar.SkillTask.Cancel();
 
         if (Connection.ActiveChar.SkillTask is EndChannelingTask ect)
         {
