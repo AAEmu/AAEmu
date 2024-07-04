@@ -19,7 +19,7 @@ public class DuelEndTimerTask : Task
         if (_duel.DuelEndTimerTask == null)
             return;
 
-        await _duel.DuelEndTimerTask.CancelAsync();
+        await _duel.DuelEndTimerTask.Cancel();
         _duel.DuelEndTimerTask = null;
 
         if (_duel.Challenger.Hp < _duel.Challenged.Hp)
