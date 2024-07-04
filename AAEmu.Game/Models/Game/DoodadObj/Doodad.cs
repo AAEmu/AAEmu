@@ -372,7 +372,7 @@ public class Doodad : BaseUnit
                 {
                     if (FuncTask != null)
                     {
-                        FuncTask.CancelAsync().GetAwaiter().GetResult();
+                        FuncTask.Cancel().GetAwaiter().GetResult();
                         FuncTask = null;
                         Logger.Debug($"DoFunc::DoodadFuncTimer: The current timer has been canceled. TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {func.NextPhase}");
                     }
@@ -462,7 +462,7 @@ public class Doodad : BaseUnit
 
         if (FuncTask != null)
         {
-            FuncTask.CancelAsync().GetAwaiter().GetResult();
+            FuncTask.Cancel().GetAwaiter().GetResult();
             FuncTask = null;
             if (caster is Character)
             {
