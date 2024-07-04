@@ -191,7 +191,7 @@ public class CharacterCraft
         var nextCraftDelay = timeToGlobalCooldown.TotalMilliseconds > skillTemplate.CooldownTime
             ? timeToGlobalCooldown
             : TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
-        TaskManager.Instance.Schedule(newCraft, nextCraftDelay, null, 1);
+        TaskManager.Instance.Schedule(newCraft, nextCraftDelay);
     }
 
     public void CancelCraft()

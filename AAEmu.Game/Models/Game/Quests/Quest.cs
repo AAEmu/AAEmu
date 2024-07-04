@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,7 +31,7 @@ public partial class Quest : PacketMarshaler
     private const int ObjectiveCount = 5;
     private readonly ISphereQuestManager _sphereQuestManager;
     private readonly IQuestManager _questManager;
-    private readonly ITaskManager _taskManager;
+    private readonly TaskManager _taskManager;
     private readonly ISkillManager _skillManager;
     private readonly IExpressTextManager _expressTextManager;
     private readonly IWorldManager _worldManager;
@@ -64,7 +64,7 @@ public partial class Quest : PacketMarshaler
     public int QuestRewardExpPool { get; set; }
 
     public Quest(IQuestTemplate questTemplate, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
-        ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
+        TaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
         IWorldManager worldManager)
     {
         _questManager = questManager;

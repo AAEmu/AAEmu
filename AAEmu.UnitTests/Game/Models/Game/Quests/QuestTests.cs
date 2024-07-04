@@ -119,7 +119,7 @@ public class QuestTests
         out Mock<IQuestTemplate> mockQuestTemplate,
         out Mock<IQuestManager> mockQuestManager,
         out Mock<ISphereQuestManager> mockSphereQuestManager,
-        out Mock<ITaskManager> mockTaskManager,
+        out Mock<TaskManager> mockTaskManager,
         out Mock<ISkillManager> mockSkillManager,
         out Mock<IExpressTextManager> mockExpressTextManager,
         out Mock<IWorldManager> mockWorldManager)
@@ -130,7 +130,7 @@ public class QuestTests
         mockSphereQuestManager = new Mock<ISphereQuestManager>();
         mockExpressTextManager = new Mock<IExpressTextManager>();
         mockSkillManager = new Mock<ISkillManager>();
-        mockTaskManager = new Mock<ITaskManager>();
+        mockTaskManager = new Mock<TaskManager>();
         mockWorldManager = new Mock<IWorldManager>();
 
         var quest = new Quest(
