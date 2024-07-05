@@ -9,6 +9,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <param name="parentComponent"></param>
 public class QuestActConAcceptItemEquip(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint ItemId { get; set; }
 
     public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)

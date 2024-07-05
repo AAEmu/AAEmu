@@ -6,6 +6,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjCinema(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint CinemaId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }

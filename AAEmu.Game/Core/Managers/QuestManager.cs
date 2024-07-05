@@ -205,17 +205,13 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                 }
 
                 var questActs = GetActsInComponent(questComponentKey);
-                //if (!_actsByComponent.TryGetValue(questComponentKey, out var questActs))
-                //    continue;
                 if (questActs.Count <= 0)
                     continue;
 
                 // Assign references to parents
                 foreach (var questAct in questActs)
                 {
-                    var usesObjectiveIndex = (questAct is not QuestActEtcItemObtain);
-                    questAct.ThisComponentObjectiveIndex = usesObjectiveIndex ? actIndex : (byte)0xFF;
-                    // questAct.ParentComponent = questComponentValue;
+                    questAct.ThisComponentObjectiveIndex = questAct.CountsAsAnObjective ? actIndex : (byte)0xFF;
                     questAct.ParentQuestTemplate = questTemplate;
 
                     // For selective rewards
@@ -225,13 +221,9 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                         questAct.ThisSelectiveIndex = selectiveRewardIndex;
                     }
 
-                    if (usesObjectiveIndex)
+                    if (questAct.CountsAsAnObjective)
                         actIndex++;
                 }
-
-                // Actually add them
-                //foreach (var questAct in questActs)
-                //    questComponentValue.ActTemplates.Add(questAct);
             }
         }
     }

@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjMateLevel(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint ItemId { get; set; }
     public byte Level { get; set; }
     public bool Cleanup { get; set; }

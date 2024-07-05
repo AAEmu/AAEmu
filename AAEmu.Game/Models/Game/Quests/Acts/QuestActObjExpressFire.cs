@@ -6,6 +6,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjExpressFire(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint ExpressKeyId { get; set; }
     public uint NpcGroupId { get; set; }
     public bool UseAlias { get; set; }

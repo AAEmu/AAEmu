@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent), IQuestActGenericItem // Сбор предметов
 {
+    public override bool CountsAsAnObjective => true;
     public uint ItemId { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }

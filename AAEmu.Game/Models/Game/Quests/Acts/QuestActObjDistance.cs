@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjDistance(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public bool WithIn { get; set; }
     public uint NpcId { get; set; }
     public int Distance { get; set; }

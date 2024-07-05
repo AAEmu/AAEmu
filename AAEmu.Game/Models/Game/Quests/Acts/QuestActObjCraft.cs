@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint CraftId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }

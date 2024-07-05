@@ -6,6 +6,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint SphereId { get; set; }
     public uint NpcId { get; set; }
     public uint HighlightDoodadId { get; set; }

@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <param name="parentComponent"></param>
 public class QuestActConFail(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true; // Not sure about this one
     public bool ForceChangeComponent { get; set; }
 
     public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)

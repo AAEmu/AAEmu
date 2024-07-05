@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     private const int MaxRankObjective = 3;
     // This Count override is needed to allow SetObjective to allow more than a value of 1
     public override int Count => MaxRankObjective;

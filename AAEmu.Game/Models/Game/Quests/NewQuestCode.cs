@@ -205,6 +205,9 @@ public partial class Quest
         if (!QuestSteps.TryGetValue(QuestComponentKind.Progress, out var currentStep))
             return QuestObjectiveStatus.QuestComplete;
 
+        if (!currentStep.ContainsObjectives())
+            return QuestObjectiveStatus.QuestComplete;
+
         var questComponents = currentStep.Components.Values ;
         if (Template.Score > 0)
         {
@@ -276,6 +279,9 @@ public partial class Quest
         if (!QuestSteps.TryGetValue(QuestComponentKind.Progress, out var currentStep))
             return 1f;
 
+        if (!currentStep.ContainsObjectives())
+            return 1f;
+        
         var questComponents = currentStep.Components.Values;
         if (Template.Score > 0)
         {

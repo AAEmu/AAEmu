@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public int CountPlayerKill { get; set; }
     public int CountNpc { get; set; }
     /// <summary>

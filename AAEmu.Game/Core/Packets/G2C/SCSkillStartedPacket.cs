@@ -7,8 +7,6 @@ using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-#pragma warning disable IDE0052 // Remove unread private members
-
 [Flags]
 public enum ExtraDataFlags
 {

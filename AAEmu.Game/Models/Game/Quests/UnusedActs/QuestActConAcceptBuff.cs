@@ -9,6 +9,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// <param name="parentComponent"></param>
 public class QuestActConAcceptBuff(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint BuffId { get; set; }
 
     /// <summary>

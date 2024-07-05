@@ -58,9 +58,9 @@ public class QuestStep(QuestComponentKind step, Quest parent)
         foreach (var questComponent in Components.Values)
             questComponent.IsCurrentlyActive = UnitRequirementsGameData.Instance.CanComponentRun(questComponent.Template, (BaseUnit)Parent.Owner);
 
-        var componentSOrCheck = (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress);
+        var componentsOrCheck = (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress);
 
-        if (componentSOrCheck)
+        if (componentsOrCheck)
         {
             // Require only one of the components to be true in the progress step is quest has selective flag
             res = false;
@@ -138,5 +138,19 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     public void RequestEvaluation()
     {
         Parent.RequestEvaluation();
+    }
+
+    /// <summary>
+    /// Checks if this step has any Objectives
+    /// </summary>
+    /// <returns></returns>
+    public bool ContainsObjectives()
+    {
+        // Check if Progress step actually has objectives (there are some bugs in the original DB where this step contains supply item)
+        foreach (var component in Components.Values)
+            foreach (var questAct in component.Acts)
+                if (questAct.Template.ThisComponentObjectiveIndex != 0xFF)
+                    return true;
+        return false;
     }
 }

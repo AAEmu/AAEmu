@@ -196,6 +196,13 @@ public class Skill
         var minRangeCheck = Template.MinRange * 1.0;
         var maxRangeCheck = skillRange;
 
+        // HackFix: for quest Unblock the Spring ( 3707 ), unable to use the boulder because of being "too close"
+        // The range of skill Remove Stone ( 16462 ) is defined as 100~200 which can't possibly be correct 
+        if ((Template.TargetType == SkillTargetType.Doodad) && (Template.MinRange >= 100))
+        {
+            minRangeCheck = Template.MinRange / 100.0;
+        }
+
         // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
         // TODO: Do a check based on model size or bounding box instead
 

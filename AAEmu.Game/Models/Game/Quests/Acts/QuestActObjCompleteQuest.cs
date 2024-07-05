@@ -4,6 +4,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjCompleteQuest(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint QuestId { get; set; }
     public bool AcceptWith { get; set; }
     public bool UseAlias { get; set; }

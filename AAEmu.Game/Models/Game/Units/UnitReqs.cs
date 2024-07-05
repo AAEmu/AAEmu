@@ -93,7 +93,7 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_target_buff, Value1, targetUnit?.Buffs.CheckBuff(Value1) ?? false);
 
             case UnitReqsKindType.TargetCombat:
-                return Ret(SkillResultKeys.skill_urk_target_combat, targetUnit is { IsInBattle: true });
+                return Ret(SkillResultKeys.skill_urk_target_combat, targetUnit is { IsInBattle: false });
 
             // case UnitReqsKindType.CanLearnCraft:
             //     // Learnable crafts is not implemented

@@ -30,6 +30,11 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     public virtual int Count { get; set; }
 
     /// <summary>
+    /// True if this Act should be considered an Objective and use the objective counters
+    /// </summary>
+    public virtual bool CountsAsAnObjective { get; set; }
+
+    /// <summary>
     /// Resolved short name of this Class
     /// </summary>
     protected string QuestActTemplateName

@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjTalk(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint NpcId { get; set; }
     public bool TeamShare { get; set; }
     /// <summary>

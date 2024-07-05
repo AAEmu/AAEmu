@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public WorldInteractionType WorldInteractionId { get; set; }
     public uint DoodadId { get; set; }
     public bool UseAlias { get; set; }

@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActObjMonsterHunt(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint NpcId { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
