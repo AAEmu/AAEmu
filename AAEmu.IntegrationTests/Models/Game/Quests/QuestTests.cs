@@ -44,9 +44,21 @@ public class QuestTests
         if (_managersLoaded)
             return;
 
-        var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
         var configurationBuilder = new ConfigurationBuilder();
-        configurationBuilder.AddJsonFile(mainConfig);
+
+        // Load the various config files
+        var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
+        var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json", SearchOption.AllDirectories).ToList();
+        configFiles.Sort();
+
+        // Add the old main Config.json file if it exists (as first entry)
+        if (File.Exists(mainConfig))
+            configFiles.Insert(0, mainConfig);
+
+        // Add config json files
+        foreach (var file in configFiles)
+            configurationBuilder.AddJsonFile(file);
+
         var configurationBuilderResult = configurationBuilder.Build();
         configurationBuilderResult.Bind(AppConfiguration.Instance);
 
@@ -72,10 +84,13 @@ public class QuestTests
         WorldManager.Instance.Load();
         FactionManager.Instance.Load();
         ModelManager.Instance.Load();
+        HousingTldManager.Instance.Initialize();
 
         AIManager.Instance.Initialize();
         GameDataManager.Instance.LoadGameData();
         GameScheduleManager.Instance.Load();
+        TaxationsManager.Instance.Load();
+        HousingManager.Instance.Load();
         NpcManager.Instance.Load();
         DoodadManager.Instance.Load();
         TransferManager.Instance.Load();
@@ -473,7 +488,7 @@ public class QuestTests
         out Mock<ICharacter> mockCharacter,
         out Mock<IQuestTemplate> mockQuestTemplate,
         out Mock<ISphereQuestManager> mockSphereQuestManager,
-        out Mock<ITaskManager> mockTaskManager,
+        out Mock<TaskManager> mockTaskManager,
         out Mock<ISkillManager> mockSkillManager,
         out Mock<IExpressTextManager> mockExpressTextManager,
         out Mock<IWorldManager> mockWorldManager)
@@ -483,7 +498,7 @@ public class QuestTests
         mockSphereQuestManager = new Mock<ISphereQuestManager>();
         mockExpressTextManager = new Mock<IExpressTextManager>();
         mockSkillManager = new Mock<ISkillManager>();
-        mockTaskManager = new Mock<ITaskManager>();
+        mockTaskManager = new Mock<TaskManager>();
         mockWorldManager = new Mock<IWorldManager>();
 
         var quest = new Quest(
@@ -508,7 +523,7 @@ public class QuestTests
         out Mock<ICharacter> mockCharacter,
         out Mock<IQuestTemplate> mockQuestTemplate,
         out Mock<ISphereQuestManager> mockSphereQuestManager,
-        out Mock<ITaskManager> mockTaskManager,
+        out Mock<TaskManager> mockTaskManager,
         out Mock<ISkillManager> mockSkillManager,
         out Mock<IExpressTextManager> mockExpressTextManager,
         IWorldManager worldManager)
@@ -518,7 +533,7 @@ public class QuestTests
         mockSphereQuestManager = new Mock<ISphereQuestManager>();
         mockExpressTextManager = new Mock<IExpressTextManager>();
         mockSkillManager = new Mock<ISkillManager>();
-        mockTaskManager = new Mock<ITaskManager>();
+        mockTaskManager = new Mock<TaskManager>();
 
         var quest = new Quest(
             questManager.GetTemplate(questId),

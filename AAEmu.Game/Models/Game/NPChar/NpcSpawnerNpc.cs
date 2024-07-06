@@ -66,6 +66,8 @@ public class NpcSpawnerNpc : Spawner<Npc>
                 Logger.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db");
                 return null;
             }
+            
+            npc.RegisterNpcEvents();
 
             Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId}");
 

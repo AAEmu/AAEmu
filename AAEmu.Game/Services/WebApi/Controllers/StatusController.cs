@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using NetCoreServer;
