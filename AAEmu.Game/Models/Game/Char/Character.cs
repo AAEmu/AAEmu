@@ -157,7 +157,6 @@ public partial class Character : Unit, ICharacter
     public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
-    public bool SkillCancelled { get; set; }
     /// <summary>
     /// AttachPoint the player currently has in use  
     /// </summary>
@@ -1710,19 +1709,19 @@ public partial class Character : Unit, ICharacter
             return; // GodMode On : take no damage at all
         }
 
+        if (IsInDuel)
+        {
+            Hp = Math.Max(Hp - value, 1); // we don't let you die during a duel
+            value = 0;
+        }
+
         base.ReduceCurrentHp(attacker, value, killReason);
     }
 
-    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
-    {
-        if (IsInDuel)
-        {
-            Hp = 1; // we don't let you die during a duel
-            return;
-        }
-
-        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
-    }
+ //   public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
+ //   {
+ //       base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+ //   }
 
     public void DoChangeBreath()
     {
