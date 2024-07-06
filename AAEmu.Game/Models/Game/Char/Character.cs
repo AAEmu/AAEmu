@@ -1717,18 +1717,13 @@ public partial class Character : Unit, ICharacter
             return; // GodMode On : take no damage at all
         }
 
-        base.ReduceCurrentHp(attacker, value, killReason);
-    }
-
-    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
-    {
         if (IsInDuel)
         {
-            Hp = 1; // we don't let you die during a duel
-            return;
+            Hp = Math.Max(Hp - value, 1); // we don't let you die during a duel
+            value = 0;
         }
 
-        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+        base.ReduceCurrentHp(attacker, value, killReason);
     }
 
     public void DoChangeBreath()
