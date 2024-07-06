@@ -40,14 +40,14 @@ namespace AAEmu.Game.Models.Game.Indun
 
         private readonly object _lock = new();
 
-    public bool IsTeamOwned { get => _isTeamOwned; }
-    public Character GetCharacterOwner { get => _characterOwner; }
-    public Team.Team GetTeamOwner { get => _teamOwner; }
-    public uint GetZoneGroupId { get => _indunZone.ZoneGroupId; }
-    public bool IsSystem { get => !_isTeamOwned && _characterOwner == null; }
+        public bool IsTeamOwned { get => _isTeamOwned; }
+        public Character GetCharacterOwner { get => _characterOwner; }
+        public Team.Team GetTeamOwner { get => _teamOwner; }
+        public uint GetZoneGroupId { get => _indunZone.ZoneGroupId; }
+        public bool IsSystem { get => !_isTeamOwned && _characterOwner == null; }
 
-    public Dungeon(IndunZone indunZone, Character character, Team.Team team = null)
-    {
+        public Dungeon(IndunZone indunZone, Character character, Team.Team team = null)
+        {
             _indunZone = indunZone;
             _players = new List<uint>();
             _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
@@ -151,22 +151,22 @@ namespace AAEmu.Game.Models.Game.Indun
             RegisterIndunEvents();
         }
 
-    /// <summary>
-    /// Returns true if the dungeon is full capacity, false if not.
-    /// </summary>
-    public bool IsFull => _players.Count == _indunZone.MaxPlayers;
+        /// <summary>
+        /// Returns true if the dungeon is full capacity, false if not.
+        /// </summary>
+        public bool IsFull => _players.Count == _indunZone.MaxPlayers;
 
         /// <summary>
         /// Returns true if the dungeon has players inside, false if not.
         /// </summary>
         private bool HasPlayers => _players.Count > 0;
 
-    /// <summary>
-    /// Add player to Dungeon
-    /// </summary>
-    /// <param name="character"></param>
-    public void AddPlayer(Character character)
-    {
+        /// <summary>
+        /// Add player to Dungeon
+        /// </summary>
+        /// <param name="character"></param>
+        public void AddPlayer(Character character)
+        {
             Logger.Info($"[Dungeon] Adding player {character.Name} to dungeon {_zoneInstanceId.InstanceId}, {_zoneInstanceId.ZoneId}");
 
             lock (_lock)
@@ -205,11 +205,11 @@ namespace AAEmu.Game.Models.Game.Indun
             }
         }
 
-    /// <summary>
-    /// Destroys dungeon instance for teams
-    /// </summary>
-    private async Task DestroyTeamDungeon()
-    {
+        /// <summary>
+        /// Destroys dungeon instance for teams
+        /// </summary>
+        private async Task DestroyTeamDungeon()
+        {
             await Task.Delay(5000);
 
             Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Destroying team dungeon...");
@@ -238,11 +238,11 @@ namespace AAEmu.Game.Models.Game.Indun
             WorldIdManager.Instance.ReleaseId(_world.Id);
         }
 
-    /// <summary>
-    ///  Destroys dungeon instance for solo players
-    /// </summary>
-    public bool DestroySoloDungeon(Character character, Dungeon soloDungeon)
-    {
+        /// <summary>
+        ///  Destroys dungeon instance for solo players
+        /// </summary>
+        public bool DestroySoloDungeon(Character character, Dungeon soloDungeon)
+        {
             if (character == null) { return false; }
 
             Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Destroying solo dungeon...");
@@ -279,12 +279,12 @@ namespace AAEmu.Game.Models.Game.Indun
 
         }
 
-    /// <summary>
-    /// Moves character to instanced dungeon world
-    /// </summary>
-    /// <param name="character"></param>
-    private void MoveCharacterToSysWorld(Character character)
-    {
+        /// <summary>
+        /// Moves character to instanced dungeon world
+        /// </summary>
+        /// <param name="character"></param>
+        private void MoveCharacterToSysWorld(Character character)
+        {
             // we take the coordinates of the zone
             foreach (var wz in _world.XmlWorldZones.Values)
             {
@@ -320,12 +320,12 @@ namespace AAEmu.Game.Models.Game.Indun
                 character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
             }
         }
-    /// <summary>
-    /// Moves character to instanced dungeon world
-    /// </summary>
-    /// <param name="character"></param>
-    private void MoveCharacterToWorld(Character character)
-    {
+        /// <summary>
+        /// Moves character to instanced dungeon world
+        /// </summary>
+        /// <param name="character"></param>
+        private void MoveCharacterToWorld(Character character)
+        {
             // we take the coordinates of the zone
             foreach (var wz in _world.XmlWorldZones.Values)
             {
@@ -365,12 +365,12 @@ namespace AAEmu.Game.Models.Game.Indun
             }
         }
 
-    /// <summary>
-    /// Moves player out of the instanced dungeon world.
-    /// </summary>
-    /// <param name="character"></param>
-    private void LeaveInstance(Character character)
-    {
+        /// <summary>
+        /// Moves player out of the instanced dungeon world.
+        /// </summary>
+        /// <param name="character"></param>
+        private void LeaveInstance(Character character)
+        {
             character.Events.OnTeamJoin -= OnTeamJoin;
             character.Events.OnTeamKick -= OnTeamLeave;
             character.Events.OnTeamLeave -= OnTeamLeave;
@@ -402,8 +402,8 @@ namespace AAEmu.Game.Models.Game.Indun
             character.InstanceId = character.MainWorldPosition.WorldId;
             character.Transform = character.MainWorldPosition.Clone();
         }
-    internal void LeaveSysInstance(Character character)
-    {
+        internal void LeaveSysInstance(Character character)
+        {
             character.Events.OnDungeonLeave -= OnDungeonLeave;
             character.Events.OnDisconnect -= OnDisconnect;
 
@@ -433,8 +433,8 @@ namespace AAEmu.Game.Models.Game.Indun
             character.Transform = character.MainWorldPosition.Clone();
         }
 
-    private void OnTeamJoin(object sender, OnTeamJoinArgs args)
-    {
+        private void OnTeamJoin(object sender, OnTeamJoinArgs args)
+        {
             var character = args.Player;
             var team = args.Team;
             var ownerId = team.OwnerId;
@@ -460,8 +460,8 @@ namespace AAEmu.Game.Models.Game.Indun
             }
         }
 
-    private void OnTeamLeave(object sender, OnTeamLeaveArgs args)
-    {
+        private void OnTeamLeave(object sender, OnTeamLeaveArgs args)
+        {
             var teamId = args.Id;
             //var team = args.Team;
             var character = args.Player;
@@ -476,8 +476,8 @@ namespace AAEmu.Game.Models.Game.Indun
             }
         }
 
-    private void OnDungeonLeave(object sender, OnDungeonLeaveArgs args)
-    {
+        private void OnDungeonLeave(object sender, OnDungeonLeaveArgs args)
+        {
             var character = args.Player;
             if (character == null) { return; }
 
@@ -502,8 +502,8 @@ namespace AAEmu.Game.Models.Game.Indun
             LeaveInstance(character);
         }
 
-    private void OnDisconnect(object sender, OnDisconnectArgs args)
-    {
+        private void OnDisconnect(object sender, OnDisconnectArgs args)
+        {
             Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId} player={args.Player.Name} disconnected!");
 
             if (IsSystem)
@@ -526,7 +526,7 @@ namespace AAEmu.Game.Models.Game.Indun
             args.Player.Events.OnDungeonLeave -= OnDungeonLeave;
             args.Player.Events.OnDisconnect -= OnDisconnect;
         }
-        
+
         /// <summary>
         /// Return true if the team Id matches to the team that owns the dungeon instance, false if not.
         /// </summary>
@@ -544,17 +544,17 @@ namespace AAEmu.Game.Models.Game.Indun
             return _isTeamOwned == false && _characterOwner?.Id == character?.Id;
         }
 
-    public bool IsPlayerInDungeon(uint characterId)
-    {
+        public bool IsPlayerInDungeon(uint characterId)
+        {
             return _players.Contains(characterId);
         }
 
-    /// <summary>
-    /// Удаляем данжон, когда все игроки тимы вышли оффлайн
-    /// </summary>
-    /// <param name="delta"></param>
-    private void LeaveDungeonTick(TimeSpan delta)
-    {
+        /// <summary>
+        /// Удаляем данжон, когда все игроки тимы вышли оффлайн
+        /// </summary>
+        /// <param name="delta"></param>
+        private void LeaveDungeonTick(TimeSpan delta)
+        {
             if (_teamOwner != null)
             {
                 if (_teamOwner.MembersOnlineCount() == 0 && _leaveRequests.IsEmpty)
@@ -622,23 +622,23 @@ namespace AAEmu.Game.Models.Game.Indun
             return _rooms.TryGetValue(roomId, out var cleared) && cleared;
         }
 
-    public void SetRoomCleared(uint roomId)
-    {
+        public void SetRoomCleared(uint roomId)
+        {
             _rooms[roomId] = true;
         }
 
-    public uint GetDungeonWorldId()
-    {
+        public uint GetDungeonWorldId()
+        {
             return _world.Id;
         }
 
-    public uint GetDungeonTemplateId()
-    {
+        public uint GetDungeonTemplateId()
+        {
             return _world.TemplateId;
         }
 
-    private void AreaClearTick(TimeSpan delta)
-    {
+        private void AreaClearTick(TimeSpan delta)
+        {
             lock (_lock)
             {
                 foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
@@ -667,13 +667,13 @@ namespace AAEmu.Game.Models.Game.Indun
             }
         }
 
-    public int GetPlayerCount()
-    {
+        public int GetPlayerCount()
+        {
             return _players.Count;
         }
 
-    public void WaitingDungeonAccessAttemptsCleared(TimeSpan delta)
-    {
+        public void WaitingDungeonAccessAttemptsCleared(TimeSpan delta)
+        {
             if (!IndunManager.Instance.GetWaitingDungeonAccess(this))
             {
                 IndunManager.Instance.SetWaitingDungeonAccess(this, true);
@@ -682,4 +682,5 @@ namespace AAEmu.Game.Models.Game.Indun
             TickManager.Instance.OnTick.UnSubscribe(WaitingDungeonAccessAttemptsCleared);
             IndunManager.Instance.ClearAttemts(this);
         }
+    }
 }
