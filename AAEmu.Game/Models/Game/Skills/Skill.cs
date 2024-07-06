@@ -161,7 +161,7 @@ public class Skill
             {
                 npc.Ai.OnNoAggroTarget();
             }
-            Logger.Debug($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
+            Logger.Trace($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
             return SkillResult.NoTarget; // We should try to make sure this doesn't happen, but can happen with NPC skills
         }
 

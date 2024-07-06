@@ -33,6 +33,8 @@ public abstract class NpcAi
     private Dictionary<BehaviorKind, Behavior> _behaviors;
     private Dictionary<Behavior, List<Transition>> _transitions;
     private Behavior _currentBehavior;
+    public DateTime _nextAlertCheckTime = DateTime.MinValue;
+    public DateTime _alertEndTime = DateTime.MinValue;
 
     public NpcAi()
     {

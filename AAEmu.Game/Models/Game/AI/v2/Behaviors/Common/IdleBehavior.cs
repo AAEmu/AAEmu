@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -16,6 +17,8 @@ public class IdleBehavior : BaseCombatBehavior
         // BUFF: Fly
         Ai.Owner.InterruptSkills();
         Ai.Owner.StopMovement();
+        Ai.Owner.SetTarget(null);
+        Ai.Owner.BroadcastPacket(new SCAggroTargetChangedPacket(Ai.Owner.ObjId, 0), true);
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
         if (Ai.Owner is { } npc)
         {

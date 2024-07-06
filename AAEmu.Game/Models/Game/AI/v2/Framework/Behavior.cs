@@ -28,7 +28,6 @@ public abstract class Behavior
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
     protected float _maxWeaponRange;
-    protected DateTime _nextAlertCheckTime = DateTime.MinValue;
 
     public NpcAi Ai { get; set; }
     public abstract void Enter();
@@ -231,8 +230,16 @@ public abstract class Behavior
         if (!Ai.Owner.Template.Aggression) { return; }
         var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
 
-        foreach (var unit in nearbyUnits)
+        // Sort by distance
+        var unitsWithDistance = new List<(Unit, float)>();
+        foreach (var nearbyUnit in nearbyUnits)
         {
+            var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, nearbyUnit, true);
+            unitsWithDistance.Add((nearbyUnit, rangeOfUnit));
+        }
+        unitsWithDistance.Sort((p, q) => p.Item2.CompareTo(q.Item2));
+        
+        foreach (var (unit, rangeOfUnit) in unitsWithDistance)        {
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
@@ -247,7 +254,7 @@ public abstract class Behavior
             }
             else
             {
-                var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
+                // var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
                 if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
                 {
                     if (Ai.Owner.CanAttack(unit))
@@ -260,26 +267,38 @@ public abstract class Behavior
         }
     }
 
-    public void OnEnemyAlert(BaseUnit target)
+    public void OnEnemyAlert(Unit target)
     {
-        _nextAlertCheckTime = DateTime.UtcNow.AddSeconds(5);
-        Ai.Owner.CurrentTarget = target ;
-        Ai.Owner.BroadcastPacket(new SCTargetChangedPacket(Ai.Owner.ObjId, Ai.Owner.CurrentTarget.ObjId), true);
+        // TODO: Tweak these values, or grab them from DB somewhere?
+        Ai._alertEndTime = DateTime.UtcNow.AddSeconds(5);
+        Ai._nextAlertCheckTime = DateTime.UtcNow.AddSeconds(7);
+        Ai.Owner.CurrentAggroTarget = target.ObjId;
+        Ai.Owner.SetTarget(target);
         
         Ai.GoToAlert();
     }
     
     public void CheckAlert()
     {
-        if (_nextAlertCheckTime > DateTime.UtcNow)
+        if (Ai._nextAlertCheckTime > DateTime.UtcNow)
             return;
 
         // Don't do alerts if already in combat
         if (Ai.Owner.IsInBattle)
             return;
 
-        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
-        foreach (var unit in nearbyUnits)
+        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(15f));
+        
+        // Sort by distance
+        var unitsWithDistance = new List<(Unit, float)>();
+        foreach (var nearbyUnit in nearbyUnits)
+        {
+            var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, nearbyUnit, true);
+            unitsWithDistance.Add((nearbyUnit, rangeOfUnit));
+        }
+        unitsWithDistance.Sort((p, q) => p.Item2.CompareTo(q.Item2));
+        
+        foreach (var (unit, rangeOfUnit) in unitsWithDistance)
         {
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
@@ -295,7 +314,7 @@ public abstract class Behavior
             }
             else
             {
-                var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
+                // var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
                 if (rangeOfUnit < 10f * Ai.Owner.Template.SightRangeScale)
                 {
                     if (Ai.Owner.CanAttack(unit))

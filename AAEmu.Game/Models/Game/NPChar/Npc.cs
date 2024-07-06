@@ -1292,7 +1292,6 @@ public partial class Npc : Unit
     public void SetTarget(Unit other)
     {
         CurrentTarget = other;
-        SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         Ai.AlreadyTargetted = other != null;
     }
