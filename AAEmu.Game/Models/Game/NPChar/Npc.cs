@@ -26,7 +26,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
-public class Npc : Unit
+public partial class Npc : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Npc;
     //public uint TemplateId { get; set; } // moved to BaseUnit
@@ -767,7 +767,7 @@ public class Npc : Unit
     public override void DoDie(BaseUnit killer, KillReason killReason)
     {
        
-        HashSet<Character> eligiblePlayers = new HashSet<Character>();
+        var eligiblePlayers = new HashSet<Character>();
         if (CharacterTagging.TagTeam != 0)
         {
             //A team has tagging rights
@@ -839,7 +839,8 @@ public class Npc : Unit
                     }
                 }
             }
-                    foreach (Character pl in eligiblePlayers)
+            
+            foreach (var pl in eligiblePlayers)
             {
                 int plKillXP = 0;
                 int mateKillXP = 0;

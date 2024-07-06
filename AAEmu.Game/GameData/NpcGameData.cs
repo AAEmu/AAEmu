@@ -189,7 +189,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
         return _npcSpawnerTemplateNpcs.Values.FirstOrDefault(nsn => nsn.NpcSpawnerTemplateId == spawnerId);
     }
 
-    public List<NpcSkill> GetNpSkill(uint npcId, SkillUseConditionKind skillCondition = SkillUseConditionKind.None)
+    public List<NpcSkill> GetNpSkills(uint npcId, SkillUseConditionKind skillCondition = SkillUseConditionKind.None)
     {
         if (_skillsForNpc.ContainsKey(npcId))
         {
