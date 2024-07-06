@@ -19,6 +19,7 @@ public class AlertBehavior : BaseCombatBehavior
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         if (Ai.Owner is { } npc)
         {
+            // npc.Events.OnAlert(this, new OnAlertArgs { Npc = npc, Target = npc.CurrentTarget});
             npc.Events.InAlert(this, new InAlertArgs { Npc = npc });
         }
 
@@ -32,6 +33,8 @@ public class AlertBehavior : BaseCombatBehavior
             return; // not initialized yet Enter()
 
         UpdateTarget();
+        if ((DateTime.UtcNow > _nextAlertCheckTime) && (Ai.Owner.SkillTask == null))
+            Ai.GoToIdle(); // TODO: This should go back to whatever was the last one, but Idle will have to do for now
     }
 
     public override void Exit()

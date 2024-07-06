@@ -35,6 +35,7 @@ public class HoldPositionBehavior : BaseCombatBehavior
         }
 
         CheckAggression();
+        CheckAlert();
     }
 
     public override void Exit()

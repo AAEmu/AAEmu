@@ -5,6 +5,8 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.C2G;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -26,6 +28,7 @@ public abstract class Behavior
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
     protected float _maxWeaponRange;
+    protected DateTime _nextAlertCheckTime = DateTime.MinValue;
 
     public NpcAi Ai { get; set; }
     public abstract void Enter();
@@ -250,6 +253,54 @@ public abstract class Behavior
                     if (Ai.Owner.CanAttack(unit))
                     {
                         OnEnemySeen(unit);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public void OnEnemyAlert(BaseUnit target)
+    {
+        _nextAlertCheckTime = DateTime.UtcNow.AddSeconds(5);
+        Ai.Owner.CurrentTarget = target ;
+        Ai.Owner.BroadcastPacket(new SCTargetChangedPacket(Ai.Owner.ObjId, Ai.Owner.CurrentTarget.ObjId), true);
+        
+        Ai.GoToAlert();
+    }
+    
+    public void CheckAlert()
+    {
+        if (_nextAlertCheckTime > DateTime.UtcNow)
+            return;
+
+        // Don't do alerts if already in combat
+        if (Ai.Owner.IsInBattle)
+            return;
+
+        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
+        foreach (var unit in nearbyUnits)
+        {
+            if (unit.IsDead || unit.Hp <= 0)
+                continue; // not counting dead Npc
+
+            // Need to check for stealth detection here
+            if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
+            {
+                if (Ai.Owner.CanAttack(unit))
+                {
+                    OnEnemyAlert(unit);
+                    break;
+                }
+            }
+            else
+            {
+                var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
+                if (rangeOfUnit < 10f * Ai.Owner.Template.SightRangeScale)
+                {
+                    if (Ai.Owner.CanAttack(unit))
+                    {
+                        OnEnemyAlert(unit);
                         break;
                     }
                 }

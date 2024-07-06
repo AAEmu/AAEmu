@@ -42,6 +42,7 @@ public class IdleBehavior : BaseCombatBehavior
         }
 
         CheckAggression();
+        CheckAlert();
         //Ai.GoToFollowPath();
     }
 

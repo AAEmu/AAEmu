@@ -393,7 +393,7 @@ public class Unit : BaseUnit, IUnit
 
         if (attackerBase is Unit attackerUnit)
         {
-            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { target = attackerUnit });
+            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { Target = attackerUnit });
 
             var world = WorldManager.Instance.GetWorld(Transform.WorldId);
             if (Transform.WorldId > 0)

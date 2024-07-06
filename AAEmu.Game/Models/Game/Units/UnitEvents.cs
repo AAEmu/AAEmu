@@ -78,6 +78,7 @@ public class UnitEvents
     public EventHandler<OnDespawnArgs> OnDespawn = delegate { };
     public EventHandler<OnTimerExpiredArgs> OnTimerExpired = delegate { };
     public EventHandler<OnQuestStepChangedArgs> OnQuestStepChanged = delegate { };
+    public EventHandler<OnAlertArgs> OnAlert = delegate { };
 }
 
 public class OnMonsterHuntArgs : EventArgs
@@ -321,7 +322,7 @@ public class OnUnmountArgs : EventArgs
 
 public class OnKillArgs : EventArgs
 {
-    public Unit target { get; set; }
+    public Unit Target { get; set; }
 }
 
 public class OnDamagedCollisionArgs : EventArgs
@@ -392,4 +393,8 @@ public class OnQuestStepChangedArgs : EventArgs
     public QuestComponentKind Step { get; set; }
 }
 
-
+public class OnAlertArgs : EventArgs
+{
+    public Unit Npc { get; set; }
+    public BaseUnit Target { get; set; }
+}

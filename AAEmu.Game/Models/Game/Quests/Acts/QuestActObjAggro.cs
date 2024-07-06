@@ -63,7 +63,7 @@ public class QuestActObjAggro(QuestComponentTemplate parentComponent) : QuestAct
         var q = questAct.QuestComponent.Parent.Parent;
 
         // Check if it's the correct Npc for this quest
-        if ((e.target is Npc npc) && (q.QuestAcceptorType == QuestAcceptorType.Npc) && (npc.TemplateId == q.AcceptorId))
+        if ((e.Target is Npc npc) && (q.QuestAcceptorType == QuestAcceptorType.Npc) && (npc.TemplateId == q.AcceptorId))
         {
             var aggroRate = npc.GetAggroRatingInPercent(q.Owner.ObjId);
 
