@@ -43,17 +43,17 @@ namespace AAEmu.Game.Core.Managers
 
         private void IndunInfoTick(TimeSpan delta)
         {
-            if (_teamDungeons is { Count: 0 })
+            if (_teamDungeons is { Count: > 0 })
             {
-                Logger.Info($"Team dungeons: 0");
+                Logger.Info($"Team dungeons: {_teamDungeons.Count}");
             }
-            if (_soloDungeons is { Count: 0 })
+            if (_soloDungeons is { Count: > 0 })
             {
-                Logger.Info($"Solo dungeons: 0");
+                Logger.Info($"Solo dungeons: {_soloDungeons.Count}");
             }
-            if (_sysDungeons is { Count: 0 })
+            if (_sysDungeons is { Count: > 0 })
             {
-                Logger.Info($"Sys dungeons: 0");
+                Logger.Info($"Sys dungeons: {_sysDungeons.Count}");
             }
             foreach (var td in _teamDungeons)
             {
@@ -665,11 +665,7 @@ namespace AAEmu.Game.Core.Managers
         {
             lock (_lock)
             {
-                if (_attempts is { Count: 0 })
-                {
-                    Logger.Info("Attempts: 0");
-                }
-                else
+                if (_attempts is { Count: > 0 })
                 {
                     foreach (var attempt in _attempts)
                     {

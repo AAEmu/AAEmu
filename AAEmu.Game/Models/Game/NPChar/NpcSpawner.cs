@@ -80,8 +80,10 @@ public class NpcSpawner : Spawner<Npc>
 
     public override void Despawn(Npc npc)
     {
+        npc.UnregisterNpcEvents();
         npc.Delete();
 
+        /*
         if (npc.Transform.WorldId > 0)
         {
             // Temporary range for instanced worlds
@@ -92,6 +94,7 @@ public class NpcSpawner : Spawner<Npc>
                 dungeon.UnregisterNpcEvents(npc);
             }
         }
+        */
 
         if (npc.Respawn == DateTime.MinValue)
         {
