@@ -78,7 +78,7 @@ public class HealEffect : EffectTemplate
         max = variableDamage + levelMax;
 
         var tickModifier = 1.0f;
-        if ((source.Buff?.TickEffects.Count > 0) && (source.Buff.Duration > 0))
+        if ((source.Buff?.TickEffects.Count > 0) && (source.Buff.Duration != 0))
         {
             tickModifier = (float)(source.Buff.Tick / source.Buff.Duration);
         }
