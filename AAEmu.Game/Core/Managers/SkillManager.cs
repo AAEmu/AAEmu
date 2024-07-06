@@ -256,7 +256,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
             }
         }
 
-        return new Skill(skillTemplate);
+        return skillTemplate != null ? new Skill(skillTemplate) : null;
     }
 
     public void Load()

@@ -18,10 +18,9 @@ public class DoodadFuncRequireQuest : DoodadPhaseFuncTemplate
         {
             //character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);
             if (character.Quests.HasQuest(QuestId))
-                return false; // продолжим выполнение, подходящий квест
-            else
-                return true; // прерываем, не подходящий квест
+                return false; // This player is on the correct quest, continue
+            return true; // Player doesn't have the quest, stop execution
         }
-        return true; // прерываем, не подходящий квест
+        return false; // caster is not a player, allow execution as we can't check
     }
 }
