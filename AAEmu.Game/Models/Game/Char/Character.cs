@@ -157,6 +157,7 @@ public partial class Character : Unit, ICharacter
     public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
+    public bool SkillCancelled { get; set; }
     /// <summary>
     /// AttachPoint the player currently has in use  
     /// </summary>
@@ -1717,11 +1718,6 @@ public partial class Character : Unit, ICharacter
 
         base.ReduceCurrentHp(attacker, value, killReason);
     }
-
- //   public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
- //   {
- //       base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
- //   }
 
     public void DoChangeBreath()
     {
