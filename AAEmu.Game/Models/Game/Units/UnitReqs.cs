@@ -133,8 +133,16 @@ public class UnitReqs
                     (targetUnit is Npc targetNpc) && (targetNpc.TemplateId == Value1));
 
             case UnitReqsKindType.TargetDoodad:
-                return Ret(SkillResultKeys.skill_urk_target_doodad,
-                    (unit?.CurrentTarget is Doodad targetDoodad) && (targetDoodad.TemplateId == Value1));
+                BaseUnit targetDoodad = null;
+                if ((unit?.CurrentTarget is Doodad targetDoodadCheck))
+                {
+                    targetDoodad = targetDoodadCheck;
+                }
+                else
+                {
+                    targetDoodad = WorldManager.GetAround<Doodad>(unit, 5f, true)?.Where(x => x.TemplateId == Value1).FirstOrDefault();
+                }
+                return Ret(SkillResultKeys.skill_urk_target_doodad, (targetDoodad != null) && (targetDoodad.TemplateId == Value1));
             
             case UnitReqsKindType.EquipRanged:
                 return Ret(SkillResultKeys.skill_urk_equip_ranged,

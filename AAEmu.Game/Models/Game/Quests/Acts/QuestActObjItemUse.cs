@@ -43,6 +43,6 @@ internal class QuestActObjItemUse(QuestComponentTemplate parentComponent) : Ques
         if ((questAct.Id != ActId) || (args.ItemId != ItemId))
             return;
 
-        AddObjective((QuestAct)questAct, 1);
+        AddObjective(questAct, 1);
     }
 }

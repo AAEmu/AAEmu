@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units;
 
@@ -16,12 +17,19 @@ public class Plot
 
     public async Task Run(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
     {
-        var Caster = caster as Unit;
+        if (caster is not Unit casterUnit)
+            return;
 
         var state = new PlotState(caster, casterCaster, target, targetCaster, skillObject, skill);
-        Caster.ActivePlotState = state;
+        casterUnit.ActivePlotState = state;
         skill.ActivePlotState = state;
         // I am guessing we want to do something here to run it in a thread, or at least using Async
         await Tree.Execute(state);
+
+        // Handle item use that generate only plots
+        if ((casterCaster is SkillItem skillItem) && (caster is Character player))
+        {
+            player.ItemUse(skillItem.ItemId);
+        }
     }
 }

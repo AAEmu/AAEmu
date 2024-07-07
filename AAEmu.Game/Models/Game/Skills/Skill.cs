@@ -97,7 +97,7 @@ public class Skill
         if (requirementResult.ResultKey != SkillResultKeys.ok)
         {
             if (character != null)
-                Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template.Id}");
+                Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template.Id} - {requirementResult.ResultKey}");
             Cancelled = true;
             skillResultValueUInt = requirementResult.ResultUInt;
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
@@ -831,6 +831,7 @@ public class Skill
         var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 
         var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
+        SkillEffect lastAppliedEffect = null;
         foreach (var effect in Template.Effects)
         {
             var effectedTargets = new List<BaseUnit>();
@@ -920,44 +921,49 @@ public class Skill
                     continue;
                 }
 
-                if (casterCaster is SkillItem castItem && player != null)
-                {
-                    var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
-                    if (effect.ConsumeSourceItem)
-                        consumedItems.Add((useItem, effect.ConsumeItemCount));
-                    else
-                    {
-                        var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
-                        if (castItemTemplate.UseSkillAsReagent)
-                            consumedItems.Add((useItem, effect.ConsumeItemCount));
-                    }
-                }
-
-                if (player != null && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
-                {
-                    if (effect.ConsumeSourceItem)
-                    {
-                        if (!player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption,
-                            effect.ConsumeItemId, effect.ConsumeItemCount))
-                            continue;
-                    }
-                    else
-                    {
-                        var inventory = player.Inventory.CheckItems(SlotType.Inventory, effect.ConsumeItemId, effect.ConsumeItemCount);
-                        var equipment = player.Inventory.CheckItems(SlotType.Equipment, effect.ConsumeItemId, effect.ConsumeItemCount);
-                        if (!(inventory || equipment))
-                        {
-                            continue;
-                        }
-
-                        consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
-                    }
-                }
-
                 effectsToApply.Add((target, effect));
+                lastAppliedEffect = effect;
                 //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
             }
         }
+
+        if (lastAppliedEffect != null)
+        {
+            // Consume the item
+            if (casterCaster is SkillItem castItem && player != null)
+            {
+                var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
+                if (lastAppliedEffect.ConsumeSourceItem)
+                    consumedItems.Add((useItem, lastAppliedEffect.ConsumeItemCount));
+                else
+                {
+                    var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
+                    if (castItemTemplate.UseSkillAsReagent)
+                        consumedItems.Add((useItem, lastAppliedEffect.ConsumeItemCount));
+                }
+            }
+
+            if (player != null && lastAppliedEffect.ConsumeItemId != 0 && lastAppliedEffect.ConsumeItemCount > 0)
+            {
+                if (lastAppliedEffect.ConsumeSourceItem)
+                {
+                    consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));
+                }
+                else
+                {
+                    var inventory = player.Inventory.CheckItems(SlotType.Inventory, lastAppliedEffect.ConsumeItemId,
+                        lastAppliedEffect.ConsumeItemCount);
+                    var equipment = player.Inventory.CheckItems(SlotType.Equipment, lastAppliedEffect.ConsumeItemId,
+                        lastAppliedEffect.ConsumeItemCount);
+                    if (inventory || equipment)
+                    {
+                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));    
+                    }
+                }
+            }
+        }
+
+
 
         //This will handle all items with a reagent/product
         var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
