@@ -985,19 +985,31 @@ public class Skill
             {
                 if (reagents.Count > 0)
                 {
+                    var foundValidReagents = false;
                     foreach (var reagent in reagents)
                     {
                         player.Inventory.Bag.GetAllItemsByTemplate(reagent.ItemId, -1, out _, out var totalCount);
                         if (totalCount >= reagent.Amount)
                         {
                             consumedItemTemplates.Add((reagent.ItemId, reagent.Amount));
+                            foundValidReagents = true;
+                            if (Template.FirstReagentOnly)
+                                break;
                         }
-                        else
+                        
+                        if (!Template.FirstReagentOnly)
                         {
                             // Not enough reagent items
                             Cancelled = true;
                             return;
                         }
+                    }
+
+                    if (!foundValidReagents)
+                    {
+                        // Not enough reagent items
+                        Cancelled = true;
+                        return;
                     }
                 }
 
