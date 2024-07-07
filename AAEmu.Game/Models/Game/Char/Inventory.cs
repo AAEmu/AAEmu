@@ -628,7 +628,7 @@ public class Inventory
                 {
                     if (mate is not null && fromType == SlotType.EquipmentMate)
                     {
-                        Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, Equipment.GetItemBySlot(toSlot)), true);
+                        Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, null), true);
                     }
                 }
             }
