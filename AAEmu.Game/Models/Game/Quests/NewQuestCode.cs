@@ -68,6 +68,17 @@ public partial class Quest
             return false;
 
         var res = questStep.RunComponents();
+        
+        // HackFix: added to account for missing Ready step on Quests that use a Score + LetItBeDone
+        if (
+            (Step == QuestComponentKind.Progress) && 
+            (Template.Score > 0) && 
+            (Template.LetItDone) && 
+            (GetQuestObjectivePercent() >= 1f) &&
+            !QuestSteps.ContainsKey(QuestComponentKind.Ready))
+        {
+            res = true;
+        }
 
         if (res)
         {
