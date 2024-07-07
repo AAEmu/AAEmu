@@ -253,6 +253,8 @@ public partial class Quest
         }
 
         // Check individual act counts if it's not score based
+        var totalResultStatusMin = QuestObjectiveStatus.Overachieved;
+        var totalResultStatusMax = QuestObjectiveStatus.NotReady;
         foreach (var questComponent in questComponents)
         {
             if (!questComponent.IsCurrentlyActive)
@@ -263,22 +265,38 @@ public partial class Quest
                 if (questComponentAct.Template.ThisComponentObjectiveIndex == 0xFF)
                     continue;
 
-                if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
-                    questComponentAct.Template.Count * 3 / 2)
-                    return QuestObjectiveStatus.Overachieved;
-                if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >
-                    questComponentAct.Template.Count)
-                    return QuestObjectiveStatus.ExtraProgress;
-                if (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
-                    questComponentAct.Template.Count)
-                    return QuestObjectiveStatus.QuestComplete;
-                if (Template.LetItDone && (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
-                                           questComponentAct.Template.Count * 1 / 2))
-                    return QuestObjectiveStatus.CanEarlyComplete;
+                var thisObjectiveStatus = QuestObjectiveStatus.NotReady;
+
+                if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 3 / 2)
+                {
+                    thisObjectiveStatus = QuestObjectiveStatus.Overachieved;
+                }
+                else if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] > questComponentAct.Template.Count)
+                {
+                    thisObjectiveStatus = QuestObjectiveStatus.ExtraProgress;
+                }
+                else if (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >=
+                         questComponentAct.Template.Count)
+                {
+                    thisObjectiveStatus = QuestObjectiveStatus.QuestComplete;
+                }
+                else if (Template.LetItDone && (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2))
+                {
+                    thisObjectiveStatus = QuestObjectiveStatus.CanEarlyComplete;
+                }
+
+                if (thisObjectiveStatus < totalResultStatusMin)
+                {
+                    totalResultStatusMax = thisObjectiveStatus;
+                }
+                if (thisObjectiveStatus > totalResultStatusMax)
+                {
+                    totalResultStatusMax = thisObjectiveStatus;
+                }
             }
         }
 
-        return QuestObjectiveStatus.NotReady;
+        return (QuestObjectiveStatus)Math.Min((byte)totalResultStatusMin, (byte)totalResultStatusMax);// QuestObjectiveStatus.NotReady;
     }
 
     /// <summary>
