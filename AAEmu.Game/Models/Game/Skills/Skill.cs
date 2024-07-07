@@ -772,23 +772,24 @@ public class Skill
         if (caster is not Unit unit)
             return;
         var player = caster as Character;
-        var targets = new List<BaseUnit>(); // TODO crutches
+        var possibleTargets = new List<BaseUnit>(); // TODO crutches
+        // Get a list of all possible targets
         if (Template.TargetAreaRadius > 0)
         {
             var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
             units.Add(targetSelf); // Add main target as well
             units = FilterAoeUnits(caster, units).ToList();
 
-            targets.AddRange(units);
+            possibleTargets.AddRange(units);
             // TODO : Need to check if this is needed
             //if (targetSelf is Unit) targets.Add(targetSelf);
         }
         else
         {
-            targets.Add(targetSelf);
+            possibleTargets.Add(targetSelf);
         }
 
-        foreach (var target in targets)
+        foreach (var target in possibleTargets)
         {
             if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
             {
@@ -830,15 +831,18 @@ public class Skill
         var consumedItems = new List<(Item, int)>();
         var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 
-        var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
+        var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(possibleTargets.Count * Template.Effects.Count);
         SkillEffect lastAppliedEffect = null;
+
+        // Loop Skill Effects
         foreach (var effect in Template.Effects)
         {
+            // Get targets for this effect
             var effectedTargets = new List<BaseUnit>();
             switch (effect.ApplicationMethod)
             {
                 case SkillEffectApplicationMethod.Target:
-                    effectedTargets = targets;//keep target
+                    effectedTargets = possibleTargets;//keep target
                     break;
                 case SkillEffectApplicationMethod.Source:
                     effectedTargets.Add(caster);//Diff between Source and SourceOnce?
@@ -846,24 +850,27 @@ public class Skill
                 case SkillEffectApplicationMethod.SourceOnce:
                     // TODO: HACKFIX for owner's mark
                     if (casterCaster.Type == SkillCasterType.Mount && targetSelf is Units.Mate || targetSelf is Slave)
-                        effectedTargets = targets;
+                        effectedTargets = possibleTargets;
                     else
                         effectedTargets.Add(caster);//idk
                     break;
                 case SkillEffectApplicationMethod.SourceToPos:
-                    effectedTargets = targets;
+                    effectedTargets = possibleTargets;
                     break;
             }
 
+            // Loop targets for this effect
             foreach (var target in effectedTargets)
             {
                 var targetNpc = target as Npc;
                 var relationState = caster.GetRelationStateTo(target);
+                // Level range check
                 if (effect.StartLevel > unit.Level || effect.EndLevel < unit.Level)
                 {
                     continue;
                 }
 
+                // Relations checks
                 if (effect.Friendly && !effect.NonFriendly && relationState != RelationState.Friendly)
                 {
                     continue;
@@ -877,6 +884,7 @@ public class Skill
                     }
                 }
 
+                // Position check
                 if (effect.Front && !effect.Back && !MathUtil.IsFront(caster, target))
                 {
                     continue;
@@ -887,6 +895,7 @@ public class Skill
                     continue;
                 }
 
+                // Blocking buffs and tags checks 
                 if (effect.SourceBuffTagId > 0 && !caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
                 {
                     // TODO Commented out the code for the Id=2255 quest to work. Restore after finding a solution to the lack of a debuff.
@@ -916,17 +925,21 @@ public class Skill
                         continue;
                 }
 
+                // Dice
                 if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
                 {
                     continue;
                 }
 
+                // Apply the effect
                 effectsToApply.Add((target, effect));
                 lastAppliedEffect = effect;
                 //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
             }
         }
 
+        // Handle consumption of items from effects
+        // Placed outside the loop to prevent multiple uses
         if (lastAppliedEffect != null)
         {
             // Consume the item
@@ -963,9 +976,7 @@ public class Skill
             }
         }
 
-
-
-        //This will handle all items with a reagent/product
+        // This will handle all items with a reagent/product
         var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
         var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
         if (reagents.Count > 0 || skillProducts.Count > 0)
@@ -1003,56 +1014,63 @@ public class Skill
         // Check if any of the effects use Weight, and pick a random value
         var weightedTotal = 0;
         var selectedWeight = -1;
-        foreach (var item in effectsToApply)
-            weightedTotal += item.effect.Weight;
+        foreach (var (_, effect) in effectsToApply)
+            weightedTotal += effect.Weight;
         if (weightedTotal > 0)
             selectedWeight = Random.Shared.Next(weightedTotal);
         var currentWeight = 0;
         // (caster as Character)?.SendMessage($"Effect Random {selectedWeight+1}/{weightedTotal}");
 
-        foreach (var item in effectsToApply)
+        // Apply the effects that need to happen
+        foreach (var (target, effect) in effectsToApply)
         {
             // If this item uses Weight, handle the random selector
             // For example NPC /useskill 13834 has multiple bubble chat effects that need to be picked from
             // Probably used for some combat and loot skills as well
-            if (item.effect.Weight > 0)
+            if (effect.Weight > 0)
             {
-                if (selectedWeight < 0)
+                // Check if we already have a result
+                if (selectedWeight == -1)
+                    continue;
+
+                // If selection is outside the current range, then skip this effect
+                currentWeight += effect.Weight;
+                if (selectedWeight >= currentWeight)
                 {
-                    currentWeight += item.effect.Weight;
                     continue;
                 }
-                if (selectedWeight >= currentWeight + item.effect.Weight)
-                {
-                    currentWeight += item.effect.Weight;
-                    continue;
-                }
+
+                // (caster as Character)?.SendMessage($"Selected Effect {effect.EffectId} ({currentWeight}) using {selectedWeight} / {weightedTotal} - Buff {effect.Template.BuffId}");
                 selectedWeight = -1;
             }
 
             // Template can be null for some reason.
-            if (item.effect.Template != null)
+            if (effect.Template != null)
             {
-                if (item.effect.Template is KillNpcWithoutCorpseEffect nsse)
+                var thisTargetCaster = target.ObjId == targetCaster.ObjId
+                    ? targetCaster
+                    : new SkillCastUnitTarget(target.ObjId);
+
+                if (effect.Template is KillNpcWithoutCorpseEffect nsse)
                 {
                     // для квеста 3478, требуется чтобы caster был Npc
                     // для квеста 3993 должен выполняться эффект, а он прерывался из-за неправильного сравнения!
                     var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
-                    item.effect.Template.Apply(npc ?? caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    effect.Template.Apply(npc ?? caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 }
                 else
                 {
-                    item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    effect.Template.Apply(caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
 
                     if (player is { SkillCancelled: true }) { Cancelled = true; }
                 }
 
                 // Implement consumption of item sets
-                if (item.effect.ItemSetId > 0)
+                if (effect.ItemSetId > 0)
                 {
                     // TODO: Check what KindId does (only 1 used in 1.2)
                     // TODO: Verify items before validating skill
-                    var itemSet = ItemManager.Instance.GetItemSet(item.effect.ItemSetId);
+                    var itemSet = ItemManager.Instance.GetItemSet(effect.ItemSetId);
                     if (itemSet != null)
                     {
                         foreach (var itemSetItem in itemSet.Items)
@@ -1064,7 +1082,7 @@ public class Skill
                 }
             }
             else
-                Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{item.effect.EffectId}]");
+                Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{effect.EffectId}]");
         }
 
         // TODO Call OnItemUse() moved to the ApplyEffects() method from the effects and add trigger ConditionChance;
