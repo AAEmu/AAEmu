@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -19,8 +20,8 @@ public class QuestActSupplyJuryPoint(QuestComponentTemplate parentComponent) : Q
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Point {Point}");
         if (quest.Owner is Character player)
         {
-            // TODO: Calculate modifiers for honor gain
             player.JuryPoint += Point;
+            player.SendPacket(new SCJuryPointChangedPacket(player.JuryPoint));
         }
         return true;
     }

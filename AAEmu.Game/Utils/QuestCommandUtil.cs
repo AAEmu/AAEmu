@@ -41,6 +41,10 @@ public class QuestCommandUtil
                     if (uint.TryParse(args[1], out questId))
                     {
                         character.Quests.AddQuest(questId, true, acceptorType, acceptorId);
+                        if (character.Quests.ActiveQuests.TryGetValue(questId, out var newQuest))
+                        {
+                            newQuest.RequestEvaluation();
+                        }
                     }
                 }
                 else

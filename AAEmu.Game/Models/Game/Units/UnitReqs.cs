@@ -207,7 +207,7 @@ public class UnitReqs
 
             case UnitReqsKindType.CrimePoint:
                 // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, player?.CrimePoint >= Value1 && player.CrimePoint <= Value2);
+                return Ret(SkillResultKeys.skill_failure, true); //  player?.CrimePoint >= Value1 && player.CrimePoint <= Value2);
 
             case UnitReqsKindType.HonorPoint:
                 return Ret(SkillResultKeys.skill_urk_honor_point,
@@ -216,8 +216,7 @@ public class UnitReqs
             case UnitReqsKindType.CrimeRecord:
                 // TODO: Verify if CrimeRecord is correct here
                 // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure,
-                    player?.CrimeRecord >= Value1 && player.CrimeRecord <= Value2);
+                return Ret(SkillResultKeys.skill_failure, true); // player?.CrimeRecord >= Value1 && player.CrimeRecord <= Value2);
 
             case UnitReqsKindType.JuryPoint:
                 // TODO: Is this correct? 

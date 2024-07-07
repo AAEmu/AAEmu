@@ -68,6 +68,8 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
                 {
                     foreach (var teamMember in myTeam.Members)
                     {
+                        if (teamMember == null)
+                            continue;
                         // Skip self
                         if (teamMember.Character.Id == player.Id)
                             continue;
