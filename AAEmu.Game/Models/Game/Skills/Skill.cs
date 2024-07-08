@@ -996,7 +996,7 @@ public class Skill
                             if (Template.FirstReagentOnly)
                                 break;
                         }
-                        
+                        else
                         if (!Template.FirstReagentOnly)
                         {
                             // Not enough reagent items
