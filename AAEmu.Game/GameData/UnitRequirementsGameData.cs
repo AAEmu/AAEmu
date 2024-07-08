@@ -118,6 +118,8 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     /// <returns></returns>
     public UnitReqsValidationResult CanUseSkill(SkillTemplate skillTemplate, BaseUnit ownerUnit, SkillCaster skillCaster)
     {
+        if (skillTemplate == null)
+            return new UnitReqsValidationResult(SkillResultKeys.skill_invalid_skill, 0, 0);
         var reqs = GetSkillRequirements(skillTemplate.Id);
         if (reqs.Count == 0)
             return new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0); // SkillResult.Success; // No requirements, we're good

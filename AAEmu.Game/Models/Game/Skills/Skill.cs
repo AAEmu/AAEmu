@@ -60,6 +60,8 @@ public class Skill
 
     public Skill(SkillTemplate template, Unit owner = null)
     {
+        if (template == null)
+            return;
         HitTypes = new Dictionary<uint, SkillHitType>();
         Id = template.Id;
         Template = template;
@@ -97,7 +99,7 @@ public class Skill
         if (requirementResult.ResultKey != SkillResultKeys.ok)
         {
             if (character != null)
-                Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template.Id} - {requirementResult.ResultKey}");
+                Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template?.Id} - {requirementResult.ResultKey}");
             Cancelled = true;
             skillResultValueUInt = requirementResult.ResultUInt;
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);

@@ -104,7 +104,7 @@ public partial class Quest
     /// <summary>
     /// Move the Step to the next logical Step
     /// </summary>
-    private void GoToNextStep()
+    public void GoToNextStep()
     {
         // Loop through the flow of steps until we get a valid one
         var lastStep = Step;

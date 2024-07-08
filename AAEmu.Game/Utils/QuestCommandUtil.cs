@@ -232,6 +232,44 @@ public class QuestCommandUtil
                     character.SendMessage("[Quest] /quest debug <questId> <obj1> <obj2> <obj3> <obj4> <obj5> <status> <component>");
                 }
                 break;
+            case "resetprogress":
+                if (args.Length >= 1)
+                {
+                    if (!uint.TryParse(args[1], out var questVal))
+                        break;
+                    if (!character.Quests.ActiveQuests.TryGetValue(questVal, out var activeQuest))
+                    {
+                        character.SendMessage(ChatType.System, $"[Quest] No active quest Id {questVal}", Color.Red);
+                        break;
+                    }
+
+                    var loopCounter = 0;
+                    while ((activeQuest.Step < QuestComponentKind.Progress) && (loopCounter < 10))
+                    {
+                        loopCounter++;
+                        var res = false;
+                        if (activeQuest.QuestSteps.ContainsKey(activeQuest.Step))
+                            res = activeQuest.RunCurrentStep();
+                        if (!res)
+                            activeQuest.GoToNextStep();
+                    }
+                    
+                    activeQuest.Objectives[0] = 0;
+                    activeQuest.Objectives[1] = 0;
+                    activeQuest.Objectives[2] = 0;
+                    activeQuest.Objectives[3] = 0;
+                    activeQuest.Objectives[4] = 0;
+                    activeQuest.Status = QuestStatus.Progress;
+                    activeQuest.ComponentId = 0;
+                    activeQuest.RequestEvaluation();
+                    character.SendPacket(new SCQuestContextUpdatedPacket(activeQuest,  activeQuest.ComponentId));
+                    character.SendMessage($"[Quest] Reset progress of quest {activeQuest.TemplateId} - {activeQuest.Step}");
+                }
+                else
+                {
+                    character.SendMessage("[Quest] /quest resetprogress <questId>");
+                }
+                break;
             case "template":
                 if (args.Length >= 2)
                 {
