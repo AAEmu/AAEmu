@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -13,7 +11,6 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Tasks.Skills;
 
 using NLog;
@@ -40,8 +37,24 @@ public class CharacterCraft
         _count = count;
         _doodadId = doodadId;
 
+        var backpack = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
+        if (_craft.ResultsInBackpack && backpack != null)
+        {
+            // TODO verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
+            CancelCraft();
+            return;
+        }
+
         // Check if we have enough materials
         var hasMaterials = craft.CraftMaterials.Any(craftMaterial => Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount);
+        if (!hasMaterials)
+        {
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughRequiredItem, 0, false);
+            CancelCraft();
+            return;
+        }
 
         // Check if we have permission to actually use the doodad (mostly sanity check since the client already checks this before you can craft)
         var hasPermission = true;
@@ -86,6 +99,14 @@ public class CharacterCraft
             Owner.SendMessage($"Crafting using @DOODAD_NAME({doodad.TemplateId}) - {doodad.TemplateId} (objId: {doodad.ObjId}) with current permission {doodad.FuncPermission} = {hasPermission}");
         }
 
+        if (!hasPermission)
+        {
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.CraftPermissionDeny, 0, false);
+            CancelCraft();
+            return;
+        }
+
         if (hasMaterials && hasPermission)
         {
             IsCrafting = true;
@@ -116,12 +137,16 @@ public class CharacterCraft
         if (Owner.LaborPower < _consumeLaborPower)
         {
             Owner.SendMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughLaborPower, 0, false);
             CraftOrCancel();
             return;
         }
 
         if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
         {
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughSpace, 0, false);
             CraftOrCancel();
             return;
         }
@@ -135,15 +160,9 @@ public class CharacterCraft
             }
             else
             {
-                // положим на землю, если крафтим более одного пака
-                // put it on the ground if we craft more than one pack
-                var backpack = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
-                if (backpack != null)
-                {
-                    PutDownBackpack(backpack);
-                }
                 if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, -1, Owner.Id))
                 {
+                    Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
                     CancelCraft();
                     return;
                 }
@@ -185,79 +204,6 @@ public class CharacterCraft
         }
         else
             CancelCraft();
-    }
-
-    private void PutDownBackpack(Item backpackItem)
-    {
-        // Drop Backpack to the floor (spawn doodad)
-        var putDownSkill = SkillManager.Instance.GetSkillTemplate(backpackItem.Template.UseSkillId);
-        foreach (var skillEffect in putDownSkill.Effects)
-        {
-            if (skillEffect.Template is not PutDownBackpackEffect putDownBackpackEffectTemplate)
-                continue;
-
-            var newDoodadId = putDownBackpackEffectTemplate.BackpackDoodadId;
-
-            if (PublicFarmManager.Instance.InPublicFarm(Owner.Transform.WorldId, Owner.Transform.World.Position))
-            {
-                Owner.SendErrorMessage(ErrorMessageType.CommonFarmNotAllowedType);
-                return;
-            }
-            var previousGlider = Owner.Inventory.Bag.GetItemByItemId(Owner.Inventory.PreviousBackPackItemId);
-            // If no longer valid, reset the value here
-            if ((previousGlider == null) || (previousGlider.SlotType != SlotType.Inventory))
-                Owner.Inventory.PreviousBackPackItemId = 0;
-
-            using var pos = Owner.Transform.CloneDetached();
-            pos.Local.SetRotation(0f, 0f, 0f); // Always faces north when placed
-            pos.Local.Translate((Random.Shared.NextSingle() * 2f) - 1f, (Random.Shared.NextSingle() * 2f) - 1f, 0);
-
-            var targetHouse = HousingManager.Instance.GetHouseAtLocation(pos.World.Position.X, pos.World.Position.Y);
-            if (targetHouse != null)
-            {
-                // Trying to put on a house location, we need to do some checks
-                if (!targetHouse.AllowedToInteract(Owner))
-                {
-                    Owner.SendErrorMessage(ErrorMessageType.Backpack);
-                    return;
-                }
-            }
-
-            if (Owner.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DropBackpack, backpackItem))
-            {
-                // Create the Doodad at location on the floor if it's close to it
-                var doodad = DoodadManager.Instance.Create(0, newDoodadId, Owner, true);
-                if (doodad == null)
-                {
-                    Logger.Warn("Doodad {0}, from BackpackDoodadId could not be created", newDoodadId);
-                    return;
-                }
-                doodad.IsPersistent = true;
-                doodad.Transform = pos.CloneDetached(doodad);
-                doodad.AttachPoint = AttachPointKind.None;
-                doodad.ItemId = backpackItem.Id;
-                doodad.ItemTemplateId = backpackItem.Template.Id;
-                doodad.UccId = backpackItem.UccId; // Not sure if it's needed, but let's copy the Ucc for completeness' sake
-                doodad.SetScale(1f);
-                doodad.PlantTime = DateTime.UtcNow;
-                if (targetHouse != null)
-                {
-                    doodad.OwnerDbId = targetHouse.Id;
-                    doodad.OwnerType = DoodadOwnerType.Housing;
-                    doodad.ParentObj = targetHouse;
-                    doodad.ParentObjId = targetHouse.ObjId;
-                    doodad.Transform.Parent = targetHouse.Transform; // Does not work as intended yet
-                }
-
-                doodad.InitDoodad();
-                doodad.Spawn();
-                doodad.Save();
-
-                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, (byte)EquipmentItemSlot.Backpack, null), false);
-                if ((previousGlider != null) && Owner.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack) == null)
-                    Owner.Inventory.SplitOrMoveItem(ItemTaskType.SwapItems, previousGlider.Id, previousGlider.SlotType, (byte)previousGlider.Slot, 0, SlotType.Equipment, (int)EquipmentItemSlot.Backpack);
-            }
-        }
     }
 
     private void ScheduleCrtaft()

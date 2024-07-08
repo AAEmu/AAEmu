@@ -1690,6 +1690,11 @@ public partial class Character : Unit, ICharacter
         SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
     }
 
+    public void SendErrorMessage(ErrorMessageType errorMsgType1, ErrorMessageType errorMsgType2, uint type = 0, bool isNotify = true)
+    {
+        SendPacket(new SCErrorMsgPacket(errorMsgType1, errorMsgType2, type, isNotify));
+    }
+
     public static Character Load(uint characterId, uint accountId)
     {
         using (var connection = MySQL.CreateConnection())
