@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks.Skills;
 
@@ -40,14 +41,18 @@ public class CharacterCraft
         var backpack = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
         if (_craft.ResultsInBackpack && backpack != null)
         {
-            // TODO verified
-            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
-            CancelCraft();
-            return;
+            // Check if a glider is equipped, and if we have at least 1 free space
+            if (backpack.Template is not BackpackTemplate bt || bt.BackpackType != BackpackType.Glider || Owner.Inventory.Bag.FreeSlotCount <= 0)
+            {
+                // TODO verified
+                Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
+                CancelCraft();
+                return;
+            }
         }
 
         // Check if we have enough materials
-        var hasMaterials = craft.CraftMaterials.Any(craftMaterial => Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount);
+        var hasMaterials = craft.CraftMaterials.Any(craftMaterial => Owner.Inventory.GetItemsCount(craftMaterial.ItemId) >= craftMaterial.Amount);
         if (!hasMaterials)
         {
             // TODO not verified
