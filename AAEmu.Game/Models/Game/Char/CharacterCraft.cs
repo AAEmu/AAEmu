@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks.Skills;
 
@@ -40,10 +41,14 @@ public class CharacterCraft
         var backpack = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
         if (_craft.ResultsInBackpack && backpack != null)
         {
-            // TODO verified
-            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
-            CancelCraft();
-            return;
+            // Check if a glider is equipped, and if we have at least 1 free space
+            if (!Owner.Inventory.CanReplaceGliderInBackpackSlot())
+            {
+                // TODO verified
+                Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
+                CancelCraft();
+                return;
+            }
         }
 
         // Check if we have enough materials
