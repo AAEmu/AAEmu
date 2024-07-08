@@ -42,7 +42,7 @@ public class CharacterCraft
         if (_craft.ResultsInBackpack && backpack != null)
         {
             // Check if a glider is equipped, and if we have at least 1 free space
-            if (backpack.Template is not BackpackTemplate bt || bt.BackpackType != BackpackType.Glider || Owner.Inventory.Bag.FreeSlotCount <= 0)
+            if (!Owner.Inventory.CanReplaceGliderInBackpackSlot())
             {
                 // TODO verified
                 Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
