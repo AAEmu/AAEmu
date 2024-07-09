@@ -37,7 +37,7 @@ public class ItemProc
         target.ObjId = owner.ObjId;
 
         var skill = new Skill(Template.SkillTemplate);
-        skill.Use(owner, caster, target);
+        skill.Use(owner, caster, target, null, false, out _);
         return true;
     }
 }

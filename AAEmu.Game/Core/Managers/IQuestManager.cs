@@ -7,15 +7,15 @@ namespace AAEmu.Game.Core.Managers;
 
 public interface IQuestManager
 {
-    void CancelQuest(ICharacter owner, uint questId);
+    void FailQuest(ICharacter owner, uint questId);
     bool CheckGroupItem(uint groupId, uint itemId);
     bool CheckGroupNpc(uint groupId, uint npcId);
-    IQuestAct[] GetActs(uint id);
+    List<QuestActTemplate> GetActsInComponent(uint id);
     QuestActTemplate GetActTemplate(uint id, string type);
     T GetActTemplate<T>(uint id, string type) where T : QuestActTemplate;
     List<uint> GetGroupItems(uint groupId);
     QuestSupplies GetSupplies(byte level);
     QuestTemplate GetTemplate(uint id);
     void Load();
-    void QuestCompleteTask(ICharacter owner, uint questId);
+    void EnqueueEvaluation(Quest quest);
 }

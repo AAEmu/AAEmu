@@ -451,6 +451,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.SourceNotCollided = reader.GetBoolean("source_not_collided", true);
                         template.SkillPoints = reader.GetInt32("skill_points");
                         template.DoodadHitFamily = reader.GetInt32("doodad_hit_family");
+                        template.FirstReagentOnly = reader.GetBoolean("first_reagent_only", true);
                         _skills.Add(template.Id, template);
                     }
                 }

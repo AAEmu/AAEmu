@@ -25,7 +25,8 @@ public class CSExpressEmotionPacket : GamePacket
         //Task.Run(() => QuestManager.Instance.DoOnExpressFireEvents(Connection.ActiveChar, emotionId, characterObjId, npcObjId));
         if (Connection != null)
         {
-            QuestManager.Instance.DoOnExpressFireEvents(Connection.ActiveChar, emotionId, characterObjId, npcObjId);
+            var animId = ExpressTextManager.Instance.GetExpressAnimId(emotionId);
+            QuestManager.Instance.DoOnExpressFireEvents(Connection.ActiveChar, animId, characterObjId, npcObjId);
         }
     }
 }

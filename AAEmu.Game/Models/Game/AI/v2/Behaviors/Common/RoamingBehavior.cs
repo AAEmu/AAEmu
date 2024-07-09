@@ -31,6 +31,7 @@ public class RoamingBehavior : BaseCombatBehavior
             return; // not initialized yet Enter()
 
         CheckAggression();
+        CheckAlert();
 
         if (_targetRoamPosition.Equals(Vector3.Zero) && DateTime.UtcNow > _nextRoaming)
             UpdateRoaming();

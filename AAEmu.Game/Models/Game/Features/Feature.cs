@@ -55,7 +55,7 @@ public enum Feature
     ingameshopSecondpass = 55,
     backpackProfitShare = 56,
     flag_7_1 = 57,
-    sensitiveOpeartion = 58,
+    sensitiveOperation = 58,
     taxItem = 59, // House tax is payed using item instead of gold
     flag_7_4 = 60,
     flag_7_5 = 61,

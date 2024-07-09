@@ -2,6 +2,7 @@
 
 public enum QuestComponentKind
 {
+    Invalid = 0,
     None = 1,
     Start = 2,
     Supply = 3,

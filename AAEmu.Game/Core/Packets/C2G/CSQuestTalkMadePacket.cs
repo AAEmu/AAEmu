@@ -28,7 +28,7 @@ public class CSQuestTalkMadePacket : GamePacket
         //Task.Run(() => QuestManager.Instance.DoTalkMadeEvents(Connection.ActiveChar, _npcObjId, _questContextId, _questCompId, _questActId));
         if (Connection != null)
         {
-            QuestManager.Instance.DoTalkMadeEvents(Connection.ActiveChar, _npcObjId, _questContextId, _questCompId, _questActId);
+            QuestManager.Instance.DoTalkMadeEvents(Connection.ActiveChar, Connection.ActiveChar, _npcObjId, _questContextId, _questCompId, _questActId);
         }
     }
 }

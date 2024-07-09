@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -17,6 +18,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -28,6 +30,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 public partial class Npc : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Npc;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Npc;
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
@@ -45,6 +48,7 @@ public partial class Npc : Unit
     public bool CanFly { get; set; } // TODO mark Npc's that can fly so that they don't land on the ground when calculating the Z height
     //Tagging works differently to Aggro.:
     public Tagging CharacterTagging { get; set; }
+
 
     public override float BaseMoveSpeed
     {
@@ -834,6 +838,7 @@ public partial class Npc : Unit
                 }
 
                 //Now we need to scale XP based on level difference, which gets a bit more complex.
+               
 
                 if (pl.Level >= this.Level + 10 || pl.Level <= this.Level - 10)
                 {
@@ -886,7 +891,7 @@ public partial class Npc : Unit
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
+        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
 
         base.AddVisibleObject(character);
     }
@@ -898,14 +903,7 @@ public partial class Npc : Unit
         character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
     }
 
-    /// <summary>
-    /// Добавим агрессивный объект в список (наполним таблицу abuser)
-    /// </summary>
-    /// <param name="kind">что делал объект</param>
-    /// <param name="unit">объект</param>
-    /// <param name="amount"></param>
-    /// <returns>false - больше не агрессивен. true - всё ещё агрессивен</returns>
-    public bool AddUnitAggro(AggroKind kind, Unit unit, int amount)
+    public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
         Character player = null;
@@ -919,18 +917,21 @@ public partial class Npc : Unit
         // check self buff tags
         if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
         {
-            return ClearAggroOfUnit(unit);
+            ClearAggroOfUnit(unit);
+            return;
         }
 
         // check target buff tags
         if ((unit.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
         {
-            return ClearAggroOfUnit(unit);
+            ClearAggroOfUnit(unit);
+            return;
         }
 
         //Add Tagging if it was damage aggro
         if (kind == AggroKind.Damage)
             CharacterTagging.AddTagger(unit, amount);
+
 
         amount = (int)(amount * (unit.AggroMul / 100.0f));
         amount = (int)(amount * (IncomingAggroMul / 100.0f));
@@ -952,59 +953,49 @@ public partial class Npc : Unit
             // TODO: make this party/raid wide? Take into account pets/slaves?
             // If there is a quest starter attached to this NPC, start it when unit gets added for the first time
             // to the aggro list
-            if (Template.EngageCombatGiveQuestId > 0 && player is not null)
+            if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
-                    player.Quests.Add(Template.EngageCombatGiveQuestId);
+                    player.Quests.AddQuest(Template.EngageCombatGiveQuestId);
             }
         }
 
-        if (player == null) { return true; }
-
+        if (player == null)
+        {
+            return;
+        }
         //player?.Quests.OnAggro(this);
         // инициируем событие
         //Task.Run(() => QuestManager.Instance.DoOnAggroEvents(player, this));
         QuestManager.Instance.DoOnAggroEvents(player, this);
-
-        return true;
     }
 
-    /// <summary>
-    /// Очищаем агрессивность на объект
-    /// </summary>
-    /// <param name="unit">объект</param>
-    /// <returns>true - больше не агрессивны. false - всё ещё агрессивны</returns>
-    public bool ClearAggroOfUnit(Unit unit)
+    public void ClearAggroOfUnit(Unit unit)
     {
         if (unit is null)
-            return true;
+            return;
 
         var player = unit as Character;
-        //player?.SendMessage(Chat.ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
-        var aggroTableChanged = false;
-        if (AggroTable.Count > 0)
+        // player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+
+        var lastAggroCount = AggroTable.Count;
+        if (AggroTable.TryRemove(unit.ObjId, out var value))
         {
-            if (AggroTable.TryRemove(unit.ObjId, out var value))
-            {
-                unit.Events.OnHealed -= OnAbuserHealed;
-                unit.Events.OnDeath -= OnAbuserDied;
-                aggroTableChanged = true;
-                CurrentAggroTarget = 0;
-            }
-            else
-            {
-                Logger.Warn($"Failed to remove unit[{unit.ObjId}] aggro from NPC[{ObjId}]");
-            }
+            unit.Events.OnHealed -= OnAbuserHealed;
+            unit.Events.OnDeath -= OnAbuserDied;
+        }
+        else
+        {
+            Logger.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
         }
 
-        //if (aggroTableChanged)
-        //    CheckIfEmptyAggroToReturn();
-
-        return aggroTableChanged;
+        if (AggroTable.Count != lastAggroCount)
+            CheckIfEmptyAggroToReturn(unit);
     }
 
     //Tagging!
+
 
     private static void CheckIfEmptyAggroToReturn(IBaseUnit unit)
     {
@@ -1167,14 +1158,15 @@ public partial class Npc : Unit
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
+        moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+        moveType.Flags = 4;
+
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 127;
         moveType.DeltaMovement[2] = 0;
-        moveType.Flags = 0;
-        moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-        moveType.ActorFlags = 5;     // 5-walk, 4-run, 3-stand still, 2 - swim
+        moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         CheckMovedPosition(oldPosition);
@@ -1204,14 +1196,15 @@ public partial class Npc : Unit
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
+        moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+        moveType.Flags = 4;
+
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Flags = 0;
-        moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-        moveType.ActorFlags = 5;     // 5-walk, 4-run, 3-stand still
+        moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         CheckMovedPosition(oldPosition);
@@ -1231,14 +1224,13 @@ public partial class Npc : Unit
         moveType.RotationX = 0;
         moveType.RotationY = 0;
         moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
+        moveType.Flags = 4;
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Flags = 0;
-        moveType.Stance = 1; //(sbyte)(CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-        moveType.ActorFlags = 3; // 5-walk, 4-run, 3-stand still
+        moveType.Stance = (sbyte)(CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
@@ -1251,8 +1243,6 @@ public partial class Npc : Unit
     public void SetTarget(Unit other)
     {
         CurrentTarget = other;
-        CurrentAggroTarget = other?.ObjId ?? 0;
-        SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         Ai.AlreadyTargetted = other != null;
     }
@@ -1295,5 +1285,31 @@ public partial class Npc : Unit
     public void DoDespawn(Npc npc)
     {
         Spawner.DoDespawn(npc);
+    }
+
+    /// <summary>
+    /// Returns the ranking in this Npc's aggro table in percent
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns>Position in the aggro table ranking in percent, 0 = most aggro, 100 = no aggro</returns>
+    public float GetAggroRatingInPercent(uint objId)
+    {
+        // grab a sorted copy of the aggro list
+        var sortedAggro = AggroTable.OrderBy(x => x.Value.TotalAggro).ToList();
+
+        // Find our position in the list
+        var pos = 0;
+        for (; pos < sortedAggro.Count; pos++)
+        {
+            if (sortedAggro[pos].Key == objId)
+                break;
+        }
+
+        // If at the end of the list (not found), don't round anything, always return 100
+        if (pos >= sortedAggro.Count)
+            return 100f;
+
+        // Return the position in the list 0 = most aggro, 100 = least aggro
+        return 1f / sortedAggro.Count * pos;
     }
 }

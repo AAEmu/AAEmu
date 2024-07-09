@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -34,8 +35,8 @@ public class NpcControlEffect : EffectTemplate
 
         fileName = string.Empty;
         fileName2 = string.Empty;
-
-        if (caster is Npc npc)
+        
+        if (target is Npc targetNpc)
         {
             switch (CategoryId)
             {
@@ -45,90 +46,16 @@ public class NpcControlEffect : EffectTemplate
                     break;
                 case NpcControlCategory.FollowPath:
                     {
-                        if (npc.IsInPatrol) { break; }
-
-                        npc.IsInPatrol = true;
-                        npc.Simulation.RunningMode = false;
-                        npc.Simulation.MoveToPathEnabled = false;
-                        npc.Simulation.MoveFileName = ParamString;
-                        if (ParamInt == 3)
-                        {
-                            npc.Simulation.Cycle = true;
-                            npc.Simulation.RunningMode = false;
-                        }
-                        npc.Simulation.GoToPath(npc, true);
+                        if (targetNpc.IsInPatrol) { break; }
+                        targetNpc.IsInPatrol = true;
+                        targetNpc.Simulation.RunningMode = false;
+                        targetNpc.Simulation.MoveToPathEnabled = false;
+                        targetNpc.Simulation.MoveFileName = ParamString;
+                        targetNpc.Simulation.GoToPath(targetNpc, true);
                         break;
                     }
                 case NpcControlCategory.AttackUnit:
-                    npc.SetFaction(FactionsEnum.Monstrosity);
-                    return;
-                case NpcControlCategory.GoAway:
-                    break;
-                case NpcControlCategory.RunCommandSet:
-                    {
-                        var cmds = AiGameData.Instance.GetAiCommands(ParamInt);
-                        if (cmds is { Count: > 0 })
-                        {
-                            foreach (var aiCommands in cmds)
-                            {
-                                switch (aiCommands.CmdId)
-                                {
-                                    case AiCommandCategory.FollowUnit:
-                                        break;
-                                    case AiCommandCategory.FollowPath:
-                                        {
-                                            if (aiCommands.Param1 == 1) // TODO может быть несколько маршрутов, используем первый // there may be several routes, we use the first one
-                                                fileName = aiCommands.Param2;
-                                            break;
-                                        }
-                                    case AiCommandCategory.UseSkill:
-                                        skillId = aiCommands.Param1;
-                                        break;
-                                    case AiCommandCategory.Timeout:
-                                        timeout = aiCommands.Param1;
-                                        break;
-                                    default:
-                                        throw new NotSupportedException(nameof(aiCommands.CmdId));
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(fileName))
-                            {
-                                if (npc.IsInPatrol) { return; }
-                                npc.IsInPatrol = true;
-                                npc.Simulation.RunningMode = false;
-                                npc.Simulation.Cycle = false;
-                                npc.Simulation.Remove = true;
-                                npc.Simulation.MoveToPathEnabled = false;
-                                npc.Simulation.MoveFileName = fileName;
-                                npc.Simulation.GoToPath(npc, true, skillId, timeout);
-                            }
-                        }
-                        break;
-                    }
-                default:
-                    throw new NotSupportedException(nameof(CategoryId));
-            }
-        }
-        if (caster is Character && target is Npc npc2)
-        {
-            switch (CategoryId)
-            {
-                case NpcControlCategory.Signal:
-                    break;
-                case NpcControlCategory.FollowUnit:
-                    break;
-                case NpcControlCategory.FollowPath:
-                    {
-                        if (npc2.IsInPatrol) { break; }
-                        npc2.IsInPatrol = true;
-                        npc2.Simulation.RunningMode = false;
-                        npc2.Simulation.MoveToPathEnabled = false;
-                        npc2.Simulation.MoveFileName = ParamString;
-                        npc2.Simulation.GoToPath(npc2, true);
-                        break;
-                    }
-                case NpcControlCategory.AttackUnit:
-                    npc2.SetFaction(FactionsEnum.Monstrosity);
+                    targetNpc.SetFaction(FactionsEnum.Monstrosity);
                     break;
                 case NpcControlCategory.GoAway:
                     break;
@@ -137,6 +64,8 @@ public class NpcControlEffect : EffectTemplate
                         var cmds = AiGameData.Instance.GetAiCommands(ParamInt);
                         if (cmds is { Count: > 0 })
                         {
+                            targetNpc.Ai?.EnqueueAiCommands(cmds);
+                            
                             foreach (var aiCommands in cmds)
                             {
                                 switch (aiCommands.CmdId)
@@ -165,14 +94,14 @@ public class NpcControlEffect : EffectTemplate
                             }
                             if (!string.IsNullOrEmpty(fileName))
                             {
-                                if (npc2.IsInPatrol) { return; }
-                                npc2.IsInPatrol = true;
-                                npc2.Simulation.RunningMode = false;
-                                npc2.Simulation.Cycle = false;
-                                npc2.Simulation.MoveToPathEnabled = false;
-                                npc2.Simulation.MoveFileName = fileName;
-                                npc2.Simulation.MoveFileName2 = fileName2;
-                                npc2.Simulation.GoToPath(npc2, true, skillId, timeout);
+                                if (targetNpc.IsInPatrol) { return; }
+                                targetNpc.IsInPatrol = true;
+                                targetNpc.Simulation.RunningMode = false;
+                                targetNpc.Simulation.Cycle = false;
+                                targetNpc.Simulation.MoveToPathEnabled = false;
+                                targetNpc.Simulation.MoveFileName = fileName;
+                                targetNpc.Simulation.MoveFileName2 = fileName2;
+                                targetNpc.Simulation.GoToPath(targetNpc, true, skillId, timeout);
                             }
                         }
                         break;

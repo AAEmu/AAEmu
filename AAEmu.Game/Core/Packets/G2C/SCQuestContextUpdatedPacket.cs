@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Quests;
 
@@ -8,8 +8,12 @@ public class SCQuestContextUpdatedPacket : GamePacket
 {
     private readonly Quest _quest;
     private readonly uint _componentId;
+    private readonly int _para1;
+    private readonly int _para2;
+    private readonly int _para3;
+    private readonly int _para4;
 
-    public SCQuestContextUpdatedPacket(Quest quest, uint componentId) : base(SCOffsets.SCQuestContextUpdatedPacket, 5)
+    public SCQuestContextUpdatedPacket(Quest quest, uint componentId) : base(SCOffsets.SCQuestContextUpdatedPacket, 1)
     {
         _quest = quest;
         _componentId = componentId;

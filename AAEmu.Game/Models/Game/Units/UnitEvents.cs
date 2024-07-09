@@ -1,6 +1,8 @@
 ﻿using System;
-
+using System.Numerics;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
@@ -35,10 +37,10 @@ public class UnitEvents
     //public EventHandler<OnTimeArgs> OnTime = delegate { }; //Add it if needed, but I think OnKill is fine?
     public EventHandler<OnHealedArgs> OnHealed = delegate { };
 
-    // --- нужен для квестов
-    // на шаге Start
+    // For Quests
+    // At Step Start
     public EventHandler<OnAcceptDoodadArgs> OnAcceptDoodad = delegate { };
-    // на шаге Progress
+    // At Step Progress
     public EventHandler<OnMonsterHuntArgs> OnMonsterHunt = delegate { };
     public EventHandler<OnMonsterGroupHuntArgs> OnMonsterGroupHunt = delegate { };
     public EventHandler<OnTalkMadeArgs> OnTalkMade = delegate { };
@@ -51,18 +53,22 @@ public class UnitEvents
     public EventHandler<OnInteractionArgs> OnInteraction = delegate { };
     public EventHandler<OnExpressFireArgs> OnExpressFire = delegate { };
     public EventHandler<OnLevelUpArgs> OnLevelUp = delegate { };
+    public EventHandler<OnMateLevelUpArgs> OnMateLevelUp = delegate { };
     public EventHandler<OnAbilityLevelUpArgs> OnAbilityLevelUp = delegate { };
     public EventHandler<OnEnterSphereArgs> OnEnterSphere = delegate { };
+    public EventHandler<OnExitSphereArgs> OnExitSphere = delegate { };
     public EventHandler<OnCraftArgs> OnCraft = delegate { };
     public EventHandler<OnZoneKillArgs> OnZoneKill = delegate { };
-    public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { };
-    // на шаге Ready
+    // public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { }; // Integrated into OnZoneKill
+    public EventHandler<OnCinemaStartedArgs> OnCinemaStarted = delegate { };
+    public EventHandler<OnCinemaEndedArgs> OnCinemaEnded = delegate { };
+    // At Step Ready
     public EventHandler<OnReportNpcArgs> OnReportNpc = delegate { };
     public EventHandler<OnReportDoodadArgs> OnReportDoodad = delegate { };
     public EventHandler<OnReportJournalArgs> OnReportJournal = delegate { };
-    // на шаге Complete?
+    // At Step Complete?
     public EventHandler<OnQuestCompleteArgs> OnQuestComplete = delegate { };
-    // --- нужен для indun
+    // Dungeon related
     public EventHandler<OnCombatStartedArgs> OnCombatStarted = delegate { };
     public EventHandler<InIdleArgs> InIdle = delegate { };
     public EventHandler<InAlertArgs> InAlert = delegate { };
@@ -70,6 +76,9 @@ public class UnitEvents
     public EventHandler<OnDeathArgs> OnDeath = delegate { };
     public EventHandler<OnSpawnArgs> OnSpawn = delegate { };
     public EventHandler<OnDespawnArgs> OnDespawn = delegate { };
+    public EventHandler<OnTimerExpiredArgs> OnTimerExpired = delegate { };
+    public EventHandler<OnQuestStepChangedArgs> OnQuestStepChanged = delegate { };
+    public EventHandler<OnAlertArgs> OnAlert = delegate { };
 }
 
 public class OnMonsterHuntArgs : EventArgs
@@ -97,6 +106,7 @@ public class OnItemGroupGatherArgs : EventArgs
 {
     public uint ItemId { get; set; }
     public int Count { get; set; }
+    public uint ItemGroupId { get; set; }
 }
 
 public class OnTalkMadeArgs : EventArgs
@@ -106,12 +116,14 @@ public class OnTalkMadeArgs : EventArgs
     public uint QuestComponentId { get; set; }
     public uint QuestActId { get; set; }
     public Transform Transform { get; set; }
+    public ICharacter SourcePlayer { get; set; }
 }
 
 public class OnTalkNpcGroupMadeArgs : EventArgs
 {
     public uint QuestId { get; set; } // QuestContextId
-    public uint NpcGroupId { get; set; } // Npc.TemplateId
+    public uint NpcGroupId { get; set; } // Npc Group Id
+    public uint NpcId { get; set; } // Npc.TemplateId
     public uint QuestComponentId { get; set; }
     public uint QuestActId { get; set; }
     public Transform Transform { get; set; }
@@ -126,7 +138,6 @@ public class OnAggroArgs : EventArgs
 public class OnItemUseArgs : EventArgs
 {
     public uint ItemId { get; set; }
-    public int Count { get; set; }
 }
 
 public class OnItemGroupUseArgs : EventArgs
@@ -138,6 +149,7 @@ public class OnItemGroupUseArgs : EventArgs
 public class OnInteractionArgs : EventArgs
 {
     public uint DoodadId { get; set; } // Doodad.TemplateId
+    public ICharacter SourcePlayer { get; set; }
 }
 
 public class OnCraftArgs : EventArgs
@@ -156,6 +168,11 @@ public class OnLevelUpArgs : EventArgs
     // Empty
 }
 
+public class OnMateLevelUpArgs : EventArgs
+{
+    // Empty
+}
+
 public class OnAbilityLevelUpArgs : EventArgs
 {
     // Empty
@@ -164,6 +181,15 @@ public class OnAbilityLevelUpArgs : EventArgs
 public class OnEnterSphereArgs : EventArgs
 {
     public SphereQuest SphereQuest { get; set; }
+    public Vector3 OldPosition { get; set; }
+    public Vector3 NewPosition { get; set; }
+}
+
+public class OnExitSphereArgs : EventArgs
+{
+    public SphereQuest SphereQuest { get; set; }
+    public Vector3 OldPosition { get; set; }
+    public Vector3 NewPosition { get; set; }
 }
 
 public class OnZoneKillArgs : EventArgs
@@ -173,9 +199,14 @@ public class OnZoneKillArgs : EventArgs
     public Unit Victim { get; set; }
 }
 
-public class OnZoneMonsterHuntArgs : EventArgs
+public class OnCinemaStartedArgs : EventArgs
 {
-    public uint ZoneGroupId { get; set; }
+    public uint CinemaId { get; set; }
+}
+
+public class OnCinemaEndedArgs : EventArgs
+{
+    public uint CinemaId { get; set; }
 }
 
 public class OnReportNpcArgs : EventArgs
@@ -291,7 +322,7 @@ public class OnUnmountArgs : EventArgs
 
 public class OnKillArgs : EventArgs
 {
-    public Unit target { get; set; }
+    public Unit Target { get; set; }
 }
 
 public class OnDamagedCollisionArgs : EventArgs
@@ -349,4 +380,21 @@ public class OnSpawnArgs : EventArgs
 public class OnDespawnArgs : EventArgs
 {
     public Unit Npc { get; set; }
+}
+
+public class OnTimerExpiredArgs : EventArgs
+{
+    public uint QuestId { get; set; }
+}
+
+public class OnQuestStepChangedArgs : EventArgs
+{
+    public uint QuestId { get; set; }
+    public QuestComponentKind Step { get; set; }
+}
+
+public class OnAlertArgs : EventArgs
+{
+    public Unit Npc { get; set; }
+    public BaseUnit Target { get; set; }
 }

@@ -1,231 +1,156 @@
-﻿//// Интерфейс, определяющий шаги
+﻿using System.Collections.Generic;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Units;
 
-//using System;
-//using System.Collections.Generic;
-//using System.Linq;
+namespace AAEmu.Game.Models.Game.Quests;
 
-//using AAEmu.Game.Models.Game.Char;
-//using AAEmu.Game.Models.Game.Quests.Static;
+/// <summary>
+/// A step of the Quest
+/// </summary>
+public class QuestStep(QuestComponentKind step, Quest parent)
+{
+    /// <summary>
+    /// Owning Quest object
+    /// </summary>
+    public Quest Parent { get; private set; } = parent;
 
-//namespace AAEmu.Game.Models.Game.Quests;
+    /// <summary>
+    /// This step's QuestComponentKind
+    /// </summary>
+    public QuestComponentKind ThisStep { get; private set; } = step;
 
-//public interface IQuestStep
-//{
-//    public CurrentQuestComponent currentQuestComponent { get; set; }
-//    public Quest quest { get; set; }
-//    public CharacterQuests player { get; set; }
-//    public QuestComponentKind step { get; set; }
-//    //public List<QuestComponentKind> steps { get; set; }
-//}
+    /// <summary>
+    /// List of components inside this step by ComponentId
+    /// </summary>
+    public Dictionary<uint, QuestComponent> Components { get; set; } = new();
 
-//public abstract class QuestStep : IQuestStep
-//{
-//    public CurrentQuestComponent currentQuestComponent { get; set; }
-//    public Quest quest { get; set; }
-//    public CharacterQuests player { get; set; }
-//    public QuestComponentKind step { get; set; }
-//    //public List<QuestComponentKind> steps { get; set; } // не нужен
+    /// <summary>
+    /// Initializes all Components and their Acts for this step
+    /// </summary>
+    public void InitializeStep()
+    {
+        // Distribute any rewards that may still be open so the pool is empty
+        Parent.DistributeRewards(false);
 
-//    public void InitializeStep()
-//    {
-//        // необходимо проверить, какие шаги имеетюся
-//        for (step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
-//        {
-//            var questComponents = quest.Template.GetComponents(step);
-//            if (questComponents.Length == 0) { continue; }
-//            switch (step)
-//            {
-//                case QuestComponentKind.None:
-//                    step = QuestComponentKind.Start;
-//                    break;
-//                case QuestComponentKind.Start:
-//                    {
-//                        step = QuestComponentKind.Start;
-//                        break;
-//                    }
-//                case QuestComponentKind.Supply:
-//                    step = QuestComponentKind.Supply;
-//                    break;
-//                case QuestComponentKind.Progress:
-//                    step = QuestComponentKind.Progress;
-//                    break;
-//                //case QuestComponentKind.Fail:
-//                //    step = QuestComponentKind.Fail;
-//                //    break;
-//                case QuestComponentKind.Ready:
-//                    step = QuestComponentKind.Ready;
-//                    break;
-//                //case QuestComponentKind.Drop:
-//                //    step = QuestComponentKind.Drop;
-//                //    break;
-//                case QuestComponentKind.Reward:
-//                    step = QuestComponentKind.Reward;
-//                    break;
-//            }
+        foreach (var questComponent in Components.Values)
+            questComponent.InitializeComponent();
+    }
 
-//            // собираем компоненты для шага квеста
-//            var components = quest.Template.GetComponents(step);
-//            currentQuestComponent = new CurrentQuestComponent();
-//            foreach (var component in components)
-//            {
-//                currentQuestComponent.Add(component);
-//            }
-//        }
-//    }
+    /// <summary>
+    /// Finalize all Components and their Acts for this step
+    /// </summary>
+    public void FinalizeStep()
+    {
+        foreach (var questComponent in Components.Values)
+            questComponent.FinalizeComponent();
+    }
 
-//    public abstract void Execute();
-//    public abstract void EnterStep();
-//    public abstract void UpdateStep();
-//    public abstract void ExitStep();
-//}
+    /// <summary>
+    /// Runs all Acts inside this component and grabs their result
+    /// </summary>
+    /// <returns>True if acts run successfully, for Progress step if all act objectives have been met</returns>
+    public bool RunComponents()
+    {
+        var res = true;
 
-//// Реализация состояния "QuestInProgress" (выполнение квеста)
-//public class QuestStartStep : QuestStep
-//{
-//    //public override void InitializeStep()
-//    //{
-//    //    // необходимо проверить, какие шаги имеетюся
-//    //    var listQuestComponentKinds = new List<QuestComponentKind>();
-//    //    for (step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
-//    //    {
-//    //        var questComponents = quest.Template.GetComponents(step);
-//    //        if (questComponents.Length == 0) { continue; }
-//    //        switch (step)
-//    //        {
-//    //            //case QuestComponentKind.None:
-//    //            //    step = QuestComponentKind.Start;
-//    //            //    break;
-//    //            case QuestComponentKind.Start:
-//    //                {
-//    //                    // собираем компоненты для шага квеста
-//    //                    var components = quest.Template.GetComponents(step);
-//    //                    currentQuestComponent = new CurrentQuestComponent();
-//    //                    foreach (var component in components)
-//    //                    {
-//    //                        currentQuestComponent.Add(component);
-//    //                    }
-//    //                    step = QuestComponentKind.Start;
-//    //                    break;
-//    //                }
-//    //                //case QuestComponentKind.Supply:
-//    //                //    step = QuestComponentKind.Supply;
-//    //                //    break;
-//    //                //case QuestComponentKind.Progress:
-//    //                //    step = QuestComponentKind.Progress;
-//    //                //    break;
-//    //                //case QuestComponentKind.Fail:
-//    //                //    questComponentKind = QuestComponentKind.Fail;
-//    //                //    break;
-//    //                //case QuestComponentKind.Ready:
-//    //                //    step = QuestComponentKind.Ready;
-//    //                //    break;
-//    //                //case QuestComponentKind.Drop:
-//    //                //    questComponentKind = QuestComponentKind.Drop;
-//    //                //    break;
-//    //                //case QuestComponentKind.Reward:
-//    //                //    step = QuestComponentKind.Reward;
-//    //                //    break;
-//    //        }
+        // Cache which components are active
+        foreach (var questComponent in Components.Values)
+            questComponent.IsCurrentlyActive = UnitRequirementsGameData.Instance.CanComponentRun(questComponent.Template, (BaseUnit)Parent.Owner);
 
-//    //        listQuestComponentKinds.Add(step);
-//    //    }
+        var componentsOrCheck = (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress);
 
-//    //    // Change state based on quest component kind
-//    //    foreach (var listQuestComponentKind in listQuestComponentKinds)
-//    //    {
-//    //        var questComponentKind = listQuestComponentKind;
-//    //        switch (questComponentKind)
-//    //        {
-//    //            case QuestComponentKind.None:
-//    //                questComponentKind = QuestComponentKind.Start;
-//    //                break;
-//    //            case QuestComponentKind.Start:
-//    //                break;
-//    //            case QuestComponentKind.Supply:
-//    //                questComponentKind = QuestComponentKind.Supply;
-//    //                break;
-//    //            case QuestComponentKind.Progress:
-//    //                questComponentKind = QuestComponentKind.Progress;
-//    //                break;
-//    //            //case QuestComponentKind.Fail:
-//    //            //    questComponentKind = QuestComponentKind.Fail;
-//    //            //    break;
-//    //            case QuestComponentKind.Ready:
-//    //                questComponentKind = QuestComponentKind.Ready;
-//    //                break;
-//    //            //case QuestComponentKind.Drop:
-//    //            //    questComponentKind = QuestComponentKind.Drop;
-//    //            //    break;
-//    //            case QuestComponentKind.Reward:
-//    //                questComponentKind = QuestComponentKind.Reward;
-//    //                break;
-//    //        }
-//    //    }
+        if (componentsOrCheck)
+        {
+            // Require only one of the components to be true in the progress step is quest has selective flag
+            res = false;
+            foreach (var questComponent in Components.Values)
+            {
+                if (!questComponent.IsCurrentlyActive)
+                    continue;
 
+                var componentResult = questComponent.RunComponent();
+                if (componentResult)
+                    Parent.ComponentId = questComponent.Template.Id;
+                res |= componentResult;
+            }
+        }
+        else
+        {
+            // Requires all components to be true
+            foreach (var questComponent in Components.Values)
+            {
+                if (!questComponent.IsCurrentlyActive)
+                {
+                    res = false;
+                    continue;
+                }
 
-//    //    foreach (var listQuestComponentKind in listQuestComponentKinds)
-//    //    {
-//    //        if (listQuestComponentKind == QuestComponentKind.Start)
-//    //        {
-//    //            Logger.Debug("Нашли нужный шаг");
-//    //            var components = quest.Template.GetComponents(QuestComponentKind.Start);
+                res &= questComponent.RunComponent();
+                if (res)
+                    Parent.ComponentId = questComponent.Template.Id;
+            }
+        }
 
-//    //            // собираем компоненты для шага квеста
-//    //            currentQuestComponent = new CurrentQuestComponent();
-//    //            foreach (var component in components)
-//    //            {
-//    //                currentQuestComponent.Add(component);
-//    //            }
-//    //        }
-//    //        else
-//    //        {
-//    //            // нет такого шага для этого квеста
-//    //        }
+        // Override result for score quests
+        if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.Score > 0))
+        {
+            // Validate using Score combined from all components
+            var score = 0;
+            foreach (var questComponent in Components.Values)
+            {
+                if (!questComponent.IsCurrentlyActive)
+                    continue;
 
-//    //        steps = listQuestComponentKinds;
-//    //    }
-//    //}
+                foreach (var questAct in questComponent.Acts)
+                    score += questAct.GetObjective(Parent) * questAct.Template.Count;
+            }
 
-//    public override void EnterStep()
-//    {
-//        Logger.Debug("Вход в начальное состояние");
-//    }
+            res = score >= Parent.Template.Score;
+            var objectiveStatus = Parent.GetQuestObjectiveStatus();
+            Parent.Status = objectiveStatus >= QuestObjectiveStatus.QuestComplete
+                ? QuestStatus.Ready
+                : QuestStatus.Progress;
+        }
+        else if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.LetItDone))
+        {
+            // Validate using combined from all components
+            var objectiveStatus = Parent.GetQuestObjectiveStatus();
+            res = objectiveStatus >= QuestObjectiveStatus.Overachieved;
+            Parent.Status = objectiveStatus >= QuestObjectiveStatus.QuestComplete
+                ? QuestStatus.Ready
+                : QuestStatus.Progress;
+        }
+        
+        // Handle Supply/Reward Distribution
+        res &= Parent.DistributeRewards(true);
 
-//    public override void UpdateStep()
-//    {
-//        Logger.Debug("Обновление начального состояния");
-//        // Логика обработки начального состояния
-//        // Если условие для перехода в следующее состояние выполнено, переходим в следующее состояние
-//        // В противном случае остаемся в текущем состоянии
+        // LetItBeDone type of quests, are always forced forward using the Report Acts
+        if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.LetItDone))
+            res = false;
 
-//        // Логика для выполнения квеста
-//        Logger.Debug("Выполняется квест...");
+        return res;
+    }
+    
+    /// <summary>
+    /// Sets the RequestEvaluationFlag to true signalling the server that it should check this quest's progress again
+    /// </summary>
+    public void RequestEvaluation()
+    {
+        Parent.RequestEvaluation();
+    }
 
-//        // Другая логика, связанная с выполнением квеста
-//        // ...
-//        // Переход в следующее состояние
-//        //player.SetState(new QuestInProgressStep(), quest);
-//        //EnterState();
-//    }
-
-//    public override void ExitStep()
-//    {
-//        Logger.Debug("Выход из начального состояния");
-//    }
-
-//    public override void Execute()
-//    {
-//        // Логика для выполнения квеста
-//        Logger.Debug("Выполняется квест...");
-//        var result = currentQuestComponent.Execute(quest.Owner, quest, 0);
-
-//        // Другая логика, связанная с выполнением квеста
-//        // ...
-//        // Переход в следующее состояние
-//        //player.SetState(new QuestInProgressStep(), quest);
-//        //EnterState();
-//    }
-//}
-//// Реализация состояния "QuestInProgress" (выполнение квеста)
-
-//// Реализация состояния "QuestCompleted" (квест выполнен)
+    /// <summary>
+    /// Checks if this step has any Objectives
+    /// </summary>
+    /// <returns></returns>
+    public bool ContainsObjectives()
+    {
+        // Check if Progress step actually has objectives (there are some bugs in the original DB where this step contains supply item)
+        foreach (var component in Components.Values)
+            foreach (var questAct in component.Acts)
+                if (questAct.Template.ThisComponentObjectiveIndex != 0xFF)
+                    return true;
+        return false;
+    }
+}
