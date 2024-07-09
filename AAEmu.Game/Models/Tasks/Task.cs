@@ -12,7 +12,6 @@ public abstract class Task
     public string Name { get; set; }
     public bool Cancelled { get; set; }
     public int ExecuteCount { get; set; }
-    
     public DateTime TriggerTime { get; set; }
     public TimeSpan RepeatInterval { get; set; }
     public int RepeatCount { get; set; }
@@ -37,7 +36,7 @@ public abstract class Task
 
         return false;
     }
-    
+
     public virtual void OnCancel()
     {
         //

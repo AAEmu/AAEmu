@@ -17,17 +17,10 @@ public class CSSaveTutorialPacket : GamePacket
 
         Logger.Debug($"SaveTutorial, Id: {id}");
 
-        var completeId = (ushort)(id / 64);
-        var quest = Connection.ActiveChar.Quests.GetCompletedQuest(completeId);
-        if (quest == null)
-        {
-            quest = new CompletedQuest(completeId);
-            Connection.ActiveChar.Quests.AddCompletedQuest(quest);
-        }
-
-        quest.Body.Set((int)id % 64, true);
+        var completedQuestBlock = Connection.ActiveChar.Quests.SetCompletedQuestFlag(id, true);
         var body = new byte[8];
-        quest.Body.CopyTo(body, 0);
+        completedQuestBlock.Body.CopyTo(body, 0);
+
         Connection.SendPacket(new SCTutorialSavedPacket(id, body));
     }
 }

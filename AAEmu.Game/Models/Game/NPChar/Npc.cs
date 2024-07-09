@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -29,6 +30,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 public partial class Npc : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Npc;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Npc;
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
@@ -1003,7 +1005,7 @@ public partial class Npc : Unit
             if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
-                    player.Quests.Add(Template.EngageCombatGiveQuestId);
+                    player.Quests.AddQuest(Template.EngageCombatGiveQuestId);
             }
         }
 
@@ -1290,7 +1292,6 @@ public partial class Npc : Unit
     public void SetTarget(Unit other)
     {
         CurrentTarget = other;
-        SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         Ai.AlreadyTargetted = other != null;
     }
@@ -1333,5 +1334,31 @@ public partial class Npc : Unit
     public void DoDespawn(Npc npc)
     {
         Spawner.DoDespawn(npc);
+    }
+
+    /// <summary>
+    /// Returns the ranking in this Npc's aggro table in percent
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns>Position in the aggro table ranking in percent, 0 = most aggro, 100 = no aggro</returns>
+    public float GetAggroRatingInPercent(uint objId)
+    {
+        // grab a sorted copy of the aggro list
+        var sortedAggro = AggroTable.OrderBy(x => x.Value.TotalAggro).ToList();
+
+        // Find our position in the list
+        var pos = 0;
+        for (; pos < sortedAggro.Count; pos++)
+        {
+            if (sortedAggro[pos].Key == objId)
+                break;
+        }
+
+        // If at the end of the list (not found), don't round anything, always return 100
+        if (pos >= sortedAggro.Count)
+            return 100f;
+
+        // Return the position in the list 0 = most aggro, 100 = least aggro
+        return 1f / sortedAggro.Count * pos;
     }
 }

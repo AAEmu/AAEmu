@@ -5,6 +5,8 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.C2G;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -185,7 +187,7 @@ public abstract class Behavior
         var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
         skill.Callback = OnSkillEnded;
-        var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
+        var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject, false, out _);
         // fix the eastward turn when using SelfSkill
         if (skill.Template.TargetType != SkillTargetType.Self && result == SkillResult.Success)
             Ai.Owner.LookTowards(target.Transform.World.Position);
@@ -228,8 +230,16 @@ public abstract class Behavior
         if (!Ai.Owner.Template.Aggression) { return; }
         var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
 
-        foreach (var unit in nearbyUnits)
+        // Sort by distance
+        var unitsWithDistance = new List<(Unit, float)>();
+        foreach (var nearbyUnit in nearbyUnits)
         {
+            var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, nearbyUnit, true);
+            unitsWithDistance.Add((nearbyUnit, rangeOfUnit));
+        }
+        unitsWithDistance.Sort((p, q) => p.Item2.CompareTo(q.Item2));
+        
+        foreach (var (unit, rangeOfUnit) in unitsWithDistance)        {
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
@@ -244,12 +254,72 @@ public abstract class Behavior
             }
             else
             {
-                var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
+                // var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
                 if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
                 {
                     if (Ai.Owner.CanAttack(unit))
                     {
                         OnEnemySeen(unit);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public void OnEnemyAlert(Unit target)
+    {
+        // TODO: Tweak these values, or grab them from DB somewhere?
+        Ai._alertEndTime = DateTime.UtcNow.AddSeconds(5);
+        Ai._nextAlertCheckTime = DateTime.UtcNow.AddSeconds(7);
+        Ai.Owner.CurrentAggroTarget = target.ObjId;
+        Ai.Owner.SetTarget(target);
+        
+        Ai.GoToAlert();
+    }
+    
+    public void CheckAlert()
+    {
+        if (Ai._nextAlertCheckTime > DateTime.UtcNow)
+            return;
+
+        // Don't do alerts if already in combat
+        if (Ai.Owner.IsInBattle)
+            return;
+
+        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(15f));
+        
+        // Sort by distance
+        var unitsWithDistance = new List<(Unit, float)>();
+        foreach (var nearbyUnit in nearbyUnits)
+        {
+            var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, nearbyUnit, true);
+            unitsWithDistance.Add((nearbyUnit, rangeOfUnit));
+        }
+        unitsWithDistance.Sort((p, q) => p.Item2.CompareTo(q.Item2));
+        
+        foreach (var (unit, rangeOfUnit) in unitsWithDistance)
+        {
+            if (unit.IsDead || unit.Hp <= 0)
+                continue; // not counting dead Npc
+
+            // Need to check for stealth detection here
+            if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
+            {
+                if (Ai.Owner.CanAttack(unit))
+                {
+                    OnEnemyAlert(unit);
+                    break;
+                }
+            }
+            else
+            {
+                // var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
+                if (rangeOfUnit < 10f * Ai.Owner.Template.SightRangeScale)
+                {
+                    if (Ai.Owner.CanAttack(unit))
+                    {
+                        OnEnemyAlert(unit);
                         break;
                     }
                 }

@@ -230,7 +230,7 @@ public abstract class BaseCombatBehavior : Behavior
             {
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    // check that such an Npc is in the database, there are cases that it is in the game, but not in the database
+                    // check that such a Npc is in the database, there are cases that it is in the game, but not in the database
                     var currentTarget = abuser.ObjId > 0 ? WorldManager.Instance.GetUnit(abuser.ObjId) : null;
                     if (currentTarget == null)
                         continue;
@@ -244,7 +244,18 @@ public abstract class BaseCombatBehavior : Behavior
             Ai.Owner.ClearAggroOfUnit(abuser);
         }
 
-        Ai.Owner.SetTarget(null);
+        // Only remove CurrentTarget is either no unit selected, or if target is already dead
+        if (Ai.Owner.CurrentTarget is not Unit currentTargetUnit)
+        {
+            Ai.Owner.CurrentAggroTarget = 0;
+            Ai.Owner.SetTarget(null);
+        }
+        else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
+        {
+            Ai.Owner.CurrentAggroTarget = 0;
+            Ai.Owner.SetTarget(null);
+        }
+
         return false;
     }
 

@@ -13,6 +13,10 @@ public interface ICharacter : IUnit
     CharacterQuests Quests { get; set; }
     Inventory Inventory { get; set; }
     long Money { get; set; }
+    long Money2 { get; set; }
+    int HonorPoint { get; set; }
+    int VocationPoint { get; set; }
+    short CrimePoint { get; set; }
     CharacterMates Mates { get; set; }
     CharacterAppellations Appellations { get; set; }
     CharacterAbilities Abilities { get; set; }

@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -34,6 +35,7 @@ namespace AAEmu.Game.Models.Game.Units;
 public class Unit : BaseUnit, IUnit
 {
     public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
+    public virtual BaseUnitType BaseUnitType { get; set; } = BaseUnitType.Invalid;
 
     public virtual UnitEvents Events { get; }
     private Task _regenTask;
@@ -59,6 +61,16 @@ public class Unit : BaseUnit, IUnit
     public byte Level { get; set; }
 
     public int Hp { get; set; }
+
+    public int Hpp
+    {
+        get
+        {
+            if (MaxHp <= 0)
+                return 0;
+            return Math.Clamp((int)Math.Ceiling(Hp * 100f / MaxHp), 0, 100);
+        }
+    }
 
     public DateTime LastCombatActivity { get; set; }
 
@@ -381,7 +393,7 @@ public class Unit : BaseUnit, IUnit
 
         if (attackerBase is Unit attackerUnit)
         {
-            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { target = attackerUnit });
+            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { Target = attackerUnit });
 
             var world = WorldManager.Instance.GetWorld(Transform.WorldId);
             if (Transform.WorldId > 0)
@@ -761,44 +773,6 @@ public class Unit : BaseUnit, IUnit
         SendPacket(new SCErrorMsgPacket(type, 0, true));
     }
 
-    /// <summary>
-    /// Get distance between two units taking into account their model sizes
-    /// </summary>
-    /// <param name="baseUnit"></param>
-    /// <param name="includeZAxis"></param>
-    /// <returns></returns>
-    public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
-    {
-        if (baseUnit == null)
-            return 0.0f;
-
-        if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
-            return 0.0f;
-
-        var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
-        if (baseUnit is Shipyard.Shipyard shipyard)
-        {
-            // Let's use the build radius for this, as it doesn't really have a easy to grab model to get it from 
-            rawDist -= ShipyardManager.Instance._shipyardsTemplate[shipyard.ShipyardData.TemplateId].BuildRadius;
-        }
-        else
-        if (baseUnit is House house)
-        {
-            // Subtract house radius, this should be fair enough for building
-            rawDist -= (house.Template.GardenRadius * house.Scale);
-        }
-        else
-        {
-            // If target is a Unit, then use it's model for radius
-            if (baseUnit is Unit unit)
-                rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
-        }
-        // Subtract own radius
-        rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
-
-        return Math.Max(rawDist, 0);
-    }
-
     public virtual int GetAbLevel(AbilityType type)
     {
         return Level;
@@ -967,7 +941,7 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public virtual void UseSkill(uint skillId, IUnit target)
+    public virtual SkillResult UseSkill(uint skillId, IUnit target)
     {
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
 
@@ -977,7 +951,7 @@ public class Unit : BaseUnit, IUnit
         var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
         sct.ObjId = target.ObjId;
 
-        skill.Use(this, caster, sct, null, true);
+        return skill.Use(this, caster, sct, null, true, out _);
     }
 
     public static void ModelPosture(PacketStream stream, Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF)

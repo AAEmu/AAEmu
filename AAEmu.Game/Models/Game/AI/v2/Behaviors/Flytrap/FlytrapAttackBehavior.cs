@@ -179,7 +179,12 @@ public class FlytrapAttackBehavior : Behavior
             Ai.Owner.ClearAggroOfUnit(abuser);
         }
 
-        Ai.Owner.SetTarget(null);
+        // Only remove CurrentTarget is either no unit selected, or if target is already dead
+        if (Ai.Owner.CurrentTarget is not Unit currentTargetUnit)
+            Ai.Owner.SetTarget(null);
+        else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
+            Ai.Owner.SetTarget(null);
+
         return false;
     }
     #endregion

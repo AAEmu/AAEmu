@@ -761,18 +761,31 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return ret;
     }
 
+    /// <summary>
+    /// Get Active Unit by ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public Unit GetUnit(uint objId)
     {
-        _units.TryGetValue(objId, out var ret);
-        return ret;
+        return _units.GetValueOrDefault(objId);
     }
 
+    /// <summary>
+    /// Get active NPC by ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public Npc GetNpc(uint objId)
     {
-        _npcs.TryGetValue(objId, out var ret);
-        return ret;
+        return _npcs.GetValueOrDefault(objId);
     }
 
+    /// <summary>
+    /// Gets the first active NPC with a specific TemplateId
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
     public Npc GetNpcByTemplateId(uint templateId)
     {
         return _npcs.Values.FirstOrDefault(x => x.TemplateId == templateId);

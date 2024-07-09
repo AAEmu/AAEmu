@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils;
@@ -61,6 +60,8 @@ public class Skill
 
     public Skill(SkillTemplate template, Unit owner = null)
     {
+        if (template == null)
+            return;
         HitTypes = new Dictionary<uint, SkillHitType>();
         Id = template.Id;
         Template = template;
@@ -70,9 +71,20 @@ public class Skill
             Level = 1;
     }
 
-    public SkillResult Use(BaseUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
+    /// <summary>
+    /// Runs the skill and returns it's error code if any
+    /// </summary>
+    /// <param name="caster"></param>
+    /// <param name="casterCaster"></param>
+    /// <param name="targetCaster"></param>
+    /// <param name="skillObject">null by default</param>
+    /// <param name="bypassGcd">false by default</param>
+    /// <param name="skillResultValueUInt">Additional skill error data</param>
+    /// <returns></returns>
+    public SkillResult Use(BaseUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject, bool bypassGcd, out uint skillResultValueUInt)
     {
-        // Check if the source is a actual Unit
+        skillResultValueUInt = 0;
+        // Check if the source is an actual Unit
         if (caster is not Unit unit)
         {
             return SkillResult.InvalidSource;
@@ -83,6 +95,16 @@ public class Skill
 
         unit.ConditionChance = true;
 
+        var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster, casterCaster);
+        if (requirementResult.ResultKey != SkillResultKeys.ok)
+        {
+            if (character != null)
+                Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template?.Id} - {requirementResult.ResultKey}");
+            Cancelled = true;
+            skillResultValueUInt = requirementResult.ResultUInt;
+            return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
+        }
+        
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
@@ -141,8 +163,8 @@ public class Skill
             {
                 npc.Ai.OnNoAggroTarget();
             }
-            Logger.Debug($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
-            return SkillResult.NoTarget; // We should try to make sure this doesnt happen, but can happen with NPC skills
+            Logger.Trace($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
+            return SkillResult.NoTarget; // We should try to make sure this doesn't happen, but can happen with NPC skills
         }
 
         // Unmount character if skill asks for it
@@ -175,6 +197,13 @@ public class Skill
 
         var minRangeCheck = Template.MinRange * 1.0;
         var maxRangeCheck = skillRange;
+
+        // HackFix: for quest Unblock the Spring ( 3707 ), unable to use the boulder because of being "too close"
+        // The range of skill Remove Stone ( 16462 ) is defined as 100~200 which can't possibly be correct 
+        if ((Template.TargetType == SkillTargetType.Doodad) && (Template.MinRange >= 100))
+        {
+            minRangeCheck = Template.MinRange / 100.0;
+        }
 
         // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
         // TODO: Do a check based on model size or bounding box instead
@@ -238,7 +267,8 @@ public class Skill
             // Has casting time, schedule a task for it
             caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
             {
-                CastTime = castTime
+                BaseCastTimeDiv10 = (ushort)(castTime / 10),
+                RealCastTimeDiv10 = (ushort)(castTime / 10), // calculate with adjustments
             }, true);
 
             unit.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
@@ -291,9 +321,11 @@ public class Skill
                         }
                     }
 
-                    if (target != null && caster.GetRelationStateTo(target) != RelationState.Friendly)
+                    if (target != null)
                     {
-                        return null; //TODO отправлять ошибку?
+                        var relation = caster.GetRelationStateTo(target);
+                        if (relation != RelationState.Friendly && relation != RelationState.Neutral)
+                            return null; // Target isn't friendly
                     }
 
                     break;
@@ -309,12 +341,14 @@ public class Skill
                         }
                     }
 
-                    if (target != null && caster.GetRelationStateTo(target) != RelationState.Hostile)
+                    if (target != null)
                     {
-                        if (!caster.CanAttack(target))
-                        {
-                            return null; //TODO отправлять ошибку?
-                        }
+                        var relation = caster.GetRelationStateTo(target);
+                        if (relation != RelationState.Hostile && relation != RelationState.Neutral)
+                            if (!caster.CanAttack(target))
+                            {
+                                return null; // Target isn't hostile
+                            }
                     }
 
                     break;
@@ -379,12 +413,12 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        return null; //TODO отправлять ошибку?
+                        return null; // Not allowed on self
                     }
-                    if (caster.GetRelationStateTo(target) != RelationState.Friendly)
-                    {
-                        return null; //TODO отправлять ошибку?
-                    }
+
+                    var relation2 = caster.GetRelationStateTo(target);
+                    if (relation2 != RelationState.Friendly && relation2 != RelationState.Neutral)
+                        return null; // Target isn't friendly
 
                     break;
                 }
@@ -744,23 +778,24 @@ public class Skill
         if (caster is not Unit unit)
             return;
         var player = caster as Character;
-        var targets = new List<BaseUnit>(); // TODO crutches
+        var possibleTargets = new List<BaseUnit>(); // TODO crutches
+        // Get a list of all possible targets
         if (Template.TargetAreaRadius > 0)
         {
             var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
             units.Add(targetSelf); // Add main target as well
             units = FilterAoeUnits(caster, units).ToList();
 
-            targets.AddRange(units);
+            possibleTargets.AddRange(units);
             // TODO : Need to check if this is needed
             //if (targetSelf is Unit) targets.Add(targetSelf);
         }
         else
         {
-            targets.Add(targetSelf);
+            possibleTargets.Add(targetSelf);
         }
 
-        foreach (var target in targets)
+        foreach (var target in possibleTargets)
         {
             if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
             {
@@ -802,14 +837,18 @@ public class Skill
         var consumedItems = new List<(Item, int)>();
         var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 
-        var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
+        var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(possibleTargets.Count * Template.Effects.Count);
+        SkillEffect lastAppliedEffect = null;
+
+        // Loop Skill Effects
         foreach (var effect in Template.Effects)
         {
+            // Get targets for this effect
             var effectedTargets = new List<BaseUnit>();
             switch (effect.ApplicationMethod)
             {
                 case SkillEffectApplicationMethod.Target:
-                    effectedTargets = targets;//keep target
+                    effectedTargets = possibleTargets;//keep target
                     break;
                 case SkillEffectApplicationMethod.Source:
                     effectedTargets.Add(caster);//Diff between Source and SourceOnce?
@@ -817,24 +856,27 @@ public class Skill
                 case SkillEffectApplicationMethod.SourceOnce:
                     // TODO: HACKFIX for owner's mark
                     if (casterCaster.Type == SkillCasterType.Mount && targetSelf is Units.Mate || targetSelf is Slave)
-                        effectedTargets = targets;
+                        effectedTargets = possibleTargets;
                     else
                         effectedTargets.Add(caster);//idk
                     break;
                 case SkillEffectApplicationMethod.SourceToPos:
-                    effectedTargets = targets;
+                    effectedTargets = possibleTargets;
                     break;
             }
 
+            // Loop targets for this effect
             foreach (var target in effectedTargets)
             {
                 var targetNpc = target as Npc;
                 var relationState = caster.GetRelationStateTo(target);
+                // Level range check
                 if (effect.StartLevel > unit.Level || effect.EndLevel < unit.Level)
                 {
                     continue;
                 }
 
+                // Relations checks
                 if (effect.Friendly && !effect.NonFriendly && relationState != RelationState.Friendly)
                 {
                     continue;
@@ -848,6 +890,7 @@ public class Skill
                     }
                 }
 
+                // Position check
                 if (effect.Front && !effect.Back && !MathUtil.IsFront(caster, target))
                 {
                     continue;
@@ -858,6 +901,7 @@ public class Skill
                     continue;
                 }
 
+                // Blocking buffs and tags checks 
                 if (effect.SourceBuffTagId > 0 && !caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
                 {
                     // TODO Commented out the code for the Id=2255 quest to work. Restore after finding a solution to the lack of a debuff.
@@ -887,51 +931,58 @@ public class Skill
                         continue;
                 }
 
+                // Dice
                 if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
                 {
                     continue;
                 }
 
-                if (casterCaster is SkillItem castItem && player != null)
-                {
-                    var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
-                    if (effect.ConsumeSourceItem)
-                        consumedItems.Add((useItem, effect.ConsumeItemCount));
-                    else
-                    {
-                        var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
-                        if (castItemTemplate.UseSkillAsReagent)
-                            consumedItems.Add((useItem, effect.ConsumeItemCount));
-                    }
-                }
-
-                if (player != null && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
-                {
-                    if (effect.ConsumeSourceItem)
-                    {
-                        if (!player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption,
-                            effect.ConsumeItemId, effect.ConsumeItemCount))
-                            continue;
-                    }
-                    else
-                    {
-                        var inventory = player.Inventory.CheckItems(SlotType.Inventory, effect.ConsumeItemId, effect.ConsumeItemCount);
-                        var equipment = player.Inventory.CheckItems(SlotType.Equipment, effect.ConsumeItemId, effect.ConsumeItemCount);
-                        if (!(inventory || equipment))
-                        {
-                            continue;
-                        }
-
-                        consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
-                    }
-                }
-
+                // Apply the effect
                 effectsToApply.Add((target, effect));
+                lastAppliedEffect = effect;
                 //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
             }
         }
 
-        //This will handle all items with a reagent/product
+        // Handle consumption of items from effects
+        // Placed outside the loop to prevent multiple uses
+        if (lastAppliedEffect != null)
+        {
+            // Consume the item
+            if (casterCaster is SkillItem castItem && player != null)
+            {
+                var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
+                if (lastAppliedEffect.ConsumeSourceItem)
+                    consumedItems.Add((useItem, lastAppliedEffect.ConsumeItemCount));
+                else
+                {
+                    var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
+                    if (castItemTemplate.UseSkillAsReagent)
+                        consumedItems.Add((useItem, lastAppliedEffect.ConsumeItemCount));
+                }
+            }
+
+            if (player != null && lastAppliedEffect.ConsumeItemId != 0 && lastAppliedEffect.ConsumeItemCount > 0)
+            {
+                if (lastAppliedEffect.ConsumeSourceItem)
+                {
+                    consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));
+                }
+                else
+                {
+                    var inventory = player.Inventory.CheckItems(SlotType.Inventory, lastAppliedEffect.ConsumeItemId,
+                        lastAppliedEffect.ConsumeItemCount);
+                    var equipment = player.Inventory.CheckItems(SlotType.Equipment, lastAppliedEffect.ConsumeItemId,
+                        lastAppliedEffect.ConsumeItemCount);
+                    if (inventory || equipment)
+                    {
+                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));    
+                    }
+                }
+            }
+        }
+
+        // This will handle all items with a reagent/product
         var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
         var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
         if (reagents.Count > 0 || skillProducts.Count > 0)
@@ -940,13 +991,31 @@ public class Skill
             {
                 if (reagents.Count > 0)
                 {
+                    var foundValidReagents = false;
                     foreach (var reagent in reagents)
                     {
-                        var consumeCount = player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
-                        if (consumeCount < reagent.Amount)
+                        player.Inventory.Bag.GetAllItemsByTemplate(reagent.ItemId, -1, out _, out var totalCount);
+                        if (totalCount >= reagent.Amount)
                         {
-                            player.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
+                            consumedItemTemplates.Add((reagent.ItemId, reagent.Amount));
+                            foundValidReagents = true;
+                            if (Template.FirstReagentOnly)
+                                break;
                         }
+                        else
+                        if (!Template.FirstReagentOnly)
+                        {
+                            // Not enough reagent items
+                            Cancelled = true;
+                            return;
+                        }
+                    }
+
+                    if (!foundValidReagents)
+                    {
+                        // Not enough reagent items
+                        Cancelled = true;
+                        return;
                     }
                 }
 
@@ -963,67 +1032,75 @@ public class Skill
         // Check if any of the effects use Weight, and pick a random value
         var weightedTotal = 0;
         var selectedWeight = -1;
-        foreach (var item in effectsToApply)
-            weightedTotal += item.effect.Weight;
+        foreach (var (_, effect) in effectsToApply)
+            weightedTotal += effect.Weight;
         if (weightedTotal > 0)
             selectedWeight = Random.Shared.Next(weightedTotal);
         var currentWeight = 0;
         // (caster as Character)?.SendMessage($"Effect Random {selectedWeight+1}/{weightedTotal}");
 
-        foreach (var item in effectsToApply)
+        // Apply the effects that need to happen
+        foreach (var (target, effect) in effectsToApply)
         {
             // If this item uses Weight, handle the random selector
             // For example NPC /useskill 13834 has multiple bubble chat effects that need to be picked from
             // Probably used for some combat and loot skills as well
-            if (item.effect.Weight > 0)
+            if (effect.Weight > 0)
             {
-                if (selectedWeight < 0)
+                // Check if we already have a result
+                if (selectedWeight == -1)
+                    continue;
+
+                // If selection is outside the current range, then skip this effect
+                currentWeight += effect.Weight;
+                if (selectedWeight >= currentWeight)
                 {
-                    currentWeight += item.effect.Weight;
                     continue;
                 }
-                if (selectedWeight >= currentWeight + item.effect.Weight)
-                {
-                    currentWeight += item.effect.Weight;
-                    continue;
-                }
+
+                // (caster as Character)?.SendMessage($"Selected Effect {effect.EffectId} ({currentWeight}) using {selectedWeight} / {weightedTotal} - Buff {effect.Template.BuffId}");
                 selectedWeight = -1;
             }
 
             // Template can be null for some reason.
-            if (item.effect.Template != null)
+            if (effect.Template != null)
             {
-                if (item.effect.Template is KillNpcWithoutCorpseEffect nsse)
+                var thisTargetCaster = target.ObjId == targetCaster.ObjId
+                    ? targetCaster
+                    : new SkillCastUnitTarget(target.ObjId);
+
+                if (effect.Template is KillNpcWithoutCorpseEffect nsse)
                 {
                     // для квеста 3478, требуется чтобы caster был Npc
                     // для квеста 3993 должен выполняться эффект, а он прерывался из-за неправильного сравнения!
                     var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
-                    item.effect.Template.Apply(npc ?? caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    effect.Template.Apply(npc ?? caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 }
                 else
                 {
-                    item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    effect.Template.Apply(caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
 
                     if (player is { SkillCancelled: true }) { Cancelled = true; }
                 }
 
                 // Implement consumption of item sets
-                if (item.effect.ItemSetId > 0)
+                if (effect.ItemSetId > 0)
                 {
                     // TODO: Check what KindId does (only 1 used in 1.2)
                     // TODO: Verify items before validating skill
-                    var itemSet = ItemManager.Instance.GetItemSet(item.effect.ItemSetId);
+                    var itemSet = ItemManager.Instance.GetItemSet(effect.ItemSetId);
                     if (itemSet != null)
                     {
                         foreach (var itemSetItem in itemSet.Items)
                         {
-                            player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, itemSetItem.Value.ItemId, itemSetItem.Value.Count, null);
+                            consumedItemTemplates.Add((itemSetItem.Value.ItemId, itemSetItem.Value.Count));
+                            // player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, itemSetItem.Value.ItemId, itemSetItem.Value.Count, null);
                         }
                     }
                 }
             }
             else
-                Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{item.effect.EffectId}]");
+                Logger.Error($"Template not found for Skill[{Template.Id}] Effect[{effect.EffectId}]");
         }
 
         // TODO Call OnItemUse() moved to the ApplyEffects() method from the effects and add trigger ConditionChance;

@@ -34,10 +34,24 @@ public class CommandManager : Singleton<CommandManager>
 
     public ICommand GetCommandInterfaceByName(string commandName)
     {
-        _commands.TryGetValue(commandName.ToLower(), out var command);
-        return command;
+        var cmd = _commands.GetValueOrDefault(commandName.ToLower());
+
+        // If not found, check if it's an alias
+        if ((cmd == null) && (_commandAliases.TryGetValue(commandName.ToLower(), out var originalName)))
+            cmd = _commands.GetValueOrDefault(originalName.ToLower());
+
+        return cmd;
     }
 
+    public string GetCommandNameBase(string aliasName)
+    {
+        if (_commandAliases.TryGetValue(aliasName, out var aName))
+            return aName;
+        if (_commands.TryGetValue(aliasName, out _))
+            return aliasName;
+        return "";
+    }
+    
     public void Register(string name, ICommand command)
     {
         if (_commands.ContainsKey(name.ToLower()))

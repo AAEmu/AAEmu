@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -137,6 +138,48 @@ public class SpawnManager : Singleton<SpawnManager>
             }
         }
         Logger.Info($"{count} NPC spawners spawned in world {worldId}");
+    }
+
+    public int DeSpawnAll(byte worldId)
+    {
+        var world = WorldManager.Instance.GetWorlds().FirstOrDefault(x => x.Id == worldId);
+        if (world == null)
+            return -1 ;
+
+        var res = 0;
+        // NPCs
+        foreach (var npc in WorldManager.Instance.GetAllNpcs().ToList())
+        {
+            if (npc.Spawner != null)
+            {
+                npc.Spawner.RespawnTime = 9999999;
+                npc.Spawner.Despawn(npc);
+            }
+            else
+            {
+                npc.Hide();
+            }
+
+            res++;
+        }
+
+        // Doodads
+        foreach (var doodad in WorldManager.Instance.GetAllDoodads().ToList())
+        {
+            if (doodad.Spawner != null)
+            {
+                doodad.Spawner.RespawnTime = 9999999;
+                doodad.Spawner.Despawn(doodad);
+            }
+            else
+            {
+                doodad.Hide();
+            }
+
+            res++;
+        }
+
+        return res;
     }
 
     public void Load()

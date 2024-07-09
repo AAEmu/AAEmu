@@ -41,6 +41,8 @@ namespace AAEmu.Game.Models.Game.Char;
 public partial class Character : Unit, ICharacter
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Character;
+    
     public static Dictionary<uint, uint> UsedCharacterObjIds { get; } = new();
 
     private Dictionary<ushort, string> _options;
@@ -103,6 +105,7 @@ public partial class Character : Unit, ICharacter
     public int VocationPoint { get; set; }
     public short CrimePoint { get; set; }
     public int CrimeRecord { get; set; }
+    public int JuryPoint { get; set; }
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
@@ -162,6 +165,11 @@ public partial class Character : Unit, ICharacter
     /// AttachPoint the player currently has in use  
     /// </summary>
     public AttachPointKind AttachedPoint { get; set; }
+
+    /// <summary>
+    /// Helper to keep track of what cinema is supposed to play
+    /// </summary>
+    public uint CurrentlyPlayingCinemaId { get; set; }
 
     public override bool IsUnderWater
     {
@@ -1346,7 +1354,6 @@ public partial class Character : Unit, ICharacter
         if (change)
         {
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-            //StartRegen();
         }
     }
 
@@ -1600,12 +1607,12 @@ public partial class Character : Unit, ICharacter
 
     public override int DoFallDamage(ushort fallVel)
     {
-        var fallDamage = base.DoFallDamage(fallVel);
         if (CharacterManager.Instance.GetEffectiveAccessLevel(this) >= AppConfiguration.Instance.World.IgnoreFallDamageAccessLevel)
         {
-            Logger.Debug($"{Name}'s negated {fallDamage} FallDamage because of IgnoreFallDamageAccessLevel settings");
+            Logger.Debug($"{Name} negated FallDamage because of IgnoreFallDamageAccessLevel settings");
             return 0; // GM & Admin take 0 damage from falling
         }
+        var fallDamage = base.DoFallDamage(fallVel);
         Logger.Trace($"FallDamage: {Name} - Vel {fallVel} DmgPerc: {(int)((fallVel - 8600) / 150f)}, Damage {fallDamage}");
         return fallDamage;
     }
@@ -1613,18 +1620,16 @@ public partial class Character : Unit, ICharacter
     /// <summary>
     /// ItemUse - is used to work the quests
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="id">item.id</param>
     public void ItemUse(ulong id)
     {
         var item = Inventory.GetItemById(id);
         if (item is { Count: > 0 })
         {
-            //Quests.OnItemUse(item);
-            // инициируем событие
+            // Trigger event
             Events?.OnItemUse(this, new OnItemUseArgs
             {
-                ItemId = item.TemplateId,
-                Count = item.Count
+                ItemId = item.TemplateId
             });
         }
     }
@@ -1987,6 +1992,7 @@ public partial class Character : Unit, ICharacter
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
                     character.CrimeRecord = reader.GetInt32("crime_record");
+                    // character.JuryPoint = reader.GetInt32("jury_point"); // TODO: Implement JuryPoint
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
@@ -2520,7 +2526,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(0L); // moneyAmount ?
         stream.Write(CrimePoint); // current crime points (/50)
         stream.Write(CrimeRecord); // total infamy 
-        stream.Write((short)0); // crimeScore?
+        stream.Write((short)0); // crimeScore? trials served?
         stream.Write(DeleteRequestTime);
         stream.Write(TransferRequestTime);
         stream.Write(DeleteTime); // deleteDelay
@@ -2535,6 +2541,32 @@ public partial class Character : Unit, ICharacter
         stream.Write(Updated);
         stream.Write((byte)0); // forceNameChange ?
         return stream;
+    }
+
+    /// <summary>
+    /// Adds crime, and returns the new (current) crime value
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <returns></returns>
+    public short AddCrime(int amount)
+    {
+        var newAmount = CrimePoint + amount;
+        if (newAmount > short.MaxValue)
+        {
+            CrimePoint = short.MaxValue; // current crime point can't go over short MaxValue
+        }
+        if (newAmount < 0)
+        {
+            CrimePoint = 0;
+        }
+        else
+        {
+            CrimePoint = (short)newAmount;
+        }
+        CrimeRecord += amount; // total amount
+        if (CrimeRecord < 0)
+            CrimeRecord = 0;
+        return CrimePoint;
     }
 
     public override string DebugName()

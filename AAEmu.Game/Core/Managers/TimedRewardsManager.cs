@@ -21,7 +21,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
         TaskManager.Instance.Schedule(new TimedRewardsTask(), TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
-    private static short GetMaxLabor(bool isPremium)
+    public static short GetMaxLabor(bool isPremium)
     {
         return isPremium ? MaxLaborPremium : MaxLabor;
     }

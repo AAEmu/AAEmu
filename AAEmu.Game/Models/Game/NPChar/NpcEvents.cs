@@ -51,7 +51,7 @@ public partial class Npc
                     break;
                 case SkillUseConditionKind.OnAlert:
                     Logger.Trace($"Registering OnAlert event for npc objId: {ObjId}, templateId: {TemplateId}, skill {skill.SkillId}");
-                    Events.InAlert += InAlert;
+                    Events.OnAlert += OnAlert;
                     break;
                 case SkillUseConditionKind.None:
                 default:
@@ -102,7 +102,7 @@ public partial class Npc
                     break;
                 case SkillUseConditionKind.OnAlert:
                     Logger.Trace($"Unregistering OnAlert event for npc objId: {ObjId}, templateId: {TemplateId}, skill {skill.SkillId}");
-                    Events.InAlert -= InAlert;
+                    Events.OnAlert -= OnAlert;
                     break;
                 case SkillUseConditionKind.None:
                 default:
@@ -156,7 +156,7 @@ public partial class Npc
             }
 
             Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-            skill.Use(npc, skillCaster, skillTarget);
+            skill.Use(npc, skillCaster, skillTarget, null, false, out _);
         }
     }
 
@@ -189,7 +189,7 @@ public partial class Npc
             }
 
             Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-            skill.Use(npc, skillCaster, skillTarget);
+            skill.Use(npc, skillCaster, skillTarget, null, false, out _);
         }
     }
 
@@ -225,7 +225,7 @@ public partial class Npc
             }
 
             Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-            skill.Use(npc, skillCaster, skillTarget);
+            skill.Use(npc, skillCaster, skillTarget, null, true, out _);
         }
     }
 
@@ -233,7 +233,7 @@ public partial class Npc
     {
         if (args.Npc is not Npc npc) { return; }
 
-        var skills = NpcGameData.Instance.GetNpSkills(npc.TemplateId, SkillUseConditionKind.InIdle);
+        var skills = NpcGameData.Instance.GetNpSkills(npc.TemplateId, SkillUseConditionKind.OnSpawn);
         if (skills == null) { return; }
 
         Logger.Trace($"Npc objId: {npc.ObjId}, templateId: {npc.TemplateId} OnSpawn triggered.");
@@ -258,7 +258,7 @@ public partial class Npc
             }
 
             Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-            skill.Use(npc, skillCaster, skillTarget);
+            skill.Use(npc, skillCaster, skillTarget, null, true, out _);
         }
     }
 
@@ -266,7 +266,7 @@ public partial class Npc
     {
         if (args.Npc is not Npc npc) { return; }
 
-        var skills = NpcGameData.Instance.GetNpSkills(npc.TemplateId, SkillUseConditionKind.InIdle);
+        var skills = NpcGameData.Instance.GetNpSkills(npc.TemplateId, SkillUseConditionKind.OnDespawn);
         if (skills == null) { return; }
 
         Logger.Trace($"Npc objId: {npc.ObjId}, templateId: {npc.TemplateId} OnDespawn triggered.");
@@ -291,15 +291,77 @@ public partial class Npc
             }
 
             Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
-            skill.Use(npc, skillCaster, skillTarget);
+            skill.Use(npc, skillCaster, skillTarget, null, true, out _);
         }
     }
 
     private void InAlert(object sender, InAlertArgs args)
     {
         Logger.Trace($"Npc={args.Npc.ObjId}:{args.Npc.TemplateId} is in alert.");
+        if (args.Npc is not Npc npc) { return; }
+
+        var skills = NpcGameData.Instance.GetNpSkills(npc.TemplateId, SkillUseConditionKind.InAlert);
+        if (skills == null) { return; }
+
+        // Logger.Trace($"Npc objId: {npc.ObjId}, templateId: {npc.TemplateId} OnAlert triggered.");
+
+        foreach (var npcSkill in skills)
+        {
+            var skill = SkillManager.Instance.GetNpSkillTemplate(npcSkill);
+
+            if (skill is null) { continue; }
+
+            var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
+            skillCaster.ObjId = npc.ObjId;
+
+            var skillTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+            skillTarget.ObjId = npc.CurrentTarget?.ObjId ?? 0;
+
+            if (npc.Cooldowns.CheckCooldown(skill.Id)) { continue; }
+
+            if (skill.Template.CooldownTime == 0)
+            {
+                npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
+            }
+
+            Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
+            skill.Use(npc, skillCaster, skillTarget, null, true, out _);
+        }
     }
 
+    private void OnAlert(object sender, OnAlertArgs args)
+    {
+        if (args.Npc is not Npc npc) { return; }
+
+        var skills = NpcGameData.Instance.GetNpSkills(npc.TemplateId, SkillUseConditionKind.OnAlert);
+        if (skills == null) { return; }
+
+        Logger.Trace($"Npc objId: {npc.ObjId}, templateId: {npc.TemplateId} OnAlert triggered.");
+
+        foreach (var npcSkill in skills)
+        {
+            var skill = SkillManager.Instance.GetNpSkillTemplate(npcSkill);
+
+            if (skill is null) { continue; }
+
+            var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
+            skillCaster.ObjId = npc.ObjId;
+
+            var skillTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+            skillTarget.ObjId = npc.ObjId;
+
+            if (npc.Cooldowns.CheckCooldown(skill.Id)) { continue; }
+
+            if (skill.Template.CooldownTime == 0)
+            {
+                npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
+            }
+
+            Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
+            skill.Use(npc, skillCaster, skillTarget, null, true, out _);
+        }
+    }
+    
     private void InDead(object sender, InDeadArgs args)
     {
         Logger.Trace($"Npc={args.Npc.ObjId} : {args.Npc.TemplateId} is in death state.");

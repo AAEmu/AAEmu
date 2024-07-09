@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Drawing;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;

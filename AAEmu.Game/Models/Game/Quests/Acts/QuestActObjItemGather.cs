@@ -1,15 +1,14 @@
 ﻿using System;
-
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjItemGather : QuestActTemplate // Сбор предметов
+public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent), IQuestActGenericItem // Сбор предметов
 {
+    public override bool CountsAsAnObjective => true;
     public uint ItemId { get; set; }
-    public int Count { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
     public bool UseAlias { get; set; }
@@ -18,76 +17,64 @@ public class QuestActObjItemGather : QuestActTemplate // Сбор предмет
     public bool DropWhenDestroy { get; set; }
     public bool DestroyWhenDrop { get; set; }
 
-    private int Objective { get; set; }
-    //public static int GatherStatus { get; private set; } = 0;
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    /// <summary>
+    /// Checks if the number of items have been acquired 
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug("QuestActObjItemGather: ItemId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
-            ItemId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
-
-        var res = false;
-        var maxCleanup = quest.Template.LetItDone ? Count * 7 / 5 : Count;
-        if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
-        {
-            quest.GatherStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = quest.GatherStatus + quest.HuntStatus + quest.GroupHuntStatus + quest.InteractionStatus;
-
-            if (quest.Template.LetItDone)
-            {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
-                    quest.EarlyCompletion = true;
-
-                if (quest.OverCompletionPercent > quest.Template.Score)
-                    quest.ExtraCompletion = true;
-            }
-
-            Update();
-
-            res = quest.OverCompletionPercent >= quest.Template.Score;
-        }
-        else
-        {
-            if (quest.Template.LetItDone)
-            {
-                quest.OverCompletionPercent = objective * 100 / Count;
-
-                if (quest.OverCompletionPercent >= 50)
-                    quest.EarlyCompletion = true;
-
-                if (quest.OverCompletionPercent > 100)
-                    quest.ExtraCompletion = true;
-            }
-
-            Update();
-
-            res = objective >= Count;
-        }
-
-        if (res && Cleanup)
-            quest.QuestCleanupItemsPool.Add(new ItemCreationDefinition(ItemId, Math.Min(maxCleanup, objective)));
-
-        return res;
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
+        SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
+        return GetObjective(quest) >= Count;
     }
 
-    public override void Update()
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
-        Objective++;
-    }
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
+        base.InitializeAction(quest, questAct);
+        SetObjective(quest, quest.Owner.Inventory.GetItemsCount(ItemId));
 
-        return Objective;
+        // Register event handler
+        quest.Owner.Events.OnItemGather += questAct.OnItemGather;
     }
-    public override void ClearStatus()
+
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
-        //GatherStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
+        base.FinalizeAction(quest, questAct);
+
+        // Un-register event handler
+        quest.Owner.Events.OnItemGather -= questAct.OnItemGather;
+    }
+
+    public override void QuestCleanup(Quest quest)
+    {
+        base.QuestCleanup(quest);
+        if (!Cleanup)
+            return;
+
+        // quest.Owner?.Inventory.ConsumeItem([], ItemTaskType.QuestRemoveSupplies, ItemId, MaxObjective(), null);
+        var cleanupCount = Math.Min(GetObjective(quest), MaxObjective());
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, cleanupCount, null);
+    }
+
+    public override void QuestDropped(Quest quest)
+    {
+        base.QuestDropped(quest);
+        if (!DestroyWhenDrop)
+            return;
+
+        var cleanupCount = Math.Min(GetObjective(quest), MaxObjective());
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, cleanupCount, null);
+    }
+
+    public override void OnItemGather(QuestAct questAct, object sender, OnItemGatherArgs args)
+    {
+        if ((questAct.Id != ActId) || (args.ItemId != ItemId))
+            return;
+
+        // Just adding/removing the count should technically be enough without having to do a new count
+        // AddObjective(questAct, args.Count, Count);
+        SetObjective((QuestAct)questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
     }
 }

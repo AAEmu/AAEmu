@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-
+using System.Numerics;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
@@ -186,55 +186,22 @@ public class SphereCommandUtil
         }
     }
 
-    public static void GetSphereList(Character character, uint questId)
+    private static void GetSphereList(Character character, uint questId)
     {
-        var worlds = WorldManager.Instance.GetWorlds();
-
-        foreach (var world in worlds)
+        var triggers = SphereQuestManager.Instance.GetSphereQuestTriggers();
+        var count = 0;
+        foreach (var questTrigger in triggers)
         {
-            if (character.Transform.WorldId != world.Id)
-            {
+            if (questTrigger.Owner.Id != character.Id)
                 continue;
-            }
-
-            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
-
-            var contents =
-                FileManager.GetFileContents(
-                    $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
-            if (string.IsNullOrWhiteSpace(contents))
-                Logger.Warn(
-                    $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
-            else
-            {
-                if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
-                {
-                    bool found = false;
-                    foreach (var sphere in spheres)
-                    {
-                        if (sphere.QuestId == questId)
-                        {
-                            if (found == false)
-                            {
-                                character.SendMessage($"Sphere's in quest_sphere.json for questId {questId}");
-                                found = true;
-                            }
-
-                            character.SendMessage($"JsonId {sphere.Id}");
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        character.SendMessage($"Found no Sphere's in quest_sphere.json for questId {questId}");
-                    }
-                }
-                else
-                    throw new GameException(
-                        $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
-
-            }
+            if ((questId > 0) && (questTrigger.Quest.Id != questId))
+                continue;
+            var currentDistance = MathUtil.CalculateDistance(character.Transform.World.Position,questTrigger.Sphere.Xyz, true);
+            character.SendMessage($"[Sphere] Quest {questTrigger.Quest.TemplateId} - Component: {questTrigger.Sphere.ComponentId} - TriggerSphere  xyz:{questTrigger.Sphere.Xyz} , radius:{questTrigger.Sphere.Radius}m, at {currentDistance:F1}m away");
+            count++;
         }
+        if (count <= 0)
+            character.SendMessage($"[Sphere] No active sphere triggers found" + (questId > 0 ? $" for QuestId {questId}" : ""));
     }
 
     public static void RemoveQuestSphere(Character character, uint jsonId)

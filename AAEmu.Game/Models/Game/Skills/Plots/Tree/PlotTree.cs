@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -32,7 +31,7 @@ public class PlotTree
     {
         var treeWatch = new Stopwatch();
         treeWatch.Start();
-        Logger.Trace("Executing plot tree with ID {0}", PlotId);
+        Logger.Trace($"Executing plot tree with ID {PlotId}");
         try
         {
             var stopWatch = new Stopwatch();
@@ -45,8 +44,8 @@ public class PlotTree
 
             while (queue.Count > 0)
             {
-                var nodewatch = new Stopwatch();
-                nodewatch.Start();
+                var nodeWatch = new Stopwatch();
+                nodeWatch.Start();
                 if (state.CancellationRequested())
                 {
                     if (state.IsCasting)
@@ -143,8 +142,8 @@ public class PlotTree
 
                 }
 
-                if (nodewatch.ElapsedMilliseconds > 100)
-                    Logger.Trace($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
+                if (nodeWatch.ElapsedMilliseconds > 100)
+                    Logger.Trace($"Event:{node.Event.Id} Took {nodeWatch.ElapsedMilliseconds} to finish.");
             }
 
             FlushExecutionQueue(executeQueue, state);
@@ -155,7 +154,7 @@ public class PlotTree
         }
 
         DoPlotEnd(state);
-        Logger.Trace("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
+        Logger.Trace($"Tree with ID {PlotId} has finished executing took {treeWatch.ElapsedMilliseconds}ms");
     }
 
     private static void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
@@ -173,9 +172,9 @@ public class PlotTree
 
     private static void EndPlotChannel(PlotState state)
     {
-        foreach (var pair in state.ChanneledBuffs)
+        foreach (var (unit, buffId) in state.ChanneledBuffs)
         {
-            pair.unit.Buffs.RemoveBuff(pair.buffId);
+            unit.Buffs.RemoveBuff(buffId);
         }
     }
 
@@ -186,13 +185,13 @@ public class PlotTree
 
         state.Caster?.Cooldowns.AddCooldown(state.ActiveSkill.Template.Id, (uint)state.ActiveSkill.Template.CooldownTime);
 
-        if (state.Caster is Character character && character.IgnoreSkillCooldowns)
+        if (state.Caster is Character { IgnoreSkillCooldowns: true } character)
             character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
 
         // Maybe always do this on end of plot?
         // Should we check if it was a channeled skill?
         if (state.CancellationRequested())
-            state.Caster?.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
+            state.Caster?.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs());
 
         SkillTlIdManager.ReleaseId(state.ActiveSkill.TlId);
         state.ActiveSkill.TlId = 0;

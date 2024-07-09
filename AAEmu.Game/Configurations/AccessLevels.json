@@ -39,6 +39,7 @@
         "build": 100,
         "clearcombat": 100,
         "damage": 100,
+        "despawnall": 100,
         "dummy": 100,
         "echo": 100,
         "housebindingmove": 100,
