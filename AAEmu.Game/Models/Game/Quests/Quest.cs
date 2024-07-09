@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,14 +9,10 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Models.Tasks.PublicFarm;
-using AAEmu.Game.Models.Tasks.Quests;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
@@ -25,12 +21,12 @@ public partial class Quest : PacketMarshaler
     private const int MaxObjectiveCount = 5;
     private readonly ISphereQuestManager _sphereQuestManager;
     private readonly IQuestManager _questManager;
-    private readonly TaskManager _taskManager;
+    private readonly ITaskManager _taskManager;
     private readonly ISkillManager _skillManager;
     private readonly IExpressTextManager _expressTextManager;
     private readonly IWorldManager _worldManager;
     private QuestComponentKind _step;
-    
+
     /// <summary>
     /// DB ID
     /// </summary>
@@ -207,7 +203,7 @@ public partial class Quest : PacketMarshaler
     /// <param name="expressTextManager"></param>
     /// <param name="worldManager"></param>
     public Quest(IQuestTemplate questTemplate, ICharacter owner, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
-        TaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
+        ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
         IWorldManager worldManager)
     {
         Owner = owner;
@@ -248,445 +244,6 @@ public partial class Quest : PacketMarshaler
     {
         // Nothing Extra
     }
-
-    private QuestStatus CalculateQuestStatus(QuestComponentTemplate currentComponent)
-    {
-        var questComponents = Template.Components.Values.ToList();
-        var currentComponentIndex = questComponents.IndexOf(currentComponent);
-
-        if (currentComponent.KindId is not QuestComponentKind.None and not QuestComponentKind.Start)
-        {
-            return Status;
-        }
-
-        // Let's take next component following Start or None
-        var nextComponent = questComponents.ElementAt(currentComponentIndex + 1);
-
-        if (nextComponent.KindId != QuestComponentKind.Supply)
-        {
-            if (nextComponent.ActTemplates.Count == 0)
-            {
-                return QuestStatus.Ready;
-            }
-
-            return nextComponent.KindId == QuestComponentKind.Progress
-                ? QuestStatus.Progress
-                : QuestStatus.Ready;
-        }
-
-        // This is a rare case scenario where a quest component supply kind is followed by a progress kind both with ActSupplyItem
-        // Quest ids: 748, 1478, 2479, 5458
-
-        var supplyComponent = nextComponent;
-        // Component following Supply
-        var componentAfterSupply = questComponents.ElementAt(currentComponentIndex + 2);
-
-        if (componentAfterSupply.KindId == QuestComponentKind.Progress && componentAfterSupply.ActTemplates.Any(x => x is QuestActSupplyItem))
-        {
-            // The specific quest 5458 fall in this category but the item supplied is different
-            var componentAfterSupplySupplyItems = componentAfterSupply.ActTemplates.OfType<QuestActSupplyItem>().Select(i => i?.ItemId ?? 0).ToArray();
-            var supplyComponentSupplyItems = supplyComponent.ActTemplates.OfType<QuestActSupplyItem>().Select(i => i?.ItemId ?? 0).ToArray();
-
-            // Checks if the Items provided in the Supply component act is the same for Progress component act
-            if (!componentAfterSupplySupplyItems.Except(supplyComponentSupplyItems).Any())
-            {
-                return QuestStatus.Ready;
-            }
-        }
-
-        return componentAfterSupply.KindId == QuestComponentKind.Progress
-            ? QuestStatus.Progress
-            : QuestStatus.Ready;
-    }
-
-/*    
-    public void Update(bool send = true)
-    {
-        if (!send) { return; }
-
-        for (; Step <= QuestComponentKind.Reward; Step++)
-        {
-            if (Step is QuestComponentKind.Fail or QuestComponentKind.Drop)
-                continue;
-
-            if (Step >= QuestComponentKind.Drop)
-                Status = QuestStatus.Completed;
-            else if (Step >= QuestComponentKind.Ready)
-                Status = QuestStatus.Ready;
-
-            var components = Template.GetComponents(Step);
-            switch (components.Length)
-            {
-                case 0 when Step == QuestComponentKind.Ready: // если нет шага Ready переходим к завершению квеста (if there is no Ready step, go to the end of the quest)
-                    {
-                        // делаем задержку 6 сек перед вызовом Owner.Quests.Complete(TemplateId, 0); (delay 6 sec before calling Owner.Quests.Complete(TemplateId, 0);)
-                        Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-                        var delay = 6;
-                        QuestTask = new QuestCompleteTask(Owner, TemplateId);
-                        _taskManager.Schedule(QuestTask, TimeSpan.FromSeconds(delay));
-                        return;
-                    }
-                case 0: // пропустим пустые шаги (let's skip the empty steps)
-                    continue;
-            }
-
-            var completes = new List<bool>();
-            for (var i = 0; i < components.Length; i++)
-            {
-                completes.Add(false);
-            }
-            var selectiveList = new List<bool>();
-            var selective = false;
-            var complete = false;
-            var questActObjTalk = false; // TODO: added for quest Id=2037
-            var questActObjInteraction = false; // TODO: added for quest Id=3353
-            var reportNpc = false;
-
-            for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
-            {
-                var currentComponent = components[componentIndex];
-                var acts = _questManager.GetActs(currentComponent.Id);
-                CheckReportNpcs(acts, componentIndex, currentComponent, ref complete, ref reportNpc);
-
-                foreach (var act in acts)
-                {
-                    switch (act.DetailType)
-                    {
-                        case "QuestActSupplyItem" when Step == QuestComponentKind.Progress:
-                            {
-                                // if SupplyItem = 0, we get the item
-                                complete = act.Use(Owner, this, SupplyItem);
-                                break;
-                            }
-                        case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
-                            {
-                                complete = act.Use(Owner, this, SupplyItem);
-                                Logger.Debug($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                var next = QuestComponentKind.Progress;
-                                var componentnext = Template.GetFirstComponent(next);
-                                if (componentnext == null)
-                                    break;
-                                var actsnext = _questManager.GetActs(componentnext.Id);
-                                foreach (var qa in actsnext)
-                                {
-                                    var questSupplyItem = (QuestActSupplyItem)_questManager.GetActTemplate(act.DetailId, "QuestActSupplyItem");
-                                    var questItemGather = (QuestActObjItemGather)_questManager.GetActTemplate(qa.DetailId, "QuestActObjItemGather");
-                                    switch (qa.DetailType)
-                                    {
-                                        case "QuestActObjItemGather" when questSupplyItem.ItemId == questItemGather.ItemId:
-                                            Owner.Inventory.Bag.GetAllItemsByTemplate(questSupplyItem.ItemId, -1, out _, out var newObjectives);
-                                            qa.SetObjective(this, newObjectives);
-                                            complete = qa.Use(Owner, this, newObjectives);
-                                            Step = next;
-                                            ComponentId = currentComponent.Id;
-                                            break;
-                                        default:
-                                            complete = false;
-                                            break;
-                                    }
-                                    Logger.Debug($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                }
-                                break;
-                            }
-                        case "QuestActConReportJournal":
-                        case "QuestActConReportDoodad":
-                        case "QuestActConReportNpc":
-                            {
-                                if (reportNpc)
-                                {
-                                    // мы уже проверяли этот пункт, поэтому пропускаем (We have already checked this item, so we miss)
-                                }
-                                else
-                                {
-                                    complete = act.Use(Owner, this, act.GetObjective(this));
-                                }
-                                // проверка результатов на валидность (Validation of results)
-                                if (complete)
-                                {
-                                    UseSkillAndBuff(currentComponent);
-                                    // компонент - выполнен, мы у нужного Npc (component - done, we're at the right Npc)
-                                    Status = QuestStatus.Ready;
-                                    Logger.Debug($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                    Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-                                    Owner.Quests.CompleteQuest(TemplateId, 0);
-                                    return;
-                                }
-                                // компонент - выполнен (component - done)
-                                Status = QuestStatus.Ready;
-                                Logger.Debug($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                break;
-                            }
-                        case "QuestActConAutoComplete":
-                            {
-                                // компонент - выполнен (component - ready)
-                                complete = true;
-                                Status = QuestStatus.Ready;
-                                Logger.Debug($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-                                Owner.Quests.CompleteQuest(TemplateId, 0);
-                                return;
-                            }
-                        case "QuestActObjSphere":
-                            {
-                                // подготовим работу QuestSphere (prepare QuestSphere's work)
-                                //var template = act.GetTemplate<QuestActObjSphere>();
-                                Status = QuestStatus.Progress;
-                                ComponentId = components[componentIndex].Id;
-                                var spheres = _sphereQuestManager.GetQuestSpheres(ComponentId);
-                                if (spheres != null)
-                                {
-                                    foreach (var sphere in spheres)
-                                    {
-                                        var sphereQuestTrigger = new SphereQuestTrigger();
-                                        sphereQuestTrigger.Sphere = sphere;
-
-                                        if (sphereQuestTrigger.Sphere == null)
-                                        {
-                                            Logger.Debug($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                            Logger.Debug($"[Quest] QuestActObjSphere: Sphere not found with cquest {components[componentIndex].Id} in quest_sign_spheres.json!");
-                                            return;
-                                        }
-
-                                        sphereQuestTrigger.Owner = Owner;
-                                        sphereQuestTrigger.Quest = this;
-                                        sphereQuestTrigger.TickRate = 500;
-
-                                        _sphereQuestManager.AddSphereQuestTrigger(sphereQuestTrigger);
-                                    }
-
-                                    const int Duration = 500;
-                                    // TODO : Add a proper delay in here
-                                    Task.Run(async () =>
-                                    {
-                                        await Task.Delay(Duration);
-                                    });
-                                    Logger.Debug($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                                    return;
-                                }
-
-                                // если сфера по какой-то причине отсутствует, будем считать, что мы её посетили
-                                // if the sphere is missing for some reason, we will assume that we have visited it
-                                Status = QuestStatus.Progress;
-                                Owner.SendMessage($"[Quest] {Owner.Name}, quest {TemplateId}, Sphere not found - skipped...");
-                                Logger.Debug($"[Quest] QuestActObjSphere: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, act.DetailType {act.DetailType}");
-                                Logger.Debug($"[Quest] QuestActObjSphere: Sphere not found with cquest {ComponentId} in quest_sign_spheres!");
-                                complete = true;
-                                break;
-                            }
-                        case "QuestActEtcItemObtain":
-                            {
-                                // TODO: added for quest Id=882.
-                                // ничего не делаем (We're not doing anything)
-                                break;
-                            }
-                        case "QuestActObjTalk":
-                            {
-                                var template = act.GetTemplate<QuestActObjTalk>();
-                                // TODO: added for quest Id=2037
-                                complete = act.Use(Owner, this, act.GetObjective(this));
-                                completes[componentIndex] = complete; // продублируем информацию (let's duplicate the information)
-                                // установим в true для дальнейшей проверки (set in True for further verification)
-                                questActObjTalk = true;
-                                switch (currentComponent.NpcAiId)
-                                {
-                                    case QuestNpcAiName.FollowPath:
-                                        {
-                                            var route = currentComponent.AiPathName;
-                                            var npcs = WorldManager.Instance.GetAllNpcs();
-                                            foreach (var npc in npcs)
-                                            {
-                                                if (npc.TemplateId != template.NpcId) { continue; }
-                                                if (npc.IsInPatrol) { break; }
-                                                switch (currentComponent.AiPathTypeId)
-                                                {
-                                                    case PathType.Remove:
-                                                        npc.Simulation.Cycle = false;
-                                                        npc.Simulation.Remove = true;
-                                                        npc.IsInPatrol = true;
-                                                        npc.Simulation.RunningMode = true;
-                                                        npc.Simulation.MoveToPathEnabled = false;
-                                                        npc.Simulation.MoveFileName = route;
-                                                        npc.Simulation.GoToPath(npc, true);
-                                                        break;
-                                                    case PathType.None:
-                                                        break;
-                                                    case PathType.Idle:
-                                                        break;
-                                                    case PathType.Loop:
-                                                        npc.Simulation.Cycle = true;
-                                                        npc.Simulation.Remove = false;
-                                                        npc.IsInPatrol = true;
-                                                        npc.Simulation.RunningMode = true;
-                                                        npc.Simulation.MoveToPathEnabled = false;
-                                                        npc.Simulation.MoveFileName = route;
-                                                        npc.Simulation.GoToPath(npc, true);
-                                                        break;
-                                                    default:
-                                                        throw new NotSupportedException(nameof(currentComponent.AiPathTypeId));
-                                                }
-                                                break;
-                                            }
-
-                                            break;
-                                        }
-                                    case QuestNpcAiName.None:
-                                        break;
-                                    case QuestNpcAiName.FollowUnit:
-                                        break;
-                                    case QuestNpcAiName.AttackUnit:
-                                        break;
-                                    case QuestNpcAiName.GoAway:
-                                        break;
-                                    case QuestNpcAiName.RunCommandSet:
-                                        break;
-                                    default:
-                                        throw new NotSupportedException(nameof(currentComponent.NpcAiId));
-                                }
-                                break;
-                            }
-                        case "QuestActObjInteraction":
-                            {
-                                // TODO: added for quest Id=3353
-                                complete = act.Use(Owner, this, act.GetObjective(this));
-                                completes[componentIndex] = complete;
-                                // установим в true для дальнейшей проверки (set in True for further verification)
-                                questActObjInteraction = true;
-                                break;
-                            }
-                        case "QuestActSupplyRemoveItem":
-                            {
-                                // TODO: added for quest Id=2037
-                                // ничего не делаем (We're not doing anything)
-                                break;
-                            }
-                        case "QuestActObjItemGather":
-                            {
-                                // нужно посмотреть в инвентарь, так как после Start() ещё не знаем, есть предмет в инвентаре или нет (we need to look in the inventory, because after Start() we don't know yet if the item is in the inventory or not)
-                                var template = act.GetTemplate<QuestActObjItemGather>();
-                                if (act.GetObjective(this) == 0)
-                                    act.SetObjective(this, Owner.Inventory.GetItemsCount(template.ItemId));
-                                complete = act.Use(Owner, this, act.GetObjective(this));
-                                completes[componentIndex] = complete; // продублируем информацию (let's duplicate the information)
-                                // проверка результатов на валидность (Validation of results)
-                                if (Template.Selective)
-                                {
-                                    // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких (If Selective = true, it is allowed to be matched to one item out of several)
-                                    selectiveList.Add(completes[componentIndex]);
-                                    selective = true;
-                                }
-                                Status = complete ? QuestStatus.Ready : QuestStatus.Progress;
-                                // если complete == false, также надо слать пакет SCQuestContextUpdatedPacket (if complete == false, we should also send SCQuestContextUpdatedPacket)
-                                break;
-                            }
-                        default:
-                            {
-                                //case "QuestActObjItemUse":
-                                //case "QuestActObjMonsterHunt":
-                                //case "QuestActObjMonsterGroupHunt":
-                                // эти акты могут быть парными: ItemGather & MonsterHunt & MonsterGroupHunt & Interaction
-                                complete = act.Use(Owner, this, act.GetObjective(this));
-                                completes[componentIndex] = complete; // продублируем информацию
-                                // проверка результатов на валидность (Validation of results)
-                                if (Template.Selective)
-                                {
-                                    // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких
-                                    selectiveList.Add(completes[componentIndex]);
-                                    selective = true;
-                                }
-                                Status = complete ? QuestStatus.Ready : QuestStatus.Progress;
-                                // если complete == false, также надо слать пакет SCQuestContextUpdatedPacket (if complete == false, we should also send SCQuestContextUpdatedPacket)
-                                break;
-                            }
-                    }
-                    SupplyItem = 0;
-                    Logger.Debug($"[Quest] Update: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, complete {complete}, act.DetailType {act.DetailType}");
-                }
-
-                if (Step == QuestComponentKind.Progress && complete)
-                    ComponentId = currentComponent.Id;
-
-                if (completes[componentIndex] || complete)
-                {
-                    UseSkillAndBuff(currentComponent);
-                }
-            }
-
-            // TODO added for quest Id=1135 - достаточно выполнение одного элемента itemGather || monsterHunt (it is enough to execute one element itemGather || monsterHunt)
-            // TODO added for quest Id=1511 - обязательно выполнение обеих элементов itemGather (it is obligatory to perform both itemGather elements)
-            if (components.Length > 1)
-            {
-                // TODO added for quest id=4294 - нужен только itemGather, а ItemUse не нужен (only itemGather is needed, and ItemUse is not needed)
-                complete = Template.Score > 0 ? completes.Any(b => b) : completes.All(b => b);
-                Status = complete ? QuestStatus.Ready : QuestStatus.Progress;
-
-                if (questActObjTalk || questActObjInteraction) // TODO: added for quest Id=2037, Id=3353
-                {
-                    for (var i = 0; i < components.Length; i++)
-                    {
-                        if (Objectives[i] > 0)
-                        {
-                            complete = true;
-                            Status = QuestStatus.Ready;
-                        }
-                        else
-                        {
-                            complete = false;
-                            Status = QuestStatus.Progress;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (selective)
-            {
-                // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких (If Selective = true, it is allowed to be matched to one item out of several)
-                if (selectiveList.Contains(true))
-                {
-                    Status = QuestStatus.Ready;
-                    complete = true;
-                }
-            }
-
-            var stepResult = GetQuestObjectiveStatus();
-            if (complete && !(stepResult >= QuestObjectiveStatus.Overachieved || (Template.LetItDone && stepResult >= QuestObjectiveStatus.QuestComplete)))
-            {
-                break; // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
-                       // (the quest can be passed, but we do not let it end when it reaches 100% until we come to the Npc to pass the quest)
-            }
-            if (!complete)
-            {
-                break;
-            }
-        }
-        Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
-    }
-*/
-
-/*
-    private void CheckAcceptNpcs(IQuestAct[] acts, int componentIndex, QuestComponent currentComponent, ref bool res, ref bool acceptNpc)
-    {
-        var questActConAcceptNpc = acts.All(a => a.DetailType == "QuestActConAcceptNpc");
-
-        if (acts.Length <= 0 || !questActConAcceptNpc) { return; }
-
-        // оказывается может быть несколько Npc с которыми можно заключить квест! (It turns out that there may be several NPCs with which you can make a quest!)
-        var targetNpcMatch = acts.Any(t => t.Use(Owner, this, Objectives[componentIndex]));
-        if (!targetNpcMatch)
-        {
-            Logger.Warn($"[Quest] Start: character {Owner.Name}, NPC doesn't match - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {acts[0].DetailType}");
-            return;
-        }
-
-        res = true;
-        acceptNpc = true;
-        ComponentId = currentComponent.Id;
-        Status = CalculateQuestStatus(currentComponent);
-
-        Logger.Debug($"[Quest] Start: character {Owner.Name}, do it - {TemplateId}, ComponentId {ComponentId}, Step {Step}, Status {Status}, res {res}, act.DetailType {acts[0].DetailType}");
-        UseSkillAndBuff(currentComponent);
-        SetNpcAggro(currentComponent);
-    }
-*/
 
     /// <summary>
     /// Use Skill на себя или на Npc, с которым взаимодействуем (Use Skill on yourself or on the Npc you interact with)
@@ -824,7 +381,7 @@ public partial class Quest : PacketMarshaler
                 {
                     QuestRewardRatio = 1f;
                 }
-               
+
                 QuestRewardExpPool += levelBasedRewards.Exp;
                 QuestRewardCoinsPool += levelBasedRewards.Copper;
             }
@@ -936,20 +493,32 @@ public partial class Quest : PacketMarshaler
     public void InitializeQuestActs()
     {
         foreach (var questStep in QuestSteps.Values)
-        foreach (var questComponent in questStep.Components.Values)
-        foreach (var questAct in questComponent.Acts)
-            questAct.Template.InitializeQuest(this, questAct);
+        {
+            foreach (var questComponent in questStep.Components.Values)
+            {
+                foreach (var questAct in questComponent.Acts)
+                {
+                    questAct.Template.InitializeQuest(this, questAct);
+                }
+            }
+        }
     }
-    
+
     /// <summary>
     /// Runs Finalizers for Acts that are active the entire quest
     /// </summary>
     public void FinalizeQuestActs()
     {
         foreach (var questStep in QuestSteps.Values)
-        foreach (var questComponent in questStep.Components.Values)
-        foreach (var questAct in questComponent.Acts)
-            questAct.Template.FinalizeQuest(this, questAct);
+        {
+            foreach (var questComponent in questStep.Components.Values)
+            {
+                foreach (var questAct in questComponent.Acts)
+                {
+                    questAct.Template.FinalizeQuest(this, questAct);
+                }
+            }
+        }
     }
 
     /// <summary>

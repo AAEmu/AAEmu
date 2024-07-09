@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -45,10 +44,10 @@ public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : Que
     {
         return;
         // Check if obtained the specified item, there is no check for removing for EtcItemObtain
-        if ((questAct.Id == ActId) && (e.ItemId == ItemId) && (e.Count > 0))
-            AddObjective((QuestAct)questAct, e.Count);
+        // if ((questAct.Id == ActId) && (e.ItemId == ItemId) && (e.Count > 0))
+        //     AddObjective((QuestAct)questAct, e.Count);
     }
-    
+
     public override void QuestCleanup(Quest quest)
     {
         base.QuestCleanup(quest);

@@ -10,7 +10,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers
 {
     // ReSharper disable once ClassNeverInstantiated.Global
-    public class TaskManager : Singleton<TaskManager>
+    public class TaskManager : Singleton<TaskManager>, ITaskManager
     {
         private static Logger s_log = LogManager.GetCurrentClassLogger();
         private readonly ConcurrentDictionary<uint, Task> _queue = new();

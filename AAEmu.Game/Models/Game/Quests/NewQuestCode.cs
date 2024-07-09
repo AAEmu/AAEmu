@@ -68,12 +68,12 @@ public partial class Quest
             return false;
 
         var res = questStep.RunComponents();
-        
+
         // HackFix: added to account for missing Ready step on Quests that use a Score + LetItBeDone
         if (
-            (Step == QuestComponentKind.Progress) && 
-            (Template.Score > 0) && 
-            (Template.LetItDone) && 
+            (Step == QuestComponentKind.Progress) &&
+            (Template.Score > 0) &&
+            (Template.LetItDone) &&
             (GetQuestObjectivePercent() >= 1f) &&
             !QuestSteps.ContainsKey(QuestComponentKind.Ready))
         {
@@ -85,15 +85,6 @@ public partial class Quest
             GoToNextStep();
         }
 
-        /*
-        ComponentId = 0;
-        Status = stepResult >= QuestObjectiveStatus.QuestComplete
-            ? QuestStatus.Ready // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
-            : QuestStatus.Progress; // пока еще не у всех компонентов objective готовы, ожидаем выполнения задания
-        Condition = QuestConditionObj.Progress;
-
-        */
-        
         // Send update to player
         if (!_skipUpdatePacket)
             Owner?.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
@@ -219,7 +210,7 @@ public partial class Quest
         if (!currentStep.ContainsObjectives())
             return QuestObjectiveStatus.QuestComplete;
 
-        var questComponents = currentStep.Components.Values ;
+        var questComponents = currentStep.Components.Values;
         if (Template.Score > 0)
         {
             // Use Score Handler
@@ -234,7 +225,7 @@ public partial class Quest
                 {
                     if (questComponentAct.Template.ThisComponentObjectiveIndex == 0xFF)
                         continue;
-                    
+
                     score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
                 }
             }
@@ -310,7 +301,7 @@ public partial class Quest
 
         if (!currentStep.ContainsObjectives())
             return 1f;
-        
+
         var questComponents = currentStep.Components.Values;
         if (Template.Score > 0)
         {
@@ -326,7 +317,7 @@ public partial class Quest
                 {
                     if (questComponentAct.Template.ThisComponentObjectiveIndex == 0xFF)
                         continue;
-                    
+
                     score += questComponentAct.Template.Count * Objectives[questComponentAct.Template.ThisComponentObjectiveIndex];
                 }
             }
