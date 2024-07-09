@@ -9,6 +9,7 @@
     <UseRidGraph>true</UseRidGraph>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UserSecretsId>426ad5c3-9a72-44e9-88f5-4b5940b98c28</UserSecretsId>
+    <ApplicationIcon>Resources\icon_game.ico</ApplicationIcon>
   </PropertyGroup>
 
     <ItemGroup>
@@ -59,6 +60,9 @@
       <Compile Remove="Models\Tasks\Telescopes\**" />
       <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
       <None Remove="Models\Tasks\Telescopes\**" />
+      <Compile Update="Scripts\Commands\DeSpawnAll.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
     </ItemGroup>
 
     <ItemGroup>

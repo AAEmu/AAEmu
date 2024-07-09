@@ -101,7 +101,7 @@ public class MateManager : Singleton<MateManager>
         if (mateInfo?.TlId != tlId) return;
 
         mateInfo.UserState = newState; // TODO - Maybe verify range
-        //owner.BroadcastPacket(new SCMateStatePacket(), );
+        // owner.BroadcastPacket(new SCMateStatePacket(mateInfo.ObjId), true);
     }
 
     public void ChangeTargetMate(GameConnection connection, uint tlId, uint objId)

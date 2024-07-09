@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -43,6 +42,8 @@ namespace AAEmu.Game.Models.Game.Char;
 public partial class Character : Unit, ICharacter
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Character;
+    
     public static Dictionary<uint, uint> UsedCharacterObjIds { get; } = new();
 
     private Dictionary<ushort, string> _options;
@@ -166,6 +167,11 @@ public partial class Character : Unit, ICharacter
     /// AttachPoint the player currently has in use  
     /// </summary>
     public AttachPointKind AttachedPoint { get; set; }
+
+    /// <summary>
+    /// Helper to keep track of what cinema is supposed to play
+    /// </summary>
+    public uint CurrentlyPlayingCinemaId { get; set; }
 
     public override bool IsUnderWater
     {
@@ -1607,12 +1613,12 @@ public partial class Character : Unit, ICharacter
 
     public override int DoFallDamage(ushort fallVel)
     {
-        var fallDamage = base.DoFallDamage(fallVel);
         if (CharacterManager.Instance.GetEffectiveAccessLevel(this) >= AppConfiguration.Instance.World.IgnoreFallDamageAccessLevel)
         {
-            Logger.Debug($"{Name}'s negated {fallDamage} FallDamage because of IgnoreFallDamageAccessLevel settings");
+            Logger.Debug($"{Name} negated FallDamage because of IgnoreFallDamageAccessLevel settings");
             return 0; // GM & Admin take 0 damage from falling
         }
+        var fallDamage = base.DoFallDamage(fallVel);
         Logger.Trace($"FallDamage: {Name} - Vel {fallVel} DmgPerc: {(int)((fallVel - 8600) / 150f)}, Damage {fallDamage}");
         return fallDamage;
     }
@@ -1620,18 +1626,16 @@ public partial class Character : Unit, ICharacter
     /// <summary>
     /// ItemUse - is used to work the quests
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="id">item.id</param>
     public void ItemUse(ulong id)
     {
         var item = Inventory.GetItemById(id);
         if (item is { Count: > 0 })
         {
-            //Quests.OnItemUse(item);
-            // инициируем событие
+            // Trigger event
             Events?.OnItemUse(this, new OnItemUseArgs
             {
-                ItemId = item.TemplateId,
-                Count = item.Count
+                ItemId = item.TemplateId
             });
         }
     }
@@ -1749,7 +1753,7 @@ public partial class Character : Unit, ICharacter
     public void DoRepair(List<Item> items)
     {
         var tasks = new List<ItemTask>();
-        var repairCost = 0;
+        int repairCost = 0;
 
         foreach (var item in items)
         {
@@ -1758,30 +1762,25 @@ public partial class Character : Unit, ICharacter
 
             if (!Inventory.Bag.Items.Contains(item) && !Equipment.Items.Contains(item))
             {
-                Logger.Warn($"Attempting to repair an item that isn't in your inventory or equipment, Item={item.Id}");
+                Logger.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
                 continue;
             }
 
             if (!(item is EquipItem equipItem && item.Template is EquipItemTemplate))
             {
-                Logger.Warn($"Attempting to repair a non-equipment item, Item={item.Id}");
+                Logger.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
                 continue;
             }
 
             if (equipItem.Durability >= equipItem.MaxDurability)
             {
-                Logger.Warn($"Attempting to repair an item that has max durability, Item={item.Id}");
+                Logger.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
                 continue;
             }
 
-            // TODO maybe we need to check something else?
-            if (!Buffs.CheckBuff((uint)SkillConstants.Patron))
-            {
 #pragma warning disable CA1508 // Avoid dead conditional code
-                if (CurrentInteractionObject is not Npc npc)
-                {
-                    continue;
-                }
+            if (CurrentInteractionObject is null || !(CurrentInteractionObject is Npc npc))
+                continue;
 #pragma warning restore CA1508 // Avoid dead conditional code
 
                 if (!npc.Template.Blacksmith)
@@ -1790,13 +1789,12 @@ public partial class Character : Unit, ICharacter
                     continue;
                 }
 
-                var dist = MathUtil.CalculateDistance(Transform.World.Position, npc.Transform.World.Position);
+            var dist = MathUtil.CalculateDistance(Transform.World.Position, npc.Transform.World.Position);
 
-                if (dist > 5f)
-                {
-                    SendErrorMessage(ErrorMessageType.TooFarAway);
-                    continue;
-                }
+            if (dist > 5f)
+            {
+                SendErrorMessage(ErrorMessageType.TooFarAway);
+                continue;
             }
 
             var currentRepairCost = equipItem.RepairCost;
@@ -1852,7 +1850,7 @@ public partial class Character : Unit, ICharacter
 
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
@@ -2001,6 +1999,7 @@ public partial class Character : Unit, ICharacter
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
                     character.CrimeRecord = reader.GetInt32("crime_record");
+                    // character.JuryPoint = reader.GetInt32("jury_point"); // TODO: Implement JuryPoint
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");

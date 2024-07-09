@@ -1,9 +1,12 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjSendMail : QuestActTemplate
+/// <summary>
+/// Not used
+/// </summary>
+/// <param name="parentComponent"></param>
+public class QuestActObjSendMail(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemId1 { get; set; }
     public int Count1 { get; set; }
@@ -15,9 +18,8 @@ public class QuestActObjSendMail : QuestActTemplate
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn("QuestActObjSendMail");
-        return false;
+        return base.RunAct(quest, questAct, currentObjectiveCount);
     }
 }

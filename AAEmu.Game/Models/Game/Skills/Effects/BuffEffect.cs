@@ -79,12 +79,13 @@ public class BuffEffect : EffectTemplate
 
         // TODO Doesn't let the quest work Id=2488 "A Mother's Tale", 13, "Lilyut Hills", "Nuian Main"
         // Safeguard to prevent accidental flagging
-        if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
-            return;
+        //if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
+        //    return;
 
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
 
         if (Buff.Kind == BuffKind.Bad && 
+            (target is not Npc) &&
             caster.GetRelationStateTo(target) == RelationState.Friendly && 
             caster != target && 
             !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))

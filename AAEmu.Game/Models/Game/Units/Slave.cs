@@ -30,6 +30,7 @@ namespace AAEmu.Game.Models.Game.Units;
 public class Slave : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Slave;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Slave;
     //public uint Id { get; set; } // moved to BaseUnit
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public uint BondingObjId { get; set; } = 0;

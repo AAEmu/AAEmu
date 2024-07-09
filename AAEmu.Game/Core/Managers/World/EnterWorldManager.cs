@@ -135,6 +135,9 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             connection.ActiveChar.IsOnline = false;
             connection.ActiveChar.LeaveTime = DateTime.UtcNow;
 
+            // Remove all remaining quest timer tasks
+            QuestManager.Instance.RemoveQuestTimer(connection.ActiveChar.Id, 0);
+
             // Despawn and unmount everybody from owned Mates
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(connection.ActiveChar);
             SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(connection.ActiveChar);

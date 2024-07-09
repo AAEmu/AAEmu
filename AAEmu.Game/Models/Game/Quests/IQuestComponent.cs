@@ -7,10 +7,22 @@ namespace AAEmu.Game.Models.Game.Quests;
 
 public interface IQuestComponent
 {
-    public uint Id { get; set; }
-    public List<QuestActTemplate> ActTemplates { get; set; }
+    public QuestComponentTemplate Template { get; set; }
+    bool OverrideObjectiveCompleted { get; set; }
 
-    public void Add(QuestComponent component);
-    public void Remove(QuestComponent component);
-    public List<bool> Execute(ICharacter character, Quest quest, int objective);
+    /// <summary>
+    /// Initialize all Acts in this Component (register event handlers)
+    /// </summary>
+    public void InitializeComponent();
+
+    /// <summary>
+    /// Finalize all Acts in this Component (un-register event handlers)
+    /// </summary>
+    public void FinalizeComponent();
+
+    /// <summary>
+    /// Execute all the acts in this component and return true if successful
+    /// </summary>
+    /// <returns></returns>
+    public bool RunComponent();
 }

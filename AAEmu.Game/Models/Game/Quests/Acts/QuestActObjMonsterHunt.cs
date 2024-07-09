@@ -1,80 +1,48 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjMonsterHunt : QuestActTemplate
+public class QuestActObjMonsterHunt(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint NpcId { get; set; }
-    public int Count { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
 
-    //public static int HuntStatus { get; private set; } = 0;
-    private int Objective { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    /// <summary>
+    /// Checks if the amount of monster kill has been met
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}",
-            NpcId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective);
-
-        if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
-        {
-            quest.HuntStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = quest.HuntStatus + quest.GatherStatus + quest.GroupHuntStatus + quest.InteractionStatus;
-
-            if (quest.Template.LetItDone)
-            {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
-                    quest.EarlyCompletion = true;
-
-                if (quest.OverCompletionPercent > quest.Template.Score)
-                    quest.ExtraCompletion = true;
-            }
-
-            Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, HuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}", NpcId, Count, quest.HuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
-
-            Update();
-
-            return quest.OverCompletionPercent >= quest.Template.Score;
-        }
-
-        if (quest.Template.LetItDone)
-        {
-            quest.OverCompletionPercent = objective * 100 / Count;
-
-            if (quest.OverCompletionPercent >= 50)
-                quest.EarlyCompletion = true;
-
-            if (quest.OverCompletionPercent > 100)
-                quest.ExtraCompletion = true;
-        }
-        Logger.Debug("QuestActObjMonsterHunt: NpcId {0}, Count {1}, quest {2}, objective {3}", NpcId, Count, quest.TemplateId, objective);
-
-        Update();
-
-        return objective >= Count;
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), NpcId {NpcId}, Count {currentObjectiveCount}/{Count}");
+        return currentObjectiveCount >= Count;
     }
-    public override void Update()
-    {
-        Objective++;
-    }
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
 
-        return Objective;
-    }
-    public override void ClearStatus()
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
-        //HuntStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
+        base.InitializeAction(quest, questAct);
+        quest.Owner.Events.OnMonsterHunt += questAct.OnMonsterHunt;
+    }
+
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
+    {
+        quest.Owner.Events.OnMonsterHunt -= questAct.OnMonsterHunt;
+        base.FinalizeAction(quest, questAct);
+    }
+
+    public override void OnMonsterHunt(QuestAct questAct, object sender, OnMonsterHuntArgs args)
+    {
+        if ((questAct.Id != ActId) || (args.NpcId != NpcId))
+            return;
+
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).OnMonsterHunt: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), NpcId {args.NpcId}, Count {args.Count}");
+        AddObjective((QuestAct)questAct, (int)args.Count);
     }
 }

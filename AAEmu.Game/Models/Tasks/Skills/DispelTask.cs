@@ -17,10 +17,8 @@ public class DispelTask : Task
     {
         if (!Effect.IsAlive)
             return;
-        var eff = Effect.Target as Buff;
-        if (eff == null || eff.IsEnded())
-            return;
-        if (eff.Owner == null)
+
+        if ((Effect.Target is not Buff eff) || eff.IsEnded() || eff.Owner == null)
             return;
 
         eff.ScheduleEffect(false);

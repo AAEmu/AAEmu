@@ -176,15 +176,41 @@ public class ItemContainer
             _freeSlotCount = 9999; // Should be more than enough
             return;
         }
-        Items.Sort();
-        var usedSlots = (from iSlot in Items select iSlot.Slot).ToList();
-        var res = 0;
-        for (var i = 0; i < _containerSize; i++)
+
+        try
         {
-            if (!usedSlots.Contains(i))
-                res++;
+            Items.Sort();
+            var usedSlots = new List<int>();
+            foreach (var item in Items)
+            {
+                if (item == null)
+                {
+                    Logger.Warn($"Null Item Slot");
+                    continue;
+                }
+                if (item.Slot <= 0)
+                    continue;
+                //if (usedSlots.Contains(item.Slot))
+                //    Logger.Warn($"Duplicate Item Slot used {item.Slot}");
+
+                usedSlots.Add(item.Slot);
+            }
+            
+            // var usedSlots = (from iSlot in Items select iSlot.Slot).ToList();
+            var res = 0;
+            for (var i = 0; i < _containerSize; i++)
+            {
+                if (!usedSlots.Contains(i))
+                    res++;
+            }
+
+            _freeSlotCount = res;
         }
-        _freeSlotCount = res;
+        catch (Exception e)
+        {
+            Logger.Error(e.Message);
+            throw;
+        }
     }
 
     /// <summary>
@@ -427,9 +453,6 @@ public class ItemContainer
         if (!item.CanDestroy())
             return false;
 
-        Owner?.Inventory.OnConsumedItem(item, item.Count);
-        OnLeaveContainer(item, null);
-
         // Handle items that can expire
         GamePacket sync = null;
         if ((item.ExpirationOnlineMinutesLeft > 0.0) || (item.ExpirationTime > DateTime.UtcNow) || (item.UnpackTime > DateTime.UtcNow))
@@ -446,6 +469,10 @@ public class ItemContainer
             ItemManager.Instance.ReleaseId(item.Id);
         }
         UpdateFreeSlotCount();
+
+        Owner?.Inventory.OnConsumedItem(item, item.Count);
+        OnLeaveContainer(item, null);
+
         return res;
     }
 
@@ -461,8 +488,6 @@ public class ItemContainer
     {
         if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out var count))
             return 0; // Nothing found
-        if (amountToConsume > count)
-            return 0; // Not enough total
 
         if ((preferredItem != null) && (templateId != preferredItem.TemplateId))
             return 0; // Preferred item template did not match the requested template
@@ -487,13 +512,13 @@ public class ItemContainer
 
             if (preferredItem.Count > 0)
             {
-                Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
                 itemTasks.Add(new ItemCountUpdate(preferredItem, -toRemove));
             }
             else
             {
                 RemoveItem(taskType, preferredItem, true); // Normally, this can never fail
             }
+            Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
 
             totalConsumed += toRemove;
         }
@@ -709,7 +734,7 @@ public class ItemContainer
     /// </summary>
     /// <param name="templateId">templateId to search for</param>
     /// <param name="foundItems">List of found item objects</param>
-    /// <param name="gradeToFind">Only lists items of specific grade is gradeToFind >= </param>
+    /// <param name="gradeToFind">Only lists items of specific grade equal to gradeToFind or any grade if -1 was provided</param>
     /// <param name="unitsOfItemFound">Total count of the count values of the found items</param>
     /// <returns>True if any item was found</returns>
     public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems, out int unitsOfItemFound)

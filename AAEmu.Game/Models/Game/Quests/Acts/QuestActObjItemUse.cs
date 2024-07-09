@@ -1,78 +1,48 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActObjItemUse : QuestActTemplate
+internal class QuestActObjItemUse(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
+    public override bool CountsAsAnObjective => true;
     public uint ItemId { get; set; }
-    public int Count { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public bool DropWhenDestroy { get; set; }
 
-    //public static int ItemUseStatus { get; private set; } = 0;
-
-    private int Objective { get; set; }
-
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    /// <summary>
+    /// Checks if the item has been used the specified amount of times
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn("QuestActObjItemUse");
-        if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
-        {
-            quest.ItemUseStatus = objective * Count; // Count в данном случае % за единицу
-            quest.OverCompletionPercent = quest.ItemUseStatus + quest.ItemObtainStatus + quest.HuntStatus + quest.GroupHuntStatus + quest.InteractionStatus;
-
-            if (quest.Template.LetItDone)
-            {
-                if (quest.OverCompletionPercent >= quest.Template.Score * 1 / 2)
-                    quest.EarlyCompletion = true;
-
-                if (quest.OverCompletionPercent > quest.Template.Score)
-                    quest.ExtraCompletion = true;
-            }
-
-            Update();
-
-            return quest.OverCompletionPercent >= quest.Template.Score;
-        }
-
-        if (quest.Template.LetItDone)
-        {
-            quest.OverCompletionPercent = objective * 100 / Count;
-
-            if (quest.OverCompletionPercent >= 50)
-                quest.EarlyCompletion = true;
-
-            if (quest.OverCompletionPercent > 100)
-                quest.ExtraCompletion = true;
-        }
-
-        Update();
-
-        return objective >= Count;
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
+        return currentObjectiveCount >= Count;
     }
 
-    public override void Update()
+    public override void InitializeAction(Quest quest, QuestAct questAct)
     {
-        Objective++;
+        base.InitializeAction(quest, questAct);
+        quest.Owner.Events.OnItemUse += questAct.OnItemUse;
     }
-    public override bool IsCompleted()
-    {
-        return Objective >= Count;
-    }
-    public override int GetCount()
-    {
-        Logger.Info("Получим, информацию на сколько выполнено задание.");
 
-        return Objective;
-    }
-    public override void ClearStatus()
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
-        //ItemUseStatus = 0;
-        Objective = 0;
-        Logger.Info("Сбросили статус в ноль.");
+        quest.Owner.Events.OnItemUse -= questAct.OnItemUse;
+        base.FinalizeAction(quest, questAct);
+    }
+
+    public override void OnItemUse(QuestAct questAct, object sender, OnItemUseArgs args)
+    {
+        if ((questAct.Id != ActId) || (args.ItemId != ItemId))
+            return;
+
+        AddObjective(questAct, 1);
     }
 }

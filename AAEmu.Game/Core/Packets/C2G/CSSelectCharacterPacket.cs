@@ -83,7 +83,6 @@ public class CSSelectCharacterPacket : GamePacket
 
             Connection.ActiveChar.Quests.Send();
             Connection.ActiveChar.Quests.SendCompleted();
-            Connection.ActiveChar.Quests.RecallEvents();
 
             Connection.ActiveChar.Actability.Send();
             Connection.ActiveChar.Mails.SendUnreadMailCount();

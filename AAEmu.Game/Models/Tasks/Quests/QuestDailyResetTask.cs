@@ -8,6 +8,9 @@ namespace AAEmu.Game.Models.Tasks.Quests;
 /// </summary>
 public class QuestDailyResetTask : Task
 {
+    /// <summary>
+    /// Task used to do the quest resets for daily quests
+    /// </summary>
     public QuestDailyResetTask()
     {
 
