@@ -321,9 +321,11 @@ public class Skill
                         }
                     }
 
-                    if (target != null && caster.GetRelationStateTo(target) != RelationState.Friendly)
+                    if (target != null)
                     {
-                        return null; //TODO отправлять ошибку?
+                        var relation = caster.GetRelationStateTo(target);
+                        if (relation != RelationState.Friendly && relation != RelationState.Neutral)
+                            return null; // Target isn't friendly
                     }
 
                     break;
@@ -339,12 +341,14 @@ public class Skill
                         }
                     }
 
-                    if (target != null && caster.GetRelationStateTo(target) != RelationState.Hostile)
+                    if (target != null)
                     {
-                        if (!caster.CanAttack(target))
-                        {
-                            return null; //TODO отправлять ошибку?
-                        }
+                        var relation = caster.GetRelationStateTo(target);
+                        if (relation != RelationState.Hostile && relation != RelationState.Neutral)
+                            if (!caster.CanAttack(target))
+                            {
+                                return null; // Target isn't hostile
+                            }
                     }
 
                     break;
@@ -409,12 +413,12 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        return null; //TODO отправлять ошибку?
+                        return null; // Not allowed on self
                     }
-                    if (caster.GetRelationStateTo(target) != RelationState.Friendly)
-                    {
-                        return null; //TODO отправлять ошибку?
-                    }
+
+                    var relation2 = caster.GetRelationStateTo(target);
+                    if (relation2 != RelationState.Friendly && relation2 != RelationState.Neutral)
+                        return null; // Target isn't friendly
 
                     break;
                 }
