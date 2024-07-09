@@ -38,17 +38,13 @@ public class CharacterCraft
         _count = count;
         _doodadId = doodadId;
 
-        var backpack = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
-        if (_craft.ResultsInBackpack && backpack != null)
+        // check if you are equipped with a backpack or glider
+        if (!Owner.Inventory.CanReplaceGliderInBackpackSlot())
         {
-            // Check if a glider is equipped, and if we have at least 1 free space
-            if (!Owner.Inventory.CanReplaceGliderInBackpackSlot())
-            {
-                // TODO verified
-                Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
-                CancelCraft();
-                return;
-            }
+            // TODO verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
+            CancelCraft();
+            return;
         }
 
         // Check if we have enough materials
