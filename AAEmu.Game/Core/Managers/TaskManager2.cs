@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 if (task.TriggerTime >= now)
                     continue;
-                
+
                 System.Threading.Tasks.Task.Run(() =>
                 {
                     task.Execute();
@@ -66,7 +66,7 @@ namespace AAEmu.Game.Core.Managers
 
                 toRemove.Add(id);
             }
-            
+
             foreach (var objId in toRemove)
             {
                 _queue.Remove(objId, out _);
@@ -86,15 +86,15 @@ namespace AAEmu.Game.Core.Managers
         {
             var taskId = NextId();
             task.Id = taskId;
-            
+
             // If it's only supposed to run once and immediately, then don't queue it, and just run now
             if ((startDelay.HasValue && startDelay.Value == TimeSpan.Zero) && (count >= 0) && (count <= 1))
             {
                 task.Execute();
                 ReleaseId(task.Id);
                 return true;
-            }    
-            
+            }
+
             task.TriggerTime = startDelay.HasValue ? DateTime.UtcNow + startDelay.Value : DateTime.UtcNow;
 
             if (repeatInterval.HasValue)
@@ -123,7 +123,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var taskId = NextId();
             task.Id = taskId;
-            
+
             if (startDelay.HasValue && startDelay.Value == TimeSpan.Zero)
             {
                 task.Execute();
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Core.Managers
 
             return _queue.TryAdd(taskId, task);
         }
-        
+
         /// <summary>
         /// Cancels a Task
         /// </summary>
@@ -148,7 +148,7 @@ namespace AAEmu.Game.Core.Managers
         public bool Cancel(Task task)
         {
             var res = _queue.Remove(task.Id, out _);
-            
+
             if (res)
             {
                 task.Cancelled = true;
@@ -157,7 +157,7 @@ namespace AAEmu.Game.Core.Managers
 
             return res;
         }
-        
+
         private uint NextId()
         {
             lock (_taskIdLock)
@@ -174,7 +174,7 @@ namespace AAEmu.Game.Core.Managers
                 _taskIdIndex = id + 1u;
                 if (_taskIdIndex == 0)
                     _taskIdIndex = 1;
-                
+
                 return id;
             }
         }
