@@ -119,7 +119,8 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_nobuff, Value1, unit != null && !unit.Buffs.CheckBuff(Value1));
 
             case UnitReqsKindType.TargetBuffTag:
-                return RetWithValue(SkillResultKeys.skill_urk_target_buff_tag, Value1, targetUnit?.Buffs.CheckBuffTag(Value1) ?? false);
+                var targetBuffTarget = targetUnit ?? unit;
+                return RetWithValue(SkillResultKeys.skill_urk_target_buff_tag, Value1, targetBuffTarget?.Buffs.CheckBuffTag(Value1) ?? false);
 
             // case UnitReqsKindType.CorpseRange:
             // case UnitReqsKindType.EquipWeaponType:
