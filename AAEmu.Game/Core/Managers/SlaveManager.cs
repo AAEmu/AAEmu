@@ -749,8 +749,7 @@ public class SlaveManager : Singleton<SlaveManager>
         var filePath = Path.Combine(FileManager.AppPath, "Data", "slave_attach_points.json");
         var contents = FileManager.GetFileContents(filePath);
         if (string.IsNullOrWhiteSpace(contents))
-            throw new IOException(
-                $"File {filePath} doesn't exists or is empty.");
+            throw new IOException($"File {filePath} doesn't exists or is empty.");
 
         if (JsonHelper.TryDeserializeObject(contents, out List<SlaveModelAttachPoint> attachPoints, out _))
             Logger.Info("Slave model attach points loaded...");
