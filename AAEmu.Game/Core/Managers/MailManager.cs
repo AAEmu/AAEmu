@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks.Mails;
@@ -503,7 +504,29 @@ public class MailManager : Singleton<MailManager>
 
         MailPlayerToPlayer mail = null;
         var questName = LocalizationManager.Instance.Get("quest_contexts", "name", quest.TemplateId, quest.TemplateId.ToString());
+
+        // Generate a finalized list of all reward items in the mail attachments container of the player
+        var totalRewardsItemsList = new List<Item>();
         foreach (var item in itemCreationDefinitions)
+        {
+            var itemTemplate = ItemManager.Instance.GetTemplate(item.TemplateId);
+            var itemGrade = itemTemplate.FixedGrade;
+            if (itemGrade <= 0)
+                itemGrade = 0;
+            if (item.GradeId > 0)
+                itemGrade = item.GradeId;
+
+            character.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.Invalid, item.TemplateId, item.Count,
+                itemGrade, out var newItemsList, out _, 0, -1);
+
+            foreach (var newItem in newItemsList)
+            {
+                totalRewardsItemsList.Add(newItem);
+            }
+        }
+
+        // Distribute the quest rewards
+        foreach(var item in totalRewardsItemsList)
         {
             if ((mail == null) || (mail.Body.Attachments.Count >= 10))
             {
@@ -520,13 +543,8 @@ public class MailManager : Singleton<MailManager>
                 mailCopper = 0;
                 resultList.Add(mail);
             }
-            var itemTemplate = ItemManager.Instance.GetTemplate(item.TemplateId);
-            var itemGrade = itemTemplate.FixedGrade;
-            if (itemGrade <= 0)
-                itemGrade = 0;
-            if (item.GradeId > 0)
-                itemGrade = item.GradeId;
-            mail.Body.Attachments.Add(ItemManager.Instance.Create(item.TemplateId, item.Count, (byte)itemGrade, true));
+            
+            mail.Body.Attachments.Add(item);
         }
 
         foreach (var baseMail in resultList)
