@@ -198,6 +198,10 @@ public abstract class BaseCombatBehavior : Behavior
         }
     }
 
+    /// <summary>
+    /// Updates Aggro target to the one with the most aggro
+    /// </summary>
+    /// <returns></returns>
     public bool UpdateTarget()
     {
         // We might want to optimize this somehow.
@@ -214,12 +218,12 @@ public abstract class BaseCombatBehavior : Behavior
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    if (Ai.Owner.CurrentAggroTarget != abuser.ObjId && !Ai.AlreadyTargetted)
+                    if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargetted)
                     {
                         // TODO найдем путь к abuser
                         Ai.Owner.FindPath(abuser);
                     }
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
 
@@ -235,7 +239,7 @@ public abstract class BaseCombatBehavior : Behavior
                     if (currentTarget == null)
                         continue;
 
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
                     return true;
@@ -247,12 +251,12 @@ public abstract class BaseCombatBehavior : Behavior
         // Only remove CurrentTarget is either no unit selected, or if target is already dead
         if (Ai.Owner.CurrentTarget is not Unit currentTargetUnit)
         {
-            Ai.Owner.CurrentAggroTarget = 0;
+            Ai.Owner.CurrentAggroTarget = null;
             Ai.Owner.SetTarget(null);
         }
         else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
         {
-            Ai.Owner.CurrentAggroTarget = 0;
+            Ai.Owner.CurrentAggroTarget = null;
             Ai.Owner.SetTarget(null);
         }
 

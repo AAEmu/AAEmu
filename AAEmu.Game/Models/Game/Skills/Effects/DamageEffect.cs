@@ -382,12 +382,12 @@ public class DamageEffect : EffectTemplate
         var attacker = caster as Unit;
 
         // set for all combatants, for RegenTick
-        trg.IsInBattle = true;
+        trg.IsInBattle = trg.Hp > 0;
         trg.LastCombatActivity = DateTime.UtcNow;
 
         if (trgCharacter != null)
         {
-            //trgCharacter.IsInBattle = true;
+            //trgCharacter.IsInBattle |= trg.Hp > 0;
             //trgCharacter.LastCombatActivity = DateTime.UtcNow;
             if (attacker is Character attackerCharacter)
             {
@@ -398,7 +398,7 @@ public class DamageEffect : EffectTemplate
 
         if (attacker != null)
         {
-            attacker.IsInBattle = true;
+            attacker.IsInBattle |= trg.Hp > 0;
             attacker.LastCombatActivity = DateTime.UtcNow;
             attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
         }
@@ -418,7 +418,7 @@ public class DamageEffect : EffectTemplate
             trg.BroadcastPacket(packet, true);
         if (trg is Npc)
         {
-            trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, ((Unit)caster).SummarizeDamage), true);
+            trg.SendPacketToPlayers([trg, caster], new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, ((Unit)caster).SummarizeDamage));
         }
         if (trg is Npc npc/* && npc.CurrentTarget != caster*/)
         {

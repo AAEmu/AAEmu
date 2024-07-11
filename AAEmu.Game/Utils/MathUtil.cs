@@ -27,14 +27,15 @@ public class MathUtil
     }
 
     /// <summary>
-    /// Return degree value of object 2 to the horizontal line with object 1 being the origin 
+    /// Return degree value of object 2 to the horizontal line with object 1 being the origin taking into account object 1's world rotation
     /// </summary>
-    /// <param name="obj1"></param>
-    /// <param name="obj2"></param>
-    /// <returns>Angle in degree</returns>
+    /// <param name="obj1">Source GameObject</param>
+    /// <param name="obj2">Target GameObject</param>
+    /// <returns>Angle in degree with 0 being in front, clockwise is negative</returns>
     public static double CalculateAngleFrom(GameObject obj1, GameObject obj2)
     {
-        return CalculateAngleFrom(obj1.Transform.World.Position.X, obj1.Transform.World.Position.Y, obj2.Transform.World.Position.X, obj2.Transform.World.Position.Y);
+        var angleToTarget = CalculateAngleFrom(obj1.Transform.World.Position.X, obj1.Transform.World.Position.Y, obj2.Transform.World.Position.X, obj2.Transform.World.Position.Y) - 90.0;
+        return angleToTarget - obj1.Transform.World.Rotation.Z.RadToDeg();
     }
 
     public static double CalculateAngleFrom(Point p1, Point p2)
@@ -106,16 +107,23 @@ public class MathUtil
         return (sbyte)(degree * -1);
     }
 
-    public static bool IsFront(GameObject obj1, GameObject obj2)
+    /// <summary>
+    /// Checks if obj2 is in front of obj1's sight
+    /// </summary>
+    /// <param name="obj1">Source Object</param>
+    /// <param name="obj2">Target Object</param>
+    /// <param name="fovScale">Angle multiplier of what is considered "front", valid range 0~2</param>
+    /// <returns></returns>
+    public static bool IsFront(GameObject obj1, GameObject obj2, double fovScale = 1.0)
     {
-        var degree = CalculateAngleFrom(obj1, obj2);
-        var degree2 = obj2.Transform.World.Rotation.Z;
-        var diff = Math.Abs(degree - degree2);
+        if (fovScale >= 2.0)
+            return true; // if it's 2 or larger this will always return true, so don't bother with the checks
 
-        if (diff >= 90 && diff <= 270)
-            return true;
-
-        return false;
+        if (fovScale <= 0.0)
+            return false; // if it's 0 or below, it's always false
+        
+        var degree = ClampDegAngle(CalculateAngleFrom(obj1, obj2));
+        return degree >= (-90.0 * fovScale) && degree <= (90.0 * fovScale);
     }
 
     public static double ConvertDirectionToRadian(sbyte direction)
@@ -399,5 +407,19 @@ public class MathUtil
         var quat = Quaternion.CreateFromYawPitchRoll((float)radian, 0.0f, 0.0f);
 
         return quat;
+    }
+
+    /// <summary>
+    /// Modifies an angle to make it inside the -180° to 180° range
+    /// </summary>
+    /// <param name="angle">Angle in degrees</param>
+    /// <returns></returns>
+    public static double ClampDegAngle(double angle)
+    {
+        while (angle > 180.0)
+            angle -= 360.0;
+        while (angle < -180.0)
+            angle += 360.0;
+        return angle;
     }
 }

@@ -544,7 +544,7 @@ public class Unit : BaseUnit, IUnit
 
         if (CurrentTarget != null)
         {
-            killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
+            killer.SendPacketToPlayers([this, killer], new SCAiAggroPacket(killer.ObjId, 0));
 
             if (killer is Unit killerUnit)
             {

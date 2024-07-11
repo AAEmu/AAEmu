@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.Enums;
@@ -338,4 +339,8 @@ public abstract class NpcAi
             AiCurrentCommandRunTime = TimeSpan.FromSeconds(-1);
     }
 
+    public virtual void GoToDummy()
+    {
+        SetCurrentBehavior(BehaviorKind.Dummy);
+    }
 }

@@ -41,7 +41,7 @@ public class AlertBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        UpdateTarget();
+        // UpdateTarget();
         if (Ai.Owner.CurrentTarget != null)
         {
             Ai.Owner.LookTowards(Ai.Owner.CurrentTarget.Transform.World.Position);
@@ -52,7 +52,10 @@ public class AlertBehavior : BaseCombatBehavior
             Ai.Owner.Transform.Local.SetRotation(_oldRotation.X,_oldRotation.Y, _oldRotation.Z);
             Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState), false);
             Ai.GoToIdle(); // TODO: This should go back to whatever was the last one, but Idle will have to do for now
+            return;
         }
+
+        CheckAggression();
     }
 
     public override void Exit()
