@@ -107,6 +107,7 @@ public partial class Character : Unit, ICharacter
     public short CrimePoint { get; set; }
     public int CrimeRecord { get; set; }
     public short CrimeScore { get; set; }
+    public int JuryPoint { get; set; }
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
@@ -1850,7 +1851,7 @@ public partial class Character : Unit, ICharacter
 
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
@@ -2594,6 +2595,32 @@ public partial class Character : Unit, ICharacter
         stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
 
         #endregion Inventory_Equip
+    }
+
+    /// <summary>
+    /// Adds crime, and returns the new (current) crime value
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <returns></returns>
+    public short AddCrime(int amount)
+    {
+        var newAmount = CrimePoint + amount;
+        if (newAmount > short.MaxValue)
+        {
+            CrimePoint = short.MaxValue; // current crime point can't go over short MaxValue
+        }
+        if (newAmount < 0)
+        {
+            CrimePoint = 0;
+        }
+        else
+        {
+            CrimePoint = (short)newAmount;
+        }
+        CrimeRecord += amount; // total amount
+        if (CrimeRecord < 0)
+            CrimeRecord = 0;
+        return CrimePoint;
     }
 
     public override string DebugName()

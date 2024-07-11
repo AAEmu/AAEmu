@@ -104,7 +104,7 @@ public class Skill
             skillResultValueUInt = requirementResult.ResultUInt;
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
         }
-        
+
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
@@ -173,7 +173,7 @@ public class Skill
             var mates = MateManager.Instance.GetActiveMates(character.ObjId);
             if (mates != null)
             {
-                foreach (var mate in mates.Where(mate => mate is { MateType: MateType.Ride }))
+                foreach (var mate in mates.Where(mate => mate is { MateType: Units.Static.MateType.Ride }))
                 {
                     MateManager.Instance.UnMountMate(character.Connection, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
                 }
@@ -428,7 +428,7 @@ public class Skill
 
                     break;
                 }
-            case SkillTargetType.Building:
+            case SkillTargetType.GeneralUnit:
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
@@ -966,6 +966,7 @@ public class Skill
                     if (castItemTemplate.UseSkillAsReagent)
                         consumedItems.Add((useItem, lastAppliedEffect.ConsumeItemCount));
                 }
+            }
 
             if (player != null && lastAppliedEffect.ConsumeItemId != 0 && lastAppliedEffect.ConsumeItemCount > 0)
             {
@@ -981,7 +982,7 @@ public class Skill
                         lastAppliedEffect.ConsumeItemCount);
                     if (inventory || equipment)
                     {
-                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));    
+                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));
                     }
                 }
             }

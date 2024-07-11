@@ -13,7 +13,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Network.Connections;
 

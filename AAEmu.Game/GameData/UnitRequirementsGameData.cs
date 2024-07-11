@@ -33,7 +33,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     /// </summary>
     private Dictionary<string, List<UnitReqs>> _unitReqsByOwnerType { get; set; }
     
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _unitReqs = new();
         _unitReqsByOwnerType = new();

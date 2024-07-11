@@ -479,46 +479,46 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     #region ReadNodes
 
                     for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
-                    for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
-                    for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
-                    for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
-                    {
-                        var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
-                        var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
-                        var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
-
-                        ushort value;
-                        switch (version)
-                        {
-                            case VersionCalc.V1:
+                        for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
+                            for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
+                                for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
                                 {
-                                    var doubleValue = node.fRange * 100000d;
-                                    var rawValue = node.RawDataByIndex(unitX, unitY);
+                                    var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
+                                    var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
+                                    var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
 
-                                    value = (ushort)((doubleValue / 1.52604335620711f) *
-                                                     world.HeightMaxCoefficient /
-                                                     ushort.MaxValue * rawValue +
-                                                     node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
-                                }
-                                break;
-                            case VersionCalc.V2:
-                                {
-                                    value = node.RawDataByIndex(unitX, unitY);
-                                    var height = node.RawDataToHeight(value);
-                                }
-                                break;
-                            case VersionCalc.Draft:
-                                {
-                                    var height = node.GetHeight(unitX, unitY);
-                                    value = (ushort)(height * world.HeightMaxCoefficient);
-                                }
-                                break;
-                            default:
-                                throw new NotSupportedException(nameof(version));
-                        }
+                                    ushort value;
+                                    switch (version)
+                                    {
+                                        case VersionCalc.V1:
+                                            {
+                                                var doubleValue = node.fRange * 100000d;
+                                                var rawValue = node.RawDataByIndex(unitX, unitY);
 
-                        world.HeightMaps[oX, oY] = value;
-                    }
+                                                value = (ushort)((doubleValue / 1.52604335620711f) *
+                                                                 world.HeightMaxCoefficient /
+                                                                 ushort.MaxValue * rawValue +
+                                                                 node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
+                                            }
+                                            break;
+                                        case VersionCalc.V2:
+                                            {
+                                                value = node.RawDataByIndex(unitX, unitY);
+                                                var height = node.RawDataToHeight(value);
+                                            }
+                                            break;
+                                        case VersionCalc.Draft:
+                                            {
+                                                var height = node.GetHeight(unitX, unitY);
+                                                value = (ushort)(height * world.HeightMaxCoefficient);
+                                            }
+                                            break;
+                                        default:
+                                            throw new NotSupportedException(nameof(version));
+                                    }
+
+                                    world.HeightMaps[oX, oY] = value;
+                                }
 
                     #endregion
                 }
@@ -1214,7 +1214,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // showing it once
         if (character.Updated - character.Created < TimeSpan.FromMinutes(1))
         {
-            character.Quests.Add(questId);
+            character.Quests.AddQuest(questId);
         }
     }
 

@@ -52,6 +52,8 @@ public class CSSelectCharacterPacket : GamePacket
             {
                 Logger.Warn($"{Connection.ActiveChar.Name}: Interrupting the transport shutdown task");
                 mySlave.CancelTokenSource.Cancel();
+                // TODO найти, как восстанавливать контроль
+                Unit.DespawSlave(Connection.ActiveChar); // despawn because we lost control over them
             }
             var myMates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
             if (myMates != null)
