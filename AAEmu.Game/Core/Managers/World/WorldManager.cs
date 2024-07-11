@@ -74,6 +74,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     */
     public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
 
+    public const float DefaultCombatTimeout = 15f;
+
     public WorldManager()
     {
         _objects = new ConcurrentDictionary<uint, GameObject>();
@@ -154,7 +156,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     private static void CombatTick(Unit unit)
     {
         // TODO: Make it so you can also become out of combat if you are not on any aggro lists
-        if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
+        if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(DefaultCombatTimeout) < DateTime.UtcNow)
         {
             unit.IsInBattle = false;
         }
@@ -1033,6 +1035,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public static List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
     {
         var result = new List<T>();
+        if (radius <= 0f)
+            return result;
         if (obj?.Region == null)
             return result;
 

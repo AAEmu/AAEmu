@@ -21,6 +21,7 @@ public class FlytrapAttackBehavior : Behavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
@@ -158,7 +159,7 @@ public class FlytrapAttackBehavior : Behavior
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
                     // TODO найдем путь к abuser
@@ -170,7 +171,7 @@ public class FlytrapAttackBehavior : Behavior
             {
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
                     return true;
