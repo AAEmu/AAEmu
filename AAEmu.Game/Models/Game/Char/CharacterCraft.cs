@@ -188,7 +188,7 @@ public class CharacterCraft
 
         if (_count > 0)
         {
-            ScheduleCrtaft();
+            ScheduleCraft();
             // Owner.SendMessage($"Continue craft: {_craft.Id} for {_count} more times TaskId: {newCraft.Id}, cooldown: {nextCraftDelay.TotalMilliseconds}ms");
         }
         else
@@ -201,13 +201,13 @@ public class CharacterCraft
     {
         if (_count > 0)
         {
-            ScheduleCrtaft();
+            ScheduleCraft();
         }
         else
             CancelCraft();
     }
 
-    private void ScheduleCrtaft()
+    private void ScheduleCraft()
     {
         var newCraft = new CraftTask(Owner, _craft.Id, _doodadId, _count);
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(_craft.SkillId);

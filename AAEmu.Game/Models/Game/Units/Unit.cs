@@ -589,19 +589,43 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    private static async void StopAutoSkill(Unit unit)
+    public async void StopAutoSkill(Unit unit)
     {
         if (unit.AutoAttackTask is null || !(unit is Character character))
         {
             return;
         }
 
+        character.AutoAttackTask.Cancelled = true;
+        // await character.AutoAttackTask.Cancel();
+        /*
+        character.AutoAttackTask = null;
+        character.IsAutoAttack = false; // turned off auto attack
+        character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
+        character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
+        TlIdManager.Instance.ReleaseId(character.TlId);
+        */
+    }
+
+    public void StartAutoSkill(Skill skill)
+    {
+        if (this is not Character character || AutoAttackTask is not null)
+        {
+            return;
+        }
+
+        character.AutoAttackTask = new UseAutoAttackSkillTask(skill, character);
+
+        TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(1000),
+            TimeSpan.FromMilliseconds(1000), -1);
+        /*
         await character.AutoAttackTask.Cancel();
         character.AutoAttackTask = null;
         character.IsAutoAttack = false; // turned off auto attack
         character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
         character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
         TlIdManager.Instance.ReleaseId(character.TlId);
+        */
     }
 
     [Obsolete("This method is deprecated", false)]

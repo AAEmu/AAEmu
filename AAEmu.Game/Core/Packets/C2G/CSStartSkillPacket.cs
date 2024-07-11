@@ -108,6 +108,12 @@ public class CSStartSkillPacket : GamePacket
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
+            if ((skillResult == SkillResult.Success) && (skillId < 5000) && (skillCaster.ObjId == Connection.ActiveChar.ObjId))
+            {
+                // All basic combat skills are below ID 5000, only 2 (melee),3 (offhand) and 4 (ranged) exist, next actual skill used is 5001
+                Connection.ActiveChar.IsAutoAttack = true;
+                Connection.ActiveChar.StartAutoSkill(skill);
+            }
         }
         else if (skillCaster is SkillItem si)
         {
