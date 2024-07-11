@@ -47,7 +47,7 @@ public class Rotate : ICommand
             moveType.Y = character.CurrentTarget.Transform.World.Position.Y;
             moveType.Z = character.CurrentTarget.Transform.World.Position.Z;
 
-            var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget, character) - 90f;
+            var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget.Transform.World.Position, character.Transform.World.Position) - 90f;
             var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             /*
             if (args.Length > 0)

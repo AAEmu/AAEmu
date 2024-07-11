@@ -84,6 +84,9 @@ public class TestAI : ICommand
             case BehaviorKind.Talk:
                 npc.Ai.GoToTalk();
                 break;
+            case BehaviorKind.Dummy:
+                npc.Ai.GoToDummy();
+                break;
             default:
                 character.SendMessage($"[AI] unsupported behavior {newBehavior}");
                 return;

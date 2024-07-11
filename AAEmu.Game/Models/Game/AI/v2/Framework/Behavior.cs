@@ -5,8 +5,6 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.C2G;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -206,29 +204,25 @@ public abstract class Behavior
         }
     }
 
-    // Check if can pick a new skill (delay, already casting)
-
-    public float CheckSightRangeScale(float value)
-    {
-        var sightRangeScale = value * Ai.Owner.Template.SightRangeScale;
-        if (sightRangeScale < value)
-        {
-            sightRangeScale = value;
-        }
-
-        return sightRangeScale;
-    }
-
+    /// <summary>
+    /// Trigger when AI is about to attack target and goes to combat mode
+    /// </summary>
+    /// <param name="target"></param>
     public void OnEnemySeen(Unit target)
     {
         Ai.Owner.AddUnitAggro(AggroKind.Damage, target, 1);
         Ai.GoToCombat();
     }
 
-    public void CheckAggression()
+    public bool CheckAggression()
     {
-        if (!Ai.Owner.Template.Aggression) { return; }
-        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
+        if (!Ai.Owner.Template.Aggression)
+        {
+            return false;
+        }
+
+        var res = false;
+        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, Ai.Owner.Template.AttackStartRangeScale * 10f);
 
         // Sort by distance
         var unitsWithDistance = new List<(Unit, float)>();
@@ -239,55 +233,67 @@ public abstract class Behavior
         }
         unitsWithDistance.Sort((p, q) => p.Item2.CompareTo(q.Item2));
         
-        foreach (var (unit, rangeOfUnit) in unitsWithDistance)        {
+        foreach (var (unit, rangeOfUnit) in unitsWithDistance)
+        {
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
             // Need to check for stealth detection here
-            if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
             {
-                if (Ai.Owner.CanAttack(unit))
+                if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {
                     OnEnemySeen(unit);
+                    res = true;
                     break;
                 }
             }
             else
             {
-                // var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
-                if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
+                // If you're breathing down their neck, they will also start attacking you if they can
+                if (rangeOfUnit < 1.5f * Ai.Owner.Template.SightRangeScale)
                 {
-                    if (Ai.Owner.CanAttack(unit))
+                    if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 0.5f || Ai.Owner.CanSeeTarget(unit)))
                     {
                         OnEnemySeen(unit);
+                        res = true;
                         break;
                     }
                 }
             }
         }
+
+        return res;
     }
 
     public void OnEnemyAlert(Unit target)
     {
+        // if (target is Character player)
+        // {
+        //     var degree = MathUtil.ClampDegAngle(MathUtil.CalculateAngleFrom(Ai.Owner, player));
+        //     player.SendMessage($"ObjId {Ai.Owner.ObjId} has seen you at a angle of {degree:F0}°");
+        // }
+        
         // TODO: Tweak these values, or grab them from DB somewhere?
         Ai._alertEndTime = DateTime.UtcNow.AddSeconds(5);
         Ai._nextAlertCheckTime = DateTime.UtcNow.AddSeconds(7);
-        Ai.Owner.CurrentAggroTarget = target.ObjId;
+        // Ai.Owner.CurrentAggroTarget = target;
         Ai.Owner.SetTarget(target);
         
         Ai.GoToAlert();
     }
     
-    public void CheckAlert()
+    public bool CheckAlert()
     {
         if (Ai._nextAlertCheckTime > DateTime.UtcNow)
-            return;
+            return false;
 
         // Don't do alerts if already in combat
         if (Ai.Owner.IsInBattle)
-            return;
+            return false;
 
-        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(15f));
+        var res = false;
+        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, Ai.Owner.Template.SightRangeScale * 15f);
         
         // Sort by distance
         var unitsWithDistance = new List<(Unit, float)>();
@@ -304,32 +310,37 @@ public abstract class Behavior
                 continue; // not counting dead Npc
 
             // Need to check for stealth detection here
-            if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
             {
-                if (Ai.Owner.CanAttack(unit))
+                if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {
                     OnEnemyAlert(unit);
+                    res = true;
                     break;
                 }
             }
             else
             {
-                // var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
-                if (rangeOfUnit < 10f * Ai.Owner.Template.SightRangeScale)
+                // If you're breathing down their neck, they will also notice you.
+                // Not sure if this is retail behavior
+                if (rangeOfUnit < 2f * Ai.Owner.Template.SightRangeScale)
                 {
-                    if (Ai.Owner.CanAttack(unit))
+                    if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 0.5f || Ai.Owner.CanSeeTarget(unit)))
                     {
                         OnEnemyAlert(unit);
+                        res = true;
                         break;
                     }
                 }
             }
         }
+
+        return res;
     }
 
     public void UpdateAggroHelp(Unit abuser, int radius = 20)
     {
-        var npcs = WorldManager.GetAround<Npc>(Ai.Owner, CheckSightRangeScale(radius));
+        var npcs = WorldManager.GetAround<Npc>(Ai.Owner,  Ai.Owner.Template.AttackStartRangeScale * radius);
         if (npcs == null)
             return;
 

@@ -50,7 +50,7 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                     if (LifeTime == 0)
                     {
                         // Npc attacks Npc for Q3886 & Q3887
-                        var units = WorldManager.GetAround<Npc>(npc, npc.Ai.GetCurrentBehavior().CheckSightRangeScale(30f));
+                        var units = WorldManager.GetAround<Npc>(npc, npc.Ai.Owner.Template.SightRangeScale * 30f);
                         if (units is not { Count: not 0 })
                             continue;
 
