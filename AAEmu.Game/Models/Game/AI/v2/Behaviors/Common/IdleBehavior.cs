@@ -18,7 +18,7 @@ public class IdleBehavior : BaseCombatBehavior
         Ai.Owner.InterruptSkills();
         Ai.Owner.StopMovement();
         Ai.Owner.SetTarget(null);
-        Ai.Owner.BroadcastPacket(new SCAggroTargetChangedPacket(Ai.Owner.ObjId, 0), true);
+        Ai.Owner.SendPacketToPlayers([Ai.Owner.CurrentTarget], new SCAggroTargetChangedPacket(Ai.Owner.ObjId, 0));
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
         if (Ai.Owner is { } npc)
         {
@@ -44,8 +44,8 @@ public class IdleBehavior : BaseCombatBehavior
             PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
         }
 
-        CheckAggression();
-        CheckAlert();
+        if (!CheckAggression())
+            CheckAlert();
         //Ai.GoToFollowPath();
     }
 

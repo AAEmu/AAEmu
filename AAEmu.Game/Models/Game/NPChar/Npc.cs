@@ -44,7 +44,23 @@ public partial class Npc : Unit
 
     public NpcAi Ai { get; set; } // New framework
     public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
-    public uint CurrentAggroTarget { get; set; }
+
+    public BaseUnit CurrentAggroTarget
+    {
+        get => _currentAggroTarget;
+        set
+        {
+            if (_currentAggroTarget == value)
+                return;
+
+            if (value != null)
+                SendPacketToPlayers([value], new SCAggroTargetChangedPacket(ObjId, value.ObjId));
+                // BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, value.ObjId), false);
+
+            _currentAggroTarget = value;
+        }
+    }
+
     public bool CanFly { get; set; } // TODO mark Npc's that can fly so that they don't land on the ground when calculating the Z height
     //Tagging works differently to Aggro.:
     public Tagging CharacterTagging { get; set; }
@@ -75,6 +91,8 @@ public partial class Npc : Unit
     }
 
     private GameStanceType _currentGameStance = GameStanceType.Combat;
+    private BaseUnit _currentAggroTarget;
+
     public GameStanceType CurrentGameStance
     {
         get => _currentGameStance;
@@ -720,7 +738,6 @@ public partial class Npc : Unit
 
     public override void DoDie(BaseUnit killer, KillReason killReason)
     {
-       
         var eligiblePlayers = new HashSet<Character>();
         if (CharacterTagging.TagTeam != 0)
         {
@@ -757,7 +774,7 @@ public partial class Npc : Unit
             eligiblePlayers.Add(CharacterTagging.Tagger);
         }
 
-        //Logger.Warn($"Eligible killers count is {eligiblePlayers.Count }");
+        // Logger.Warn($"Eligible killers count is {eligiblePlayers.Count }");
 
         if (eligiblePlayers.Count == 0 && killer is Character characterKiller)
         {
@@ -882,10 +899,38 @@ public partial class Npc : Unit
             }
         }
         base.DoDie(killer, killReason);
-        AggroTable.Clear();
+        ClearAllAggroTargetsAndCheckCombatState();
+        // AggroTable.Clear();
         CharacterTagging.ClearAllTaggers();
+        CurrentAggroTarget = null;
+
         Spawner?.DecreaseCount(this);
         Ai?.GoToDead();
+    }
+
+    private void ClearAllAggroTargetsAndCheckCombatState()
+    {
+        List<Character> playerAggroList = new();
+        // Generate a list of all player that we had aggro on
+        foreach (var (objId, aggro) in AggroTable)
+        {
+            var unit = WorldManager.Instance.GetGameObject(objId);
+            if (unit is Character player)
+                playerAggroList.Add(player);
+        }
+        // Clear the aggro table
+        AggroTable.Clear();
+        
+        // Check if those target players still have aggro on something else, if not, clear their combat timers
+        foreach (var player in playerAggroList)
+        {
+            ClearAggroOfUnit(player);
+            if (player.IsInAggroListOf.Count <= 0)
+            {
+                // Cancel combat
+                player.IsInBattle = false;
+            }
+        }
     }
 
     public override void AddVisibleObject(Character character)
@@ -906,13 +951,13 @@ public partial class Npc : Unit
     public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
-        Character player = null;
-        if (unit is not Npc and not Units.Mate and not Slave)
-        {
-            player = (Character)unit;
-        }
-
-        //player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
+        var player = unit as Character;
+        // Character player = null;
+        // if (unit is not Npc and not Units.Mate and not Slave)
+        // {
+        //     player = (Character)unit;
+        // }
+        // player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
 
         // check self buff tags
         if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
@@ -961,8 +1006,11 @@ public partial class Npc : Unit
         }
 
         if (player == null)
-        {
             return;
+
+        if (aggro.TotalAggro > 0 && !IsDead && Hp > 0 && !player.IsInAggroListOf.ContainsKey(this.ObjId))
+        {
+            player.IsInAggroListOf.Add(this.ObjId, this);
         }
         //player?.Quests.OnAggro(this);
         // инициируем событие
@@ -976,8 +1024,13 @@ public partial class Npc : Unit
             return;
 
         var player = unit as Character;
-
-        // player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+        if (player != null && player.IsInAggroListOf.ContainsKey(ObjId))
+        {
+            player.IsInAggroListOf.Remove(ObjId);
+        }
+        
+        // var player = unit as Character;
+        // player?.SendMessage($"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
         var lastAggroCount = AggroTable.Count;
         if (AggroTable.TryRemove(unit.ObjId, out var value))
@@ -1048,7 +1101,7 @@ public partial class Npc : Unit
         }
 
         var lastAggroCount = AggroTable.Count;
-        AggroTable.Clear();
+        ClearAllAggroTargetsAndCheckCombatState();
         if (lastAggroCount > 0)
             CheckIfEmptyAggroToReturn();
     }
@@ -1229,7 +1282,7 @@ public partial class Npc : Unit
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = (sbyte)(CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Stance = (sbyte)(CurrentAggroTarget?.ObjId > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
         moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);

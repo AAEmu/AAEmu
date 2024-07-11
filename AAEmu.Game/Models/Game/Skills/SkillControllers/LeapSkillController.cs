@@ -40,7 +40,7 @@ public class LeapSkillController : SkillController
         DistanceOffset = template.Value[3];
         Direction = (LeapDirection)template.Value[6];
 
-        var angle = (float)MathUtil.CalculateAngleFrom(owner, target);
+        var angle = (float)MathUtil.CalculateAngleFrom(owner.Transform.World.Position, target.Transform.World.Position);
         (_endPosition.X, _endPosition.Y) = MathUtil.AddDistanceToFront(DistanceOffset / 1000f, target.Transform.World.Position.X, target.Transform.World.Position.Y, angle);
         _endPosition.Z = Target.Transform.World.Position.Z;
 

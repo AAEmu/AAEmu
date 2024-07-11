@@ -192,6 +192,11 @@ public partial class Character : Unit, ICharacter
     private short _laborPower;
     private DateTime _laborPowerModified;
 
+    /// <summary>
+    /// List of ObjIds you have aggro on
+    /// </summary>
+    public Dictionary<uint, BaseUnit> IsInAggroListOf { get; set; } = new();
+
     public void InitializeLaborCache(short labor, DateTime newTime)
     {
         _laborPower = labor;
@@ -1313,7 +1318,7 @@ public partial class Character : Unit, ICharacter
         if (_hostilePlayers.TryGetValue(target.ObjId, out var value))
         {
             //Maybe get the time to stay hostile from db?
-            return value.AddSeconds(30) > DateTime.UtcNow;
+            return value.AddSeconds(WorldManager.DefaultCombatTimeout) > DateTime.UtcNow;
         }
         return false;
     }

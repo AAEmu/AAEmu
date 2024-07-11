@@ -40,6 +40,11 @@ public class BaseUnit : GameObject, IBaseUnit
         CombatBuffs = new CombatBuffs(this);
     }
 
+    /// <summary>
+    /// Checks if target can be attacked by checking their factions and combat states
+    /// </summary>
+    /// <param name="target"></param>
+    /// <returns></returns>
     public bool CanAttack(BaseUnit target)
     {
         if (this.Faction == null || target.Faction == null)
@@ -110,6 +115,19 @@ public class BaseUnit : GameObject, IBaseUnit
         */
 
         return relation == RelationState.Hostile;
+    }
+
+    /// <summary>
+    /// Checks if target should be visible to this Unit by checking stealth
+    /// </summary>
+    /// <param name="target"></param>
+    /// <returns></returns>
+    public bool CanSeeTarget(BaseUnit target)
+    {
+        if (!target.IsVisible)
+            return false;
+
+        return !target.Buffs.CheckBuffTag((uint)TagsEnum.Stealth);
     }
 
     public RelationState GetRelationStateTo(BaseUnit unit) => this.Faction?.GetRelationState(unit.Faction) ?? RelationState.Neutral;

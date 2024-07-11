@@ -114,7 +114,7 @@ internal class Track : Patrol
             }
 
             // looks in the direction of movement
-            var angle = MathUtil.CalculateAngleFrom(npc, npc.CurrentTarget);
+            var angle = MathUtil.CalculateAngleFrom(npc.Transform.World.Position, npc.CurrentTarget.Transform.World.Position);
             var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
