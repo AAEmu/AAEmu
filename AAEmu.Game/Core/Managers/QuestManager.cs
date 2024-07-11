@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -143,9 +143,9 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             var needNewTask = EvaluationQueue.Count <= 0;
             if (!EvaluationQueue.Contains(quest))
                 EvaluationQueue.Enqueue(quest);
-            
+
             Logger.Info($"EnqueueEvaluation, {quest.Owner.Name} ({quest.Owner.Id}), Quest {quest.TemplateId}");
-            
+
             if (needNewTask)
                 TaskManager.Instance.Schedule(new QuestManagerRunQueueTask(), null, TimeSpan.FromMilliseconds(1));
         }
@@ -837,8 +837,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             {
                 while (reader.Read())
                 {
-                    var template = new QuestActConAcceptNpcGroup();
-                    template.Id = reader.GetUInt32("id");
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActConAcceptNpcGroups", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActConAcceptNpcGroup(parentComponent);
+                    template.DetailId = actId;
                     template.QuestMonsterGroupId = reader.GetUInt32("quest_monster_group_id");
                     AddActTemplate(template);
                 }
@@ -987,8 +991,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             {
                 while (reader.Read())
                 {
-                    var template = new QuestActConReportNpcGroup();
-                    template.Id = reader.GetUInt32("id");
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActConReportNpcGroups", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActConReportNpcGroup(parentComponent);
+                    template.DetailId = actId;
                     template.QuestMonsterGroupId = reader.GetUInt32("quest_act_obj_alias_id");
                     template.UseAlias = reader.GetBoolean("use_alias", true);
                     template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);

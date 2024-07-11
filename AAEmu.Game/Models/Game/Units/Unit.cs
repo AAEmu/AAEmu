@@ -62,6 +62,8 @@ public class Unit : BaseUnit, IUnit
 
     public int Hp { get; set; }
 
+    public int HighAbilityRsc { get; set; }
+
     public int Hpp
     {
         get
@@ -577,16 +579,25 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    private static void DespawMate(Character character)
+    public static void DespawMate(Character character)
     {
         // if we died sitting on a horse
         if (character.Hp > 0) { return; }
 
-        var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-        if (mate != null)
+        var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+        if (mates != null)
         {
-            character.Mates.DespawnMate(mate.TlId);
+            for (var i = 0; i < mates.Count; i++)
+                character.Mates.DespawnMate(mates[i]);
         }
+    }
+
+    public static void DespawSlave(Character character)
+    {
+        // if we died sitting on a horse
+        if (character.Hp > 0) { return; }
+
+        SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(character);
     }
 
     private static async void StopAutoSkill(Unit unit)
