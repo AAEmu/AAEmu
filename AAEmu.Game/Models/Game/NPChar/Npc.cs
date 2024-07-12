@@ -1191,7 +1191,7 @@ public partial class Npc : Unit
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
             var updZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY);
-            if (Math.Abs(newZ - updZ) < 1f)
+            if (updZ != 0 && Math.Abs(newZ - updZ) < 1f)
             {
                 Transform.Local.SetHeight(updZ);
             }
