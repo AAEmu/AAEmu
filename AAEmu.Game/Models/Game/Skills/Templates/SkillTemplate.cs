@@ -30,6 +30,7 @@ public class SkillTemplate
     public int WeaponSlotForAngleId { get; set; }
     public int TargetAngle { get; set; }
     public int WeaponSlotForRangeId { get; set; }
+    public int WeaponSlotForAutoAttackId { get; set; }
     public int MinRange { get; set; }
     public int MaxRange { get; set; }
     public bool KeepStealth { get; set; }

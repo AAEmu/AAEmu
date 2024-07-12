@@ -108,7 +108,7 @@ public class Skill
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
-            lock (unit.GCDLock)
+            lock (unit.GcdLock)
             {
                 // Commented out the line to eliminate the hanging of the skill
                 // TODO: added for quest Id = 886 - скилл срабатывает часто, что не дает работать квесту - крысы не появляются

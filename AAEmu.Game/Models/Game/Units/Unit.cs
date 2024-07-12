@@ -6,14 +6,12 @@ using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
@@ -25,7 +23,6 @@ using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -226,7 +223,7 @@ public class Unit : BaseUnit, IUnit
     public SkillTask AutoAttackTask { get; set; }
     public DateTime GlobalCooldown { get; set; }
     public bool IsGlobalCooldowned => GlobalCooldown > DateTime.UtcNow;
-    public object GCDLock { get; set; }
+    public object GcdLock { get; set; }
     public DateTime SkillLastUsed { get; set; }
     public PlotState ActivePlotState { get; set; }
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
@@ -245,13 +242,12 @@ public class Unit : BaseUnit, IUnit
                 BroadcastPacket(new SCCombatClearedPacket(ObjId), true);
         }
     }
+    private bool _isInBattle;
 
     public bool IsInDuel { get; set; }
     public bool IsInPatrol { get; set; } // so as not to run the route a second time
     public int SummarizeDamage { get; set; }
-    public bool IsAutoAttack = false;
-    public uint SkillId;
-    private bool _isInBattle;
+    public bool IsAutoAttack { get; set; }
     public ushort TlId { get; set; }
     public ItemContainer Equipment { get; set; }
     public GameConnection Connection { get; set; }
@@ -265,14 +261,14 @@ public class Unit : BaseUnit, IUnit
     public Patrol Patrol { get; set; }
     public Simulation Simulation { get; set; }
 
-    public UnitProcs Procs { get; set; }
+    public UnitProcs Procs { get; protected set; }
 
     public bool ConditionChance { get; set; }
 
     public Unit()
     {
         Events = new UnitEvents();
-        GCDLock = new object();
+        GcdLock = new object();
         Bonuses = new Dictionary<uint, List<Bonus>>();
         IsInBattle = false;
         Equipment = new EquipmentContainer(0, SlotType.Equipment, false);
@@ -463,46 +459,43 @@ public class Unit : BaseUnit, IUnit
         // Without moving the tagging into the root of unit, we need to do some work for loot distribution:
         if (lootDropItems.Count > 0)
         {
-           // Logger.Info($"Loot item count is {lootDropItems.Count}");
+            // Logger.Info($"Loot item count is {lootDropItems.Count}");
             var unit = WorldManager.Instance.GetNpc(ObjId);
             if (unit == null)
             {
-                //Defaulting to the original code if this isn't an NPC
-              //  Logger.Info($"Not an NPC for {ObjId}");
+                // Defaulting to the original code if this isn't an NPC
+                // Logger.Info($"Not an NPC for {ObjId}");
 
                 killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
 
             }
             else
             {
-                //it's an NPC, and we have a thing for this!
-                HashSet<Character> eligiblePlayers = new HashSet<Character>();
+                // it's an NPC, and we have a thing for this!
+                var eligiblePlayers = new HashSet<Character>();
                 if (unit.CharacterTagging.TagTeam != 0)
                 {
-                    //A team has tagging rights. TODO: Master Looter
+                    // A team has tagging rights.
+                    // TODO: Master Looter
                     var activeTeam = TeamManager.Instance.GetActiveTeam(unit.CharacterTagging.TagTeam);
-                    if(activeTeam.LootingRule.LootMethod==0)
+                    if (activeTeam.LootingRule.LootMethod == 0)
                     {
-                        //FFA Loot
+                        // FFA Loot
                         foreach (var member in activeTeam.Members)
                         {
-                            if (member != null && member.Character != null)
+                            if (member?.Character == null)
+                                continue;
+
+                            if (GetDistanceTo(member.Character) <= 200)
                             {
-                                if (member.Character is Character tm)
-                                {
-                                    var distance = tm.Transform.World.Position - this.Transform.World.Position;
-                                    if (distance.Length() <= 200)
-                                    {
-                                        eligiblePlayers.Add(tm);
-                                    }
-                                }
+                                eligiblePlayers.Add(member.Character);
                             }
                         }
                     }
                     else
                     {
-
-                        //RoundRobin, TODO: Master Looter
+                        // RoundRobin
+                        // TODO: Master Looter
                         var nextEligibleLooter = TeamManager.Instance.GetNextEligibleLooter(unit.CharacterTagging.TagTeam, unit);
                         if (nextEligibleLooter != null)
                         {
@@ -614,9 +607,10 @@ public class Unit : BaseUnit, IUnit
             return;
         }
 
-        character.AutoAttackTask = new UseAutoAttackSkillTask(skill, character);
+        var newTask = new UseAutoAttackSkillTask(skill, character);
+        character.AutoAttackTask = newTask;
+        var attackDelayTimes = newTask.GetAttackDelay(); 
 
-        var attackDelayTimes = skill.Template.CastingTime + skill.Template.CooldownTime + 1000;
         TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(attackDelayTimes),
             TimeSpan.FromMilliseconds(attackDelayTimes), -1);
         /*
@@ -776,7 +770,7 @@ public class Unit : BaseUnit, IUnit
         return result;
     }
 
-    protected double CalculateWithBonuses(double value, UnitAttribute attr)
+    public double CalculateWithBonuses(double value, UnitAttribute attr)
     {
         foreach (var bonus in GetBonuses(attr))
         {
