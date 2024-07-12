@@ -103,11 +103,23 @@ public class CSStartSkillPacket : GamePacket
             // Execute the rider/operator skill as the player using either target or self
             skillResult = Connection.ActiveChar.UseSkill(mountAttachedSkill, riderTarget ?? Connection.ActiveChar);
         }
+        else if (Connection.ActiveChar.IsAutoAttack && skillId == Connection.ActiveChar.AutoAttackTask?.Skill?.Template?.Id)
+        {
+            // Same as already executing auto-skill, just send the success result.
+            skill = Connection.ActiveChar.AutoAttackTask.Skill;
+            skillResult = SkillResult.Success;
+        }
         else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
         {
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
+            if ((skillResult == SkillResult.Success) && (skillId < 5000) && (skillCaster.ObjId == Connection.ActiveChar.ObjId))
+            {
+                // All basic combat skills are below ID 5000, only 2 (melee),3 (offhand) and 4 (ranged) exist, next actual skill used is 5001
+                Connection.ActiveChar.IsAutoAttack = true;
+                Connection.ActiveChar.StartAutoSkill(skill);
+            }
         }
         else if (skillCaster is SkillItem si)
         {
