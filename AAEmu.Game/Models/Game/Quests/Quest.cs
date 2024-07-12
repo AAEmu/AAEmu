@@ -539,12 +539,11 @@ public partial class Quest : PacketMarshaler
         stream.Write(Id);
         stream.Write(TemplateId);
         stream.Write((byte)Status);
-        foreach (var objective in Objectives) // TODO do-while, count 5
-        {
-            stream.Write(objective);
-        }
 
-        stream.Write(false);          // isCheckSet
+        // TODO do-while, count 5
+        stream.WritePiscW(MaxObjectiveCount, Objectives.Select(intValue => (long)intValue).ToArray());
+
+        stream.Write(true);          // isCheckSet
         stream.WriteBc((uint)ObjId);  // ObjId
         stream.Write(0u);             // type(id)
         stream.WriteBc((uint)ObjId);  // ObjId
@@ -554,26 +553,24 @@ public partial class Quest : PacketMarshaler
         stream.Write(DoodadId);                // doodadId
         stream.Write(DateTime.UtcNow);         // acceptTime
         stream.Write((byte)QuestAcceptorType); // type QuestAcceptorType
-        stream.Write(AcceptorId);            // acceptorType npcId or doodadId
+        stream.Write(AcceptorId);              // acceptorType npcId or doodadId
+
         return stream;
     }
 
     public void ReadData(byte[] data)
     {
         var stream = new PacketStream(data);
-
         // Read Objectives
         var newObjectives = new int[MaxObjectiveCount];
         for (var i = 0; i < MaxObjectiveCount; i++)
+        {
             newObjectives[i] = stream.ReadInt32();
-
+        }
         // Read Current Step
         Step = (QuestComponentKind)stream.ReadByte();
-
         // Reset objectives counts only after setting the step, or they will reset
-        for (var i = 0; i < MaxObjectiveCount; i++)
-            Objectives[i] = newObjectives[i];
-
+        Objectives = newObjectives.Select(intValue => intValue).ToArray();
         QuestAcceptorType = (QuestAcceptorType)stream.ReadByte();
         ComponentId = stream.ReadUInt32();
         AcceptorId = stream.ReadUInt32();
@@ -587,7 +584,6 @@ public partial class Quest : PacketMarshaler
         {
             stream.Write(objective);
         }
-
         stream.Write((byte)Step);
         stream.Write((byte)QuestAcceptorType);
         stream.Write(ComponentId);

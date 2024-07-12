@@ -1222,7 +1222,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         //send the char the packet
         character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
-
     }
 
     public static void ResendVisibleObjectsToCharacter(Character character)

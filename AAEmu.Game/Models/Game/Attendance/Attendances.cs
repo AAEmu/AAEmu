@@ -18,6 +18,6 @@ public class Attendances
     public void Write(PacketStream stream)
     {
         stream.Write(AccountAttendance);
-        stream.Write(Accept);
+        //stream.Write(Accept); // add in 5+
     }
 }
