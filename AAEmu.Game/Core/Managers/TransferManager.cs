@@ -31,6 +31,7 @@ public class TransferManager : Singleton<TransferManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;
 
+    private object _activeTransfersLock { get; set; } = new();
     private Dictionary<uint, TransferTemplate> _templates;
     private Dictionary<uint, Transfer> _activeTransfers;
     private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
@@ -86,15 +87,18 @@ public class TransferManager : Singleton<TransferManager>
 
     public void SpawnAll()
     {
-        foreach (var tr in _activeTransfers.Values)
+        lock (_activeTransfersLock)
         {
-            tr.Spawn();
+            foreach (var tr in _activeTransfers.Values)
+            {
+                tr.Spawn();
+            }
         }
     }
 
     public Transfer[] GetTransfers()
     {
-        lock (_activeTransfers)
+        lock (_activeTransfersLock)
         {
             return _activeTransfers.Values.ToArray();
         }
@@ -188,7 +192,10 @@ public class TransferManager : Singleton<TransferManager>
         var buffId = (uint)BuffConstants.Untouchable;
         owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
         owner.Spawn();
-        _activeTransfers.Add(owner.ObjId, owner);
+        lock (_activeTransfersLock)
+        {
+            _activeTransfers.Add(owner.ObjId, owner);
+        }
 
         // Add additional transfer units if defined (like a Carriage/Boarding Part for example)
         if (carriage.TransferBindings.Count <= 0) { return owner; }
@@ -229,7 +236,10 @@ public class TransferManager : Singleton<TransferManager>
         owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
         transfer.Spawn();
-        _activeTransfers.Add(transfer.ObjId, transfer);
+        lock (_activeTransfersLock)
+        {
+            _activeTransfers.Add(transfer.ObjId, transfer);
+        }
 
         foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
         {
