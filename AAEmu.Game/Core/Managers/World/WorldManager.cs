@@ -1231,7 +1231,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public static void ResendVisibleObjectsToCharacter(Character character)
     {
         // Re-send visible flags to character getting out of cinema
-        var stuffs = GetAround<GameObject>(character, REGION_NEIGHBORHOOD_SIZE * REGION_SIZE);
+        var stuffs = GetAround<GameObject>(character, REGION_NEIGHBORHOOD_SIZE * REGION_SIZE * 2); // увеличим радиус видимостив 2 раза для Npc и Doodad после просмотра видео
         var doodads = new List<Doodad>();
         foreach (var stuff in stuffs)
         {
