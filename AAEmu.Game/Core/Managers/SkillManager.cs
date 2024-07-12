@@ -366,6 +366,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.WeaponSlotForAngleId = reader.GetInt32("weapon_slot_for_angle_id");
                         template.TargetAngle = reader.GetInt32("target_angle");
                         template.WeaponSlotForRangeId = reader.GetInt32("weapon_slot_for_range_id");
+                        template.WeaponSlotForAutoAttackId = reader.GetInt32("weapon_slot_for_autoattack_id");
                         template.MinRange = reader.GetInt32("min_range");
                         template.MaxRange = reader.GetInt32("max_range");
                         template.KeepStealth = reader.GetBoolean("keep_stealth", true);

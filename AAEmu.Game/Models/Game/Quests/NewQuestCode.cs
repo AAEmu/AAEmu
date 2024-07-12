@@ -148,7 +148,7 @@ public partial class Quest
                     var body = new byte[8];
                     completedBlock.Body.CopyTo(body, 0);
 
-                    Owner.Quests.DropQuest(TemplateId, true, false);
+                    Owner.Quests.DropQuest(TemplateId, false, false);
                     Owner.SendPacket(new SCQuestContextCompletedPacket(TemplateId, body, 0));
 
                     return;

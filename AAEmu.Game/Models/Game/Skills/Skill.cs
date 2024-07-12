@@ -108,7 +108,7 @@ public class Skill
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
-            lock (unit.GCDLock)
+            lock (unit.GcdLock)
             {
                 // Commented out the line to eliminate the hanging of the skill
                 // TODO: added for quest Id = 886 - скилл срабатывает часто, что не дает работать квесту - крысы не появляются
@@ -674,11 +674,15 @@ public class Skill
     public async void StopSkill(BaseUnit caster)
     {
         if (caster is not Unit unit) { return; }
-        await unit.AutoAttackTask.Cancel();
+
+        if (unit.AutoAttackTask != null)
+            unit.AutoAttackTask.Cancelled = true;
+
+        // await unit.AutoAttackTask.Cancel();
         caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
         caster.BroadcastPacket(new SCSkillStoppedPacket(unit.ObjId, Id), true);
-        unit.AutoAttackTask = null;
-        unit.IsAutoAttack = false; // turned off auto attack
+        //unit.AutoAttackTask = null;
+        //unit.IsAutoAttack = false; // turned off auto attack
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
     }
