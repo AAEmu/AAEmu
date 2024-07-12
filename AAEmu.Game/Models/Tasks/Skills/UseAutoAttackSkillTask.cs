@@ -16,7 +16,7 @@ public class UseAutoAttackSkillTask : SkillTask
         _skill = skill;
         _caster = caster;
         Cancelled = false;
-        _caster.SendMessage($"[UseAutoAttackSkillTask] Created");
+        // _caster.SendMessage($"[UseAutoAttackSkillTask] Created");
     }
 
     public override void Execute()
@@ -27,7 +27,7 @@ public class UseAutoAttackSkillTask : SkillTask
             Cancelled = true;
             _caster.IsAutoAttack = false;
             _caster.AutoAttackTask = null;
-            _caster.SendMessage($"[UseAutoAttackSkillTask] Cancelled");
+            // _caster.SendMessage($"[UseAutoAttackSkillTask] Cancelled");
             Cancel();
         }
 
@@ -44,7 +44,7 @@ public class UseAutoAttackSkillTask : SkillTask
             var targetCaster = new SkillCastUnitTarget(_caster.CurrentTarget.ObjId);
             var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
-            _caster.SendMessage($"[UseAutoAttackSkillTask] Using {_skill.Template.Id} on {target.ObjId}");
+            // _caster.SendMessage($"[UseAutoAttackSkillTask] Using {_skill.Template.Id} on {target.ObjId}");
             _skill.Use(_caster, casterCaster, targetCaster, skillObject, true, out _);
         }
         else

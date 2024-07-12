@@ -616,8 +616,9 @@ public class Unit : BaseUnit, IUnit
 
         character.AutoAttackTask = new UseAutoAttackSkillTask(skill, character);
 
-        TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(1000),
-            TimeSpan.FromMilliseconds(1000), -1);
+        var attackDelayTimes = skill.Template.CastingTime + skill.Template.CooldownTime + 1000;
+        TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(attackDelayTimes),
+            TimeSpan.FromMilliseconds(attackDelayTimes), -1);
         /*
         await character.AutoAttackTask.Cancel();
         character.AutoAttackTask = null;
