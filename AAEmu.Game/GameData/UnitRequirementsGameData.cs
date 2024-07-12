@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
@@ -13,7 +13,9 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Utils.DB;
+
 using Microsoft.Data.Sqlite;
+
 using NLog;
 
 namespace AAEmu.Game.GameData;
@@ -45,10 +47,12 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         command.Prepare();
         using var sqliteReader = command.ExecuteReader();
         using var reader = new SQLiteWrapperReader(sqliteReader);
+        var indx = 0u;
         while (reader.Read())
         {
             var t = new UnitReqs();
-            t.Id = reader.GetUInt32("id");
+            //t.Id = reader.GetUInt32("id"); // нет в базе 3030
+            t.Id = indx;
             t.OwnerId = reader.GetUInt32("owner_id");
             t.OwnerType = reader.GetString("owner_type");
             t.KindType = (UnitReqsKindType)reader.GetUInt32("kind_id");
@@ -59,6 +63,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             if (!_unitReqsByOwnerType.ContainsKey(t.OwnerType))
                 _unitReqsByOwnerType.TryAdd(t.OwnerType, new List<UnitReqs>());
             _unitReqsByOwnerType[t.OwnerType].Add(t);
+            indx++;
         }
         #endregion
     }

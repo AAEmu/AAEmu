@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Text;
+
 using AAEmu.Commons.Conversion;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
+
 using SBuffer = System.Buffer;
 
 namespace AAEmu.Commons.Network;
@@ -749,6 +752,49 @@ public class PacketStream : ICloneable, IComparable
         pish.CopyTo(res, 0);
         Write(res[0]);
         Write(temp, false);
+        return this;
+    }
+
+    public PacketStream WritePiscW(int hcount, params long[] values)
+    {
+        if (hcount > 0)
+        {
+            var index = 0;
+            do
+            {
+                var pcount = 4;
+                if (hcount <= 4)
+                    pcount = hcount;
+                switch (pcount)
+                {
+                    case 1:
+                        {
+                            WritePisc(values[index]);
+                            index += 1;
+                            break;
+                        }
+                    case 2:
+                        {
+                            WritePisc(values[index], values[index + 1]);
+                            index += 2;
+                            break;
+                        }
+                    case 3:
+                        {
+                            WritePisc(values[index], values[index + 1], values[index + 2]);
+                            index += 3;
+                            break;
+                        }
+                    case 4:
+                        {
+                            WritePisc(values[index], values[index + 1], values[index + 2], values[index + 3]);
+                            index += 4;
+                            break;
+                        }
+                }
+                hcount -= pcount;
+            } while (hcount > 0);
+        }
         return this;
     }
 

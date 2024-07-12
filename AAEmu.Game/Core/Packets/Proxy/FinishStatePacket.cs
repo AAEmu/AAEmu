@@ -62,9 +62,9 @@ public class FinishStatePacket : GamePacket
                 Connection.SendPacket(new SCTaxItemConfigPacket(0));
                 Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
                 Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
-                
+
                 ExpeditionManager.Instance.SendExpeditionProtect(Connection);
-                
+
                 Connection.SendPacket(new SCTaxItemConfig2Packet(0));
                 break;
             case 1:
