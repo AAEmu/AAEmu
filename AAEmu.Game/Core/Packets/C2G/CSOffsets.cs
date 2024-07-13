@@ -288,7 +288,7 @@ public static class CSOffsets
     public const ushort off_39C3D138 = 0x0EA;
     public const ushort off_39C3D144 = 0x097;
     public const ushort off_39C3D150 = 0x1A3;
-    public const ushort off_39C3D160 = 0x141;
+    public const ushort CSUnitAttachedPacket = 0x141; // off_39C3D160
     public const ushort CSInteractNPCPacket = 0x046;
     public const ushort CSInteractNPCEndPacket = 0x174;
     public const ushort CSStartInteractionPacket = 0x04C;
