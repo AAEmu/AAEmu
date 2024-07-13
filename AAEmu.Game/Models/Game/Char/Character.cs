@@ -1639,6 +1639,39 @@ public partial class Character : Unit, ICharacter
         }
     }
 
+    /// <summary>
+    /// ItemUse - is used to work the quests
+    /// </summary>
+    /// <param name="item"></param>
+    public void ItemUse(Item item)
+    {
+        if (item is not null)
+        {
+            // Trigger event
+            Events?.OnItemUse(this, new OnItemUseArgs
+            {
+                ItemId = item.TemplateId
+            });
+        }
+    }
+
+    /// <summary>
+    /// Trigger OnItemUse using a item template
+    /// </summary>
+    /// <param name="itemTemplate"></param>
+    public void ItemUseByTemplate(uint itemTemplate)
+    {
+        if (itemTemplate > 0)
+        {
+            // Trigger event
+            Events?.OnItemUse(this, new OnItemUseArgs
+            {
+                ItemId = itemTemplate
+            });
+        }
+    }
+
+    
     public void SetAction(byte slot, ActionSlotType type, uint actionId)
     {
         Slots[slot].Type = type;

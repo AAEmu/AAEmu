@@ -335,13 +335,13 @@ public class SlaveManager : Singleton<SlaveManager>
             // return;
         }
 
-        var item = owner.Inventory.GetItemById(skillData.ItemId);
-        if (item == null) return;
+        if ((skillData.ItemId == 0) || (skillData.ItemTemplateId == 0))
+            return;
 
-        var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
-        if (itemTemplate == null) return;
+        if (skillData.SkillSourceItem.Template is not SummonSlaveTemplate itemTemplate)
+            return;
 
-        Create(owner, null, itemTemplate.SlaveId, item, hideSpawnEffect, positionOverride); // TODO replace the underlying code with this call
+        Create(owner, null, itemTemplate.SlaveId, skillData.SkillSourceItem, hideSpawnEffect, positionOverride);
     }
 
     // added "/slave spawn <templateId>" to be called from the script command
