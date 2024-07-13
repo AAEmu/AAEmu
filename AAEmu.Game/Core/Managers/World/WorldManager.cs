@@ -42,6 +42,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     private Dictionary<uint, InstanceWorld> _worlds;
     private Dictionary<uint, uint> _worldIdByZoneId;
+    private Dictionary<uint, List<uint>> _zonesByWorldId;
     private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
     public bool IsSnowing = false;
     private readonly ConcurrentDictionary<uint, GameObject> _objects;
@@ -72,6 +73,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     anything higher is overkill as you can't target it anymore in the client at that distance
     */
     public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
+
+    public const float DefaultCombatTimeout = 15f;
 
     public WorldManager()
     {
@@ -153,7 +156,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     private static void CombatTick(Unit unit)
     {
         // TODO: Make it so you can also become out of combat if you are not on any aggro lists
-        if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
+        if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(DefaultCombatTimeout) < DateTime.UtcNow)
         {
             unit.IsInBattle = false;
         }
@@ -202,6 +205,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         _worlds = new Dictionary<uint, InstanceWorld>();
         _worldIdByZoneId = new Dictionary<uint, uint>();
         _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
+        _zonesByWorldId = new Dictionary<uint, List<uint>>();
 
         Logger.Info("Loading world data...");
 
@@ -239,7 +243,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             var worldName = worldNames[(int)id];
             if (worldName == "main_world")
-                WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
+                DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
 
             using var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
             var xml = new XmlDocument();
@@ -272,7 +276,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
                 // cache zone keys to world reference
                 foreach (var zoneKey in world.ZoneKeys)
+                {
                     _worldIdByZoneId.Add(zoneKey, id);
+
+                    if (!_zonesByWorldId.ContainsKey(id))
+                        _zonesByWorldId.Add(world.Id, new List<uint>());
+                    _zonesByWorldId[id].Add(zoneKey);
+                }
 
                 world.Water = new WaterBodies();
             }
@@ -439,84 +449,81 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             for (var cellX = 0; cellX < world.CellX; cellX++)
             {
                 var cellFileName = $"{cellX:000}_{cellY:000}";
-                var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
-                    "terrain", "heightmap.dat");
+                var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "terrain", "heightmap.dat");
                 if (ClientFileManager.FileExists(heightMapFile))
-                    using (var stream = ClientFileManager.GetFileStream(heightMapFile))
+                {
+                    using var stream = ClientFileManager.GetFileStream(heightMapFile);
+                    if (stream == null)
                     {
-                        if (stream == null)
-                        {
-                            //Logger.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
-                            continue;
-                        }
-
-                        // Read the cell hmap data
-                        using (var br = new BinaryReader(stream))
-                        {
-                            var hmap = new Hmap();
-
-                            var disableReCalc = false; // (version == VersionCalc.V1) // Version is never VersionCalc.V1
-                            if (hmap.Read(br, disableReCalc) < 0)
-                            {
-                                Logger.Error($"Error reading {heightMapFile}");
-                                continue;
-                            }
-
-                            var nodes = hmap.Nodes
-                                .OrderBy(cell => cell.BoxHeightmap.Min.X)
-                                .ThenBy(cell => cell.BoxHeightmap.Min.Y)
-                                .Where(x => x.pHMData.Length > 0)
-                                .ToList();
-
-                            // Read nodes into heightmap array
-
-                            #region ReadNodes
-
-                            for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
-                                for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
-                                    for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
-                                        for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
-                                        {
-                                            var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
-                                            var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
-                                            var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
-
-                                            ushort value;
-                                            switch (version)
-                                            {
-                                                case VersionCalc.V1:
-                                                    {
-                                                        var doubleValue = node.fRange * 100000d;
-                                                        var rawValue = node.RawDataByIndex(unitX, unitY);
-
-                                                        value = (ushort)((doubleValue / 1.52604335620711f) *
-                                                                         world.HeightMaxCoefficient /
-                                                                         ushort.MaxValue * rawValue +
-                                                                         node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
-                                                    }
-                                                    break;
-                                                case VersionCalc.V2:
-                                                    {
-                                                        value = node.RawDataByIndex(unitX, unitY);
-                                                        var height = node.RawDataToHeight(value);
-                                                    }
-                                                    break;
-                                                case VersionCalc.Draft:
-                                                    {
-                                                        var height = node.GetHeight(unitX, unitY);
-                                                        value = (ushort)(height * world.HeightMaxCoefficient);
-                                                    }
-                                                    break;
-                                                default:
-                                                    throw new NotSupportedException(nameof(version));
-                                            }
-
-                                            world.HeightMaps[oX, oY] = value;
-                                        }
-
-                            #endregion
-                        }
+                        //Logger.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
+                        continue;
                     }
+
+                    // Read the cell hmap data
+                    using var br = new BinaryReader(stream);
+                    var hmap = new Hmap();
+
+                    var disableReCalc = false; // (version == VersionCalc.V1) // Version is never VersionCalc.V1
+                    if (hmap.Read(br, disableReCalc) < 0)
+                    {
+                        Logger.Error($"Error reading {heightMapFile}");
+                        continue;
+                    }
+
+                    var nodes = hmap.Nodes
+                        .OrderBy(cell => cell.BoxHeightmap.Min.X)
+                        .ThenBy(cell => cell.BoxHeightmap.Min.Y)
+                        .Where(x => x.pHMData.Length > 0)
+                        .ToList();
+
+                    // Read nodes into heightmap array
+
+                    #region ReadNodes
+
+                    for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
+                        for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
+                            for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
+                                for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
+                                {
+                                    var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
+                                    var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
+                                    var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
+
+                                    ushort value;
+                                    switch (version)
+                                    {
+                                        case VersionCalc.V1:
+                                            {
+                                                var doubleValue = node.fRange * 100000d;
+                                                var rawValue = node.RawDataByIndex(unitX, unitY);
+
+                                                value = (ushort)((doubleValue / 1.52604335620711f) *
+                                                                 world.HeightMaxCoefficient /
+                                                                 ushort.MaxValue * rawValue +
+                                                                 node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
+                                            }
+                                            break;
+                                        case VersionCalc.V2:
+                                            {
+                                                value = node.RawDataByIndex(unitX, unitY);
+                                                var height = node.RawDataToHeight(value);
+                                            }
+                                            break;
+                                        case VersionCalc.Draft:
+                                            {
+                                                var height = node.GetHeight(unitX, unitY);
+                                                value = (ushort)(height * world.HeightMaxCoefficient);
+                                            }
+                                            break;
+                                        default:
+                                            throw new NotSupportedException(nameof(version));
+                                    }
+
+                                    world.HeightMaps[oX, oY] = value;
+                                }
+
+                    #endregion
+                }
             }
 
         Logger.Info("{0} heightmap loaded", world.Name);
@@ -593,6 +600,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             return GetWorld(worldId);
         Logger.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
         return null;
+    }
+
+    public List<uint> GetZonesByWorldId(uint worldId)
+    {
+        if (_zonesByWorldId.ContainsKey(worldId))
+            return _zonesByWorldId[worldId];
+        return new List<uint>();
     }
 
     public uint GetZoneId(uint worldId, float x, float y)
@@ -747,18 +761,31 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return ret;
     }
 
+    /// <summary>
+    /// Get Active Unit by ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public Unit GetUnit(uint objId)
     {
-        _units.TryGetValue(objId, out var ret);
-        return ret;
+        return _units.GetValueOrDefault(objId);
     }
 
+    /// <summary>
+    /// Get active NPC by ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public Npc GetNpc(uint objId)
     {
-        _npcs.TryGetValue(objId, out var ret);
-        return ret;
+        return _npcs.GetValueOrDefault(objId);
     }
 
+    /// <summary>
+    /// Gets the first active NPC with a specific TemplateId
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
     public Npc GetNpcByTemplateId(uint templateId)
     {
         return _npcs.Values.FirstOrDefault(x => x.TemplateId == templateId);
@@ -790,7 +817,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         FirstNonNameArgument = 0;
         if ((TargetName != null) && (TargetName != string.Empty))
         {
-            var player = WorldManager.Instance.GetCharacter(TargetName);
+            var player = Instance.GetCharacter(TargetName);
             if (player != null)
             {
                 FirstNonNameArgument = 1;
@@ -1006,6 +1033,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public static List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
     {
         var result = new List<T>();
+        if (radius <= 0f)
+            return result;
         if (obj?.Region == null)
             return result;
 
@@ -1189,7 +1218,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // showing it once
         if (character.Updated - character.Created < TimeSpan.FromMinutes(1))
         {
-            character.Quests.Add(questId);
+            character.Quests.AddQuest(questId);
         }
     }
 
@@ -1197,13 +1226,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         //send the char the packet
         character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
-
     }
 
     public static void ResendVisibleObjectsToCharacter(Character character)
     {
         // Re-send visible flags to character getting out of cinema
-        var stuffs = GetAround<GameObject>(character, REGION_NEIGHBORHOOD_SIZE * REGION_SIZE);
+        var stuffs = GetAround<GameObject>(character, REGION_NEIGHBORHOOD_SIZE * REGION_SIZE * 2); // увеличим радиус видимостив 2 раза для Npc и Doodad после просмотра видео
         var doodads = new List<Doodad>();
         foreach (var stuff in stuffs)
         {

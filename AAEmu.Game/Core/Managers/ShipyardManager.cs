@@ -5,7 +5,6 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -79,10 +78,10 @@ public class ShipyardManager : Singleton<ShipyardManager>
         shipyard.ShipyardData.zRot = pos.Yaw;
         shipyard.ShipyardData.MoneyAmount = 0;
         shipyard.ShipyardData.Actions = shipyardData.Step;
-        shipyard.ShipyardData.Type = template.OriginItemId;
+        shipyard.ShipyardData.OriginItemId = template.OriginItemId;
         shipyard.ShipyardData.OwnerName = owner.Name;
-        shipyard.ShipyardData.Type2 = owner.Id;
-        shipyard.ShipyardData.Type3 = owner.Faction.Id;
+        shipyard.ShipyardData.OwnerId = owner.Id;
+        shipyard.ShipyardData.FactionId = owner.Faction.Id;
         shipyard.ShipyardData.Spawned = DateTime.UtcNow;
         shipyard.ShipyardData.ObjId = objId;
         shipyard.ShipyardData.Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100;
@@ -194,7 +193,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
             // calculate skillData
             var skillData = (SkillItem)SkillCaster.GetByType(SkillCasterType.Item);
             skillData.ItemId = foundItems[0].Id;
-            SlaveManager.Instance.Create(character, skillData, shipyard.Transform);
+            SlaveManager.Instance.Create(character, skillData, false, shipyard.Transform);
         }
         RemoveShipyard(shipyard);
     }

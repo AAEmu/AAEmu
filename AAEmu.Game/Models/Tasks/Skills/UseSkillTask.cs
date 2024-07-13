@@ -22,6 +22,6 @@ public class UseSkillTask : Task
 
     public override void Execute()
     {
-        _skill.Use(_caster, _casterCaster, _targetCaster, _skillObject, true);
+        _skill.Use(_caster, _casterCaster, _targetCaster, _skillObject, true, out _);
     }
 }

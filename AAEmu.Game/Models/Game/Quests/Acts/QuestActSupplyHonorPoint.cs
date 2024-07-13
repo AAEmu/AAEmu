@@ -4,14 +4,23 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActSupplyHonorPoint : QuestActTemplate
+public class QuestActSupplyHonorPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public int Point { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    /// <summary>
+    /// Gain honor points
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn("QuestActSupplyHonorPoint");
-        character.ChangeGamePoints(GamePointKind.Honor, Point);
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Point {Point}");
+        var player = quest.Owner as Character;
+        // TODO: Calculate modifiers for honor gain
+        player?.ChangeGamePoints(GamePointKind.Honor, Point);
         return true;
     }
 }

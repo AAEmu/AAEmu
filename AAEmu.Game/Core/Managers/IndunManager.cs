@@ -41,36 +41,36 @@ public class IndunManager : Singleton<IndunManager>
         _waitingDungeonAccessAttemptsCleared ??= new Dictionary<uint, Dictionary<uint, bool>>();
     }
 
-    private void IndunInfoTick(TimeSpan delta)
-    {
-        if (_teamDungeons is { Count: 0 })
+        private void IndunInfoTick(TimeSpan delta)
         {
-            Logger.Info($"Team dungeons: 0");
-        }
-        if (_soloDungeons is { Count: 0 })
-        {
-            Logger.Info($"Solo dungeons: 0");
-        }
-        if (_sysDungeons is { Count: 0 })
-        {
-            Logger.Info($"Sys dungeons: 0");
-        }
-        foreach (var td in _teamDungeons)
-        {
-            Logger.Info($"Team dungeon: team Id={td.Key.Id}, member counts={td.Key.MembersCount()}:");
-            foreach (var dungeon in td.Value)
+            if (_teamDungeons is { Count: > 0 })
             {
-                Logger.Info($"- {dungeon.GetPlayerCount()} players in dungeon Id={dungeon.GetDungeonWorldId()}");
+                Logger.Info($"Team dungeons: {_teamDungeons.Count}");
             }
-        }
-        foreach (var sd in _soloDungeons)
-        {
-            Logger.Info($"Solo dungeon for char Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
-        }
-        foreach (var sd in _sysDungeons)
-        {
-            Logger.Info($"Sys dungeon for zone Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
-        }
+            if (_soloDungeons is { Count: > 0 })
+            {
+                Logger.Info($"Solo dungeons: {_soloDungeons.Count}");
+            }
+            if (_sysDungeons is { Count: > 0 })
+            {
+                Logger.Info($"Sys dungeons: {_sysDungeons.Count}");
+            }
+            foreach (var td in _teamDungeons)
+            {
+                Logger.Info($"Team dungeon: team Id={td.Key.Id}, member counts={td.Key.MembersCount()}:");
+                foreach (var dungeon in td.Value)
+                {
+                    Logger.Info($"- {dungeon.GetPlayerCount()} players in dungeon Id={dungeon.GetDungeonWorldId()}");
+                }
+            }
+            foreach (var sd in _soloDungeons)
+            {
+                Logger.Info($"Solo dungeon for char Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
+            }
+            foreach (var sd in _sysDungeons)
+            {
+                Logger.Info($"Sys dungeon for zone Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
+            }
 
         InfoAttempt();
     }
@@ -661,30 +661,26 @@ public class IndunManager : Singleton<IndunManager>
         }
     }
 
-    private void InfoAttempt()
-    {
-        lock (_lock)
+        private void InfoAttempt()
         {
-            if (_attempts is { Count: 0 })
+            lock (_lock)
             {
-                Logger.Info("Attempts: 0");
-            }
-            else
-            {
-                foreach (var attempt in _attempts)
+                if (_attempts is { Count: > 0 })
                 {
-                    _attempts.TryGetValue(attempt.Key, out var cds);
-                    if (cds != null)
+                    foreach (var attempt in _attempts)
                     {
-                        foreach (var cd in cds)
+                        _attempts.TryGetValue(attempt.Key, out var cds);
+                        if (cds != null)
                         {
-                            Logger.Info($"For player={attempt.Key}: {cd.Value} attempts in dungeon Id={cd.Key}");
+                            foreach (var cd in cds)
+                            {
+                                Logger.Info($"For player={attempt.Key}: {cd.Value} attempts in dungeon Id={cd.Key}");
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
     public Dungeon GetSoloDungeon(uint characterId)
     {

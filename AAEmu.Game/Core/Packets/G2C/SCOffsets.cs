@@ -342,7 +342,7 @@ public static class SCOffsets
     public const ushort SCTradeCanceledPacket = 0x1B5;
     public const ushort SCTradeItemPutupPacket = 0x0E4;
     public const ushort SCTradeItemTookdownPacket = 0x2AD;
-    public const ushort SCOtherTradeOkPacket = 0x106;
+    public const ushort SCOtherTradeOkPacket = 0x106; // SCTradeOkUpdatePacket
     public const ushort SCTradeLockUpdatePacket = 0x167;
     public const ushort SCTowerDefListPacket = 0x24A;
     public const ushort SCTowerDefStartPacket = 0x0B0;
@@ -371,7 +371,7 @@ public static class SCOffsets
     public const ushort SCTrialCanceledPacket = 0x0B3;
     public const ushort SCBotSuspectReportedPacket = 0x20C;
     public const ushort SCBotSuspectArrestedPacket = 0x28A;
-    public const ushort SCSuspectGoingBotTrialPacket = 0x001;
+    public const ushort SCSuspectGoingBotTrialPacket = 0xfff;
     public const ushort SCUnderWaterPacket = 0x2BA;
     public const ushort SCCharacterGamePointsPacket = 0x0EA;
     public const ushort SCGamePointInitedPacket = 0x164;
@@ -729,7 +729,7 @@ public static class SCOffsets
     public const ushort SCGamePointChangedPacket = 0x284;
     public const ushort SCNationListPacket = 0x0A7;
     public const ushort SCFactionRelationListPacket = 0x1FB;
-    public const ushort SCFamilyDescribedPacket = 0x1F2;
+    public const ushort SCFamilyDescPacket = 0x1F2; // SCFamilyDescribedPacket
     public const ushort SCFamilyMemberAddedPacket = 0x2D3;
     public const ushort off_39C0D9FC = 0x2A1;
     public const ushort SCFamilyCreatedPacket = 0x28F;
@@ -741,7 +741,6 @@ public static class SCOffsets
     public const ushort SCDominionTaxRatePacket = 0xfff;
     public const ushort SCNationalTaxRatePacket = 0xfff;
     public const ushort SCDominionTaxBalancedPacket = 0xfff;
-    public const ushort SCFamilyDescPacket = 0xfff;
     public const ushort SCCharBriefPacket = 0xfff;
     public const ushort SCPlaytimePacket = 0xfff;
     public const ushort SCPortalInfoSavedPacket = 0xfff;
@@ -754,7 +753,7 @@ public static class SCOffsets
     //public const ushort SCAttachmentTakenPacket = 0xfff;
     //public const ushort SCBondDoodadPacket = 0x205; // SCAttachToDoodadPacket
     //public const ushort SCUnbondDoodadPacket = 0x06a; //SCDetachFromDoodadPacket
-    public const ushort SCTradeOkUpdatePacket = 0xfff;
+    //public const ushort SCTradeOkUpdatePacket = 0xfff; // SCOtherTradeOkPacket
     public const ushort SCChangeJuryOKCountPacket = 0xfff;
     public const ushort SCChangeJuryVerdictCountPacket = 0xfff;
     public const ushort SCTrialAudienceJoinedPacket = 0xfff;

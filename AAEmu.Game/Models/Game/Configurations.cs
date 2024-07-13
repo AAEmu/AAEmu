@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace AAEmu.Game.Models.Game;
 
@@ -20,8 +21,9 @@ public class WorldConfig
     public double LootRate { get; set; } = 1.0;
     public double GoldLootMultiplier { get; set; } = 1.0;
     public double GrowthRate { get; set; } = 1.0;
-    public bool GodMode { get; set; } = false;
-    public bool GeoDataMode { get; set; } = false;
+    public int IgnoreFallDamageAccessLevel { get; set; } = 100;
+    public bool GodMode { get; set; }
+    public bool GeoDataMode { get; set; }
 }
 
 public class AccountDeleteDelayTiming
@@ -34,7 +36,26 @@ public class AccountConfig
 {
     public string NameRegex { get; set; } = "^[a-zA-Z0-9]{1,18}$";
     public bool DeleteReleaseName { get; set; } = false;
+    // ReSharper disable once CollectionNeverUpdated.Global
+    // Populated by JSON reader
     public List<AccountDeleteDelayTiming> DeleteTimings { get; set; } = new List<AccountDeleteDelayTiming>();
+    public int AccessLevelDefault { get; set; } = 0;
+    public int AccessLevelFirstAccount { get; set; } = 100;
+    public int AccessLevelFirstCharacter { get; set; } = 100;
+}
+
+public class CurrencyValuesConfig
+{
+    public int Default { get; set; } = 0;
+    public int DailyLogin { get; set; } = 0;
+    public int TickMinutes { get; set; } = 5;
+    public int TickAmount { get; set; } = 0;
+    public int TickAmountPremium { get; set; } = 0;
+
+    public int GetTickAmount(bool isPremium)
+    {
+        return isPremium ? TickAmountPremium : TickAmount;
+    }
 }
 
 public class SpecialtyConfig

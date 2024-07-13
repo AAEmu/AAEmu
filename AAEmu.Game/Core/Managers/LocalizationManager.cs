@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -10,26 +11,16 @@ public class LocalizationManager : Singleton<LocalizationManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<string, string> _translations;
-    /// <summary>
-    /// If you want Russian as default server language, use "ru" here instead of "en_us"
-    /// </summary>
-    private static string DefaultLanguage = "en_us"; // TODO: Add this to config
+    private readonly Dictionary<string, string> _translations = new();
 
-
-    public LocalizationManager()
+    private static string GetLookupKey(string tblName, string tblColumn, long index)
     {
-        _translations = new Dictionary<string, string>();
-    }
-
-    private static string GetLookupKey(string tbl_name, string tbl_column, long index)
-    {
-        return string.Format("{0}:{1}:{2}", tbl_name, tbl_column, index);
+        return $"{tblName}:{tblColumn}:{index}";
     }
 
     public void Load()
     {
-        Logger.Info("Loading translations ...", _translations.Count);
+        Logger.Info("Loading translations ...");
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -40,33 +31,28 @@ public class LocalizationManager : Singleton<LocalizationManager>
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
-                        AddTranslation(reader.GetString("tbl_name"), reader.GetString("tbl_column_name"), reader.GetInt64("idx"), reader.GetString(DefaultLanguage));
+                        AddTranslation(reader.GetString("tbl_name"), reader.GetString("tbl_column_name"), reader.GetInt64("idx"), reader.GetString(AppConfiguration.Instance.DefaultLanguage));
                 }
             }
         }
 
-        Logger.Info("Loaded {0} translations ...", _translations.Count);
+        Logger.Info($"Loaded {_translations.Count} translations in {AppConfiguration.Instance.DefaultLanguage} ...");
     }
 
-    public void AddTranslation(string tbl_name, string tbl_column, long index, string translationValue)
+    public void AddTranslation(string tblName, string tblColumn, long index, string translationValue)
     {
-        if (!_translations.TryAdd(GetLookupKey(tbl_name, tbl_column, index), translationValue))
-            Logger.Error("Failed to add translation: {0}:{1}:{2}", tbl_name, tbl_column, index);
+        if (!_translations.TryAdd(GetLookupKey(tblName, tblColumn, index), translationValue))
+            Logger.Error($"Failed to add translation: {tblName}:{tblColumn}:{index}");
     }
 
-    public string Get(string tbl_name, string tbl_column, long index, string fallbackValue = "")
+    public string Get(string tblName, string tblColumn, long index, string fallbackValue = "")
     {
-        var key = GetLookupKey(tbl_name, tbl_column, index);
+        var key = GetLookupKey(tblName, tblColumn, index);
         if (_translations.TryGetValue(key, out var translatedText))
         {
-            if (translatedText == string.Empty)
-                return fallbackValue;
-            else
-                return translatedText;
+            return translatedText == string.Empty ? fallbackValue : translatedText;
         }
-        else
-        {
-            return fallbackValue;
-        }
+
+        return fallbackValue;
     }
 }

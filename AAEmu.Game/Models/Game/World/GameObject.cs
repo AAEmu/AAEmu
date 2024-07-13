@@ -1,10 +1,10 @@
 ﻿using System;
-
+using System.Collections.Generic;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-
+using AAEmu.Game.Models.Game.Units;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -97,6 +97,25 @@ public class GameObject : IGameObject
             character.SendPacket(packet);
         if ((self) && (this is Character chr))
             chr.SendPacket(packet);
+    }
+
+    /// <summary>
+    /// Broadcasts packet to all players in the list of targets, non-players get ignored
+    /// </summary>
+    /// <param name="targets">List of units that might need to be sent to</param>
+    /// <param name="packet"></param>
+    public virtual void SendPacketToPlayers(IBaseUnit[] targets, GamePacket packet)
+    {
+        Dictionary<uint, Character> sendToObjects = new();
+        foreach (var unit in targets)
+        {
+            if (unit is Character chr)
+                sendToObjects.TryAdd(chr.ObjId, chr);
+        }
+        foreach (var (_, chr) in sendToObjects)
+        {
+            chr.SendPacket(packet);
+        }
     }
 
     /// <summary>

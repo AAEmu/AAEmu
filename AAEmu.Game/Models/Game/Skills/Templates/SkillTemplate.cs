@@ -11,7 +11,7 @@ public class SkillTemplate
     public bool Show { get; set; }
     public uint FireAnimId { get; set; }
     public Anim FireAnim { get; set; }
-    public byte AbilityId { get; set; }
+    public AbilityType AbilityId { get; set; }
     public int ManaCost { get; set; }
     public int TimingId { get; set; }
     public uint CooldownTime { get; set; }
@@ -31,6 +31,7 @@ public class SkillTemplate
     public int WeaponSlotForAngleId { get; set; }
     public int TargetAngle { get; set; }
     public int WeaponSlotForRangeId { get; set; }
+    public int WeaponSlotForAutoAttackId { get; set; }
     public int MinRange { get; set; }
     public int MaxRange { get; set; }
     public bool KeepStealth { get; set; }
@@ -112,6 +113,7 @@ public class SkillTemplate
     public int SkillPoints { get; set; }
     public int DoodadHitFamily { get; set; }
     public List<SkillEffect> Effects { get; set; }
+    public bool FirstReagentOnly { get; set; }
 
     public SkillTemplate()
     {

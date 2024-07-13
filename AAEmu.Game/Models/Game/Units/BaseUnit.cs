@@ -1,14 +1,18 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -36,6 +40,11 @@ public class BaseUnit : GameObject, IBaseUnit
         CombatBuffs = new CombatBuffs(this);
     }
 
+    /// <summary>
+    /// Checks if target can be attacked by checking their factions and combat states
+    /// </summary>
+    /// <param name="target"></param>
+    /// <returns></returns>
     public bool CanAttack(BaseUnit target)
     {
         if (this.Faction == null || target.Faction == null)
@@ -51,7 +60,7 @@ public class BaseUnit : GameObject, IBaseUnit
         var zoneFaction = FactionManager.Instance.GetFaction(zoneFactionId);
         if (zoneFaction == null)
         {
-            Logger.Warn($"CanAttack zone faction is null {this.ObjId} - {target.ObjId}");
+            //Logger.Warn($"CanAttack zone faction is null {this.ObjId} - {target.ObjId}");
             zoneFaction = FactionManager.Instance.GetFaction(FactionsEnum.Neutral);
         }
         var targetMotherFaction = target.Faction?.MotherId ?? 0;
@@ -108,6 +117,19 @@ public class BaseUnit : GameObject, IBaseUnit
         return relation == RelationState.Hostile;
     }
 
+    /// <summary>
+    /// Checks if target should be visible to this Unit by checking stealth
+    /// </summary>
+    /// <param name="target"></param>
+    /// <returns></returns>
+    public bool CanSeeTarget(BaseUnit target)
+    {
+        if (!target.IsVisible)
+            return false;
+
+        return !target.Buffs.CheckBuffTag((uint)TagsEnum.Stealth);
+    }
+
     public RelationState GetRelationStateTo(BaseUnit unit) => this.Faction?.GetRelationState(unit.Faction) ?? RelationState.Neutral;
 
     public virtual void AddBonus(uint bonusIndex, Bonus bonus)
@@ -144,5 +166,43 @@ public class BaseUnit : GameObject, IBaseUnit
         if (string.IsNullOrWhiteSpace(Name))
             return base.DebugName();
         return "(" + ObjId.ToString() + ") - " + Name;
+    }
+
+    /// <summary>
+    /// Get distance between two units taking into account their model sizes
+    /// </summary>
+    /// <param name="baseUnit"></param>
+    /// <param name="includeZAxis"></param>
+    /// <returns></returns>
+    public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
+    {
+        if (baseUnit == null)
+            return 0.0f;
+
+        if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
+            return 0.0f;
+
+        var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
+        if (baseUnit is Shipyard.Shipyard shipyard)
+        {
+            // Let's use the build radius for this, as it doesn't really have a easy to grab model to get it from 
+            rawDist -= ShipyardManager.Instance._shipyardsTemplate[shipyard.ShipyardData.TemplateId].BuildRadius;
+        }
+        else
+        if (baseUnit is House house)
+        {
+            // Subtract house radius, this should be fair enough for building
+            rawDist -= (house.Template.GardenRadius * house.Scale);
+        }
+        else
+        {
+            // If target is a Unit, then use it's model for radius
+            if (baseUnit is Unit unit)
+                rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
+        }
+        // Subtract own radius
+        rawDist -= (this is Unit sourceUnit) ? (ModelManager.Instance.GetActorModel(sourceUnit.ModelId)?.Radius ?? 0) * Scale : 0f;
+
+        return Math.Max(rawDist, 0);
     }
 }

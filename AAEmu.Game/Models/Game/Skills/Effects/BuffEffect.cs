@@ -4,8 +4,10 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -77,15 +79,18 @@ public class BuffEffect : EffectTemplate
 
         // TODO Doesn't let the quest work Id=2488 "A Mother's Tale", 13, "Lilyut Hills", "Nuian Main"
         // Safeguard to prevent accidental flagging
-        if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
-            return;
+        //if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
+        //    return;
 
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
 
-        if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly
-            && caster != target && !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
+        if (Buff.Kind == BuffKind.Bad && 
+            (target is not Npc) &&
+            caster.GetRelationStateTo(target) == RelationState.Friendly && 
+            caster != target && 
+            !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
         {
-            ((Unit)caster).SetCriminalState(true);
+            ((Unit)caster).SetCriminalState(true, target);
         }
     }
 }

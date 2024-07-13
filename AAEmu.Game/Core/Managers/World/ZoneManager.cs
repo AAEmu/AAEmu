@@ -261,11 +261,20 @@ public class ZoneManager : Singleton<ZoneManager>
             doodad.Transform.ZoneId = zoneId;
         }
         var zone = ZoneManager.Instance.GetZoneByKey(doodad.Transform.ZoneId);
-
+        if (zone == null)
+        {
+            return false;
+        }
         // Get the climates list for this zone
         var zoneClimates = ZoneManager.Instance.GetClimatesByZone(zone);
 
         // Check if it's in there
         return zoneClimates.Contains(doodad.Template.ClimateId);
+    }
+
+    public uint GetZoneIdByKey(uint zoneKey)
+    {
+        _zones.TryGetValue(zoneKey, out var zone);
+        return zone?.GroupId ?? 0;
     }
 }

@@ -1,1 +1,1 @@
-ALTER TABLE `aaemu_game.auction_house` ADD `end_time` datetime NOT NULL AFTER `creation_time`;
+ALTER TABLE `auction_house` ADD `end_time` datetime NOT NULL AFTER `creation_time`;

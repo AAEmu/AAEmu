@@ -41,12 +41,13 @@ public class InteractionEffect : EffectTemplate
         }
 
         if (caster is not Character character) { return; }
+        if (character.SkillCancelled) { return; }
         if (target is Doodad doodad)
         {
             //character.Quests.OnInteraction(WorldInteraction, target);
             // инициируем событие
             //Task.Run(() => QuestManager.Instance.DoInteractionEvents((Character)caster, target.TemplateId));
-            QuestManager.Instance.DoInteractionEvents((Character)caster, target.TemplateId);
+            QuestManager.Instance.DoDoodadInteractionEvents((Character)caster, (Character)caster, target.TemplateId);
         }
     }
 }

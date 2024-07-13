@@ -256,7 +256,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
             }
         }
 
-        return new Skill(skillTemplate);
+        return skillTemplate != null ? new Skill(skillTemplate) : null;
     }
 
     public void Load()
@@ -345,9 +345,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.Id = reader.GetUInt32("id");
                         template.Cost = reader.GetInt32("cost");
                         template.Show = reader.GetBoolean("show", true);
-                        template.FireAnimId = reader.GetUInt32("fire_anim_id", 0);
-                        template.FireAnim = AnimationManager.Instance.GetAnimation(template.FireAnimId);
-                        template.AbilityId = reader.GetByte("ability_id");
+                        template.FireAnim = AnimationManager.Instance.GetAnimation(reader.GetUInt32("fire_anim_id", 0));
+                        template.AbilityId = (AbilityType)reader.GetByte("ability_id");
                         template.ManaCost = reader.GetInt32("mana_cost");
                         template.TimingId = reader.GetInt32("timing_id");
                         template.CooldownTime = reader.GetUInt32("cooldown_time");
@@ -367,6 +366,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.WeaponSlotForAngleId = reader.GetInt32("weapon_slot_for_angle_id");
                         template.TargetAngle = reader.GetInt32("target_angle");
                         template.WeaponSlotForRangeId = reader.GetInt32("weapon_slot_for_range_id");
+                        template.WeaponSlotForAutoAttackId = reader.GetInt32("weapon_slot_for_autoattack_id");
                         template.MinRange = reader.GetInt32("min_range");
                         template.MaxRange = reader.GetInt32("max_range");
                         template.KeepStealth = reader.GetBoolean("keep_stealth", true);
@@ -452,6 +452,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.SourceNotCollided = reader.GetBoolean("source_not_collided", true);
                         template.SkillPoints = reader.GetInt32("skill_points");
                         template.DoodadHitFamily = reader.GetInt32("doodad_hit_family");
+                        template.FirstReagentOnly = reader.GetBoolean("first_reagent_only", true);
                         _skills.Add(template.Id, template);
                     }
                 }
@@ -492,7 +493,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         var template = new PassiveBuffTemplate
                         {
                             Id = reader.GetUInt32("id"),
-                            AbilityId = reader.GetByte("ability_id"),
+                            AbilityId = (AbilityType)reader.GetByte("ability_id"),
                             Level = reader.GetByte("level"),
                             BuffId = reader.GetUInt32("buff_id"),
                             ReqPoints = reader.GetInt32("req_points"),

@@ -12,6 +12,6 @@ public class CSDropQuestContextPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var questId = stream.ReadUInt32();
-        Connection.ActiveChar.Quests.Drop(questId, true);
+        Connection.ActiveChar.Quests.DropQuest(questId, true);
     }
 }

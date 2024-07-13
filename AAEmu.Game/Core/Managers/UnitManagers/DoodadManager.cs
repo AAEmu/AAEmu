@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -22,6 +23,8 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
+
+using MySql.Data.MySqlClient;
 
 using NLog;
 
@@ -247,7 +250,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         func.AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id");
                         func.Space = reader.GetInt32("space");
                         func.BondKindId = (BondKind)reader.GetByte("bond_kind_id");
-                        func.AnimActionId = reader.GetUInt32("anim_action_id"); // (используется в пакете SCBondDoodadPacket) поле добавлено в версии 3+
+                        func.AnimActionId = reader.GetUInt32("anim_action_id"); // (������������ � ������ SCBondDoodadPacket) ���� ��������� � ������ 3+
                         _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
                     }
                 }
@@ -310,6 +313,97 @@ public class DoodadManager : Singleton<DoodadManager>
                             RelationshipId = reader.GetUInt32("relationship_id")
                         };
                         _funcTemplates["DoodadFuncBuff"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_build_condition_infos
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_build_condition_infos";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncBuildConditionInfo();
+                        func.Id = reader.GetUInt32("id");
+                        func.IsDevote = reader.GetBoolean("isDevote", true);
+                        func.IsEnd = reader.GetBoolean("isEnd", true);
+                        _phaseFuncTemplates["DoodadFuncBuildConditionInfo"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_build_condition_ui_opens
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_build_condition_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncBuildConditionUiOpen();
+                        func.Id = reader.GetUInt32("id");
+                        _funcTemplates["DoodadFuncBuildConditionUiOpen"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_change_other_doodad_phases
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_change_other_doodad_phases";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncChangeOtherDoodadPhase();
+                        func.Id = reader.GetUInt32("id");
+                        func.NextPhase = reader.GetInt32("next_phase");
+                        func.TargetDoodadId = reader.GetUInt32("target_doodad_id");
+                        func.TargetPhase = reader.GetInt32("target_phase");
+                        _phaseFuncTemplates["DoodadFuncChangeOtherDoodadPhase"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_devotes
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_devotes";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncDevote();
+                        func.Id = reader.GetUInt32("id");
+                        func.Count = reader.GetInt32("count");
+                        func.ItemCount = reader.GetInt32("item_count");
+                        func.ItemId = reader.GetUInt32("item_id");
+                        _funcTemplates["DoodadFuncDevote"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_react_devotes
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_react_devotes";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncReactDevote();
+                        func.Id = reader.GetUInt32("id");
+                        func.Count = reader.GetUInt32("count");
+                        func.NextPhase = reader.GetInt32("next_phase");
+                        func.SkillId = reader.GetUInt32("skill_id");
+                        _phaseFuncTemplates["DoodadFuncReactDevote"].Add(func.Id, func);
                     }
                 }
             }
@@ -591,44 +685,44 @@ public class DoodadManager : Singleton<DoodadManager>
 
             // doodad_func_consume_changer_items
             // This is not actually a phase, but rather a collection of items that is available for doodad_func_consume_changers
-            //using (var command = connection.CreateCommand())
-            //{
-            //    command.CommandText = "SELECT * FROM doodad_func_consume_changer_items";
-            //    command.Prepare();
-            //    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-            //    {
-            //        while (reader.Read())
-            //        {
-            //            var entry = new DoodadFuncConsumeChangerItem
-            //            {
-            //                Id = reader.GetUInt32("id"),
-            //                DoodadFuncConsumeChangerId = reader.GetUInt32("doodad_func_consume_changer_id"),
-            //                ItemId = reader.GetUInt32("item_id")
-            //            };
-            //            _doodadFuncConsumeChangerItem.TryAdd(entry.Id, entry);
-            //        }
-            //    }
-            //}
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_consume_changer_items";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var entry = new DoodadFuncConsumeChangerItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DoodadFuncConsumeChangerId = reader.GetUInt32("doodad_func_consume_changer_id"),
+                            ItemId = reader.GetUInt32("item_id")
+                        };
+                        _doodadFuncConsumeChangerItem.TryAdd(entry.Id, entry);
+                    }
+                }
+            }
 
             //// doodad_func_consume_changer_model_items
-            //using (var command = connection.CreateCommand())
-            //{
-            //    command.CommandText = "SELECT * FROM doodad_func_consume_changer_model_items";
-            //    command.Prepare();
-            //    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-            //    {
-            //        while (reader.Read())
-            //        {
-            //            var func = new DoodadFuncConsumeChangerModelItem
-            //            {
-            //                Id = reader.GetUInt32("id"),
-            //                DoodadFuncConsumeChangerModelId = reader.GetUInt32("doodad_func_consume_changer_model_id"),
-            //                ItemId = reader.GetUInt32("item_id")
-            //            };
-            //            _phaseFuncTemplates["DoodadFuncConsumeChangerModelItem"].Add(func.Id, func);
-            //        }
-            //    }
-            //}
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_consume_changer_model_items";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncConsumeChangerModelItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            DoodadFuncConsumeChangerModelId = reader.GetUInt32("doodad_func_consume_changer_model_id"),
+                            ItemId = reader.GetUInt32("item_id")
+                        };
+                        _phaseFuncTemplates["DoodadFuncConsumeChangerModelItem"].Add(func.Id, func);
+                    }
+                }
+            }
 
             // doodad_func_consume_changer_models
             using (var command = connection.CreateCommand())
@@ -2753,8 +2847,7 @@ public class DoodadManager : Singleton<DoodadManager>
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null,
-        bool skipPhaseInitialization = false)
+    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
     {
         if (!_templates.TryGetValue(templateId, out var template))
         {
@@ -2812,17 +2905,16 @@ public class DoodadManager : Singleton<DoodadManager>
 
     public DoodadFunc GetFunc(uint funcId)
     {
-        return _funcsById.TryGetValue(funcId, out var res) ? res : null;
+        return _funcsById.GetValueOrDefault(funcId);
     }
 
     public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
     {
-        if (!_funcsByGroups.ContainsKey(funcGroupId))
+        if (!_funcsByGroups.TryGetValue(funcGroupId, out var funcsInGroup))
         {
             return null;
         }
 
-        var funcsInGroup = _funcsByGroups[funcGroupId];
         foreach (var func in funcsInGroup)
         {
             if (func.SkillId == skillId)
@@ -2832,14 +2924,13 @@ public class DoodadManager : Singleton<DoodadManager>
 
             var funcTemplate = GetFuncTemplate(func.FuncId, func.FuncType);
             // Special handler for fake use skill id
-            if (funcTemplate is DoodadFuncFakeUse fakeUseTemplate && fakeUseTemplate.FakeSkillId > 0 &&
-                fakeUseTemplate.FakeSkillId == skillId)
+            if (funcTemplate is DoodadFuncFakeUse { FakeSkillId: > 0 } fakeUseTemplate && fakeUseTemplate.FakeSkillId == skillId)
             {
                 return func;
             }
 
             // Special handler for use (func) skill id
-            if (funcTemplate is DoodadFuncUse useTemplate && useTemplate.SkillId > 0 && useTemplate.SkillId == skillId)
+            if (funcTemplate is DoodadFuncUse { SkillId: > 0 } useTemplate && useTemplate.SkillId == skillId)
             {
                 return func;
             }
@@ -2883,18 +2974,17 @@ public class DoodadManager : Singleton<DoodadManager>
             return null;
         }
 
-        return funcs.TryGetValue(funcId, out var template) ? template : null;
+        return funcs.GetValueOrDefault(funcId);
     }
 
     public DoodadPhaseFuncTemplate GetPhaseFuncTemplate(uint funcId, string funcType)
     {
-        if (!_phaseFuncTemplates.ContainsKey(funcType))
+        if (!_phaseFuncTemplates.TryGetValue(funcType, out var funcs))
         {
             return null;
         }
 
-        var funcs = _phaseFuncTemplates[funcType];
-        return funcs.TryGetValue(funcId, out var template) ? template : null;
+        return funcs.GetValueOrDefault(funcId);
     }
 
     /// <summary>
@@ -2957,8 +3047,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// <summary>
     /// Saves and creates a doodad
     /// </summary>
-    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot,
-        float scale, ulong itemId)
+    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid)
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
@@ -2972,6 +3061,7 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.Transform.Local.SetZRotation(zRot);
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
+        doodad.FarmType = farmType;
         if (targetHouse != null)
         {
             doodad.OwnerDbId = targetHouse.Id;
@@ -3015,6 +3105,7 @@ public class DoodadManager : Singleton<DoodadManager>
 
         foreach (var item in items)
         {
+            character.ItemUse(preferredItem);
             character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1,
                 preferredItem);
         }
@@ -3022,6 +3113,7 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.InitDoodad();
         doodad.Spawn();
         doodad.Save();
+        SpawnManager.Instance.AddPlayerDoodad(doodad);
 
         return doodad;
     }
@@ -3119,5 +3211,66 @@ public class DoodadManager : Singleton<DoodadManager>
         return _doodadFuncConsumeChangerItem.Values
             .Where(d => d.DoodadFuncConsumeChangerId == doodadFuncConsumeChangerId).Select(entry => entry.ItemId)
             .ToList();
+    }
+
+    /// <summary>
+    /// Deletes a persistent doodad directly from DB (do not use on spawned doodads)
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <param name="transaction"></param>
+    /// <param name="dbId">Doodad DB Id</param>
+    public void DeleteDoodadById(MySqlConnection connection, MySqlTransaction transaction, uint dbId)
+    {
+        // First grab the doodad data from the DB to check if there are items attached
+        ulong attachedItemId = 0u;
+        ulong attachedContainer = 0u;
+        using (var command = connection.CreateCommand())
+        {
+            if (transaction != null)
+                command.Transaction = transaction;
+
+            // First grab item related data
+            command.CommandText = "SELECT * FROM doodads WHERE id = @id LIMIT 1";
+            command.Parameters.AddWithValue("@id", dbId);
+            command.Prepare();
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    attachedItemId = reader.GetUInt32("item_id");
+                    attachedContainer = reader.GetUInt32("item_container_id");
+                }
+            }
+
+            // Actually delete the doodad from DB
+            command.CommandText = "DELETE FROM doodads WHERE id = @id";
+            // command.Parameters.AddWithValue("@id", dbId); // recycled from above
+            command.Prepare();
+            if (command.ExecuteNonQuery() <= 0)
+            {
+                Logger.Error($"Failed to delete doodad from DB Id: {dbId}");
+                return;
+            }
+        }
+        DoodadIdManager.Instance.ReleaseId(dbId); // Free up the Id
+
+        // Handle attached items
+        if (attachedItemId > 0)
+        {
+            var item = ItemManager.Instance.GetItemByItemId(attachedItemId);
+            if (item != null)
+            {
+                item._holdingContainer = null;
+                ItemManager.Instance.ReleaseId(item.Id);
+            }
+        }
+
+        // Delete attached container
+        if (attachedContainer > 0)
+        {
+            var container = ItemManager.Instance.GetItemContainerByDbId(attachedContainer);
+            if (container != null)
+                ItemManager.Instance.DeleteItemContainer(container);
+        }
     }
 }

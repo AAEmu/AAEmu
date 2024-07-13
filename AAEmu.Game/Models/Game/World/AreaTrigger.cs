@@ -50,7 +50,7 @@ public class AreaTrigger
         var currentUnitsInShape = WorldManager.GetAroundByShape<Unit>(Owner, Shape);
         if (currentUnitsInShape is { Count: 0 })
         {
-            Logger.Warn("AreaShape with no size values was remove");
+            Logger.Warn("AreaShape with no size values was removed");
             AreaTriggerManager.Instance.RemoveAreaTrigger(this);
             return;
         }

@@ -22,7 +22,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
         _packets = new ConcurrentDictionary<uint, Type>();
     }
 
-    public override void OnConnect(Session session)
+    public override void OnConnect(ISession session)
     {
         Logger.Info("GameServer from {0} connected, session id: {1}", session.Ip.ToString(),
             session.SessionId.ToString(CultureInfo.InvariantCulture));
@@ -31,7 +31,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
         InternalConnectionTable.Instance.AddConnection(con);
     }
 
-    public override void OnDisconnect(Session session)
+    public override void OnDisconnect(ISession session)
     {
         Logger.Info("GameServer from {0} disconnected", session.Ip.ToString());
         var gsId = session.GetAttribute("gsId");
@@ -40,7 +40,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
         InternalConnectionTable.Instance.RemoveConnection(session.SessionId);
     }
 
-    public override void OnReceive(Session session, byte[] buf, int bytes)
+    public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
         var connection = InternalConnectionTable.Instance.GetConnection(session.SessionId);
         var stream = new PacketStream();
@@ -50,7 +50,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
             connection.LastPacket = null;
         }
 
-        stream.Insert(stream.Count, buf, 0, bytes);
+        stream.Insert(stream.Count, buf, offset, bytes);
         while (stream != null && stream.Count > 0)
         {
             ushort len;
@@ -121,7 +121,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
         _packets.TryAdd(type, classType);
     }
 
-    private static void HandleUnknownPacket(Session session, uint type, PacketStream stream)
+    private static void HandleUnknownPacket(ISession session, uint type, PacketStream stream)
     {
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)

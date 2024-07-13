@@ -39,7 +39,7 @@ public class DoodadFuncSkillHit : DoodadFuncTemplate
                             sc.ItemTemplateId = itemId;
                             var item = ItemManager.Instance.Create(itemId, 1, 0);
                             var res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, item.TemplateId, item.Count, item.Grade);
-                            skill.Use(caster, skillCaster, target);
+                            skill.Use(caster, skillCaster, target, null, false, out _);
                         }
                     }
                 }

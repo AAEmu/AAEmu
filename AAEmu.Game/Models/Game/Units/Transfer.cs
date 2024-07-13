@@ -21,6 +21,7 @@ namespace AAEmu.Game.Models.Game.Units;
 public class Transfer : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Transfer;
     //public uint Id { get; set; } // moved to BaseUnit
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public uint BondingObjId { get; set; }

@@ -8,13 +8,14 @@ public class CSDestroySlavePacket : GamePacket
 {
     public CSDestroySlavePacket() : base(CSOffsets.CSDestroySlavePacket, 5)
     {
+        //
     }
 
     public override void Read(PacketStream stream)
     {
         var tl = stream.ReadUInt16();
 
-        Logger.Debug("DestroySlave, Tl: {0}", tl);
-        SlaveManager.Instance.RemoveActiveSlave(Connection.ActiveChar, tl);
+        Logger.Debug($"DestroySlave, Tl: {tl}");
+        SlaveManager.Instance.RemoveActiveSlave(Connection.ActiveChar, tl, false);
     }
 }

@@ -31,6 +31,7 @@ public class SCTradeMadePacket : GamePacket
             stream.Write(remove);
 
         stream.Write(0u); // type(id)
+        stream.Write(0u); // lockItemSlotKey
         return stream;
     }
 }

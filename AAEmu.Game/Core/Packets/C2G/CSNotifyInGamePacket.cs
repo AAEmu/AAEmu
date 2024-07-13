@@ -23,6 +23,8 @@ public class CSNotifyInGamePacket : GamePacket
         Connection.ActiveChar.Spawn();
         //Connection.ActiveChar.StartRegen();
 
+        ResidentManager.Instance.UpdateAtLogin(Connection.ActiveChar);
+
         // Joining channel 1 (shout) will automatically also join /lfg and /trade for that zone on the client-side
         // Back in 1.x /trade was zone base, not faction based
         ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId).JoinChannel(Connection.ActiveChar); // shout, trade, lfg
@@ -33,6 +35,16 @@ public class CSNotifyInGamePacket : GamePacket
         // TODO - MAYBE MOVE TO SPAWN CHARACTER
         TeamManager.Instance.UpdateAtLogin(Connection.ActiveChar);
         Connection.ActiveChar.Expedition?.OnCharacterLogin(Connection.ActiveChar);
+        ExpeditionManager.SendMyExpeditionDescInfo(Connection.ActiveChar);
+
+        if (Connection.ActiveChar.Attendances.Attendances?.Count == 0)
+        {
+            Connection.ActiveChar.Attendances.SendEmptyAttendances();
+        }
+        else
+        {
+            Connection.ActiveChar.Attendances.Send();
+        }
 
         Connection.ActiveChar.UpdateGearBonuses(null, null);
 

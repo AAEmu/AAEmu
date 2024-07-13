@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -11,10 +12,10 @@ public class CSEventCenterAddAttendancePacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var itemTemplateId = stream.ReadUInt32();
+        var characterId = stream.ReadUInt32();
 
-        Logger.Debug($"CSEventCenterAddAttendancePacket, itemTemplateId: {itemTemplateId}");
-            
-        //HousingManager.Instance.HouseTaxInfo(Connection, tl);
+        Logger.Debug($"CSEventCenterAddAttendancePacket, characterId: {characterId}");
+
+        AttendanceManager.Instance.Add(characterId);
     }
 }

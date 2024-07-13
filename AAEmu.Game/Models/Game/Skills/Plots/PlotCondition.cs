@@ -222,7 +222,7 @@ public class PlotCondition
             //TODO obtain variables directly from plot.
             return Caster.ActivePlotState.Variables[index] == value;
         }
-        Logger.Error("Invalid Plot Variable Condition Operation[{0}]", operation);
+        Logger.Trace("Invalid Plot Variable Condition Operation[{0}]", operation);
         return false;
     }
 

@@ -5,6 +5,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTimeOfDayPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+
     private readonly float _time;
 
     public SCTimeOfDayPacket(float time) : base(SCOffsets.SCTimeOfDayPacket, 5)

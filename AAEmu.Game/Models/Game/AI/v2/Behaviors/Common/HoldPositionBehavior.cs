@@ -24,11 +24,20 @@ public class HoldPositionBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        CheckAggression(); // наполним таблицу abuser (возможно, что уйдем с этого поведения на другое)
-
+        var delay = 150;
         // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-        if (!Ai.Owner.CheckInterval(Delay)) { return; }
-        PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, 0); // используем скиллы на себя
+        if (!Ai.Owner.CheckInterval(delay))
+        {
+            Logger.Trace($"Skill: CooldownTime [{delay}]!");
+        }
+        else
+        {
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
+        }
+
+        CheckAggression();
+        CheckAlert();
     }
 
     public override void Exit()

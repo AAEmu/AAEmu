@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -9,14 +10,18 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Tasks.Skills;
+
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterCraft
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     private int _count { get; set; }
     private Craft _craft { get; set; }
     private uint _doodadId { get; set; }
@@ -33,13 +38,23 @@ public class CharacterCraft
         _count = count;
         _doodadId = doodadId;
 
-        // Check if we have enough materials
-        var hasMaterials = true;
-
-        foreach (var craftMaterial in craft.CraftMaterials)
+        // check if you are equipped with a backpack or glider
+        if (!Owner.Inventory.CanReplaceGliderInBackpackSlot())
         {
-            if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount)
-                hasMaterials = false;
+            // TODO verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
+            CancelCraft();
+            return;
+        }
+
+        // Check if we have enough materials
+        var hasMaterials = craft.CraftMaterials.Count == 0 || craft.CraftMaterials.Any(craftMaterial => Owner.Inventory.GetItemsCount(craftMaterial.ItemId) >= craftMaterial.Amount);
+        if (!hasMaterials)
+        {
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughRequiredItem, 0, false);
+            CancelCraft();
+            return;
         }
 
         // Check if we have permission to actually use the doodad (mostly sanity check since the client already checks this before you can craft)
@@ -58,8 +73,7 @@ public class CharacterCraft
                     break;
                 case DoodadFuncPermission.SameAccount:
                     if (doodad.OwnerType == DoodadOwnerType.Character)
-                        hasPermission = WorldManager.Instance.GetCharacterById(doodad.OwnerId).AccountId ==
-                                        Owner.AccountId;
+                        hasPermission = WorldManager.Instance.GetCharacterById(doodad.OwnerId).AccountId == Owner.AccountId;
                     break;
                 case DoodadFuncPermission.ZoneResidents:
                     hasPermission = false;
@@ -69,8 +83,7 @@ public class CharacterCraft
                     {
                         foreach (var (houseId, playerHouse) in playerHouses)
                         {
-                            var houseZoneGroup = ZoneManager.Instance.GetZoneByKey(playerHouse.Transform.ZoneId)
-                                ?.GroupId ?? 0;
+                            var houseZoneGroup = ZoneManager.Instance.GetZoneByKey(playerHouse.Transform.ZoneId)?.GroupId ?? 0;
                             if (houseZoneGroup == zoneGroup)
                             {
                                 hasPermission = true;
@@ -87,6 +100,14 @@ public class CharacterCraft
             Owner.SendMessage($"Crafting using @DOODAD_NAME({doodad.TemplateId}) - {doodad.TemplateId} (objId: {doodad.ObjId}) with current permission {doodad.FuncPermission} = {hasPermission}");
         }
 
+        if (!hasPermission)
+        {
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.CraftPermissionDeny, 0, false);
+            CancelCraft();
+            return;
+        }
+
         if (hasMaterials && hasPermission)
         {
             IsCrafting = true;
@@ -99,7 +120,7 @@ public class CharacterCraft
 
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
             _consumeLaborPower = skill.Template.ConsumeLaborPower;
-            skill.Use(Owner, caster, target);
+            skill.Use(Owner, caster, target, null, false, out _);
         }
     }
 
@@ -117,12 +138,16 @@ public class CharacterCraft
         if (Owner.LaborPower < _consumeLaborPower)
         {
             Owner.SendMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughLaborPower, 0, false);
             CraftOrCancel();
             return;
         }
 
         if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
         {
+            // TODO not verified
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughSpace, 0, false);
             CraftOrCancel();
             return;
         }
@@ -133,12 +158,12 @@ public class CharacterCraft
             if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
             {
                 Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, product.ItemId, product.Amount, -1, Owner.Id);
-                // Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, -1, Owner.Id);
             }
             else
             {
                 if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, -1, Owner.Id))
                 {
+                    Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
                     CancelCraft();
                     return;
                 }
@@ -163,9 +188,8 @@ public class CharacterCraft
 
         if (_count > 0)
         {
-            ScheduleCrtaft();
+            ScheduleCraft();
             // Owner.SendMessage($"Continue craft: {_craft.Id} for {_count} more times TaskId: {newCraft.Id}, cooldown: {nextCraftDelay.TotalMilliseconds}ms");
-            // Craft(_craft, _count, _doodadId);
         }
         else
         {
@@ -177,13 +201,13 @@ public class CharacterCraft
     {
         if (_count > 0)
         {
-            ScheduleCrtaft();
+            ScheduleCraft();
         }
         else
             CancelCraft();
     }
 
-    private void ScheduleCrtaft()
+    private void ScheduleCraft()
     {
         var newCraft = new CraftTask(Owner, _craft.Id, _doodadId, _count);
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(_craft.SkillId);
@@ -191,7 +215,7 @@ public class CharacterCraft
         var nextCraftDelay = timeToGlobalCooldown.TotalMilliseconds > skillTemplate.CooldownTime
             ? timeToGlobalCooldown
             : TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
-        TaskManager.Instance.Schedule(newCraft, nextCraftDelay, null, 1);
+        TaskManager.Instance.Schedule(newCraft, nextCraftDelay);
     }
 
     public void CancelCraft()

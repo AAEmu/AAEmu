@@ -13,6 +13,7 @@ public class DoodadSpawnerDoSpawnTask : Task
 
     public override void Execute()
     {
-        _doodadSpawner.DoSpawn();
+        //_doodadSpawner.DoSpawn();
+        _doodadSpawner.Spawn(0);
     }
 }

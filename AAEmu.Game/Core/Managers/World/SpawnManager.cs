@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
@@ -22,6 +24,7 @@ using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -52,6 +55,9 @@ public class SpawnManager : Singleton<SpawnManager>
 
     public void AddNpcSpawner(NpcSpawner npcSpawner)
     {
+        if (npcSpawner.NpcSpawnerIds is [0])
+            npcSpawner.NpcSpawnerIds = [];
+
         // check for manually entered NpcSpawnerId
         if (npcSpawner.NpcSpawnerIds.Count == 0)
         {
@@ -87,8 +93,29 @@ public class SpawnManager : Singleton<SpawnManager>
             else
             {
                 // TODO добавил список спавнеров // added a list of spawners
+                var pattern = $@"\b{Regex.Escape(npcSpawner.UnitId.ToString())}\b";
+                var regex = new Regex(pattern);
                 foreach (var id in npcSpawnerIds)
                 {
+                    // в template.Name обычно должно присутствовать templateId для нашего Npc, по нему будем брать нужный spawnerId
+                    // in template.Name there should usually be a templateId for our Npc, we will use it to take the required spawnerId 
+                    var template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                    var containsId = regex.IsMatch(template.Name);
+                    if (containsId)
+                    {
+                        npcSpawner.NpcSpawnerIds.Add(id);
+                        npcSpawner.Id = id;
+                        npcSpawner.Template = template;
+                        foreach (var n in npcSpawner.Template.Npcs)
+                        {
+                            n.Position = npcSpawner.Position;
+                        }
+                    }
+                }
+
+                if (npcSpawner.Id == 0 && npcSpawnerIds.Count == 1)
+                {
+                    var id = npcSpawnerIds[0];
                     npcSpawner.NpcSpawnerIds.Add(id);
                     npcSpawner.Id = id;
                     npcSpawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
@@ -145,6 +172,48 @@ public class SpawnManager : Singleton<SpawnManager>
             }
         }
         Logger.Info($"{count} NPC spawners spawned in world {worldId}");
+    }
+
+    public int DeSpawnAll(byte worldId)
+    {
+        var world = WorldManager.Instance.GetWorlds().FirstOrDefault(x => x.Id == worldId);
+        if (world == null)
+            return -1 ;
+
+        var res = 0;
+        // NPCs
+        foreach (var npc in WorldManager.Instance.GetAllNpcs().ToList())
+        {
+            if (npc.Spawner != null)
+            {
+                npc.Spawner.RespawnTime = 9999999;
+                npc.Spawner.Despawn(npc);
+            }
+            else
+            {
+                npc.Hide();
+            }
+
+            res++;
+        }
+
+        // Doodads
+        foreach (var doodad in WorldManager.Instance.GetAllDoodads().ToList())
+        {
+            if (doodad.Spawner != null)
+            {
+                doodad.Spawner.RespawnTime = 9999999;
+                doodad.Spawner.Despawn(doodad);
+            }
+            else
+            {
+                doodad.Hide();
+            }
+
+            res++;
+        }
+
+        return res;
     }
 
     public void Load()
@@ -431,6 +500,29 @@ public class SpawnManager : Singleton<SpawnManager>
         _loaded = true;
     }
 
+    public List<Doodad> GetPlayerDoodads(uint charId)
+    {
+        return _playerDoodads.Where(d => d.OwnerId == charId).ToList();
+    }
+
+    public List<Doodad> GetAllPlayerDoodads()
+    {
+        return _playerDoodads;
+    }
+
+    public void RemovePlayerDoodad(Doodad doodad)
+    {
+        if (_playerDoodads.Contains(doodad))
+        {
+            _playerDoodads.Remove(doodad);
+        }
+    }
+
+    public void AddPlayerDoodad(Doodad doodad)
+    {
+        _playerDoodads.Add(doodad);
+    }
+
     /// <summary>
     /// Load Persistent Doodads from the DataBase
     /// </summary>
@@ -446,9 +538,9 @@ public class SpawnManager : Singleton<SpawnManager>
         using var connection = MySQL.CreateConnection();
         using (var command = connection.CreateCommand())
         {
-            // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
+            // Sorting required to make sure parenting doesn't produce invalid parents (normally)
 
-            command.CommandText = "SELECT * FROM doodads  WHERE owner_type = @OwnerType";
+            command.CommandText = "SELECT * FROM doodads WHERE owner_type = @OwnerType";
             if (ownerToSpawnId >= 0)
                 command.CommandText += " AND house_id = @OwnerId";
             command.CommandText += " ORDER BY `plant_time`";
@@ -482,6 +574,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     var itemTemplateId = reader.GetUInt32("item_template_id");
                     var itemContainerId = reader.GetUInt64("item_container_id");
                     var data = reader.GetInt32("data");
+                    var farmType = (FarmType)reader.GetUInt32("farm_type");
 
                     var doodad = DoodadManager.Instance.Create(0, templateId, null, true);
 
@@ -503,9 +596,10 @@ public class SpawnManager : Singleton<SpawnManager>
                     // Try to grab info from the actual item if it still exists
                     var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
                     doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
-                    // Grab Ucc from it's old source item
+                    // Grab Ucc from its old source item
                     doodad.UccId = sourceItem?.UccId ?? 0;
                     doodad.SetData(data); // Directly assigning to Data property would trigger a .Save()
+                    doodad.FarmType = farmType;
 
                     // Apparently this is only a reference value, so might not actually need to parent it
                     if (parentDoodad > 0)

@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -34,10 +35,10 @@ public class FinishStatePacket : GamePacket
                 Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                 Connection.SendPacket(new SCInitialConfigPacket());
 
-                // Test URLs                                     // Original Trion values
+                // Test URLs                                          // Original Trion values
                 // Client treats these as folders and will add a trailing slash (/) with whatever it needs
                 // For example, opening the Wiki would send http://localhost/aaemu/platform/login
-                var authUrl = "http://localhost/aaemu/login";     // "https://session.draft.integration.triongames.priv";
+                var authUrl = "http://localhost/aaemu/login";         // "https://session.draft.integration.triongames.priv";
                 var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
                 var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
 
@@ -61,7 +62,9 @@ public class FinishStatePacket : GamePacket
                 Connection.SendPacket(new SCTaxItemConfigPacket(0));
                 Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
                 Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
-                Connection.SendPacket(new SCProtectFactionPacket(1, DateTime.UtcNow));
+
+                ExpeditionManager.Instance.SendExpeditionProtect(Connection);
+
                 Connection.SendPacket(new SCTaxItemConfig2Packet(0));
                 break;
             case 1:

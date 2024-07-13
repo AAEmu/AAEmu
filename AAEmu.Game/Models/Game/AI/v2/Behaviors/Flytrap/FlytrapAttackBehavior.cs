@@ -20,6 +20,7 @@ public class FlytrapAttackBehavior : BaseCombatBehavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
@@ -157,7 +158,7 @@ public class FlytrapAttackBehavior : BaseCombatBehavior
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
                     // TODO найдем путь к abuser
@@ -169,7 +170,7 @@ public class FlytrapAttackBehavior : BaseCombatBehavior
             {
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
                     return true;
@@ -178,7 +179,12 @@ public class FlytrapAttackBehavior : BaseCombatBehavior
             Ai.Owner.ClearAggroOfUnit(abuser);
         }
 
-        Ai.Owner.SetTarget(null);
+        // Only remove CurrentTarget is either no unit selected, or if target is already dead
+        if (Ai.Owner.CurrentTarget is not Unit currentTargetUnit)
+            Ai.Owner.SetTarget(null);
+        else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
+            Ai.Owner.SetTarget(null);
+
         return false;
     }
     #endregion

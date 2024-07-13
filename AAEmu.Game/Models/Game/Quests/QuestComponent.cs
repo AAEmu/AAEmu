@@ -1,200 +1,90 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.AI.Enums;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
-using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
-// Компонент-лист
+/// <summary>
+/// Used Instance of a Quests Component
+/// </summary>
 public class QuestComponent : IQuestComponent
 {
-    public uint Id { get; set; }
-    public QuestComponentKind KindId { get; set; }
-    public QuestTemplate QuestTemplate { get; }
-    public List<QuestActTemplate> ActTemplates { get; set; } = new();
-    public List<IQuestAct> Acts { get; set; } = new();
-    public uint NextComponent { get; set; }
-    public QuestNpcAiName NpcAiId { get; set; }
-    public uint NpcId { get; set; }
-    public uint SkillId { get; set; }
-    public bool SkillSelf { get; set; }
-    public string AiPathName { get; set; }
-    public PathType AiPathTypeId { get; set; }
-    public uint NpcSpawnerId { get; set; }
-    public bool PlayCinemaBeforeBubble { get; set; }
-    public uint AiCommandSetId { get; set; }
-    public bool OrUnitReqs { get; set; }
-    public uint CinemaId { get; set; }
-    public uint BuffId { get; set; }
+    public QuestComponentTemplate Template { get; set; }
+    public bool OverrideObjectiveCompleted { get; set; }
+    public QuestStep Parent { get; set; }
+    public List<QuestAct> Acts { get; set; } = new();
 
-    public void Add(QuestComponent component)
-    {
-        throw new NotImplementedException();
-    }
+    /// <summary>
+    /// This is set internally to cache the enabled/disabled state for this component base of it's UnitReqs
+    /// </summary>
+    public bool IsCurrentlyActive { get; set; } = true;
 
-    public void Remove(QuestComponent component)
+    public QuestComponent(QuestStep parent, QuestComponentTemplate template)
     {
-        throw new NotImplementedException();
-    }
-    public List<bool> Execute(ICharacter character, Quest quest, int objective)
-    {
-        var reults = new List<bool>();
-        var acts = QuestManager.Instance.GetActs(this.Id);
-        foreach (var act in acts)
+        Parent = parent;
+        Template = template;
+        var actTemplateList = QuestManager.Instance.GetActsInComponent(Template.Id);
+        foreach (var questActTemplate in actTemplateList)
         {
-            var res = act.Use(character, quest, objective);
-            reults.Add(res);
+            var newAct = new QuestAct(this, questActTemplate);
+            Acts.Add(newAct);
         }
-        return reults;
-    }
-    public QuestComponent(QuestTemplate parent)
-    {
-        QuestTemplate = parent;
-    }
-}
-
-// Компонент-контейнер
-public class CurrentQuestComponent : IQuestComponent
-{
-    private List<QuestComponent> subQuestComponents = new();
-
-    public CurrentQuestComponent() : base()
-    {
     }
 
-    public QuestComponent GetFirstComponent()
+    public void InitializeComponent()
     {
-        var result = subQuestComponents.First();
-        return result;
+        foreach (var act in Acts)
+            act.Template.InitializeAction(Parent.Parent, act);
     }
 
-    public List<QuestComponent> GetComponents()
+    public void FinalizeComponent()
     {
-        var result = subQuestComponents;
-        return result;
+        foreach (var act in Acts)
+            act.Template.FinalizeAction(Parent.Parent, act);
     }
 
-    public int GetComponentCount()
+    public bool RunComponent()
     {
-        var result = subQuestComponents.Count;
-        return result;
-    }
+        var res = true;
 
-    // не работает
-    public QuestComponent GetComponent(int index)
-    {
-        var result = subQuestComponents.Take(index) as QuestComponent;
-        return result;
-    }
-    // не работает
-    public QuestComponent GetNextComponent(int index)
-    {
-        var second = subQuestComponents.Skip(index).Take(index + 1) as QuestComponent; // returns 2 and 3
-        return second;
-    }
+        var actsOrCheck = (Parent.ThisStep is QuestComponentKind.Start or QuestComponentKind.Ready) && (Acts.Count > 0);
 
-    public uint Id { get; set; }
-    public List<QuestActTemplate> ActTemplates { get; set; }
-
-    public void Add(QuestComponent component)
-    {
-        subQuestComponents.Add(component);
-    }
-
-    public void Remove(QuestComponent component)
-    {
-        subQuestComponents.Remove(component);
-    }
-
-    public List<bool> Execute(ICharacter character, Quest quest, int objective)
-    {
-        var reults = new List<bool>();
-
-        foreach (var component in subQuestComponents)
+        if (actsOrCheck)
         {
-            reults.AddRange(component.Execute(character, quest, objective));
-        }
-
-        return reults;
-    }
-
-    // TODO наверное убрать надо
-    public void Subscribe(Quest quest)
-    {
-        foreach (var component in subQuestComponents)
-        {
-            var acts = QuestManager.Instance.GetActs(component.Id);
-            foreach (var act in acts)
+            // Or checks, needed to handle quests with multiple starters or multiple report NPCs
+            res = false;
+            foreach (var questAct in Acts)
             {
-                switch (act.DetailType)
-                {
-                    case "QuestActObjMonsterHunt":
-                        var questActObjMonsterHunt = (QuestActObjMonsterHunt)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjMonsterHunt");
-                        if (questActObjMonsterHunt != null)
-                        {
-                            quest.Owner.Events.OnMonsterHunt += quest.Owner.Quests.OnMonsterHuntHandler;
-                        }
-                        break;
-                    case "QuestActObjItemGather":
-                        var questActObjItemGather = (QuestActObjItemGather)QuestManager.Instance.GetActTemplate(act.DetailId, "QuestActObjItemGather");
-                        if (questActObjItemGather != null)
-                        {
-                            quest.Owner.Events.OnItemGather += quest.Owner.Quests.OnItemGatherHandler;
-                        }
-                        break;
-                }
-                //var questActTemplate = QuestManager.Instance.GetActTemplate(act.DetailId, act.DetailType);
-
+                res |= questAct.RunAct();
             }
         }
-    }
-
-    public void UnSubscribe(Quest quest)
-    {
-        foreach (var act in subQuestComponents.Select(component => QuestManager.Instance.GetActs(component.Id)).SelectMany(acts => acts))
+        else
         {
-            switch (act.DetailType)
+            // Normal checks
+            foreach (var questAct in Acts)
             {
-                case "QuestActObjMonsterHunt":
-                    quest.Owner.Events.OnMonsterHunt -= quest.Owner.Quests.OnMonsterHuntHandler;
-                    break;
-                case "QuestActObjItemGather":
-                    quest.Owner.Events.OnItemGather -= quest.Owner.Quests.OnItemGatherHandler;
-                    break;
+                res &= questAct.RunAct();
             }
         }
+
+        res |= OverrideObjectiveCompleted;
+
+        // If acts completed, handle skill and buff effects
+        if (res)
+        {
+            Parent.Parent.UseSkillAndBuff(Template);
+            Parent.Parent.SetNpcAggro(Template);
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// Sets the RequestEvaluationFlag to true signalling the server that it should check this quest's progress again
+    /// </summary>
+    public void RequestEvaluation()
+    {
+        Parent.RequestEvaluation();
     }
 }
-
-//// Класс для подзадачи
-//public class SubQuestComponent : IQuestComponent
-//{
-//    public uint Id { get; set; }
-//    public List<QuestActTemplate> ActTemplates { get; set; }
-
-//    public SubQuestComponent() : base()
-//    {
-//    }
-
-//    public void Add(IQuestComponent component)
-//    {
-//        throw new NotImplementedException();
-//    }
-
-//    public void Remove(IQuestComponent component)
-//    {
-//        throw new NotImplementedException();
-//    }
-
-//    public List<bool> Execute(ICharacter character, Quest quest, int objective)
-//    {
-//        throw new NotImplementedException();
-//    }
-//}
-

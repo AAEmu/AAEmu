@@ -140,7 +140,7 @@ public class Gimmick : Unit
         sct.ObjId2 = 0;
 
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(Template.SkillId));
-        var skillResult = skill.Use(caster, skillCaster, skillCastTarget);
+        var skillResult = skill.Use(caster, skillCaster, skillCastTarget, null, false, out _);
 
         caster.Gimmick.Spawner.Despawn(caster.Gimmick);
         caster.Gimmick = null;

@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -239,8 +240,11 @@ public class DamageEffect : EffectTemplate
 
         if (source.Buff?.TickEffects.Count > 0)
         {
-            min = (float)(min * (source.Buff.Tick / source.Buff.Duration));
-            max = (float)(max * (source.Buff.Tick / source.Buff.Duration));
+            if (source.Buff.Duration != 0)
+            {
+                min = (float)(min * (source.Buff.Tick / source.Buff.Duration));
+                max = (float)(max * (source.Buff.Tick / source.Buff.Duration));
+            }
 
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtcDot);
             trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtcDot);
@@ -369,7 +373,7 @@ public class DamageEffect : EffectTemplate
         {
             if (!trg.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
-                ((Unit)caster).SetCriminalState(true);
+                ((Unit)caster).SetCriminalState(true, trg);
             }
         }
 
@@ -378,12 +382,12 @@ public class DamageEffect : EffectTemplate
         var attacker = caster as Unit;
 
         // set for all combatants, for RegenTick
-        trg.IsInBattle = true;
+        trg.IsInBattle = trg.Hp > 0;
         trg.LastCombatActivity = DateTime.UtcNow;
 
         if (trgCharacter != null)
         {
-            //trgCharacter.IsInBattle = true;
+            //trgCharacter.IsInBattle |= trg.Hp > 0;
             //trgCharacter.LastCombatActivity = DateTime.UtcNow;
             if (attacker is Character attackerCharacter)
             {
@@ -394,7 +398,7 @@ public class DamageEffect : EffectTemplate
 
         if (attacker != null)
         {
-            attacker.IsInBattle = true;
+            attacker.IsInBattle |= trg.Hp > 0;
             attacker.LastCombatActivity = DateTime.UtcNow;
             attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
         }
@@ -414,7 +418,7 @@ public class DamageEffect : EffectTemplate
             trg.BroadcastPacket(packet, true);
         if (trg is Npc)
         {
-            trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, ((Unit)caster).SummarizeDamage), true);
+            trg.SendPacketToPlayers([trg, caster], new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, ((Unit)caster).SummarizeDamage));
         }
         if (trg is Npc npc/* && npc.CurrentTarget != caster*/)
         {

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -54,7 +56,7 @@ public class TeamManager : Singleton<TeamManager>
         return null;
     }
 
-    private Team GetActiveTeam(uint teamId)
+    public Team GetActiveTeam(uint teamId)
     {
         if (teamId == 0) return null;
         return _activeTeams.TryGetValue(teamId, out var team) ? team : null;
@@ -90,7 +92,8 @@ public class TeamManager : Singleton<TeamManager>
         // TODO - CONFIG INVITE DISABLED
 
         var activeTeam = GetActiveTeam(teamId);
-        if (GetActiveInvitation(target.Id) != null)
+        var activeInvitation = GetActiveInvitation(target.Id);
+        if (activeInvitation != null)
         {
             owner.SendPacket(new SCRejectedTeamPacket(targetName, isParty));
             return;
@@ -115,7 +118,7 @@ public class TeamManager : Singleton<TeamManager>
             }
         }
 
-        _activeInvitations.Add(target.Id, new InvitationTemplate
+        _activeInvitations.TryAdd(target.Id, new InvitationTemplate
         {
             Owner = owner,
             Target = target,
@@ -178,7 +181,7 @@ public class TeamManager : Singleton<TeamManager>
             {
                 target.SendPacket(new SCJoinedTeamPacket(activeTeam));
                 target.InParty = true;
-                target.SendPacket(new SCTeamPingPosPacket(true, activeTeam.PingPosition, 0));
+                target.SendPacket(new SCTeamPingPosPacket(activeTeam.PingPosition));
                 activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newTeamMember, party), target.Id);
             }
         }
@@ -208,6 +211,44 @@ public class TeamManager : Singleton<TeamManager>
         }
     }
 
+    public Character GetNextEligibleLooter(uint teamId, Unit owner)
+    {
+        var activeTeam = GetActiveTeam(teamId);
+        if (activeTeam == null) return null;
+       
+        //Round Robin vs FFA
+        //if(activeTeam.LootingRule==)
+        foreach (var member in activeTeam.Members)
+        {
+            if (member?.Character == null)
+                continue;
+            if (member.HasGoneRoundRobin)
+                continue;
+            //Need to check if player is in range, and skip if not.
+            var distance = member.Character.Transform.World.Position - owner.Transform.World.Position;
+            if (distance.Length() >= 200)
+                continue;
+
+            member.HasGoneRoundRobin = true;
+            return member.Character;
+        }
+
+        // Reset round robin and get the first eligible member
+        Character returnMember = null;
+        foreach (var member in activeTeam.Members)
+        {
+            if (member?.Character == null)
+                continue;
+
+            member.HasGoneRoundRobin = returnMember == null;
+            if (returnMember == null)
+                returnMember = member.Character;
+        }
+
+        return returnMember;
+    }
+
+
     public void CreateNewTeam(InvitationTemplate activeInvitation)
     {
         if (GetActiveTeamByUnit(activeInvitation.Owner.Id) != null || GetActiveTeamByUnit(activeInvitation.Target.Id) != null)
@@ -231,7 +272,7 @@ public class TeamManager : Singleton<TeamManager>
         activeInvitation.Owner.InParty = true;
         activeInvitation.Target.SendPacket(new SCJoinedTeamPacket(newTeam));
         activeInvitation.Target.InParty = true;
-        newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, activeInvitation.Owner.LocalPingPosition, 0));
+        newTeam.BroadcastPacket(new SCTeamPingPosPacket(activeInvitation.Owner.LocalPingPosition));
         if (!newTeam.IsParty)
         {
             ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(activeInvitation.Owner);
@@ -262,7 +303,7 @@ public class TeamManager : Singleton<TeamManager>
 
         character.SendPacket(new SCJoinedTeamPacket(newTeam));
         character.InParty = asParty;
-        newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, character.LocalPingPosition, 0));
+        newTeam.BroadcastPacket(new SCTeamPingPosPacket(character.LocalPingPosition));
 
         if (!newTeam.IsParty)
             ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(character);
@@ -284,7 +325,6 @@ public class TeamManager : Singleton<TeamManager>
         if (!activeTeam.IsParty)
             ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
         ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
-
 
         if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
         {
@@ -417,13 +457,13 @@ public class TeamManager : Singleton<TeamManager>
         activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, newRules, flags));
     }
 
-    public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
+    public void SetPingPos(Character unit, TeamPingPos teamPingPos)
     {
-        var activeTeam = GetActiveTeam(teamId);
+        var activeTeam = GetActiveTeam(teamPingPos.TeamId);
         if ((activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id))) return;
 
-        activeTeam.PingPosition = position;
-        activeTeam.BroadcastPacket(new SCTeamPingPosPacket(hasPing, position, insId));
+        activeTeam.PingPosition = teamPingPos;
+        activeTeam.BroadcastPacket(new SCTeamPingPosPacket(activeTeam.PingPosition));
     }
 
     public void SetOffline(Character unit)

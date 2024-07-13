@@ -7,17 +7,21 @@ public class SCTradeLockUpdatePacket : GamePacket
 {
     private readonly bool _myLock;
     private readonly bool _otherLock;
+    private readonly bool _myWill;
 
-    public SCTradeLockUpdatePacket(bool myLock, bool otherLock) : base(SCOffsets.SCTradeLockUpdatePacket, 5)
+    public SCTradeLockUpdatePacket(bool myLock, bool otherLock, bool myWill = true)
+        : base(SCOffsets.SCTradeLockUpdatePacket, 5)
     {
         _myLock = myLock;
         _otherLock = otherLock;
+        _myWill = myWill;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_myLock);
         stream.Write(_otherLock);
+        stream.Write(_myWill);
         return stream;
     }
 }

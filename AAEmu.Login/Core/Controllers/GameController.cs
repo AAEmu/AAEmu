@@ -82,12 +82,13 @@ public class GameController : Singleton<GameController>
                         var id = reader.GetByte("id");
                         var name = reader.GetString("name");
                         var loadedHost = reader.GetString("host");
-                        var host = ResolveHostName(loadedHost);
+                        var host = AppConfiguration.Instance.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
                         var port = reader.GetUInt16("port");
                         var gameServer = new GameServer(id, name, host, port);
                         _gameServers.Add(gameServer.Id, gameServer);
 
-                        var extraInfo = host != loadedHost ? "from " + loadedHost : "";
+                        var extraInfo = host != loadedHost ? "from " + loadedHost :
+                            AppConfiguration.Instance.SkipHostResolve ? " (unresolved)" : "";
                         Logger.Info($"Game Server {id}: {name} -> {host}:{port} {extraInfo}");
                     }
                 }
@@ -150,29 +151,35 @@ public class GameController : Singleton<GameController>
 
     public async void RequestWorldList(LoginConnection connection)
     {
+        var gameServers = _gameServers.Values.ToList();
         if (_gameServers.Values.Any(x => x.Active))
         {
-            var gameServers = _gameServers.Values.ToList();
             var (requestIds, task) =
                 RequestController.Instance.Create(gameServers.Count, 20000); // TODO Request 20s
             for (var i = 0; i < gameServers.Count; i++)
             {
                 var value = gameServers[i];
                 if (!value.Active)
+                {
+                    RequestController.Instance.ReleaseId(requestIds[i]);
                     continue;
-                var chars = !connection.Characters.ContainsKey(value.Id);
+                }
+
+                var loaded = connection.Characters.ContainsKey(value.Id);
+                if (loaded)
+                {
+                    RequestController.Instance.ReleaseId(requestIds[i]);
+                    continue;
+                }
+
                 value.SendPacket(
-                    new LGRequestInfoPacket(connection.Id, requestIds[i], chars ? connection.AccountId : 0));
+                       new LGRequestInfoPacket(connection.Id, requestIds[i], connection.AccountId));
+
             }
 
             await task;
-            connection.SendPacket(new ACWorldListPacket(gameServers, connection.GetCharacters()));
         }
-        else
-        {
-            var gsList = new List<GameServer>(_gameServers.Values);
-            connection.SendPacket(new ACWorldListPacket(gsList, connection.GetCharacters()));
-        }
+        connection.SendPacket(new ACWorldListPacket(gameServers, connection.GetCharacters()));
     }
 
     public void SetLoad(byte gsId, byte load)

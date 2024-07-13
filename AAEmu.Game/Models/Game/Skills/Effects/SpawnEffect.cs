@@ -57,13 +57,14 @@ public class SpawnEffect : EffectTemplate
         {
             1 => target,
             2 => caster,
-            _ => null
+            _ => caster
         };
+
         var orientationRelativeToUnit = OriDirId switch
         {
             1 => target,
             2 => caster,
-            _ => null
+            _ => caster
         };
 
         if (positionRelativeToUnit == null || orientationRelativeToUnit == null)

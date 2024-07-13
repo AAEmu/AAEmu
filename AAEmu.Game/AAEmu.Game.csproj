@@ -9,6 +9,7 @@
     <UseRidGraph>true</UseRidGraph>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UserSecretsId>426ad5c3-9a72-44e9-88f5-4b5940b98c28</UserSecretsId>
+    <ApplicationIcon>Resources\icon_game.ico</ApplicationIcon>
   </PropertyGroup>
 
     <ItemGroup>
@@ -43,6 +44,9 @@
         <None Update="Configurations\Specialty.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="Configurations\CharacterSettings.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -56,6 +60,9 @@
       <Compile Remove="Models\Tasks\Telescopes\**" />
       <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
       <None Remove="Models\Tasks\Telescopes\**" />
+      <Compile Update="Scripts\Commands\DeSpawnAll.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -75,9 +82,9 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0-rc.2.23479.6" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-rc.2.23479.6" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="NCrontab" Version="3.3.3" />
         <PackageReference Include="NLog" Version="5.2.5" />
         <PackageReference Include="NLua" Version="1.6.3" />
-        <PackageReference Include="Quartz" Version="3.7.0" />
         <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />
         <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />        
         <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />

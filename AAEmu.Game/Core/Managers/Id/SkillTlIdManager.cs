@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
@@ -33,8 +33,8 @@ public static class SkillTlIdManager
 
                     // Print some debugging info every 500 completed requests
                     // This can be removed later if confirmed it works fine on very long periods of uptime
-                    if (TotalGets % 500 == 0)
-                        Logger.Debug(ReportStatus());
+                    //if (TotalGets % 500 == 0)
+                    //    Logger.Debug(ReportStatus());
 
                     res = NextIdToUse;
                 }

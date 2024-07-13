@@ -1,16 +1,26 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
-public class QuestActConAcceptItemGain : QuestActTemplate
+/// <summary>
+/// Works the same as QuestActConAcceptItem, but allows Count and does not have any cleanup systems
+/// </summary>
+/// <param name="parentComponent"></param>
+public class QuestActConAcceptItemGain(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ItemId { get; set; }
-    public int Count { get; set; }
 
-    public override bool Use(ICharacter character, Quest quest, int objective)
+    /// <summary>
+    /// Checks if the Quest starter was indeed the provided Item and is in the inventory
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        Logger.Warn("QuestActConAcceptItemGain: ItemId {0}, Count {1}", ItemId, Count);
-        return objective >= Count;
+        Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}");
+        return (quest.QuestAcceptorType == QuestAcceptorType.Item) && (quest.AcceptorId == ItemId) && quest.Owner.Inventory.CheckItems(Items.SlotType.Inventory, ItemId, Count);
     }
 }
