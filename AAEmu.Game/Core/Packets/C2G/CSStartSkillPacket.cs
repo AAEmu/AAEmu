@@ -125,10 +125,11 @@ public class CSStartSkillPacket : GamePacket
         {
             // A skill triggered by a item
             var player = Connection.ActiveChar; 
-            var item = player.Inventory.GetItemById(si.ItemId);
+            // var item = player.Inventory.GetItemById(si.ItemId);
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
-            if (item == null || skillId != item.Template.UseSkillId && item.Template.BindType != ItemBindType.BindOnPickup)
+            if (si.SkillSourceItem == null || skillId != si.SkillSourceItem.Template.UseSkillId && si.SkillSourceItem.Template.BindType != ItemBindType.BindOnPickup)
                 return;
+            // si.ItemTemplateId = item.TemplateId;
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
