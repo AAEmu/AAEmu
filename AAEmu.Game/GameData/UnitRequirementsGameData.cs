@@ -141,7 +141,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         // TODO: check if there are any other skill types that required to be used in a specific area of multiple quest spheres
         
         var res = !skillTemplate.OrUnitReqs;
-        var lastCheckResult = new UnitReqsValidationResult(SkillResultKeys.ok,0,0);
+        var lastFailedCheckResult = new UnitReqsValidationResult(SkillResultKeys.skill_failure,0,0);
         foreach (var unitReq in reqs)
         {
             var reqRes = false;
@@ -152,15 +152,19 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
                 {
                     var foundSphere = SphereGameData.Instance.IsInsideAreaSphere(unitReq.Value1, unitReq.Value2, ownerUnit?.Transform?.World?.Position ?? Vector3.Zero, requiredComponentId);
                     reqRes = foundSphere != null;
-                    lastCheckResult = new UnitReqsValidationResult(reqRes ? SkillResultKeys.ok : SkillResultKeys.skill_urk_area_sphere, 0, unitReq.Value1);
+                    var lastCheckResult = new UnitReqsValidationResult(reqRes ? SkillResultKeys.ok : SkillResultKeys.skill_urk_area_sphere, 0, unitReq.Value1);
+                    if (lastCheckResult.ResultKey != SkillResultKeys.ok)
+                        lastFailedCheckResult = lastCheckResult;
                     if (reqRes)
                         break;
                 }
             }
             else
             {
-                lastCheckResult = unitReq.Validate(ownerUnit);
+                var lastCheckResult = unitReq.Validate(ownerUnit);
                 reqRes = lastCheckResult.ResultKey == SkillResultKeys.ok;                
+                if (lastCheckResult.ResultKey != SkillResultKeys.ok)
+                    lastFailedCheckResult = lastCheckResult;
             }
 
             if (skillTemplate.OrUnitReqs)
@@ -173,7 +177,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             res &= reqRes;
         }
 
-        return res ? new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0) : lastCheckResult;
+        return res ? new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0) : lastFailedCheckResult;
     }
     
     public bool CanTriggerSphere(Spheres sphere, BaseUnit ownerUnit)

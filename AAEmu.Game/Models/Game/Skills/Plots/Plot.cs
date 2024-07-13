@@ -1,5 +1,7 @@
 ﻿using System.Threading.Tasks;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units;
 
@@ -26,10 +28,13 @@ public class Plot
         // I am guessing we want to do something here to run it in a thread, or at least using Async
         await Tree.Execute(state);
 
-        // Handle item use that generate only plots
-        if ((casterCaster is SkillItem skillItem) && (caster is Character player))
+        if (casterCaster is SkillItem skillItem && caster is Character player && skillItem.SkillSourceItem != null)
         {
-            player.ItemUse(skillItem.ItemId);
+            // Trigger item use if not cancelled
+            if (!state.CancellationRequested())
+                player.ItemUse(skillItem.SkillSourceItem);
+            // Free the item from lock
+            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemUnlock, new ItemUpdate(skillItem.SkillSourceItem), []));
         }
     }
 }
