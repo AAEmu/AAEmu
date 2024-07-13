@@ -367,13 +367,13 @@ public class SlaveManager : Singleton<SlaveManager>
             // return;
         }
 
-        var item = owner.Inventory.GetItemById(skillData.ItemId);
-        if (item == null) return;
+        if ((skillData.ItemId == 0) || (skillData.ItemTemplateId == 0))
+            return;
 
-        var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
-        if (itemTemplate == null) return;
+        if (skillData.SkillSourceItem.Template is not SummonSlaveTemplate itemTemplate)
+            return;
 
-        Create(owner, null, itemTemplate.SlaveId, item, positionOverride); // TODO replace the underlying code with this call
+        Create(owner, null, itemTemplate.SlaveId, skillData.SkillSourceItem, hideSpawnEffect, positionOverride);
     }
 
     // added "/slave spawn <templateId>" to be called from the script command
@@ -387,7 +387,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="hideSpawnEffect"></param>
     /// <param name="positionOverride"></param>
     /// <returns>Newly created Slave</returns>
-    public Slave Create(Character owner, SlaveSpawner useSpawner, uint templateId, Item item = null, Transform positionOverride = null)
+    public Slave Create(Character owner, SlaveSpawner useSpawner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
         var slaveTemplate = GetSlaveTemplate(useSpawner?.UnitId ?? templateId);
         if (slaveTemplate == null) return null;
@@ -833,7 +833,8 @@ public class SlaveManager : Singleton<SlaveManager>
         // Apply bonuses
         foreach (var bonusTemplate in summonedSlave.Template.Bonuses)
         {
-            var bonus = new Bonus { 
+            var bonus = new Bonus
+            { 
                 Template = bonusTemplate, 
                 Value = bonusTemplate.Value // TODO using LinearLevelBonus
             };
