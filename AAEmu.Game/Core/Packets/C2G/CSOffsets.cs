@@ -325,12 +325,12 @@ public static class CSOffsets
     public const ushort CSGetExpeditionApplicantsPacket = 0x095;
     public const ushort CSExpeditionApplicantAddPacket = 0x159;
     public const ushort CSExpeditionApplicantDeletePacket = 0x111;
-    public const ushort CSExpeditionApplicantAccept0EchPacket = 0x055;
+    public const ushort CSExpeditionApplicantAcceptPacket = 0x055;
     public const ushort CSExpeditionApplicantRejectPacket = 0x125;
     public const ushort CSExpeditionSummonPacket = 0x08D;
     public const ushort CSExpeditionSummonReplyPacket = 0x0DD;
     public const ushort CSInstantTimePacket = 0x0B8;
-    public const ushort CSSetHouseAllowRecoverPacket = 0x099;
+    public const ushort CSSetHouseAllowRecoverPacket = 0x099; // CSAllowHousingRecoverPacket
     public const ushort CSRefreshBotCheckInfoPacket = 0x0A4;
     public const ushort CSAnswerBotCheckPacket = 0x17B;
     public const ushort CSChangeSlaveNamePacket = 0x0CC;
