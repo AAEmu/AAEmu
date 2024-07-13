@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS `aaemu_game`.`doodads`;
-CREATE TABLE `aaemu_game`.`doodads` (
+DROP TABLE IF EXISTS `doodads`;
+CREATE TABLE `doodads` (
   `id` int NOT NULL AUTO_INCREMENT,
   `owner_id` int,
   `owner_type` tinyint(4) unsigned DEFAULT 255,

@@ -95,7 +95,6 @@ public sealed class GameService : IHostedService, IDisposable
         HousingIdManager.Instance.Initialize();
         HousingTldManager.Instance.Initialize();
         TeamIdManager.Instance.Initialize();
-        LaborPowerManager.Initialize();
         QuestIdManager.Instance.Initialize();
         MailIdManager.Instance.Initialize();
         UccIdManager.Instance.Initialize();
@@ -110,6 +109,10 @@ public sealed class GameService : IHostedService, IDisposable
 
         SphereQuestManager.Instance.Load();
         SphereQuestManager.Instance.Initialize();
+
+        //ResidentManager.Instance.Initialize();
+        ResidentManager.Instance.Load();
+        //AttendanceManager.Instance.Load();
 
         FormulaManager.Instance.Load();
         ExperienceManager.Instance.Load();
@@ -150,6 +153,9 @@ public sealed class GameService : IHostedService, IDisposable
         GimmickManager.Instance.Load();
         ShipyardManager.Instance.Load();
 
+        SubZoneManager.Instance.Load();
+        PublicFarmManager.Instance.Load();
+
         SpawnManager.Instance.Load();
 
         AccessLevelManager.Instance.Load();
@@ -173,6 +179,8 @@ public sealed class GameService : IHostedService, IDisposable
 
         TimeManager.Instance.Start();
         TaskManager.Instance.Start();
+        // LaborPowerManager.Initialize();
+        TimedRewardsManager.Instance.Initialize();
 
         DuelManager.Initialize();
         SaveManager.Instance.Initialize();
@@ -185,6 +193,7 @@ public sealed class GameService : IHostedService, IDisposable
         GameDataManager.Instance.PostLoadGameData();
         FishSchoolManager.Instance.Initialize();
         RadarManager.Instance.Initialize();
+        PublicFarmManager.Instance.Initialize();
 
         if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
         {
@@ -205,7 +214,7 @@ public sealed class GameService : IHostedService, IDisposable
         SpawnManager.Instance.SpawnAll();
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
-        Logger.Info("Units spawned in {0}", spawnSw.Elapsed);
+        Logger.Info($"Units spawned in {spawnSw.Elapsed}");
 
         // Start running Physics when everything is loaded
         WorldManager.Instance.StartPhysics();
@@ -217,7 +226,7 @@ public sealed class GameService : IHostedService, IDisposable
         LoginNetwork.Instance.Start();
 
         stopWatch.Stop();
-        Logger.Info("Server started! Took {0}", stopWatch.Elapsed);
+        Logger.Info($"Server started! Took {stopWatch.Elapsed}");
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

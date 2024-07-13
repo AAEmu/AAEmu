@@ -123,7 +123,7 @@ public static class SCOffsets
     public const ushort SCUnitNameChangedPacket = 0x260;
     public const ushort SCUnitDeathPacket = 0x1A4;
     public const ushort SCUnitTeleportPacket = 0x10B;
-    public const ushort SCUnitBlinkPacket = 0x0E4;
+    public const ushort SCBlinkUnitPacket = 0x0E4; // SCUnitBlinkPacket
     public const ushort SCUnitAttachedPacket = 0x0F3;
     public const ushort SCUnitDetachedPacket = 0x040;
     public const ushort SCUnitInvisiblePacket = 0x298;
@@ -729,7 +729,7 @@ public static class SCOffsets
     public const ushort SCGamePointChangedPacket = 0xfff;
     public const ushort SCNationListPacket = 0x22B;
     public const ushort SCFactionRelationListPacket = 0x2C4;
-    public const ushort SCFamilyDescribedPacket = 0x20D;
+    public const ushort SCFamilyDescPacket = 0x20D; // SCFamilyDescribedPacket
     public const ushort SCFamilyMemberAddedPacket = 0x096;
     public const ushort off_39C2056C = 0x20E;
     public const ushort SCFamilyCreatedPacket = 0x22D;
@@ -741,11 +741,9 @@ public static class SCOffsets
     public const ushort SCDominionTaxRatePacket = 0xfff;
     public const ushort SCNationalTaxRatePacket = 0xfff;
     public const ushort SCDominionTaxBalancedPacket = 0xfff;
-    public const ushort SCFamilyDescPacket = 0xfff;
     public const ushort SCCharBriefPacket = 0xfff;
     public const ushort SCPlaytimePacket = 0xfff;
     public const ushort SCPortalInfoSavedPacket = 0xfff;
-    public const ushort SCBlinkUnitPacket = 0xfff;
     public const ushort SCItemSocketingLunagemResultPacket = 0xfff;
     public const ushort SCItemSocketingLunastoneResultPacket = 0xfff;
     public const ushort SCGradeEnchantBroadcastPacket = 0xfff;
@@ -754,7 +752,7 @@ public static class SCOffsets
     //public const ushort SCAttachmentTakenPacket = 0xfff;
     //public const ushort SCBondDoodadPacket = 0x205; // SCAttachToDoodadPacket
     //public const ushort SCUnbondDoodadPacket = 0x06a; //SCDetachFromDoodadPacket
-    public const ushort SCTradeOkUpdatePacket = 0xfff;
+    //public const ushort SCTradeOkUpdatePacket = 0xfff; // SCOtherTradeOkPacket
     public const ushort SCChangeJuryOKCountPacket = 0xfff;
     public const ushort SCChangeJuryVerdictCountPacket = 0xfff;
     public const ushort SCTrialAudienceJoinedPacket = 0xfff;

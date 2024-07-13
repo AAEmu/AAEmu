@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
@@ -33,6 +36,29 @@ public abstract class NpcAi
     private Dictionary<BehaviorKind, Behavior> _behaviors;
     private Dictionary<Behavior, List<Transition>> _transitions;
     private Behavior _currentBehavior;
+    public DateTime _nextAlertCheckTime = DateTime.MinValue;
+    public DateTime _alertEndTime = DateTime.MinValue;
+
+    /// <summary>
+    /// A list of AiCommands that should take priority over any other behavior
+    /// </summary>
+    private Queue<AiCommands> AiCommandsQueue { get; set; } = new();
+
+    /// <summary>
+    /// Currently executing command
+    /// </summary>
+    private AiCommands AiCurrentCommand { get; set; } = null;
+
+    /// <summary>
+    /// Time that AiCurrentCommand started
+    /// </summary>
+    public DateTime AiCurrentCommandStartTime { get; set; } = DateTime.MinValue;
+    // Persistent arguments for AiCommands queue
+    private string AiFileName { get; set; } = string.Empty;
+    private string AiFileName2 { get; set; } = string.Empty;
+    private uint AiSkillId { get; set; }
+    private uint AiTimeOut { get; set; }
+    private TimeSpan AiCurrentCommandRunTime { get; set; } = TimeSpan.Zero;
 
     public NpcAi()
     {
@@ -52,7 +78,8 @@ public abstract class NpcAi
 
     private void CheckValid()
     {
-        foreach (var transition in _transitions.Values.SelectMany(transitions => transitions.Where(transition => !_behaviors.ContainsKey(transition.Kind))))
+        foreach (var transition in _transitions.Values.SelectMany(transitions =>
+                     transitions.Where(transition => !_behaviors.ContainsKey(transition.Kind))))
         {
             Logger.Error("Transition is invalid. Type {0} missing, while used in transition on {1}",
                 transition.Kind.GetType().Name, transition.On);
@@ -78,7 +105,8 @@ public abstract class NpcAi
 
     private void SetCurrentBehavior(Behavior behavior)
     {
-        Logger.Trace($"Npc {Owner.TemplateId}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
+        Logger.Trace(
+            $"Npc {Owner.TemplateId}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
         _currentBehavior?.Exit();
         _currentBehavior = behavior;
         _currentBehavior?.Enter();
@@ -86,14 +114,19 @@ public abstract class NpcAi
 
     protected void SetCurrentBehavior(BehaviorKind kind)
     {
-        if (!_behaviors.ContainsKey(kind))
+        if (!_behaviors.TryGetValue(kind, out var nextBehavior))
         {
-            Logger.Trace($"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
+            Logger.Trace(
+                $"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
             return;
         }
 
-        Logger.Trace($"Set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior: {kind}");
-        SetCurrentBehavior(_behaviors[kind]);
+        // Ignore if not changed
+        if (_currentBehavior == nextBehavior)
+            return;
+
+        //Logger.Trace($"Set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior: {kind}");
+        SetCurrentBehavior(nextBehavior);
     }
 
     public Behavior AddTransition(Behavior source, Transition target)
@@ -110,6 +143,19 @@ public abstract class NpcAi
             || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
         if (Owner?.Region?.HasPlayerActivity() ?? false)
         {
+            // If there are commands in the AI Command queue, execute those first
+            if ((AiCurrentCommand != null) || (AiCommandsQueue.Count > 0))
+            {
+                if (AiCurrentCommand == null)
+                {
+                    AiCurrentCommand = AiCommandsQueue.Dequeue();
+                    AiCurrentCommandStartTime = DateTime.UtcNow;
+                }
+
+                TickCurrentAiCommand(AiCurrentCommand, delta);
+                return;
+            }
+
             _currentBehavior?.Tick(delta);
 
             // If aggro table is populated, check if current aggro targets need to be cleared
@@ -150,6 +196,7 @@ public abstract class NpcAi
     }
 
     #region Events
+
     public void OnNoAggroTarget()
     {
         Transition(TransitionEvent.OnNoAggroTarget);
@@ -159,12 +206,15 @@ public abstract class NpcAi
     {
         Transition(TransitionEvent.OnAggroTargetChanged);
     }
+
     #endregion
 
     /// <summary>
     /// These appear to be ways to force a state change, ignoring existing transitions. 
     /// </summary>
+
     #region Go to X
+
     public virtual void GoToSpawn()
     {
         SetCurrentBehavior(BehaviorKind.Spawning);
@@ -194,6 +244,7 @@ public abstract class NpcAi
     {
         SetCurrentBehavior(BehaviorKind.Attack);
     }
+
     public virtual void GoToFollowPath()
     {
         SetCurrentBehavior(BehaviorKind.FollowPath);
@@ -218,5 +269,82 @@ public abstract class NpcAi
     {
         SetCurrentBehavior(BehaviorKind.Despawning);
     }
+
     #endregion
+
+    public void EnqueueAiCommands(List<AiCommands> aiCommandsList)
+    {
+        foreach (var aiCommand in aiCommandsList)
+            AiCommandsQueue.Enqueue(aiCommand);
+    }
+
+    private void TickCurrentAiCommand(AiCommands aiCommand, TimeSpan delta)
+    {
+        if (AiCurrentCommandRunTime < TimeSpan.Zero)
+        {
+            AiCurrentCommand = null;
+            AiCurrentCommandRunTime = TimeSpan.Zero;
+            return;
+        }
+
+
+        // Check if we're still waiting
+        if (AiCurrentCommandRunTime > TimeSpan.Zero)
+        {
+            AiCurrentCommandRunTime -= delta;
+            return;
+        }
+
+        switch (aiCommand.CmdId)
+        {
+            case AiCommandCategory.FollowUnit:
+                break;
+            case AiCommandCategory.FollowPath:
+                if (string.IsNullOrEmpty(AiFileName))
+                {
+                    AiFileName = aiCommand.Param2;
+                }
+                else
+                {
+                    AiFileName2 = aiCommand.Param2;
+                }
+
+                break;
+            case AiCommandCategory.UseSkill:
+                AiSkillId = aiCommand.Param1;
+                var skillTemplate = SkillManager.Instance.GetSkillTemplate(AiSkillId);
+                if (skillTemplate != null && Owner.UseSkill(AiSkillId, Owner.CurrentTarget as Unit ?? Owner) == SkillResult.Success)
+                {
+                    AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
+                }
+                break;
+            case AiCommandCategory.Timeout:
+                AiTimeOut = aiCommand.Param1;
+                AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(AiTimeOut);
+                break;
+            default:
+                throw new NotSupportedException(nameof(aiCommand.CmdId));
+        }
+
+        if (!string.IsNullOrEmpty(AiFileName))
+        {
+            if (Owner.IsInPatrol) { return; }
+
+            Owner.IsInPatrol = true;
+            Owner.Simulation.RunningMode = false;
+            Owner.Simulation.Cycle = false;
+            Owner.Simulation.MoveToPathEnabled = false;
+            Owner.Simulation.MoveFileName = AiFileName;
+            Owner.Simulation.MoveFileName2 = AiFileName2;
+            Owner.Simulation.GoToPath(Owner, true, AiSkillId, AiTimeOut);
+        }
+
+        if (AiCurrentCommandRunTime == TimeSpan.Zero)
+            AiCurrentCommandRunTime = TimeSpan.FromSeconds(-1);
+    }
+
+    public virtual void GoToDummy()
+    {
+        SetCurrentBehavior(BehaviorKind.Dummy);
+    }
 }

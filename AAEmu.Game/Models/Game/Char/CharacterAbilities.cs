@@ -62,7 +62,7 @@ public class CharacterAbilities
 
     public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
     {
-        Owner.Skills.Reset(oldAbilityId, true);
+        Owner.Skills.Reset(oldAbilityId);
         if (Owner.Ability1 == oldAbilityId)
         {
             Owner.Ability1 = abilityId;
@@ -149,5 +149,10 @@ public class CharacterAbilities
                 command.ExecuteNonQuery();
             }
         }
+    }
+
+    public byte GetAbilityLevel(AbilityType abilityType)
+    {
+        return Abilities.TryGetValue(abilityType, out var ability) ? ExperienceManager.Instance.GetLevelFromExp(ability.Exp) : (byte)0;
     }
 }

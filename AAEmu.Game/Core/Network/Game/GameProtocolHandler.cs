@@ -28,7 +28,7 @@ public class GameProtocolHandler : BaseProtocolHandler
         _packets.TryAdd(6, new ConcurrentDictionary<uint, Type>()); // encrypt
     }
 
-    public override void OnConnect(Session session)
+    public override void OnConnect(ISession session)
     {
         Logger.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
         try
@@ -44,7 +44,7 @@ public class GameProtocolHandler : BaseProtocolHandler
         }
     }
 
-    public override void OnDisconnect(Session session)
+    public override void OnDisconnect(ISession session)
     {
         try
         {
@@ -61,6 +61,10 @@ public class GameProtocolHandler : BaseProtocolHandler
                 StreamManager.Instance.RemoveToken(con.Id);
                 GameConnectionTable.Instance.RemoveConnection(session.SessionId);
             }
+            else
+            {
+                Logger.Error($"{nameof(OnDisconnect)}: connection for session id {session.SessionId} is null");
+            }
         }
         catch (Exception e)
         {
@@ -71,14 +75,18 @@ public class GameProtocolHandler : BaseProtocolHandler
         Logger.Info("Client from {0} disconnected", session.Ip.ToString());
     }
 
-    public override void OnReceive(Session session, byte[] buf, int bytes)
+    public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
         try
         {
             var connection = GameConnectionTable.Instance.GetConnection(session.SessionId);
             if (connection == null)
+            {
+                Logger.Error($"{nameof(OnReceive)}: connection for session id {session.SessionId} is null");
                 return;
-            OnReceive(connection, buf, bytes);
+            }
+
+            OnReceive(connection, buf, offset, bytes);
         }
         catch (Exception e)
         {
@@ -87,8 +95,7 @@ public class GameProtocolHandler : BaseProtocolHandler
         }
     }
 
-    // receiving packets from the client
-    public void OnReceive(GameConnection connection, byte[] buf, int bytes)
+    public void OnReceive(GameConnection connection, byte[] buf, int offset, int bytes)
     {
         try
         {
@@ -98,7 +105,7 @@ public class GameProtocolHandler : BaseProtocolHandler
                 stream.Insert(0, connection.LastPacket);
                 connection.LastPacket = null;
             }
-            stream.Insert(stream.Count, buf, 0, bytes);
+            stream.Insert(stream.Count, buf, offset, bytes);
             while (stream != null && stream.Count > 0)
             {
                 ushort len;
@@ -188,9 +195,7 @@ public class GameProtocolHandler : BaseProtocolHandler
 
     public void RegisterPacket(uint type, byte level, Type classType)
     {
-        if (_packets[level].ContainsKey(type))
-            _packets[level].TryRemove(type, out _);
-        _packets[level].TryAdd(type, classType);
+        _packets[level][type] = classType;
     }
 
     private static void HandleUnknownPacket(GameConnection connection, uint type, byte level, PacketStream stream)

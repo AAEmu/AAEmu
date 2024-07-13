@@ -113,12 +113,9 @@ public class FactionManager : Singleton<FactionManager>
         else
         {
             var factions = _systemFactions.Values.ToArray();
-            for (var i = 0; i < factions.Length; i += 20)
-            {
-                var temp = new SystemFaction[factions.Length - i <= 20 ? factions.Length - i : 20];
-                Array.Copy(factions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCSystemFactionListPacket(temp));
-            }
+            var dividedArrays = Helpers.SplitArray(factions, 20); // Разделяем массив на массивы по 20 значений
+            foreach (var systemFaction in dividedArrays)
+                character.SendPacket(new SCSystemFactionListPacket(systemFaction));
         }
     }
 
@@ -129,12 +126,9 @@ public class FactionManager : Singleton<FactionManager>
         else
         {
             var factions = _relations.ToArray();
-            for (var i = 0; i < factions.Length; i += 200)
-            {
-                var temp = new FactionRelation[factions.Length - i <= 200 ? factions.Length - i : 200];
-                Array.Copy(factions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCFactionRelationListPacket(temp));
-            }
+            var dividedArrays = Helpers.SplitArray(factions, 200); // Разделяем массив на массивы по 200 значений
+            foreach (var fr in dividedArrays)
+                character.SendPacket(new SCFactionRelationListPacket(fr));
         }
     }
 }

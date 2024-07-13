@@ -45,7 +45,7 @@ public class SCSlaveStatusPacket : GamePacket
         }
         #endregion
 
-        stream.Write(_slave.Summoner.Name ?? string.Empty);  // creatorName
+        stream.Write(_slave.Summoner?.Name ?? string.Empty);  // creatorName
         stream.Write(_slave.Summoner?.ObjId ?? 0);          // type
         stream.Write(_slave.Id);                           // dbId DbHouseId
 

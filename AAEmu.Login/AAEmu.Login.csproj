@@ -8,6 +8,7 @@
     <UseRidGraph>true</UseRidGraph>
     <VersionSuffix>alpha</VersionSuffix>
     <UserSecretsId>68f0c4f8-94e8-45b8-b1a0-03a4ccf61ed2</UserSecretsId>
+    <ApplicationIcon>Resources\icon_login.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

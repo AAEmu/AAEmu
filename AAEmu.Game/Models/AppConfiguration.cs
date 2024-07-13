@@ -25,9 +25,16 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public WorldConfig World { get; set; }
     public Dictionary<string, int> AccessLevel { get; set; } = new Dictionary<string, int>();
     public AccountConfig Account { get; set; }
+    public CurrencyValuesConfig Labor { get; set; }
+    public CurrencyValuesConfig LaborOffline { get; set; }
+    public CurrencyValuesConfig Credits { get; set; }
+    public CurrencyValuesConfig Loyalty { get; set; }
     public ClientDataConfig ClientData { get; set; } = new ClientDataConfig();
     public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
     public ScriptsConfig Scripts { get; set; } = new ScriptsConfig();
+    public string DefaultLanguage { get; set; } = "en_us";
+
+    
     public class NetworkConfig
     {
         public string Host { get; set; }

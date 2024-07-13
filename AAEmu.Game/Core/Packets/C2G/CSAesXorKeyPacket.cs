@@ -26,7 +26,7 @@ public class CSAesXorKeyPacket : GamePacket
 
         Connection.SendPacket(new SCGetSlotCountPacket(0));
         Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
-        Connection.SendPacket(new SCAccountAttendancePacket(31));
+        //Connection.SendPacket(new SCAccountAttendancePacket(31));
         Connection.SendPacket(new SCRaceCongestionPacket());
         Connection.LoadAccount();
         var characters = Connection.Characters.Values.ToArray();

@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -15,6 +14,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Attendance;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -28,6 +28,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -41,6 +42,8 @@ namespace AAEmu.Game.Models.Game.Char;
 public partial class Character : Unit, ICharacter
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Character;
+    
     public static Dictionary<uint, uint> UsedCharacterObjIds { get; } = new();
 
     private Dictionary<ushort, string> _options;
@@ -51,8 +54,35 @@ public partial class Character : Unit, ICharacter
     public ulong AccountId { get; set; }
     public Race Race { get; set; }
     public Gender Gender { get; set; }
-    public short LaborPower { get; set; }
-    public DateTime LaborPowerModified { get; set; }
+
+    /// <summary>
+    /// Cached representation of Account Labor
+    /// </summary>
+    public short LaborPower
+    {
+        get => _laborPower;
+        set
+        {
+            if (_laborPower == value)
+                return;
+            _laborPower = value;
+            AccountManager.Instance.UpdateLabor(AccountId, value);
+        }
+    }
+
+    public DateTime LaborPowerModified
+    {
+        get => _laborPowerModified;
+        set
+        {
+            if (_laborPowerModified == value)
+                return;
+
+            _laborPowerModified = value;
+            AccountManager.Instance.UpdateTickTimes(AccountId, value, true, false, false);
+        }
+    }
+
     public int ConsumedLaborPower { get; set; }
     public AbilityType Ability1 { get; set; }
     public AbilityType Ability2 { get; set; }
@@ -77,9 +107,14 @@ public partial class Character : Unit, ICharacter
     public short CrimePoint { get; set; }
     public int CrimeRecord { get; set; }
     public short CrimeScore { get; set; }
+    public int JuryPoint { get; set; }
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
+    
+    /// <summary>
+    /// Cache value of AccountDetails.Loyalty
+    /// </summary>
     public long BmPoint { get; set; }
     public bool AutoUseAAPoint { get; set; }
     public int PrevPoint { get; set; }
@@ -116,6 +151,7 @@ public partial class Character : Unit, ICharacter
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
     public CharacterMates Mates { get; set; }
+    public CharacterAttendances Attendances { get; set; }
 
     public byte ExpandedExpert { get; set; }
     public CharacterActability Actability { get; set; }
@@ -124,13 +160,19 @@ public partial class Character : Unit, ICharacter
     public CharacterCraft Craft { get; set; }
     public uint SubZoneId { get; set; } // понадобилось хранить для составления точек Memory Tome (Recall)
     public int AccessLevel { get; set; }
-    public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
+    public TeamPingPos LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
+    public bool SkillCancelled { get; set; }
     /// <summary>
     /// AttachPoint the player currently has in use  
     /// </summary>
     public AttachPointKind AttachedPoint { get; set; }
+
+    /// <summary>
+    /// Helper to keep track of what cinema is supposed to play
+    /// </summary>
+    public uint CurrentlyPlayingCinemaId { get; set; }
 
     public override bool IsUnderWater
     {
@@ -147,6 +189,19 @@ public partial class Character : Unit, ICharacter
 
     private bool _inParty;
     private bool _isOnline;
+    private short _laborPower;
+    private DateTime _laborPowerModified;
+
+    /// <summary>
+    /// List of ObjIds you have aggro on
+    /// </summary>
+    public Dictionary<uint, BaseUnit> IsInAggroListOf { get; set; } = new();
+
+    public void InitializeLaborCache(short labor, DateTime newTime)
+    {
+        _laborPower = labor;
+        _laborPowerModified = newTime;
+    }
 
     public bool InParty
     {
@@ -1263,7 +1318,7 @@ public partial class Character : Unit, ICharacter
         if (_hostilePlayers.TryGetValue(target.ObjId, out var value))
         {
             //Maybe get the time to stay hostile from db?
-            return value.AddSeconds(30) > DateTime.UtcNow;
+            return value.AddSeconds(WorldManager.DefaultCombatTimeout) > DateTime.UtcNow;
         }
         return false;
     }
@@ -1308,6 +1363,7 @@ public partial class Character : Unit, ICharacter
         {
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
             //StartRegen();
+            ResidentManager.Instance.AddResidenMemberInfo(this);
         }
     }
 
@@ -1455,7 +1511,7 @@ public partial class Character : Unit, ICharacter
     public void SetPirate(bool pirate)
     {
         // TODO : If castle owner -> Nope
-        var defaultFactionId = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender).FactionId;
+        var defaultFactionId = CharacterManager.Instance.GetTemplate(Race, Gender).FactionId;
 
         var newFaction = pirate ? FactionsEnum.Pirate : defaultFactionId;
         BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, newFaction, false), true);
@@ -1563,36 +1619,66 @@ public partial class Character : Unit, ICharacter
 
     public override int DoFallDamage(ushort fallVel)
     {
-        if (AccessLevel > 0)
+        if (CharacterManager.Instance.GetEffectiveAccessLevel(this) >= AppConfiguration.Instance.World.IgnoreFallDamageAccessLevel)
         {
-            Logger.Debug("{0}'s FallDamage disabled because of GM or Admin flag", Name);
+            Logger.Debug($"{Name} negated FallDamage because of IgnoreFallDamageAccessLevel settings");
             return 0; // GM & Admin take 0 damage from falling
-            // TODO: Make this a option, or allow settings of minimum access level
         }
         var fallDamage = base.DoFallDamage(fallVel);
-        Logger.Debug("FallDamage: {0} - Vel {1} DmgPerc: {2}, Damage {3}", Name, fallVel, (int)((fallVel - 8600) / 150f), fallDamage);
+        Logger.Trace($"FallDamage: {Name} - Vel {fallVel} DmgPerc: {(int)((fallVel - 8600) / 150f)}, Damage {fallDamage}");
         return fallDamage;
     }
 
     /// <summary>
     /// ItemUse - is used to work the quests
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="id">item.id</param>
     public void ItemUse(ulong id)
     {
         var item = Inventory.GetItemById(id);
         if (item is { Count: > 0 })
         {
-            //Quests.OnItemUse(item);
-            // инициируем событие
+            // Trigger event
             Events?.OnItemUse(this, new OnItemUseArgs
             {
-                ItemId = item.TemplateId,
-                Count = item.Count
+                ItemId = item.TemplateId
             });
         }
     }
 
+    /// <summary>
+    /// ItemUse - is used to work the quests
+    /// </summary>
+    /// <param name="item"></param>
+    public void ItemUse(Item item)
+    {
+        if (item is not null)
+        {
+            // Trigger event
+            Events?.OnItemUse(this, new OnItemUseArgs
+            {
+                ItemId = item.TemplateId
+            });
+        }
+    }
+
+    /// <summary>
+    /// Trigger OnItemUse using a item template
+    /// </summary>
+    /// <param name="itemTemplate"></param>
+    public void ItemUseByTemplate(uint itemTemplate)
+    {
+        if (itemTemplate > 0)
+        {
+            // Trigger event
+            Events?.OnItemUse(this, new OnItemUseArgs
+            {
+                ItemId = itemTemplate
+            });
+        }
+    }
+
+    
     public void SetAction(byte slot, ActionSlotType type, uint actionId)
     {
         Slots[slot].Type = type;
@@ -1647,6 +1733,11 @@ public partial class Character : Unit, ICharacter
         SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
     }
 
+    public void SendErrorMessage(ErrorMessageType errorMsgType1, ErrorMessageType errorMsgType2, uint type = 0, bool isNotify = true)
+    {
+        SendPacket(new SCErrorMsgPacket(errorMsgType1, errorMsgType2, type, isNotify));
+    }
+
     public static Character Load(uint characterId, uint accountId)
     {
         using (var connection = MySQL.CreateConnection())
@@ -1674,18 +1765,13 @@ public partial class Character : Unit, ICharacter
             return; // GodMode On : take no damage at all
         }
 
-        base.ReduceCurrentHp(attacker, value, killReason);
-    }
-
-    public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
-    {
         if (IsInDuel)
         {
-            Hp = 1; // we don't let you die during a duel
-            return;
+            Hp = Math.Max(Hp - value, 1); // we don't let you die during a duel
+            value = 0;
         }
 
-        base.PostUpdateCurrentHp(attacker, oldHpValue, newHpValue, killReason);
+        base.ReduceCurrentHp(attacker, value, killReason);
     }
 
     public void DoChangeBreath()
@@ -1706,7 +1792,7 @@ public partial class Character : Unit, ICharacter
     public void DoRepair(List<Item> items)
     {
         var tasks = new List<ItemTask>();
-        var repairCost = 0;
+        int repairCost = 0;
 
         foreach (var item in items)
         {
@@ -1715,30 +1801,25 @@ public partial class Character : Unit, ICharacter
 
             if (!Inventory.Bag.Items.Contains(item) && !Equipment.Items.Contains(item))
             {
-                Logger.Warn($"Attempting to repair an item that isn't in your inventory or equipment, Item={item.Id}");
+                Logger.Warn("Attempting to repair an item that isn't in your inventory or equipment, Item: {0}", item.Id);
                 continue;
             }
 
             if (!(item is EquipItem equipItem && item.Template is EquipItemTemplate))
             {
-                Logger.Warn($"Attempting to repair a non-equipment item, Item={item.Id}");
+                Logger.Warn("Attempting to repair a non-equipment item, Item: {0}", item.Id);
                 continue;
             }
 
             if (equipItem.Durability >= equipItem.MaxDurability)
             {
-                Logger.Warn($"Attempting to repair an item that has max durability, Item={item.Id}");
+                Logger.Warn("Attempting to repair an item that has max durability, Item: {0}", item.Id);
                 continue;
             }
 
-            // TODO maybe we need to check something else?
-            if (!Buffs.CheckBuff((uint)SkillConstants.Patron))
-            {
 #pragma warning disable CA1508 // Avoid dead conditional code
-                if (CurrentInteractionObject is not Npc npc)
-                {
-                    continue;
-                }
+            if (CurrentInteractionObject is null || !(CurrentInteractionObject is Npc npc))
+                continue;
 #pragma warning restore CA1508 // Avoid dead conditional code
 
                 if (!npc.Template.Blacksmith)
@@ -1747,13 +1828,12 @@ public partial class Character : Unit, ICharacter
                     continue;
                 }
 
-                var dist = MathUtil.CalculateDistance(Transform.World.Position, npc.Transform.World.Position);
+            var dist = MathUtil.CalculateDistance(Transform.World.Position, npc.Transform.World.Position);
 
-                if (dist > 5f)
-                {
-                    SendErrorMessage(ErrorMessageType.TooFarAway);
-                    continue;
-                }
+            if (dist > 5f)
+            {
+                SendErrorMessage(ErrorMessageType.TooFarAway);
+                continue;
             }
 
             var currentRepairCost = equipItem.RepairCost;
@@ -1844,7 +1924,7 @@ public partial class Character : Unit, ICharacter
     {
         var res = ForceDismount();
 
-        var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+        var mySlave = SlaveManager.Instance.GetSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
         if (mySlave != null)
         {
             // run the task to turn off the transport after timeToDespawn minutes
@@ -1902,6 +1982,7 @@ public partial class Character : Unit, ICharacter
 
     public static Character Load(MySqlConnection connection, uint characterId, ulong accountId)
     {
+        var accountDetails = AccountManager.Instance.GetAccountDetails(accountId);
         Character character = null;
         using (var command = connection.CreateCommand())
         {
@@ -1929,8 +2010,9 @@ public partial class Character : Unit, ICharacter
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
-                    character.LaborPower = reader.GetInt16("labor_power");
-                    character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                    // character.LaborPower = reader.GetInt16("labor_power");
+                    // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
@@ -1956,12 +2038,12 @@ public partial class Character : Unit, ICharacter
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
                     character.CrimeRecord = reader.GetInt32("crime_record");
+                    character.JuryPoint = reader.GetInt32("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
-                    character.BmPoint = reader.GetInt32("bm_point");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
                     character.PrevPoint = reader.GetInt32("prev_point");
                     character.Point = reader.GetInt32("point");
@@ -1977,6 +2059,8 @@ public partial class Character : Unit, ICharacter
 
                     var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
                     character.LoadActionSlots(slotsBlob);
+
+                    character.BmPoint = AccountManager.Instance.GetAccountDetails(character.AccountId).Loyalty;
 
                     if (character.Hp > character.MaxHp)
                         character.Hp = character.MaxHp;
@@ -2029,6 +2113,9 @@ public partial class Character : Unit, ICharacter
                     character = new Character(modelParams);
                     character.Id = reader.GetUInt32("id");
                     character.AccountId = reader.GetUInt32("account_id");
+
+                    var accountDetails = AccountManager.Instance.GetAccountDetails(character.AccountId);
+                    
                     character.Name = reader.GetString("name");
                     character.AccessLevel = reader.GetInt32("access_level");
                     character.Race = (Race)reader.GetByte("race");
@@ -2038,8 +2125,9 @@ public partial class Character : Unit, ICharacter
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
-                    character.LaborPower = reader.GetInt16("labor_power");
-                    character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
+                    // character.LaborPower = reader.GetInt16("labor_power");
+                    // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
@@ -2065,12 +2153,13 @@ public partial class Character : Unit, ICharacter
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
                     character.CrimeRecord = reader.GetInt32("crime_record");
+                    character.JuryPoint = reader.GetInt16("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
-                    character.BmPoint = reader.GetInt32("bm_point");
+                    // character.BmPoint = reader.GetInt32("bm_point");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
                     character.PrevPoint = reader.GetInt32("prev_point");
                     character.Point = reader.GetInt32("point");
@@ -2087,6 +2176,8 @@ public partial class Character : Unit, ICharacter
                     var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
                     character.LoadActionSlots(slotsBlob);
 
+                    character.BmPoint = AccountManager.Instance.GetAccountDetails(character.AccountId).Loyalty;
+                    
                     if (character.Hp > character.MaxHp)
                         character.Hp = character.MaxHp;
                     if (character.Mp > character.MaxMp)
@@ -2205,7 +2296,7 @@ public partial class Character : Unit, ICharacter
 
     public void Load()
     {
-        var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
+        var template = CharacterManager.Instance.GetTemplate(Race, Gender);
         ModelId = template.ModelId;
         BuyBackItems = new ItemContainer(Id, SlotType.None, false);
         Slots = new ActionSlot[MaxActionSlots];
@@ -2214,7 +2305,7 @@ public partial class Character : Unit, ICharacter
 
         Craft = new CharacterCraft(this);
         Procs = new UnitProcs(this);
-        LocalPingPosition = new WorldSpawnPosition();
+        LocalPingPosition = new TeamPingPos();
 
         using (var connection = MySQL.CreateConnection())
         {
@@ -2238,6 +2329,8 @@ public partial class Character : Unit, ICharacter
             Quests.CheckDailyResetAtLogin();
             Mates = new CharacterMates(this);
             Mates.Load(connection);
+            Attendances = new CharacterAttendances(this);
+            Attendances.Load(connection);
 
             LoadActionSlots(connection);
         }
@@ -2298,19 +2391,19 @@ public partial class Character : Unit, ICharacter
                 command.CommandText =
                     "REPLACE INTO `characters` " +
                     "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`experience`,`recoverable_exp`," +
-                    "`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
+                    "`hp`,`mp`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
-                    "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`," +
-                    "`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
+                    "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
+                    "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
                     "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`" +
                     ") VALUES (" +
                     "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp," +
-                    "@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3," +
+                    "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
-                    "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record," +
-                    "@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift," +
+                    "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
+                    "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
                     "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district)";
 
                 command.Parameters.AddWithValue("@id", Id);
@@ -2325,8 +2418,6 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@recoverable_exp", RecoverableExp);
                 command.Parameters.AddWithValue("@hp", Hp);
                 command.Parameters.AddWithValue("@mp", Mp);
-                command.Parameters.AddWithValue("@labor_power", LaborPower);
-                command.Parameters.AddWithValue("@labor_power_modified", LaborPowerModified);
                 command.Parameters.AddWithValue("@consumed_lp", ConsumedLaborPower);
                 command.Parameters.AddWithValue("@ability1", (byte)Ability1);
                 command.Parameters.AddWithValue("@ability2", (byte)Ability2);
@@ -2355,12 +2446,12 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@vocation_point", VocationPoint);
                 command.Parameters.AddWithValue("@crime_point", CrimePoint);
                 command.Parameters.AddWithValue("@crime_record", CrimeRecord);
+                command.Parameters.AddWithValue("@jury_point", JuryPoint);
                 command.Parameters.AddWithValue("@hostile_faction_kills", HostileFactionKills);
                 command.Parameters.AddWithValue("@pvp_honor", HonorGainedInCombat);
                 command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
                 command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
                 command.Parameters.AddWithValue("@delete_time", DeleteTime);
-                command.Parameters.AddWithValue("@bm_point", BmPoint);
                 command.Parameters.AddWithValue("@auto_use_aapoint", AutoUseAAPoint);
                 command.Parameters.AddWithValue("@prev_point", PrevPoint);
                 command.Parameters.AddWithValue("@point", Point);
@@ -2402,6 +2493,7 @@ public partial class Character : Unit, ICharacter
             Skills?.Save(connection, transaction);
             Quests?.Save(connection, transaction);
             Mates?.Save(connection, transaction);
+            Attendances?.Save(connection, transaction);
             result = true;
         }
         catch (Exception ex)
@@ -2539,6 +2631,32 @@ public partial class Character : Unit, ICharacter
         stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
 
         #endregion Inventory_Equip
+    }
+
+    /// <summary>
+    /// Adds crime, and returns the new (current) crime value
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <returns></returns>
+    public short AddCrime(int amount)
+    {
+        var newAmount = CrimePoint + amount;
+        if (newAmount > short.MaxValue)
+        {
+            CrimePoint = short.MaxValue; // current crime point can't go over short MaxValue
+        }
+        if (newAmount < 0)
+        {
+            CrimePoint = 0;
+        }
+        else
+        {
+            CrimePoint = (short)newAmount;
+        }
+        CrimeRecord += amount; // total amount
+        if (CrimeRecord < 0)
+            CrimeRecord = 0;
+        return CrimePoint;
     }
 
     public override string DebugName()

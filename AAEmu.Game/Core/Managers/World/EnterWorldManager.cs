@@ -92,7 +92,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
                         logoutTime *= 30;
 
                     // Add 10 minutes if you have a Slave Active
-                    if (SlaveManager.Instance.GetActiveSlaveByOwnerObjId(connection.ActiveChar?.ObjId ?? 0) != null)
+                    if (SlaveManager.Instance.GetSlaveByOwnerObjId(connection.ActiveChar?.ObjId ?? 0) != null)
                         logoutTime += 1000 * 60 * 10;
 
                     connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
@@ -134,6 +134,9 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             connection.ActiveChar.DisabledSetPosition = true;
             connection.ActiveChar.IsOnline = false;
             connection.ActiveChar.LeaveTime = DateTime.UtcNow;
+
+            // Remove all remaining quest timer tasks
+            QuestManager.Instance.RemoveQuestTimer(connection.ActiveChar.Id, 0);
 
             // Despawn and unmount everybody from owned Mates
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(connection.ActiveChar);

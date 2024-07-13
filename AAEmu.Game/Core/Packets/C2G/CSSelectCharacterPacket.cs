@@ -33,7 +33,7 @@ public class CSSelectCharacterPacket : GamePacket
             //var character = Connection.Characters[characterId];
             character.Load();
             character.Connection = Connection;
-            var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
+            var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id).ToList();
             MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(character);
 
             Connection.ActiveChar = character;
@@ -47,11 +47,13 @@ public class CSSelectCharacterPacket : GamePacket
                 Character.UsedCharacterObjIds.TryAdd(character.Id, character.ObjId);
             }
 
-            var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+            var mySlave = SlaveManager.Instance.GetSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
             if (mySlave != null)
             {
                 Logger.Warn($"{Connection.ActiveChar.Name}: Interrupting the transport shutdown task");
                 mySlave.CancelTokenSource.Cancel();
+                // TODO найти, как восстанавливать контроль
+                Unit.DespawSlave(Connection.ActiveChar); // despawn because we lost control over them
             }
             var myMates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
             if (myMates != null)
@@ -75,6 +77,7 @@ public class CSSelectCharacterPacket : GamePacket
                 }
             }
 
+            Connection.SendPacket(new SCResidentInfoListPacket(ResidentManager.Instance.GetInfo()));
             Connection.SendPacket(new SCCharacterStatePacket(character));
             Connection.SendPacket(new SCCharacterGamePointsPacket(character));
             Connection.ActiveChar.Inventory.Send();
@@ -82,7 +85,6 @@ public class CSSelectCharacterPacket : GamePacket
 
             Connection.ActiveChar.Quests.Send();
             Connection.ActiveChar.Quests.SendCompleted();
-            Connection.ActiveChar.Quests.RecallEvents();
 
             Connection.ActiveChar.Actability.Send();
             Connection.ActiveChar.Mails.SendUnreadMailCount();
@@ -102,13 +104,9 @@ public class CSSelectCharacterPacket : GamePacket
             }
 
             FactionManager.Instance.SendFactions(Connection.ActiveChar);
-            FactionManager.Instance.SendRelations(Connection.ActiveChar);
             ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
-
-            if (Connection.ActiveChar.Expedition != null)
-            {
-                ExpeditionManager.SendExpeditionInfo(Connection.ActiveChar);
-            }
+            ExpeditionManager.SendMyExpeditionInfo(Connection.ActiveChar);
+            FactionManager.Instance.SendRelations(Connection.ActiveChar);
 
             Connection.ActiveChar.SendOption(1);
             Connection.ActiveChar.SendOption(2);
@@ -116,7 +114,7 @@ public class CSSelectCharacterPacket : GamePacket
 
             Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.LoggedOn, Connection.ActiveChar);
 
-            var template = CharacterManager.Instance.GetTemplate((byte)character.Race, (byte)character.Gender);
+            var template = CharacterManager.Instance.GetTemplate(character.Race, character.Gender);
 
             foreach (var buff in template.Buffs)
             {
@@ -126,6 +124,8 @@ public class CSSelectCharacterPacket : GamePacket
             }
 
             character.Breath = character.LungCapacity;
+
+            Connection.SendPacket(new SCScheduledEventStartedPacket());
 
             Connection.ActiveChar.OnZoneChange(0, Connection.ActiveChar.Transform.ZoneId);
         }

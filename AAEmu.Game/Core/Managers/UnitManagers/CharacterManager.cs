@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Attendance;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
 using AAEmu.Game.Models.Game.Chat;
@@ -21,6 +22,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -36,7 +38,7 @@ public class CharacterManager : Singleton<CharacterManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<byte, CharacterTemplate> _templates;
-    private readonly Dictionary<byte, AbilityItems> _abilityItems;
+    private readonly Dictionary<AbilityType, AbilityItems> _abilityItems;
     private readonly Dictionary<int, List<Expand>> _expands;
     private readonly Dictionary<uint, AppellationTemplate> _appellations;
     private readonly Dictionary<uint, ActabilityTemplate> _actabilities;
@@ -46,7 +48,7 @@ public class CharacterManager : Singleton<CharacterManager>
     public CharacterManager()
     {
         _templates = new Dictionary<byte, CharacterTemplate>();
-        _abilityItems = new Dictionary<byte, AbilityItems>();
+        _abilityItems = new Dictionary<AbilityType, AbilityItems>();
         _expands = new Dictionary<int, List<Expand>>();
         _appellations = new Dictionary<uint, AppellationTemplate>();
         _actabilities = new Dictionary<uint, ActabilityTemplate>();
@@ -54,9 +56,9 @@ public class CharacterManager : Singleton<CharacterManager>
         _expandExpertLimits = new Dictionary<int, ExpandExpertLimit>();
     }
 
-    public CharacterTemplate GetTemplate(byte race, byte gender)
+    public CharacterTemplate GetTemplate(Race race, Gender gender)
     {
-        return _templates[(byte)(16 * gender + race)];
+        return _templates[(byte)(16 * (byte)gender + (byte)race)];
     }
 
     public AppellationTemplate GetAppellationsTemplate(uint id)
@@ -161,7 +163,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     while (reader.Read())
                     {
-                        var ability = reader.GetByte("ability_id");
+                        var ability = (AbilityType)reader.GetByte("ability_id");
                         var item = new AbilitySupplyItem
                         {
                             Id = reader.GetUInt32("item_id"),
@@ -184,7 +186,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     while (reader.Read())
                     {
-                        var ability = reader.GetByte("ability_id");
+                        var ability = (AbilityType)reader.GetByte("ability_id");
                         var template = new AbilityItems { Ability = ability, Items = new EquipItemsTemplate() };
                         var clothPack = reader.GetUInt32("newbie_cloth_pack_id", 0);
                         var weaponPack = reader.GetUInt32("newbie_weapon_pack_id", 0);
@@ -409,141 +411,168 @@ public class CharacterManager : Singleton<CharacterManager>
 
     }
 
-    public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body, UnitCustomModelParams customModel, byte ability1, byte ability2, byte ability3, byte level)
+    public int GetEffectiveAccessLevel(Character character)
     {
+        var accountDetails = AccountManager.Instance.GetAccountDetails(character.AccountId);
+        return Math.Max(character.AccessLevel, accountDetails.AccessLevel);
+    }
+
+    public void Create(GameConnection connection, string name, Race race, Gender gender, uint[] bodyItems, UnitCustomModelParams customModel, AbilityType ability1, AbilityType ability2, AbilityType ability3, byte level)
+    {
+        name = name.NormalizeName();
         var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
-        if (nameValidationCode == 0)
+        if (nameValidationCode != CharacterCreateError.Ok)
         {
-            var characterId = CharacterIdManager.Instance.GetNextId();
-            NameManager.Instance.AddCharacterName(characterId, name, connection.AccountId);
-            var template = GetTemplate(race, gender);
+            connection.SendPacket(new SCCharacterCreationFailedPacket(nameValidationCode));
+            return;
+        }
 
-            var character = new Character(customModel);
-            character.Id = characterId; // duplicate Id
-            character.TemplateId = characterId;
-            character.AccountId = connection.AccountId;
-            character.Name = string.Concat(name.Substring(0, 1).ToUpper(), name.AsSpan(1));
-            character.Race = (Race)race;
-            character.Gender = (Gender)gender;
-            character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
-            character.Level = 1;
-            character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
-            character.FactionName = "";
-            character.AccessLevel = 100; // TODO We create for testing with full rights
-            character.LaborPower = 50;
-            character.LaborPowerModified = DateTime.UtcNow;
-            character.NumInventorySlots = template.NumInventorySlot;
-            character.NumBankSlots = template.NumBankSlot;
-            character.Inventory = new Inventory(character);
-            character.Created = DateTime.UtcNow;
-            character.Updated = DateTime.UtcNow;
-            character.Ability1 = (AbilityType)ability1;
-            character.Ability2 = (AbilityType)ability2;
-            character.Ability3 = (AbilityType)ability3;
-            character.ReturnDistrictId = template.ReturnDistrictId;
-            character.ResurrectionDistrictId = template.ResurrectionDistrictId;
-            character.Slots = new ActionSlot[Character.MaxActionSlots];
-            for (var i = 0; i < character.Slots.Length; i++)
-                character.Slots[i] = new ActionSlot();
+        // NOTE: This is purely a warning to log potential cheaters
+        // If you have custom starting classes, make sure to comment or adjust this
+        if ((ability2 != AbilityType.None) || (ability3 != AbilityType.None))
+        {
+            Logger.Error($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}, Name {name}, Class {ability1}, {ability2}, {ability3}");
+        }
 
-            var items = _abilityItems[ability1];
-            SetEquipItemTemplate(character.Inventory, items.Items.Headgear, EquipmentItemSlot.Head, items.Items.HeadgearGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Necklace, EquipmentItemSlot.Neck, items.Items.NecklaceGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Shirt, EquipmentItemSlot.Chest, items.Items.ShirtGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Belt, EquipmentItemSlot.Waist, items.Items.BeltGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Pants, EquipmentItemSlot.Legs, items.Items.PantsGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Gloves, EquipmentItemSlot.Hands, items.Items.GlovesGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Shoes, EquipmentItemSlot.Feet, items.Items.ShoesGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Bracelet, EquipmentItemSlot.Arms, items.Items.BraceletGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Back, EquipmentItemSlot.Back, items.Items.BackGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Undershirts, EquipmentItemSlot.Undershirt, items.Items.UndershirtsGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Underpants, EquipmentItemSlot.Underpants, items.Items.UnderpantsGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Mainhand, EquipmentItemSlot.Mainhand, items.Items.MainhandGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Offhand, EquipmentItemSlot.Offhand, items.Items.OffhandGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Ranged, EquipmentItemSlot.Ranged, items.Items.RangedGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Musical, EquipmentItemSlot.Musical, items.Items.MusicalGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
-            SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
-            for (var i = 0; i < 7; i++)
-            {
-                if (body[i] == 0 && template.Items[i] > 0)
-                    body[i] = template.Items[i];
-                SetEquipItemTemplate(character.Inventory, body[i], (EquipmentItemSlot)(i + 19), 0);
-            }
+        var accountDetails = AccountManager.Instance.GetAccountDetails(connection.AccountId);
 
-            byte slot = 10;
+        // Get default access level for all users 
+        var useAccessLevel = AppConfiguration.Instance.Account.AccessLevelDefault;
+
+        // If it's the first character created, use first character access level settings 
+        if (NameManager.Instance.NoNamesRegistered())
+            useAccessLevel = Math.Max(AppConfiguration.Instance.Account.AccessLevelFirstCharacter, useAccessLevel);
+
+        var characterId = CharacterIdManager.Instance.GetNextId();
+        NameManager.Instance.AddCharacterName(characterId, name, connection.AccountId);
+        var template = GetTemplate(race, gender);
+
+        var character = new Character(customModel);
+        character.Id = characterId;
+        character.TemplateId = characterId;
+        character.AccountId = connection.AccountId;
+        character.Name = name;
+        character.Race = race;
+        character.Gender = gender;
+        character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
+        character.Level = level;
+        character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
+        character.FactionName = "";
+        character.AccessLevel = useAccessLevel;
+        // character.LaborPower = (short)AppConfiguration.Instance.Labor.Default;
+        // character.LaborPowerModified = DateTime.UtcNow;
+        character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated); // Initialize Labor cache, so we don't need to query the DB every time we need to read it
+        character.NumInventorySlots = template.NumInventorySlot;
+        character.NumBankSlots = template.NumBankSlot;
+        character.Inventory = new Inventory(character);
+        character.Created = DateTime.UtcNow;
+        character.Updated = DateTime.UtcNow;
+        character.Ability1 = ability1;
+        character.Ability2 = ability2;
+        character.Ability3 = ability3;
+        character.ReturnDistrictId = template.ReturnDistrictId;
+        character.ResurrectionDistrictId = template.ResurrectionDistrictId;
+        character.Slots = new ActionSlot[Character.MaxActionSlots];
+        for (var i = 0; i < character.Slots.Length; i++)
+            character.Slots[i] = new ActionSlot();
+
+        var items = _abilityItems[ability1];
+        SetEquipItemTemplate(character.Inventory, items.Items.Headgear, EquipmentItemSlot.Head, items.Items.HeadgearGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Necklace, EquipmentItemSlot.Neck, items.Items.NecklaceGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Shirt, EquipmentItemSlot.Chest, items.Items.ShirtGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Belt, EquipmentItemSlot.Waist, items.Items.BeltGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Pants, EquipmentItemSlot.Legs, items.Items.PantsGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Gloves, EquipmentItemSlot.Hands, items.Items.GlovesGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Shoes, EquipmentItemSlot.Feet, items.Items.ShoesGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Bracelet, EquipmentItemSlot.Arms, items.Items.BraceletGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Back, EquipmentItemSlot.Back, items.Items.BackGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Undershirts, EquipmentItemSlot.Undershirt, items.Items.UndershirtsGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Underpants, EquipmentItemSlot.Underpants, items.Items.UnderpantsGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Mainhand, EquipmentItemSlot.Mainhand, items.Items.MainhandGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Offhand, EquipmentItemSlot.Offhand, items.Items.OffhandGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Ranged, EquipmentItemSlot.Ranged, items.Items.RangedGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Musical, EquipmentItemSlot.Musical, items.Items.MusicalGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
+        for (var i = 0; i < 7; i++)
+        {
+            if (bodyItems[i] == 0 && template.Items[i] > 0)
+                bodyItems[i] = template.Items[i];
+            SetEquipItemTemplate(character.Inventory, bodyItems[i], (EquipmentItemSlot)(i + 19), 0);
+        }
+
+        byte slot = 10;
+        foreach (var item in items.Supplies)
+        {
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
+            //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
+            //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
+
+            character.SetAction(slot, ActionSlotType.ItemType, item.Id);
+            slot++;
+        }
+
+        items = _abilityItems[0];
+        if (items != null)
             foreach (var item in items.Supplies)
             {
                 character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
                 //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
-                //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
+                //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
 
                 character.SetAction(slot, ActionSlotType.ItemType, item.Id);
                 slot++;
             }
 
-            items = _abilityItems[0];
-            if (items != null)
-                foreach (var item in items.Supplies)
-                {
-                    character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
-                    //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
-                    //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
+        character.Abilities = new CharacterAbilities(character);
+        character.Abilities.SetAbility(character.Ability1, 0);
 
-                    character.SetAction(slot, ActionSlotType.ItemType, item.Id);
-                    slot++;
-                }
+        character.Actability = new CharacterActability(character);
+        foreach (var (id, actabilityTemplate) in _actabilities)
+            character.Actability.Actabilities.Add(id, new Actability(actabilityTemplate));
 
-            character.Abilities = new CharacterAbilities(character);
-            character.Abilities.SetAbility(character.Ability1, 0);
+        character.Skills = new CharacterSkills(character);
+        foreach (var skill in SkillManager.Instance.GetDefaultSkills())
+        {
+            if (!skill.AddToSlot)
+                continue;
+            character.SetAction(skill.Slot, ActionSlotType.Spell, skill.Template.Id);
+        }
 
-            character.Actability = new CharacterActability(character);
-            foreach (var (id, actabilityTemplate) in _actabilities)
-                character.Actability.Actabilities.Add(id, new Actability(actabilityTemplate));
+        slot = 1;
+        while (character.Slots[slot].Type != ActionSlotType.None)
+            slot++;
+        foreach (var skill in SkillManager.Instance.GetStartAbilitySkills(character.Ability1))
+        {
+            character.Skills.AddSkill(skill, 1, false);
+            character.SetAction(slot, ActionSlotType.Spell, skill.Id);
+            slot++;
+        }
 
-            character.Skills = new CharacterSkills(character);
-            foreach (var skill in SkillManager.Instance.GetDefaultSkills())
-            {
-                if (!skill.AddToSlot)
-                    continue;
-                character.SetAction(skill.Slot, ActionSlotType.Spell, skill.Template.Id);
-            }
+        character.Appellations = new CharacterAppellations(character);
+        character.Quests = new CharacterQuests(character);
+        character.Mails = new CharacterMails(character);
+        character.Portals = new CharacterPortals(character);
+        character.Friends = new CharacterFriends(character);
+        character.Attendances = new CharacterAttendances(character);
 
-            slot = 1;
-            while (character.Slots[slot].Type != ActionSlotType.None)
-                slot++;
-            foreach (var skill in SkillManager.Instance.GetStartAbilitySkills(character.Ability1))
-            {
-                character.Skills.AddSkill(skill, 1, false);
-                character.SetAction(slot, ActionSlotType.Spell, skill.Id);
-                slot++;
-            }
+        character.Hp = character.MaxHp;
+        character.Mp = character.MaxMp;
 
-            character.Appellations = new CharacterAppellations(character);
-            character.Quests = new CharacterQuests(character);
-            character.Mails = new CharacterMails(character);
-            character.Portals = new CharacterPortals(character);
-            character.Friends = new CharacterFriends(character);
-
-            character.Hp = character.MaxHp;
-            character.Mp = character.MaxMp;
-
-            if (character.SaveDirectlyToDatabase())
-            {
-                connection.Characters.Add(character.Id, character);
-                connection.SendPacket(new SCCreateCharacterResponsePacket(character));
-            }
-            else
-            {
-                connection.SendPacket(new SCCharacterCreationFailedPacket(3));
-                CharacterIdManager.Instance.ReleaseId(characterId);
-                NameManager.Instance.RemoveCharacterName(characterId);
-                // TODO release items...
-            }
+        if (character.SaveDirectlyToDatabase())
+        {
+            connection.Characters.Add(character.Id, character);
+            connection.SendPacket(new SCCreateCharacterResponsePacket(character));
         }
         else
         {
-            connection.SendPacket(new SCCharacterCreationFailedPacket(nameValidationCode));
+            // There is no actual response for internal DB saving error for the client.
+            // Just send a generic Failed error (Name already in use for pending deletion)
+            connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
+            CharacterIdManager.Instance.ReleaseId(characterId);
+            NameManager.Instance.RemoveCharacterName(characterId);
+            // TODO release items...
+            DeleteCharacterAssets(character, true);
         }
     }
 
@@ -875,5 +904,27 @@ public class CharacterManager : Singleton<CharacterManager>
             Logger.Error($"Could not consume salon certificate for player {character.Name} ({character.Id})!");
 
         // The client will do a salon leave request after it gets the SCCharacterGenderAndModelModifiedPacket
+    }
+
+    public bool IsCharacterPendingDeletion(string name)
+    {
+        using (var connection = MySQL.CreateConnection())
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM characters WHERE `name` = @name";
+                command.Parameters.AddWithValue("@name", name);
+                command.Prepare();
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        return reader.GetBoolean("deleted") || reader.GetDateTime("delete_request_time") > DateTime.MinValue;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

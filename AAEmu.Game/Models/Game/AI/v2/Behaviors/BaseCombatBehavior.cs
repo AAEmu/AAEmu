@@ -203,6 +203,10 @@ public abstract class BaseCombatBehavior : Behavior
         }
     }
 
+    /// <summary>
+    /// Updates Aggro target to the one with the most aggro
+    /// </summary>
+    /// <returns></returns>
     public bool UpdateTarget()
     {
         // We might want to optimize this somehow.
@@ -219,12 +223,12 @@ public abstract class BaseCombatBehavior : Behavior
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    if (Ai.Owner.CurrentAggroTarget != abuser.ObjId && !Ai.AlreadyTargetted)
+                    if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargetted)
                     {
                         // TODO найдем путь к abuser
                         Ai.Owner.FindPath(abuser);
                     }
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
 
@@ -235,12 +239,12 @@ public abstract class BaseCombatBehavior : Behavior
             {
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    // check that such an Npc is in the database, there are cases that it is in the game, but not in the database
+                    // check that such a Npc is in the database, there are cases that it is in the game, but not in the database
                     var currentTarget = abuser.ObjId > 0 ? WorldManager.Instance.GetUnit(abuser.ObjId) : null;
                     if (currentTarget == null)
                         continue;
 
-                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
                     return true;
@@ -249,7 +253,18 @@ public abstract class BaseCombatBehavior : Behavior
             Ai.Owner.ClearAggroOfUnit(abuser);
         }
 
-        Ai.Owner.SetTarget(null);
+        // Only remove CurrentTarget is either no unit selected, or if target is already dead
+        if (Ai.Owner.CurrentTarget is not Unit currentTargetUnit)
+        {
+            Ai.Owner.CurrentAggroTarget = null;
+            Ai.Owner.SetTarget(null);
+        }
+        else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
+        {
+            Ai.Owner.CurrentAggroTarget = null;
+            Ai.Owner.SetTarget(null);
+        }
+
         return false;
     }
 
@@ -259,7 +274,8 @@ public abstract class BaseCombatBehavior : Behavior
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
             var updZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y);
-            Ai.Owner.Transform.Local.SetHeight(updZ);
+            if (updZ != 0)
+                Ai.Owner.Transform.Local.SetHeight(updZ);
         }
         else if (_pipeName == "phase_dragon_fly_hovering" || _phaseType == 2) // "PHASE_DRAGON_HOVERING = 2;"
         {
@@ -573,7 +589,7 @@ public abstract class BaseCombatBehavior : Behavior
         var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
         skill.Callback = OnSkillEnded;
-        var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
+        var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject, false, out _);
         // fix the eastward turn when using SelfSkill
         if (skill.Template.TargetType != SkillTargetType.Self && result == SkillResult.Success)
             Ai.Owner.LookTowards(target.Transform.World.Position);
@@ -590,95 +606,5 @@ public abstract class BaseCombatBehavior : Behavior
         {
             // Do nothing
         }
-    }
-
-    public void OnEnemySeen(Unit target)
-    {
-        Ai.Owner.AddUnitAggro(AggroKind.Damage, target, 1);
-        //Ai.GoToCombat();
-        //Ai.OnAggroTargetChanged();
-        Ai.GoToAlert();
-    }
-
-    public void CheckAggression()
-    {
-        if (!Ai.Owner.Template.Aggression) { return; }
-        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, CheckSightRangeScale(10f));
-
-        foreach (var unit in nearbyUnits)
-        {
-            if (unit.IsDead || unit.Hp <= 0)
-                continue; // not counting dead Npc
-
-            // Need to check for stealth detection here
-            if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
-            {
-                if (Ai.Owner.CanAttack(unit))
-                {
-                    OnEnemySeen(unit);
-                    break;
-                }
-            }
-            else
-            {
-                var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
-                if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
-                {
-                    if (Ai.Owner.CanAttack(unit))
-                    {
-                        OnEnemySeen(unit);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    public void UpdateAggroHelp(Unit abuser, int radius = 20)
-    {
-        var npcs = WorldManager.GetAround<Npc>(Ai.Owner, CheckSightRangeScale(radius));
-        if (npcs == null)
-            return;
-
-        foreach (var npc in npcs
-                     .Where(npc => npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
-                     .Where(npc => npc.GetDistanceTo(npc.Ai.Owner) <= npc.Template.AggroLinkHelpDist))
-        {
-            if (Ai.Owner.IsInBattle)
-                return; // already in battle, let's not change the target
-
-            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
-            npc.Ai.OnAggroTargetChanged();
-        }
-    }
-
-    public void SetMaxWeaponRange(Skill skill, BaseUnit target)
-    {
-        var unit = (Unit)target;
-        // Check if target is within range
-        var skillRange = Ai.Owner.ApplySkillModifiers(skill, SkillAttribute.Range, skill.Template.MaxRange);
-
-        var minRangeCheck = skill.Template.MinRange * 1.0;
-        var maxRangeCheck = skillRange;
-
-        // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
-        // TODO: Do a check based on model size or bounding box instead
-
-        // If weapon is used to calculate range, use that
-        if (skill.Template.WeaponSlotForRangeId > 0)
-        {
-            var minWeaponRange = 0.0f; // Fist default
-            var maxWeaponRange = 3.0f; // Fist default
-            if (unit.Equipment.GetItemBySlot(skill.Template.WeaponSlotForRangeId)?.Template is WeaponTemplate weaponTemplate)
-            {
-                minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
-                maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
-            }
-
-            minRangeCheck = minWeaponRange;
-            maxRangeCheck = maxWeaponRange;
-        }
-
-        _maxWeaponRange = (float)maxRangeCheck;
     }
 }

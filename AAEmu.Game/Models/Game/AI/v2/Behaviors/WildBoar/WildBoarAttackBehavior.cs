@@ -26,6 +26,7 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
     {
         Ai.Param = Ai.Owner.Template.AiParams;
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });

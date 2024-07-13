@@ -13,7 +13,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Network.Connections;
 
@@ -25,7 +24,7 @@ public enum GameState
 
 public class GameConnection
 {
-    private Session _session;
+    private ISession _session;
 
     public uint Id => _session.SessionId;
     public ulong AccountId { get; set; }
@@ -45,7 +44,7 @@ public class GameConnection
     public CancellationTokenSource CancelTokenSource { get; set; }
     public DateTime LastPing { get; set; }
 
-    public GameConnection(Session session)
+    public GameConnection(ISession session)
     {
         _session = session;
         Subscribers = new List<IDisposable>();
@@ -93,6 +92,7 @@ public class GameConnection
             subscriber.Dispose();
 
         SaveAndRemoveFromWorld();
+        AccountManager.Instance.UpdateLoginTime(AccountId, DateTime.UtcNow);
     }
 
     public void Shutdown()
@@ -173,5 +173,6 @@ public class GameConnection
         // Do a manual save here as it's no longer in _characters at this point
         // TODO: might need a better option like saving this transaction for later to be used by the SaveMananger
         ActiveChar.SaveDirectlyToDatabase();
+        ResidentManager.Instance.UpdateAtExit(ActiveChar);
     }
 }

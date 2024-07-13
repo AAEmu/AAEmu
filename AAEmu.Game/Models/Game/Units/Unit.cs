@@ -6,22 +6,19 @@ using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
-using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Expeditions;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -30,13 +27,12 @@ using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
 namespace AAEmu.Game.Models.Game.Units;
 
 public class Unit : BaseUnit, IUnit
 {
     public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
+    public virtual BaseUnitType BaseUnitType { get; set; } = BaseUnitType.Invalid;
 
     public virtual UnitEvents Events { get; }
     private Task _regenTask;
@@ -62,7 +58,19 @@ public class Unit : BaseUnit, IUnit
     public byte Level { get; set; }
 
     public int Hp { get; set; }
+
     public int HighAbilityRsc { get; set; }
+
+    public int Hpp
+    {
+        get
+        {
+            if (MaxHp <= 0)
+                return 0;
+            return Math.Clamp((int)Math.Ceiling(Hp * 100f / MaxHp), 0, 100);
+        }
+    }
+
     public DateTime LastCombatActivity { get; set; }
 
     protected bool _isUnderWater;
@@ -217,7 +225,7 @@ public class Unit : BaseUnit, IUnit
     public SkillTask AutoAttackTask { get; set; }
     public DateTime GlobalCooldown { get; set; }
     public bool IsGlobalCooldowned => GlobalCooldown > DateTime.UtcNow;
-    public object GCDLock { get; set; }
+    public object GcdLock { get; set; }
     public DateTime SkillLastUsed { get; set; }
     public PlotState ActivePlotState { get; set; }
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
@@ -236,13 +244,12 @@ public class Unit : BaseUnit, IUnit
                 BroadcastPacket(new SCCombatClearedPacket(ObjId), true);
         }
     }
+    private bool _isInBattle;
 
     public bool IsInDuel { get; set; }
     public bool IsInPatrol { get; set; } // so as not to run the route a second time
     public int SummarizeDamage { get; set; }
-    public bool IsAutoAttack = false;
-    public uint SkillId;
-    private bool _isInBattle;
+    public bool IsAutoAttack { get; set; }
     public ushort TlId { get; set; }
     public ItemContainer Equipment { get; set; }
     public GameConnection Connection { get; set; }
@@ -256,14 +263,14 @@ public class Unit : BaseUnit, IUnit
     public Patrol Patrol { get; set; }
     public Simulation Simulation { get; set; }
 
-    public UnitProcs Procs { get; set; }
+    public UnitProcs Procs { get; protected set; }
 
     public bool ConditionChance { get; set; }
 
     public Unit()
     {
         Events = new UnitEvents();
-        GCDLock = new object();
+        GcdLock = new object();
         Bonuses = new Dictionary<uint, List<Bonus>>();
         IsInBattle = false;
         Equipment = new EquipmentContainer(0, SlotType.Equipment, false);
@@ -384,7 +391,7 @@ public class Unit : BaseUnit, IUnit
 
         if (attackerBase is Unit attackerUnit)
         {
-            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { target = attackerUnit });
+            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { Target = attackerUnit });
 
             var world = WorldManager.Instance.GetWorld(Transform.WorldId);
             if (Transform.WorldId > 0)
@@ -436,28 +443,103 @@ public class Unit : BaseUnit, IUnit
         {
             switch (this)
             {
+                //case Npc:
+                //    break;
                 case Mate mate:
-                    MateManager.Instance.UnMountMate(mate);
+                    DespawMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
                     break;
                 case Character character:
-                    {
-                        MateManager.Instance.UnMountMate(character);
-                        //character.ForceDismount();
-                        break;
-                    }
+                    DespawMate(character);
+                    break;
+                //default:
+                //    break;
             }
             return;
         }
 
         var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId, killer);
+        // Without moving the tagging into the root of unit, we need to do some work for loot distribution:
         if (lootDropItems.Count > 0)
         {
-            killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
+            // Logger.Info($"Loot item count is {lootDropItems.Count}");
+            var unit = WorldManager.Instance.GetNpc(ObjId);
+            if (unit == null)
+            {
+                // Defaulting to the original code if this isn't an NPC
+                // Logger.Info($"Not an NPC for {ObjId}");
+
+                killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
+
+            }
+            else
+            {
+                // it's an NPC, and we have a thing for this!
+                var eligiblePlayers = new HashSet<Character>();
+                if (unit.CharacterTagging.TagTeam != 0)
+                {
+                    // A team has tagging rights.
+                    // TODO: Master Looter
+                    var activeTeam = TeamManager.Instance.GetActiveTeam(unit.CharacterTagging.TagTeam);
+                    if (activeTeam.LootingRule.LootMethod == 0)
+                    {
+                        // FFA Loot
+                        foreach (var member in activeTeam.Members)
+                        {
+                            if (member?.Character == null)
+                                continue;
+
+                            if (GetDistanceTo(member.Character) <= 200)
+                            {
+                                eligiblePlayers.Add(member.Character);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // RoundRobin
+                        // TODO: Master Looter
+                        var nextEligibleLooter = TeamManager.Instance.GetNextEligibleLooter(unit.CharacterTagging.TagTeam, unit);
+                        if (nextEligibleLooter != null)
+                        {
+                            eligiblePlayers.Add(nextEligibleLooter);
+                            Logger.Warn($"Eligible team, adding {nextEligibleLooter}");
+                        }
+                        else
+                        {
+                            Logger.Warn("Next eligible looter was null");
+                        }
+                    }
+                  
+                }
+                else if (unit.CharacterTagging.Tagger != null)
+                {
+                    //A player has tag rights
+                    eligiblePlayers.Add(unit.CharacterTagging.Tagger);
+                    Logger.Warn($"Added tagger {unit.CharacterTagging.Tagger}");
+                }
+                if (eligiblePlayers.Count > 0)
+                {
+                    foreach (var eligible in eligiblePlayers)
+                    {
+                        if (eligible != null)
+                        {
+                            eligible.SendPacket(new SCLootableStatePacket(ObjId, true));
+                        }
+                        else
+                        {
+                            Logger.Warn($"Eligible player was null, eligible player count was {eligiblePlayers.Count}");
+                        }
+                    }
+                }
+            }
+
         }
+
+
 
         if (CurrentTarget != null)
         {
-            killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
+            killer.SendPacketToPlayers([this, killer], new SCAiAggroPacket(killer.ObjId, 0));
 
             if (killer is Unit killerUnit)
             {
@@ -492,6 +574,9 @@ public class Unit : BaseUnit, IUnit
 
     public static void DespawMate(Character character)
     {
+        // if we died sitting on a horse
+        if (character.Hp > 0) { return; }
+
         var mates = MateManager.Instance.GetActiveMates(character.ObjId);
         if (mates != null)
         {
@@ -500,19 +585,53 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    private static async void StopAutoSkill(Unit unit)
+    public static void DespawSlave(Character character)
+    {
+        // if we died sitting on a horse
+        if (character.Hp > 0) { return; }
+
+        SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(character);
+    }
+
+    public async void StopAutoSkill(Unit unit)
     {
         if (unit.AutoAttackTask is null || !(unit is Character character))
         {
             return;
         }
 
-        await character.AutoAttackTask.CancelAsync();
+        character.AutoAttackTask.Cancelled = true;
+        // await character.AutoAttackTask.Cancel();
+        /*
         character.AutoAttackTask = null;
         character.IsAutoAttack = false; // turned off auto attack
         character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
         character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
         TlIdManager.Instance.ReleaseId(character.TlId);
+        */
+    }
+
+    public void StartAutoSkill(Skill skill)
+    {
+        if (this is not Character character || AutoAttackTask is not null)
+        {
+            return;
+        }
+
+        var newTask = new UseAutoAttackSkillTask(skill, character);
+        character.AutoAttackTask = newTask;
+        var attackDelayTimes = newTask.GetAttackDelay(); 
+
+        TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(attackDelayTimes),
+            TimeSpan.FromMilliseconds(attackDelayTimes), -1);
+        /*
+        await character.AutoAttackTask.Cancel();
+        character.AutoAttackTask = null;
+        character.IsAutoAttack = false; // turned off auto attack
+        character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
+        character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
+        TlIdManager.Instance.ReleaseId(character.TlId);
+        */
     }
 
     [Obsolete("This method is deprecated", false)]
@@ -533,7 +652,7 @@ public class Unit : BaseUnit, IUnit
         {
             return;
         }
-        await _regenTask.CancelAsync();
+        await _regenTask.Cancel();
         _regenTask = null;
     }
 
@@ -585,10 +704,14 @@ public class Unit : BaseUnit, IUnit
         AppConfiguration.Instance.World.MOTD = value;
     }
 #pragma warning restore CA1822 // Mark members as static
-    public void SetCriminalState(bool criminalState)
+    public void SetCriminalState(bool criminalState, BaseUnit attackedTarget)
     {
         if (criminalState)
         {
+            // Don't trigger Retribution (purple) when target is a Npc (except for player portals)
+            if ((attackedTarget is Npc) && (attackedTarget is not Portal))
+                return;
+
             var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Retribution);
             var casterObj = new SkillCasterUnit(ObjId);
             Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow));
@@ -658,7 +781,7 @@ public class Unit : BaseUnit, IUnit
         return result;
     }
 
-    protected double CalculateWithBonuses(double value, UnitAttribute attr)
+    public double CalculateWithBonuses(double value, UnitAttribute attr)
     {
         foreach (var bonus in GetBonuses(attr))
         {
@@ -678,44 +801,6 @@ public class Unit : BaseUnit, IUnit
     public void SendErrorMessage(ErrorMessageType type)
     {
         SendPacket(new SCErrorMsgPacket(type, 0, true));
-    }
-
-    /// <summary>
-    /// Get distance between two units taking into account their model sizes
-    /// </summary>
-    /// <param name="baseUnit"></param>
-    /// <param name="includeZAxis"></param>
-    /// <returns></returns>
-    public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
-    {
-        if (baseUnit == null)
-            return 0.0f;
-
-        if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
-            return 0.0f;
-
-        var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
-        if (baseUnit is Shipyard.Shipyard shipyard)
-        {
-            // Let's use the build radius for this, as it doesn't really have a easy to grab model to get it from 
-            rawDist -= ShipyardManager.Instance._shipyardsTemplate[shipyard.ShipyardData.TemplateId].BuildRadius;
-        }
-        else
-        if (baseUnit is House house)
-        {
-            // Subtract house radius, this should be fair enough for building
-            rawDist -= (house.Template.GardenRadius * house.Scale);
-        }
-        else
-        {
-            // If target is a Unit, then use it's model for radius
-            if (baseUnit is Unit unit)
-                rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
-        }
-        // Subtract own radius
-        rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
-
-        return Math.Max(rawDist, 0);
     }
 
     public virtual int GetAbLevel(AbilityType type)
@@ -886,7 +971,7 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public virtual void UseSkill(uint skillId, IUnit target)
+    public virtual SkillResult UseSkill(uint skillId, IUnit target)
     {
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
 
@@ -896,7 +981,7 @@ public class Unit : BaseUnit, IUnit
         var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
         sct.ObjId = target.ObjId;
 
-        skill.Use(this, caster, sct, null, true);
+        return skill.Use(this, caster, sct, null, true, out _);
     }
 
     public static void ModelPosture(PacketStream stream, Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF)
@@ -914,11 +999,13 @@ public class Unit : BaseUnit, IUnit
                     modelPostureType = 0;
                 }
                 stream.Write((byte)modelPostureType);
-                Logger.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
+                //Logger.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
             }
         }
         else // other
+        {
             stream.Write((byte)modelPostureType);
+        }
 
         stream.Write(false); // isLooted
 
@@ -932,29 +1019,25 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
                 if (animActionId == 0xFFFFFFFF)
                 {
-                    Logger.Trace($"NPC.Template.AnimActionId={npc.Template.AnimActionId}, missing animActionId for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
+                    Logger.Warn($"NPC.Template.AnimActionId={npc.Template.AnimActionId}, missing animActionId for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
                 }
                 else
                 {
-                    Logger.Trace($"NPC.Template.AnimActionId={animActionId} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
+                    Logger.Debug($"NPC.Template.AnimActionId={animActionId} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
                 }
 
                 stream.Write(true); // activate
                 break;
             case ModelPostureType.FarmfieldState:
-                stream.Write(0u);    // type(id)
-                stream.Write(0f);    // growRate
-                stream.Write(0);     // randomSeed
-                stream.Write(false); // flags Byte
+                stream.Write(0u); // type(id)
+                stream.Write(0f); // growRate
+                stream.Write(0); // randomSeed
+                stream.Write(false); // isWithered
+                stream.Write(false); // isHarvested
                 break;
             case ModelPostureType.TurretState: // slave
                 stream.Write(0f); // pitch
                 stream.Write(0f); // yaw
-                break;
-            case ModelPostureType.Unk2:
-            case ModelPostureType.Unk3:
-            case ModelPostureType.Unk5:
-            case ModelPostureType.Unk6:
                 break;
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -17,6 +18,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -25,9 +27,10 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
-public class Npc : Unit
+public partial class Npc : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Npc;
+    public override BaseUnitType BaseUnitType => BaseUnitType.Npc;
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
@@ -41,8 +44,27 @@ public class Npc : Unit
 
     public NpcAi Ai { get; set; } // New framework
     public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
-    public uint CurrentAggroTarget { get; set; }
+
+    public BaseUnit CurrentAggroTarget
+    {
+        get => _currentAggroTarget;
+        set
+        {
+            if (_currentAggroTarget == value)
+                return;
+
+            if (value != null)
+                SendPacketToPlayers([value], new SCAggroTargetChangedPacket(ObjId, value.ObjId));
+                // BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, value.ObjId), false);
+
+            _currentAggroTarget = value;
+        }
+    }
+
     public bool CanFly { get; set; } // TODO mark Npc's that can fly so that they don't land on the ground when calculating the Z height
+    //Tagging works differently to Aggro.:
+    public Tagging CharacterTagging { get; set; }
+
 
     public override float BaseMoveSpeed
     {
@@ -69,6 +91,8 @@ public class Npc : Unit
     }
 
     private GameStanceType _currentGameStance = GameStanceType.Combat;
+    private BaseUnit _currentAggroTarget;
+
     public GameStanceType CurrentGameStance
     {
         get => _currentGameStance;
@@ -708,35 +732,205 @@ public class Npc : Unit
     {
         Name = "";
         AggroTable = new ConcurrentDictionary<uint, Aggro>();
+        CharacterTagging = new Tagging(this);//Adding because Tagging works differently than Aggro
         //Equip = new Item[28];
     }
 
     public override void DoDie(BaseUnit killer, KillReason killReason)
     {
-        base.DoDie(killer, killReason);
-        AggroTable.Clear();
-        if (killer is Character character)
+        var eligiblePlayers = new HashSet<Character>();
+        if (CharacterTagging.TagTeam != 0)
         {
-            character.AddExp(KillExp, true);
-            var mates = MateManager.Instance.GetActiveMates(character.ObjId);
+            //A team has tagging rights
+            var team = TeamManager.Instance.GetActiveTeam(CharacterTagging.TagTeam);
+            if (team != null)
+            {
+
+                //Just to check the team is still a valid team.
+                foreach (var member in team.Members)
+                {
+                    if (member != null && member.Character != null)
+                    {
+                        if (member.Character is Character tm)
+                        {
+                            var distance = tm.Transform.World.Position - this.Transform.World.Position;
+                            if (distance.Length() <= 200)
+                            {
+                                eligiblePlayers.Add(tm);
+                            }
+                        }
+                    }
+                }
+            }
+            else if (CharacterTagging.Tagger != null)
+            {
+                //A player has tag rights, but the team is not valid.
+                eligiblePlayers.Add(CharacterTagging.Tagger);
+            }
+        }
+        else if (CharacterTagging.Tagger != null)
+        {
+            //A player has tag rights
+            eligiblePlayers.Add(CharacterTagging.Tagger);
+        }
+
+        // Logger.Warn($"Eligible killers count is {eligiblePlayers.Count }");
+
+        if (eligiblePlayers.Count == 0 && killer is Character characterKiller)
+        {
+            QuestManager.Instance.DoOnMonsterHuntEvents(characterKiller, this);//No eligible owner, but the killer is a character.
+            characterKiller.AddExp(KillExp, true);
+            var mates = MateManager.Instance.GetActiveMates(characterKiller.ObjId); // в версии 3+ может быть несколько
             if (mates != null)
             {
                 foreach (var mate in mates)
                 {
                     if (mate == null) continue;
                     mate.AddExp(KillExp);
-                    character.SendMessage($"Pet gained {KillExp} XP");
+                    characterKiller.SendMessage($"Pet gained {KillExp} XP");
                 }
             }
-
-            //character.Quests.OnKill(this);
-            // инициируем событие
-            //Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
-            QuestManager.Instance.DoOnMonsterHuntEvents(character, this);
         }
+        else
+        {
+            var isFullTeam = false;
+            var isRaid = false;
+            if (CharacterTagging.TagTeam != 0)
+            {
+                //A team has tagging rights
+                var team = TeamManager.Instance.GetActiveTeam(CharacterTagging.TagTeam);
+                if (team != null)
+                {
+                    if (!team.IsParty)
+                    {
+                        isRaid = true;
+                        //Team is a raid.
+                    }
+                    else if (team.MembersCount() > 3)
+                    {
+                        isFullTeam = true;
+                    }
+                }
+            }
+            
+            foreach (var pl in eligiblePlayers)
+            {
+                var plKillXP = 0;
+                var mateKillXP = 0;
+                var plMod = 1f;
+                var mateMod = 1f;
+
+                if (isRaid)
+                {
+                    //Player is in a raid. 1.2, pet XP is capped a full team value, but player gets raid XP regardless of how many raiders are present.
+                    plMod = 0.33f;
+                    mateMod = 0.66f;
+                }
+                else if (isFullTeam)
+                {
+                    //Player is in a team of more than 3 people. Player gets full party XP regardless of how many party members are present.
+                    plMod = 0.66f;
+                    mateMod = 0.66f;
+                }
+
+                else if (eligiblePlayers.Count > 1 && eligiblePlayers.Count <= 3)
+                {
+                    //If players are between 2 and 3, we scale. At this point, the party doesn't matter, just nearby players. 
+                    if (eligiblePlayers.Count == 2)
+                    {
+                        plMod = 0.90f;
+                        mateMod = 0.90f;
+                    }
+                    else if (eligiblePlayers.Count == 3)
+                    {
+                        plMod = 0.875f;
+                        mateMod = 0.875f;
+                    }
+                }
+                else
+                {
+                    //Player is solo, or at least only 1 player is close enough to get rights
+                    plMod = 1f;
+                    mateMod = 1f;
+                }
+
+                //Now we need to scale XP based on level difference, which gets a bit more complex.
+               
+
+                if (pl.Level >= this.Level + 10 || pl.Level <= this.Level - 10)
+                {
+                    //No XP for you or your pet. Will check on the +10
+                }
+                else
+                {
+                    var LevDif = 1.0f;
+                    var levelDifference = pl.Level - this.Level;
+
+                    if (levelDifference > 0)
+                    {
+                        // pl.Level is above this.Level
+                        LevDif = 1.0f - (0.1f * levelDifference);
+                    }
+                    else if (levelDifference < 0)
+                    {
+                        // pl.Level is below this.Level
+                        LevDif = 1.0f + (0.1f * -levelDifference);
+                    }
+
+                    plKillXP = (int)((KillExp * plMod) * LevDif);
+                    mateKillXP = (int)((KillExp * mateMod) * LevDif);
+
+                    pl.AddExp(plKillXP, true);
+                    var mates = MateManager.Instance.GetActiveMates(pl.ObjId); // в версии 3+ может быть несколько
+                    if (mates != null)
+                    {
+                        foreach (var mate in mates)
+                        {
+                            if (mate == null) continue;
+                            mate.AddExp(mateKillXP);
+                            pl.SendMessage($"Pet gained {mateKillXP} XP");
+                        }
+                    }
+                }
+                //character.Quests.OnKill(this);
+                // инициируем событие
+                //Task.Run(() => QuestManager.Instance.DoOnMonsterHuntEvents(character, this));
+                QuestManager.Instance.DoOnMonsterHuntEvents(pl, this);
+            }
+        }
+        base.DoDie(killer, killReason);
+        ClearAllAggroTargetsAndCheckCombatState();
+        // AggroTable.Clear();
+        CharacterTagging.ClearAllTaggers();
+        CurrentAggroTarget = null;
 
         Spawner?.DecreaseCount(this);
         Ai?.GoToDead();
+    }
+
+    private void ClearAllAggroTargetsAndCheckCombatState()
+    {
+        List<Character> playerAggroList = new();
+        // Generate a list of all player that we had aggro on
+        foreach (var (objId, aggro) in AggroTable)
+        {
+            var unit = WorldManager.Instance.GetGameObject(objId);
+            if (unit is Character player)
+                playerAggroList.Add(player);
+        }
+        // Clear the aggro table
+        AggroTable.Clear();
+        
+        // Check if those target players still have aggro on something else, if not, clear their combat timers
+        foreach (var player in playerAggroList)
+        {
+            ClearAggroOfUnit(player);
+            if (player.IsInAggroListOf.Count <= 0)
+            {
+                // Cancel combat
+                player.IsInBattle = false;
+            }
+        }
     }
 
     public override void AddVisibleObject(Character character)
@@ -757,13 +951,13 @@ public class Npc : Unit
     public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
     {
         //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
-        Character player = null;
-        if (unit is not Npc and not Units.Mate and not Slave)
-        {
-            player = (Character)unit;
-        }
-
-        //player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
+        var player = unit as Character;
+        // Character player = null;
+        // if (unit is not Npc and not Units.Mate and not Slave)
+        // {
+        //     player = (Character)unit;
+        // }
+        // player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
 
         // check self buff tags
         if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
@@ -778,6 +972,11 @@ public class Npc : Unit
             ClearAggroOfUnit(unit);
             return;
         }
+
+        //Add Tagging if it was damage aggro
+        if (kind == AggroKind.Damage)
+            CharacterTagging.AddTagger(unit, amount);
+
 
         amount = (int)(amount * (unit.AggroMul / 100.0f));
         amount = (int)(amount * (IncomingAggroMul / 100.0f));
@@ -802,13 +1001,16 @@ public class Npc : Unit
             if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
-                    player.Quests.Add(Template.EngageCombatGiveQuestId);
+                    player.Quests.AddQuest(Template.EngageCombatGiveQuestId);
             }
         }
 
         if (player == null)
-        {
             return;
+
+        if (aggro.TotalAggro > 0 && !IsDead && Hp > 0 && !player.IsInAggroListOf.ContainsKey(this.ObjId))
+        {
+            player.IsInAggroListOf.Add(this.ObjId, this);
         }
         //player?.Quests.OnAggro(this);
         // инициируем событие
@@ -822,8 +1024,13 @@ public class Npc : Unit
             return;
 
         var player = unit as Character;
-
-        // player?.SendMessage(ChatType.System, $"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+        if (player != null && player.IsInAggroListOf.ContainsKey(ObjId))
+        {
+            player.IsInAggroListOf.Remove(ObjId);
+        }
+        
+        // var player = unit as Character;
+        // player?.SendMessage($"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
         var lastAggroCount = AggroTable.Count;
         if (AggroTable.TryRemove(unit.ObjId, out var value))
@@ -839,6 +1046,9 @@ public class Npc : Unit
         if (AggroTable.Count != lastAggroCount)
             CheckIfEmptyAggroToReturn(unit);
     }
+
+    //Tagging!
+
 
     private static void CheckIfEmptyAggroToReturn(IBaseUnit unit)
     {
@@ -877,6 +1087,9 @@ public class Npc : Unit
 
     public void ClearAllAggro()
     {
+        ///Adding for tagging
+        CharacterTagging.ClearAllTaggers();
+
         foreach (var table in AggroTable)
         {
             var unit = WorldManager.Instance.GetUnit(table.Key);
@@ -888,7 +1101,7 @@ public class Npc : Unit
         }
 
         var lastAggroCount = AggroTable.Count;
-        AggroTable.Clear();
+        ClearAllAggroTargetsAndCheckCombatState();
         if (lastAggroCount > 0)
             CheckIfEmptyAggroToReturn();
     }
@@ -978,7 +1191,7 @@ public class Npc : Unit
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
             var updZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY);
-            if (Math.Abs(newZ - updZ) < 1f)
+            if (updZ != 0 && Math.Abs(newZ - updZ) < 1f)
             {
                 Transform.Local.SetHeight(updZ);
             }
@@ -1069,7 +1282,7 @@ public class Npc : Unit
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = (sbyte)(CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Stance = (sbyte)(CurrentAggroTarget?.ObjId > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
         moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
@@ -1083,7 +1296,6 @@ public class Npc : Unit
     public void SetTarget(Unit other)
     {
         CurrentTarget = other;
-        SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         Ai.AlreadyTargetted = other != null;
     }
@@ -1126,5 +1338,31 @@ public class Npc : Unit
     public void DoDespawn(Npc npc)
     {
         Spawner.DoDespawn(npc);
+    }
+
+    /// <summary>
+    /// Returns the ranking in this Npc's aggro table in percent
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns>Position in the aggro table ranking in percent, 0 = most aggro, 100 = no aggro</returns>
+    public float GetAggroRatingInPercent(uint objId)
+    {
+        // grab a sorted copy of the aggro list
+        var sortedAggro = AggroTable.OrderBy(x => x.Value.TotalAggro).ToList();
+
+        // Find our position in the list
+        var pos = 0;
+        for (; pos < sortedAggro.Count; pos++)
+        {
+            if (sortedAggro[pos].Key == objId)
+                break;
+        }
+
+        // If at the end of the list (not found), don't round anything, always return 100
+        if (pos >= sortedAggro.Count)
+            return 100f;
+
+        // Return the position in the list 0 = most aggro, 100 = least aggro
+        return 1f / sortedAggro.Count * pos;
     }
 }

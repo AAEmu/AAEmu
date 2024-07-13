@@ -101,7 +101,7 @@ public class MateManager : Singleton<MateManager>
         if (mateInfo?.TlId != tlId) return;
 
         mateInfo.UserState = newState; // TODO - Maybe verify range
-        //owner.BroadcastPacket(new SCMateStatePacket(), );
+        // owner.BroadcastPacket(new SCMateStatePacket(mateInfo.ObjId), true);
     }
 
     public void ChangeTargetMate(GameConnection connection, uint tlId, uint objId)
@@ -135,7 +135,7 @@ public class MateManager : Singleton<MateManager>
         var (owner, mateInfo) = GetMateInfoByTlId(connection, tlId);
         if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
         if (mateInfo?.TlId != tlId) return null;
-        mateInfo.Name = newName.FirstCharToUpper();
+        mateInfo.Name = newName.NormalizeName();
         owner.BroadcastPacket(new SCUnitNameChangedPacket(mateInfo.ObjId, newName), true);
         return mateInfo;
     }
@@ -282,6 +282,7 @@ public class MateManager : Singleton<MateManager>
     {
         if (owner.ObjId == 0) { return; }
         var mates = GetActiveMates(owner.ObjId);
+        if (mates == null) return;
         foreach (var mateInfo in mates)
         {
             foreach (var seatInfo in mateInfo.Passengers.Values)

@@ -8,5 +8,6 @@ public enum BaseUnitType : byte
     Housing = 3,
     Transfer = 4,
     Mate = 5,
-    Shipyard = 6
+    Shipyard = 6,
+    Invalid = 255,
 }

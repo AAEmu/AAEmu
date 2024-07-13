@@ -13,7 +13,7 @@ public interface IQuestTemplate
     bool Selective { get; set; }
     int Score { get; set; }
     bool Successive { get; set; }
-    IDictionary<uint, QuestComponent> Components { get; set; }
-    QuestComponent GetFirstComponent(QuestComponentKind step);
-    QuestComponent[] GetComponents(QuestComponentKind step);
+    IDictionary<uint, QuestComponentTemplate> Components { get; set; }
+    QuestComponentTemplate GetFirstComponent(QuestComponentKind step);
+    QuestComponentTemplate[] GetComponents(QuestComponentKind step);
 }

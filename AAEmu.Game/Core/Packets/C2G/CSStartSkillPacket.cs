@@ -4,11 +4,15 @@ using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -54,6 +58,10 @@ public class CSStartSkillPacket : GamePacket
         if (flagType > 0) skillObject.Read(stream);
 
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
+        
+        var skillResult = SkillResult.Success;
+        var skillResultErrorValue = 0u;
+        Skill skill = null;
 
         if (skillCaster is SkillCasterUnit scu)
         {
@@ -66,7 +74,7 @@ public class CSStartSkillPacket : GamePacket
         {
             // Mount or Slave skill
             Logger.Trace($"SkillCasterMount - MountSkillTemplateId {scm.MountSkillTemplateId}");
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
 
             var caster = WorldManager.Instance.GetBaseUnit(skillCaster.ObjId);
             var mate = caster as Mate;
@@ -80,7 +88,10 @@ public class CSStartSkillPacket : GamePacket
             }
 
             // Use the main skill on the mate/slave
-            skill.Use(caster, skillCaster, skillCastTarget, skillObject);
+            if (skill.Use(caster, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue) != SkillResult.Success)
+            {
+                // skill.Stop(caster, null, skillCaster);
+            }
 
             // If no rider/operator skill is linked, we can stop here
             if (mountAttachedSkill == 0)
@@ -90,44 +101,70 @@ public class CSStartSkillPacket : GamePacket
             var riderTarget = Connection.ActiveChar.CurrentTarget as Unit;
 
             // Execute the rider/operator skill as the player using either target or self
-            Connection.ActiveChar.UseSkill(mountAttachedSkill, riderTarget ?? Connection.ActiveChar);
+            skillResult = Connection.ActiveChar.UseSkill(mountAttachedSkill, riderTarget ?? Connection.ActiveChar);
+        }
+        else if (Connection.ActiveChar.IsAutoAttack && skillId == Connection.ActiveChar.AutoAttackTask?.Skill?.Template?.Id)
+        {
+            // Same as already executing auto-skill, just send the success result.
+            skill = Connection.ActiveChar.AutoAttackTask.Skill;
+            skillResult = SkillResult.Success;
         }
         else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
         {
             // Is it a common skill?
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
+            if ((skillResult == SkillResult.Success) && (skillId < 5000) && (skillCaster.ObjId == Connection.ActiveChar.ObjId))
+            {
+                // All basic combat skills are below ID 5000, only 2 (melee),3 (offhand) and 4 (ranged) exist, next actual skill used is 5001
+                Connection.ActiveChar.IsAutoAttack = true;
+                Connection.ActiveChar.StartAutoSkill(skill);
+            }
         }
         else if (skillCaster is SkillItem si)
         {
             // A skill triggered by a item
-            var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
+            var player = Connection.ActiveChar; 
+            // var item = player.Inventory.GetItemById(si.ItemId);
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
-            if (item == null || skillId != item.Template.UseSkillId && item.Template.BindType != ItemBindType.BindOnPickup)
+            if (si.SkillSourceItem == null || skillId != si.SkillSourceItem.Template.UseSkillId && si.SkillSourceItem.Template.BindType != ItemBindType.BindOnPickup)
                 return;
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            // si.ItemTemplateId = item.TemplateId;
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
         {
             // Is it one of our learned character skills?
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
-            var skill = new Skill(template, Connection.ActiveChar);
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            skill = new Skill(template, Connection.ActiveChar);
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
         {
             // Variant of learned skill?
-            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
         else
         {
             // No idea what this is
-            Logger.Warn("StartSkill: Id {0}, undefined use type", skillId);
-            //If its a valid skill cast it. This fixes interactions with quest items/doodads.
-            var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-            unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            Logger.Warn($"StartSkill: Id {skillId}, undefined use type");
+            // If it's a valid skill cast it. This fixes interactions with quest items/doodads.
+            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+            skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
+        }
+        
+        if (skillResult != SkillResult.Success)
+        {
+            // It actually sends a skill started packet, but not a skill fired or stopped
+            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject);
+            scSkillStartedPacket.RealCastTimeDiv10 = 0;
+            scSkillStartedPacket.BaseCastTimeDiv10 = 0;
+            // ExtraData at the end of the packet is used to mark a use error
+            scSkillStartedPacket.SetSkillResult(skillResult);
+            scSkillStartedPacket.SetResultUInt(skillResultErrorValue);
+            Connection.ActiveChar.SendPacket(scSkillStartedPacket);
         }
     }
 }

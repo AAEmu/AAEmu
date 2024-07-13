@@ -21,7 +21,7 @@ public class CSPremiumServiceListPacket : GamePacket
         detail.CId = 8000001;
         detail.CName = "Премиум-подпиcка (30 дней)";
         detail.PId = 1;
-        detail.PTime = 720;
+        detail.PTime = 720; // hours
         detail.Price = 300;
 
         Connection.SendPacket(new SCPremiumServiceListPacket(true, 1, detail, 0));

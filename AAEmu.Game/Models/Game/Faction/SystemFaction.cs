@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Faction;
 
@@ -34,6 +35,28 @@ public class SystemFaction : PacketMarshaler
         var factionId = MotherId != 0 ? MotherId : Id;
         var otherFactionId = otherFaction.MotherId != 0 ? otherFaction.MotherId : otherFaction.Id;
 
+        // Handle Root Factions
+        switch (factionId)
+        {
+            case FactionsEnum.Neutral: 
+                return RelationState.Neutral;
+            case FactionsEnum.Friendly:
+                return RelationState.Friendly;
+            case FactionsEnum.Hostile:
+                return RelationState.Hostile;
+        }
+
+        // Handle Target Root Factions
+        switch (otherFactionId)
+        {
+            case FactionsEnum.Neutral: 
+                return RelationState.Neutral;
+            case FactionsEnum.Friendly:
+                return RelationState.Friendly;
+            case FactionsEnum.Hostile:
+                return RelationState.Hostile;
+        }
+        
         if (factionId == otherFactionId)
             return RelationState.Friendly;
 
@@ -65,8 +88,7 @@ public class SystemFaction : PacketMarshaler
         stream.Write(PoliticalSystem);   // PoliticalSystem Byte
         stream.Write(Created);           // createdTime
         stream.Write(AggroLink);         // aggroLink
-        stream.Write(true);              // dTarget
-        //stream.Write(DiplomacyTarget); // нет в 3.0.3.0.
+        stream.Write(DiplomacyTarget);   // dTarget
         stream.Write(AllowChangeName);   // allowChangeName
         stream.Write(0L);                // renameTime
         return stream;

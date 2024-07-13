@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -147,7 +148,7 @@ public class Doodad : BaseUnit
             }
         }
     }
-
+    public FarmType FarmType { get; set; } 
     public uint QuestGlow { get; set; } //0 off // 1 on
     public int PuzzleGroup { get; set; } = -1; // -1 off
     public DoodadSpawner Spawner { get; set; }
@@ -371,7 +372,7 @@ public class Doodad : BaseUnit
                 {
                     if (FuncTask != null)
                     {
-                        FuncTask.CancelAsync().GetAwaiter().GetResult();
+                        FuncTask.Cancel().GetAwaiter().GetResult();
                         FuncTask = null;
                         Logger.Debug($"DoFunc::DoodadFuncTimer: The current timer has been canceled. TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {func.NextPhase}");
                     }
@@ -461,7 +462,7 @@ public class Doodad : BaseUnit
 
         if (FuncTask != null)
         {
-            FuncTask.CancelAsync().GetAwaiter().GetResult();
+            FuncTask.Cancel().GetAwaiter().GetResult();
             FuncTask = null;
             if (caster is Character)
             {
@@ -554,6 +555,20 @@ public class Doodad : BaseUnit
 
         return stop; // if true, it did not pass the check for the quest (it must be aborted)
     }
+    public bool DoChangeOtherDoodadPhase(BaseUnit caster, Doodad doodad, int nextPhase)
+    {
+        //var prevFuncGroupId = FuncGroupId;
+        FuncGroupId = (uint)nextPhase;
+
+        if (nextPhase <= 0) { return false; }
+
+        Logger.Debug($"DoChangePhase: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
+        //var stop = DoPhaseFuncs(caster, ref nextPhase);
+        // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
+        BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true); // change the phase to display doodad
+
+        return false; // if true, it did not pass the check for the quest (it must be aborted)
+    }
 
     private bool HasOnlyGroupKindStart()
     {
@@ -572,8 +587,8 @@ public class Doodad : BaseUnit
     public uint GetFuncGroupId()
     {
         return (from funcGroup in Template.FuncGroups
-            where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
-            select funcGroup.Id).FirstOrDefault();
+                where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
+                select funcGroup.Id).FirstOrDefault();
     }
 
     public void OnSkillHit(BaseUnit caster, uint skillId)
@@ -706,6 +721,7 @@ public class Doodad : BaseUnit
                 }
             }
 
+            SpawnManager.Instance.RemovePlayerDoodad(this);
             IsPersistent = false;
         }
     }
@@ -730,8 +746,8 @@ public class Doodad : BaseUnit
                 }
 
                 command.CommandText =
-                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`) " +
-                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data)";
+                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`, `farm_type`) " +
+                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data, @farm_type)";
                 command.Parameters.AddWithValue("@id", DbId);
                 command.Parameters.AddWithValue("@owner_id", OwnerId);
                 command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -755,6 +771,7 @@ public class Doodad : BaseUnit
                 command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
                 command.Parameters.AddWithValue("@item_container_id", GetItemContainerId());
                 command.Parameters.AddWithValue("@data", Data);
+                command.Parameters.AddWithValue("@farm_type", FarmType);
                 command.Prepare();
                 command.ExecuteNonQuery();
             }

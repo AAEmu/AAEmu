@@ -7,9 +7,9 @@ public class SCOnOffSnowPacket : GamePacket
 {
     private readonly bool _on;
 
-    public SCOnOffSnowPacket(bool @on) : base(SCOffsets.SCSnowingEverywherePacket, 5)
+    public SCOnOffSnowPacket(bool on) : base(SCOffsets.SCSnowingEverywherePacket, 5)
     {
-        _on = @on;
+        _on = on;
     }
 
     public override PacketStream Write(PacketStream stream)

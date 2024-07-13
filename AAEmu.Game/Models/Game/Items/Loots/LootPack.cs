@@ -21,7 +21,6 @@ public class LootPack
 
     // unused private List<(uint itemId, int count, byte grade)> _generatedPack;
 
-
     /// <summary>
     /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
     /// </summary>
