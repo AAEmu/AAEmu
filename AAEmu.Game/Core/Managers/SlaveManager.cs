@@ -1,10 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-
-using MySql.Data.MySqlClient;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
@@ -32,6 +30,8 @@ using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
+using MySql.Data.MySqlClient;
 
 using NLog;
 
@@ -344,7 +344,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="positionOverride"></param>
     public Slave Create(uint SubType, Transform positionOverride = null)
     {
-        var slave = Create(null, null, SubType, null, positionOverride);
+        var slave = Create(null, null, SubType, null, false, positionOverride);
 
         return slave;
     }
@@ -356,7 +356,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="skillData"></param>
     /// <param name="hideSpawnEffect"></param>
     /// <param name="positionOverride"></param>
-    public void Create(Character owner, SkillItem skillData, Transform positionOverride = null)
+    public void Create(Character owner, SkillItem skillData, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
         var activeSlaveInfo = GetSlaveByOwnerObjId(owner.ObjId);
         if (activeSlaveInfo != null)
@@ -438,7 +438,7 @@ public class SlaveManager : Singleton<SlaveManager>
             }
         }
         #endregion
-        
+
         // Put it at the correct location
         if (spawnPos.Local.IsOrigin())
         {
@@ -575,7 +575,7 @@ public class SlaveManager : Singleton<SlaveManager>
         ApplySlaveBonuses(summonedSlave);
 
         // If it was loaded from DB, restore previous its HP/MP
-        if (!isLoadedPlayerSlave) 
+        if (!isLoadedPlayerSlave)
         {
             summonedSlave.Hp = summonedSlave.MaxHp;
             summonedSlave.Mp = summonedSlave.MaxMp;
@@ -670,7 +670,7 @@ public class SlaveManager : Singleton<SlaveManager>
         {
             if (slaveBinding.OwnerType != "Slave")
                 continue;
-            
+
             // TODO: When vehicle customization gets added this part needs addition of the related item Ids
 
             var childDbId = 0u;
@@ -704,10 +704,10 @@ public class SlaveManager : Singleton<SlaveManager>
                     break;
                 }
             } // Parent Slave has DB Id
-            
+
             if ((summonedSlave.Id > 0) && (childDbId <= 0))
                 childDbId = CharacterIdManager.Instance.GetNextId(); // Slaves of Persistent Slaves are always persistent as well
-            
+
             var childSlaveTemplate = GetSlaveTemplate(childSlaveTemplateId > 0 ? childSlaveTemplateId : slaveBinding.SlaveId);
             var childTlId = (ushort)TlIdManager.Instance.GetNextId();
             var childObjId = ObjectIdManager.Instance.GetNextId();
@@ -725,7 +725,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 Mp = childSlaveMp,
                 ModelParams = new UnitCustomModelParams(),
                 Faction = summonedSlave.Faction,
-                Id = childDbId, 
+                Id = childDbId,
                 Summoner = summonedSlave.Summoner,
                 SpawnTime = DateTime.UtcNow,
                 AttachPointId = (sbyte)slaveBinding.AttachPointId,
@@ -834,8 +834,8 @@ public class SlaveManager : Singleton<SlaveManager>
         foreach (var bonusTemplate in summonedSlave.Template.Bonuses)
         {
             var bonus = new Bonus
-            { 
-                Template = bonusTemplate, 
+            {
+                Template = bonusTemplate,
                 Value = bonusTemplate.Value // TODO using LinearLevelBonus
             };
             summonedSlave.AddBonus(0, bonus);
@@ -887,9 +887,9 @@ public class SlaveManager : Singleton<SlaveManager>
         _slaveTemplates = new Dictionary<uint, SlaveTemplate>();
         //lock (_slaveListLock)
         //{
-            //_activeSlaves = new Dictionary<uint, Slave>();
-            //_testSlaves = new List<Slave>();
-            //_tlSlaves = new Dictionary<uint, Slave>();
+        //_activeSlaves = new Dictionary<uint, Slave>();
+        //_testSlaves = new List<Slave>();
+        //_tlSlaves = new Dictionary<uint, Slave>();
         //}
         _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
         //_slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
@@ -1487,12 +1487,12 @@ public class SlaveManager : Singleton<SlaveManager>
 
         var childDoodadsToRemove = new List<uint>();
         var childSlavesToRemove = new List<uint>();
-        
+
         // Get list of child doodads to remove
         command.CommandText = "SELECT * FROM doodads WHERE (owner_type = 2) AND (house_id = @ownerId)";
         command.Parameters.AddWithValue("@ownerId", dbId);
         command.Prepare();
-        using(var reader = command.ExecuteReader())
+        using (var reader = command.ExecuteReader())
         {
             while (reader.Read())
                 childDoodadsToRemove.Add(reader.GetUInt32("id"));
