@@ -92,9 +92,9 @@ public class Nwrite : ICommand
                                     pos.X = doodad.Transform.World.Position.X;
                                     pos.Y = doodad.Transform.World.Position.Y;
                                     pos.Z = doodad.Transform.World.Position.Z;
-                                    pos.Roll = doodad.Transform.Local.Rotation.X.RadToDeg();
-                                    pos.Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg();
-                                    pos.Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg();
+                                    pos.Roll = (float)MathUtil.ClampDegAngle(doodad.Transform.Local.Rotation.X.RadToDeg());
+                                    pos.Pitch = (float)MathUtil.ClampDegAngle(doodad.Transform.Local.Rotation.Y.RadToDeg());
+                                    pos.Yaw = (float)MathUtil.ClampDegAngle(doodad.Transform.Local.Rotation.Z.RadToDeg());
 
                                     var newEntry = new JsonDoodadSpawns();
                                     newEntry.Id = newId;
@@ -113,9 +113,9 @@ public class Nwrite : ICommand
                                             spawner.Position.X = doodad.Transform.World.Position.X;
                                             spawner.Position.Y = doodad.Transform.World.Position.Y;
                                             spawner.Position.Z = doodad.Transform.World.Position.Z;
-                                            spawner.Position.Roll = doodad.Transform.Local.Rotation.X.RadToDeg();
-                                            spawner.Position.Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg();
-                                            spawner.Position.Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg();
+                                            spawner.Position.Roll = (float)MathUtil.ClampDegAngle(doodad.Transform.Local.Rotation.X.RadToDeg());
+                                            spawner.Position.Pitch = (float)MathUtil.ClampDegAngle(doodad.Transform.Local.Rotation.Y.RadToDeg());
+                                            spawner.Position.Yaw = (float)MathUtil.ClampDegAngle(doodad.Transform.Local.Rotation.Z.RadToDeg());
                                             break;
                                         }
                                     }
@@ -179,7 +179,7 @@ public class Nwrite : ICommand
                                         newEntry.Position.X = pos.Position.X;
                                         newEntry.Position.Y = pos.Position.Y;
                                         newEntry.Position.Z = pos.Position.Z;
-                                        newEntry.Position.Yaw = pos.Rotation.Z.RadToDeg();
+                                        newEntry.Position.Yaw = (float)MathUtil.ClampDegAngle(pos.Rotation.Z.RadToDeg());
                                         //var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
                                         //newEntry.Position.RotationX = rx;
                                         //newEntry.Position.RotationY = ry;
@@ -187,7 +187,7 @@ public class Nwrite : ICommand
                                         //newEntry.Scale = npcs[i].Scale; // 0.0 and 1.0 seem to do the same thing 
                                         spawners.Add(newEntry);
 
-                                        npcs[i].Spawner.Id = newId; //Set ID incase you edit it after adding!
+                                        npcs[i].Spawner.Id = newId; //Set ID in-case you edit it after adding!
                                     }
                                     else
                                     {
@@ -200,7 +200,7 @@ public class Nwrite : ICommand
                                                 spawner.Position.X = pos.Position.X;
                                                 spawner.Position.Y = pos.Position.Y;
                                                 spawner.Position.Z = pos.Position.Z;
-                                                spawner.Position.Yaw = pos.Rotation.Z.RadToDeg();
+                                                spawner.Position.Yaw = (float)MathUtil.ClampDegAngle(pos.Rotation.Z.RadToDeg());
                                                 //var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
                                                 //spawner.Position.RotationX = rx;
                                                 //spawner.Position.RotationY = ry;
