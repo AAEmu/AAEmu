@@ -972,24 +972,21 @@ public class ItemManager : Singleton<ItemManager>
                         var slotTypeId = reader.GetUInt32("slot_type_id");
                         var typeId = reader.GetUInt32("type_id");
 
-                        var template = new ArmorTemplate
-                        {
-                            Id = id,
-                            WearableTemplate = _wearables[typeId * 128 + slotTypeId],
-                            KindTemplate = _wearableKinds[typeId],
-                            SlotTemplate = _wearableSlots[slotTypeId],
-                            BaseEnchantable = reader.GetBoolean("base_enchantable", true),
-                            ModSetId = reader.GetUInt32("mod_set_id", 0),
-                            Repairable = reader.GetBoolean("repairable", true),
-                            DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
-                            BaseEquipment = reader.GetBoolean("base_equipment", true),
-                            RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
-                            ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
-                            ChargeCount = reader.GetInt32("charge_count", 0),
-                            ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
-                            EquipItemSetId = reader.GetUInt32("eiset_id", 0),
-                            DefaultDyeItemId = GetDyeableItemDefaultDyeId(id)
-                        };
+                        var template = new ArmorTemplate();
+                        template.Id = reader.GetUInt32("item_id");
+                        template.WearableTemplate = _wearables[typeId * 128 + slotTypeId];
+                        template.KindTemplate = _wearableKinds[typeId];
+                        template.SlotTemplate = _wearableSlots[slotTypeId];
+                        template.BaseEnchantable = reader.GetBoolean("base_enchantable", true);
+                        template.ModSetId = reader.GetUInt32("mod_set_id", 0);
+                        template.Repairable = reader.GetBoolean("repairable", true);
+                        template.DurabilityMultiplier = reader.GetInt32("durability_multiplier");
+                        template.BaseEquipment = reader.GetBoolean("base_equipment", true);
+                        template.RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0);
+                        template.ChargeLifetime = reader.GetInt32("charge_lifetime", 0);
+                        template.ChargeCount = reader.GetInt16("charge_count");
+                        template.ItemLookConvert = GetWearableItemLookConvert(slotTypeId);
+                        template.EquipItemSetId = reader.GetUInt32("eiset_id", 0);
                         _templates.Add(template.Id, template);
                     }
                 }
@@ -1207,7 +1204,7 @@ public class ItemManager : Singleton<ItemManager>
                         template.HonorPrice = reader.GetInt32("honor_price");
                         template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
                         template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
-                        template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
+                        template.ExpDate = reader.IsDBNull("exp_date") ? reader.GetInt32("exp_date") : 0;
                         template.SpecialtyZoneId = !reader.IsDBNull("specialty_zone_id") ? reader.GetUInt32("specialty_zone_id") : 0;
                         template.LevelRequirement = reader.GetInt32("level_requirement");
                         template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
