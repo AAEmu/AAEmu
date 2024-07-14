@@ -57,9 +57,11 @@ public class CSSellItemsPacket : GamePacket
                 continue;
 
             if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
-                Logger.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}", item.Id, Connection.ActiveChar.Name));
-
-            money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) * item.Count;
+            {
+                Logger.Warn($"Failed to move sold itemId {item.Id} ({item.TemplateId}) to BuyBack ItemContainer for {Connection.ActiveChar.Name}");
+            }
+            money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
+                     item.Count;
         }
 
         Connection.ActiveChar.ChangeMoney(SlotType.Inventory, money);
