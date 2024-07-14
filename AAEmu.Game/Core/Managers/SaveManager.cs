@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.SaveTask;
 
 using NLog;
@@ -20,6 +21,7 @@ public class SaveManager : Singleton<SaveManager>
     private bool _isSaving;
     private object _lock = new();
     private SaveTickStartTask saveTask;
+    public ShutdownTask ShutdownTask { get; set; } = null;
 
     public SaveManager()
     {
