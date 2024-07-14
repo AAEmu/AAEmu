@@ -14,16 +14,31 @@ public class CSSecurityReportPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var srType = stream.ReadByte();
-        stream.ReadUInt32();
-        stream.ReadUInt64();
-        if (srType == 1)
+        switch (srType)
         {
-            var str = stream.ReadString();
-            Logger.Info("CSSecurityReportPacket, Msg: {0}", str);
-        }
-        else
-        {
-            Logger.Info("CSSecurityReportPacket");
+            case 1:
+                {
+                    stream.ReadUInt32();
+                    stream.ReadUInt64();
+                    var str = stream.ReadString();
+                    Logger.Info($"CSSecurityReportPacket, Msg: {str}");
+                    break;
+                }
+            case 2:
+                {
+                    var value2 = stream.ReadUInt32();
+                    Logger.Info($"CSSecurityReportPacket, value2: {value2}");
+                    break;
+                }
+            case 3:
+                {
+                    var value3 = stream.ReadUInt16();
+                    Logger.Info($"CSSecurityReportPacket, Msg: {value3}");
+                    break;
+                }
+            default:
+                Logger.Info("CSSecurityReportPacket");
+                break;
         }
     }
 }

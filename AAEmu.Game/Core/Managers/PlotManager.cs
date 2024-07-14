@@ -164,25 +164,32 @@ public class PlotManager : Singleton<PlotManager>
                         var id = reader.GetUInt32("event_id");
                         var condId = reader.GetUInt32("condition_id");
                         var template = new PlotAoeCondition();
-                        template.Condition = _conditions[condId];
-                        template.Position = reader.GetInt32("position");
-                        var plotEvent = _eventTemplates[id];
-                        if (plotEvent.AoeConditions.Count > 0)
+                        if (_conditions.TryGetValue(condId, out var condition))
                         {
-                            var res = false;
-                            for (var node = plotEvent.AoeConditions.First; node != null; node = node.Next)
-                                if (node.Value.Position > template.Position)
-                                {
-                                    plotEvent.AoeConditions.AddBefore(node, template);
-                                    res = true;
-                                    break;
-                                }
+                            template.Condition = condition;
+                            template.Position = reader.GetInt32("position");
+                            var plotEvent = _eventTemplates[id];
+                            if (plotEvent.AoeConditions.Count > 0)
+                            {
+                                var res = false;
+                                for (var node = plotEvent.AoeConditions.First; node != null; node = node.Next)
+                                    if (node.Value.Position > template.Position)
+                                    {
+                                        plotEvent.AoeConditions.AddBefore(node, template);
+                                        res = true;
+                                        break;
+                                    }
 
-                            if (!res)
-                                plotEvent.AoeConditions.AddLast(template);
+                                if (!res)
+                                    plotEvent.AoeConditions.AddLast(template);
+                            }
+                            else
+                                plotEvent.AoeConditions.AddFirst(template);
                         }
                         else
-                            plotEvent.AoeConditions.AddFirst(template);
+                        {
+                            Logger.Warn($"Plot condition: {condId} not found");
+                        }
                     }
                 }
             }

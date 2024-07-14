@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Skills.Plots;
+﻿namespace AAEmu.Game.Models.Game.Skills.Plots;
 
 public enum PlotConditionType
 {
@@ -19,6 +19,9 @@ public enum PlotConditionType
     Stealth = 15,
     Visible = 16,
     ABLevel = 17,
+    CastingUseable = 18,
+    HighAbilityResource = 19,
+    UnitReqs = 20
 }
 
 // No clue what that shit does fam
