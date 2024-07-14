@@ -81,23 +81,23 @@ public class ItemManager : Singleton<ItemManager>
 
     private Dictionary<ulong, Item> _allItems;
     private List<ulong> _removedItems;
-    private Dictionary<ulong, ItemContainer> _allPersistantContainers;
+    private Dictionary<ulong, ItemContainer> _allPersistentContainers;
     private bool _loadedUserItems;
     // private Dictionary<ulong, Item> _timerSubscriptionsItems;
 
     public ItemTemplate GetTemplate(uint id)
     {
-        return _templates.TryGetValue(id, out var template) ? template : null;
+        return _templates.GetValueOrDefault(id);
     }
 
     public EquipItemSet GetEquippedItemSet(uint id)
     {
-        return _equipItemSets.TryGetValue(id, out var value) ? value : null;
+        return _equipItemSets.GetValueOrDefault(id);
     }
 
     public GradeTemplate GetGradeTemplate(int grade)
     {
-        return _grades.TryGetValue(grade, out var grade1) ? grade1 : null;
+        return _grades.GetValueOrDefault(grade);
     }
 
     public bool RemoveLootDropItems(uint objId)
@@ -107,25 +107,25 @@ public class ItemManager : Singleton<ItemManager>
 
     public Holdable GetHoldable(uint id)
     {
-        return _holdables.TryGetValue(id, out var holdable) ? holdable : null;
+        return _holdables.GetValueOrDefault(id);
     }
 
     public EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId)
     {
-        return _enchantingCosts.TryGetValue(slotTypeId, out var cost) ? cost : null;
+        return _enchantingCosts.GetValueOrDefault(slotTypeId);
     }
 
     public GradeTemplate GetGradeTemplateByOrder(int gradeOrder)
     {
-        return _gradesOrdered.TryGetValue(gradeOrder, out var value) ? value : null;
+        return _gradesOrdered.GetValueOrDefault(gradeOrder);
     }
 
     public ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId)
     {
-        return _enchantingSupports.TryGetValue(itemId, out var support) ? support : null;
+        return _enchantingSupports.GetValueOrDefault(itemId);
     }
 
-    public List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
+    private List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
     {
         return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : new List<LootPackDroppingNpc>();
     }
@@ -133,11 +133,11 @@ public class ItemManager : Singleton<ItemManager>
     /// <summary>
     /// GetLootPackIdByItemId - designed to transform fish into trophies
     /// </summary>
-    /// <param name="ItemId"></param>
+    /// <param name="itemId"></param>
     /// <returns></returns>
-    public List<LootPackConvertFish> GetLootPackIdByItemId(uint ItemId)
+    private List<LootPackConvertFish> GetLootPackIdByItemId(uint itemId)
     {
-        return _lootPackConvertFish.TryGetValue(ItemId, out var value) ? value : new List<LootPackConvertFish>();
+        return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : new List<LootPackConvertFish>();
     }
 
     public List<Item> GetLootDropItems(uint npcId)
@@ -180,7 +180,7 @@ public class ItemManager : Singleton<ItemManager>
 
         // Check all people with a claim on the NPC
 
-        HashSet<Character> eligiblePlayers = new HashSet<Character>();
+        var eligiblePlayers = new HashSet<Character>();
         if ( unit.CharacterTagging.TagTeam != 0)
         {
             //A team has tagging rights
@@ -189,17 +189,14 @@ public class ItemManager : Singleton<ItemManager>
             {
                 foreach (var member in team.Members)
                 {
-                    if (member != null && member.Character != null)
+                    if (member == null || member.Character == null)
+                        continue;
+
+                    var distance = member.Character.Transform.World.Position - unit.Transform.World.Position;
+                    if (distance.Length() <= 200)
                     {
-                        if (member.Character is Character tm)
-                        {
-                            var distance = tm.Transform.World.Position - unit.Transform.World.Position;
-                            if (distance.Length() <= 200)
-                            {
-                                //This player is in range of the mob and in a group with tagging rights.
-                                eligiblePlayers.Add(tm);
-                            }
-                        }
+                        //This player is in range of the mob and in a group with tagging rights.
+                        eligiblePlayers.Add(member.Character);
                     }
                 }
             }
@@ -257,10 +254,8 @@ public class ItemManager : Singleton<ItemManager>
             if (lootPack == null)
                 continue;
             items = lootPack.GenerateNpcPackItems(ref baseId, lootDropRate, lootGoldRate);
-            if (_lootDropItems.ContainsKey(npcId))
+            if (!_lootDropItems.TryAdd(npcId, items))
                 _lootDropItems[npcId].AddRange(items);
-            else
-                _lootDropItems.Add(npcId, items);
         }
 
         if (!_lootDropItems.TryGetValue(npcId, out items))
@@ -292,12 +287,14 @@ public class ItemManager : Singleton<ItemManager>
             {
                 if (lootPacks.Loots?[uii].DropRate + dropRateItemId >= dropRateItem)
                 {
-                    var item = new Item();
-                    item.TemplateId = lootPacks.Loots[uii].ItemId;
-                    item.CreateTime = DateTime.UtcNow;
-                    item.Id = Instance.GetNewId();
-                    item.MadeUnitId = templateId;
-                    item.Count = Rand.Next(lootPacks.Loots[uii].MinAmount, lootPacks.Loots[uii].MaxAmount);
+                    var item = new Item
+                    {
+                        TemplateId = lootPacks.Loots[uii].ItemId, 
+                        CreateTime = DateTime.UtcNow, 
+                        Id = Instance.GetNewId(),
+                        MadeUnitId = templateId,
+                        Count = Rand.Next(lootPacks.Loots[uii].MinAmount, lootPacks.Loots[uii].MaxAmount)
+                    };
                     items.Add(item);
                     break;
                 }
@@ -340,12 +337,12 @@ public class ItemManager : Singleton<ItemManager>
                 isDone &= TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
             }
             if (lootDropItems.Count > 0)
-                character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+                character.SendPacket(new SCLootBagDataPacket(lootDropItems, true));
         }
         else
         {
             isDone = lootDropItems.Count <= 0;
-            character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+            character.SendPacket(new SCLootBagDataPacket(lootDropItems, false));
         }
         return isDone;
     }
@@ -389,7 +386,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public GradeDistributions GetGradeDistributions(byte id)
     {
-        return _itemGradeDistributions.TryGetValue(id, out var distribution) ? distribution : null;
+        return _itemGradeDistributions.GetValueOrDefault(id);
     }
 
     // note: This does "+1" because when we have 0 socket-ed gems, we want to get the chance for the next slot
@@ -400,7 +397,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public ItemCapScale GetItemCapScale(uint skillId)
     {
-        return _itemCapScales.TryGetValue(skillId, out var scale) ? scale : null;
+        return _itemCapScales.GetValueOrDefault(skillId);
     }
 
     public float GetDurabilityRepairCostFactor()
@@ -448,9 +445,9 @@ public class ItemManager : Singleton<ItemManager>
         return _modifiers[id];
     }
 
-    public List<uint> GetItemIdsFromDoodad(uint doodadID)
+    public List<uint> GetItemIdsFromDoodad(uint doodadId)
     {
-        return _itemDoodadTemplates.TryGetValue(doodadID, out var template) ? template.ItemIds : new List<uint>();
+        return _itemDoodadTemplates.TryGetValue(doodadId, out var template) ? template.ItemIds : new List<uint>();
     }
 
     public ItemTemplate GetItemTemplateFromItemId(uint itemId)
@@ -465,7 +462,7 @@ public class ItemManager : Singleton<ItemManager>
         return null;
     }
 
-    public List<uint> GetItemIdsBySearchName(string searchString)
+    private List<uint> GetItemIdsBySearchName(string searchString)
     {
         var res = new List<uint>();
         foreach (var i in _templates)
@@ -488,15 +485,16 @@ public class ItemManager : Singleton<ItemManager>
         {
             for (var i = 0; i < itemIds.Count; i++)
             {
+                var i1 = i;
                 var query = from item in _templates.Values
-                            where itemIds[i] != 0 ? item.Id == itemIds[i] : true
-                            where searchTemplate.CategoryA != 0 ? item.AuctionCategoryA == searchTemplate.CategoryA : true
-                            where searchTemplate.CategoryB != 0 ? item.AuctionCategoryB == searchTemplate.CategoryB : true
-                            where searchTemplate.CategoryC != 0 ? item.AuctionCategoryC == searchTemplate.CategoryC : true
+                            where itemIds[i1] == 0 || item.Id == itemIds[i1]
+                            where searchTemplate.CategoryA == 0 || item.AuctionCategoryA == searchTemplate.CategoryA
+                            where searchTemplate.CategoryB == 0 || item.AuctionCategoryB == searchTemplate.CategoryB
+                            where searchTemplate.CategoryC == 0 || item.AuctionCategoryC == searchTemplate.CategoryC
                             select item;
-                var _list = query.ToList();
+                var itemList = query.ToList();
 
-                foreach (var item in _list)
+                foreach (var item in itemList)
                 {
                     templateList.Add(item);
                 }
@@ -506,30 +504,30 @@ public class ItemManager : Singleton<ItemManager>
         else
         {
             var query = from item in _templates.Values
-                        where searchTemplate.CategoryA != 0 ? item.AuctionCategoryA == searchTemplate.CategoryA : true
-                        where searchTemplate.CategoryB != 0 ? item.AuctionCategoryB == searchTemplate.CategoryB : true
-                        where searchTemplate.CategoryC != 0 ? item.AuctionCategoryC == searchTemplate.CategoryC : true
+                        where searchTemplate.CategoryA == 0 || item.AuctionCategoryA == searchTemplate.CategoryA
+                        where searchTemplate.CategoryB == 0 || item.AuctionCategoryB == searchTemplate.CategoryB
+                        where searchTemplate.CategoryC == 0 || item.AuctionCategoryC == searchTemplate.CategoryC
                         select item;
             templateList = query.ToList();
             return templateList;
         }
     }
 
-    public ItemLookConvert GetWearableItemLookConvert(uint slotTypeId)
+    private ItemLookConvert GetWearableItemLookConvert(uint slotTypeId)
     {
         if (_wearableItemLookConverts.TryGetValue(slotTypeId, out var convert))
             return _itemLookConverts[convert];
         return null;
     }
 
-    public ItemLookConvert GetHoldableItemLookConvert(uint holdableId)
+    private ItemLookConvert GetHoldableItemLookConvert(uint holdableId)
     {
         if (_holdableItemLookConverts.TryGetValue(holdableId, out var convert))
             return _itemLookConverts[convert];
         return null;
     }
 
-    public uint GetDyeableItemDefaultDyeId(uint itemId)
+    private uint GetDyeableItemDefaultDyeId(uint itemId)
     {
         if (_defaultDyeIds.TryGetValue(itemId, out var dyeItemId))
             return dyeItemId;
@@ -538,9 +536,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public ItemProcTemplate GetItemProcTemplate(uint templateId)
     {
-        if (_itemProcTemplates.TryGetValue(templateId, out var template))
-            return template;
-        return null;
+        return _itemProcTemplates.GetValueOrDefault(templateId);
     }
 
     public List<BonusTemplate> GetUnitModifiers(uint itemId)
@@ -552,11 +548,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade)
     {
-        if (!_armorGradeBuffs.ContainsKey(type))
-            return null;
-        if (!_armorGradeBuffs[type].ContainsKey(grade))
-            return null;
-        return _armorGradeBuffs[type][grade];
+        return !_armorGradeBuffs.TryGetValue(type, out var value) ? null : value.GetValueOrDefault(grade);
     }
 
     public Item Create(uint templateId, int count, byte grade, bool generateId = true)
@@ -593,7 +585,7 @@ public class ItemManager : Singleton<ItemManager>
         {
             if (!_allItems.TryAdd(item.Id, item))
             {
-                Logger.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
+                Logger.Error($"Failed to load item with ID {item.Id}, possible duplicate entries!");
                 return null;
             }
         }
@@ -610,7 +602,7 @@ public class ItemManager : Singleton<ItemManager>
 
         if (!_allItems.TryAdd(item.Id, item))
         {
-            Logger.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
+            Logger.Error($"Failed to load item with ID {item.Id}, possible duplicate entries!");
             return false;
         }
         return true;
@@ -693,12 +685,13 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new ItemLookConvert();
-                        template.Id = reader.GetUInt32("item_look_convert_id");
-                        template.RequiredItemId = reader.GetUInt32("item_id");
-                        template.RequiredItemCount = reader.GetInt32("item_count");
-                        if (!_itemLookConverts.ContainsKey(template.Id))
-                            _itemLookConverts.Add(template.Id, template);
+                        var template = new ItemLookConvert
+                        {
+                            Id = reader.GetUInt32("item_look_convert_id"), 
+                            RequiredItemId = reader.GetUInt32("item_id"),
+                            RequiredItemCount = reader.GetInt32("item_count")
+                        };
+                        _itemLookConverts.TryAdd(template.Id, template);
                     }
                 }
             }
@@ -714,8 +707,7 @@ public class ItemManager : Singleton<ItemManager>
                     {
                         var itemLookConvertId = reader.GetUInt32("item_look_convert_id");
                         var holdableId = reader.GetUInt32("holdable_id");
-                        if (!_holdableItemLookConverts.ContainsKey(holdableId))
-                            _holdableItemLookConverts.Add(holdableId, itemLookConvertId);
+                        _holdableItemLookConverts.TryAdd(holdableId, itemLookConvertId);
                     }
                 }
             }
@@ -731,8 +723,7 @@ public class ItemManager : Singleton<ItemManager>
                     {
                         var itemLookConvertId = reader.GetUInt32("item_look_convert_id");
                         var wearableId = reader.GetUInt32("wearable_slot_id");
-                        if (!_wearableItemLookConverts.ContainsKey(wearableId))
-                            _wearableItemLookConverts.Add(wearableId, itemLookConvertId);
+                        _wearableItemLookConverts.TryAdd(wearableId, itemLookConvertId);
                     }
                 }
             }
@@ -746,27 +737,29 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new GradeTemplate();
-                        template.Grade = reader.GetInt32("id");
-                        template.GradeOrder = reader.GetInt32("grade_order");
-                        template.HoldableDps = reader.GetFloat("var_holdable_dps");
-                        template.HoldableArmor = reader.GetFloat("var_holdable_armor");
-                        template.HoldableMagicDps = reader.GetFloat("var_holdable_magic_dps");
-                        template.WearableArmor = reader.GetFloat("var_wearable_armor");
-                        template.WearableMagicResistance = reader.GetFloat("var_wearable_magic_resistance");
-                        template.Durability = reader.GetFloat("durability_value");
-                        template.UpgradeRatio = reader.GetInt32("upgrade_ratio");
-                        template.StatMultiplier = reader.GetInt32("stat_multiplier");
-                        template.RefundMultiplier = reader.GetInt32("refund_multiplier");
-                        template.EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio");
-                        template.EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio");
-                        template.EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio");
-                        template.EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio");
-                        template.EnchantCost = reader.GetInt32("grade_enchant_cost");
-                        template.HoldableHealDps = reader.GetFloat("var_holdable_heal_dps");
-                        template.EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min");
-                        template.EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max");
-                        template.CurrencyId = reader.GetInt32("currency_id");
+                        var template = new GradeTemplate
+                        {
+                            Grade = reader.GetInt32("id"),
+                            GradeOrder = reader.GetInt32("grade_order"),
+                            HoldableDps = reader.GetFloat("var_holdable_dps"),
+                            HoldableArmor = reader.GetFloat("var_holdable_armor"),
+                            HoldableMagicDps = reader.GetFloat("var_holdable_magic_dps"),
+                            WearableArmor = reader.GetFloat("var_wearable_armor"),
+                            WearableMagicResistance = reader.GetFloat("var_wearable_magic_resistance"),
+                            Durability = reader.GetFloat("durability_value"),
+                            UpgradeRatio = reader.GetInt32("upgrade_ratio"),
+                            StatMultiplier = reader.GetInt32("stat_multiplier"),
+                            RefundMultiplier = reader.GetInt32("refund_multiplier"),
+                            EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio"),
+                            EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio"),
+                            EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio"),
+                            EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio"),
+                            EnchantCost = reader.GetInt32("grade_enchant_cost"),
+                            HoldableHealDps = reader.GetFloat("var_holdable_heal_dps"),
+                            EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min"),
+                            EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max"),
+                            CurrencyId = reader.GetInt32("currency_id")
+                        };
                         _grades.Add(template.Grade, template);
                         _gradesOrdered.Add(template.GradeOrder, template);
                     }
@@ -1228,8 +1221,7 @@ public class ItemManager : Singleton<ItemManager>
                         template.LivingPointPrice = reader.GetInt32("living_point_price");
                         template.CharGender = reader.GetByte("char_gender_id");
 
-                        if (!_templates.ContainsKey(template.Id))
-                            _templates.Add(template.Id, template);
+                        _templates.TryAdd(template.Id, template);
                     }
                 }
             }
@@ -1243,12 +1235,13 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new EquipSlotEnchantingCost();
-                        template.Id = reader.GetUInt32("id");
-                        template.SlotTypeId = reader.GetUInt32("slot_type_id");
-                        template.Cost = reader.GetInt32("cost");
-                        if (!_enchantingCosts.ContainsKey(template.SlotTypeId))
-                            _enchantingCosts.Add(template.SlotTypeId, template);
+                        var template = new EquipSlotEnchantingCost
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SlotTypeId = reader.GetUInt32("slot_type_id"),
+                            Cost = reader.GetInt32("cost")
+                        };
+                        _enchantingCosts.TryAdd(template.SlotTypeId, template);
                     }
                 }
             }
@@ -1262,23 +1255,24 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new ItemGradeEnchantingSupport();
-                        template.Id = reader.GetUInt32("id");
-                        template.ItemId = reader.GetUInt32("item_id");
-                        template.RequireGradeMin = reader.GetInt32("require_grade_min");
-                        template.RequireGradeMax = reader.GetInt32("require_grade_max");
-                        template.AddSuccessRatio = reader.GetInt32("add_success_ratio");
-                        template.AddSuccessMul = reader.GetInt32("add_success_mul");
-                        template.AddGreatSuccessRatio = reader.GetInt32("add_great_success_ratio");
-                        template.AddGreatSuccessMul = reader.GetInt32("add_great_success_mul");
-                        template.AddBreakRatio = reader.GetInt32("add_break_ratio");
-                        template.AddBreakMul = reader.GetInt32("add_break_mul");
-                        template.AddDowngradeRatio = reader.GetInt32("add_downgrade_ratio");
-                        template.AddDowngradeMul = reader.GetInt32("add_downgrade_mul");
-                        template.AddGreatSuccessGrade = reader.GetInt32("add_great_success_grade");
+                        var template = new ItemGradeEnchantingSupport
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            RequireGradeMin = reader.GetInt32("require_grade_min"),
+                            RequireGradeMax = reader.GetInt32("require_grade_max"),
+                            AddSuccessRatio = reader.GetInt32("add_success_ratio"),
+                            AddSuccessMul = reader.GetInt32("add_success_mul"),
+                            AddGreatSuccessRatio = reader.GetInt32("add_great_success_ratio"),
+                            AddGreatSuccessMul = reader.GetInt32("add_great_success_mul"),
+                            AddBreakRatio = reader.GetInt32("add_break_ratio"),
+                            AddBreakMul = reader.GetInt32("add_break_mul"),
+                            AddDowngradeRatio = reader.GetInt32("add_downgrade_ratio"),
+                            AddDowngradeMul = reader.GetInt32("add_downgrade_mul"),
+                            AddGreatSuccessGrade = reader.GetInt32("add_great_success_grade")
+                        };
 
-                        if (!_enchantingSupports.ContainsKey(template.ItemId))
-                            _enchantingSupports.Add(template.ItemId, template);
+                        _enchantingSupports.TryAdd(template.ItemId, template);
                     }
                 }
             }
@@ -1295,8 +1289,7 @@ public class ItemManager : Singleton<ItemManager>
                         var numSockets = reader.GetUInt32("num_sockets");
                         var chance = reader.GetUInt32("success_ratio");
 
-                        if (!_socketChance.ContainsKey(numSockets))
-                            _socketChance.Add(numSockets, chance);
+                        _socketChance.TryAdd(numSockets, chance);
                     }
                 }
             }
@@ -1310,14 +1303,15 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new ItemCapScale();
-                        template.Id = reader.GetUInt32("id");
-                        template.SkillId = reader.GetUInt32("skill_id");
-                        template.ScaleMin = reader.GetInt32("scale_min");
-                        template.ScaleMax = reader.GetInt32("scale_max");
+                        var template = new ItemCapScale
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id"),
+                            ScaleMin = reader.GetInt32("scale_min"),
+                            ScaleMax = reader.GetInt32("scale_max")
+                        };
 
-                        if (!_itemCapScales.ContainsKey(template.SkillId))
-                            _itemCapScales.Add(template.SkillId, template);
+                        _itemCapScales.TryAdd(template.SkillId, template);
                     }
                 }
             }
@@ -1395,21 +1389,23 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new GradeDistributions();
-                        template.Id = reader.GetInt32("id");
-                        template.Name = reader.GetString("name");
-                        template.Weight0 = reader.GetInt32("weight_0");
-                        template.Weight1 = reader.GetInt32("weight_1");
-                        template.Weight2 = reader.GetInt32("weight_2");
-                        template.Weight3 = reader.GetInt32("weight_3");
-                        template.Weight4 = reader.GetInt32("weight_4");
-                        template.Weight5 = reader.GetInt32("weight_5");
-                        template.Weight6 = reader.GetInt32("weight_6");
-                        template.Weight7 = reader.GetInt32("weight_7");
-                        template.Weight8 = reader.GetInt32("weight_8");
-                        template.Weight9 = reader.GetInt32("weight_9");
-                        template.Weight10 = reader.GetInt32("weight_10");
-                        template.Weight11 = reader.GetInt32("weight_11");
+                        var template = new GradeDistributions
+                        {
+                            Id = reader.GetInt32("id"),
+                            Name = reader.GetString("name"),
+                            Weight0 = reader.GetInt32("weight_0"),
+                            Weight1 = reader.GetInt32("weight_1"),
+                            Weight2 = reader.GetInt32("weight_2"),
+                            Weight3 = reader.GetInt32("weight_3"),
+                            Weight4 = reader.GetInt32("weight_4"),
+                            Weight5 = reader.GetInt32("weight_5"),
+                            Weight6 = reader.GetInt32("weight_6"),
+                            Weight7 = reader.GetInt32("weight_7"),
+                            Weight8 = reader.GetInt32("weight_8"),
+                            Weight9 = reader.GetInt32("weight_9"),
+                            Weight10 = reader.GetInt32("weight_10"),
+                            Weight11 = reader.GetInt32("weight_11")
+                        };
                         _itemGradeDistributions.Add(template.Id, template);
                     }
                 }
@@ -1423,11 +1419,13 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new LootPackDroppingNpc();
-                        template.Id = reader.GetUInt32("id");
-                        template.NpcId = reader.GetUInt32("npc_id");
-                        template.LootPackId = reader.GetUInt32("loot_pack_id");
-                        template.DefaultPack = reader.GetBoolean("default_pack");
+                        var template = new LootPackDroppingNpc
+                        {
+                            Id = reader.GetUInt32("id"),
+                            NpcId = reader.GetUInt32("npc_id"),
+                            LootPackId = reader.GetUInt32("loot_pack_id"),
+                            DefaultPack = reader.GetBoolean("default_pack")
+                        };
                         List<LootPackDroppingNpc> lootPackDroppingNpc;
                         if (_lootPackDroppingNpc.TryGetValue(template.NpcId, out var value))
                             lootPackDroppingNpc = value;
@@ -1450,17 +1448,19 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new LootPackConvertFish();
-                        template.Id = reader.GetUInt32("id");
-                        template.ItemId = reader.GetUInt32("item_id");
-                        template.LootPackId = reader.GetUInt32("loot_pack_id");
-                        template.DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id");
+                        var template = new LootPackConvertFish
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            LootPackId = reader.GetUInt32("loot_pack_id"),
+                            DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id")
+                        };
                         List<LootPackConvertFish> lootPackConvertFish;
                         if (_lootPackConvertFish.TryGetValue(template.ItemId, out var value))
                             lootPackConvertFish = value;
                         else
                         {
-                            lootPackConvertFish = new List<LootPackConvertFish>();
+                            lootPackConvertFish = [];
                             _lootPackConvertFish.Add(template.ItemId, lootPackConvertFish);
                         }
 
@@ -1612,16 +1612,13 @@ public class ItemManager : Singleton<ItemManager>
             Logger.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
         }
 
-        OnItemsLoaded?.Invoke(this, new EventArgs());
+        OnItemsLoaded?.Invoke(this, EventArgs.Empty);
         _loaded = true;
     }
 
     public Item GetItemByItemId(ulong itemId)
     {
-        if (_allItems.TryGetValue(itemId, out var item))
-            return item;
-        else
-            return null;
+        return _allItems.GetValueOrDefault(itemId);
     }
 
     public (int, int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -1662,10 +1659,13 @@ public class ItemManager : Singleton<ItemManager>
             command.Connection = connection;
             command.Transaction = transaction;
 
-            lock (_allPersistantContainers)
+            lock (_allPersistentContainers)
             {
-                foreach (var (_, c) in _allPersistantContainers)
+                foreach (var (_, c) in _allPersistentContainers)
                 {
+                    if (c.ContainerType == SlotType.None)
+                        continue; // Skip the BuyBack container
+
                     if (c.ContainerId <= 0)
                         continue;
 
@@ -1708,36 +1708,36 @@ public class ItemManager : Singleton<ItemManager>
 
             lock (_allItems)
             {
-                foreach (var entry in _allItems)
+                foreach (var (itemId, item) in _allItems)
                 {
-                    var item = entry.Value;
-
                     if (item == null)
                         continue;
 
                     if (item.SlotType == SlotType.None)
                     {
-                        // Only give a error if it has no owner, otherwise it's likely a BuyBack item
+                        // Only give an error if it has no owner, otherwise it's likely a BuyBack item
                         if (item.OwnerId <= 0)
                             continue;
 
-                        //Debug to get slot by data
-
+                        // Try to re-attain the slot type by getting the owning container's type
                         if (item._holdingContainer != null)
                         {
-                            item.SlotType = GetContainerSlotTypeByContainerID(item._holdingContainer.ContainerId);
+                            item.SlotType = GetContainerSlotTypeByContainerId(item._holdingContainer.ContainerId);
                         }
 
-                        Logger.Warn($"Slot type for {item.Id}  was None, changing to {item.SlotType}");
-
-                        if (item.SlotType == SlotType.None && item.OwnerId <= 0)
+                        // If the slot type changed, give a warning, otherwise skip this save
+                        if (item.SlotType != SlotType.None)
+                        {
+                            Logger.Warn($"Slot type for {item.Id} was None, changing to {item.SlotType}");
+                        }
+                        else
                         {
                             continue;
                         }
                     }
                     if (!Enum.IsDefined(typeof(SlotType), item.SlotType))
                     {
-                        Logger.Warn($"Found SlotType.{item.SlotType} in itemslist, skipping ID:{item.Id} - Template:{item.TemplateId}");
+                        Logger.Warn($"Found SlotType.{item.SlotType} in itemslist, skipping ID:{itemId} - Template:{item.TemplateId}");
                         continue;
                     }
 
@@ -1794,7 +1794,7 @@ public class ItemManager : Singleton<ItemManager>
                     catch (Exception ex)
                     {
                         // Create a manual SQL string with the data provided
-                        var sqlString = $"REPLACE INTO items (id, type, template_id, container_id, slot_type, slot, count, details, lifespan_mins, made_unit_id, unsecure_time, unpack_time, owner, created_at, grade, flags, ucc, expire_time, expire_online_minutes, charge_time, charge_count) VALUES ({item.Id}, {item.GetType().ToString()}, {item.TemplateId}, {item._holdingContainer?.ContainerId ?? 0}, {item.SlotType.ToString()}, {item.Slot}, {item.Count}, {details.GetBytes()}, {item.LifespanMins}, {item.MadeUnitId}, {item.UnsecureTime}, {item.UnpackTime}, {item.CreateTime}, {item.OwnerId}, {item.Grade}, {(byte)item.ItemFlags}, {item.UccId}, {item.ExpirationTime}, {item.ExpirationOnlineMinutesLeft}, {item.ChargeStartTime}, {item.ChargeCount})";
+                        var sqlString = $"REPLACE INTO items (id, type, template_id, container_id, slot_type, slot, count, details, lifespan_mins, made_unit_id, unsecure_time, unpack_time, owner, created_at, grade, flags, ucc, expire_time, expire_online_minutes, charge_time, charge_count) VALUES ({item.Id}, {item.GetType()}, {item.TemplateId}, {item._holdingContainer?.ContainerId ?? 0}, {item.SlotType.ToString()}, {item.Slot}, {item.Count}, {details.GetBytes()}, {item.LifespanMins}, {item.MadeUnitId}, {item.UnsecureTime}, {item.UnpackTime}, {item.CreateTime}, {item.OwnerId}, {item.Grade}, {(byte)item.ItemFlags}, {item.UccId}, {item.ExpirationTime}, {item.ExpirationOnlineMinutesLeft}, {item.ChargeStartTime}, {item.ChargeCount})";
 
                         Logger.Error($"Error: {ex.Message}\nSQL Query: {sqlString}\n");
                     }
@@ -1806,9 +1806,9 @@ public class ItemManager : Singleton<ItemManager>
         return (updateCount, deleteCount, containerUpdateCount);
     }
 
-    public SlotType GetContainerSlotTypeByContainerID(ulong dbId)
+    private SlotType GetContainerSlotTypeByContainerId(ulong dbId)
     {
-        _allPersistantContainers.TryGetValue(dbId, out var container);
+        _allPersistentContainers.TryGetValue(dbId, out var container);
 
         if (container != null)
         {
@@ -1821,7 +1821,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, uint mateId = 0)
     {
-        foreach (var c in _allPersistantContainers)
+        foreach (var c in _allPersistentContainers)
         {
             if (c.Value.OwnerId == characterId && c.Value.ContainerType == slotType && c.Value.MateId == mateId)
                 return c.Value;
@@ -1837,7 +1837,7 @@ public class ItemManager : Singleton<ItemManager>
         var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.None);
 
         if (slotType != SlotType.None)
-            _allPersistantContainers.Add(newContainer.ContainerId, newContainer);
+            _allPersistentContainers.Add(newContainer.ContainerId, newContainer);
 
         if (mateId > 0)
             newContainer.MateId = mateId;
@@ -1848,13 +1848,13 @@ public class ItemManager : Singleton<ItemManager>
     public CofferContainer NewCofferContainer(uint characterId)
     {
         var coffer = new CofferContainer(characterId, true);
-        _allPersistantContainers.Add(coffer.ContainerId, coffer);
+        _allPersistentContainers.Add(coffer.ContainerId, coffer);
         return coffer;
     }
 
     public ItemContainer GetItemContainerByDbId(ulong dbId)
     {
-        return _allPersistantContainers.TryGetValue(dbId, out var container) ? container : null;
+        return _allPersistentContainers.GetValueOrDefault(dbId);
     }
 
     /// <summary>
@@ -1873,29 +1873,24 @@ public class ItemManager : Singleton<ItemManager>
         var idToRemove = (uint)container.ContainerId;
         container.ContainerId = 0;
 
-        var res = false;
-        lock (_allPersistantContainers)
+        bool res;
+        lock (_allPersistentContainers)
         {
-            res = _allPersistantContainers.Remove(idToRemove);
+            res = _allPersistentContainers.Remove(idToRemove);
             ContainerIdManager.Instance.ReleaseId(idToRemove);
         }
 
         // Remove deleted container from DB
-        using (var connection = MySQL.CreateConnection())
-        using (var command = connection.CreateCommand())
-        {
-            command.Connection = connection;
-            using (var deleteCommand = connection.CreateCommand())
-            {
-                deleteCommand.CommandText =
-                    "DELETE FROM item_containers WHERE `container_id` = @id";
-                deleteCommand.Parameters.Clear();
-                deleteCommand.Parameters.AddWithValue("@id", idToRemove);
-                deleteCommand.Prepare();
-                if (deleteCommand.ExecuteNonQuery() <= 0)
-                    Logger.Error($"Failed to delete ItemContainer from DB container_id: {idToRemove}");
-            }
-        }
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.Connection = connection;
+        using var deleteCommand = connection.CreateCommand();
+        deleteCommand.CommandText = "DELETE FROM item_containers WHERE `container_id` = @id";
+        deleteCommand.Parameters.Clear();
+        deleteCommand.Parameters.AddWithValue("@id", idToRemove);
+        deleteCommand.Prepare();
+        if (deleteCommand.ExecuteNonQuery() <= 0)
+            Logger.Error($"Failed to delete ItemContainer from DB container_id: {idToRemove}");
 
         return res;
     }
@@ -1907,9 +1902,10 @@ public class ItemManager : Singleton<ItemManager>
 
         Logger.Info("Loading user items ...");
         _allItems = new Dictionary<ulong, Item>();
-        _allPersistantContainers = new Dictionary<ulong, ItemContainer>();
-        // _timerSubscriptionsItems = new Dictionary<ulong, Item>();
-        //lock (_removedItems)
+        _allPersistentContainers = new Dictionary<ulong, ItemContainer>();
+
+        // No lock needed here since this is the first and only time it gets assigned a new list
+        // ReSharper disable once InconsistentlySynchronizedField
         _removedItems = new List<ulong>();
 
         using (var connection = MySQL.CreateConnection())
@@ -1932,7 +1928,7 @@ public class ItemManager : Singleton<ItemManager>
                     container.ContainerSize = containerSize;
                     container.MateId = containerMateId;
 
-                    _allPersistantContainers.Add(container.ContainerId, container);
+                    _allPersistentContainers.Add(container.ContainerId, container);
                     container.IsDirty = false;
                 }
             }
@@ -1981,6 +1977,12 @@ public class ItemManager : Singleton<ItemManager>
                         item = new Item();
                     }
 
+                    if (item == null)
+                    {
+                        Logger.Error($"Failed to create item: itemId {itemId}, itemTemplateId {itemTemplateId}, nClass {nameof(nClass)}");
+                        continue;
+                    }
+
                     item.Id = itemId;
                     item.OwnerId = reader.GetUInt64("owner");
                     item.TemplateId = itemTemplateId;
@@ -2019,12 +2021,12 @@ public class ItemManager : Singleton<ItemManager>
                     if (!_allItems.TryAdd(item.Id, item))
                     {
                         ReleaseId(item.Id);
-                        Logger.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
+                        Logger.Error($"Failed to load item with ID {item.Id}, possible duplicate entries!");
                     }
 
-                    if ((containerId > 0) && _allPersistantContainers.TryGetValue(containerId, out var container))
+                    if ((containerId > 0) && _allPersistentContainers.TryGetValue(containerId, out var container))
                     {
-                        // Move item to it's container (if defined)
+                        // Move item to its container (if defined)
                         if (container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                             item.IsDirty = false;
                         else
@@ -2037,7 +2039,7 @@ public class ItemManager : Singleton<ItemManager>
 
                         if (item.OwnerId > 0)
                         {
-                            // Item does have a owner, let's try to create a valid container for it
+                            // Item does have an owner, let's try to create a valid container for it
                             var cContainer = GetItemContainerForCharacter((uint)item.OwnerId, item.SlotType);
                             if (cContainer.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                             {
@@ -2111,7 +2113,7 @@ public class ItemManager : Singleton<ItemManager>
         return res;
     }
 
-    public void OnSkillsLoaded(object sender, EventArgs e)
+    private void OnSkillsLoaded(object sender, EventArgs e)
     {
         foreach (var procTemplate in _itemProcTemplates.Values)
         {
@@ -2123,7 +2125,7 @@ public class ItemManager : Singleton<ItemManager>
     {
         var template = GetTemplate(itemTemplateId);
         // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
-        return (template != null) && (template is BackpackTemplate bt) && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
+        return template is BackpackTemplate && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
     }
 
     private static int UpdateItemContainerTimers(TimeSpan delta, ItemContainer itemContainer, Character character)
@@ -2143,9 +2145,7 @@ public class ItemManager : Singleton<ItemManager>
             var doExpire = false;
 
             // Check if buffs need to expire
-            if (isEquipmentContainer && (item is EquipItem equipItem) &&
-                (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
-                (equipItemTemplate.RechargeBuffId > 0))
+            if (isEquipmentContainer && (item is EquipItem { Template: EquipItemTemplate { RechargeBuffId: > 0 } equipItemTemplate } equipItem))
             {
                 var expireBuff = false;
 
@@ -2168,7 +2168,7 @@ public class ItemManager : Singleton<ItemManager>
                 if (checkCharges && (equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount <= 0))
                     expireBuff = true;
 
-                // Apply expire buff if needed
+                // Apply the "expire" buff if needed
                 if (expireBuff && (character != null) &&
                     character.Buffs.CheckBuff(equipItemTemplate.RechargeBuffId))
                     character.Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
@@ -2199,7 +2199,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public void UpdateItemTimers()
     {
-        var delta = TimeSpan.Zero;
+        TimeSpan delta;
         lock (ItemTimerLock)
         {
             var now = DateTime.UtcNow;
@@ -2241,7 +2241,8 @@ public class ItemManager : Singleton<ItemManager>
 
     public static GamePacket SetItemOnlineExpirationTime(Item item, double newMinutes)
     {
-        if (item.ExpirationOnlineMinutesLeft != newMinutes)
+        // if (item.ExpirationOnlineMinutesLeft != newMinutes)
+        if (Math.Abs(item.ExpirationOnlineMinutesLeft - newMinutes) > double.Epsilon)
         {
             var newTime = DateTime.UtcNow.AddMinutes(newMinutes);
             item.ExpirationOnlineMinutesLeft = newMinutes;
@@ -2275,7 +2276,7 @@ public class ItemManager : Singleton<ItemManager>
             item.SetFlag(ItemFlag.SoulBound);
         var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, new List<ulong>()));
-        if ((item.Template is EquipItemTemplate equipItemTemplate) && (equipItemTemplate.ChargeLifetime > 0))
+        if ((item.Template is EquipItemTemplate { ChargeLifetime: > 0 }))
             character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
         return true;
     }

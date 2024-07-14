@@ -72,16 +72,28 @@ public class ShowInventory : ICommand
             var targetContainer = targetPlayer.Inventory.Bag;
             if (targetPlayer.Inventory._itemContainers.TryGetValue(containerId, out targetContainer))
             {
+                var showWarnings = (targetContainer.ContainerType == SlotType.Equipment) || (targetContainer.ContainerType == SlotType.Inventory) || (targetContainer.ContainerType == SlotType.Bank);
+                var lastSlotNumber = -1;
+                var hasSlotErrors = 0;
                 foreach (var item in targetContainer.Items)
                 {
                     var slotName = targetContainer.ContainerType.ToString() + "-" + item.Slot.ToString();
                     if (item.SlotType == SlotType.Equipment)
                         slotName = ((EquipmentItemSlot)item.Slot).ToString();
+                    if (lastSlotNumber == item.Slot)
+                    {
+                        slotName = $"|cFFFF0000**{slotName}**|r";
+                        hasSlotErrors++;
+                    }
                     var countName = "|ng;" + item.Count.ToString() + "|r x ";
                     if (item.Count == 1)
                         countName = string.Empty;
                     character.SendMessage($"[|nd;{targetPlayer.Name}|r][{slotName}] |nb;{item.Id}|r {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
+                    lastSlotNumber = item.Slot;
                 }
+
+                if (hasSlotErrors > 0)
+                    character.SendMessage($"[ShowInv][|nd;{targetPlayer.Name}|r] |cFFFF0000{targetContainer.ContainerType} contains {hasSlotErrors} slot number related errors, please manually fix these!|r");
                 character.SendMessage($"[ShowInv][|nd;{targetPlayer.Name}|r][{targetContainer.ContainerType}] {targetContainer.Items.Count} entries");
             }
             else
