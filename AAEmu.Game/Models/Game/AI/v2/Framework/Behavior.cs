@@ -385,4 +385,10 @@ public abstract class Behavior
 
         _maxWeaponRange = (float)maxRangeCheck;
     }
+
+    public Behavior SetDefaultBehavior()
+    {
+        Ai.SetDefaultBehavior(this);
+        return this;
+    }
 }

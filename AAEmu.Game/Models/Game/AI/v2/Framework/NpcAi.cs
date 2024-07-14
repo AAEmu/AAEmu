@@ -36,6 +36,7 @@ public abstract class NpcAi
     private Dictionary<BehaviorKind, Behavior> _behaviors;
     private Dictionary<Behavior, List<Transition>> _transitions;
     private Behavior _currentBehavior;
+    private Behavior _defaultBehavior;
     public DateTime _nextAlertCheckTime = DateTime.MinValue;
     public DateTime _alertEndTime = DateTime.MinValue;
 
@@ -100,7 +101,7 @@ public abstract class NpcAi
 
     private Behavior GetBehavior(BehaviorKind kind)
     {
-        return !_behaviors.ContainsKey(kind) ? null : _behaviors[kind];
+        return _behaviors.GetValueOrDefault(kind);
     }
 
     private void SetCurrentBehavior(Behavior behavior)
@@ -266,6 +267,12 @@ public abstract class NpcAi
         SetCurrentBehavior(BehaviorKind.Despawning);
     }
 
+    public virtual void GoToDefaultBehavior()
+    {
+        if (_defaultBehavior != null)
+            SetCurrentBehavior(_defaultBehavior);
+    }
+
     #endregion
 
     public void EnqueueAiCommands(List<AiCommands> aiCommandsList)
@@ -342,5 +349,15 @@ public abstract class NpcAi
     public virtual void GoToDummy()
     {
         SetCurrentBehavior(BehaviorKind.Dummy);
+    }
+
+    public Dictionary<BehaviorKind, Behavior> GetAiBehaviorList()
+    {
+        return _behaviors;
+    }
+
+    public void SetDefaultBehavior(Behavior behavior)
+    {
+        _defaultBehavior = behavior;
     }
 }

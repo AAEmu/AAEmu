@@ -47,6 +47,7 @@ public class IdleBehavior : BaseCombatBehavior
         if (!CheckAggression())
             CheckAlert();
         //Ai.GoToFollowPath();
+        Ai.GoToDefaultBehavior();
     }
 
     public override void Exit()

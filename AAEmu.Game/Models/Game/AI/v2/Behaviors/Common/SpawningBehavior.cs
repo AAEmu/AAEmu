@@ -56,6 +56,7 @@ public class SpawningBehavior : BaseCombatBehavior
                 skill.Use(Ai.Owner, skillCaster, skillTarget, null, true, out _);
             }
         }
+
         // TODO: This follows the game's way of doing it. This will need code later, obviously
         Ai.GoToRunCommandSet();
     }

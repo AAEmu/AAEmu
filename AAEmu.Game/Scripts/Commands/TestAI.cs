@@ -44,6 +44,16 @@ public class TestAI : ICommand
         if (args.Length <= 0)
         {
             character.SendMessage("[AI] No new target behavior set");
+
+            if (npc.Ai == null)
+                return;
+
+            var aiBehaviorList = npc.Ai.GetAiBehaviorList();
+            foreach (var (behaviorKind, behavior) in aiBehaviorList)
+            {
+                character.SendMessage($"[AI] {behaviorKind} -> {behavior.ToString()?.Replace("AAEmu.Game.Models.Game","")}");
+            }
+            
             return;
         }
 
@@ -60,7 +70,7 @@ public class TestAI : ICommand
             npc.Ai = new AlmightyNpcAiCharacter() { Owner = npc, IdlePosition = npc.Transform.CloneDetached() };
             AIManager.Instance.AddAi(npc.Ai);
         }
-
+        
         switch (newBehavior)
         {
             case BehaviorKind.Alert:

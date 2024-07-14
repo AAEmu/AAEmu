@@ -90,7 +90,7 @@ public class ReturnStateBehavior : BaseCombatBehavior
     public void OnCompletedReturnNoTeleport()
     {
         // TODO: Handle return signal override
-        Ai.GoToRunCommandSet();
+        Ai.GoToDefaultBehavior();
     }
 
     public override void Exit()
