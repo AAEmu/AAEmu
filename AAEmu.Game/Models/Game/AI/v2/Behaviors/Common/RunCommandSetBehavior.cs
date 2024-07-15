@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.Params;
@@ -96,7 +96,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 break;
             case AiCommandCategory.Timeout:
                 Ai.AiTimeOut = aiCommand.Param1;
-                Ai.AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(Ai.AiTimeOut); // This feels like this should be max cooldown remaining for all skills for param 1
+                Ai.AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(Ai.AiTimeOut);
                 break;
             default:
                 throw new NotSupportedException(nameof(aiCommand.CmdId));
