@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Params;
@@ -37,6 +37,7 @@ public abstract class NpcAi
     public DateTime _nextAlertCheckTime = DateTime.MinValue;
     public DateTime _alertEndTime = DateTime.MinValue;
 
+    #region ai_commands
     /// <summary>
     /// A list of AiCommands that should take priority over any other behavior
     /// </summary>
@@ -52,6 +53,18 @@ public abstract class NpcAi
     /// </summary>
     public DateTime AiCurrentCommandStartTime { get; set; } = DateTime.MinValue;
     public TimeSpan AiCurrentCommandRunTime { get; set; } = TimeSpan.Zero;
+    #endregion ai_commands
+
+    /// <summary>
+    /// Loaded AI Path Points
+    /// </summary>
+    public List<Vector3> AiPathPoints { get; set; } = new();
+
+    /// <summary>
+    /// Queue of locations to go to next
+    /// </summary>
+    public Queue<Vector3> AiPathPointsRemaining { get; set; } = new();
+
     // Persistent arguments for AiCommands queue
     public string AiFileName { get; set; } = string.Empty;
     public string AiFileName2 { get; set; } = string.Empty;

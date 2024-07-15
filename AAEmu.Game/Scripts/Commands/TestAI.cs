@@ -97,8 +97,14 @@ public class TestAI : ICommand
             case BehaviorKind.Dummy:
                 npc.Ai.GoToDummy();
                 break;
+            case BehaviorKind.FollowPath:
+                npc.Ai.GoToFollowPath();
+                break;
+            case BehaviorKind.FollowUnit:
+                npc.Ai.GoToFollowUnit();
+                break;
             default:
-                character.SendMessage($"[AI] unsupported behavior {newBehavior}");
+                character.SendMessage($"[AI] unsupported behavior {newBehavior} for /testai");
                 return;
         }
         character.SendMessage($"[AI] Target AI set to {newBehavior}");
