@@ -111,6 +111,7 @@ public class ItemContainer
                 SlotType.Mail => false,
                 SlotType.System => false,
                 SlotType.EquipmentMate => false,
+                SlotType.EquipmentSlave => false,
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
@@ -815,6 +816,9 @@ public class ItemContainer
     /// <returns></returns>
     public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool createWithNewId)
     {
+        if (containerTypeName.EndsWith("SlaveEquipmentContainer"))
+            return new SlaveEquipmentContainer(ownerId, slotType, createWithNewId);
+
         if (containerTypeName.EndsWith("MateEquipmentContainer"))
             return new MateEquipmentContainer(ownerId, slotType, createWithNewId);
 

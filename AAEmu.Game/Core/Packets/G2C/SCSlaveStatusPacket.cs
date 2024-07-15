@@ -27,16 +27,18 @@ public class SCSlaveStatusPacket : GamePacket
         stream.Write(_skillCount); // skillCount
         if (_skillCount > 0)
         {
-            foreach (var skill in _slave.Skills)
+            for (var i = 0; i < _skillCount; i+=3)
             {
-                stream.Write(skill);   // type
+                stream.Write(_slave.Skills[i]);   // type
+                stream.Write(_slave.Skills[i+1]); // type
+                stream.Write(_slave.Skills[i+2]); // type
             }
         }
 
         stream.Write(_tagCount); // tagCount
         if (_tagCount > 0)
         {
-            for (var i = 0; i < _tagCount; i++)
+            for (var i = 0; i < _tagCount; i+=3)
             {
                 stream.Write(0u);   // type
                 stream.Write(0u);  // type

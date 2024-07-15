@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Models.Game.Items.Procs;
+using AAEmu.Game.Models.Game.Items.Slave;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -73,6 +74,9 @@ public class ItemManager : Singleton<ItemManager>
     private Dictionary<uint, uint> _defaultDyeIds;
     private Dictionary<uint, ItemSet> _itemSets;
 
+    // ItemSlaveEquip
+    private Dictionary<uint, ItemSlaveEquip> _ItemSlaveEquips;
+
     // Events
     public event EventHandler OnItemsLoaded;
     private DateTime LastTimerCheck { get; set; }
@@ -126,7 +130,7 @@ public class ItemManager : Singleton<ItemManager>
 
     private List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
     {
-        return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : new List<LootPackDroppingNpc>();
+        return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : [];
     }
 
     /// <summary>
@@ -136,12 +140,12 @@ public class ItemManager : Singleton<ItemManager>
     /// <returns></returns>
     private List<LootPackConvertFish> GetLootPackIdByItemId(uint itemId)
     {
-        return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : new List<LootPackConvertFish>();
+        return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : [];
     }
 
     public List<Item> GetLootDropItems(uint npcId)
     {
-        return _lootDropItems.TryGetValue(npcId, out var item) ? item : new List<Item>();
+        return _lootDropItems.TryGetValue(npcId, out var item) ? item : [];
     }
 
     public List<ItemTemplate> GetAllItems()
@@ -643,6 +647,7 @@ public class ItemManager : Singleton<ItemManager>
         _config = new ItemConfig();
         ItemTimerLock = new();
         LastTimerCheck = DateTime.UtcNow;
+        _ItemSlaveEquips = new Dictionary<uint, ItemSlaveEquip>();
 
         SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
 
@@ -1593,6 +1598,30 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
 
+            // Read Item grade related info
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM item_slave_equipments";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new ItemSlaveEquip();
+                        template.Id = reader.GetUInt32("id");
+                        template.ItemId = reader.GetUInt32("item_id");
+                        template.DoodadScale = reader.GetFloat("doodad_scale");
+                        template.DoodadId = reader.GetUInt32("doodad_id");
+                        template.RequireItemId = reader.GetUInt32("require_item_id");
+                        template.SlaveEquipPackId = reader.GetUInt32("slave_equip_pack_id");
+                        template.SlaveId = reader.GetUInt32("slave_id");
+                        template.SlotPackId = reader.GetUInt32("slot_pack_id");
+                        _ItemSlaveEquips.TryAdd(template.ItemId, template);
+                    }
+                }
+            }
+
             // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
             var invalidItemCount = 0;
             foreach (var i in _templates)
@@ -1615,6 +1644,15 @@ public class ItemManager : Singleton<ItemManager>
     public Item GetItemByItemId(ulong itemId)
     {
         return _allItems.GetValueOrDefault(itemId);
+    }
+
+    public uint GetDoodadByItemId(uint itemId)
+    {
+        return _ItemSlaveEquips.TryGetValue(itemId, out var item) ? item.DoodadId : 0;
+    }
+    public uint GetSlaveByItemId(uint itemId)
+    {
+        return _ItemSlaveEquips.TryGetValue(itemId, out var item) ? item.SlaveId : 0;
     }
 
     public (int, int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -1827,6 +1865,7 @@ public class ItemManager : Singleton<ItemManager>
         {
             SlotType.Equipment => "EquipmentContainer",
             SlotType.EquipmentMate => "MateEquipmentContainer",
+            SlotType.EquipmentSlave => "SlaveEquipmentContainer",
             _ => "ItemContainer"
         };
 
@@ -1839,6 +1878,11 @@ public class ItemManager : Singleton<ItemManager>
             newContainer.MateId = mateId;
 
         return newContainer;
+    }
+
+    public bool CheckItemContainerForCharacter(uint characterId, SlotType slotType, uint mateId = 0)
+    {
+        return _allPersistentContainers.Any(c => c.Value.OwnerId == characterId && c.Value.ContainerType == slotType && c.Value.MateId == mateId);
     }
 
     public CofferContainer NewCofferContainer(uint characterId)

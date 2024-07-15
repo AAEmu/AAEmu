@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Slave;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -866,7 +867,7 @@ public class CharacterManager : Singleton<CharacterManager>
             item.Slot = (int)slot;
         }
 
-        inventory.Equipment.AddOrMoveExistingItem(0, item, (int)slot);
+        inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.Invalid, item, (int)slot);
         //inventory.Equip[(int) slot] = item;
     }
 

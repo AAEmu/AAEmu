@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -8,6 +9,14 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSlaveEquipmentChangedPacket : GamePacket
 {
+    private readonly ushort _tlId;
+    private readonly uint _characterId;
+    private readonly uint _dbSlaveId;
+    private readonly bool _bts;
+    private readonly byte _num;
+    private readonly (SlotType type, byte slot, Item item) _itemA;
+    private readonly (SlotType type, byte slot, Item item) _itemB;
+
     private SlaveEquipment _slaveEquipment;
     private bool _success;
 
@@ -17,9 +26,68 @@ public class SCSlaveEquipmentChangedPacket : GamePacket
         _success = success;
     }
 
+    public SCSlaveEquipmentChangedPacket((SlotType type, byte slot, Item item) itemA, (SlotType type, byte slot, Item item) itemB, ushort tlId, uint characterId, uint dbSlaveId, bool bts)
+        : base(SCOffsets.SCSlaveEquipmentChangedPacket, 5)
+    {
+        _itemA = itemA;
+        _itemB = itemB;
+        _tlId = tlId;
+        _characterId = characterId;
+        _dbSlaveId = dbSlaveId;
+        _bts = bts;
+        _num = 1; // all time == 1
+    }
+
     public override PacketStream Write(PacketStream stream)
     {
-        // TODO: Implement SCSlaveEquipmentChangedPacket.Write()
+        stream.Write(_characterId); // type
+        stream.Write(_tlId);        // tl
+        stream.Write(_dbSlaveId);   // type
+        stream.Write(_bts);         // bts
+        stream.Write(_num);         // num
+
+        if (_itemA.item == null)
+            stream.Write(0);
+        else
+            stream.Write(_itemA.item);
+
+        if (_itemB.item == null)
+            stream.Write(0);
+        else
+            stream.Write(_itemB.item);
+
+        stream.Write((byte)_itemA.type);
+        stream.Write(_itemA.slot);
+        stream.Write((byte)_itemB.type);
+        stream.Write(_itemB.slot);
+
+        stream.Write(true); // success
+
+        //_slaveEquipment.Write(stream);
+
+        //var id = stream.ReadUInt32(); // type (id)
+        //var tl = stream.ReadUInt16();
+        //var dbSlaveId = stream.ReadUInt32();
+        //var bts = stream.ReadBoolean();
+        //var num = stream.ReadByte();
+        //for (var i = 0; i < num; i++)
+        //{
+        //    // read item1
+        //    var item1 = new Item();
+        //    item1.Read(stream);
+
+        //    // read item2
+        //    var item2 = new Item();
+        //    item2.Read(stream);
+
+        //    var slotType1 = (SlotType)stream.ReadByte();   // type
+        //    var slot1 = stream.ReadByte();            // index
+
+        //    var slotType2 = (SlotType)stream.ReadByte();  // type
+        //    var slot2 = stream.ReadByte();           // index
+        //}
+
+        //stream.Write(_success);
         return stream;
     }
 }

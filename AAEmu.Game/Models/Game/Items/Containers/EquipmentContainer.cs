@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
 
@@ -155,6 +156,12 @@ public class EquipmentContainer : ItemContainer
 
         if (Owner == null)
             return true; // Not applicable to NPCs, they can hold whatever they want anywhere
+
+        if (item.SlotType == SlotType.EquipmentSlave)
+            return true; // they can hold whatever they want anywhere
+
+        if (item.Template.ImplId == ItemImplEnum.SlaveEquipment)
+            return true; // they can hold whatever they want anywhere
 
         if ((targetSlot < 0) || (targetSlot >= ContainerSize))
         {

@@ -47,7 +47,7 @@ public class Inventory
         {
             var st = (SlotType)stv;
 
-            if (st == SlotType.EquipmentMate)
+            if (st == SlotType.EquipmentMate || st == SlotType.EquipmentSlave)
                 continue;
 
             // Take Equipment Container from Parent Unit's Equipment
@@ -276,8 +276,7 @@ public class Inventory
     /// <param name="toSlot">Target Slot Number</param>
     /// <param name="count">Amount of units to move or split from the source item or all in the slot if omitted or 0</param>
     /// <returns>False if action failed</returns>
-    public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot,
-        ulong toItemId, SlotType toType, byte toSlot, int count = 0)
+    public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
     {
         var fromItem = ItemManager.Instance.GetItemByItemId(fromItemId);
         if (fromItem == null && fromItemId != 0)
@@ -616,6 +615,8 @@ public class Inventory
 
         // Handle Equipment Broadcasting
         var mates = MateManager.Instance.GetActiveMates(Owner.ObjId);
+        var slave = SlaveManager.Instance.GetSlaveByOwnerObjId(Owner.ObjId);
+
         if (fromType == SlotType.Equipment)
         {
             Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
@@ -631,6 +632,10 @@ public class Inventory
                         Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, null), true);
                     }
                 }
+            }
+            else if (slave != null && fromType == SlotType.EquipmentSlave)
+            {
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(slave.ObjId, fromSlot, null), true);
             }
         }
 
@@ -649,6 +654,10 @@ public class Inventory
                         Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, toSlot, fromItem), true);
                     }
                 }
+            }
+            else if (slave != null && toType == SlotType.EquipmentSlave)
+            {
+                Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(slave.ObjId, toSlot, fromItem), true);
             }
         }
 

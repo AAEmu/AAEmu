@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -72,6 +73,7 @@ public class Slave : Unit
         HpTriggerPointsPercent.Add(50);
         HpTriggerPointsPercent.Add(75);
         HpTriggerPointsPercent.Add(100);
+        Equipment = new SlaveEquipmentContainer(0, SlotType.EquipmentSlave, false);
     }
 
     #region Attributes

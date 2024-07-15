@@ -42,7 +42,7 @@ public class Item : PacketMarshaler, IComparable<Item>
     public ulong Id { get => _id; set { _id = value; _isDirty = true; } }
     public uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
     public ItemTemplate Template { get; set; }
-    public virtual uint DetailBytesLength { get; } = 0;
+    public virtual uint DetailBytesLength { get; set; } = 0;
     public SlotType SlotType { get => _slotType; set { _slotType = value; _isDirty = true; } }
     public int Slot { get => _slot; set { _slot = value; _isDirty = true; } }
     public byte Grade { get => _grade; set { _grade = value; _isDirty = true; } }
@@ -326,10 +326,10 @@ public class Item : PacketMarshaler, IComparable<Item>
                 stream.WritePisc(GemIds[12], GemIds[13], GemIds[14], GemIds[15]); // в 3+ длина данных 36 (когда нет информации), в 1.2 было 56
                 break;
             case ItemDetailType.Slave:
-                mDetailLength = 30;
+                mDetailLength = 30; // есть расшифровка в items/SummonSlave
                 break;
             case ItemDetailType.Mate:
-                mDetailLength = 7; // есть расшифровка в items/Summon
+                mDetailLength = 21; // in 1.2 - 7, in 3+ - 21 - есть расшифровка в items/SummonMate
                 break;
             case ItemDetailType.Ucc:
                 mDetailLength = 10; // есть расшифровка в items/UccItem
@@ -348,7 +348,7 @@ public class Item : PacketMarshaler, IComparable<Item>
             case ItemDetailType.Glider:
                 mDetailLength = 5;
                 break;
-            case ItemDetailType.SlaveEquipment: // нет в 1.2
+            case ItemDetailType.SlaveEquipment: // есть расшифровка в items/SlaveEquip, нет в 1.2
                 mDetailLength = 13;
                 break;
             default:
