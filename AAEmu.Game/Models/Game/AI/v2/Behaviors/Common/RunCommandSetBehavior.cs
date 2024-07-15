@@ -96,7 +96,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 break;
             case AiCommandCategory.Timeout:
                 Ai.AiTimeOut = aiCommand.Param1;
-                Ai.AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(Ai.AiTimeOut);
+                Ai.AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(Ai.AiTimeOut); // This feels like this should be max cooldown remaining for all skills for param 1
                 break;
             default:
                 throw new NotSupportedException(nameof(aiCommand.CmdId));
