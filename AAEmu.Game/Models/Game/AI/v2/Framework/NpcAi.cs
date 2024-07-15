@@ -2,13 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.AStar;
-using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
@@ -33,8 +30,8 @@ public abstract class NpcAi
     public AiParams Param { get; set; }
     public PathNode PathNode { get; set; }
 
-    private Dictionary<BehaviorKind, Behavior> _behaviors;
-    private Dictionary<Behavior, List<Transition>> _transitions;
+    private readonly Dictionary<BehaviorKind, Behavior> _behaviors;
+    private readonly Dictionary<Behavior, List<Transition>> _transitions;
     private Behavior _currentBehavior;
     private Behavior _defaultBehavior;
     public DateTime _nextAlertCheckTime = DateTime.MinValue;
@@ -43,23 +40,23 @@ public abstract class NpcAi
     /// <summary>
     /// A list of AiCommands that should take priority over any other behavior
     /// </summary>
-    private Queue<AiCommands> AiCommandsQueue { get; set; } = new();
+    public Queue<AiCommands> AiCommandsQueue { get; set; } = new();
 
     /// <summary>
     /// Currently executing command
     /// </summary>
-    private AiCommands AiCurrentCommand { get; set; } = null;
+    public AiCommands AiCurrentCommand { get; set; } = null;
 
     /// <summary>
     /// Time that AiCurrentCommand started
     /// </summary>
     public DateTime AiCurrentCommandStartTime { get; set; } = DateTime.MinValue;
+    public TimeSpan AiCurrentCommandRunTime { get; set; } = TimeSpan.Zero;
     // Persistent arguments for AiCommands queue
-    private string AiFileName { get; set; } = string.Empty;
-    private string AiFileName2 { get; set; } = string.Empty;
-    private uint AiSkillId { get; set; }
-    private uint AiTimeOut { get; set; }
-    private TimeSpan AiCurrentCommandRunTime { get; set; } = TimeSpan.Zero;
+    public string AiFileName { get; set; } = string.Empty;
+    public string AiFileName2 { get; set; } = string.Empty;
+    public uint AiSkillId { get; set; }
+    public uint AiTimeOut { get; set; }
 
     public NpcAi()
     {
@@ -140,19 +137,6 @@ public abstract class NpcAi
             || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
         if (Owner?.Region?.HasPlayerActivity() ?? false)
         {
-            // If there are commands in the AI Command queue, execute those first
-            if ((AiCurrentCommand != null) || (AiCommandsQueue.Count > 0))
-            {
-                if (AiCurrentCommand == null)
-                {
-                    AiCurrentCommand = AiCommandsQueue.Dequeue();
-                    AiCurrentCommandStartTime = DateTime.UtcNow;
-                }
-
-                TickCurrentAiCommand(AiCurrentCommand, delta);
-                return;
-            }
-
             _currentBehavior?.Tick(delta);
 
             // If aggro table is populated, check if current aggro targets need to be cleared
@@ -275,75 +259,19 @@ public abstract class NpcAi
 
     #endregion
 
-    public void EnqueueAiCommands(List<AiCommands> aiCommandsList)
+    /// <summary>
+    /// Adds a list of AI commands to the execution Queue and goes to the RunCommandSet behavior if there are items in the queue
+    /// </summary>
+    /// <param name="aiCommandsList">List of commands</param>
+    /// <param name="addOnly">If true, will not go to the RunCommandSet behavior</param>
+    public void EnqueueAiCommands(IEnumerable<AiCommands> aiCommandsList, bool addOnly = false)
     {
         foreach (var aiCommand in aiCommandsList)
             AiCommandsQueue.Enqueue(aiCommand);
-    }
-
-    private void TickCurrentAiCommand(AiCommands aiCommand, TimeSpan delta)
-    {
-        if (AiCurrentCommandRunTime < TimeSpan.Zero)
-        {
-            AiCurrentCommand = null;
-            AiCurrentCommandRunTime = TimeSpan.Zero;
+        if (addOnly)
             return;
-        }
-
-
-        // Check if we're still waiting
-        if (AiCurrentCommandRunTime > TimeSpan.Zero)
-        {
-            AiCurrentCommandRunTime -= delta;
-            return;
-        }
-
-        switch (aiCommand.CmdId)
-        {
-            case AiCommandCategory.FollowUnit:
-                break;
-            case AiCommandCategory.FollowPath:
-                if (string.IsNullOrEmpty(AiFileName))
-                {
-                    AiFileName = aiCommand.Param2;
-                }
-                else
-                {
-                    AiFileName2 = aiCommand.Param2;
-                }
-
-                break;
-            case AiCommandCategory.UseSkill:
-                AiSkillId = aiCommand.Param1;
-                var skillTemplate = SkillManager.Instance.GetSkillTemplate(AiSkillId);
-                if (skillTemplate != null && Owner.UseSkill(AiSkillId, Owner.CurrentTarget as Unit ?? Owner) == SkillResult.Success)
-                {
-                    AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
-                }
-                break;
-            case AiCommandCategory.Timeout:
-                AiTimeOut = aiCommand.Param1;
-                AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(AiTimeOut);
-                break;
-            default:
-                throw new NotSupportedException(nameof(aiCommand.CmdId));
-        }
-
-        if (!string.IsNullOrEmpty(AiFileName))
-        {
-            if (Owner.IsInPatrol) { return; }
-
-            Owner.IsInPatrol = true;
-            Owner.Simulation.RunningMode = false;
-            Owner.Simulation.Cycle = false;
-            Owner.Simulation.MoveToPathEnabled = false;
-            Owner.Simulation.MoveFileName = AiFileName;
-            Owner.Simulation.MoveFileName2 = AiFileName2;
-            Owner.Simulation.GoToPath(Owner, true, AiSkillId, AiTimeOut);
-        }
-
-        if (AiCurrentCommandRunTime == TimeSpan.Zero)
-            AiCurrentCommandRunTime = TimeSpan.FromSeconds(-1);
+        if (AiCommandsQueue.Count > 0)
+            GoToRunCommandSet();
     }
 
     public virtual void GoToDummy()
