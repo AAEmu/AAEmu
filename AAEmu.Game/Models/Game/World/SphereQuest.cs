@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.World;
 
 public enum AreaSphereTriggerCondition
 {
-    Invalid = 0,
+    None = 0,
     TriggerOnceAtAll = 1,
     TriggerOnceInRuntime = 2,
     TriggerEveryNTimeAfter = 3

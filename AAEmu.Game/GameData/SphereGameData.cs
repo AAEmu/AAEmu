@@ -60,7 +60,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
                         EnterOrLeave = reader.GetBoolean("enter_or_leave"),
                         SphereDetailId = reader.GetUInt32("sphere_detail_id"),
                         SphereDetailType = reader.GetString("sphere_detail_type"),
-                        TriggerConditionId = reader.GetUInt32("trigger_condition_id"),
+                        TriggerConditionId = (AreaSphereTriggerCondition)reader.GetUInt32("trigger_condition_id"),
                         TriggerConditionTime = reader.GetUInt32("trigger_condition_time", 0),
                         TeamMsg = reader.GetString("team_msg"),
                         CategoryId = reader.GetUInt32("category_id"),
