@@ -152,10 +152,11 @@ public class LoginController : Singleton<LoginController>
         using (var command = connect.CreateCommand())
         {
             command.CommandText =
-                "INSERT into users (username, password, email, last_ip, created_at, updated_at) VALUES (@username, @password, \"\", @last_ip, @last_login, @created_at, @updated_at)";
+                "INSERT into users (username, password, email, last_ip, last_login, created_at, updated_at) VALUES (@username, @password, @email, @last_ip, @last_login, @created_at, @updated_at)";
             command.Parameters.AddWithValue("@username", username);
             command.Parameters.AddWithValue("@password", pass);
-            command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
+            command.Parameters.AddWithValue("@email", "");
+            command.Parameters.AddWithValue("@last_ip", connection.Ip.ToString());
             command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
             command.Parameters.AddWithValue("@created_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
             command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
