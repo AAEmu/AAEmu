@@ -265,5 +265,15 @@
         "Z": 121.90,
         "Yaw": 90,
         "SubZoneId": 542
+    },
+    {
+        "Id": 652,
+        "Name": "Diamond Shores Pirate/Player Nation Base",
+        "ZoneId": 301,
+	    "X": 19332.0,
+        "Y": 26883.0,
+        "Z": 130.5,
+        "Yaw": 0,
+        "SubZoneId": 1110
     }
 ]
