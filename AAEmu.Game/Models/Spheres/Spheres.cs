@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Spheres;
+﻿using AAEmu.Game.Models.Game.World;
+
+namespace AAEmu.Game.Models.Spheres;
 
 public class Spheres
 {
@@ -7,7 +9,7 @@ public class Spheres
     public bool EnterOrLeave { get; set; }
     public uint SphereDetailId { get; set; }
     public string SphereDetailType { get; set; }
-    public uint TriggerConditionId { get; set; }
+    public AreaSphereTriggerCondition TriggerConditionId { get; set; }
     public uint TriggerConditionTime { get; set; }
     public string TeamMsg { get; set; }
     public uint CategoryId { get; set; }
