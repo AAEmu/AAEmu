@@ -21,9 +21,9 @@ public class DoodadPositionSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("x", "x=<new x>", false, "x"));
         AddParameter(new NumericSubCommandParameter<float>("y", "y=<new y>", false, "y"));
         AddParameter(new NumericSubCommandParameter<float>("z", "z=<new z>", false, "z"));
-        AddParameter(new NumericSubCommandParameter<float>("roll", "roll=<new roll degrees>", false, "roll", 0, 360));
-        AddParameter(new NumericSubCommandParameter<float>("pitch", "pitch=<new pitch degrees>", false, "pitch", 0, 360));
-        AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", 0, 360));
+        AddParameter(new NumericSubCommandParameter<float>("roll", "roll=<new roll degrees>", false, "roll", -360f, 360f));
+        AddParameter(new NumericSubCommandParameter<float>("pitch", "pitch=<new pitch degrees>", false, "pitch", -360f, 360f));
+        AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", -360f, 360f));
     }
 
     public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
