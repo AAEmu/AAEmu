@@ -14,12 +14,12 @@ public class DuelEndTimerTask : Task
         _challengerId = challengerId;
     }
 
-    public override async void Execute()
+    public override void Execute()
     {
         if (_duel.DuelEndTimerTask == null)
             return;
 
-        await _duel.DuelEndTimerTask.Cancel();
+        _duel.DuelEndTimerTask.Cancel();
         _duel.DuelEndTimerTask = null;
 
         if (_duel.Challenger.Hp < _duel.Challenged.Hp)

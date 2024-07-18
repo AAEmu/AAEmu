@@ -449,8 +449,8 @@ public class Unit : BaseUnit, IUnit
                 case Character character:
                     DespawMate(character);
                     break;
-                //default:
-                //    break;
+                    //default:
+                    //    break;
             }
             return;
         }
@@ -507,7 +507,7 @@ public class Unit : BaseUnit, IUnit
                             Logger.Warn("Next eligible looter was null");
                         }
                     }
-                  
+
                 }
                 else if (unit.CharacterTagging.Tagger != null)
                 {
@@ -582,7 +582,7 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public async void StopAutoSkill(Unit unit)
+    public void StopAutoSkill(Unit unit)
     {
         if (unit.AutoAttackTask is null || !(unit is Character character))
         {
@@ -609,7 +609,7 @@ public class Unit : BaseUnit, IUnit
 
         var newTask = new UseAutoAttackSkillTask(skill, character);
         character.AutoAttackTask = newTask;
-        var attackDelayTimes = newTask.GetAttackDelay(); 
+        var attackDelayTimes = newTask.GetAttackDelay();
 
         TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(attackDelayTimes),
             TimeSpan.FromMilliseconds(attackDelayTimes), -1);
@@ -641,7 +641,7 @@ public class Unit : BaseUnit, IUnit
         {
             return;
         }
-        await _regenTask.Cancel();
+        await _regenTask.CancelAsync();
         _regenTask = null;
     }
 

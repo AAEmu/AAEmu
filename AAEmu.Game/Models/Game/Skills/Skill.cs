@@ -104,7 +104,7 @@ public class Skill
             skillResultValueUInt = requirementResult.ResultUInt;
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
         }
-        
+
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
@@ -665,7 +665,7 @@ public class Skill
     /// Only used to stop/cancel base melee/ranged skills
     /// </summary>
     /// <param name="caster"></param>
-    public async void StopSkill(BaseUnit caster)
+    public void StopSkill(BaseUnit caster)
     {
         if (caster is not Unit unit) { return; }
 
@@ -980,7 +980,7 @@ public class Skill
                         lastAppliedEffect.ConsumeItemCount);
                     if (inventory || equipment)
                     {
-                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));    
+                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));
                     }
                 }
             }

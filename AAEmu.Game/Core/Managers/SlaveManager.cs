@@ -647,7 +647,7 @@ public class SlaveManager : Singleton<SlaveManager>
             var childSlaveHp = 1;
             var childSlaveMp = 1;
             var childSlaveTemplateId = 0u;
-            var isLoadedPlayerChildSlave = false;
+            //var isLoadedPlayerChildSlave = false;
 
             // Only check if the parent was saved as well
             if (summonedSlave.Id > 0)
@@ -669,7 +669,7 @@ public class SlaveManager : Singleton<SlaveManager>
                     childSlaveName = reader.GetString("name");
                     childSlaveHp = reader.GetInt32("hp");
                     childSlaveMp = reader.GetInt32("mp");
-                    isLoadedPlayerChildSlave = true;
+                    //isLoadedPlayerChildSlave = true;
                     break;
                 }
             } // Parent Slave has DB Id

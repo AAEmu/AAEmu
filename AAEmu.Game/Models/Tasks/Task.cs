@@ -25,7 +25,19 @@ public abstract class Task
 
     public abstract void Execute();
 
-    public async Task<bool> Cancel()
+    public Task<bool> CancelAsync()
+    {
+        var result = TaskManager.Instance.Cancel(this);
+        if (result)
+        {
+            OnCancel();
+            return System.Threading.Tasks.Task.FromResult(true);
+        }
+
+        return System.Threading.Tasks.Task.FromResult(false);
+    }
+
+    public bool Cancel()
     {
         var result = TaskManager.Instance.Cancel(this);
         if (result)
@@ -39,6 +51,5 @@ public abstract class Task
 
     public virtual void OnCancel()
     {
-        //
     }
 }

@@ -86,7 +86,7 @@ public class DoodadChainSubCommandTests
         }
 
         var testCommand = new TestCommand(supportedCommands);
-        var testCommandPrefix = "Prefix";
+        // var testCommandPrefix = "Prefix";
         testCommand.PreExecute(mockCharacter.Object, "test", new string[] { "help" }, new CharacterMessageOutput(mockCharacter.Object));
 
         // TODO: Fix these tests
