@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -554,13 +553,13 @@ public class Unit : BaseUnit, IUnit
 
             if (killer is Character character)
             {
-                StopAutoSkill(character);
+                StopAutoSkillAsync(character);
                 character.IsInBattle = false; // we need the character to be "not in battle"
                 DespawMate(character);
             }
             else if (((Unit)killer).CurrentTarget is Character character2)
             {
-                StopAutoSkill(character2);
+                StopAutoSkillAsync(character2);
                 character2.IsInBattle = false; // we need the character to be "not in battle"
                 character2.DeadTime = DateTime.UtcNow;
                 DespawMate(character2);
@@ -582,11 +581,11 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public async void StopAutoSkill(Unit unit)
+    public System.Threading.Tasks.Task StopAutoSkillAsync(Unit unit)
     {
         if (unit.AutoAttackTask is null || !(unit is Character character))
         {
-            return;
+            return System.Threading.Tasks.Task.CompletedTask;
         }
 
         character.AutoAttackTask.Cancelled = true;
@@ -598,6 +597,8 @@ public class Unit : BaseUnit, IUnit
         character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
         TlIdManager.Instance.ReleaseId(character.TlId);
         */
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 
     public void StartAutoSkill(Skill skill)
@@ -635,13 +636,13 @@ public class Unit : BaseUnit, IUnit
     }
 
     [Obsolete("This method is deprecated", false)]
-    public async void StopRegen()
+    public async System.Threading.Tasks.Task StopRegenAsync()
     {
         if (_regenTask == null)
         {
             return;
         }
-        await _regenTask.Cancel();
+        await _regenTask.CancelAsync();
         _regenTask = null;
     }
 

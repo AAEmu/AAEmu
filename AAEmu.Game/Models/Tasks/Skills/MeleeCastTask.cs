@@ -21,8 +21,10 @@ public class MeleeCastTask : SkillTask
         _skillObject = skillObject;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         Skill.Cast(_caster, _casterCaster, _target, _targetCaster, _skillObject);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

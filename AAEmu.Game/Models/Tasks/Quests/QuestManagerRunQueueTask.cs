@@ -8,9 +8,11 @@ public class QuestManagerRunQueueTask : Task
     {
         //
     }
-    
-    public override void Execute()
+
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         QuestManager.Instance.DoQueuedEvaluations();
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -22,11 +22,13 @@ public class Record : Task
     /// <summary>
     /// Perform tasks
     /// </summary>
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         if (_ch.Hp > 0)
         {
             _patrol?.Record(_patrol, _ch);
         }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

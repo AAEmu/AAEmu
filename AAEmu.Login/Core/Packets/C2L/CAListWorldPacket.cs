@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Threading.Tasks;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Login;
 
@@ -15,6 +16,6 @@ public class CAListWorldPacket : LoginPacket
     {
         var flag = stream.ReadUInt64();
 
-        GameController.Instance.RequestWorldList(Connection);
+        Task.Run(() => GameController.Instance.RequestWorldListAsync(Connection));
     }
 }

@@ -26,11 +26,13 @@ public class UnitMove : Task
     /// 执行任务
     /// Perform tasks
     /// </summary>
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         // if (_npc.Hp > 0)
         // {
         //     _patrol?.Apply(_npc);
         // }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

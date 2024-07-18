@@ -13,20 +13,22 @@ public class DispelTask : Task
         Effect = new WeakReference(buff);
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         if (!Effect.IsAlive)
-            return;
+            return System.Threading.Tasks.Task.CompletedTask;
 
         if ((Effect.Target is not Buff eff) || eff.IsEnded() || eff.Owner == null)
-            return;
+            return System.Threading.Tasks.Task.CompletedTask;
 
         eff.ScheduleEffect(false);
 
         if (eff.IsEnded())
         {
-            return;
+            return System.Threading.Tasks.Task.CompletedTask;
         }
         EffectTaskManager.AddDispelTask(eff, eff.Tick);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -25,9 +25,11 @@ public class EndChannelingTask : SkillTask
         _channelDoodad = channelDoodad;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         // Skill.ScheduleEffects(_caster, _casterCaster, _target, _targetCaster, _skillObject);
         Skill.EndChanneling(_caster, _channelDoodad, _casterCaster);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

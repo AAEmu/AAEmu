@@ -16,12 +16,14 @@ public class QuestDailyResetTask : Task
 
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         foreach (var character in WorldManager.Instance.GetAllCharacters())
         {
             character.Quests.ResetDailyQuests(true);
             TimedRewardsManager.Instance.DoDailyAccountLogin(character.AccountId);
         }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

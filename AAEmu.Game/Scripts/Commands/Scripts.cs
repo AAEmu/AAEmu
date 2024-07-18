@@ -74,7 +74,7 @@ public class Scripts : ICommand
 
                 if ((SaveManager.Instance.ShutdownTask != null) && (doCancel))
                 {
-                    SaveManager.Instance.ShutdownTask.Cancel();
+                    SaveManager.Instance.ShutdownTask.CancelAsync();
                     character.SendMessage($"[Scripts] Shutdown cancelled.");
                     WorldManager.Instance.BroadcastPacketToServer(new SCNoticeMessagePacket(3, Color.Aqua, 10000, "The server shutdown has been cancelled!"));
                     SaveManager.Instance.ShutdownTask = null;

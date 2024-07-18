@@ -186,7 +186,7 @@ public class Skill
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
         {
-            Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
+            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
             if (Template.PlotOnly)
                 return SkillResult.Success;
         }
@@ -665,9 +665,9 @@ public class Skill
     /// Only used to stop/cancel base melee/ranged skills
     /// </summary>
     /// <param name="caster"></param>
-    public async void StopSkill(BaseUnit caster)
+    public Task StopSkillAsync(BaseUnit caster)
     {
-        if (caster is not Unit unit) { return; }
+        if (caster is not Unit unit) { return Task.CompletedTask; }
 
         if (unit.AutoAttackTask != null)
             unit.AutoAttackTask.Cancelled = true;
@@ -679,6 +679,8 @@ public class Skill
         //unit.IsAutoAttack = false; // turned off auto attack
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
+
+        return Task.CompletedTask;
     }
 
     public void StartChanneling(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)

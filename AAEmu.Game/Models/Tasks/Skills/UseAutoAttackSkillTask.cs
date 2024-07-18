@@ -18,7 +18,7 @@ public class UseAutoAttackSkillTask : SkillTask
         // _caster.SendMessage($"[UseAutoAttackSkillTask] Created");
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         var target = _caster.CurrentTarget as Unit;
         if (_caster.Hp <= 0 || target == null || target.Hp <= 0 || target.ObjId == _caster.ObjId || Cancelled)
@@ -27,14 +27,14 @@ public class UseAutoAttackSkillTask : SkillTask
             _caster.IsAutoAttack = false;
             _caster.AutoAttackTask = null;
             // _caster.SendMessage($"[UseAutoAttackSkillTask] Cancelled");
-            Cancel();
+            CancelAsync();
         }
 
         if (Cancelled)
-            return;
-        
+            return System.Threading.Tasks.Task.CompletedTask; ;
+
         if (target == null)
-            return;
+            return System.Threading.Tasks.Task.CompletedTask; ;
 
         if (_caster.CanAttack(target))
         {
@@ -57,6 +57,8 @@ public class UseAutoAttackSkillTask : SkillTask
         {
             _caster.SendMessage($"[UseAutoAttackSkillTask] Cannot attack with {_skill.Template.Id} on {target.ObjId}");
         }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 
     /// <summary>

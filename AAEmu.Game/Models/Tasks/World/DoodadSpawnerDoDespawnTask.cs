@@ -10,8 +10,10 @@ public class DoodadSpawnerDoDespawnTask : Task
     {
         _doodad = doodad;
     }
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         _doodad.DoDespawn(_doodad);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

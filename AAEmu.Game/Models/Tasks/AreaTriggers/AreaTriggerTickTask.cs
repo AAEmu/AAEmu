@@ -5,8 +5,9 @@ namespace AAEmu.Game.Models.Tasks.AreaTriggers;
 
 public class AreaTriggerTickTask : Task
 {
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         AreaTriggerManager.Instance.Tick(TimeSpan.Zero);
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

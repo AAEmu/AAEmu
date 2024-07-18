@@ -20,10 +20,13 @@ public class CastTask : SkillTask
         _skillObject = skillObject;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         if (Skill.Cancelled)
-            return;
+            return System.Threading.Tasks.Task.CompletedTask;
+
         Skill.Cast(_caster, _casterCaster, _target, _targetCaster, _skillObject);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

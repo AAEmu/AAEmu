@@ -10,8 +10,10 @@ public class DuelStartTask : Task
         _challengerId = challengerId;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         DuelManager.Instance.DuelStart(_challengerId);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -17,12 +17,14 @@ public class MateXpUpdateTask : Task
         _owner = owner;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
-        _ = _mate.MateXpUpdateTask?.Cancel();
+        _ = _mate.MateXpUpdateTask?.CancelAsync();
         _mate.MateXpUpdateTask = null;
         _mate?.AddExp(Exp);
         _owner.SendMessage($"pet received {Exp} experience points");
         Logger.Debug($"[MateXpUpdateTask] Id {_mate?.Id}, ObjId {_mate?.ObjId}, DbInfo.Xp {_mate?.DbInfo.Xp}, AddExp {Exp}");
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

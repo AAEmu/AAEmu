@@ -6,7 +6,7 @@ public class CharacterDeleteTask : Task
 {
     private static object _lock = new();
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         lock (_lock)
         {
@@ -19,5 +19,7 @@ public class CharacterDeleteTask : Task
                 // Do nothing
             }
         }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

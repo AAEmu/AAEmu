@@ -48,8 +48,8 @@ public class TickDoodad : ICommand
             {
                 if (doodad.FuncTask != null)
                 {
-                    doodad.FuncTask.Cancel().GetAwaiter().GetResult();
-                    doodad.FuncTask.Execute();
+                    doodad.FuncTask.CancelAsync().GetAwaiter().GetResult();
+                    doodad.FuncTask.ExecuteAsync();
                     tickedCount++;
                 }
             }

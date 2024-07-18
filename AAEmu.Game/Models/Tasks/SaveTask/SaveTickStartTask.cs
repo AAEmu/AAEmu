@@ -8,8 +8,10 @@ public class SaveTickStartTask : Task
     {
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         SaveManager.Instance.SaveTick();
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

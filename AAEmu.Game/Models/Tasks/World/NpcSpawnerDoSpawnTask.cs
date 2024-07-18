@@ -13,8 +13,10 @@ public class NpcSpawnerDoSpawnTask : Task
         _all = all;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         _npcSpawner?.DoSpawn(_all);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

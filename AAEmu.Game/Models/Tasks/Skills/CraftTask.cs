@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Tasks.Skills;
@@ -18,7 +18,7 @@ public class CraftTask : Task
         _count = count;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         if (_count > 0)
         {
@@ -26,5 +26,7 @@ public class CraftTask : Task
             var craft = CraftManager.Instance.GetCraftById(_craftId);
             _character?.Craft.Craft(craft, _count, _objId);
         }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

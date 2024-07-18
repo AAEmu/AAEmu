@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Units;
+﻿using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.World;
 
@@ -11,8 +11,10 @@ public class KillPortalTask : Task
         _portal = portal;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         _portal.Delete();
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

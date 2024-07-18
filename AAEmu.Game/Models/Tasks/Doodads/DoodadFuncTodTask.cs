@@ -21,7 +21,7 @@ public class DoodadFuncTodTask : DoodadFuncTask
         _skillId = skillId;
         _nextPhase = nextPhase;
     }
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         if (_caster is Character)
             Logger.Debug("[Doodad] DoodadFuncTodTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
@@ -30,7 +30,7 @@ public class DoodadFuncTodTask : DoodadFuncTask
 
         if (_owner.FuncTask != null)
         {
-            _ = _owner.FuncTask.Cancel();
+            _ = _owner.FuncTask.CancelAsync();
             _owner.FuncTask = null;
             if (_caster is Character)
                 Logger.Debug("DoodadFuncTodTask: The current timer has been ended.");
@@ -39,5 +39,7 @@ public class DoodadFuncTodTask : DoodadFuncTask
         }
 
         _owner.DoChangePhase(_caster, _nextPhase);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

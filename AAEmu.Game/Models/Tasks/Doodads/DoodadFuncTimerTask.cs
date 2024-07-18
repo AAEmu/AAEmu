@@ -24,7 +24,7 @@ public class DoodadFuncTimerTask : DoodadFuncTask
         _skillId = skillId;
         _nextPhase = nextPhase;
     }
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         if (_caster is Character)
             Logger.Debug("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
@@ -47,5 +47,7 @@ public class DoodadFuncTimerTask : DoodadFuncTask
                 }
             }
         }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

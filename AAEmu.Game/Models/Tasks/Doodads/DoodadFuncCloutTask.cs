@@ -26,7 +26,7 @@ public class DoodadFuncCloutTask : DoodadFuncTask
         _areaTrigger = areaTrigger;
     }
 
-    public override void Execute()
+    public override System.Threading.Tasks.Task ExecuteAsync()
     {
         if (_caster is Character)
             Logger.Debug("[Doodad] DoodadFuncCloutTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
@@ -40,5 +40,7 @@ public class DoodadFuncCloutTask : DoodadFuncTask
 
         AreaTriggerManager.Instance.RemoveAreaTrigger(_areaTrigger);
         _owner.DoChangePhase(_caster, _nextPhase);
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

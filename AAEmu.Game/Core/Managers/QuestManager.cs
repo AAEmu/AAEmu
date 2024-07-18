@@ -2019,7 +2019,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                 if ((questId == 0) || (questId == timeoutQuestId))
                 {
                     removeQuestList.Add(timeoutQuestId);
-                    _ = timeoutTask.Cancel(); // Cancel task, don't care about the result
+                    _ = timeoutTask.CancelAsync(); // Cancel task, don't care about the result
                 }
             }
 
