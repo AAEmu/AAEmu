@@ -58,7 +58,7 @@ public class CSSelectCharacterPacket : GamePacket
             var myMates = MateManager.Instance.GetActiveMates(Connection.ActiveChar.ObjId);
             if (myMates != null)
             {
-                Unit.DespawMate(Connection.ActiveChar); // despawn because we lost control over them
+                Unit.DespawnMate(Connection.ActiveChar); // despawn because we lost control over them
             }
 
             Connection.ActiveChar.Simulation = new Simulation(character);
