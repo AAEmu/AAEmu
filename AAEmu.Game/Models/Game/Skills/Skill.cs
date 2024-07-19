@@ -665,9 +665,9 @@ public class Skill
     /// Only used to stop/cancel base melee/ranged skills
     /// </summary>
     /// <param name="caster"></param>
-    public Task StopSkillAsync(BaseUnit caster)
+    public void StopSkill(BaseUnit caster)
     {
-        if (caster is not Unit unit) { return Task.CompletedTask; }
+        if (caster is not Unit unit) { return; }
 
         if (unit.AutoAttackTask != null)
             unit.AutoAttackTask.Cancelled = true;
@@ -679,8 +679,6 @@ public class Skill
         //unit.IsAutoAttack = false; // turned off auto attack
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
-
-        return Task.CompletedTask;
     }
 
     public void StartChanneling(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)

@@ -66,7 +66,5 @@ public class DoodadFuncFinalTask : DoodadFuncTask
                 _owner.Delete();
             }
         }
-
-        return;
     }
 }
