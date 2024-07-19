@@ -570,7 +570,7 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public static void DespawMate(Character character)
+    public static void DespawnMate(Character character)
     {
         // if we died sitting on a horse
         if (character.Hp > 0) { return; }
