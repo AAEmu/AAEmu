@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Models.Tasks.Specialty;
 

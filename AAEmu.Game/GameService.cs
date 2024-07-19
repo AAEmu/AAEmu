@@ -229,11 +229,11 @@ public sealed class GameService : IHostedService, IDisposable
         Logger.Info($"Server started! Took {stopWatch.Elapsed}");
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
         Logger.Info("Stopping daemon...");
 
-        SaveManager.Instance.Stop();
+        await SaveManager.Instance.StopAsync();
 
         SpawnManager.Instance.Stop();
         TaskManager.Instance.Stop();
@@ -252,7 +252,6 @@ public sealed class GameService : IHostedService, IDisposable
         TimeManager.Instance.Stop();
 
         ClientFileManager.ClearSources();
-        return Task.CompletedTask;
     }
 
     public void Dispose()

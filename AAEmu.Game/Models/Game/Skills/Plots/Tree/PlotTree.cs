@@ -27,7 +27,7 @@ public class PlotTree
         PlotId = plotId;
     }
 
-    public async Task Execute(PlotState state)
+    public async Task ExecuteAsync(PlotState state)
     {
         var treeWatch = new Stopwatch();
         treeWatch.Start();

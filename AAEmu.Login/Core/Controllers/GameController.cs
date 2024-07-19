@@ -149,12 +149,12 @@ public class GameController : Singleton<GameController>
         gameServer.MirrorsId.Clear();
     }
 
-    public async void RequestWorldList(LoginConnection connection)
+    public async Task RequestWorldListAsync(LoginConnection connection)
     {
         var gameServers = _gameServers.Values.ToList();
         if (_gameServers.Values.Any(x => x.Active))
         {
-            var (requestIds, task) =
+            var (requestIds, creationTask) =
                 RequestController.Instance.Create(gameServers.Count, 20000); // TODO Request 20s
             for (var i = 0; i < gameServers.Count; i++)
             {
@@ -177,7 +177,7 @@ public class GameController : Singleton<GameController>
 
             }
 
-            await task;
+            await creationTask;
         }
         connection.SendPacket(new ACWorldListPacket(gameServers, connection.GetCharacters()));
     }

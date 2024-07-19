@@ -192,7 +192,7 @@ public class Skill
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
         {
-            Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
+            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
             if (Template.PlotOnly)
                 return SkillResult.Success;
         }
@@ -671,7 +671,7 @@ public class Skill
     /// Only used to stop/cancel base melee/ranged skills
     /// </summary>
     /// <param name="caster"></param>
-    public async void StopSkill(BaseUnit caster)
+    public void StopSkill(BaseUnit caster)
     {
         if (caster is not Unit unit) { return; }
 

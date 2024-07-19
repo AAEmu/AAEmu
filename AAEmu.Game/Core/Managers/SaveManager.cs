@@ -37,14 +37,14 @@ public class SaveManager : Singleton<SaveManager>
         SaveTickStart();
     }
 
-    public async void Stop()
+    public async System.Threading.Tasks.Task StopAsync()
     {
         _enabled = false;
         if (saveTask == null)
         {
             return;
         }
-        var result = await saveTask.Cancel();
+        var result = await saveTask.CancelAsync();
         if (result)
         {
             saveTask = null;

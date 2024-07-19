@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -446,10 +445,10 @@ public class Unit : BaseUnit, IUnit
                 //case Npc:
                 //    break;
                 case Mate mate:
-                    DespawMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
+                    DespawnMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
                     break;
                 case Character character:
-                    DespawMate(character);
+                    DespawnMate(character);
                     break;
                 //default:
                 //    break;
@@ -509,7 +508,6 @@ public class Unit : BaseUnit, IUnit
                             Logger.Warn("Next eligible looter was null");
                         }
                     }
-                  
                 }
                 else if (unit.CharacterTagging.Tagger != null)
                 {
@@ -558,14 +556,14 @@ public class Unit : BaseUnit, IUnit
             {
                 StopAutoSkill(character);
                 character.IsInBattle = false; // we need the character to be "not in battle"
-                DespawMate(character);
+                DespawnMate(character);
             }
             else if (((Unit)killer).CurrentTarget is Character character2)
             {
                 StopAutoSkill(character2);
                 character2.IsInBattle = false; // we need the character to be "not in battle"
                 character2.DeadTime = DateTime.UtcNow;
-                DespawMate(character2);
+                DespawnMate(character2);
             }
 
             ((Unit)killer).CurrentTarget = null;
@@ -593,7 +591,7 @@ public class Unit : BaseUnit, IUnit
         SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(character);
     }
 
-    public async void StopAutoSkill(Unit unit)
+    public void StopAutoSkill(Unit unit)
     {
         if (unit.AutoAttackTask is null || !(unit is Character character))
         {
@@ -646,13 +644,13 @@ public class Unit : BaseUnit, IUnit
     }
 
     [Obsolete("This method is deprecated", false)]
-    public async void StopRegen()
+    public void StopRegen()
     {
         if (_regenTask == null)
         {
             return;
         }
-        await _regenTask.Cancel();
+        _regenTask.Cancel();
         _regenTask = null;
     }
 

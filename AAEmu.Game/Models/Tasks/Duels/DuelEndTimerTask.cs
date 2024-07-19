@@ -14,12 +14,26 @@ public class DuelEndTimerTask : Task
         _challengerId = challengerId;
     }
 
-    public override async void Execute()
+    public override async System.Threading.Tasks.Task ExecuteAsync()
     {
         if (_duel.DuelEndTimerTask == null)
             return;
 
-        await _duel.DuelEndTimerTask.Cancel();
+        await _duel.DuelEndTimerTask.CancelAsync();
+        InternalExecute();
+    }
+
+    public override void Execute()
+    {
+        if (_duel.DuelEndTimerTask == null)
+            return;
+
+        _duel.DuelEndTimerTask.Cancel();
+        InternalExecute();
+    }
+
+    private void InternalExecute()
+    {
         _duel.DuelEndTimerTask = null;
 
         if (_duel.Challenger.Hp < _duel.Challenged.Hp)

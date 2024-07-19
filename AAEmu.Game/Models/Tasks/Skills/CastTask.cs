@@ -24,6 +24,7 @@ public class CastTask : SkillTask
     {
         if (Skill.Cancelled)
             return;
+
         Skill.Cast(_caster, _casterCaster, _target, _targetCaster, _skillObject);
     }
 }

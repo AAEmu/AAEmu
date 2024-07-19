@@ -675,7 +675,7 @@ public sealed class Mate : Unit
 
     public void StopUpdateXp()
     {
-        _ = MateXpUpdateTask?.Cancel();
+        MateXpUpdateTask?.Cancel();
         MateXpUpdateTask = null;
         //Logger.Trace("[StopUpdateXp] The current timer has been canceled...");
     }

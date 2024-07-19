@@ -283,7 +283,7 @@ public class DuelManager : Singleton<DuelManager>
             var duel = _duels[id];
             if (duel.Challenger.Hp <= 1 || duel.Challenged.Hp <= 1)
             {
-                _ = duel.DuelResultСheckTask.Cancel();
+                duel.DuelResultСheckTask.Cancel();
                 duel.DuelResultСheckTask = null;
                 return true;
             }
