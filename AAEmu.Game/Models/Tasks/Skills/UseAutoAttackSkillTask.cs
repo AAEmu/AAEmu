@@ -32,7 +32,7 @@ public class UseAutoAttackSkillTask : SkillTask
 
         if (Cancelled)
             return;
-        
+
         if (target == null)
             return;
 

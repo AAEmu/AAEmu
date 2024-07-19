@@ -30,7 +30,7 @@ public class DoodadFuncTodTask : DoodadFuncTask
 
         if (_owner.FuncTask != null)
         {
-            _ = _owner.FuncTask.Cancel();
+            _owner.FuncTask.Cancel();
             _owner.FuncTask = null;
             if (_caster is Character)
                 Logger.Debug("DoodadFuncTodTask: The current timer has been ended.");

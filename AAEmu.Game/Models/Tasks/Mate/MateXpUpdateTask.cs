@@ -19,7 +19,7 @@ public class MateXpUpdateTask : Task
 
     public override void Execute()
     {
-        _ = _mate.MateXpUpdateTask?.Cancel();
+        _mate.MateXpUpdateTask?.Cancel();
         _mate.MateXpUpdateTask = null;
         _mate?.AddExp(Exp);
         _owner.SendMessage($"pet received {Exp} experience points");

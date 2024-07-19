@@ -10,7 +10,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.StaticValues;
 using NLog;
-using NLog.Config;
 
 namespace AAEmu.Game.Models.Tasks.CashShop;
 
