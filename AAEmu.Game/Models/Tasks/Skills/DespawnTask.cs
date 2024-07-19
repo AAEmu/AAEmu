@@ -12,14 +12,12 @@ public class DespawnTask : Task
     {
         _caster = caster;
     }
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_caster is not Npc npc)
-            return System.Threading.Tasks.Task.CompletedTask; ;
+            return;
 
         ObjectIdManager.Instance.ReleaseId(npc.ObjId);
         npc.Delete();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -14,7 +14,7 @@ public class UnitPointsRegenTask : Task
         _unit = unit;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         var oldHp = _unit.Hp;
         if (_unit.Hp < _unit.MaxHp && _unit.Hp > 0)
@@ -27,7 +27,5 @@ public class UnitPointsRegenTask : Task
         _unit.PostUpdateCurrentHp(_unit,oldHp, _unit.Hp, KillReason.Unknown);
         //if (_unit.Hp >= _unit.MaxHp && _unit.Mp >= _unit.MaxMp)
         //    _unit.StopRegen();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

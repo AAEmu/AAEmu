@@ -19,7 +19,7 @@ public class LeaveWorldTask : Task
         _target = target;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_connection.ActiveChar != null)
         {
@@ -67,7 +67,5 @@ public class LeaveWorldTask : Task
         _connection.LeaveTask = null;
         _connection.SendPacket(new SCLeaveWorldGrantedPacket(_target));
         _connection.SendPacket(new ChangeStatePacket(0));
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

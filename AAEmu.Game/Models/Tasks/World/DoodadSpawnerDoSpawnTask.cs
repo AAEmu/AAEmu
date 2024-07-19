@@ -11,10 +11,8 @@ public class DoodadSpawnerDoSpawnTask : Task
         _doodadSpawner = doodadSpawner;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         _doodadSpawner.DoSpawn();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -66,10 +66,10 @@ public class ShutdownTask : Task
         _nextTriggerTime = CalculateLargestNextTrigger();
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_alreadyShuttingDown)
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
 
         if (_shutdownTime <= DateTime.UtcNow)
         {
@@ -94,13 +94,13 @@ public class ShutdownTask : Task
                 Environment.Exit(_exitCode); // Manual Shutdown
             }
 
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
         }
 
         var remainingTime = _shutdownTime - DateTime.UtcNow;
         var remainingSeconds = (int)Math.Ceiling(remainingTime.TotalSeconds);
         if (DateTime.UtcNow < _nextTriggerTime)
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
         
         _nextTriggerTime = CalculateLargestNextTrigger();
 
@@ -132,7 +132,5 @@ public class ShutdownTask : Task
                 Color.Red, 
                 popupTime, 
                 shutdownText));
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -10,10 +10,8 @@ public class NpcSpawnerDoDespawnTask : Task
     {
         _npc = npc;
     }
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         _npc?.Spawner?.DoDespawn(_npc);
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

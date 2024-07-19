@@ -35,4 +35,26 @@ public class DuelEndTimerTask : Task
             DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Draw, _duel.Challenged.Id);
         }
     }
+
+    public override void Execute()
+    {
+        if (_duel.DuelEndTimerTask == null)
+            return;
+
+        _duel.DuelEndTimerTask.Cancel();
+        _duel.DuelEndTimerTask = null;
+
+        if (_duel.Challenger.Hp < _duel.Challenged.Hp)
+        {
+            DuelManager.Instance.DuelStop(_duel.Challenged.Id, DuelDetType.Win, _challengerId);
+        }
+        else if (_duel.Challenger.Hp > _duel.Challenged.Hp)
+        {
+            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Win, _duel.Challenged.Id);
+        }
+        else if (_duel.Challenger.Hp == _duel.Challenged.Hp)
+        {
+            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Draw, _duel.Challenged.Id);
+        }
+    }
 }

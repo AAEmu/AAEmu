@@ -8,10 +8,8 @@ public class PublicFarmTickStartTask : Task
     {
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         PublicFarmManager.Instance.PublicFarmTick();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

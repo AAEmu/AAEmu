@@ -5,9 +5,8 @@ namespace AAEmu.Game.Models.Game.Auction;
 
 public class AuctionHouseTask : Task
 {
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         AuctionManager.Instance.UpdateAuctionHouse();
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

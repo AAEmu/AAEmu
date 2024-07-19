@@ -4,10 +4,8 @@ namespace AAEmu.Game.Models.Tasks.Housing;
 
 public class HousingTaxTask : Task
 {
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         HousingManager.Instance.CheckHousingTaxes();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

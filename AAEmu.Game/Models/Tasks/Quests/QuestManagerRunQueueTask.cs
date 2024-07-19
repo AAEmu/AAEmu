@@ -9,10 +9,8 @@ public class QuestManagerRunQueueTask : Task
         //
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         QuestManager.Instance.DoQueuedEvaluations();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

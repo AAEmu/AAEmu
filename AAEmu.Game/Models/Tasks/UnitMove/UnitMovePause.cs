@@ -24,13 +24,11 @@ public class UnitMovePause : Task
     /// 执行任务
     /// Perform tasks
     /// </summary>
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_npc.Hp > 0)
         {
             _patrol?.LoopAuto(_npc);
         }
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

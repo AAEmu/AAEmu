@@ -4,10 +4,8 @@ namespace AAEmu.Game.Models.Tasks.Mails;
 
 public class MailDeliveryTask : Task
 {
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         MailManager.Instance.CheckAllMailTimings();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

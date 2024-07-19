@@ -32,13 +32,11 @@ public class Move : Task
     /// <summary>
     /// Perform tasks
     /// </summary>
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_npc.Hp > 0)
         {
             _patrol?.MoveTo(_patrol, _npc, new Vector3(_targetX, _targetY, _targetZ));
         }
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

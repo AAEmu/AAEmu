@@ -11,11 +11,9 @@ public class NpcDeleteTask : Task
         _npc = npc;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         _npc.Simulation.NpcDeleteTask = null;
         _npc.Spawner.DespawnWithRespawn(_npc);
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

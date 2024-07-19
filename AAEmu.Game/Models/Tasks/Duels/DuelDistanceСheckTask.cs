@@ -18,10 +18,10 @@ public class DuelDistanceСheckTask : Task
         _challengedId = duel.Challenged.Id;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_duel.DuelDistanceСheckTask == null)
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
 
         var res = DuelManager.Instance.DuelDistanceСheck(_challengerId);
         switch (res)
@@ -39,7 +39,5 @@ public class DuelDistanceСheckTask : Task
             default:
                 throw new ArgumentOutOfRangeException();
         }
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

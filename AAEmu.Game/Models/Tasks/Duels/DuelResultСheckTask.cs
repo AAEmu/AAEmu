@@ -16,10 +16,10 @@ public class DuelResultСheckTask : Task
         _challengedId = duel.Challenged.Id;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_duel.DuelResultСheckTask == null)
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
 
         var res = DuelManager.Instance.DuelResultСheck(_challengerId);
         if (res)
@@ -37,7 +37,5 @@ public class DuelResultСheckTask : Task
                 DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Draw, _challengedId);
             }
         }
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

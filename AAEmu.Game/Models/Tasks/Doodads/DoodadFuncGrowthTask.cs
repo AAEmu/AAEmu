@@ -24,7 +24,7 @@ public class DoodadFuncGrowthTask : DoodadFuncTask
         _endScale = endScale;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_caster is Character)
             Logger.Debug("[Doodad] DoodadFuncGrowthTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
@@ -37,6 +37,6 @@ public class DoodadFuncGrowthTask : DoodadFuncTask
 
         _owner.DoChangePhase(_caster, _nextPhase);
 
-        return System.Threading.Tasks.Task.CompletedTask;
+        return;
     }
 }

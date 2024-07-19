@@ -4,10 +4,8 @@ namespace AAEmu.Game.Models.Tasks.Slave;
 
 public class SendMySlaveTask : Task
 {
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         SlaveManager.Instance.SendMySlavePacketToAllOwners();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

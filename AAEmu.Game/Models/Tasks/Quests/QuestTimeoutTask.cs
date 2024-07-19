@@ -21,10 +21,8 @@ public class QuestTimeoutTask : Task
         _questId = questId;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         QuestManager.Instance.OnTimerExpired(_owner, _questId);
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

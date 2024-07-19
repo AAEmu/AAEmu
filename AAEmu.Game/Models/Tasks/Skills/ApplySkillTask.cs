@@ -22,11 +22,9 @@ public class ApplySkillTask : Task
         _skillObject = skillObject;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         _skill.ApplyEffects(_caster, _casterCaster, _target, _targetCaster, _skillObject);
         _skill.EndSkill(_caster);
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -20,10 +20,8 @@ public class UseSkillTask : Task
         _skillObject = skillObject;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         _skill.Use(_caster, _casterCaster, _targetCaster, _skillObject, true, out _);
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -10,7 +10,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.StaticValues;
 using NLog;
-using NLog.Config;
 
 namespace AAEmu.Game.Models.Tasks.CashShop;
 
@@ -31,7 +30,7 @@ public class CashShopBuyTask : Task
         _shoppingCart = shoppingCart;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         #region check_costs
         // Calculate costs (of all different types in the cart)
@@ -46,7 +45,7 @@ public class CashShopBuyTask : Task
         {
             _buyer.SendErrorMessage(ErrorMessageType.IngameShopNotEnoughAaCash); // Not sure if this is the correct error
             _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
         }
 
         // TODO: Check AA Points
@@ -64,7 +63,7 @@ public class CashShopBuyTask : Task
         {
             _buyer.SendErrorMessage(ErrorMessageType.IngameShopNotEnoughBmMileage);
             _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-            return System.Threading.Tasks.Task.CompletedTask; ;
+            return;
         }
 
         // Check Copper Coins
@@ -72,7 +71,7 @@ public class CashShopBuyTask : Task
         {
             _buyer.SendErrorMessage(ErrorMessageType.NotEnoughCoin);
             _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-            return System.Threading.Tasks.Task.CompletedTask; ;
+            return;
         }
         #endregion
 
@@ -85,7 +84,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyFail); // generic error
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Event Date
@@ -93,7 +92,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopExpiredSellByDate);
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Sale Start Date
@@ -101,7 +100,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopExpiredSellByDate);
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Sale End Date
@@ -109,7 +108,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopExpiredSellByDate);
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Minimum Level
@@ -117,7 +116,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyLowLevel);
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Maximum Level
@@ -125,7 +124,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyLowLevel); // Likely not the correct one, but don't see a shop one for max level
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Minimum Level by Restriction Type
@@ -133,7 +132,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyLowLevel);
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Quest by Restriction Type
@@ -141,7 +140,7 @@ public class CashShopBuyTask : Task
             {
                 _buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyQuestIncomplete);
                 _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                return System.Threading.Tasks.Task.CompletedTask; ;
+                return;
             }
 
             // Check Remaining Stock (limited stock items)
@@ -159,7 +158,7 @@ public class CashShopBuyTask : Task
                 {
                     _buyer.SendErrorMessage(ErrorMessageType.IngameShopSoldOut);
                     _buyer.SendPacket(new SCICSBuyResultPacket(false, _buyMode, _targetPlayer.Name, 0));
-                    return System.Threading.Tasks.Task.CompletedTask; ;
+                    return;
                 }
             }
 
@@ -307,7 +306,5 @@ public class CashShopBuyTask : Task
         }
 
         #endregion
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -11,10 +11,8 @@ public class KillPortalTask : Task
         _portal = portal;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         _portal.Delete();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

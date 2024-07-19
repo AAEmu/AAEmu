@@ -9,10 +9,8 @@ public class TimedRewardsTask : Task
         //
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         TimedRewardsManager.Instance.DoTick();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -18,7 +18,7 @@ public class CraftTask : Task
         _count = count;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_count > 0)
         {
@@ -26,7 +26,5 @@ public class CraftTask : Task
             var craft = CraftManager.Instance.GetCraftById(_craftId);
             _character?.Craft.Craft(craft, _count, _objId);
         }
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }

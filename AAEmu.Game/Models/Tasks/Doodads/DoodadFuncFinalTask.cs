@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
@@ -33,7 +32,7 @@ public class DoodadFuncFinalTask : DoodadFuncTask
         _delay = delay;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         if (_caster is Character)
             Logger.Debug("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
@@ -47,7 +46,7 @@ public class DoodadFuncFinalTask : DoodadFuncTask
                 _owner.Spawner.Despawn(_owner);
                 _respawnTime = DateTime.UtcNow;
                 TaskManager.Instance.Schedule(_owner.FuncTask, TimeSpan.FromMilliseconds(_delay));
-                return System.Threading.Tasks.Task.CompletedTask;
+                return;
             }
 
             var world = WorldManager.Instance.GetWorld(_owner.Transform.WorldId);
@@ -68,6 +67,6 @@ public class DoodadFuncFinalTask : DoodadFuncTask
             }
         }
 
-        return System.Threading.Tasks.Task.CompletedTask;
+        return;
     }
 }

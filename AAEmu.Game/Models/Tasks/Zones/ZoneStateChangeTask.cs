@@ -11,11 +11,9 @@ public class ZoneStateChangeTask : Task
         ZoneConflict = zc;
     }
 
-    public override System.Threading.Tasks.Task ExecuteAsync()
+    public override void Execute()
     {
         // Just checking for timer should be enough to trigger the next state
         ZoneConflict.CheckTimer();
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 }
