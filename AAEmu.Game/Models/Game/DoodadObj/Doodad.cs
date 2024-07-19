@@ -148,7 +148,7 @@ public class Doodad : BaseUnit
             }
         }
     }
-    public FarmType FarmType { get; set; } 
+    public FarmType FarmType { get; set; }
     public uint QuestGlow { get; set; } //0 off // 1 on
     public int PuzzleGroup { get; set; } = -1; // -1 off
     public DoodadSpawner Spawner { get; set; }
@@ -573,8 +573,8 @@ public class Doodad : BaseUnit
     public uint GetFuncGroupId()
     {
         return (from funcGroup in Template.FuncGroups
-            where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
-            select funcGroup.Id).FirstOrDefault();
+                where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
+                select funcGroup.Id).FirstOrDefault();
     }
 
     public void OnSkillHit(BaseUnit caster, uint skillId)

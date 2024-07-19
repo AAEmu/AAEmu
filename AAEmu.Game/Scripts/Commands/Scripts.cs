@@ -80,13 +80,13 @@ public class Scripts : ICommand
                     SaveManager.Instance.ShutdownTask = null;
                     return;
                 }
-                
+
                 if (doCancel)
                 {
                     character.SendMessage($"[Scripts] No shutdown to cancel");
                     return;
                 }
-                
+
                 if (SaveManager.Instance.ShutdownTask != null)
                 {
                     character.SendMessage($"[Scripts] Shutdown was already in progress, changed to {shutdownTimeRemaining.TotalMinutes:F0} minutes from now.");

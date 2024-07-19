@@ -86,12 +86,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Updates", "Updates", "{6573
 		SQL\updates\2022-07-28_aaemu_game_expire_item.sql = SQL\updates\2022-07-28_aaemu_game_expire_item.sql
 		SQL\updates\2022-09-22_aaemu_game_mail_text.sql = SQL\updates\2022-09-22_aaemu_game_mail_text.sql
 		SQL\updates\2022-09-23_aaemu_game_characters_experience.sql = SQL\updates\2022-09-23_aaemu_game_characters_experience.sql
-		SQL\updates\readme.txt = SQL\updates\readme.txt
 		SQL\updates\2023-10-08_aaemu_game_slaves.sql = SQL\updates\2023-10-08_aaemu_game_slaves.sql
 		SQL\updates\2024-02-16_aaemu_game_ics.sql = SQL\updates\2024-02-16_aaemu_game_ics.sql
 		SQL\updates\2024-03-11_aaemu_game_item_containers.sql = SQL\updates\2024-03-11_aaemu_game_item_containers.sql
 		SQL\updates\2024-05-04_aaemu_game_slaves_update.sql = SQL\updates\2024-05-04_aaemu_game_slaves_update.sql
 		SQL\updates\2024-05-10_aaemu_game_account_update.sql = SQL\updates\2024-05-10_aaemu_game_account_update.sql
+		SQL\updates\readme.txt = SQL\updates\readme.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4D10DE27-69C5-4826-8758-322DD4E7AFE5}"

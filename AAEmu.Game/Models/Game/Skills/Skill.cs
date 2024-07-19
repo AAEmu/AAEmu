@@ -104,7 +104,7 @@ public class Skill
             skillResultValueUInt = requirementResult.ResultUInt;
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
         }
-        
+
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
@@ -980,7 +980,7 @@ public class Skill
                         lastAppliedEffect.ConsumeItemCount);
                     if (inventory || equipment)
                     {
-                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));    
+                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));
                     }
                 }
             }
