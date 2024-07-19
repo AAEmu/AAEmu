@@ -167,6 +167,8 @@ public class Buffs : IBuffs
     public bool CheckBuffTag(uint tagId)
     {
         var buffs = SkillManager.Instance.GetBuffsByTagId(tagId);
+        if (buffs == null)
+            return false;
 
         // Create a copy of the list of effects to avoid changing the list while iterating
         IEnumerable<Buff> effects;
