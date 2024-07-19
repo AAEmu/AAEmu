@@ -8,7 +8,7 @@ public class QuestManagerRunQueueTask : Task
     {
         //
     }
-    
+
     public override void Execute()
     {
         QuestManager.Instance.DoQueuedEvaluations();

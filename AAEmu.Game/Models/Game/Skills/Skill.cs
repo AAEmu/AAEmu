@@ -186,7 +186,7 @@ public class Skill
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
         {
-            Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
+            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
             if (Template.PlotOnly)
                 return SkillResult.Success;
         }

@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 
 namespace AAEmu.Game.Models.Tasks.Slave;
 

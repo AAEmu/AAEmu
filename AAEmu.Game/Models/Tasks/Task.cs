@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using NCrontab;
 
+using DotNetTask = System.Threading.Tasks.Task;
+
 namespace AAEmu.Game.Models.Tasks;
 
 public abstract class Task
@@ -23,19 +25,18 @@ public abstract class Task
         Cancelled = false;
     }
 
+    public virtual DotNetTask ExecuteAsync()
+    {
+        // By default the async will run the Synchronous execution
+        // except when the execute async is overridden.
+        Execute();
+
+        return DotNetTask.CompletedTask;
+    }
+
     public abstract void Execute();
 
-    public Task<bool> CancelAsync()
-    {
-        var result = TaskManager.Instance.Cancel(this);
-        if (result)
-        {
-            OnCancel();
-            return System.Threading.Tasks.Task.FromResult(true);
-        }
-
-        return System.Threading.Tasks.Task.FromResult(false);
-    }
+    public Task<bool> CancelAsync() => DotNetTask.FromResult(Cancel());
 
     public bool Cancel()
     {

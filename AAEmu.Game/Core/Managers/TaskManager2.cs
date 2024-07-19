@@ -44,10 +44,7 @@ namespace AAEmu.Game.Core.Managers
                 if (task.TriggerTime >= now)
                     continue;
 
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    task.Execute();
-                });
+                System.Threading.Tasks.Task.Run(task.ExecuteAsync);
                 task.ExecuteCount++;
 
                 // Check if there still needs to be executions done
