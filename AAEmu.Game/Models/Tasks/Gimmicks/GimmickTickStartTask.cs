@@ -8,12 +8,4 @@ public class GimmickTickStartTask : Task
     {
         GimmickManager.Instance.GimmickTick();
     }
-
-    public override System.Threading.Tasks.Task ExecuteAsync()
-    {
-        Execute();
-        return System.Threading.Tasks.Task.CompletedTask;
-    }
-
-
 }

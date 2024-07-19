@@ -87,7 +87,7 @@ namespace AAEmu.Game.Core.Managers
             // If it's only supposed to run once and immediately, then don't queue it, and just run now
             if ((startDelay.HasValue && startDelay.Value == TimeSpan.Zero) && (count >= 0) && (count <= 1))
             {
-                System.Threading.Tasks.Task.Run(task.ExecuteAsync);
+                task.Execute();
                 ReleaseId(task.Id);
                 return true;
             }
@@ -123,7 +123,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (startDelay.HasValue && startDelay.Value == TimeSpan.Zero)
             {
-                System.Threading.Tasks.Task.Run(task.ExecuteAsync);
+                task.Execute();
                 ReleaseId(task.Id);
                 return true;
             }
