@@ -202,13 +202,13 @@ public class DuelManager : Singleton<DuelManager>
 
             if (duel.DuelStartTask != null)
             {
-                _ = duel.DuelStartTask.CancelAsync();
+                _ = duel.DuelStartTask.Cancel();
                 duel.DuelStartTask = null;
             }
 
             if (duel.DuelEndTimerTask != null)
             {
-                _ = duel.DuelEndTimerTask.CancelAsync();
+                _ = duel.DuelEndTimerTask.Cancel();
                 duel.DuelEndTimerTask = null;
             }
 
@@ -283,7 +283,7 @@ public class DuelManager : Singleton<DuelManager>
             var duel = _duels[id];
             if (duel.Challenger.Hp <= 1 || duel.Challenged.Hp <= 1)
             {
-                _ = duel.DuelResultСheckTask.CancelAsync();
+                duel.DuelResultСheckTask.Cancel();
                 duel.DuelResultСheckTask = null;
                 return true;
             }
@@ -313,7 +313,7 @@ public class DuelManager : Singleton<DuelManager>
                 if (duel.DuelDistanceСheckTask == null)
                     return DuelDistance.ChallengerFar; // сдается тот, кто вызывал на дуэль, т.е. убежал от флага
 
-                _ = duel.DuelDistanceСheckTask.CancelAsync();
+                _ = duel.DuelDistanceСheckTask.Cancel();
                 duel.DuelDistanceСheckTask = null;
                 return DuelDistance.ChallengerFar; // сдается тот, кто вызывал на дуэль, т.е. убежал от флага
             }
@@ -325,7 +325,7 @@ public class DuelManager : Singleton<DuelManager>
                 if (duel.DuelDistanceСheckTask == null)
                     return DuelDistance.ChallengedFar; // сдается тот, кого вызвали на дуэль, т.е. убежал от флага
 
-                _ = duel.DuelDistanceСheckTask.CancelAsync();
+                _ = duel.DuelDistanceСheckTask.Cancel();
                 duel.DuelDistanceСheckTask = null;
                 return DuelDistance.ChallengedFar; // сдается тот, кого вызвали на дуэль, т.е. убежал от флага
             }

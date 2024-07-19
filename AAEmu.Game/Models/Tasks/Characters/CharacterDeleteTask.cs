@@ -20,10 +20,4 @@ public class CharacterDeleteTask : Task
             }
         }
     }
-
-    public override System.Threading.Tasks.Task ExecuteAsync()
-    {
-        Execute();
-        return System.Threading.Tasks.Task.CompletedTask;
-    }
 }
