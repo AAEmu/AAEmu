@@ -20,20 +20,7 @@ public class DuelEndTimerTask : Task
             return;
 
         await _duel.DuelEndTimerTask.CancelAsync();
-        _duel.DuelEndTimerTask = null;
-
-        if (_duel.Challenger.Hp < _duel.Challenged.Hp)
-        {
-            DuelManager.Instance.DuelStop(_duel.Challenged.Id, DuelDetType.Win, _challengerId);
-        }
-        else if (_duel.Challenger.Hp > _duel.Challenged.Hp)
-        {
-            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Win, _duel.Challenged.Id);
-        }
-        else if (_duel.Challenger.Hp == _duel.Challenged.Hp)
-        {
-            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Draw, _duel.Challenged.Id);
-        }
+        InternalExecute();
     }
 
     public override void Execute()
@@ -42,6 +29,11 @@ public class DuelEndTimerTask : Task
             return;
 
         _duel.DuelEndTimerTask.Cancel();
+        InternalExecute();
+    }
+
+    private void InternalExecute()
+    {
         _duel.DuelEndTimerTask = null;
 
         if (_duel.Challenger.Hp < _duel.Challenged.Hp)

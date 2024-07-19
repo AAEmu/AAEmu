@@ -47,7 +47,5 @@ public class DoodadFuncTimerTask : DoodadFuncTask
                 }
             }
         }
-
-        return;
     }
 }

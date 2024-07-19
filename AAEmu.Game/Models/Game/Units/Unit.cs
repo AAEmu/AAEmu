@@ -443,10 +443,10 @@ public class Unit : BaseUnit, IUnit
                 //case Npc:
                 //    break;
                 case Mate mate:
-                    DespawMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
+                    DespawnMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
                     break;
                 case Character character:
-                    DespawMate(character);
+                    DespawnMate(character);
                     break;
                 //default:
                 //    break;
@@ -506,7 +506,6 @@ public class Unit : BaseUnit, IUnit
                             Logger.Warn("Next eligible looter was null");
                         }
                     }
-                  
                 }
                 else if (unit.CharacterTagging.Tagger != null)
                 {
@@ -553,23 +552,23 @@ public class Unit : BaseUnit, IUnit
 
             if (killer is Character character)
             {
-                StopAutoSkillAsync(character);
+                StopAutoSkill(character);
                 character.IsInBattle = false; // we need the character to be "not in battle"
-                DespawMate(character);
+                DespawnMate(character);
             }
             else if (((Unit)killer).CurrentTarget is Character character2)
             {
-                StopAutoSkillAsync(character2);
+                StopAutoSkill(character2);
                 character2.IsInBattle = false; // we need the character to be "not in battle"
                 character2.DeadTime = DateTime.UtcNow;
-                DespawMate(character2);
+                DespawnMate(character2);
             }
 
             ((Unit)killer).CurrentTarget = null;
         }
     }
 
-    private static void DespawMate(Character character)
+    private static void DespawnMate(Character character)
     {
         // if we died sitting on a horse
         if (character.Hp > 0) { return; }
@@ -581,11 +580,11 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public System.Threading.Tasks.Task StopAutoSkillAsync(Unit unit)
+    public void StopAutoSkill(Unit unit)
     {
         if (unit.AutoAttackTask is null || !(unit is Character character))
         {
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
         }
 
         character.AutoAttackTask.Cancelled = true;
@@ -597,8 +596,6 @@ public class Unit : BaseUnit, IUnit
         character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
         TlIdManager.Instance.ReleaseId(character.TlId);
         */
-
-        return System.Threading.Tasks.Task.CompletedTask;
     }
 
     public void StartAutoSkill(Skill skill)
@@ -636,13 +633,13 @@ public class Unit : BaseUnit, IUnit
     }
 
     [Obsolete("This method is deprecated", false)]
-    public async System.Threading.Tasks.Task StopRegenAsync()
+    public void StopRegen()
     {
         if (_regenTask == null)
         {
             return;
         }
-        await _regenTask.CancelAsync();
+        _regenTask.Cancel();
         _regenTask = null;
     }
 

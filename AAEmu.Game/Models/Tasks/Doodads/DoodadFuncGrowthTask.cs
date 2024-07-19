@@ -36,7 +36,5 @@ public class DoodadFuncGrowthTask : DoodadFuncTask
         _owner.FuncTask = null;
 
         _owner.DoChangePhase(_caster, _nextPhase);
-
-        return;
     }
 }
