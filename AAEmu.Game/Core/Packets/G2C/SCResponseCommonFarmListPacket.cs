@@ -1,32 +1,47 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
+using AAEmu.Game.Models.Game.DoodadObj;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCResponseCommonFarmListPacket : GamePacket
 {
-    public class SCResponseCommonFarmListPacket : GamePacket
+    private readonly Dictionary<FarmType, List<Doodad>> _allPlanted;
+
+    public SCResponseCommonFarmListPacket(Dictionary<FarmType, List<Doodad>> allPlanted)
+        : base(SCOffsets.SCResponseCommonFarmListPacket, 1)
     {
-        private readonly int _maxCount;
-        
-        public SCResponseCommonFarmListPacket(int maxCount) : base(SCOffsets.SCResponseCommonFarmListPacket, 1)
-        {
-            _maxCount = maxCount;
-        }
+        _allPlanted = allPlanted;
+    }
 
-        public override PacketStream Write(PacketStream stream)
+    public override PacketStream Write(PacketStream stream)
+    {
+        //Need to send all data for all 4 tabs here!
+
+        stream.Write(_allPlanted.Values.Sum(l => l.Count));
+        stream.Write(_allPlanted.Values.Sum(l => l.Count));
+
+        foreach (FarmType type in Enum.GetValues(typeof(FarmType)))
         {
-            stream.Write(_maxCount);
-            stream.Write(0); // count
-            for (var i = 0; i < 0; i++) // TODO growing item
+            if (_allPlanted.TryGetValue(type, out var doodadList))
             {
-                stream.Write(0u); // type(id)
-                stream.Write(0u); // type(id)
-                stream.Write(0u); // growing
-                stream.Write(0u); // currentPhase, mb id
-                stream.WritePosition(0f, 0f, 0f);
-                stream.Write(0L); // plantTime
+                foreach (var doodad in doodadList)
+                {
+                    stream.Write((uint)type);
+                    stream.Write(doodad.TemplateId);
+                    stream.Write(doodad.TimeLeft);
+                    stream.Write(doodad.FuncGroupId);
+                    stream.WritePosition(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z);
+                    stream.Write(doodad.PlantTime);
+                }
             }
-
-            return stream;
         }
+
+        return stream;
     }
 }

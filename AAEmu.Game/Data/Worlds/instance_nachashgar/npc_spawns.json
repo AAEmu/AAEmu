@@ -1,29 +1,1318 @@
 [
+  // Room_1 Region 
+  // Abyssal Trap
   {
     "UnitId": 502,
+    "Title": "Temple Priestess",
     "Position": {
-      "X": 336.5,
-      "Y": 390.5,
-      "Z": 151.7,
-      "Yaw": 253.125
+      "X": 336.642,
+      "Y": 387.616,
+      "Z": 151.6979,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
     }
   },
   {
-    "UnitId": 12506,
+    // InIdle=24608
+    // OnDeath=24599
+    // OnCombat=24604
+    // OnCombat=21572
+    // OnCombat=21570
+    // OnCombat=20584
+    "UnitId": 14670, // босс первой комнаты
+    "Title": "Serpentis Keeper",
     "Position": {
-      "X": 399.4,
-      "Y": 398.4,
-      "Z": 151.7,
-      "Yaw": -253.125
+      "X": 400.0,
+      "Y": 395.0,
+      "Z": 151.6979,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
     }
   },
   {
-    "UnitId": 12506,
+    // InIdle=24609
+    // OnDeath=24605
+    // OnCombat=21893
+    // OnCombat=21572
+    // OnCombat=21570
+    // OnCombat=20584
+    "UnitId": 14671, // босс первой комнаты
+    "Title": "Serpentis Keeper",
     "Position": {
-      "X": 399.4,
-      "Y": 359.4,
-      "Z": 151.7,
-      "Yaw": -253.125
+      "X": 401.0,
+      "Y": 359.0,
+      "Z": 151.7459,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 14672,
+    "Title": "Nachashgar_Room 1_For Treasure Chest Summoning",
+    "NpcSpawnerIds": [ 135376 ],
+    "Position": {
+      "X": 352.0,
+      "Y": 380.0,
+      "Z": 146.693,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13433,
+    "Title": "Abyssal Trap Chest",
+    "NpcSpawnerIds": [ 118264 ],
+    "Position": {
+      "X": 390.312,
+      "Y": 377.03,
+      "Z": 152.0981,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+ {
+    "UnitId": 13558, // этот Npc вызвается с помощью id=6992 Distorted Dimension Repair Bench
+    "Title": "Distorted Dimension Repair Bench",
+    "NpcSpawnerIds": [ 120707 ],
+    "Position": {
+      "X": 342.16,
+      "Y": 370.16,
+      "Z": 151.6979,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  // Room_1 End_Region
+  // Room_2.1 Region Mouth of Chaos
+  // Mouth of Chaos
+  {
+    "UnitId": 12974,
+    "Title": "Aunorin Fangbow",
+    "NpcSpawnerIds": [ 133274 ],
+    "Position": {
+      "X": 685.248,
+      "Y": 856.886,
+      "Z": 132.6635,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  // Room_2.1 End_Region Mouth of Chaos
+  // Room_2.2 Region Nightmare Entrance
+  // Nightmare's Embrace
+  // Room_2.2 End_Region Mouth of Chaos
+  // Room_2.3 Creatures's Vault
+  // Creatures's Vault
+  // Room_2.3 End_Region Mouth of Chaos
+  // Room_2 End_Region
+  // Room_3 Region Sanctuary of Darkness
+  // Sanctuary of Darkness
+  // Room_3 End_Region Sanctuary of Darkness
+  // Room_4
+  // Room_4.1 Region Laboratory of Terrors
+  // Laboratory of Terrors
+  // Room_4.2 Region Duskfallen Hall
+  // Duskfallen Hall
+  // Room_4.2 End_Region Duskfallen Hall
+  // Room_4.3 Region
+  // Room_4.3 End_Region
+  // Laboratory of Terrors
+  // Room_5.1 Region Dimensional Crevice (Carmilla)
+  // Dimensional Crevice
+  // Room_5.1 End_Region Dimensional Crevice (Carmilla)
+  // Room_6 Region Shattered Chasm
+  // Shattered Chasm
+ // Room_6 End_Region Shattered Chasm
+  {
+    // OnSpawn=21698
+    // InIdle=21756
+    // OnDeath=22403
+    // OnCombat=21025
+    // OnCombat=22402
+    // OnCombat=22639
+    // OnCombat=22290
+    // OnCombat=22654
+    "UnitId": 13040,
+    "Title": "Conqueror Cellus",
+    "NpcSpawnerIds": [ 113113 ],
+    "Position": {
+      "X": 741.744,
+      "Y": 598.928,
+      "Z": 118.2899,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+      // босс
+    "UnitId": 12971,
+    "Title": "Lerman",
+    "NpcSpawnerIds": [ 108109 ],
+    "Position": {
+      "X": 519.5,
+      "Y":  385.5,
+      "Z":  150.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12904,
+    "Title": "Awakened Keeper",
+    "Position": {
+      "X": 519.5,
+      "Y":  385.5,
+      "Z":  150.6,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13065,
+    "Title": "Dominated Archaic Believer",
+    "NpcSpawnerIds": [ 117849 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13065,
+    "Title": "Dominated Archaic Believer",
+    "NpcSpawnerIds": [ 117858 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13095,
+    "Title": "Dominated Archaic Believer",
+    "NpcSpawnerIds": [ 117856 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13095,
+    "Title": "Dominated Archaic Believer",
+    "NpcSpawnerIds": [ 117850 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13096,
+    "Title": "Dominated Creation of Pain",
+    "NpcSpawnerIds": [ 117861 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13097,
+    "Title": "Dominated Creation of Screams",
+    "NpcSpawnerIds": [ 117856 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13097,
+    "Title": "Dominated Creation of Screams",
+    "NpcSpawnerIds": [ 117857 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13098,
+    "Title": "Dominated Lost Tribe Fighter",
+    "NpcSpawnerIds": [ 117855 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13098,
+    "Title": "Dominated Lost Tribe Fighter",
+    "NpcSpawnerIds": [ 117857 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13100,
+    "Title": "Dominated Lost Tribe Fighter",
+    "NpcSpawnerIds": [ 117850 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13121,
+    "Title": "Dominated Archaic Ascetic",
+    "NpcSpawnerIds": [ 117850 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13121,
+    "Title": "Dominated Archaic Ascetic",
+    "NpcSpawnerIds": [ 117861 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13121,
+    "Title": "Dominated Archaic Ascetic",
+    "NpcSpawnerIds": [ 117855 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13122,
+    "Title": "Dominated Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 117858 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13122,
+    "Title": "Dominated Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 117857 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13122,
+    "Title": "Dominated Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 117861 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13122,
+    "Title": "Dominated Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 117856 ],
+    "Position": {
+      "X": 750.772,
+      "Y": 603.198,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13440,
+    "Title": "Mouth of Chaos Chest",
+    "NpcSpawnerIds": [ 118272 ],
+    "Position": {
+      "X": 756.828,
+      "Y": 598.962,
+      "Z": 118.2909,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13222,
+    "Title": "Nachashgar_SpawnSlave4_1",
+    "NpcSpawnerIds": [ 115298 ],
+    "Position": {
+      "X": 872.926,
+      "Y": 420.646,
+      "Z": 146.2228,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  //
+  {
+    "UnitId": 13238,
+    "Title": "Nachashgar_SpawnSlave6_7",
+    "NpcSpawnerIds": [ 117127 ],
+    "Position": {
+      "X": 355.018,
+      "Y": 603.332,
+      "Z": 144.9393,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13235,
+    "Title": "Nachashgar_SpawnSlave6_4",
+    "NpcSpawnerIds": [ 117131 ],
+    "Position": {
+      "X": 376.732,
+      "Y": 608.2,
+      "Z": 146.2588,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13464,
+    "Title": "Nachashgar_SpawnSlave2",
+    "NpcSpawnerIds": [ 119052 ],
+    "Position": {
+      "X": 523.318,
+      "Y": 385.168,
+      "Z": 144.9023,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13237,
+    "Title": "Nachashgar_SpawnSlave6_6",
+    "NpcSpawnerIds": [ 117132 ],
+    "Position": {
+      "X": 400.57,
+      "Y": 605.424,
+      "Z": 148.0015,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13332,
+    "Title": "Nachashgar_SpawnSlave7_5",
+    "NpcSpawnerIds": [ 116980 ],
+    "Position": {
+      "X": 547.506,
+      "Y": 554.164,
+      "Z": 144.7602,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  // босс sanctuary of darkness
+  {
+    "UnitId": 12605,
+    "Title": "Distorted Duaxini",
+    "NpcSpawnerIds": [ 132853 ],
+    "Position": {
+      "X": 1144.87,
+      "Y": 387.006,
+      "Z": 151.2908,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 115.3125
+    }
+  },
+  {
+    "UnitId": 13437,
+    "Title": "Sanctuary of Darkness Chest",
+    "NpcSpawnerIds": [ 118269 ],
+    "Position": {
+      "X": 1146.05,
+      "Y": 388.314,
+      "Z": 151.6899,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12523,
+    "Title": "Fremen",
+    "NpcSpawnerIds": [ 108844 ],
+    "Position": {
+      "X": 690.162,
+      "Y": 410.092,
+      "Z": 154.1549,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -129.375
+    }
+  },
+  {
+    "UnitId": 12746,
+    "Title": "Lost Tribe Warrior",
+    "NpcSpawnerIds": [ 116987 ],
+    "Position": {
+      "X": 557.538,
+      "Y": 577.2,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12682,
+    "Title": "Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 116986 ],
+    "Position": {
+      "X": 557.454,
+      "Y": 573.444,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12700,
+    "Title": "Bloodhand Captain",
+    "NpcSpawnerIds": [ 116988 ],
+    "Position": {
+      "X": 560.566,
+      "Y": 579.202,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12751,
+    "Title": "Bloodhand Magician",
+    "NpcSpawnerIds": [ 116993 ],
+    "Position": {
+      "X": 557.696,
+      "Y": 580.854,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12682,
+    "Title": "Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 116991 ],
+    "Position": {
+      "X": 560.48,
+      "Y": 575.446,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  // Womb of the Crimson Dream
+  {
+    "UnitId": 12984,
+    "Title": "Bloodhand Sniper",
+    "NpcSpawnerIds": [ 117007 ],
+    "Position": {
+      "X": 574.768,
+      "Y": 572.692,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12751,
+    "Title": "Bloodhand Magician",
+    "NpcSpawnerIds": [ 117017 ],
+    "Position": {
+      "X": 574.682,
+      "Y": 580.732,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12751,
+    "Title": "Bloodhand Magician",
+    "NpcSpawnerIds": [ 117011 ],
+    "Position": {
+      "X": 574.714,
+      "Y": 577.034,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12989,
+    "Title": "Shadowed Creation of Pain",
+    "NpcSpawnerIds": [ 117004 ],
+    "Position": {
+      "X": 577.316,
+      "Y": 579.092,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12682,
+    "Title": "Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 117006 ],
+    "Position": {
+      "X": 577.37,
+      "Y": 574.75,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12682,
+    "Title": "Lost Tribe Hunter",
+    "NpcSpawnerIds": [ 117008 ],
+    "Position": {
+      "X": 548.084,
+      "Y": 603.108,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    }
+  },
+  {
+    "UnitId": 12751,
+    "Title": "Bloodhand Magician",
+    "NpcSpawnerIds": [ 117014 ],
+    "Position": {
+      "X": 543.422,
+      "Y": 603.038,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    }
+  },
+  {
+    "UnitId": 12986,
+    "Title": "Rabid Creation of Screams",
+    "NpcSpawnerIds": [ 117010 ],
+    "Position": {
+      "X": 552.76,
+      "Y": 603.034,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    }
+  },
+  {
+    "UnitId": 12612,
+    "Title": "Lost Tribe Shaman",
+    "NpcSpawnerIds": [ 117013 ],
+    "Position": {
+      "X": 545.482,
+      "Y": 606.176,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    }
+  },
+  {
+    "UnitId": 12984,
+    "Title": "Bloodhand Sniper",
+    "NpcSpawnerIds": [ 117012 ],
+    "Position": {
+      "X": 550.146,
+      "Y": 606.1,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -177.1875
+    }
+  },
+  {
+    "UnitId": 12984,
+    "Title": "Bloodhand Sniper",
+    "NpcSpawnerIds": [ 117033 ],
+    "Position": {
+      "X": 547.572,
+      "Y": 551.518,
+      "Z": 145.0573,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 12984,
+    "Title": "Bloodhand Sniper",
+    "NpcSpawnerIds": [ 117039 ],
+    "Position": {
+      "X": 551.752,
+      "Y": 551.378,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 12614,
+    "Title": "Lost Tribe Champion",
+    "NpcSpawnerIds": [ 117036 ],
+    "Position": {
+      "X": 542.994,
+      "Y": 551.35,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13282,
+    "Title": "Balius",
+    "NpcSpawnerIds": [ 117043 ],
+    "Position": {
+      "X": 545.252,
+      "Y": 548.786,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 12751,
+    "Title": "Bloodhand Magician",
+    "NpcSpawnerIds": [ 117037 ],
+    "Position": {
+      "X": 549.882,
+      "Y": 548.736,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13439,
+    "Title": "Duskfallen Hall Chest",
+    "NpcSpawnerIds": [ 118271 ],
+    "Position": {
+      "X": 573.678,
+      "Y": 576.93,
+      "Z": 145.1354,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  // Room_5.1 Region Dimensional Crevice (Carmilla)
+  {
+    "UnitId": 14428,
+    "Title": "Nachashgar_Spawn_Carmilla",
+    "NpcSpawnerIds": [ 133353 ],
+    "Position": {
+      "X": 895.032,
+      "Y": 859.13,
+      "Z": 116.8243,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13441,
+    "Title": "Dimensional Crevice Chest",
+    "NpcSpawnerIds": [ 133257 ],
+    "Position": {
+      "X": 701.076,
+      "Y": 857.642,
+      "Z": 133.0376,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13441,
+    "Title": "Dimensional Crevice Chest",
+    "NpcSpawnerIds": [ 133291 ],
+    "Position": {
+      "X": 929.622,
+      "Y": 857.642,
+      "Z": 133.0376,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 12962,
+    "Title": "Sirothe the Infernal",
+    "NpcSpawnerIds": [ 132856 ],
+    "Position": {
+      "X": 1166.418,
+      "Y": 623.872,
+      "Z": 115.4838,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13487,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119534 ],
+    "Position": {
+      "X": 1139.0,
+      "Y": 642.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13616,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119533 ],
+    "Position": {
+      "X": 1140.0,
+      "Y": 607.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13617,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119532 ],
+    "Position": {
+      "X": 1157.0,
+      "Y": 624.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13617,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119532 ],
+    "Position": {
+      "X": 1157.0,
+      "Y": 624.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13487,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119534 ],
+    "Position": {
+      "X": 1139.0,
+      "Y": 642.0,
+      "Z": 115.6028,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13615,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119535 ],
+    "Position": {
+      "X": 1124.5,
+      "Y": 624.0,
+      "Z": 115.3998,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13616,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119533 ],
+    "Position": {
+      "X": 1140.0,
+      "Y": 607.0,
+      "Z": 115.5458,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13617,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119532 ],
+    "Position": {
+      "X": 1157.0,
+      "Y": 624.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13487,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119534 ],
+    "Position": {
+      "X": 1139.0,
+      "Y": 642.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13615,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119535 ],
+    "Position": {
+      "X": 1124.5,
+      "Y": 624.0,
+      "Z": 115.3998,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13616,
+    "Title": "Sirothe's Fireball",
+    "NpcSpawnerIds": [ 119533 ],
+    "Position": {
+      "X": 1140.0,
+      "Y": 607.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 14408,
+    "Title": "nachashgar_spawn_twistedhead",
+    "NpcSpawnerIds": [ 132852 ],
+    "Position": {
+      "X": 1120.358,
+      "Y": 387.432,
+      "Z": 144.3931,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 14427,
+    "Title": "Nachashgar_Spawn_Lerman",
+    "NpcSpawnerIds": [ 133352 ],
+    "Position": {
+      "X": 908.976,
+      "Y": 607.926,
+      "Z": 122.3535,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 12962,
+    "Title": "Sirothe the Infernal",
+    "Position": {
+      "X": 1166.418,
+      "Y": 623.872,
+      "Z": 115.4838,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13616,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1140.0,
+      "Y": 607.0,
+      "Z": 115.5308,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13615,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1124.5,
+      "Y": 624.0,
+      "Z": 115.3998,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13617,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1157.0,
+      "Y": 624.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13487,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1139.0,
+      "Y": 642.0,
+      "Z": 115.5308,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13617,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1157.0,
+      "Y": 624.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13487,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1139.0,
+      "Y": 642.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13615,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1124.5,
+      "Y": 624.0,
+      "Z": 115.3998,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13616,
+    "Title": "Sirothe's Fireball",
+    "Position": {
+      "X": 1140.0,
+      "Y": 607.0,
+      "Z": 115.6609,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13341,
+    "Title": "Nachashgar_Room 7_Invisible NPC",
+    "NpcSpawnerIds": [ 117182 ],
+    "Position": {
+      "X": 530.858,
+      "Y": 578.494,
+      "Z": 144.7352,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13328,
+    "Title": "Nachashgar_SpawnSlave7_1",
+    "Position": {
+      "X": 552.306,
+      "Y": 577.154,
+      "Z": 144.7352,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13329,
+    "Title": "Nachashgar_SpawnSlave7_2",
+    "Position": {
+      "X": 570.028,
+      "Y": 579.958,
+      "Z": 144.7352,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13330,
+    "Title": "Nachashgar_SpawnSlave7_3",
+    "Position": {
+      "X": 548.35,
+      "Y": 599.706,
+      "Z": 144.7352,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    }
+  },
+  {
+    "UnitId": 13465,
+    "Title": "Nachashgar_SpawnSlave8",
+    "Position": {
+      "X": 728.714,
+      "Y": 596.836,
+      "Z": 113.9552,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13225,
+    "Title": "Nachashgar_SpawnSlave4_4",
+    "Position": {
+      "X": 872.73,
+      "Y": 360.62,
+      "Z": 146.2218,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 177.1875
+    }
+  },
+  {
+    "UnitId": 13228,
+    "Title": "Nachashgar_SpawnSlave4_7",
+    "Position": {
+      "X": 900.286,
+      "Y": 391.226,
+      "Z": 146.2628,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13227,
+    "Title": "Nachashgar_SpawnSlave4_6",
+    "Position": {
+      "X": 918.226,
+      "Y": 360.62,
+      "Z": 146.2628,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 177.1875
+    }
+  },
+  {
+    "UnitId": 13224,
+    "Title": "Nachashgar_SpawnSlave4_3",
+    "Position": {
+      "X": 918.226,
+      "Y": 420.646,
+      "Z": 146.2548,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 14409,
+    "Title": "nachashgar_spawn_barki",
+    "Position": {
+      "X": 1137.97,
+      "Y": 625.57,
+      "Z": 107.9398,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13236,
+    "Title": "Nachashgar_SpawnSlave6_5",
+    "Position": {
+      "X": 400.976,
+      "Y": 559.672,
+      "Z": 149.8482,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13234,
+    "Title": "Nachashgar_SpawnSlave6_3",
+    "Position": {
+      "X": 372.726,
+      "Y": 577.184,
+      "Z": 147.2082,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 13232,
+    "Title": "Nachashgar_SpawnSlave6_1",
+    "Position": {
+      "X": 352.064,
+      "Y": 552.96,
+      "Z": 146.72,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 14429,
+    "Title": "nachashgar_spawn_honourin",
+    "Position": {
+      "X": 672.504,
+      "Y": 856.788,
+      "Z": 121.2811,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 12525,
+    "Title": "Kaizo the Gambler",
+    "Position": {
+      "X": 699.612,
+      "Y": 405.028,
+      "Z": 154.1899,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
     }
   }
 ]

@@ -14,315 +14,274 @@ using AAEmu.Game.Utils.DB;
 
 using NLog;
 
-namespace AAEmu.Game.Core.Managers
+using static System.String;
+
+namespace AAEmu.Game.Core.Managers;
+
+public class GimmickManager : Singleton<GimmickManager>
 {
-    public class GimmickManager : Singleton<GimmickManager>
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private bool _loaded = false;
+
+    private Dictionary<uint, GimmickTemplate> _templates;
+    private Dictionary<uint, Gimmick> _activeGimmicks;
+    private const double Delay = 50;
+    //private const double DelayInit = 1;
+    private Task GimmickTickTask { get; set; }
+
+    public bool Exist(uint templateId)
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-        private bool _loaded = false;
-        
-        private Dictionary<uint, GimmickTemplate> _templates;
-        private Dictionary<uint, Gimmick> _activeGimmicks;
-        private const double Delay = 50;
-        private const double DelayInit = 1;
-        private Task GimmickTickTask { get; set; }
+        return _templates.ContainsKey(templateId);
+    }
 
-        public bool Exist(uint templateId)
+    public GimmickTemplate GetGimmickTemplate(uint id)
+    {
+        return _templates.GetValueOrDefault(id);
+    }
+
+    /// <summary>
+    /// Create for spawning elevators
+    /// </summary>
+    /// <param name="objectId"></param>
+    /// <param name="templateId"></param>
+    /// <param name="spawner"></param>
+    /// <returns></returns>
+    public Gimmick Create(uint objectId, uint templateId, GimmickSpawner spawner)
+    {
+        /*
+         * for elevators: templateId=0 and Template=null, but EntityGuid is used
+         */
+
+        var gimmick = new Gimmick();
+        if (templateId != 0)
         {
-            return _templates.ContainsKey(templateId);
-        }
-
-        public GimmickTemplate GetGimmickTemplate(uint id)
-        {
-            return _templates.ContainsKey(id) ? _templates[id] : null;
-        }
-
-        public Gimmick Create(uint objectId, uint templateId, GimmickSpawner spawner)
-        {
-            if (!_templates.ContainsKey(templateId))
-            {
-                return null;
-            }
-
             var template = _templates[templateId];
             //var template = GetGimmickTemplate(templateId);
-
-            var gimmick = new Gimmick();
-            gimmick.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
-            gimmick.Spawner = spawner;
+            if (template == null) { return null; }
             gimmick.Template = template;
-            gimmick.GimmickId = gimmick.ObjId;
-            gimmick.TemplateId = template.Id; // duplicate Id
-            gimmick.Id = template.Id;
-            gimmick.Faction = new SystemFaction();
             gimmick.ModelPath = template.ModelPath;
-            gimmick.Patrol = null;
-            gimmick.Transform.ApplyWorldSpawnPosition(spawner.Position);
-            gimmick.Vel = new Vector3(0f, 0f, 0f);
-            gimmick.Rot = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
-            gimmick.ModelParams = new UnitCustomModelParams();
-
-            gimmick.Spawn();
-            _activeGimmicks.Add(gimmick.ObjId, gimmick);
-
-            return gimmick;
+            gimmick.EntityGuid = 0;
+        }
+        else
+        {
+            gimmick.Template = null;
+            gimmick.ModelPath = Empty;
+            gimmick.EntityGuid = spawner.EntityGuid;
         }
 
-        public void Load()
+        gimmick.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
+        gimmick.Spawner = spawner;
+        gimmick.TemplateId = templateId;
+        gimmick.Faction = new SystemFaction();
+        gimmick.Transform.ApplyWorldSpawnPosition(spawner.Position);
+        gimmick.Vel = new Vector3(0f, 0f, 0f);
+        gimmick.Rot = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
+        gimmick.ModelParams = new UnitCustomModelParams();
+        gimmick.SetScale(spawner.Scale);
+
+        if (gimmick.Transform.World.IsOrigin())
         {
-            if (_loaded)
-                return;
-            
-            _templates = new Dictionary<uint, GimmickTemplate>();
-            _activeGimmicks = new Dictionary<uint, Gimmick>();
+            Logger.Error($"Can't spawn gimmick {templateId}");
+            return null;
+        }
 
-            _log.Info("Loading gimmick templates...");
+        gimmick.Spawn(); // adding to the world
+        _activeGimmicks.Add(gimmick.ObjId, gimmick);
 
-            #region SQLLite
-            using (var connection = SQLite.CreateConnection())
+        return gimmick;
+    }
+
+    /// <summary>
+    /// Create for spawning projectiles
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    public Gimmick Create(uint templateId)
+    {
+        var template = _templates[templateId];
+        if (template == null) { return null; }
+
+        var gimmick = new Gimmick();
+        gimmick.ObjId = ObjectIdManager.Instance.GetNextId();
+        gimmick.Spawner = new GimmickSpawner();
+        gimmick.Template = template;
+        gimmick.TemplateId = template.Id;
+        gimmick.Faction = new SystemFaction();
+        gimmick.ModelPath = template.ModelPath;
+        gimmick.ModelParams = new UnitCustomModelParams();
+
+        return gimmick;
+    }
+
+    public void Load()
+    {
+        if (_loaded)
+            return;
+
+        _templates = new Dictionary<uint, GimmickTemplate>();
+        _activeGimmicks = new Dictionary<uint, Gimmick>();
+
+        Logger.Info("Loading gimmick templates...");
+
+        #region SQLLite
+        using (var connection = SQLite.CreateConnection())
+        {
+            using (var command = connection.CreateCommand())
             {
-                using (var command = connection.CreateCommand())
+                command.CommandText = "SELECT * FROM gimmicks";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
-                    command.CommandText = "SELECT * FROM gimmicks";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    while (reader.Read())
                     {
-                        while (reader.Read())
-                        {
-                            var template = new GimmickTemplate();
+                        var template = new GimmickTemplate();
 
-                            template.Id = reader.GetUInt32("id"); // GimmickId
-                            template.AirResistance = reader.GetFloat("air_resistance");
-                            template.CollisionMinSpeed = reader.GetFloat("collision_min_speed");
-                            //template.CollisionSkillId = reader.GetUInt32("collision_skill_id");
-                            //template.CollisionSkillId = reader.IsDBNull("collision_skill_id") ? 0 : reader.GetUInt32("collision_skill_id");
-                            template.CollisionSkillId = reader.GetUInt32("collision_skill_id", 0);
+                        template.Id = reader.GetUInt32("id"); // GimmickId
+                        template.AirResistance = reader.GetFloat("air_resistance");
+                        template.CollisionMinSpeed = reader.GetFloat("collision_min_speed");
+                        //template.CollisionSkillId = reader.GetUInt32("collision_skill_id");
+                        //template.CollisionSkillId = reader.IsDBNull("collision_skill_id") ? 0 : reader.GetUInt32("collision_skill_id");
+                        template.CollisionSkillId = reader.GetUInt32("collision_skill_id", 0);
 
-                            template.CollisionUnitOnly = reader.GetBoolean("collision_unit_only");
-                            template.Damping = reader.GetFloat("damping");
-                            template.Density = reader.GetFloat("density");
-                            template.DisappearByCollision = reader.GetBoolean("disappear_by_collision");
-                            template.FadeInDuration = reader.GetUInt32("fade_in_duration");
-                            template.FadeOutDuration = reader.GetUInt32("fade_out_duration");
-                            template.FreeFallDamping = reader.GetFloat("free_fall_damping");
-                            template.Graspable = reader.GetBoolean("graspable");
-                            template.Gravity = reader.GetFloat("gravity");
-                            template.LifeTime = reader.GetUInt32("life_time");
-                            template.Mass = reader.GetFloat("mass");
-                            template.ModelPath = reader.GetString("model_path");
-                            template.Name = reader.GetString("name");
-                            template.NoGroundCollider = reader.GetBoolean("no_ground_collider");
-                            template.PushableByPlayer = reader.GetBoolean("pushable_by_player");
-                            template.SkillDelay = reader.GetUInt32("skill_delay");
-                            //template.SkillId = reader.GetUInt32("skill_id");
-                            //template.CollisionSkillId = reader.IsDBNull("skill_id") ? 0 : reader.GetUInt32("skill_id");
-                            template.SkillId = reader.GetUInt32("skill_id", 0);
+                        template.CollisionUnitOnly = reader.GetBoolean("collision_unit_only");
+                        template.Damping = reader.GetFloat("damping");
+                        template.Density = reader.GetFloat("density");
+                        template.DisappearByCollision = reader.GetBoolean("disappear_by_collision");
+                        template.FadeInDuration = reader.GetUInt32("fade_in_duration");
+                        template.FadeOutDuration = reader.GetUInt32("fade_out_duration");
+                        template.FreeFallDamping = reader.GetFloat("free_fall_damping");
+                        template.Graspable = reader.GetBoolean("graspable");
+                        template.Gravity = reader.GetFloat("gravity");
+                        template.LifeTime = reader.GetUInt32("life_time");
+                        template.Mass = reader.GetFloat("mass");
+                        template.ModelPath = reader.GetString("model_path");
+                        template.Name = reader.GetString("name");
+                        template.NoGroundCollider = reader.GetBoolean("no_ground_collider");
+                        template.PushableByPlayer = reader.GetBoolean("pushable_by_player");
+                        template.SkillDelay = reader.GetUInt32("skill_delay");
+                        //template.SkillId = reader.GetUInt32("skill_id");
+                        //template.CollisionSkillId = reader.IsDBNull("skill_id") ? 0 : reader.GetUInt32("skill_id");
+                        template.SkillId = reader.GetUInt32("skill_id", 0);
 
-                            template.SpawnDelay = reader.GetUInt32("spawn_delay");
-                            template.WaterDamping = reader.GetFloat("water_damping");
-                            template.WaterDensity = reader.GetFloat("water_density");
-                            template.WaterResistance = reader.GetFloat("water_resistance");
+                        template.SpawnDelay = reader.GetUInt32("spawn_delay");
+                        template.WaterDamping = reader.GetFloat("water_damping");
+                        template.WaterDensity = reader.GetFloat("water_density");
+                        template.WaterResistance = reader.GetFloat("water_resistance");
 
-                            _templates.Add(template.Id, template);
-                        }
+                        _templates.Add(template.Id, template);
                     }
                 }
             }
-            #endregion
-
-            _loaded = true;
         }
+        #endregion
 
-        public void Initialize()
+        _loaded = true;
+    }
+
+    public void Initialize()
+    {
+        Logger.Warn("GimmickTickTask: Started");
+
+        //GimmickTickTask = new GimmickTickStartTask();
+        //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
+        TickManager.Instance.OnTick.Subscribe(GimmickTick, TimeSpan.FromMilliseconds(Delay), true);
+    }
+
+    private void GimmickTick(TimeSpan delta)
+    {
+        var activeGimmicks = GetActiveGimmicks();
+        foreach (var gimmick in activeGimmicks)
         {
-            _log.Warn("GimmickTickTask: Started");
-
-            //GimmickTickTask = new GimmickTickStartTask();
-            //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
-            TickManager.Instance.OnTick.Subscribe(GimmickTick, TimeSpan.FromMilliseconds(Delay), true);
+            GimmickTick(gimmick);
         }
-        internal void GimmickTick(TimeSpan delta)
+
+        //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
+    }
+    internal void GimmickTick()
+    {
+        var activeGimmicks = GetActiveGimmicks();
+        foreach (var gimmick in activeGimmicks)
         {
-            var activeGimmicks = GetActiveGimmicks();
-            foreach (var gimmick in activeGimmicks)
-            {
-                GimmickTick(gimmick);
-            }
-
-            //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
-        }
-        internal void GimmickTick()
-        {
-            var activeGimmicks = GetActiveGimmicks();
-            foreach (var gimmick in activeGimmicks)
-            {
-                GimmickTick(gimmick);
-            }
-
-            TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
+            GimmickTick(gimmick);
         }
 
-        private Gimmick[] GetActiveGimmicks()
+        TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
+    }
+
+    private Gimmick[] GetActiveGimmicks()
+    {
+        lock (_activeGimmicks)
         {
             return _activeGimmicks.Values.ToArray();
         }
+    }
 
-        private static void GimmickTick(Gimmick gimmick)
+    private static void GimmickTick(Gimmick gimmick)
+    {
+        if (gimmick.TimeLeft > 0)
+            return;
+
+        const float maxVelocity = 4.5f;
+        const float deltaTime = 0.05f;
+        const float movingDistance = 0.27f;
+
+        var position = gimmick.Transform.World.Position;
+        var velocityZ = gimmick.Vel.Z;
+
+        var middleTarget = position with { Z = gimmick.Spawner.MiddleZ };
+        var topTarget = position with { Z = gimmick.Spawner.TopZ };
+        var bottomTarget = position with { Z = gimmick.Spawner.BottomZ };
+
+        var isMovingDown = gimmick.moveDown;
+        var isInMiddleZ = gimmick.Spawner.MiddleZ > 0;
+
+        if (isInMiddleZ)
         {
-            if (gimmick.TimeLeft > 0)
-            {
-                return;
-            }
-            var maxVelocityForward = 4.5f;
-            var maxVelocityBackward = -4.5f;
-            var deltaTime = 0.05f;
-            var movingDistance = 0.27f;
-
-            Vector3 vPosition;
-            Vector3 vTarget;
-            Vector3 vDistance;
-
-            var velocityZ = gimmick.Vel.Z;
-            var positionZ = gimmick.Transform.World.Position.Z;
-            vPosition = gimmick.Transform.World.ClonePosition();
-
-            if (gimmick.Spawner.MiddleZ > 0)
-            {
-                if (positionZ < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !gimmick.moveDown)
-                {
-                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.MiddleZ);
-                    vDistance = vTarget - vPosition; // dx, dy, dz
-                    velocityZ = maxVelocityForward;
-
-                    movingDistance = velocityZ * deltaTime;
-
-                    if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                    {
-                        positionZ += movingDistance;
-                        gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                    }
-                    else
-                    {
-                        positionZ = vTarget.Z;
-                        gimmick.Vel = new Vector3(0f, 0f, 0f);
-                    }
-                }
-                else if (vPosition.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0 && !gimmick.moveDown)
-                {
-                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.TopZ);
-                    vDistance = vTarget - vPosition; // dx, dy, dz
-                    velocityZ = maxVelocityForward;
-                    movingDistance = velocityZ * deltaTime;
-
-                    if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                    {
-                        positionZ += movingDistance;
-                        gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                        gimmick.moveDown = false;
-                    }
-                    else
-                    {
-                        positionZ = vTarget.Z;
-                        gimmick.Vel = new Vector3(0f, 0f, 0f);
-                        gimmick.moveDown = true;
-                    }
-                }
-                else if (vPosition.Z > gimmick.Spawner.MiddleZ && gimmick.Vel.Z <= 0 && gimmick.moveDown)
-                {
-                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.MiddleZ);
-                    vDistance = vTarget - vPosition; // dx, dy, dz
-                    velocityZ = maxVelocityBackward;
-                    movingDistance = velocityZ * deltaTime;
-
-                    if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                    {
-                        positionZ += movingDistance;
-                        gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                    }
-                    else
-                    {
-                        positionZ = vTarget.Z;
-                        gimmick.Vel = new Vector3(0f, 0f, 0f);
-                    }
-                }
-                else
-                {
-                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.BottomZ);
-                    vDistance = vTarget - vPosition; // dx, dy, dz
-                    velocityZ = maxVelocityBackward;
-                    movingDistance = velocityZ * deltaTime;
-
-                    if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                    {
-                        positionZ += movingDistance;
-                        gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                        gimmick.moveDown = true;
-                    }
-                    else
-                    {
-                        positionZ = vTarget.Z;
-                        gimmick.Vel = new Vector3(0f, 0f, 0f);
-                        gimmick.moveDown = false;
-                    }
-                }
-            }
+            if (position.Z < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !isMovingDown)
+                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+            else if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0 && !isMovingDown)
+                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+            else if (position.Z > gimmick.Spawner.MiddleZ && gimmick.Vel.Z <= 0 && isMovingDown)
+                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
             else
-            {
-                if (vPosition.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0)
-                {
-                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.TopZ);
-                    vDistance = vTarget - vPosition; // dx, dy, dz
-                    velocityZ = maxVelocityForward;
-
-                    movingDistance = velocityZ * deltaTime;
-
-                    if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                    {
-                        positionZ += movingDistance;
-                        gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                    }
-                    else
-                    {
-                        positionZ = vTarget.Z;
-                        gimmick.Vel = new Vector3(0f, 0f, 0f);
-                    }
-                }
-                else
-                {
-                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.BottomZ);
-                    vDistance = vTarget - vPosition; // dx, dy, dz
-                    velocityZ = maxVelocityBackward;
-                    movingDistance = velocityZ * deltaTime;
-
-                    if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
-                    {
-                        positionZ += movingDistance;
-                        gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
-                    }
-                    else
-                    {
-                        positionZ = vTarget.Z;
-                        gimmick.Vel = new Vector3(0f, 0f, 0f);
-                    }
-                }
-            }
-
-            // TODO: replace this with .World.SetHeight after .World is correctly implemented
-            gimmick.Transform.Local.SetHeight(positionZ);
-
-            // If the number of executions is less than the angle, continue adding tasks or stop moving
-            if (Math.Abs(gimmick.Vel.Z) > 0)
-            {
-                gimmick.Time += 50;    // has to change all the time for normal motion.
-                gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
-            }
+                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+        }
+        else
+        {
+            if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0)
+                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
             else
-            {
-                // stop for a few seconds
-                gimmick.Time += 50;    // has to change all the time for normal motion.
-                gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
-                gimmick.WaitTime = DateTime.UtcNow.AddSeconds(gimmick.Spawner.WaitTime);
-            }
+                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
+        }
+
+        gimmick.Transform.Local.SetHeight(position.Z);
+
+        var isMoving = Math.Abs(gimmick.Vel.Z) > 0;
+        gimmick.Time += 50;
+        gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
+
+        if (isMoving)
+            return;
+
+        gimmick.WaitTime = DateTime.UtcNow.AddSeconds(gimmick.Spawner.WaitTime);
+        gimmick.moveDown = !gimmick.moveDown;
+    }
+
+    private static void MoveAlongZAxis(Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, float movingDistance, ref float velocityZ, ref bool isMovingDown)
+    {
+        var distance = target - position;
+        velocityZ = maxVelocity * Math.Sign(distance.Z);
+        movingDistance = velocityZ * deltaTime;
+
+        if (Math.Abs(distance.Z) >= Math.Abs(movingDistance))
+        {
+            position.Z += movingDistance;
+            gimmick.Vel = gimmick.Vel with { Z = velocityZ };
+        }
+        else
+        {
+            position.Z = target.Z;
+            gimmick.Vel = Vector3.Zero;
         }
     }
 }

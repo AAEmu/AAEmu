@@ -1,10 +1,9 @@
 ﻿using AAEmu.Game.Models.Game.NPChar;
 
-namespace AAEmu.Game.Core.Managers.World
-{
-    public interface IWorldManager
-    {
+namespace AAEmu.Game.Core.Managers.World;
 
-        Npc GetNpcByTemplateId(uint templateId);
-    }
+public interface IWorldManager
+{
+
+    Npc GetNpcByTemplateId(uint templateId);
 }

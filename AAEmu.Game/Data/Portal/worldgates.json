@@ -88,7 +88,7 @@
     },
     {
         "Id": 614,
-        "Name": "Ayanad Ruins, Diamond Shores",
+        "Name": "Ayanad Ruins, Diamond Shores", // o_shining_shore_2
         "ZoneId": 301,
         "X": 19547.7,
         "Y": 27144.3,
@@ -98,7 +98,7 @@
     },
     {
         "Id": 617,
-        "Name": "Mistral Hall",
+        "Name": "Enter Mistral Hall", // o_library_1
         "ZoneId": 293,
         "X": 2564.2,
         "Y": 30189.5,
@@ -108,7 +108,7 @@
     },
     {
         "Id": 618,
-        "Name": "Verdant Skychamber",
+        "Name": "Enter Verdant Skychamber", // o_library_2
         "ZoneId": 294,
         "X": 2564.1,
         "Y": 28149.8,
@@ -118,17 +118,17 @@
     },
     {
         "Id": 619,
-        "Name": "Evening Botanica",
+        "Name": "Enter Evening Botanica", // o_library_3
         "ZoneId": 295,
         "X": 2564.5,
         "Y": 26091.6,
         "Z": 366.3,
         "Yaw": 0.0,
-        "SubZoneId": 1100
+        "SubZoneId": 619
     },
     {
         "Id": 621,
-        "Name": "instance_library_boss_1", // Screening Hall
+        "Name": "instance_library_boss_1", // Screeming Hall
         "ZoneId": 303,
         "X": 2239.6,
         "Y": 214.6,
@@ -158,13 +158,33 @@
     },
     {
         "Id": 624,
-        "Name": "instance_library_boss_3", // 
-        "ZoneId": 295,
-        "X": 2564.5,
-        "Y": 26091.6,
-        "Z": 366.3,
-        "Yaw": 0.0,
+        "Name": "instance_library_tower_defence", // TODO уточнить координаты
+        "ZoneId": 306,
+        "X": 3697.993,
+        "Y": 413.505,
+        "Z": 188.112,
+        "Yaw": 0,
         "SubZoneId": 624
+    },
+    {
+        "Id": 628,
+        "Name": "Corner Reading Room", // Green Lounge, TODO уточнить координаты
+        "ZoneId": 306,
+        "X": 511.81,
+        "Y": 2560.038,
+        "Z": 128.265,
+        "Yaw": 0,
+        "SubZoneId": 628
+    },
+    {
+        "Id": 653,
+        "Name": "Corner Reading Room lobby", // TODO уточнить координаты
+        "ZoneId": 306,
+        "X": 3702.2,
+        "Y": 631.3,
+        "Z": 210.9,
+        "Yaw": -90.0,
+        "SubZoneId": 653
     },
     {
         "Id": 672,
@@ -195,5 +215,35 @@
         "Z": 557.7,
         "Yaw": 100.0,
         "SubZoneId": 730
+    },
+    {
+        "Id": 389,
+        "Name": "Respawn: Q3478, buff=3640 - Twisted Space",
+        "ZoneId": 160,
+        "X": 21204.3,
+        "Y": 10428.6,
+        "Z": 107.5,
+        "Yaw": -70.5,
+        "SubZoneId": 1030
+    },
+    {
+        "Id": 406,
+        "Name": "Respawn: Q4410, skill=17848",
+        "ZoneId": 149,
+        "X": 12279.8,
+        "Y": 12112.6,
+        "Z": 140.2,
+        "Yaw": 42.2,
+        "SubZoneId": 632
+    },
+    {
+        "Id": 652,
+        "Name": "Diamond Shores Pirate/Player Nation Base",
+        "ZoneId": 301,
+	    "X": 19332.0,
+        "Y": 26883.0,
+        "Z": 130.5,
+        "Yaw": 0,
+        "SubZoneId": 1110
     }
 ]

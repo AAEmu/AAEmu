@@ -1,13 +1,12 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers.World;
 
-namespace AAEmu.Game.Models.Tasks.AreaTriggers
+namespace AAEmu.Game.Models.Tasks.AreaTriggers;
+
+public class AreaTriggerTickTask : Task
 {
-    public class AreaTriggerTickTask : Task
+    public override void Execute()
     {
-        public override void Execute()
-        {
-            AreaTriggerManager.Instance.Tick(TimeSpan.Zero);
-        }
+        AreaTriggerManager.Instance.Tick(TimeSpan.Zero);
     }
 }

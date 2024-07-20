@@ -1,19 +1,18 @@
 ﻿using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Core.Managers.Id
+namespace AAEmu.Game.Core.Managers.Id;
+
+public class ShipyardIdManager : IdManager
 {
-    public class ShipyardIdManager : IdManager
+    private static ShipyardIdManager _instance;
+    private const uint FirstId = 0x00000001;
+    private const uint LastId = 0xFFFFFFFF;
+    private static readonly uint[] Exclude = System.Array.Empty<uint>();
+    private static readonly string[,] ObjTables = { { "shipyards", "id" } };
+
+    public static ShipyardIdManager Instance => _instance ?? (_instance = new ShipyardIdManager());
+
+    public ShipyardIdManager() : base("ShipyardIdManager", FirstId, LastId, ObjTables, Exclude)
     {
-        private static ShipyardIdManager _instance;
-        private const uint FirstId = 0x00000001;
-        private const uint LastId = 0xFFFFFFFF;
-        private static readonly uint[] Exclude = { };
-        private static readonly string[,] ObjTables = { { "shipyards", "id" } };
-
-        public static ShipyardIdManager Instance => _instance ?? (_instance = new ShipyardIdManager());
-
-        public ShipyardIdManager() : base("ShipyardIdManager", FirstId, LastId, ObjTables, Exclude)
-        {
-        }
     }
 }

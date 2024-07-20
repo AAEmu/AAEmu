@@ -1,9 +1,8 @@
 using System;
 
-namespace AAEmu.Game.Models.Game.Items.Templates
+namespace AAEmu.Game.Models.Game.Items.Templates;
+
+public class MusicSheetTemplate : ItemTemplate
 {
-    public class MusicSheetTemplate : ItemTemplate
-    {
-        public override Type ClassType => typeof(MusicSheetItem);
-    }
+    public override Type ClassType => typeof(MusicSheetItem);
 }

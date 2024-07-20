@@ -1,51 +1,59 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+/// <summary>
+/// Checks if a item has been obtained since the quest was started (does not require the item in the inventory)
+/// </summary>
+/// <param name="parentComponent"></param>
+public class QuestActEtcItemObtain(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActEtcItemObtain : QuestActTemplate
+    public uint ItemId { get; set; }
+    public uint HighlightDoodadId { get; set; }
+    public bool Cleanup { get; set; }
+
+    /// <summary>
+    /// Checks if the Objective count has been met
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        public uint ItemId { get; set; }
-        public int Count { get; set; }
-        public uint HighlightDooadId { get; set; }
-        public bool Cleanup { get; set; }
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {currentObjectiveCount}/{Count}");
+        return true;
+        //return currentObjectiveCount >= Count;
+    }
 
-        public static int ItemObtainStatus = 0;
+    public override void InitializeAction(Quest quest, QuestAct questAct)
+    {
+        base.InitializeAction(quest, questAct);
+        quest.Owner.Events.OnItemGather += questAct.OnItemGather;
+    }
 
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Warn("QuestActEtcItemObtain");
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
+    {
+        quest.Owner.Events.OnItemGather -= questAct.OnItemGather;
+        base.FinalizeAction(quest, questAct);
+    }
 
-            if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
-            {
-                ItemObtainStatus = objective * Count; // Count в данном случае % за единицу
-                quest.OverCompletionPercent = ItemObtainStatus + QuestActObjItemUse.ItemUseStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+    public override void OnItemGather(QuestAct questAct, object sender, OnItemGatherArgs e)
+    {
+        return;
+        // Check if obtained the specified item, there is no check for removing for EtcItemObtain
+        // if ((questAct.Id == ActId) && (e.ItemId == ItemId) && (e.Count > 0))
+        //     AddObjective((QuestAct)questAct, e.Count);
+    }
 
-                if (quest.Template.LetItDone)
-                {
-                    if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
-                        quest.EarlyCompletion = true;
+    public override void QuestCleanup(Quest quest)
+    {
+        base.QuestCleanup(quest);
+        if (!Cleanup)
+            return;
 
-                    if (quest.OverCompletionPercent > quest.Template.Score)
-                        quest.ExtraCompletion = true;
-                }
-
-                return quest.OverCompletionPercent >= quest.Template.Score;
-            }
-            else
-            {
-                if (quest.Template.LetItDone)
-                {
-                    quest.OverCompletionPercent = objective * 100 / Count;
-
-                    if (quest.OverCompletionPercent >= 60)
-                        quest.EarlyCompletion = true;
-
-                    if (quest.OverCompletionPercent > 100)
-                        quest.ExtraCompletion = true;
-                }
-                return objective >= Count;
-            }
-        }
+        quest.Owner?.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, Count, null);
     }
 }

@@ -1,18 +1,22 @@
 ﻿using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActSupplyAppellation(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActSupplyAppellation : QuestActTemplate
-    {
-        public uint AppellationId { get; set; }
+    public uint AppellationId { get; set; }
 
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Debug("QuestActSupplyAppellation");
-            
-            character.Appellations.Add(AppellationId);
-            return true;
-        }
+    /// <summary>
+    /// Gives a new Title
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), AppellationId {AppellationId}");
+        quest.Owner.Appellations.Add(AppellationId);
+        return true;
     }
 }

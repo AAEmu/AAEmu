@@ -1,8 +1,7 @@
-﻿namespace AAEmu.Game.Core.Managers
+﻿namespace AAEmu.Game.Core.Managers;
+
+public interface IExpressTextManager
 {
-    public interface IExpressTextManager
-    {
-        uint GetExpressAnimId(uint emotionId);
-        void Load();
-    }
+    uint GetExpressAnimId(uint emotionId);
+    void Load();
 }

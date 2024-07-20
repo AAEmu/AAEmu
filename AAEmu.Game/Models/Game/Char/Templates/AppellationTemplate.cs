@@ -1,8 +1,7 @@
-namespace AAEmu.Game.Models.Game.Char.Templates
+namespace AAEmu.Game.Models.Game.Char.Templates;
+
+public class AppellationTemplate
 {
-    public class AppellationTemplate
-    {
-        public uint Id { get; set; }
-        public uint BuffId { get; set; }
-    }
+    public uint Id { get; set; }
+    public uint BuffId { get; set; }
 }

@@ -2,106 +2,100 @@
 using System.Collections.Generic;
 
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
+namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
+
+public class ItemSocketing : SpecialEffectAction
 {
-    public class ItemSocketing : SpecialEffectAction
+    protected override SpecialType SpecialEffectActionType => SpecialType.ItemSocketing;
+
+    public override void Execute(BaseUnit caster,
+        SkillCaster casterObj,
+        BaseUnit target,
+        SkillCastTarget targetObj,
+        CastAction castObj,
+        Skill skill,
+        SkillObject skillObject,
+        DateTime time,
+        int value1,
+        int value2,
+        int value3,
+        int value4)
     {
-        protected override SpecialType SpecialEffectActionType => SpecialType.ItemSocketing;
+        // TODO ...
+        if (caster is Character) { Logger.Debug("Special effects: ItemSocketing value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
-        public override void Execute(Unit caster,
-            SkillCaster casterObj,
-            BaseUnit target,
-            SkillCastTarget targetObj,
-            CastAction castObj,
-            Skill skill,
-            SkillObject skillObject,
-            DateTime time,
-            int value1,
-            int value2,
-            int value3,
-            int value4)
+        var owner = (Character)caster;
+        var gemSkillItem = (SkillItem)casterObj;
+        var skillTargetItem = (SkillCastItemTarget)targetObj;
+
+        if (owner == null)
         {
-            // TODO ...
-            if (caster is Character) { _log.Debug("Special effects: ItemSocketing value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
-
-            var owner = (Character)caster;
-            var gemSkillItem = (SkillItem)casterObj;
-            var skillTargetItem = (SkillCastItemTarget)targetObj;
-
-            if (owner == null)
-            {
-                return;
-            }
-
-            if (gemSkillItem == null)
-            {
-                return;
-            }
-
-            if (skillTargetItem == null)
-            {
-                return;
-            }
-
-            var targetItem = owner.Inventory.GetItemById(skillTargetItem.Id);
-            var gemItem = owner.Inventory.GetItemById(gemSkillItem.ItemId);
-
-            if (targetItem == null || gemItem == null)
-            {
-                return;
-            }
-
-            var equipItem = (EquipItem)targetItem;
-            if (equipItem == null)
-            {
-                return;
-            }
-
-            var tasksSocketing = new List<ItemTask>();
-
-            var gemCount = 0u;
-            foreach (var gem in equipItem.GemIds)
-            {
-                if (gem != 0)
-                {
-                    gemCount++;
-                }
-            }
-
-            // Check that we can put that gem in             
-
-            // Add gem to proper slot
-            var gemRoll = Rand.Next(0, 10000);
-            /// TODO : REMOVE THIS
-            // var gemChance = ItemManager.Instance.GetSocketChance(gemCount);
-            var gemChance = int.MaxValue;
-            
-            byte result = 0;
-            if (gemRoll < gemChance)
-            {
-                equipItem.GemIds[gemCount] = gemItem.TemplateId;
-                result = 1;
-            }
-            else
-            {
-                for (var i = 0; i < equipItem.GemIds.Length; i++)
-                {
-                    equipItem.GemIds[i] = 0;
-                }
-            }
-
-            tasksSocketing.Add(new ItemUpdate(equipItem));
-
-            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Socketing, tasksSocketing, new List<ulong>()));
-            owner.SendPacket(new SCItemSocketingLunagemResultPacket(result, equipItem.Id, gemItem.TemplateId, true));
-            owner.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
+            return;
         }
+
+        if (gemSkillItem == null)
+        {
+            return;
+        }
+
+        if (skillTargetItem == null)
+        {
+            return;
+        }
+
+        var targetItem = owner.Inventory.GetItemById(skillTargetItem.Id);
+        var gemItem = owner.Inventory.GetItemById(gemSkillItem.ItemId);
+
+        if (targetItem is null || gemItem is null)
+        {
+            return;
+        }
+
+        var equipItem = (EquipItem)targetItem;
+
+        var tasksSocketing = new List<ItemTask>();
+
+        var gemCount = 0u;
+        foreach (var gem in equipItem.GemIds)
+        {
+            if (gem != 0)
+            {
+                gemCount++;
+            }
+        }
+
+        // Check that we can put that gem in             
+
+        // Add gem to proper slot
+        var gemRoll = Rand.Next(0, 10000);
+        var gemChance = ItemManager.Instance.GetSocketChance(gemCount); // fetches chances from sqlite3
+        // var gemChance = int.MaxValue; //gives 100% success rates
+
+        byte result = 0;
+        if (gemRoll < gemChance)
+        {
+            equipItem.GemIds[gemCount] = gemItem.TemplateId;
+            result = 1;
+        }
+        else
+        {
+            for (var i = 0; i < equipItem.GemIds.Length; i++)
+            {
+                equipItem.GemIds[i] = 0;
+            }
+        }
+
+        tasksSocketing.Add(new ItemUpdate(equipItem));
+
+        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Socketing, tasksSocketing, new List<ulong>()));
+        owner.SendPacket(new SCItemSocketingLunagemResultPacket(result, equipItem.Id, gemItem.TemplateId, true));
+        owner.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
     }
 }

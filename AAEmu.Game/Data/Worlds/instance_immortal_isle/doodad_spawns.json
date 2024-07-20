@@ -1,1 +1,119 @@
-[]
+[
+  {
+    "UnitId": 6963,
+    "Position": {
+      "X": 1698.16,
+      "Y": 1288.0,
+      "Z": 167.2,
+      "Yaw": 0.0
+    }
+  },
+  {
+    "UnitId": 6963,
+    "Position": {
+      "X": 1665.5,
+      "Y": 1341.2,
+      "Z": 7.4,
+      "Yaw": 60.0
+    }
+  },
+  {
+    "UnitId": 6753,
+    "Title": "Instance-EternalIsle-WaterWall",
+    "Position": {
+      "X": 1656.108,
+      "Y": 1264.87,
+      "Z": 7.5879,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -46.3684425
+    }
+  },
+  {
+    "UnitId": 6753,
+    "Title": "Instance-EternalIsle-WaterWall",
+    "Position": {
+      "X": 1635.742,
+      "Y": 1329.75,
+      "Z": 7.4178,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -98.20507
+    }
+  },
+  {
+    "UnitId": 6753,
+    "Title": "Instance-EternalIsle-WaterWall",
+    "Position": {
+      "X": 1723.574,
+      "Y": 1257.728,
+      "Z": 7.4058,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 36.7157135
+    }
+  },
+  {
+    "UnitId": 6759, //   Инстанс_Вечный остров_Сфера Дауты
+    "RelatedIds": [7100, 7102],
+    "Position": {
+      "X": 1696.3,
+      "Y": 1313.2,
+      "Z": 32.2,
+      "Yaw": 0.0
+     }
+  },
+  {"UnitId": 7100, // Dahuta's Pearl
+    "Position": {
+      "X": 1697.3,
+      "Y": 1312.2,
+      "Z": 7.95,
+      "Yaw": 0.0
+     }
+  },
+  {
+    "UnitId": 7102, // Lesser Dea of Drowned Love: Water Volume
+    "Position": {
+      "X": 1696.3,
+      "Y": 1313.2,
+      "Z": 32.2,
+      "Yaw": 0.0
+     }
+  },
+  {
+    "UnitId": 6753,
+    "Title": "Instance-EternalIsle-WaterWall",
+    "Position": {
+      "X": 1676.952,
+      "Y": 1375.654,
+      "Z": 7.3608,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -151.149918
+    }
+  },
+  {
+    "UnitId": 6753,
+    "Title": "Instance-EternalIsle-WaterWall",
+    "Position": {
+      "X": 1726.686,
+      "Y": 1367.728,
+      "Z": 7.5348,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 141.766449
+    }
+  },
+  {
+    "UnitId": 6753,
+    "Title": "Instance-EternalIsle-WaterWall",
+    "Position": {
+      "X": 1757.248,
+      "Y": 1327.166,
+      "Z": 7.4338,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 87.71899
+    }
+  }
+]

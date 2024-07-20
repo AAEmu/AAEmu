@@ -1,225 +1,223 @@
 ﻿using System;
 using System.Collections.Generic;
-using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
-namespace AAEmu.Game.Models.Game.Items
+namespace AAEmu.Game.Models.Game.Items;
+
+public class Weapon : EquipItem
 {
-    public class Weapon : EquipItem
+    public override int Str
     {
-        public override int Str
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                if (template.ModSetId == 0)
-                    return 0;
-                var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var mod = 1f;
-                if (modifiers.Count == 1)
-                    mod = 3f;
-                if (modifiers.Count == 2)
-                    mod = 1.5f;
-                mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
-                var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
-                           ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.StrWeight * 1f) / modifiers.AllWeight *
-                            grade.StatMultiplier * 0.0099999998f + 0.5f;
-                var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
-                return (int)res;
-            }
+            var template = (WeaponTemplate)Template;
+            if (template.ModSetId == 0)
+                return 0;
+            var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var mod = 1f;
+            if (modifiers.Count == 1)
+                mod = 3f;
+            if (modifiers.Count == 2)
+                mod = 1.5f;
+            mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
+            var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
+                       ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
+            var temp2 = (modifiers.Count * temp * modifiers.StrWeight * 1f) / modifiers.AllWeight *
+                        grade.StatMultiplier * 0.0099999998f + 0.5f;
+            var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
+            return (int)res;
         }
+    }
 
-        public override int Dex
+    public override int Dex
+    {
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                if (template.ModSetId == 0)
-                    return 0;
-                var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var mod = 1f;
-                if (modifiers.Count == 1)
-                    mod = 3f;
-                if (modifiers.Count == 2)
-                    mod = 1.5f;
-                mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
-                var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
-                           ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.DexWeight * 1f) / modifiers.AllWeight *
-                            grade.StatMultiplier * 0.0099999998f + 0.5f;
-                var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
-                return (int)res;
-            }
+            var template = (WeaponTemplate)Template;
+            if (template.ModSetId == 0)
+                return 0;
+            var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var mod = 1f;
+            if (modifiers.Count == 1)
+                mod = 3f;
+            if (modifiers.Count == 2)
+                mod = 1.5f;
+            mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
+            var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
+                       ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
+            var temp2 = (modifiers.Count * temp * modifiers.DexWeight * 1f) / modifiers.AllWeight *
+                        grade.StatMultiplier * 0.0099999998f + 0.5f;
+            var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
+            return (int)res;
         }
+    }
 
-        public override int Sta
+    public override int Sta
+    {
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                if (template.ModSetId == 0)
-                    return 0;
-                var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var mod = 1f;
-                if (modifiers.Count == 1)
-                    mod = 3f;
-                if (modifiers.Count == 2)
-                    mod = 1.5f;
-                mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
-                var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
-                           ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.StaWeight * 1f) / modifiers.AllWeight *
-                            grade.StatMultiplier * 0.0099999998f + 0.5f;
-                var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
-                return (int)res;
-            }
+            var template = (WeaponTemplate)Template;
+            if (template.ModSetId == 0)
+                return 0;
+            var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var mod = 1f;
+            if (modifiers.Count == 1)
+                mod = 3f;
+            if (modifiers.Count == 2)
+                mod = 1.5f;
+            mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
+            var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
+                       ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
+            var temp2 = (modifiers.Count * temp * modifiers.StaWeight * 1f) / modifiers.AllWeight *
+                        grade.StatMultiplier * 0.0099999998f + 0.5f;
+            var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
+            return (int)res;
         }
+    }
 
-        public override int Int
+    public override int Int
+    {
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                if (template.ModSetId == 0)
-                    return 0;
-                var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var mod = 1f;
-                if (modifiers.Count == 1)
-                    mod = 3f;
-                if (modifiers.Count == 2)
-                    mod = 1.5f;
-                mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
-                var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
-                           ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.IntWeight * 1f) / modifiers.AllWeight *
-                            grade.StatMultiplier * 0.0099999998f + 0.5f;
-                var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
-                return (int)res;
-            }
+            var template = (WeaponTemplate)Template;
+            if (template.ModSetId == 0)
+                return 0;
+            var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var mod = 1f;
+            if (modifiers.Count == 1)
+                mod = 3f;
+            if (modifiers.Count == 2)
+                mod = 1.5f;
+            mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
+            var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
+                       ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
+            var temp2 = (modifiers.Count * temp * modifiers.IntWeight * 1f) / modifiers.AllWeight *
+                        grade.StatMultiplier * 0.0099999998f + 0.5f;
+            var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
+            return (int)res;
         }
+    }
 
-        public override int Spi
+    public override int Spi
+    {
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                if (template.ModSetId == 0)
-                    return 0;
-                var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var mod = 1f;
-                if (modifiers.Count == 1)
-                    mod = 3f;
-                if (modifiers.Count == 2)
-                    mod = 1.5f;
-                mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
-                var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
-                           ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.SpiWeight * 1f) / modifiers.AllWeight *
-                            grade.StatMultiplier * 0.0099999998f + 0.5f;
-                var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
-                return (int)res;
-            }
+            var template = (WeaponTemplate)Template;
+            if (template.ModSetId == 0)
+                return 0;
+            var modifiers = ItemManager.Instance.GetAttributeModifiers(template.ModSetId);
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var mod = 1f;
+            if (modifiers.Count == 1)
+                mod = 3f;
+            if (modifiers.Count == 2)
+                mod = 1.5f;
+            mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
+            var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
+                       ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
+            var temp2 = (modifiers.Count * temp * modifiers.SpiWeight * 1f) / modifiers.AllWeight *
+                        grade.StatMultiplier * 0.0099999998f + 0.5f;
+            var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
+            return (int)res;
         }
+    }
 
-        public float Dps
+    public float Dps
+    {
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var formula = template.HoldableTemplate.FormulaDps;
-                var parameters = new Dictionary<string, double>();
-                parameters["item_level"] = template.Level;
-                parameters["item_grade"] = grade.HoldableDps;
-                var formulaRes = formula.Evaluate(parameters);
-                if (TemperPhysical > 100)
-                    formulaRes *= (TemperPhysical / 100.0f);
-                return (float) formulaRes;
-            }
+            var template = (WeaponTemplate)Template;
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var formula = template.HoldableTemplate.FormulaDps;
+            var parameters = new Dictionary<string, double>();
+            parameters["item_level"] = template.Level;
+            parameters["item_grade"] = grade.HoldableDps;
+            var formulaRes = formula.Evaluate(parameters);
+            if (TemperPhysical > 100)
+                formulaRes *= (TemperPhysical / 100.0f);
+            return (float)formulaRes;
         }
+    }
 
-        public double MDps
+    public double MDps
+    {
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var formula = template.HoldableTemplate.FormulaMDps;
-                var parameters = new Dictionary<string, double>();
-                parameters["item_level"] = template.Level;
-                parameters["item_grade"] = grade.HoldableMagicDps;
-                var formulaRes = formula.Evaluate(parameters);
-                if (TemperMagical > 100)
-                    formulaRes *= (TemperMagical / 100.0f);
-                return formulaRes;
-            }
+            var template = (WeaponTemplate)Template;
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var formula = template.HoldableTemplate.FormulaMDps;
+            var parameters = new Dictionary<string, double>();
+            parameters["item_level"] = template.Level;
+            parameters["item_grade"] = grade.HoldableMagicDps;
+            var formulaRes = formula.Evaluate(parameters);
+            if (TemperMagical > 100)
+                formulaRes *= (TemperMagical / 100.0f);
+            return formulaRes;
         }
-        
-        public double HDps
-        {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var formula = template.HoldableTemplate.FormulaHDps;
-                var parameters = new Dictionary<string, double>();
-                parameters["item_level"] = template.Level;
-                parameters["item_grade"] = grade.HoldableMagicDps;
+    }
 
-                var formulaRes = formula.Evaluate(parameters);
-                if (TemperMagical > 100)
-                    formulaRes *= (TemperMagical / 100.0f);
-                return formulaRes;
-            }
-        }
-
-        public int Armor
+    public double HDps
+    {
+        get
         {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var formula = template.HoldableTemplate.FormulaArmor;
-                var parameters = new Dictionary<string, double>();
-                parameters["item_level"] = template.Level;
-                parameters["item_grade"] = grade.HoldableArmor;
-                
-                var formulaResult = formula.Evaluate(parameters);
-                if (TemperPhysical > 100)
-                    formulaResult *= (TemperPhysical / 100.0f);
-                return (int)formulaResult;
-            }
-        }
+            var template = (WeaponTemplate)Template;
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var formula = template.HoldableTemplate.FormulaHDps;
+            var parameters = new Dictionary<string, double>();
+            parameters["item_level"] = template.Level;
+            parameters["item_grade"] = grade.HoldableMagicDps;
 
-        public sealed override byte MaxDurability
-        {
-            get
-            {
-                var template = (WeaponTemplate)Template;
-                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
-                var durability =
-                    (int)((int)(ItemManager.Instance.GetHoldableDurabilityConst() * 100 + 0.5f) *
-                          (int)(template.HoldableTemplate.DurabilityRatio * 1000 + 0.5f) * grade.Durability * 1000 *
-                          0.00000001f) * ItemManager.Instance.GetDurabilityConst();
-                durability = (float)Math.Round(durability * template.DurabilityMultiplier * 0.0099999998f);
-                return (byte)durability;
-            }
+            var formulaRes = formula.Evaluate(parameters);
+            if (TemperMagical > 100)
+                formulaRes *= (TemperMagical / 100.0f);
+            return formulaRes;
         }
+    }
 
-        public Weapon()
+    public int Armor
+    {
+        get
         {
-        }
+            var template = (WeaponTemplate)Template;
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var formula = template.HoldableTemplate.FormulaArmor;
+            var parameters = new Dictionary<string, double>();
+            parameters["item_level"] = template.Level;
+            parameters["item_grade"] = grade.HoldableArmor;
 
-        public Weapon(ulong id, ItemTemplate template, int count) : base(id, template, count)
-        {
-            Durability = MaxDurability;
+            var formulaResult = formula.Evaluate(parameters);
+            if (TemperPhysical > 100)
+                formulaResult *= (TemperPhysical / 100.0f);
+            return (int)formulaResult;
         }
+    }
+
+    public sealed override byte MaxDurability
+    {
+        get
+        {
+            var template = (WeaponTemplate)Template;
+            var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+            var durability =
+                (int)((int)(ItemManager.Instance.GetHoldableDurabilityConst() * 100 + 0.5f) *
+                      (int)(template.HoldableTemplate.DurabilityRatio * 1000 + 0.5f) * grade.Durability * 1000 *
+                      0.00000001f) * ItemManager.Instance.GetDurabilityConst();
+            durability = (float)Math.Round(durability * template.DurabilityMultiplier * 0.0099999998f);
+            return (byte)durability;
+        }
+    }
+
+    public Weapon()
+    {
+    }
+
+    public Weapon(ulong id, ItemTemplate template, int count) : base(id, template, count)
+    {
+        Durability = MaxDurability;
     }
 }

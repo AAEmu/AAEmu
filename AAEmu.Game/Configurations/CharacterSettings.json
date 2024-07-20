@@ -1,0 +1,62 @@
+﻿{
+	"Account": {
+		"AccessLevelDefault": 0,
+		"AccessLevelFirstAccount": 100,
+		"AccessLevelFirstCharacter": 100,
+		"DeleteReleaseName": true,
+		"DeleteTimings": [
+			{
+				"Delay": 1,
+				"Level": 0
+			},
+			{
+				"Delay": 5,
+				"Level": 2
+			},
+			{
+				"Delay": 30,
+				"Level": 5
+			},
+			{
+				"Delay": 240,
+				"Level": 10
+			},
+			{
+				"Delay": 1440,
+				"Level": 30
+			},
+			{
+				"Delay": 10080,
+				"Level": 40
+			}
+		]
+	},
+	"Credits": {
+		"DailyLogin": 0,
+		"Default": 0,
+		"TickAmount": 0,
+		"TickAmountPremium": 100,
+		"TickMinutes": 5
+	},
+	"Labor": {
+		"DailyLogin": 0,
+		"Default": 50,
+		"TickAmount": 5,
+		"TickAmountPremium": 10,
+		"TickMinutes": 5
+	},
+	"LaborOffline": {
+		"DailyLogin": 0, // unused
+		"Default": 0, // unused
+		"TickAmount": 0,
+		"TickAmountPremium": 5,
+		"TickMinutes": 5
+	},
+	"Loyalty": {
+		"DailyLogin": 5,
+		"Default": 0,
+		"TickAmount": 0,
+		"TickAmountPremium": 0,
+		"TickMinutes": 5
+	}
+}

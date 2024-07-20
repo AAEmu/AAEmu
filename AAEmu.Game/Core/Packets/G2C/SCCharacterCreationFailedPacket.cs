@@ -1,21 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.StaticValues;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCCharacterCreationFailedPacket : GamePacket
 {
-    public class SCCharacterCreationFailedPacket : GamePacket
+    private readonly CharacterCreateError _reason;
+
+    public SCCharacterCreationFailedPacket(CharacterCreateError reason) : base(SCOffsets.SCCharacterCreationFailedPacket, 1)
     {
-        private readonly byte _reason;
+        _reason = reason;
+    }
 
-        public SCCharacterCreationFailedPacket(byte reason) : base(SCOffsets.SCCharacterCreationFailedPacket, 1)
-        {
-            _reason = reason;
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.Write(_reason);
-            return stream;
-        }
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.Write((byte)_reason);
+        return stream;
     }
 }

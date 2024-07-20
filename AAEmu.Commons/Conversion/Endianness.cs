@@ -1,18 +1,17 @@
 ﻿
-namespace AAEmu.Commons.Conversion
+namespace AAEmu.Commons.Conversion;
+
+/// <summary>
+/// Endianness of a converter
+/// </summary>
+public enum Endianness
 {
     /// <summary>
-    /// Endianness of a converter
+    /// Little endian - least significant byte first
     /// </summary>
-    public enum Endianness
-    {
-        /// <summary>
-        /// Little endian - least significant byte first
-        /// </summary>
-        LittleEndian,
-        /// <summary>
-        /// Big endian - most significant byte first
-        /// </summary>
-        BigEndian
-    }
+    LittleEndian,
+    /// <summary>
+    /// Big endian - most significant byte first
+    /// </summary>
+    BigEndian
 }

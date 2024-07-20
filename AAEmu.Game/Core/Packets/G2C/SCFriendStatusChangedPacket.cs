@@ -2,21 +2,20 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCFriendStatusChangedPacket : GamePacket
 {
-    public class SCFriendStatusChangedPacket : GamePacket
+    private readonly Friend _friend;
+
+    public SCFriendStatusChangedPacket(Friend friend) : base(SCOffsets.SCFriendStatusChangedPacket, 1)
     {
-        private readonly Friend _friend;
+        _friend = friend;
+    }
 
-        public SCFriendStatusChangedPacket(Friend friend) : base(SCOffsets.SCFriendStatusChangedPacket, 1)
-        {
-            _friend = friend;
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.Write(_friend);
-            return stream;
-        }
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.Write(_friend);
+        return stream;
     }
 }

@@ -1,10 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.Team
+﻿namespace AAEmu.Game.Models.Game.Team;
+
+public enum MemberRole
 {
-    public enum MemberRole
-    {
-        Undecided = 0,
-        Tank = 1,
-        Healer = 2,
-        Attacker = 3
-    }
+    Undecided = 0,
+    Tank = 1,
+    Healer = 2,
+    Attacker = 3
 }

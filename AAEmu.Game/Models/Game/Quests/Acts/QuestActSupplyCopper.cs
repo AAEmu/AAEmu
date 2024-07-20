@@ -1,21 +1,22 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActSupplyCopper(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActSupplyCopper : QuestActTemplate
-    {
-        public int Amount { get; set; }
+    public int Amount { get; set; }
 
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Debug("QuestActSupplyCopper");
-            quest.QuestRewardCoinsPool += Amount;
-            return true;
-        }
+    /// <summary>
+    /// Gives copper coins
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Amount {Amount}");
+        quest.QuestRewardCoinsPool += Amount;
+        return true;
     }
 }

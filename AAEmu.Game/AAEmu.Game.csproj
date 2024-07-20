@@ -1,17 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net6.0</TargetFramework>
-        <RuntimeIdentifiers>win7-x64;win7-x86;win8-x64;win8-x86;win81-x64;win81-x86;win10-x64;win10-x86;centos.7-x64;debian.9-x64;ubuntu.18.04-x64;sles-x64;sles.12-x64;sles.12.1-x64;sles.12.2-x64;sles.12.3-x64;alpine-x64;alpine.3.7-x64</RuntimeIdentifiers>
-        <VersionPrefix>0.0.2.0</VersionPrefix>
-        <VersionSuffix>alpha</VersionSuffix>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifiers>win7-x64;win7-x86;win8-x64;win8-x86;win81-x64;win81-x86;win10-x64;win10-x86;centos.7-x64;debian.9-x64;ubuntu.18.04-x64;sles-x64;sles.12-x64;sles.12.1-x64;sles.12.2-x64;sles.12.3-x64;alpine-x64;alpine.3.7-x64</RuntimeIdentifiers>
+    <VersionPrefix>0.0.2.0</VersionPrefix>
+    <VersionSuffix>alpha</VersionSuffix>
+    <UseRidGraph>true</UseRidGraph>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UserSecretsId>426ad5c3-9a72-44e9-88f5-4b5940b98c28</UserSecretsId>
+    <ApplicationIcon>Resources\icon_game.ico</ApplicationIcon>
+  </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
-        <InternalsVisibleTo Include="AAEmu.Tests.Integration" />
+      <InternalsVisibleTo Include="AAEmu.IntegrationTests" />
+      <InternalsVisibleTo Include="AAEmu.UnitTests" />
     </ItemGroup>
 
     <ItemGroup>
@@ -25,21 +29,6 @@
         <Content Include="ExampleConfig.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <None Include="Scripts\Commands\CofferActions.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Include="Scripts\Commands\Nrot.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Include="Scripts\Commands\TestTracker.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Update="Config.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
         <None Update="Configurations\Expedition.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
@@ -52,10 +41,15 @@
         <None Update="Configurations\ClientData.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="Configurations\Specialty.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="Configurations\CharacterSettings.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Scripts\**\**" />
       <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
       <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
@@ -63,21 +57,34 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Discord.Net" Version="3.7.2" />
-        <PackageReference Include="Jace" Version="0.9.2" />
+      <Compile Remove="Models\Tasks\Telescopes\**" />
+      <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
+      <None Remove="Models\Tasks\Telescopes\**" />
+      <Compile Update="Scripts\Commands\DeSpawnAll.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Models\ClientData" />
+    </ItemGroup>
+  
+    <ItemGroup>
+        <PackageReference Include="Discord.Net" Version="3.12.0" />
+        <PackageReference Include="Jace" Version="1.0.0" />
         <PackageReference Include="Jitter.Core" Version="0.2.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.2.0" />
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.7" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="6.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
-        <PackageReference Include="NLog" Version="5.0.1" />
-        <PackageReference Include="NLua" Version="1.5.6" />
-        <PackageReference Include="Quartz" Version="3.2.3" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.7.0" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0-rc.2.23480.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0-rc.2.23479.6" />
+        <PackageReference Include="NCrontab" Version="3.3.3" />
+        <PackageReference Include="NLog" Version="5.2.5" />
+        <PackageReference Include="NLua" Version="1.6.3" />
         <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />
         <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />        
         <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
@@ -88,6 +95,12 @@
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\GoldCmd.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\FishFinderCmd.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\TimeCmd.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\ItemCmd.cs">
@@ -141,10 +154,5 @@
       <None Update="Scripts\Commands\GetAttribute.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Models\ClientData" />
-      <Folder Include="Scripts\SubCommands" />
     </ItemGroup>
 </Project>

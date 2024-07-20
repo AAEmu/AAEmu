@@ -1,26 +1,24 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Quests.Static;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActConAcceptNpcEmotion(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActConAcceptNpcEmotion : QuestActTemplate
+    public uint NpcId { get; set; }
+    public string Emotion { get; set; }
+
+    /// <summary>
+    /// Verifies that the NPC from the quest starter is valid, does not check the emote
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        public uint NpcId { get; set; }
-        public string Emotion { get; set; }
-
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Warn("QuestActConAcceptNpcEmotion: NpcId {0}, Emotion {1}", NpcId, Emotion);
-
-            if (!(character.CurrentTarget is Npc))
-                return false;
-
-            quest.QuestAcceptorType = QuestAcceptorType.Npc;
-            quest.AcceptorType = NpcId;
-
-            return ((Npc)character.CurrentTarget).TemplateId == NpcId;
-        }
+        // TODO: Somehow check if the emote was correct
+        Logger.Warn($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), DetailId: {DetailId}, NpcId {NpcId}, Emotion {Emotion}");
+        return quest.QuestAcceptorType == QuestAcceptorType.Npc && quest.AcceptorId == NpcId;
     }
 }

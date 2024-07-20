@@ -1,22 +1,23 @@
 {
-  "SecretKey": "test",
-  "AutoAccount": true,
-  "InternalNetwork": {
-    "Host": "*",
-    "Port": 1234
-  },
-  "Network": {
-    "Host": "*",
-    "Port": 1237,
-    "NumConnections": 10
-  },
-  "Connections": {
-    "MySQLProvider": {
-      "Host": "%db_host%",
-      "Port": "%db_port%",
-      "User": "%db_user%",
-      "Password": "%db_password%",
-      "Database": "aaemu_login"
-    }
-  }
+	"SecretKey": "test",
+	"AutoAccount": true,
+	"SkipHostResolve": false,
+	"InternalNetwork": {
+		"Host": "*",
+		"Port": 1234
+	},
+	"Network": {
+		"Host": "*",
+		"NumConnections": 10,
+		"Port": 1237
+	},
+	"Connections": {
+		"MySQLProvider": {
+			"Database": "aaemu_login",
+			"Host": "%db_host%",
+			"Password": "%db_password%",
+			"Port": "%db_port%",
+			"User": "%db_user%"
+		}
+	}
 }

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -10,36 +10,25 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_funcs
         public uint ReturnPointId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
+            Logger.Info("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
 
             if (caster is Character character)
             {
                 if (ReturnPointId == 0 && character.MainWorldPosition != null)
                 {
-                    character.DisabledSetPosition = true;
-
-                    character.SendPacket(
-                        new SCLoadInstancePacket(
-                            1,
-                            character.MainWorldPosition.ZoneId,
-                            character.MainWorldPosition.World.Position.X,
-                            character.MainWorldPosition.World.Position.Y,
-                            character.MainWorldPosition.World.Position.Z,
-                            character.MainWorldPosition.World.Rotation.X,
-                            character.MainWorldPosition.World.Rotation.Y,
-                            character.MainWorldPosition.World.Rotation.Z
-                        )
-                    );
-
-                    character.Transform = character.MainWorldPosition.Clone(character);
-                    character.MainWorldPosition = null;
+                    IndunManager.Instance.RequestLeave(character);
                 }
                 else
                 {
                     // TODO in db not have a entries, but we can change this xD
-                    _log.Warn("DoodadFuncExitIndun, Not have return point!");
+                    Logger.Info("DoodadFuncExitIndun, Not have return point!");
+                    character.SendErrorMessage(ErrorMessageType.InvalidReturnPosInstance); // ошибка, не можете выйти сейчас из данжона
+                    //character.SendErrorMessage(ErrorMessageType.TryLaterInstance); // ошибка данжона, пробуй еще раз
+                    //character.SendErrorMessage(ErrorMessageType.InvalidStateInstance); // данжон уже загружен
+                    //character.SendErrorMessage(ErrorMessageType.ProhibitedInInstance); // нельзя это сделать внутри данжона
+                    //character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit); // Ты израсходовал лимит на вход в данжон. Пробуй позже.
                 }
             }
         }

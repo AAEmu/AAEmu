@@ -1,12 +1,11 @@
 ﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.Housing
+namespace AAEmu.Game.Models.Tasks.Housing;
+
+public class HousingTaxTask : Task
 {
-    public class HousingTaxTask : Task
+    public override void Execute()
     {
-        public override void Execute()
-        {
-            HousingManager.Instance.CheckHousingTaxes();
-        }        
+        HousingManager.Instance.CheckHousingTaxes();
     }
 }

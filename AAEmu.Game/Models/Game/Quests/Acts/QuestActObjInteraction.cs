@@ -1,58 +1,85 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActObjInteraction : QuestActTemplate
+    public override bool CountsAsAnObjective => true;
+    public WorldInteractionType WorldInteractionId { get; set; }
+    public uint DoodadId { get; set; }
+    public bool UseAlias { get; set; }
+    public bool TeamShare { get; set; }
+    public uint HighlightDoodadId { get; set; }
+    public int HighlightDoodadPhase { get; set; }
+    public uint QuestActObjAliasId { get; set; }
+    public uint Phase { get; set; } // phase here is same as the related WI effect's next_phase of the doodad for the quest
+
+    /// <summary>
+    /// Checks if the number of interactions has been met
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        public WorldInteractionType WorldInteractionId { get; set; }
-        public int Count { get; set; }
-        public uint DoodadId { get; set; }
-        public bool UseAlias { get; set; }
-        public bool TeamShare { get; set; }
-        public uint HighlightDoodadId { get; set; }
-        public int HighlightDoodadPhase { get; set; }
-        public uint QuestActObjAliasId { get; set; }
-        public uint Phase { get; set; }
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Count {currentObjectiveCount}/{Count}, WorldInteractionId {WorldInteractionId}, DoodadId {DoodadId}, TeamShare {TeamShare}, Phase {Phase}.");
+        return currentObjectiveCount >= Count;
+    }
+
+    public override void InitializeAction(Quest quest, QuestAct questAct)
+    {
+        base.InitializeAction(quest, questAct);
+        quest.Owner.Events.OnInteraction += questAct.OnInteraction;
+    }
+
+    public override void FinalizeAction(Quest quest, QuestAct questAct)
+    {
+        quest.Owner.Events.OnInteraction -= questAct.OnInteraction;
+        base.FinalizeAction(quest, questAct);
+    }
+    
+    public override void OnInteraction(QuestAct questAct, object sender, OnInteractionArgs args)
+    {
+        if (questAct.Id != ActId)
+            return;
+
+        if (args.DoodadId != DoodadId)
+            return;
+
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).OnInteraction: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), WorldInteractionId {WorldInteractionId}, DoodadId {DoodadId}, TeamShare {TeamShare}, Phase {Phase}.");
+        AddObjective((QuestAct)questAct, 1);
         
-        public static int InteractionStatus = 0;
-
-        public override bool Use(ICharacter character, Quest quest, int objective)
+        var player = questAct.QuestComponent.Parent.Parent.Owner;
+        if (player.Id == args.SourcePlayer.Id)
         {
-            _log.Warn("QuestActObjInteraction");
-            if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
+            // Handle interaction that only apply to source player
+            // TODO Verify: Is Phase here what is actually used to move the Doodad to that phase, or is it the WI that causes the change
+            
+            // Handle Team sharing (if needed)
+            if (TeamShare)
             {
-                InteractionStatus = objective * Count; // Count в данном случае % за единицу
-                quest.OverCompletionPercent = InteractionStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjItemGather.GatherStatus;
-
-                if (quest.Template.LetItDone)
+                // Delegate also to other team members
+                var myTeam = TeamManager.Instance.GetTeamByObjId(player.ObjId);
+                if (myTeam != null)
                 {
-                    if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
-                        quest.EarlyCompletion = true;
+                    foreach (var teamMember in myTeam.Members)
+                    {
+                        if (teamMember == null)
+                            continue;
+                        // Skip self
+                        if (teamMember.Character.Id == player.Id)
+                            continue;
 
-                    if (quest.OverCompletionPercent > quest.Template.Score)
-                        quest.ExtraCompletion = true;
+                        // TODO: Range check?
+
+                        // Directly call OnInteraction on team members to avoid loops/duplicates
+                        teamMember.Character.Events.OnInteraction(sender, args);
+                    }
                 }
-                _log.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, InteractionStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
-                    DoodadId, Count, InteractionStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
-                return quest.OverCompletionPercent >= quest.Template.Score;
-            }
-            else
-            {
-                if (quest.Template.LetItDone)
-                {
-                    quest.OverCompletionPercent = objective * 100 / Count;
-
-                    if (quest.OverCompletionPercent >= 60)
-                        quest.EarlyCompletion = true;
-
-                    if (quest.OverCompletionPercent > 100)
-                        quest.ExtraCompletion = true;
-                }
-                _log.Debug("QuestActObjInteraction: DoodadId {0}, Count {1}, quest {2}, objective {3}",
-                    DoodadId, Count, quest.TemplateId, objective);
-                return objective >= Count;
             }
         }
     }
