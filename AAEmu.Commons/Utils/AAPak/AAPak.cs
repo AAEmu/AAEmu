@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using AAEmu.Commons.Exceptions;
 
 // Source: https://github.com/ZeromusXYZ/AAEmu-Packer
@@ -1377,16 +1378,21 @@ public class AAPak
     /// </summary>
     /// <param name="fileName">filename inside the pak of the file to be exported</param>
     /// <returns>Returns a SubStream of file within the pak</returns>
-    public Stream ExportFileAsStreamCloned(string fileName)
+    public async Task<Stream> ExportFileAsStreamClonedAsync(string fileName)
     {
         AAPakFileInfo file = nullAAPakFileInfo;
         if (GetFileByName(fileName, ref file) == true)
         {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-            var fs = new FileStream(_gpFilePath, FileMode.Open, FileAccess.Read);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-            if (fs.Length > 0)
-                return new SubStream(fs, file.offset, file.size);
+            using (var fs = new FileStream(_gpFilePath, FileMode.Open, FileAccess.Read))
+            {
+                if (fs.Length > 0)
+                {
+                    byte[] buffer = new byte[file.size];
+                    fs.Seek(file.offset, SeekOrigin.Begin);
+                    await fs.ReadAsync(buffer, 0, (int)file.size);
+                    return new MemoryStream(buffer);
+                }
+            }
         }
         return new MemoryStream();
     }

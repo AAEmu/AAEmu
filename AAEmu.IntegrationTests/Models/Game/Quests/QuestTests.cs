@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-
+using System.Threading.Tasks;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -42,7 +42,7 @@ public class QuestTests
 {
     private static bool _managersLoaded = false;
 
-    private static void LoadManagers()
+    private static async Task LoadManagersAsync()
     {
         if (_managersLoaded)
             return;
@@ -84,7 +84,7 @@ public class QuestTests
         ContainerIdManager.Instance.Initialize();
         ItemIdManager.Instance.Initialize();
         ItemManager.Instance.LoadUserItems();
-        WorldManager.Instance.Load();
+        await WorldManager.Instance.LoadAsync();
         FactionManager.Instance.Load();
         ModelManager.Instance.Load();
         HousingTldManager.Instance.Initialize();
@@ -96,7 +96,7 @@ public class QuestTests
         HousingManager.Instance.Load();
         NpcManager.Instance.Load();
         DoodadManager.Instance.Load();
-        TransferManager.Instance.Load();
+        await TransferManager.Instance.LoadAsync();
         GimmickManager.Instance.Load();
         SpawnManager.Instance.Load();
 
@@ -107,7 +107,7 @@ public class QuestTests
     }
     public QuestTests()
     {
-        LoadManagers();
+        LoadManagersAsync().GetAwaiter().GetResult();
     }
 
     // [Fact]

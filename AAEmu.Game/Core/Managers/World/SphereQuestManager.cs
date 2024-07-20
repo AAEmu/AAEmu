@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
@@ -49,10 +50,10 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
         TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(500), true);
     }
 
-    public void Load()
+    public async Task LoadAsync()
     {
         // Load sphere data
-        _sphereQuests = LoadQuestSpheres();
+        _sphereQuests = await LoadQuestSpheresAsync();
 
         // Link quest starters to spheres
         _questStartingSpheres.Clear();
@@ -66,15 +67,15 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
             var sphereIdToAdd = SphereGameData.Instance.GetSphereIdFromQuest(questComponent.ParentQuestTemplate.Id);
             if (sphereIdToAdd <= 0)
                 continue;
-            
+
             foreach (var sphereQuest in sphereQuestList)
             {
                 var newSphere = new SphereQuestStarter();
                 newSphere.Sphere = sphereQuest;
                 newSphere.QuestTemplateId = questComponent.ParentQuestTemplate.Id;
                 newSphere.SphereId = sphereIdToAdd;
-                _questSpheresBasic.Add(newSphere);            
-                
+                _questSpheresBasic.Add(newSphere);
+
                 foreach (var actTemplate in questComponent.ActTemplates)
                 {
                     if (actTemplate is QuestActConAcceptSphere _)
@@ -251,7 +252,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     /// Read all spheres from all instances
     /// </summary>
     /// <returns></returns>
-    private static Dictionary<uint, List<SphereQuest>> LoadQuestSpheres()
+    private static async Task<Dictionary<uint, List<SphereQuest>>> LoadQuestSpheresAsync()
     {
         Logger.Info("Loading SphereQuest...");
         var worlds = WorldManager.Instance.GetWorlds();
@@ -269,7 +270,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                     Logger.Warn($"Unable to parse zoneId from {pathFileName}");
                     continue;
                 }
-                var contents = ClientFileManager.GetFileAsString(pathFileName);
+                var contents = await ClientFileManager.GetFileAsStringAsync(pathFileName);
                 if (string.IsNullOrWhiteSpace(contents))
                 {
                     Logger.Warn($"{pathFileName} doesn't exists or is empty.");

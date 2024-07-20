@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using Newtonsoft.Json;
 
@@ -69,23 +70,25 @@ public class WaterBodies
         return true;
     }
 
-    public static bool Load(string fileName, out WaterBodies waterBodies)
+    public static async Task<(bool Loaded, WaterBodies WaterBodies)> LoadAsync(string fileName)
     {
-        waterBodies = null;
+        WaterBodies waterBodies = null;
         try
         {
-            var jsonString = File.ReadAllText(fileName);
+            var jsonString = await File.ReadAllTextAsync(fileName);
             if (!JsonHelper.TryDeserializeObject<WaterBodies>(jsonString, out var newData, out var error))
-                return false;
+                return (false, waterBodies);
+
             foreach (var area in newData.Areas)
                 area.UpdateBounds();
+
             waterBodies = newData;
         }
         catch
         {
-            return false;
+            return (false, waterBodies);
             // Ignore
         }
-        return true;
+        return (true, waterBodies);
     }
 }

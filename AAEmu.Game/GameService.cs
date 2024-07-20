@@ -46,7 +46,7 @@ public sealed class GameService : IHostedService, IDisposable
         }
 
         ClientFileManager.Initialize();
-        if (ClientFileManager.ListSources().Count == 0)
+        if (ClientFileManager.Sources.Count == 0)
         {
             Logger.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
             Logger.Fatal("Press Ctrl+C to quit");
@@ -61,7 +61,7 @@ public sealed class GameService : IHostedService, IDisposable
         TaskIdManager.Instance.Initialize();
         TaskManager.Instance.Initialize();
 
-        WorldManager.Instance.Load();
+        await WorldManager.Instance.LoadAsync();
         WorldIdManager.Instance.Initialize();
         FeaturesManager.Initialize();
 
@@ -70,15 +70,8 @@ public sealed class GameService : IHostedService, IDisposable
         TradeIdManager.Instance.Initialize();
 
         ZoneManager.Instance.Load();
-        var heightmapTask = Task.Run(() =>
-        {
-            WorldManager.Instance.LoadHeightmaps();
-        }, cancellationToken);
-
-        var waterBodyTask = Task.Run(() =>
-        {
-            WorldManager.Instance.LoadWaterBodies();
-        }, cancellationToken);
+        var heightmapTask = Task.Run(WorldManager.Instance.LoadHeightmapsAsync, cancellationToken);
+        var waterBodyTask = Task.Run(WorldManager.Instance.LoadWaterBodiesAsync, cancellationToken);
 
         ContainerIdManager.Instance.Initialize();
         ItemIdManager.Instance.Initialize();
@@ -106,7 +99,7 @@ public sealed class GameService : IHostedService, IDisposable
         GameDataManager.Instance.LoadGameData();
         QuestManager.Instance.Load();
 
-        SphereQuestManager.Instance.Load();
+        await SphereQuestManager.Instance.LoadAsync();
         SphereQuestManager.Instance.Initialize();
 
         FormulaManager.Instance.Load();
@@ -116,7 +109,7 @@ public sealed class GameService : IHostedService, IDisposable
         SpecialtyManager.Instance.Load();
         ItemManager.Instance.Load();
         ItemManager.Instance.LoadUserItems();
-        AnimationManager.Instance.Load();
+        await AnimationManager.Instance.LoadAsync();
         PlotManager.Instance.Load();
         SkillManager.Instance.Load();
         CraftManager.Instance.Load();
@@ -144,11 +137,11 @@ public sealed class GameService : IHostedService, IDisposable
         DoodadManager.Instance.Load();
         TaxationsManager.Instance.Load();
         HousingManager.Instance.Load();
-        TransferManager.Instance.Load();
+        await TransferManager.Instance.LoadAsync();
         GimmickManager.Instance.Load();
         ShipyardManager.Instance.Load();
 
-        SubZoneManager.Instance.Load();
+        await SubZoneManager.Instance.LoadAsync();
         PublicFarmManager.Instance.Load();
 
         SpawnManager.Instance.Load();
@@ -189,17 +182,17 @@ public sealed class GameService : IHostedService, IDisposable
         RadarManager.Instance.Initialize();
         PublicFarmManager.Instance.Initialize();
 
-        if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
+        if (waterBodyTask?.IsCompleted == false)
         {
             Logger.Info("Waiting on water to be loaded before proceeding, please wait ...");
-            await waterBodyTask;
         }
 
-        if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
+        if (heightmapTask?.IsCompleted == false)
         {
             Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
-            await heightmapTask;
         }
+
+        await Task.WhenAll(waterBodyTask, heightmapTask);
 
         var spawnSw = new Stopwatch();
         Logger.Info("Spawning units...");

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 using System.Xml;
 
 using AAEmu.Commons.IO;
@@ -197,7 +198,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return null;
     }
 
-    public void Load()
+    public async Task LoadAsync()
     {
         if (_loaded)
             return;
@@ -245,7 +246,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             if (worldName == "main_world")
                 DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
 
-            using var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
+            using var worldXmlData = await ClientFileManager.GetFileStreamAsync(Path.Combine("game", "worlds", worldName, "world.xml"));
             var xml = new XmlDocument();
             xml.Load(worldXmlData);
             var worldNode = xml.SelectSingleNode("/World");
@@ -377,6 +378,64 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         _loaded = true;
     }
 
+    public static async Task<bool> LoadHeightMapFromDatFileAsync(InstanceWorld world)
+    {
+        var heightMap = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "hmap.dat");
+        if (!File.Exists(heightMap))
+        {
+            Logger.Trace($"HeightMap for `{world.Name}` not found");
+            return false;
+        }
+
+        using (var stream = new FileStream(heightMap, FileMode.Open, FileAccess.Read, FileShare.None, 2 << 20, FileOptions.Asynchronous))
+        using (var br = new BinaryReader(stream))
+        {
+            var version = await ReadInt32Async(br);
+            if (version == 1)
+            {
+                var hMapCellX = await ReadInt32Async(br);
+                var hMapCellY = await ReadInt32Async(br);
+                await ReadDoubleAsync(br); // heightMaxCoeff
+                await ReadInt32Async(br); // count
+
+                if (hMapCellX == world.CellX && hMapCellY == world.CellY)
+                {
+                    for (var cellX = 0; cellX < world.CellX; cellX++)
+                    {
+                        for (var cellY = 0; cellY < world.CellY; cellY++)
+                        {
+                            if (await ReadBooleanAsync(br))
+                                continue;
+                            for (var i = 0; i < SECTORS_PER_CELL; i++)
+                                for (var j = 0; j < SECTORS_PER_CELL; j++)
+                                    for (var x = 0; x < SECTOR_HMAP_RESOLUTION; x++)
+                                        for (var y = 0; y < SECTOR_HMAP_RESOLUTION; y++)
+                                        {
+                                            var sx = cellX * CELL_HMAP_RESOLUTION + i * SECTOR_HMAP_RESOLUTION + x;
+                                            var sy = cellY * CELL_HMAP_RESOLUTION + j * SECTOR_HMAP_RESOLUTION + y;
+
+                                            world.HeightMaps[sx, sy] = await ReadUInt16Async(br);
+                                        }
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.Warn("{0}: Invalid heightmap cells, does not match world definition ...", world.Name);
+                    return false;
+                }
+            }
+            else
+            {
+                Logger.Warn("{0}: Heightmap version not supported {1}", world.Name, version);
+                return false;
+            }
+        }
+
+        Logger.Info("{0} heightmap loaded", world.Name);
+        return true;
+    }
+
     public static bool LoadHeightMapFromDatFile(InstanceWorld world)
     {
         var heightMap = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "hmap.dat");
@@ -435,7 +494,36 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return true;
     }
 
-    public static bool LoadHeightMapFromClientData(InstanceWorld world)
+    // Helper methods for async reading
+    private static async Task<int> ReadInt32Async(BinaryReader br)
+    {
+        var buffer = new byte[sizeof(int)];
+        await br.BaseStream.ReadAsync(buffer, 0, buffer.Length);
+        return BitConverter.ToInt32(buffer, 0);
+    }
+
+    private static async Task<double> ReadDoubleAsync(BinaryReader br)
+    {
+        var buffer = new byte[sizeof(double)];
+        await br.BaseStream.ReadAsync(buffer, 0, buffer.Length);
+        return BitConverter.ToDouble(buffer, 0);
+    }
+
+    private static async Task<bool> ReadBooleanAsync(BinaryReader br)
+    {
+        var buffer = new byte[1];
+        await br.BaseStream.ReadAsync(buffer, 0, 1);
+        return BitConverter.ToBoolean(buffer, 0);
+    }
+
+    private static async Task<ushort> ReadUInt16Async(BinaryReader br)
+    {
+        var buffer = new byte[sizeof(ushort)];
+        await br.BaseStream.ReadAsync(buffer, 0, buffer.Length);
+        return BitConverter.ToUInt16(buffer, 0);
+    }
+
+    public static async Task<bool> LoadHeightMapFromClientDataAsync(InstanceWorld world)
     {
         // Use world.xml to check if we have client data enabled
         var worldXmlTest = Path.Combine("game", "worlds", world.Name, "world.xml");
@@ -451,7 +539,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
                     "terrain", "heightmap.dat");
                 if (ClientFileManager.FileExists(heightMapFile))
-                    using (var stream = ClientFileManager.GetFileStream(heightMapFile))
+                    using (var stream = await ClientFileManager.GetFileStreamAsync(heightMapFile))
                     {
                         if (stream == null)
                         {
@@ -532,7 +620,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return true;
     }
 
-    public void LoadHeightmaps()
+    public async Task LoadHeightmapsAsync()
     {
         if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!
         {
@@ -541,11 +629,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             var loaded = 0;
             foreach (var world in _worlds.Values)
             {
-                if (AppConfiguration.Instance.ClientData.PreferClientHeightMap && LoadHeightMapFromClientData(world))
+                if (AppConfiguration.Instance.ClientData.PreferClientHeightMap 
+                    && await LoadHeightMapFromClientDataAsync(world))
                     loaded++;
-                else if (LoadHeightMapFromDatFile(world))
+                else if (await LoadHeightMapFromDatFileAsync(world))
                     loaded++;
-                else if (LoadHeightMapFromClientData(world))
+                else if (await LoadHeightMapFromClientDataAsync(world))
                     loaded++;
             }
 
@@ -553,7 +642,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
-    public void LoadWaterBodies()
+    public async Task LoadWaterBodiesAsync()
     {
         foreach (var world in _worlds.Values)
         {
@@ -563,7 +652,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             var customFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
             if (File.Exists(customFile))
             {
-                if (WaterBodies.Load(customFile, out var newWater))
+                var (loaded, newWater) = await WaterBodies.LoadAsync(customFile);
+                if (loaded)
                 {
                     world.Water = newWater;
                     loadFromClient = false;
@@ -572,7 +662,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
             // If no custom data could be found or loaded, then load from client's cell data
             if (loadFromClient)
-                LoadWaterBodiesFromClientData(world);
+                await LoadWaterBodiesFromClientDataAsync(world);
         }
     }
 
@@ -1279,7 +1369,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
-    public static bool LoadWaterBodiesFromClientData(InstanceWorld world)
+    public static async Task<bool> LoadWaterBodiesFromClientDataAsync(InstanceWorld world)
     {
         // Use world.xml to check if we have client data enabled
         var worldXmlTest = Path.Combine("game", "worlds", world.Name, "world.xml");
@@ -1297,7 +1387,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 var entityFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "entities.xml");
                 if (ClientFileManager.FileExists(entityFile))
                 {
-                    var xmlString = ClientFileManager.GetFileAsString(entityFile);
+                    var xmlString = await ClientFileManager.GetFileAsStringAsync(entityFile);
                     var xmlDoc = new XmlDocument();
                     xmlDoc.LoadXml(xmlString);
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Animation;
@@ -32,10 +32,10 @@ public class AnimationManager : Singleton<AnimationManager>
     /// </summary>
     /// <param name="gFileName"></param>
     /// <returns>Returns null if there is a error, otherwise returns the list</returns>
-    private static List<AnimCombatSyncEvent> ParseGFile(string gFileName)
+    private static async Task<List<AnimCombatSyncEvent>> ParseGFileAsync(string gFileName)
     {
         var res = new List<AnimCombatSyncEvent>();
-        var lines = ClientFileManager.GetFileAsString(gFileName).Split("\r\n");
+        var lines = (await ClientFileManager.GetFileAsStringAsync(gFileName)).Split("\r\n");
 
         AnimCombatSyncEvent lastCombatSyncEvent = null;
         AnimDuration lastAnimDuration = null;
@@ -105,7 +105,7 @@ public class AnimationManager : Singleton<AnimationManager>
         return res;
     }
 
-    public void Load()
+    public async Task LoadAsync()
     {
         _animations = new Dictionary<uint, Anim>();
         _animationsByName = new Dictionary<string, Anim>();
@@ -146,7 +146,7 @@ public class AnimationManager : Singleton<AnimationManager>
 
         // Load animation durations from client data
         var gFileName = "game/combat_sync_event_list.g";
-        var combatSyncEvents = ParseGFile(gFileName);
+        var combatSyncEvents = await ParseGFileAsync(gFileName);
 
         if (combatSyncEvents == null)
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 
 using AAEmu.Commons.Utils;
@@ -273,7 +274,7 @@ public class TransferManager : Singleton<TransferManager>
         return owner;
     }
 
-    public void Load()
+    public async Task LoadAsync()
     {
         _templates = new Dictionary<uint, TransferTemplate>();
         _activeTransfers = new Dictionary<uint, Transfer>();
@@ -406,7 +407,7 @@ public class TransferManager : Singleton<TransferManager>
                     continue;
                 }
 
-                var contents = ClientFileManager.GetFileAsString(pathFileName);
+                var contents = await ClientFileManager.GetFileAsStringAsync(pathFileName);
 
                 if (string.IsNullOrWhiteSpace(contents))
                 {

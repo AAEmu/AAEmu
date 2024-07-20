@@ -549,13 +549,14 @@ public class WaterEdit : ICommand
         else if (subCommand == "load")
         {
             var loadFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
-            if (!WaterBodies.Load(loadFileName, out var newWater))
+            var loadWaterResult = WaterBodies.LoadAsync(loadFileName).GetAwaiter().GetResult();
+            if (!loadWaterResult.Loaded)
             {
                 character.SendMessage($"|cFFFF0000[WaterEdit] Error loading {loadFileName} !|r");
             }
             else
             {
-                world.Water = newWater;
+                world.Water = loadWaterResult.WaterBodies;
                 character.SendMessage($"[WaterEdit] |cFFFFFFFF{loadFileName}|r has been loaded.");
             }
         }

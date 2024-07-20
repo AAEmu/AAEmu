@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using System.Threading.Tasks;
 using System.Xml;
 
 using AAEmu.Commons.Utils;
@@ -18,7 +19,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public void Load()
+    public async Task LoadAsync()
     {
         #region LoadClientData
 
@@ -35,7 +36,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
                 foreach (var pathFileName in pathFiles)
                 {
-                    var contents = ClientFileManager.GetFileAsString(pathFileName);
+                    var contents = await ClientFileManager.GetFileAsStringAsync(pathFileName);
                     if (string.IsNullOrWhiteSpace(contents))
                     {
                         Logger.Warn($"{pathFileName} doesn't exists or is empty.");
@@ -157,7 +158,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
                 foreach (var pathFileName in pathFiles)
                 {
-                    var contents = ClientFileManager.GetFileAsString(pathFileName);
+                    var contents = await ClientFileManager.GetFileAsStringAsync(pathFileName);
 
                     if (string.IsNullOrWhiteSpace(contents))
                     {

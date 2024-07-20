@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils.AAPak;
 
 namespace AAEmu.Game.IO;
@@ -124,7 +125,7 @@ public class ClientSource
     /// </summary>
     /// <param name="fileName"></param>
     /// <returns></returns>
-    public Stream GetFileStream(string fileName)
+    public async Task<Stream> GetFileStreamAsync(string fileName)
     {
         switch (SourceType)
         {
@@ -135,19 +136,19 @@ public class ClientSource
                     return fStream;
                 }
             case ClientSourceType.GamePak:
-                return GamePak.ExportFileAsStreamCloned(fileName);
+                return await GamePak.ExportFileAsStreamClonedAsync(fileName);
             default:
                 return null;
         }
     }
 
-    public string GetFileAsString(string fileName)
+    public async Task<string> GetFileAsStringAsync(string fileName)
     {
         try
         {
-            using (var stream = GetFileStream(fileName))
-            using (var reader = new StreamReader(stream))
-                return reader.ReadToEnd();
+            using var stream = await GetFileStreamAsync(fileName);
+            using var reader = new StreamReader(stream);
+            return await reader.ReadToEndAsync();
         }
         catch
         {
