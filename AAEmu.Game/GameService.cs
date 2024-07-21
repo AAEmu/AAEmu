@@ -46,7 +46,7 @@ public sealed class GameService : IHostedService, IDisposable
         }
 
         ClientFileManager.Initialize();
-        if (ClientFileManager.ListSources().Count == 0)
+        if (ClientFileManager.Sources.Count == 0)
         {
             Logger.Fatal($"Failed up load client files! ({string.Join(", ", AppConfiguration.Instance.ClientData.Sources)})");
             Logger.Fatal("Press Ctrl+C to quit");

@@ -10,7 +10,9 @@ public static class ClientFileManager
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _initialized = false;
 
-    private static List<ClientSource> Sources = new();
+    private static List<ClientSource> sources = new();
+
+    public static IReadOnlyList<ClientSource> Sources => sources;
 
     /// <summary>
     /// Adds a Client Source location to the ClientFileManager
@@ -38,7 +40,7 @@ public static class ClientFileManager
             var newSource = new ClientSource { SourceType = ClientSourceType.Directory, PathName = pathName };
             if (newSource.Open())
             {
-                Sources.Add(newSource);
+                sources.Add(newSource);
                 Logger.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
                 return true;
             }
@@ -50,7 +52,7 @@ public static class ClientFileManager
             var newSource = new ClientSource() { SourceType = ClientSourceType.GamePak, PathName = pathName };
             if (newSource.Open())
             {
-                Sources.Add(newSource);
+                sources.Add(newSource);
                 Logger.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
                 return true;
             }
@@ -71,16 +73,8 @@ public static class ClientFileManager
         {
             var source = Sources[i];
             source.Close();
-            Sources.Remove(source);
+            sources.Remove(source);
         }
-    }
-
-    public static List<string> ListSources()
-    {
-        var list = new List<string>();
-        foreach (var source in Sources)
-            list.Add(source.PathName);
-        return list;
     }
 
     /// <summary>
@@ -145,7 +139,7 @@ public static class ClientFileManager
             if (!AddSource(source))
                 Logger.Warn($"{source} is not a valid source for client data");
         }
-        if (ListSources().Count <= 0)
+        if (Sources.Count <= 0)
             Logger.Error("No valid client sources have been defined or found, some features will not work !");
 
         _initialized = true;
@@ -160,7 +154,7 @@ public static class ClientFileManager
     /// <returns>List of filenames</returns>
     public static List<string> GetFilesInDirectory(string directory, string searchPattern, bool includeSubDirectories)
     {
-        var list = new List<string>();
+        List<string> list = [];
         var baseList = new List<string>(); // Helper
         foreach (var source in Sources)
         {
