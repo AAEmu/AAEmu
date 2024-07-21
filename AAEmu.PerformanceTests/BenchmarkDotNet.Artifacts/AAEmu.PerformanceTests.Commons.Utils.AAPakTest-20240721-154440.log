@@ -1,0 +1,13 @@
+// Validating benchmarks:
+//    * Assembly AAEmu.PerformanceTests which defines benchmarks references non-optimized AAEmu.Game
+	If you own this dependency, please, build it in RELEASE.
+	If you don't, you can disable this policy by using 'config.WithOptions(ConfigOptions.DisableOptimizationsValidator)'.
+
+//    * Assembly AAEmu.PerformanceTests which defines benchmarks references non-optimized AAEmu.Commons
+	If you own this dependency, please, build it in RELEASE.
+	If you don't, you can disable this policy by using 'config.WithOptions(ConfigOptions.DisableOptimizationsValidator)'.
+
+//    * Assembly AAEmu.PerformanceTests which defines benchmarks is non-optimized
+Benchmark was built without optimization enabled (most probably a DEBUG configuration). Please, build it in RELEASE.
+If you want to debug the benchmarks, please see https://benchmarkdotnet.org/articles/guides/troubleshooting.html#debugging-benchmarks.
+

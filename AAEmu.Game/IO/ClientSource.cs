@@ -138,6 +138,28 @@ public class ClientSource
         }
     }
 
+    /// <summary>
+    /// Grabs the target fileName as a Stream
+    /// </summary>
+    /// <param name="fileName"></param>
+    /// <returns></returns>
+    public Stream GetFileStream(string fileName)
+    {
+        switch (SourceType)
+        {
+            case ClientSourceType.Directory:
+                {
+                    var fn = Path.Combine(PathName, fileName);
+                    var fStream = new FileStream(fn, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    return fStream;
+                }
+            case ClientSourceType.GamePak:
+                return GamePak.ExportFileAsStream(fileName);
+            default:
+                return null;
+        }
+    }
+
     public async Task<string> GetFileAsStringAsync(string fileName)
     {
         try
@@ -145,6 +167,20 @@ public class ClientSource
             using var stream = await GetFileStreamAsync(fileName);
             using var reader = new StreamReader(stream);
             return await reader.ReadToEndAsync();
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    public string GetFileAsString(string fileName)
+    {
+        try
+        {
+            using var stream = GetFileStream(fileName);
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
         }
         catch
         {

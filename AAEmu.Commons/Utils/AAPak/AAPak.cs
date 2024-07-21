@@ -1397,6 +1397,19 @@ public class AAPak
         return new MemoryStream();
     }
 
+    public Stream ExportFileAsStreamCloned(string fileName)
+    {
+        AAPakFileInfo file = nullAAPakFileInfo;
+        if (GetFileByName(fileName, ref file) == true)
+        {
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            var fs = new FileStream(_gpFilePath, FileMode.Open, FileAccess.Read);
+#pragma warning restore CA2000 // Dispose objects before losing scope
+            if (fs.Length > 0)
+                return new SubStream(fs, file.offset, file.size);
+        }
+        return new MemoryStream();
+    }
 
     /// <summary>
     /// Calculates and set the MD5 Hash of a given file

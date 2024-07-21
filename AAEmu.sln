@@ -124,6 +124,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{2A4F
 		Scripts\stop.sh = Scripts\stop.sh
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.PerformanceTests", "AAEmu.PerformanceTests\AAEmu.PerformanceTests.csproj", "{93FD16AE-0ABF-400C-BA34-C63698E0BF0B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -150,6 +152,10 @@ Global
 		{9D26DA94-2E47-45D5-9A23-14C52FA2638A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9D26DA94-2E47-45D5-9A23-14C52FA2638A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9D26DA94-2E47-45D5-9A23-14C52FA2638A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93FD16AE-0ABF-400C-BA34-C63698E0BF0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93FD16AE-0ABF-400C-BA34-C63698E0BF0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93FD16AE-0ABF-400C-BA34-C63698E0BF0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93FD16AE-0ABF-400C-BA34-C63698E0BF0B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -165,6 +171,7 @@ Global
 		{4D10DE27-69C5-4826-8758-322DD4E7AFE5} = {ADE4FB05-479F-4C5A-9E6E-1E785A26C158}
 		{66EEB549-6D3C-4ABC-834E-9DC59720DF4E} = {DC5065BC-D9B9-4B81-97D9-45527C90A0B6}
 		{2A4FF077-4CA2-4FB5-A16C-D98F4F30D485} = {ADE4FB05-479F-4C5A-9E6E-1E785A26C158}
+		{93FD16AE-0ABF-400C-BA34-C63698E0BF0B} = {37933EC9-EBED-4B75-B7E9-796BEE2CA3D3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63FD3F6D-B455-40CC-8555-5F97A1068D2B}

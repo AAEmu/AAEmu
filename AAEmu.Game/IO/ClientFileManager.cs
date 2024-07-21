@@ -129,12 +129,38 @@ public static class ClientFileManager
         return await source.GetFileStreamAsync(fileName);
     }
 
+    /// <summary>
+    /// Grabs the target fileName as a Stream
+    /// </summary>
+    /// <param name="fileName"></param>
+    /// <returns></returns>
+    public static Stream GetFileStream(string fileName)
+    {
+        var source = GetFileSource(fileName);
+        if (source == null)
+        {
+            Logger.Trace($"GetFileStream({fileName}) not found");
+            return null;
+        }
+        //Logger.Debug($"[{source.PathName}].GetFileStream({fileName})");
+        return source.GetFileStream(fileName);
+    }
+
     public static async Task<string> GetFileAsStringAsync(string fileName)
     {
         var source = GetFileSource(fileName);
         if (source is null)
             return string.Empty;
         return await source.GetFileAsStringAsync(fileName);
+    }
+
+    public static string GetFileAsString(string fileName)
+    {
+        var source = GetFileSource(fileName);
+        if (source is null)
+            return string.Empty;
+
+        return source.GetFileAsString(fileName);
     }
 
     public static void Initialize()

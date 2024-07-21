@@ -1,0 +1,496 @@
+// Validating benchmarks:
+// ***** BenchmarkRunner: Start   *****
+// ***** Found 2 benchmark(s) in total *****
+// ***** Building 1 exe(s) in Parallel: Start   *****
+// start dotnet  restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true in D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\02e29d2f-b066-4100-a27e-fbcf99f9cd31
+// command took 1.33 sec and exited with 0
+// start dotnet  build -c Release --no-restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true in D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\02e29d2f-b066-4100-a27e-fbcf99f9cd31
+// command took 2.91 sec and exited with 0
+// ***** Done, took 00:00:04 (4.32 sec)   *****
+// Found 2 benchmarks:
+//   WorldManagerTest.LoadAsync: DefaultJob
+//   WorldManagerTest.Load: DefaultJob
+
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: WorldManagerTest.LoadAsync: DefaultJob
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 02e29d2f-b066-4100-a27e-fbcf99f9cd31.dll --anonymousPipes 2304 1432 --benchmarkName AAEmu.PerformanceTests.Commons.Utils.WorldManagerTest.LoadAsync --job Default --benchmarkId 0 in D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\02e29d2f-b066-4100-a27e-fbcf99f9cd31\bin\Release\net8.0
+// BeforeAnythingElse
+17:56:05 [WARN] ClientFileManager - Client Source not found D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\.server_files\AAEmu.Game\ClientData 
+17:56:05 [WARN] ClientFileManager - ../../../../.server_files/AAEmu.Game/ClientData is not a valid source for client data 
+17:56:05 [WARN] ClientFileManager - Client Source not found D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\.server_files\AAEmu.Game\ClientData\game_pak 
+17:56:05 [WARN] ClientFileManager - ../../../../.server_files/AAEmu.Game/ClientData/game_pak is not a valid source for client data 
+
+17:56:06 [INFO] ClientFileManager - Using Source [1:GamePak]: D:\repo\community\AAEmu\.server_files\AAEmu.Game\ClientData\game_pak 
+17:56:06 [INFO] ClientFileManager - Using Source [2:Directory]: D:\repo\community\AAEmu\.server_files\AAEmu.Game\ClientData 
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.7 (8.0.724.31311), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: DefaultJob
+
+OverheadJitting  1: 1 op, 149700.00 ns, 149.7000 us/op
+17:56:07 [INFO] WorldManager - Loading world data... 
+17:56:08 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadJitting  1: 1 op, 991549000.00 ns, 991.5490 ms/op
+
+OverheadJitting  2: 1 op, 1400.00 ns, 1.4000 us/op
+17:56:08 [INFO] WorldManager - Loading world data... 
+17:56:09 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadJitting  2: 1 op, 739014700.00 ns, 739.0147 ms/op
+
+17:56:09 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   1: 1 op, 464946100.00 ns, 464.9461 ms/op
+17:56:09 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:09 [INFO] WorldManager - Loading world data... 
+17:56:10 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadWarmup   2: 1 op, 453917300.00 ns, 453.9173 ms/op
+17:56:10 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   3: 1 op, 363174600.00 ns, 363.1746 ms/op
+17:56:10 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:10 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   4: 1 op, 360519800.00 ns, 360.5198 ms/op
+17:56:11 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:11 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   5: 1 op, 360045100.00 ns, 360.0451 ms/op
+17:56:11 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:12 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   6: 1 op, 372868800.00 ns, 372.8688 ms/op
+17:56:12 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:12 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   7: 1 op, 344551400.00 ns, 344.5514 ms/op
+17:56:13 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:13 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   8: 1 op, 389749700.00 ns, 389.7497 ms/op
+17:56:13 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:14 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   9: 1 op, 387815700.00 ns, 387.8157 ms/op
+17:56:14 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+
+// BeforeActualRun
+17:56:14 [INFO] WorldManager - Loading world data... 
+WorkloadActual   1: 1 op, 367567900.00 ns, 367.5679 ms/op
+17:56:15 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:15 [INFO] WorldManager - Loading world data... 
+17:56:15 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual   2: 1 op, 378459600.00 ns, 378.4596 ms/op
+17:56:16 [INFO] WorldManager - Loading world data... 
+WorkloadActual   3: 1 op, 381763300.00 ns, 381.7633 ms/op
+17:56:16 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:17 [INFO] WorldManager - Loading world data... 
+WorkloadActual   4: 1 op, 394990300.00 ns, 394.9903 ms/op
+17:56:17 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:17 [INFO] WorldManager - Loading world data... 
+17:56:18 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual   5: 1 op, 370568900.00 ns, 370.5689 ms/op
+17:56:18 [INFO] WorldManager - Loading world data... 
+WorkloadActual   6: 1 op, 376606900.00 ns, 376.6069 ms/op
+17:56:19 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:19 [INFO] WorldManager - Loading world data... 
+17:56:20 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual   7: 1 op, 383049300.00 ns, 383.0493 ms/op
+17:56:20 [INFO] WorldManager - Loading world data... 
+WorkloadActual   8: 1 op, 371870900.00 ns, 371.8709 ms/op
+17:56:20 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:21 [INFO] WorldManager - Loading world data... 
+WorkloadActual   9: 1 op, 391259700.00 ns, 391.2597 ms/op
+17:56:21 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:22 [INFO] WorldManager - Loading world data... 
+WorkloadActual  10: 1 op, 395543800.00 ns, 395.5438 ms/op
+17:56:22 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:23 [INFO] WorldManager - Loading world data... 
+WorkloadActual  11: 1 op, 376319400.00 ns, 376.3194 ms/op
+17:56:23 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:24 [INFO] WorldManager - Loading world data... 
+WorkloadActual  12: 1 op, 383250200.00 ns, 383.2502 ms/op
+17:56:24 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:25 [INFO] WorldManager - Loading world data... 
+17:56:26 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  13: 1 op, 394100000.00 ns, 394.1000 ms/op
+17:56:26 [INFO] WorldManager - Loading world data... 
+17:56:27 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  14: 1 op, 405457700.00 ns, 405.4577 ms/op
+17:56:27 [INFO] WorldManager - Loading world data... 
+WorkloadActual  15: 1 op, 404166000.00 ns, 404.1660 ms/op
+17:56:28 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:29 [INFO] WorldManager - Loading world data... 
+WorkloadActual  16: 1 op, 381165800.00 ns, 381.1658 ms/op
+17:56:29 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:30 [INFO] WorldManager - Loading world data... 
+WorkloadActual  17: 1 op, 478417400.00 ns, 478.4174 ms/op
+17:56:30 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:31 [INFO] WorldManager - Loading world data... 
+WorkloadActual  18: 1 op, 386068500.00 ns, 386.0685 ms/op
+17:56:32 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:33 [INFO] WorldManager - Loading world data... 
+WorkloadActual  19: 1 op, 387919800.00 ns, 387.9198 ms/op
+17:56:33 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:34 [INFO] WorldManager - Loading world data... 
+17:56:34 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  20: 1 op, 404857100.00 ns, 404.8571 ms/op
+17:56:35 [INFO] WorldManager - Loading world data... 
+WorkloadActual  21: 1 op, 393247200.00 ns, 393.2472 ms/op
+17:56:36 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:37 [INFO] WorldManager - Loading world data... 
+WorkloadActual  22: 1 op, 410828900.00 ns, 410.8289 ms/op
+17:56:37 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:38 [INFO] WorldManager - Loading world data... 
+WorkloadActual  23: 1 op, 381339800.00 ns, 381.3398 ms/op
+17:56:38 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:39 [INFO] WorldManager - Loading world data... 
+17:56:40 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  24: 1 op, 398007700.00 ns, 398.0077 ms/op
+17:56:41 [INFO] WorldManager - Loading world data... 
+17:56:41 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  25: 1 op, 386632200.00 ns, 386.6322 ms/op
+17:56:42 [INFO] WorldManager - Loading world data... 
+WorkloadActual  26: 1 op, 388380200.00 ns, 388.3802 ms/op
+17:56:43 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:44 [INFO] WorldManager - Loading world data... 
+WorkloadActual  27: 1 op, 393132100.00 ns, 393.1321 ms/op
+17:56:44 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:45 [INFO] WorldManager - Loading world data... 
+WorkloadActual  28: 1 op, 379679900.00 ns, 379.6799 ms/op
+17:56:46 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:47 [INFO] WorldManager - Loading world data... 
+WorkloadActual  29: 1 op, 422979800.00 ns, 422.9798 ms/op
+17:56:47 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:49 [INFO] WorldManager - Loading world data... 
+WorkloadActual  30: 1 op, 409207900.00 ns, 409.2079 ms/op
+17:56:49 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:50 [INFO] WorldManager - Loading world data... 
+WorkloadActual  31: 1 op, 391170700.00 ns, 391.1707 ms/op
+17:56:51 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:52 [INFO] WorldManager - Loading world data... 
+17:56:53 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  32: 1 op, 397190000.00 ns, 397.1900 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 367567900.00 ns, 367.5679 ms/op
+WorkloadResult   2: 1 op, 378459600.00 ns, 378.4596 ms/op
+WorkloadResult   3: 1 op, 381763300.00 ns, 381.7633 ms/op
+WorkloadResult   4: 1 op, 394990300.00 ns, 394.9903 ms/op
+WorkloadResult   5: 1 op, 370568900.00 ns, 370.5689 ms/op
+WorkloadResult   6: 1 op, 376606900.00 ns, 376.6069 ms/op
+WorkloadResult   7: 1 op, 383049300.00 ns, 383.0493 ms/op
+WorkloadResult   8: 1 op, 371870900.00 ns, 371.8709 ms/op
+WorkloadResult   9: 1 op, 391259700.00 ns, 391.2597 ms/op
+WorkloadResult  10: 1 op, 395543800.00 ns, 395.5438 ms/op
+WorkloadResult  11: 1 op, 376319400.00 ns, 376.3194 ms/op
+WorkloadResult  12: 1 op, 383250200.00 ns, 383.2502 ms/op
+WorkloadResult  13: 1 op, 394100000.00 ns, 394.1000 ms/op
+WorkloadResult  14: 1 op, 405457700.00 ns, 405.4577 ms/op
+WorkloadResult  15: 1 op, 404166000.00 ns, 404.1660 ms/op
+WorkloadResult  16: 1 op, 381165800.00 ns, 381.1658 ms/op
+WorkloadResult  17: 1 op, 386068500.00 ns, 386.0685 ms/op
+WorkloadResult  18: 1 op, 387919800.00 ns, 387.9198 ms/op
+WorkloadResult  19: 1 op, 404857100.00 ns, 404.8571 ms/op
+WorkloadResult  20: 1 op, 393247200.00 ns, 393.2472 ms/op
+WorkloadResult  21: 1 op, 410828900.00 ns, 410.8289 ms/op
+WorkloadResult  22: 1 op, 381339800.00 ns, 381.3398 ms/op
+WorkloadResult  23: 1 op, 398007700.00 ns, 398.0077 ms/op
+WorkloadResult  24: 1 op, 386632200.00 ns, 386.6322 ms/op
+WorkloadResult  25: 1 op, 388380200.00 ns, 388.3802 ms/op
+WorkloadResult  26: 1 op, 393132100.00 ns, 393.1321 ms/op
+WorkloadResult  27: 1 op, 379679900.00 ns, 379.6799 ms/op
+WorkloadResult  28: 1 op, 409207900.00 ns, 409.2079 ms/op
+WorkloadResult  29: 1 op, 391170700.00 ns, 391.1707 ms/op
+WorkloadResult  30: 1 op, 397190000.00 ns, 397.1900 ms/op
+
+// AfterAll
+// Benchmark Process 40568 has exited with code 0.
+
+Mean = 388.793 ms, StdErr = 2.089 ms (0.54%), N = 30, StdDev = 11.440 ms
+Min = 367.568 ms, Q1 = 381.209 ms, Median = 388.150 ms, Q3 = 395.405 ms, Max = 410.829 ms
+IQR = 14.196 ms, LowerFence = 359.915 ms, UpperFence = 416.700 ms
+ConfidenceInterval = [381.150 ms; 396.436 ms] (CI 99.9%), Margin = 7.643 ms (1.97% of Mean)
+Skewness = 0.14, Kurtosis = 2.14, MValue = 2
+
+// ** Remained 1 (50.0%) benchmark(s) to run. Estimated finish 2024-07-21 17:57 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: WorldManagerTest.Load: DefaultJob
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 02e29d2f-b066-4100-a27e-fbcf99f9cd31.dll --anonymousPipes 2500 1708 --benchmarkName AAEmu.PerformanceTests.Commons.Utils.WorldManagerTest.Load --job Default --benchmarkId 1 in D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\02e29d2f-b066-4100-a27e-fbcf99f9cd31\bin\Release\net8.0
+// BeforeAnythingElse
+17:56:54 [WARN] ClientFileManager - Client Source not found D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\.server_files\AAEmu.Game\ClientData 
+17:56:54 [WARN] ClientFileManager - ../../../../.server_files/AAEmu.Game/ClientData is not a valid source for client data 
+17:56:54 [WARN] ClientFileManager - Client Source not found D:\repo\community\AAEmu\AAEmu.PerformanceTests\bin\Release\net8.0\.server_files\AAEmu.Game\ClientData\game_pak 
+17:56:54 [WARN] ClientFileManager - ../../../../.server_files/AAEmu.Game/ClientData/game_pak is not a valid source for client data 
+
+17:56:55 [INFO] ClientFileManager - Using Source [1:GamePak]: D:\repo\community\AAEmu\.server_files\AAEmu.Game\ClientData\game_pak 
+17:56:55 [INFO] ClientFileManager - Using Source [2:Directory]: D:\repo\community\AAEmu\.server_files\AAEmu.Game\ClientData 
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.7 (8.0.724.31311), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: DefaultJob
+
+OverheadJitting  1: 1 op, 134100.00 ns, 134.1000 us/op
+17:56:56 [INFO] WorldManager - Loading world data... 
+17:56:56 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadJitting  1: 1 op, 761547000.00 ns, 761.5470 ms/op
+
+OverheadJitting  2: 1 op, 1100.00 ns, 1.1000 us/op
+17:56:57 [INFO] WorldManager - Loading world data... 
+17:56:57 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadJitting  2: 1 op, 671340100.00 ns, 671.3401 ms/op
+
+17:56:57 [INFO] WorldManager - Loading world data... 
+17:56:58 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadWarmup   1: 1 op, 451380200.00 ns, 451.3802 ms/op
+17:56:58 [INFO] WorldManager - Loading world data... 
+17:56:58 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadWarmup   2: 1 op, 353244700.00 ns, 353.2447 ms/op
+17:56:58 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   3: 1 op, 349004500.00 ns, 349.0045 ms/op
+17:56:59 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:56:59 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   4: 1 op, 340130500.00 ns, 340.1305 ms/op
+17:56:59 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:00 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   5: 1 op, 349244400.00 ns, 349.2444 ms/op
+17:57:00 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:00 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   6: 1 op, 340869500.00 ns, 340.8695 ms/op
+17:57:00 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:01 [INFO] WorldManager - Loading world data... 
+17:57:01 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadWarmup   7: 1 op, 338833100.00 ns, 338.8331 ms/op
+17:57:01 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup   8: 1 op, 368655200.00 ns, 368.6552 ms/op
+17:57:02 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:02 [INFO] WorldManager - Loading world data... 
+17:57:02 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadWarmup   9: 1 op, 371624100.00 ns, 371.6241 ms/op
+17:57:03 [INFO] WorldManager - Loading world data... 
+WorkloadWarmup  10: 1 op, 370873600.00 ns, 370.8736 ms/op
+17:57:03 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+
+// BeforeActualRun
+17:57:03 [INFO] WorldManager - Loading world data... 
+WorkloadActual   1: 1 op, 394264600.00 ns, 394.2646 ms/op
+17:57:04 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:04 [INFO] WorldManager - Loading world data... 
+WorkloadActual   2: 1 op, 385752700.00 ns, 385.7527 ms/op
+17:57:05 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:05 [INFO] WorldManager - Loading world data... 
+WorkloadActual   3: 1 op, 388569500.00 ns, 388.5695 ms/op
+17:57:05 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:06 [INFO] WorldManager - Loading world data... 
+WorkloadActual   4: 1 op, 398852400.00 ns, 398.8524 ms/op
+17:57:06 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:07 [INFO] WorldManager - Loading world data... 
+WorkloadActual   5: 1 op, 373624400.00 ns, 373.6244 ms/op
+17:57:07 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:08 [INFO] WorldManager - Loading world data... 
+WorkloadActual   6: 1 op, 394025900.00 ns, 394.0259 ms/op
+17:57:08 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:08 [INFO] WorldManager - Loading world data... 
+17:57:09 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual   7: 1 op, 393724800.00 ns, 393.7248 ms/op
+17:57:09 [INFO] WorldManager - Loading world data... 
+WorkloadActual   8: 1 op, 404739200.00 ns, 404.7392 ms/op
+17:57:10 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:10 [INFO] WorldManager - Loading world data... 
+WorkloadActual   9: 1 op, 371148300.00 ns, 371.1483 ms/op
+17:57:11 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:11 [INFO] WorldManager - Loading world data... 
+WorkloadActual  10: 1 op, 413888300.00 ns, 413.8883 ms/op
+17:57:12 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:13 [INFO] WorldManager - Loading world data... 
+17:57:13 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  11: 1 op, 386260500.00 ns, 386.2605 ms/op
+17:57:14 [INFO] WorldManager - Loading world data... 
+17:57:14 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  12: 1 op, 397146400.00 ns, 397.1464 ms/op
+17:57:15 [INFO] WorldManager - Loading world data... 
+17:57:15 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  13: 1 op, 380299200.00 ns, 380.2992 ms/op
+17:57:16 [INFO] WorldManager - Loading world data... 
+WorkloadActual  14: 1 op, 375090000.00 ns, 375.0900 ms/op
+17:57:16 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:17 [INFO] WorldManager - Loading world data... 
+WorkloadActual  15: 1 op, 371992100.00 ns, 371.9921 ms/op
+17:57:17 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:18 [INFO] WorldManager - Loading world data... 
+17:57:19 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  16: 1 op, 371178100.00 ns, 371.1781 ms/op
+17:57:19 [INFO] WorldManager - Loading world data... 
+17:57:20 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  17: 1 op, 371371800.00 ns, 371.3718 ms/op
+17:57:21 [INFO] WorldManager - Loading world data... 
+WorkloadActual  18: 1 op, 369599000.00 ns, 369.5990 ms/op
+17:57:21 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:22 [INFO] WorldManager - Loading world data... 
+WorkloadActual  19: 1 op, 372754700.00 ns, 372.7547 ms/op
+17:57:22 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:23 [INFO] WorldManager - Loading world data... 
+WorkloadActual  20: 1 op, 364384300.00 ns, 364.3843 ms/op
+17:57:23 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:24 [INFO] WorldManager - Loading world data... 
+WorkloadActual  21: 1 op, 366908300.00 ns, 366.9083 ms/op
+17:57:25 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:26 [INFO] WorldManager - Loading world data... 
+WorkloadActual  22: 1 op, 372861000.00 ns, 372.8610 ms/op
+17:57:26 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:27 [INFO] WorldManager - Loading world data... 
+WorkloadActual  23: 1 op, 371586100.00 ns, 371.5861 ms/op
+17:57:27 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:28 [INFO] WorldManager - Loading world data... 
+17:57:29 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  24: 1 op, 360810200.00 ns, 360.8102 ms/op
+17:57:30 [INFO] WorldManager - Loading world data... 
+WorkloadActual  25: 1 op, 366246700.00 ns, 366.2467 ms/op
+17:57:30 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:31 [INFO] WorldManager - Loading world data... 
+WorkloadActual  26: 1 op, 371089100.00 ns, 371.0891 ms/op
+17:57:32 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:33 [INFO] WorldManager - Loading world data... 
+WorkloadActual  27: 1 op, 367734300.00 ns, 367.7343 ms/op
+17:57:33 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:34 [INFO] WorldManager - Loading world data... 
+WorkloadActual  28: 1 op, 364793300.00 ns, 364.7933 ms/op
+17:57:35 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:36 [INFO] WorldManager - Loading world data... 
+WorkloadActual  29: 1 op, 375687400.00 ns, 375.6874 ms/op
+17:57:36 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:37 [INFO] WorldManager - Loading world data... 
+WorkloadActual  30: 1 op, 386864800.00 ns, 386.8648 ms/op
+17:57:38 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:39 [INFO] WorldManager - Loading world data... 
+17:57:39 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  31: 1 op, 369142100.00 ns, 369.1421 ms/op
+17:57:41 [INFO] WorldManager - Loading world data... 
+17:57:41 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+WorkloadActual  32: 1 op, 361250800.00 ns, 361.2508 ms/op
+17:57:42 [INFO] WorldManager - Loading world data... 
+WorkloadActual  33: 1 op, 377475000.00 ns, 377.4750 ms/op
+17:57:43 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:44 [INFO] WorldManager - Loading world data... 
+WorkloadActual  34: 1 op, 359288600.00 ns, 359.2886 ms/op
+17:57:44 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+17:57:46 [INFO] WorldManager - Loading world data... 
+WorkloadActual  35: 1 op, 370088500.00 ns, 370.0885 ms/op
+17:57:46 [DEBUG] WorldManager - Loaded 20 dungeon zones 
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 394264600.00 ns, 394.2646 ms/op
+WorkloadResult   2: 1 op, 385752700.00 ns, 385.7527 ms/op
+WorkloadResult   3: 1 op, 388569500.00 ns, 388.5695 ms/op
+WorkloadResult   4: 1 op, 398852400.00 ns, 398.8524 ms/op
+WorkloadResult   5: 1 op, 373624400.00 ns, 373.6244 ms/op
+WorkloadResult   6: 1 op, 394025900.00 ns, 394.0259 ms/op
+WorkloadResult   7: 1 op, 393724800.00 ns, 393.7248 ms/op
+WorkloadResult   8: 1 op, 404739200.00 ns, 404.7392 ms/op
+WorkloadResult   9: 1 op, 371148300.00 ns, 371.1483 ms/op
+WorkloadResult  10: 1 op, 386260500.00 ns, 386.2605 ms/op
+WorkloadResult  11: 1 op, 397146400.00 ns, 397.1464 ms/op
+WorkloadResult  12: 1 op, 380299200.00 ns, 380.2992 ms/op
+WorkloadResult  13: 1 op, 375090000.00 ns, 375.0900 ms/op
+WorkloadResult  14: 1 op, 371992100.00 ns, 371.9921 ms/op
+WorkloadResult  15: 1 op, 371178100.00 ns, 371.1781 ms/op
+WorkloadResult  16: 1 op, 371371800.00 ns, 371.3718 ms/op
+WorkloadResult  17: 1 op, 369599000.00 ns, 369.5990 ms/op
+WorkloadResult  18: 1 op, 372754700.00 ns, 372.7547 ms/op
+WorkloadResult  19: 1 op, 364384300.00 ns, 364.3843 ms/op
+WorkloadResult  20: 1 op, 366908300.00 ns, 366.9083 ms/op
+WorkloadResult  21: 1 op, 372861000.00 ns, 372.8610 ms/op
+WorkloadResult  22: 1 op, 371586100.00 ns, 371.5861 ms/op
+WorkloadResult  23: 1 op, 360810200.00 ns, 360.8102 ms/op
+WorkloadResult  24: 1 op, 366246700.00 ns, 366.2467 ms/op
+WorkloadResult  25: 1 op, 371089100.00 ns, 371.0891 ms/op
+WorkloadResult  26: 1 op, 367734300.00 ns, 367.7343 ms/op
+WorkloadResult  27: 1 op, 364793300.00 ns, 364.7933 ms/op
+WorkloadResult  28: 1 op, 375687400.00 ns, 375.6874 ms/op
+WorkloadResult  29: 1 op, 386864800.00 ns, 386.8648 ms/op
+WorkloadResult  30: 1 op, 369142100.00 ns, 369.1421 ms/op
+WorkloadResult  31: 1 op, 361250800.00 ns, 361.2508 ms/op
+WorkloadResult  32: 1 op, 377475000.00 ns, 377.4750 ms/op
+WorkloadResult  33: 1 op, 359288600.00 ns, 359.2886 ms/op
+WorkloadResult  34: 1 op, 370088500.00 ns, 370.0885 ms/op
+
+// AfterAll
+// Benchmark Process 31288 has exited with code 0.
+
+Mean = 376.665 ms, StdErr = 2.060 ms (0.55%), N = 34, StdDev = 12.013 ms
+Min = 359.289 ms, Q1 = 369.256 ms, Median = 372.373 ms, Q3 = 386.134 ms, Max = 404.739 ms
+IQR = 16.877 ms, LowerFence = 343.940 ms, UpperFence = 411.449 ms
+ConfidenceInterval = [369.226 ms; 384.104 ms] (CI 99.9%), Margin = 7.439 ms (1.97% of Mean)
+Skewness = 0.69, Kurtosis = 2.33, MValue = 2.35
+
+// ** Remained 0 (0.0%) benchmark(s) to run. Estimated finish 2024-07-21 17:57 (0h 0m from now) **
+Successfully reverted power plan (GUID: 381b4222-f694-41f0-9685-ff5bb260df2e FriendlyName: Balanced)
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts\results\AAEmu.PerformanceTests.Commons.Utils.WorldManagerTest-report.csv
+  BenchmarkDotNet.Artifacts\results\AAEmu.PerformanceTests.Commons.Utils.WorldManagerTest-report-github.md
+  BenchmarkDotNet.Artifacts\results\AAEmu.PerformanceTests.Commons.Utils.WorldManagerTest-report.html
+
+// * Detailed results *
+WorldManagerTest.LoadAsync: DefaultJob
+Runtime = .NET 8.0.7 (8.0.724.31311), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 388.793 ms, StdErr = 2.089 ms (0.54%), N = 30, StdDev = 11.440 ms
+Min = 367.568 ms, Q1 = 381.209 ms, Median = 388.150 ms, Q3 = 395.405 ms, Max = 410.829 ms
+IQR = 14.196 ms, LowerFence = 359.915 ms, UpperFence = 416.700 ms
+ConfidenceInterval = [381.150 ms; 396.436 ms] (CI 99.9%), Margin = 7.643 ms (1.97% of Mean)
+Skewness = 0.14, Kurtosis = 2.14, MValue = 2
+-------------------- Histogram --------------------
+[364.887 ms ; 374.953 ms) | @@@
+[374.953 ms ; 385.974 ms) | @@@@@@@@@
+[385.974 ms ; 395.638 ms) | @@@@@@@@@@@
+[395.638 ms ; 412.330 ms) | @@@@@@@
+---------------------------------------------------
+
+WorldManagerTest.Load: DefaultJob
+Runtime = .NET 8.0.7 (8.0.724.31311), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 376.665 ms, StdErr = 2.060 ms (0.55%), N = 34, StdDev = 12.013 ms
+Min = 359.289 ms, Q1 = 369.256 ms, Median = 372.373 ms, Q3 = 386.134 ms, Max = 404.739 ms
+IQR = 16.877 ms, LowerFence = 343.940 ms, UpperFence = 411.449 ms
+ConfidenceInterval = [369.226 ms; 384.104 ms] (CI 99.9%), Margin = 7.439 ms (1.97% of Mean)
+Skewness = 0.69, Kurtosis = 2.33, MValue = 2.35
+-------------------- Histogram --------------------
+[354.422 ms ; 364.138 ms) | @@@
+[364.138 ms ; 373.871 ms) | @@@@@@@@@@@@@@@@@
+[373.871 ms ; 385.142 ms) | @@@@
+[385.142 ms ; 394.875 ms) | @@@@@@@
+[394.875 ms ; 405.810 ms) | @@@
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.13.12, Windows 11 (10.0.22631.3880/23H2/2023Update/SunValley3)
+AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 8.0.303
+  [Host]     : .NET 8.0.7 (8.0.724.31311), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.7 (8.0.724.31311), X64 RyuJIT AVX2
+
+
+| Method    | Mean     | Error   | StdDev   |
+|---------- |---------:|--------:|---------:|
+| LoadAsync | 388.8 ms | 7.64 ms | 11.44 ms |
+| Load      | 376.7 ms | 7.44 ms | 12.01 ms |
+
+// * Hints *
+Outliers
+  WorldManagerTest.LoadAsync: Default -> 2 outliers were removed (422.98 ms, 478.42 ms)
+  WorldManagerTest.Load: Default      -> 1 outlier  was  removed (413.89 ms)
+
+// * Legends *
+  Mean   : Arithmetic mean of all measurements
+  Error  : Half of 99.9% confidence interval
+  StdDev : Standard deviation of all measurements
+  1 ms   : 1 Millisecond (0.001 sec)
+
+// ***** BenchmarkRunner: End *****
+Run time: 00:01:43 (103.46 sec), executed benchmarks: 2
+
+Global total time: 00:01:47 (108 sec), executed benchmarks: 2
+// * Artifacts cleanup *
+Artifacts cleanup is finished
