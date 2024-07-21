@@ -6,9 +6,9 @@ using AAEmu.Game.Models;
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.Configuration;
 
-public class WorldManagerHeightMapsTest
+public class WorldManagerWaterBodiesTest
 {
-    public WorldManagerHeightMapsTest()
+    public WorldManagerWaterBodiesTest()
     {
         AppConfiguration.Instance.ClientData = new ConfigurationBuilder()
            .AddUserSecrets<ClientFileManagerTest>()
@@ -20,18 +20,18 @@ public class WorldManagerHeightMapsTest
     }
 
     [Benchmark]
-    public async Task LoadHeightmapsAsync()
+    public async Task LoadWaterBodiesAsync()
     {
         var worldManager = new WorldManager();
         await worldManager.LoadAsync();
-        await worldManager.LoadHeightmapsAsync();
+        await worldManager.LoadWaterBodiesAsync();
     }
 
     [Benchmark]
-    public void LoadHeightmaps()
+    public void LoadWaterBodies()
     {
         var worldManager = new WorldManager();
         worldManager.Load();
-        worldManager.LoadHeightmaps();
+        worldManager.LoadWaterBodies();
     }
 }

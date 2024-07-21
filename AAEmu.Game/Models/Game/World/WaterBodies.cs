@@ -91,4 +91,26 @@ public class WaterBodies
         }
         return (true, waterBodies);
     }
+
+    public static (bool Loaded, WaterBodies WaterBodies) Load(string fileName)
+    {
+        WaterBodies waterBodies = null;
+        try
+        {
+            var jsonString = File.ReadAllText(fileName);
+            if (!JsonHelper.TryDeserializeObject<WaterBodies>(jsonString, out var newData, out var error))
+                return (false, waterBodies);
+
+            foreach (var area in newData.Areas)
+                area.UpdateBounds();
+
+            waterBodies = newData;
+        }
+        catch
+        {
+            return (false, waterBodies);
+            // Ignore
+        }
+        return (true, waterBodies);
+    }
 }

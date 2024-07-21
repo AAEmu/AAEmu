@@ -964,6 +964,31 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
+    public void LoadWaterBodies()
+    {
+        foreach (var world in _worlds.Values)
+        {
+            var loadFromClient = true;
+
+            // Try to load from saved json data
+            var customFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
+            if (File.Exists(customFile))
+            {
+                var (loaded, newWater) = WaterBodies.Load(customFile);
+                if (loaded)
+                {
+                    world.Water = newWater;
+                    loadFromClient = false;
+                }
+            }
+
+            // If no custom data could be found or loaded, then load from client's cell data
+            if (loadFromClient)
+                LoadWaterBodiesFromClientData(world);
+        }
+    }
+
+
     public InstanceWorld GetWorld(uint worldId)
     {
         if (_worlds.TryGetValue(worldId, out var res))
@@ -1686,6 +1711,98 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 if (ClientFileManager.FileExists(entityFile))
                 {
                     var xmlString = await ClientFileManager.GetFileAsStringAsync(entityFile);
+                    var xmlDoc = new XmlDocument();
+                    xmlDoc.LoadXml(xmlString);
+
+                    var _allEntityBlocks = xmlDoc.SelectNodes("/Mission/Objects/Entity");
+                    var cellPos = new Vector3(cellX * 1024, cellY * 1024, 0);
+
+                    for (var i = 0; i < _allEntityBlocks?.Count; i++)
+                    {
+                        var block = _allEntityBlocks[i];
+                        var attribs = XmlHelper.ReadNodeAttributes(block);
+
+                        if (!attribs.TryGetValue("Name", out var entityName))
+                            continue;
+
+                        // Is this Entity named like a water body ?
+                        // TODO: More sophisticated way of determining if it's water
+                        var isWaterBody = entityName.Contains("_water") || entityName.Contains("_pond") || entityName.Contains("_lake") || entityName.Contains("_river");
+                        if (isWaterBody == false)
+                            continue;
+
+                        if (attribs.TryGetValue("EntityClass", out var entityClass))
+                        {
+                            // Is it a AreaShape ?
+                            if (entityClass == "AreaShape")
+                            {
+                                var areaBlock = block.SelectSingleNode("Area");
+                                if (areaBlock == null)
+                                    continue; // this shape has no area defined
+
+                                // Create WaterBody here
+                                var newWaterBodyArea = new WaterBodyArea(entityName);
+                                newWaterBodyArea.Id = XmlHelper.ReadAttribute(attribs, "EntityId", 0u);
+                                newWaterBodyArea.Guid = XmlHelper.ReadAttribute(attribs, "Guid", "");
+
+                                var entityPosString = XmlHelper.ReadAttribute(attribs, "Pos", "0,0,0");
+                                var areaPos = XmlHelper.StringToVector3(entityPosString);
+
+                                // Read Area Data (height)
+                                var areaAttribs = XmlHelper.ReadNodeAttributes(areaBlock);
+                                newWaterBodyArea.Height = XmlHelper.ReadAttribute(areaAttribs, "Height", 0f);
+
+                                // Get Points within the Area
+                                var pointBlocks = areaBlock.SelectNodes("Points/Point");
+
+                                var firstPos = Vector3.Zero;
+                                for (var p = 0; p < pointBlocks.Count; p++)
+                                {
+                                    var pointAttribs = XmlHelper.ReadNodeAttributes(pointBlocks[p]);
+                                    var pointPosString = XmlHelper.ReadAttribute(pointAttribs, "Pos", "0,0,0");
+                                    var pointPos = XmlHelper.StringToVector3(pointPosString);
+                                    var pos = cellPos + areaPos + pointPos;
+                                    newWaterBodyArea.Points.Add(pos);
+                                    if (p == 0)
+                                        firstPos = pos;
+                                }
+
+                                if (pointBlocks.Count > 2)
+                                    newWaterBodyArea.Points.Add(firstPos);
+
+                                newWaterBodyArea.UpdateBounds();
+                                world.Water.Areas.Add(newWaterBodyArea);
+                                bodiesLoaded++;
+                            }
+                        }
+                    }
+                }
+            }
+
+        if (bodiesLoaded > 0)
+            Logger.Info($"{bodiesLoaded} waters bodies loaded for {world.Name}");
+        return true;
+    }
+
+    public static bool LoadWaterBodiesFromClientData(InstanceWorld world)
+    {
+        // Use world.xml to check if we have client data enabled
+        var worldXmlTest = Path.Combine("game", "worlds", world.Name, "world.xml");
+        if (!ClientFileManager.FileExists(worldXmlTest))
+            return false;
+
+        var bodiesLoaded = 0;
+
+        // TODO: The data loaded here is incorrect !!!
+
+        for (var cellY = 0; cellY < world.CellY; cellY++)
+            for (var cellX = 0; cellX < world.CellX; cellX++)
+            {
+                var cellFileName = $"{cellX:000}_{cellY:000}";
+                var entityFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client", "entities.xml");
+                if (ClientFileManager.FileExists(entityFile))
+                {
+                    var xmlString = ClientFileManager.GetFileAsString(entityFile);
                     var xmlDoc = new XmlDocument();
                     xmlDoc.LoadXml(xmlString);
 
