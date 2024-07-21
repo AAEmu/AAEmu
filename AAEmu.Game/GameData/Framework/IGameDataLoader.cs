@@ -1,12 +1,10 @@
-﻿using AAEmu.Commons.Utils;
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 
-namespace AAEmu.Game.GameData.Framework
+namespace AAEmu.Game.GameData.Framework;
+
+public interface IGameDataLoader
 {
-    public interface IGameDataLoader
-    {
-        //static T Instance { get; set; }
-        void Load(SqliteConnection connection);
-        void PostLoad();
-    }
+    //static T Instance { get; set; }
+    void Load(SqliteConnection connection);
+    void PostLoad();
 }

@@ -1,9 +1,8 @@
-namespace AAEmu.Game.Models.Game.Skills
+namespace AAEmu.Game.Models.Game.Skills;
+
+public class TickEffect
 {
-    public class TickEffect
-    {
-        public uint EffectId { get; set; }
-        public uint TargetBuffTagId { get; set; }
-        public uint TargetNoBuffTagId { get; set; }
-    }
+    public uint EffectId { get; set; }
+    public uint TargetBuffTagId { get; set; }
+    public uint TargetNoBuffTagId { get; set; }
 }

@@ -11,6 +11,10 @@
         "Host": "*",
         "Port": 1250
     },
+    "WebApiNetwork": {
+        "Host": "*",
+        "Port": 1280
+    },
     "LoginNetwork": {
         "Host": "%login_host%",
         "Port": "%login_port%"
@@ -26,5 +30,6 @@
     },
     "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$",
     "MaxConcurencyThreadPool": 8,
-    "HeightMapsEnable": false
+    "HeightMapsEnable": true,
+	"DefaultLanguage" : "en_us"
 }

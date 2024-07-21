@@ -1,24 +1,28 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
+﻿using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActSupplySelectiveItem(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActSupplySelectiveItem : QuestActTemplate
+    public uint ItemId { get; set; }
+    public byte GradeId { get; set; }
+
+    /// <summary>
+    /// Does a selective item reward
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns>Always returns true to allow progress even if this isn't the selected reward</returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        public uint ItemId { get; set; }
-        public int Count { get; set; }
-        public byte GradeId { get; set; }
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ItemId {ItemId}, Count {Count}, GradeId {GradeId}, Selected {quest.SelectedRewardIndex}, This {ThisSelectiveIndex}");
 
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Warn("QuestActSupplySelectiveItem");
-
+        // Only add reward if it was this selection
+        if (quest.SelectedRewardIndex == ThisSelectiveIndex)
             quest.QuestRewardItemsPool.Add(new ItemCreationDefinition(ItemId, Count, GradeId));
-            //character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId, 0);
 
-            return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;
-        }
+        return true;
     }
 }

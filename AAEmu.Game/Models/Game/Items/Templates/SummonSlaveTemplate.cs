@@ -1,11 +1,10 @@
 ﻿using System;
 
-namespace AAEmu.Game.Models.Game.Items.Templates
-{
-    public class SummonSlaveTemplate : ItemTemplate
-    {
-        public override Type ClassType => typeof(Summon); // TODO - idk if thats the case
+namespace AAEmu.Game.Models.Game.Items.Templates;
 
-        public uint SlaveId { get; set; }
-    }
+public class SummonSlaveTemplate : ItemTemplate
+{
+    public override Type ClassType => typeof(SummonSlave);
+
+    public uint SlaveId { get; set; }
 }

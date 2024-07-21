@@ -1,26 +1,3646 @@
 [
   {
+    "Id": 54585,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 655.794,
+      "Y": 550.584,
+      "Z": 197.1446,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 168.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 92542,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 673.7,
+      "Y": 644.786,
+      "Z": 193.7372,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 53031,
+    "UnitId": 12776,
+    "Title": "Blackscale Corps Deceiver",
+    "Position": {
+      "X": 585.062,
+      "Y": 717.984,
+      "Z": 194.4005,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -174.375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 80457,
+    "UnitId": 12771,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 660.784,
+      "Y": 645.674,
+      "Z": 193.7543,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -120.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 120002,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 654.988,
+      "Y": 560.004,
+      "Z": 196.9445,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 69485,
+    "UnitId": 12764,
+    "Title": "Blackscale Corps Berserker",
+    "Position": {
+      "X": 564.11,
+      "Y": 540.614,
+      "Z": 193.3871,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 96408,
+    "UnitId": 12779,
+    "Title": "Blackscale Corps Bomber",
+    "Position": {
+      "X": 635.346,
+      "Y": 668.552,
+      "Z": 192.9649,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 113629,
+    "UnitId": 12779,
+    "Title": "Blackscale Corps Bomber",
+    "Position": {
+      "X": 619.082,
+      "Y": 651.204,
+      "Z": 193.3321,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109621,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 672.584,
+      "Y": 537.982,
+      "Z": 196.8495,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 50.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 121683,
+    "UnitId": 12773,
+    "Title": "Blackscale Corps Combatant",
+    "Position": {
+      "X": 641.496,
+      "Y": 732.742,
+      "Z": 181.9026,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 125024,
+    "UnitId": 12771,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 565.198,
+      "Y": 684.492,
+      "Z": 194.4235,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 95.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 104206,
+    "UnitId": 12770,
+    "Title": "Blackscale Corps Soulpriest",
+    "Position": {
+      "X": 589.132,
+      "Y": 540.644,
+      "Z": 193.5942,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 61.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 12180,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 658.258,
+      "Y": 664.928,
+      "Z": 190.7861,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 53.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 87662,
+    "UnitId": 12768,
+    "Title": "Blackscale Corps Archer",
+    "Position": {
+      "X": 564.17,
+      "Y": 545.872,
+      "Z": 193.3411,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109689,
+    "UnitId": 12776,
+    "Title": "Blackscale Corps Deceiver",
+    "Position": {
+      "X": 671.698,
+      "Y": 667.098,
+      "Z": 190.676,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 22130,
+    "UnitId": 12762,
+    "Title": "Viboros the Golden",
+    "Position": {
+      "X": 664.868,
+      "Y": 585.012,
+      "Z": 196.2552,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 2.0
+  },
+  {
+    "Id": 84062,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 662.704,
+      "Y": 670.87,
+      "Z": 190.7391,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 112.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 117370,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 655.366,
+      "Y": 548.2,
+      "Z": 197.0075,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -11.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 38627,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 668.122,
+      "Y": 545.118,
+      "Z": 197.0375,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 36.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 101821,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 663.286,
+      "Y": 540.762,
+      "Z": 196.8585,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 98.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 41505,
+    "UnitId": 12776,
+    "Title": "Blackscale Corps Deceiver",
+    "Position": {
+      "X": 589.192,
+      "Y": 544.5,
+      "Z": 193.6002,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 137.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 99485,
+    "UnitId": 12775,
+    "Title": "Blackscale Corps Acolyte",
+    "Position": {
+      "X": 562.408,
+      "Y": 685.908,
+      "Z": 194.4435,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -165.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 64261,
+    "UnitId": 12772,
+    "Title": "Blackscale Corps Pillager",
+    "Position": {
+      "X": 616.436,
+      "Y": 666.166,
+      "Z": 178.6464,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -50.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 125199,
+    "UnitId": 12772,
+    "Title": "Blackscale Corps Pillager",
+    "Position": {
+      "X": 619.248,
+      "Y": 666.79,
+      "Z": 178.6574,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 64.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 126656,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 574.058,
+      "Y": 532.072,
+      "Z": 192.7309,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 15719,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 591.112,
+      "Y": 542.728,
+      "Z": 193.5972,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 58708,
+    "UnitId": 12771,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 663.404,
+      "Y": 647.194,
+      "Z": 193.7653,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 165.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 105405,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 670.73,
+      "Y": 665.138,
+      "Z": 190.7471,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 78.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 15755,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 639.808,
+      "Y": 735.006,
+      "Z": 181.8686,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 163.125
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 38504,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 606.572,
+      "Y": 550.572,
+      "Z": 193.4371,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 97012,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 661.774,
+      "Y": 539.402,
+      "Z": 196.8295,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 36.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 40262,
+    "UnitId": 12773,
+    "Title": "Blackscale Corps Combatant",
+    "Position": {
+      "X": 638.856,
+      "Y": 732.548,
+      "Z": 181.8246,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -50.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 84057,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 584.366,
+      "Y": 549.816,
+      "Z": 193.233,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 124747,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 669.772,
+      "Y": 538.788,
+      "Z": 196.7364,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 110294,
+    "UnitId": 12777,
+    "Title": "Blackscale Corps Councilor",
+    "Position": {
+      "X": 676.758,
+      "Y": 653.0,
+      "Z": 193.3241,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 60363,
+    "UnitId": 12772,
+    "Title": "Blackscale Corps Pillager",
+    "Position": {
+      "X": 563.318,
+      "Y": 682.428,
+      "Z": 194.3285,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 5.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 71050,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 655.816,
+      "Y": 553.648,
+      "Z": 197.0725,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -47.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118436,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 575.254,
+      "Y": 540.25,
+      "Z": 193.4531,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 199.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 63144,
+    "UnitId": 12779,
+    "Title": "Blackscale Corps Bomber",
+    "Position": {
+      "X": 614.52,
+      "Y": 684.248,
+      "Z": 193.8413,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 196.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 90781,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 671.498,
+      "Y": 541.458,
+      "Z": 197.0385,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 171.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 95418,
     "UnitId": 502,
+    "Title": "Temple Priestess",
     "Position": {
-      "X": 697.5,
-      "Y": 718.7,
-      "Z": 185.2
-    }
+      "X": 697.08,
+      "Y": 720.686,
+      "Z": 185.1429,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -22.5
+    },
+    "Scale": 1.1
   },
   {
-    "UnitId": 11937,
+    "Id": 115175,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
     "Position": {
-      "X": 563.2,
-      "Y": 684.2,
-      "Z": 194.4
-    }
+      "X": 667.864,
+      "Y": 547.564,
+      "Z": 197.0916,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 151.875
+    },
+    "Scale": 1.0
   },
   {
+    "Id": 119502,
+    "UnitId": 12772,
+    "Title": "Blackscale Corps Pillager",
+    "Position": {
+      "X": 612.064,
+      "Y": 682.146,
+      "Z": 178.4303,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 118.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 107859,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 622.572,
+      "Y": 654.84,
+      "Z": 178.4313,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 40466,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 659.43,
+      "Y": 541.248,
+      "Z": 197.1276,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -115.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 112730,
+    "UnitId": 12783,
+    "Title": "Blackscale Corps Captain",
+    "Position": {
+      "X": 663.394,
+      "Y": 554.638,
+      "Z": 197.0295,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 63564,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 669.438,
+      "Y": 667.128,
+      "Z": 190.7271,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109686,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 669.636,
+      "Y": 546.49,
+      "Z": 197.0916,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 98.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 120569,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 661.502,
+      "Y": 541.848,
+      "Z": 196.8565,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 151.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 113587,
+    "UnitId": 12772,
+    "Title": "Blackscale Corps Pillager",
+    "Position": {
+      "X": 587.166,
+      "Y": 718.546,
+      "Z": 194.2945,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 157.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 34285,
+    "UnitId": 13021,
+    "Title": "Privateer",
+    "Position": {
+      "X": 661.004,
+      "Y": 732.942,
+      "Z": 184.7647,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -64.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109345,
+    "UnitId": 12773,
+    "Title": "Blackscale Corps Combatant",
+    "Position": {
+      "X": 617.458,
+      "Y": 668.552,
+      "Z": 178.6363,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -163.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 98465,
+    "UnitId": 13020,
+    "Title": "울부짖는_컷씬_투명NPC",
+    "Position": {
+      "X": 463.408,
+      "Y": 699.494,
+      "Z": 166.9808,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 48300,
+    "UnitId": 12758,
+    "Title": "Ancient Titan Musperosa",
+    "Position": {
+      "X": 463.352,
+      "Y": 679.224,
+      "Z": 167.0388,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 177.1875
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 110240,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 545.56,
+      "Y": 544.614,
+      "Z": 189.7187,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 93687,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 539.768,
+      "Y": 544.43,
+      "Z": 189.6637,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 55650,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 542.014,
+      "Y": 542.456,
+      "Z": 189.7487,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 15043,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 536.894,
+      "Y": 542.59,
+      "Z": 189.8087,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 43845,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 522.544,
+      "Y": 542.466,
+      "Z": 189.6486,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 171.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 89551,
+    "UnitId": 12785,
+    "Title": "Blackscale Corps Guardian",
+    "Position": {
+      "X": 469.996,
+      "Y": 587.73,
+      "Z": 154.8612,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -19.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 51464,
+    "UnitId": 12785,
+    "Title": "Blackscale Corps Guardian",
+    "Position": {
+      "X": 466.196,
+      "Y": 589.654,
+      "Z": 154.9452,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 95382,
+    "UnitId": 12785,
+    "Title": "Blackscale Corps Guardian",
+    "Position": {
+      "X": 511.272,
+      "Y": 544.856,
+      "Z": 189.8387,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 42437,
+    "UnitId": 12785,
+    "Title": "Blackscale Corps Guardian",
+    "Position": {
+      "X": 506.248,
+      "Y": 548.646,
+      "Z": 189.8817,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 171.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 51036,
     "UnitId": 12784,
+    "Title": "Medusa",
     "Position": {
-      "X": 508.2,
-      "Y": 539.2,
-      "Z": 189.8
-    }
+      "X": 466.142,
+      "Y": 585.628,
+      "Z": 154.9332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 2.8125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 44105,
+    "UnitId": 12784,
+    "Title": "Medusa",
+    "Position": {
+      "X": 505.668,
+      "Y": 544.002,
+      "Z": 189.8457,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -28.125
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 57280,
+    "UnitId": 12785,
+    "Title": "Blackscale Corps Guardian",
+    "Position": {
+      "X": 461.748,
+      "Y": 587.28,
+      "Z": 154.8932,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 16.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 126776,
+    "UnitId": 12785,
+    "Title": "Blackscale Corps Guardian",
+    "Position": {
+      "X": 507.816,
+      "Y": 538.924,
+      "Z": 189.8367,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 59.0625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 61778,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 534.69,
+      "Y": 519.652,
+      "Z": 201.6463,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 104632,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 496.164,
+      "Y": 532.914,
+      "Z": 189.6456,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 208.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 111660,
+    "UnitId": 12770,
+    "Title": "Blackscale Corps Soulpriest",
+    "Position": {
+      "X": 435.716,
+      "Y": 592.508,
+      "Z": 170.2011,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 73.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109355,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 433.116,
+      "Y": 593.764,
+      "Z": 170.146,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -104.0625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 46215,
+    "UnitId": 11754,
+    "Title": "Blackscale Corps Combatant",
+    "Position": {
+      "X": 500.986,
+      "Y": 510.412,
+      "Z": 202.6897,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 168.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 95113,
+    "UnitId": 11261,
+    "Title": "Blackscale Corps Archer",
+    "Position": {
+      "X": 502.514,
+      "Y": 507.952,
+      "Z": 202.7338,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 160.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 67379,
+    "UnitId": 12791,
+    "Title": "Privateer",
+    "Position": {
+      "X": 538.602,
+      "Y": 484.894,
+      "Z": 187.6719,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 66451,
+    "UnitId": 12792,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 537.248,
+      "Y": 484.438,
+      "Z": 187.7109,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109133,
+    "UnitId": 12792,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 538.338,
+      "Y": 481.228,
+      "Z": 187.7109,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 114915,
+    "UnitId": 12791,
+    "Title": "Privateer",
+    "Position": {
+      "X": 534.63,
+      "Y": 483.506,
+      "Z": 187.6859,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 68172,
+    "UnitId": 12791,
+    "Title": "Privateer",
+    "Position": {
+      "X": 539.654,
+      "Y": 481.654,
+      "Z": 187.6629,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 122654,
+    "UnitId": 12792,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 533.138,
+      "Y": 483.05,
+      "Z": 187.6859,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 124256,
+    "UnitId": 12791,
+    "Title": "Privateer",
+    "Position": {
+      "X": 535.672,
+      "Y": 480.18,
+      "Z": 187.6759,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 101600,
+    "UnitId": 12790,
+    "Title": "Captured Knight",
+    "Position": {
+      "X": 540.748,
+      "Y": 478.102,
+      "Z": 187.6539,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -73.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 124336,
+    "UnitId": 12792,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 539.652,
+      "Y": 477.682,
+      "Z": 187.6619,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 59400,
+    "UnitId": 12792,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 534.142,
+      "Y": 479.66,
+      "Z": 187.7209,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 102424,
+    "UnitId": 12789,
+    "Title": "Privateer",
+    "Position": {
+      "X": 536.774,
+      "Y": 476.654,
+      "Z": 187.6659,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 124491,
+    "UnitId": 12792,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 535.46,
+      "Y": 476.216,
+      "Z": 187.7039,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 90275,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 500.714,
+      "Y": 494.63,
+      "Z": 203.318,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 177.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 71945,
+    "UnitId": 12779,
+    "Title": "Blackscale Corps Bomber",
+    "Position": {
+      "X": 548.12,
+      "Y": 457.556,
+      "Z": 201.5993,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 16.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 61326,
+    "UnitId": 12133,
+    "Title": "울부짖는_고드프리_투명NPC",
+    "Position": {
+      "X": 566.856,
+      "Y": 450.396,
+      "Z": 201.5743,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 70122,
+    "UnitId": 12768,
+    "Title": "Blackscale Corps Archer",
+    "Position": {
+      "X": 434.024,
+      "Y": 529.456,
+      "Z": 183.8514,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -140.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 50334,
+    "UnitId": 12770,
+    "Title": "Blackscale Corps Soulpriest",
+    "Position": {
+      "X": 435.75,
+      "Y": 527.122,
+      "Z": 184.0235,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 33.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 101500,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 657.666,
+      "Y": 664.112,
+      "Z": 190.662,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 85651,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 658.848,
+      "Y": 665.73,
+      "Z": 190.7451,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 51566,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 663.778,
+      "Y": 647.87,
+      "Z": 193.7573,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 117091,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 665.778,
+      "Y": 647.87,
+      "Z": 193.6622,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 76115,
+    "UnitId": 12779,
+    "Title": "Blackscale Corps Bomber",
+    "Position": {
+      "X": 529.656,
+      "Y": 450.468,
+      "Z": 201.5603,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 16.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 96390,
+    "UnitId": 12958,
+    "Title": "Viboros's Egg",
+    "NpcSpawnerIds": [
+      110908
+    ],
+    "Position": {
+      "X": 656.4,
+      "Y": 587.85,
+      "Z": 196.6294,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 94077,
+    "UnitId": 12958,
+    "Title": "Viboros's Egg",
+    "NpcSpawnerIds": [
+      110912
+    ],
+    "Position": {
+      "X": 674.722,
+      "Y": 586.888,
+      "Z": 196.7144,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 85434,
+    "UnitId": 12958,
+    "Title": "Viboros's Egg",
+    "NpcSpawnerIds": [
+      110906
+    ],
+    "Position": {
+      "X": 674.738,
+      "Y": 592.64,
+      "Z": 196.6974,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 82047,
+    "UnitId": 12958,
+    "Title": "Viboros's Egg",
+    "NpcSpawnerIds": [
+      110907
+    ],
+    "Position": {
+      "X": 656.428,
+      "Y": 593.632,
+      "Z": 196.6154,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 90311,
+    "UnitId": 14329,
+    "Title": "Viboros's Loot Chest",
+    "NpcSpawnerIds": [
+      132742
+    ],
+    "Position": {
+      "X": 664.69,
+      "Y": 579.028,
+      "Z": 197.1676,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 108354,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 456.062,
+      "Y": 474.854,
+      "Z": 184.3306,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 106075,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 441.46,
+      "Y": 463.222,
+      "Z": 184.5947,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 102197,
+    "UnitId": 12768,
+    "Title": "Blackscale Corps Archer",
+    "Position": {
+      "X": 441.894,
+      "Y": 457.5,
+      "Z": 184.6577,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 84.375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 60622,
+    "UnitId": 12783,
+    "Title": "Blackscale Corps Captain",
+    "Position": {
+      "X": 436.234,
+      "Y": 469.604,
+      "Z": 184.5857,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 194.0625
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 119266,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 438.238,
+      "Y": 460.11,
+      "Z": 184.6027,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 45429,
+    "UnitId": 12769,
+    "Title": "Blackscale Corps Torturer",
+    "Position": {
+      "X": 424.972,
+      "Y": 502.278,
+      "Z": 183.5803,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 73.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 125661,
+    "UnitId": 12768,
+    "Title": "Blackscale Corps Archer",
+    "Position": {
+      "X": 422.472,
+      "Y": 503.11,
+      "Z": 183.5733,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -112.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 78097,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 429.716,
+      "Y": 458.106,
+      "Z": 184.5507,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 104.0625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 85747,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 415.508,
+      "Y": 511.032,
+      "Z": 183.5903,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 165.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 125190,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 413.77,
+      "Y": 520.16,
+      "Z": 183.9884,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -61.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 38698,
+    "UnitId": 12770,
+    "Title": "Blackscale Corps Soulpriest",
+    "Position": {
+      "X": 414.994,
+      "Y": 507.928,
+      "Z": 183.5303,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -11.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 17507,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 427.228,
+      "Y": 460.326,
+      "Z": 184.4656,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 126.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 116003,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 429.016,
+      "Y": 454.69,
+      "Z": 184.5266,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 78.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 112906,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 427.03,
+      "Y": 457.304,
+      "Z": 184.4766,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 106.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 63555,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 414.922,
+      "Y": 496.544,
+      "Z": 183.9884,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 216.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 38110,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 424.966,
+      "Y": 462.256,
+      "Z": 184.4746,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 146.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 62288,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 427.998,
+      "Y": 451.98,
+      "Z": 184.4716,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 73.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 42631,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 423.502,
+      "Y": 459.266,
+      "Z": 184.4836,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 137.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 61761,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 425.32,
+      "Y": 453.332,
+      "Z": 184.5327,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 75.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 37717,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 423.5,
+      "Y": 456.384,
+      "Z": 184.5056,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 106.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 53381,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 421.164,
+      "Y": 461.386,
+      "Z": 184.5146,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 165.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 58837,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 424.55,
+      "Y": 450.81,
+      "Z": 184.5056,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 36.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 73245,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 396.604,
+      "Y": 549.008,
+      "Z": 181.2384,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 107590,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 396.488,
+      "Y": 555.388,
+      "Z": 182.1907,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -39.375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 121483,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 396.344,
+      "Y": 553.534,
+      "Z": 181.8576,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.0
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 58195,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 392.248,
+      "Y": 548.0,
+      "Z": 180.4751,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -28.125
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 112452,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 392.04,
+      "Y": 545.456,
+      "Z": 179.9479,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 98.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 57353,
+    "UnitId": 12786,
+    "Title": "Musperosa's Spirit",
+    "Position": {
+      "X": 384.404,
+      "Y": 576.404,
+      "Z": 170.8823,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 106.875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 129155,
+    "UnitId": 12764,
+    "Title": "Blackscale Corps Berserker",
+    "Position": {
+      "X": 380.656,
+      "Y": 570.328,
+      "Z": 170.8563,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118495,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 377.93,
+      "Y": 520.188,
+      "Z": 173.7875,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 70482,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 376.386,
+      "Y": 523.092,
+      "Z": 173.8305,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -45.0
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 78727,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 375.442,
+      "Y": 519.404,
+      "Z": 173.0712,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -28.125
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 85391,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 371.224,
+      "Y": 517.022,
+      "Z": 171.8597,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -11.25
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 78477,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 368.604,
+      "Y": 515.78,
+      "Z": 171.0164,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118100,
+    "UnitId": 12763,
+    "Title": "Blackscale Corps Duelist",
+    "Position": {
+      "X": 357.458,
+      "Y": 559.884,
+      "Z": 170.8863,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 233.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 73428,
+    "UnitId": 12766,
+    "Title": "Blackscale Corps Hydromancer",
+    "Position": {
+      "X": 353.086,
+      "Y": 571.532,
+      "Z": 170.8833,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 76802,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 348.42,
+      "Y": 560.392,
+      "Z": 170.8033,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 213.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 113002,
+    "UnitId": 12771,
+    "Title": "Blackscale Corps Soldier",
+    "Position": {
+      "X": 341.432,
+      "Y": 510.274,
+      "Z": 169.951,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -73.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 61509,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 339.984,
+      "Y": 501.106,
+      "Z": 169.9219,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 60450,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 338.178,
+      "Y": 506.002,
+      "Z": 169.9159,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 56625,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 336.816,
+      "Y": 509.722,
+      "Z": 169.9149,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 113978,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 333.838,
+      "Y": 550.092,
+      "Z": 170.9433,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 85036,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 333.84,
+      "Y": 560.712,
+      "Z": 170.8763,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -64.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 99781,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 334.814,
+      "Y": 499.184,
+      "Z": 169.946,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 53232,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 333.03,
+      "Y": 503.94,
+      "Z": 169.985,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 40356,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 330.13,
+      "Y": 549.82,
+      "Z": 170.8713,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 20117,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 334.752,
+      "Y": 491.23,
+      "Z": 170.3701,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 79744,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 331.508,
+      "Y": 507.638,
+      "Z": 169.945,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 128175,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 330.08,
+      "Y": 497.43,
+      "Z": 169.944,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 95428,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 326.992,
+      "Y": 566.786,
+      "Z": 170.3871,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 42651,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 545.008,
+      "Y": 545.456,
+      "Z": 189.9918,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 98981,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 546.11,
+      "Y": 543.782,
+      "Z": 189.6266,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 60999,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 539.216,
+      "Y": 545.26,
+      "Z": 189.7697,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 66240,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 540.318,
+      "Y": 543.586,
+      "Z": 189.5896,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 129255,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 541.474,
+      "Y": 543.286,
+      "Z": 189.8797,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 120724,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 542.564,
+      "Y": 541.612,
+      "Z": 189.8647,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 123238,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 328.134,
+      "Y": 502.178,
+      "Z": 169.9129,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 121750,
+    "UnitId": 12782,
+    "Title": "Calleil Worshipper",
+    "Position": {
+      "X": 326.79,
+      "Y": 505.974,
+      "Z": 169.9209,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 109.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 105923,
+    "UnitId": 12763,
+    "Title": "Blackscale Corps Duelist",
+    "Position": {
+      "X": 326.508,
+      "Y": 516.314,
+      "Z": 170.3691,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 120.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 121662,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 325.416,
+      "Y": 564.434,
+      "Z": 170.8363,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 93937,
+    "UnitId": 12780,
+    "Title": "Hatching Egg",
+    "Position": {
+      "X": 322.484,
+      "Y": 562.66,
+      "Z": 170.8413,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 54541,
+    "UnitId": 12795,
+    "Title": "Marius",
+    "Position": {
+      "X": 321.054,
+      "Y": 504.582,
+      "Z": 170.3761,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 168.75
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 44078,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 536.342,
+      "Y": 543.432,
+      "Z": 189.7117,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 98821,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 537.444,
+      "Y": 541.758,
+      "Z": 189.7027,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 24696,
+    "UnitId": 12793,
+    "Title": "Calleil the Cursed",
+    "Position": {
+      "X": 319.86,
+      "Y": 499.45,
+      "Z": 170.4031,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 125154,
+    "UnitId": 12788,
+    "Title": "Ironblade Knight Captain Travis Godfrey",
+    "NpcSpawnerIds": [
+      111826
+    ],
+    "Position": {
+      "X": 552.228,
+      "Y": 487.354,
+      "Z": 187.977,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 112.5
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 99808,
+    "UnitId": 12761,
+    "Title": "Ironblade Knight Captain Travis Godfrey",
+    "NpcSpawnerIds": [
+      112082
+    ],
+    "Position": {
+      "X": 531.086,
+      "Y": 478.344,
+      "Z": 187.999,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 19.6875
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 29079,
+    "UnitId": 13277,
+    "Title": "Blackscale Corps Soulpriest",
+    "NpcSpawnerIds": [
+      111685
+    ],
+    "Position": {
+      "X": 520.474,
+      "Y": 509.066,
+      "Z": 202.6787,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 36.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 89988,
+    "UnitId": 13271,
+    "Title": "Blackscale Corps Berserker",
+    "NpcSpawnerIds": [
+      111686
+    ],
+    "Position": {
+      "X": 517.866,
+      "Y": 507.942,
+      "Z": 202.7838,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 126229,
+    "UnitId": 13273,
+    "Title": "Blackscale Corps Hydromancer",
+    "NpcSpawnerIds": [
+      111684
+    ],
+    "Position": {
+      "X": 514.75,
+      "Y": 510.338,
+      "Z": 202.6767,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -36.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 69654,
+    "UnitId": 13270,
+    "Title": "Blackscale Corps Duelist",
+    "NpcSpawnerIds": [
+      111682
+    ],
+    "Position": {
+      "X": 522.826,
+      "Y": 513.032,
+      "Z": 202.5447,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 78.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 72744,
+    "UnitId": 13277,
+    "Title": "Blackscale Corps Soulpriest",
+    "NpcSpawnerIds": [
+      111689
+    ],
+    "Position": {
+      "X": 534.788,
+      "Y": 513.03,
+      "Z": 202.1295,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -53.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 105620,
+    "UnitId": 13271,
+    "Title": "Blackscale Corps Berserker",
+    "NpcSpawnerIds": [
+      111688
+    ],
+    "Position": {
+      "X": 537.816,
+      "Y": 514.132,
+      "Z": 202.0105,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 75.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 86503,
+    "UnitId": 13273,
+    "Title": "Blackscale Corps Hydromancer",
+    "NpcSpawnerIds": [
+      111687
+    ],
+    "Position": {
+      "X": 535.298,
+      "Y": 515.95,
+      "Z": 202.0735,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -137.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 57135,
+    "UnitId": 13271,
+    "Title": "Blackscale Corps Berserker",
+    "NpcSpawnerIds": [
+      111683
+    ],
+    "Position": {
+      "X": 517.564,
+      "Y": 514.192,
+      "Z": 202.4466,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -151.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 122244,
+    "UnitId": 13270,
+    "Title": "Blackscale Corps Duelist",
+    "NpcSpawnerIds": [
+      111676
+    ],
+    "Position": {
+      "X": 505.416,
+      "Y": 472.906,
+      "Z": 203.6561,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 98.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118641,
+    "UnitId": 13270,
+    "Title": "Blackscale Corps Duelist",
+    "NpcSpawnerIds": [
+      111681
+    ],
+    "Position": {
+      "X": 502.502,
+      "Y": 501.622,
+      "Z": 203.0939,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -19.6875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 61008,
+    "UnitId": 13271,
+    "Title": "Blackscale Corps Berserker",
+    "NpcSpawnerIds": [
+      111680
+    ],
+    "Position": {
+      "X": 504.45,
+      "Y": 503.906,
+      "Z": 202.9448,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 101.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 22232,
+    "UnitId": 13270,
+    "Title": "Blackscale Corps Duelist",
+    "NpcSpawnerIds": [
+      111679
+    ],
+    "Position": {
+      "X": 501.884,
+      "Y": 505.358,
+      "Z": 203.23,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -140.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 63708,
+    "UnitId": 13276,
+    "Title": "Blackscale Corps Torturer",
+    "NpcSpawnerIds": [
+      111678
+    ],
+    "Position": {
+      "X": 502.246,
+      "Y": 492.08,
+      "Z": 203.7311,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 146.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 33513,
+    "UnitId": 13277,
+    "Title": "Blackscale Corps Soulpriest",
+    "NpcSpawnerIds": [
+      111677
+    ],
+    "Position": {
+      "X": 499.766,
+      "Y": 488.346,
+      "Z": 203.336,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -30.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 68360,
+    "UnitId": 13271,
+    "Title": "Blackscale Corps Berserker",
+    "NpcSpawnerIds": [
+      111675
+    ],
+    "Position": {
+      "X": 502.154,
+      "Y": 475.478,
+      "Z": 203.5361,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -171.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 70647,
+    "UnitId": 13275,
+    "Title": "Blackscale Corps Archer",
+    "NpcSpawnerIds": [
+      111674
+    ],
+    "Position": {
+      "X": 499.76,
+      "Y": 471.886,
+      "Z": 203.7001,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -81.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 94444,
+    "UnitId": 13273,
+    "Title": "Blackscale Corps Hydromancer",
+    "NpcSpawnerIds": [
+      111673
+    ],
+    "Position": {
+      "X": 502.788,
+      "Y": 469.542,
+      "Z": 203.332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 60852,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 525.986,
+      "Y": 475.178,
+      "Z": 187.6719,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 117078,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 521.668,
+      "Y": 482.576,
+      "Z": 187.6699,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 89642,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 520.144,
+      "Y": 480.542,
+      "Z": 187.6769,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 93767,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 518.214,
+      "Y": 479.662,
+      "Z": 187.6639,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 125533,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 518.18,
+      "Y": 476.838,
+      "Z": 187.6489,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 103646,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 537.412,
+      "Y": 482.352,
+      "Z": 187.6799,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 119162,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 534.646,
+      "Y": 482.98,
+      "Z": 187.6839,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 61180,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 544.668,
+      "Y": 471.052,
+      "Z": 187.7029,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 115117,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 542.534,
+      "Y": 472.92,
+      "Z": 187.6849,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 80724,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 520.33,
+      "Y": 482.236,
+      "Z": 187.6649,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 74258,
+    "UnitId": 12920,
+    "Title": "Frozen Marauder",
+    "Position": {
+      "X": 517.564,
+      "Y": 482.864,
+      "Z": 187.6409,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 103149,
+    "UnitId": 12134,
+    "Title": "Ironblade Knight Captain Travis Godfrey",
+    "Position": {
+      "X": 530.9,
+      "Y": 478.752,
+      "Z": 187.7099,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 104.0625
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 119502,
+    "UnitId": 12772,
+    "Title": "Blackscale Corps Pillager",
+    "Position": {
+      "X": 605.824,
+      "Y": 669.544,
+      "Z": 178.4343,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -11.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 104958,
+    "UnitId": 12759,
+    "Title": "Calleil the Cursed",
+    "NpcSpawnerIds": [
+      112409
+    ],
+    "Position": {
+      "X": 322.436,
+      "Y": 500.408,
+      "Z": 170.7723,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -67.5
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 118868,
+    "UnitId": 12760,
+    "Title": "Calleil's Fire Elemental",
+    "NpcSpawnerIds": [
+      110541
+    ],
+    "Position": {
+      "X": 336.42,
+      "Y": 505.368,
+      "Z": 170.3231,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 50216,
+    "UnitId": 12912,
+    "Title": "Calleil's Lightning Elemental",
+    "Position": {
+      "X": 323.38,
+      "Y": 499.446,
+      "Z": 170.3711,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 129594,
+    "UnitId": 12760,
+    "Title": "Calleil's Fire Elemental",
+    "NpcSpawnerIds": [
+      110548
+    ],
+    "Position": {
+      "X": 327.352,
+      "Y": 501.916,
+      "Z": 170.4111,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 115474,
+    "UnitId": 12760,
+    "Title": "Calleil's Fire Elemental",
+    "NpcSpawnerIds": [
+      110540
+    ],
+    "Position": {
+      "X": 332.434,
+      "Y": 515.808,
+      "Z": 170.7143,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 38184,
+    "UnitId": 12760,
+    "Title": "Calleil's Fire Elemental",
+    "NpcSpawnerIds": [
+      110544
+    ],
+    "Position": {
+      "X": 347.054,
+      "Y": 509.604,
+      "Z": 170.7493,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -70.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 62411,
+    "UnitId": 12760,
+    "Title": "Calleil's Fire Elemental",
+    "NpcSpawnerIds": [
+      110545
+    ],
+    "Position": {
+      "X": 340.212,
+      "Y": 495.144,
+      "Z": 170.6712,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 110820,
+    "UnitId": 12912,
+    "Title": "Calleil's Lightning Elemental",
+    "Position": {
+      "X": 321.99,
+      "Y": 498.286,
+      "Z": 170.3731,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 30847,
+    "UnitId": 12912,
+    "Title": "Calleil's Lightning Elemental",
+    "Position": {
+      "X": 329.736,
+      "Y": 502.75,
+      "Z": 169.9199,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 49157,
+    "UnitId": 12912,
+    "Title": "Calleil's Lightning Elemental",
+    "Position": {
+      "X": 327.75,
+      "Y": 504.762,
+      "Z": 169.9199,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 86556,
+    "UnitId": 12912,
+    "Title": "Calleil's Lightning Elemental",
+    "Position": {
+      "X": 325.49,
+      "Y": 502.832,
+      "Z": 170.2931,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 71440,
+    "UnitId": 12912,
+    "Title": "Calleil's Lightning Elemental",
+    "Position": {
+      "X": 325.912,
+      "Y": 504.302,
+      "Z": 170.123,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 18920,
+    "UnitId": 12912,
+    "Title": "Calleil's Lightning Elemental",
+    "Position": {
+      "X": 326.222,
+      "Y": 501.494,
+      "Z": 170.2341,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118436,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 597.414,
+      "Y": 544.98,
+      "Z": 193.5122,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 61.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 107859,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 631.102,
+      "Y": 677.864,
+      "Z": 178.8644,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 42.1875
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 43845,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 520.096,
+      "Y": 534.206,
+      "Z": 189.6466,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 143.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118436,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 596.49,
+      "Y": 545.256,
+      "Z": 193.5282,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 123.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 107859,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 630.062,
+      "Y": 662.224,
+      "Z": 178.4563,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 146.25
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 90275,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 503.23,
+      "Y": 479.064,
+      "Z": 203.332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -11.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 63555,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 417.648,
+      "Y": 494.18,
+      "Z": 184.0245,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 92.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 125190,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 438.39,
+      "Y": 511.47,
+      "Z": 184.0825,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 194.0625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 111660,
+    "UnitId": 12770,
+    "Title": "Blackscale Corps Soulpriest",
+    "Position": {
+      "X": 436.032,
+      "Y": 591.736,
+      "Z": 170.3161,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 73.125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 109355,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 431.39,
+      "Y": 592.044,
+      "Z": 170.079,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -106.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 85036,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 342.856,
+      "Y": 563.214,
+      "Z": 170.6162,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 132.1875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 129155,
+    "UnitId": 12764,
+    "Title": "Blackscale Corps Berserker",
+    "Position": {
+      "X": 362.004,
+      "Y": 562.65,
+      "Z": 170.9423,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 106.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118436,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 586.1,
+      "Y": 538.266,
+      "Z": 193.6522,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 90275,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 514.808,
+      "Y": 507.394,
+      "Z": 202.4947,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 43845,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 522.79,
+      "Y": 544.074,
+      "Z": 189.6476,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 168.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118436,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 582.37,
+      "Y": 535.82,
+      "Z": 193.5332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -98.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 119502,
+    "UnitId": 12772,
+    "Title": "Blackscale Corps Pillager",
+    "Position": {
+      "X": 607.142,
+      "Y": 674.246,
+      "Z": 178.4363,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -22.5
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 107859,
+    "UnitId": 12774,
+    "Title": "Blackscale Corps Serf",
+    "Position": {
+      "X": 629.464,
+      "Y": 659.026,
+      "Z": 178.4613,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -45.0
+    },
+    "Scale": 0.7
+  },
+  {
+    "Id": 63555,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 434.144,
+      "Y": 499.106,
+      "Z": 184.0044,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -81.5625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 125190,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 432.624,
+      "Y": 522.396,
+      "Z": 183.9894,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 236.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 76802,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 346.064,
+      "Y": 563.924,
+      "Z": 170.6872,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 75.9375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 85036,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 322.798,
+      "Y": 557.736,
+      "Z": 170.9644,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 233.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 129155,
+    "UnitId": 12764,
+    "Title": "Blackscale Corps Berserker",
+    "Position": {
+      "X": 357.63,
+      "Y": 569.488,
+      "Z": 171.0494,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 115.3125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 122694,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 324.416,
+      "Y": 564.484,
+      "Z": 170.7973,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 98717,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 326.414,
+      "Y": 564.382,
+      "Z": 170.8103,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 29220,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 320.314,
+      "Y": 562.108,
+      "Z": 170.7193,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 70422,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 322.314,
+      "Y": 562.008,
+      "Z": 170.8173,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 36793,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 325.992,
+      "Y": 566.836,
+      "Z": 170.1951,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 101402,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 327.99,
+      "Y": 566.734,
+      "Z": 170.4912,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 77775,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 324.898,
+      "Y": 552.814,
+      "Z": 170.9624,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 78899,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 326.896,
+      "Y": 552.712,
+      "Z": 170.8823,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 46922,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 326.198,
+      "Y": 554.626,
+      "Z": 170.9043,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 50983,
+    "UnitId": 12781,
+    "Title": "Newborn Two-Headed Snake",
+    "Position": {
+      "X": 328.196,
+      "Y": 554.524,
+      "Z": 170.8193,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 0.5
+  },
+  {
+    "Id": 118436,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 592.832,
+      "Y": 540.44,
+      "Z": 193.6002,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 137.8125
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 76802,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 345.85,
+      "Y": 565.242,
+      "Z": 170.7523,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 140.625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 129155,
+    "UnitId": 12764,
+    "Title": "Blackscale Corps Berserker",
+    "Position": {
+      "X": 363.792,
+      "Y": 568.742,
+      "Z": 170.9904,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 16.875
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 43845,
+    "UnitId": 12765,
+    "Title": "Blackscale Corps Knight",
+    "Position": {
+      "X": 514.692,
+      "Y": 528.914,
+      "Z": 189.6446,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 149.0625
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 118436,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 596.484,
+      "Y": 536.87,
+      "Z": 193.4771,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -56.25
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 90275,
+    "UnitId": 12767,
+    "Title": "Blackscale Corps Glutton",
+    "Position": {
+      "X": 503.37,
+      "Y": 479.902,
+      "Z": 203.332,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -8.4375
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 95075,
+    "UnitId": 12796,
+    "Title": "Calleil the Cursed",
+    "NpcSpawnerIds": [
+      112460
+    ],
+    "Position": {
+      "X": 463.272,
+      "Y": 690.304,
+      "Z": 167.388,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.5
+  },
+  {
+    "Id": 69260,
+    "UnitId": 12797,
+    "Title": "Clovia",
+    "NpcSpawnerIds": [
+      112548
+    ],
+    "Position": {
+      "X": 466.372,
+      "Y": 688.208,
+      "Z": 167.403,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 33.75
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 124850,
+    "UnitId": 13025,
+    "Title": "Lucarre",
+    "NpcSpawnerIds": [
+      112550
+    ],
+    "Position": {
+      "X": 463.318,
+      "Y": 689.506,
+      "Z": 167.4,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 60290,
+    "UnitId": 13024,
+    "Title": "Tynem",
+    "NpcSpawnerIds": [
+      112549
+    ],
+    "Position": {
+      "X": 459.974,
+      "Y": 688.198,
+      "Z": 167.398,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -30.9375
+    },
+    "Scale": 1.0
   }
 ]

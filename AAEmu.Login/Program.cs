@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,90 +13,119 @@ using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
 
-namespace AAEmu.Login
+namespace AAEmu.Login;
+
+public static class Program
 {
-    public static class Program
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private static Thread _thread = Thread.CurrentThread;
+    private static DateTime _startTime;
+    private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
+    private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
+
+    public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
+
+    public static async Task Main(string[] args)
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-        private static Thread _thread = Thread.CurrentThread;
-        private static DateTime _startTime;
-        private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
-        private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
+        Initialization();
 
-        public static int UpTime => (int) (DateTime.UtcNow - _startTime).TotalSeconds;
+        LoadConfiguration(args);
 
-        public static async Task Main(string[] args)
+        Logger.Info($"{Name} version {Version}");
+
+        // Apply MySQL Configuration
+        MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+
+        try
         {
-            Initialization();
-
-            var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (File.Exists(mainConfig))
-                Configuration(args, mainConfig);
-            else
-            {
-                _log.Fatal($"{mainConfig} doesn't exist!");
-                return;
-            }
-
-            _log.Info($"{Name} version {Version}");
-
-            // Apply MySQL Configuration
-            try
-            {
-                MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
-            }
-            catch
-            {
-                _log.Fatal("MySQL configuration could not be loaded !");
-                return;
-            }
-            
             // Test the DB connection
             var connection = MySQL.CreateConnection();
-            if (connection == null)
-            {
-                LogManager.Flush();
-                return;
-            }
             connection.Close();
-
-            var builder = new HostBuilder()
-                .ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    config.AddEnvironmentVariables();
-
-                    if (args != null)
-                    {
-                        config.AddCommandLine(args);
-                    }
-                })
-                .ConfigureServices((hostContext, services) =>
-                {
-                    services.AddOptions();
-                    services.AddSingleton<IHostedService, LoginService>();
-                });
-
-            await builder.RunConsoleAsync();
+            connection.Dispose();
         }
-
-        private static void Initialization()
+        catch (Exception ex)
         {
-            _thread.Name = "AA.LoginServer Base Thread";
-            _startTime = DateTime.UtcNow;
+            Logger.Fatal(ex, "MySQL connection failed, check your configuration!");
+            LogManager.Flush();
+            return;
         }
 
-        private static void Configuration(string[] args, string mainConfigJson)
+        var builder = new HostBuilder()
+            .ConfigureAppConfiguration((hostingContext, config) =>
+            {
+                config.AddEnvironmentVariables();
+
+                if (args != null)
+                {
+                    config.AddCommandLine(args);
+                }
+            })
+            .ConfigureServices((hostContext, services) =>
+            {
+                services.AddOptions();
+                services.AddSingleton<IHostedService, LoginService>();
+            });
+
+        await builder.RunConsoleAsync();
+    }
+
+    private static bool LoadConfiguration(string[] args)
+    {
+
+        var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
+        if (!File.Exists(mainConfig))
         {
-            var configJsonFile = Path.Combine(FileManager.AppPath, "Config.json");
-            var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(mainConfigJson)
-                .AddCommandLine(args)
-                .Build();
+            // If user secrets are defined the configuration file is not required
+            var isUserSecretsDefined = IsUserSecretsDefined();
+            if (!isUserSecretsDefined)
+            {
+                Logger.Fatal($"{mainConfig} doesn't exist!");
+                return false;
+            }
 
-            configurationBuilder.Bind(AppConfiguration.Instance);
-
-            LogManager.ThrowConfigExceptions = false;
-            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
+            //return false;
+            mainConfig = null;
         }
+
+        Configuration(args, mainConfig);
+        return true;
+    }
+
+    private static void Initialization()
+    {
+        _thread.Name = "AA.LoginServer Base Thread";
+        _startTime = DateTime.UtcNow;
+    }
+
+    private static void Configuration(string[] args, string mainConfigJson)
+    {
+        var configJsonFile = Path.Combine(FileManager.AppPath, "Config.json");
+        var configurationBuilder = new ConfigurationBuilder();
+        if (mainConfigJson != null)
+        {
+            configurationBuilder.AddJsonFile(mainConfigJson);
+        }
+
+        configurationBuilder
+            .AddUserSecrets<LoginService>()
+            .AddCommandLine(args);
+
+        var configuration = configurationBuilder.Build();
+
+        configuration.Bind(AppConfiguration.Instance);
+
+        LogManager.ThrowConfigExceptions = false;
+        LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
+    }
+
+    private static bool IsUserSecretsDefined()
+    {
+        // Check if user secrets are defined
+        var config = new ConfigurationBuilder()
+            .AddUserSecrets<LoginService>()
+            .Build();
+
+        bool userSecretsDefined = config.AsEnumerable().Any();
+        return userSecretsDefined;
     }
 }

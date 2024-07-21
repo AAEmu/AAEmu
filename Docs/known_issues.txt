@@ -1,0 +1,19 @@
+﻿ Currently known issue
+-------------------------
+
+- Not all skill types are implemented yet
+
+- Not all quest types are implemented yet
+
+- Stats may not be 100% accurate to what the client reports yet, this is due to missing bonus stat implementations
+
+- Destroying a rotated house, will make all remaining objects that were not destroyed on it rotate in a wrong way
+
+- Boat physics are only working on a very basic level, collision does not really exist
+  Boats will always be summoned at ocean level, this means that summoning in lakes or rivers will summon it under the ground!
+  This is because of missing water container information on the server-side of things, same as object collisions
+  Also boats have a very minor stutter when they rotated at about 174.5° where they make a very slight "jump"
+
+- AI is not working as intended yet, and will also often ignore walls and pits due to missing navmesh data.
+
+- 

@@ -1,17 +1,21 @@
 ﻿using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Char;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActConAcceptLevelUp(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActConAcceptLevelUp : QuestActTemplate
-    {
-        public byte Level { get; set; }
+    public byte Level { get; set; }
 
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Debug("QuestActConAcceptLevelUp");
-            
-            return character.Level >= Level;
-        }
+    /// <summary>
+    /// Checks if the player level is at least Level
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Level {Level}");
+        return quest.Owner.Level >= Level;
     }
 }

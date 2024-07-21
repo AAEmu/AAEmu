@@ -1,7 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.Quests.Static
+﻿namespace AAEmu.Game.Models.Game.Quests.Static;
+
+public enum QuestActObjInviteType
 {
-    public enum QuestActObjInviteType
-    {
-        Expedition = 1
-    }
+    Expedition = 1
 }

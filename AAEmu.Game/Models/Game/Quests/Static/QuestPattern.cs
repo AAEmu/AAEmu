@@ -1,8 +1,7 @@
-﻿namespace AAEmu.Game.Models.Game.Quests.Static
+﻿namespace AAEmu.Game.Models.Game.Quests.Static;
+
+public enum QuestPattern
 {
-    public enum QuestPattern
-    {
-        Objective = 1,
-        Reward = 2
-    }
+    Objective = 1,
+    Reward = 2
 }

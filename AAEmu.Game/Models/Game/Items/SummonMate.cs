@@ -1,0 +1,52 @@
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Items.Templates;
+
+namespace AAEmu.Game.Models.Game.Items;
+
+public class SummonMate : Item
+{
+    public int DetailMateExp { get; set; }
+    public byte DetailLevel { get; set; }
+
+    public override ItemDetailType DetailType => ItemDetailType.Mate;
+    public override uint DetailBytesLength => 6;
+
+    public SummonMate()
+    {
+    }
+
+    public SummonMate(ulong id, ItemTemplate template, int count) : base(id, template, count)
+    {
+    }
+
+    public override void ReadDetails(PacketStream stream)
+    {
+        if (stream.LeftBytes < DetailBytesLength)
+            return;
+        DetailMateExp = stream.ReadInt32(); // exp
+        _ = stream.ReadByte();
+        DetailLevel = stream.ReadByte(); // level
+    }
+
+    public override void WriteDetails(PacketStream stream)
+    {
+        stream.Write(DetailMateExp); // exp
+        stream.Write((byte)0);
+        stream.Write(DetailLevel); // level
+    }
+    
+    public override void OnManuallyDestroyingItem()
+    {
+        base.OnManuallyDestroyingItem();
+        // TODO: Call function to remove mate entries from DB
+    }
+
+    public override bool CanDestroy()
+    {
+        // Mounts should always be able to be destroyed as they cannot carry any persistent items anyway
+        // It should just un-summon it while the item is getting deleted
+        return true;
+    }
+}

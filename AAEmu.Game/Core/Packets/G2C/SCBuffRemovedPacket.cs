@@ -1,25 +1,25 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCBuffRemovedPacket : GamePacket
 {
-    public class SCBuffRemovedPacket : GamePacket
+    public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
+
+    private uint _objId;
+    private uint _index;
+
+    public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 1)
     {
-        private uint _objId;
-        private uint _index;
+        _objId = objId;
+        _index = index;
+    }
 
-        public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 1)
-        {
-            _objId = objId;
-            _index = index;
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.WriteBc(_objId);
-            stream.Write(_index);
-            return stream;
-        }
-        
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.WriteBc(_objId);
+        stream.Write(_index);
+        return stream;
     }
 }

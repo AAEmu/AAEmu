@@ -1,12 +1,11 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 
-namespace AAEmu.Game.Models.Tasks.Slave
+namespace AAEmu.Game.Models.Tasks.Slave;
+
+public class SendMySlaveTask : Task
 {
-    public class SendMySlaveTask : Task
+    public override void Execute()
     {
-        public override void Execute()
-        {
-            SlaveManager.Instance.SendMySlavePacketToAllOwners();
-        }
+        SlaveManager.Instance.SendMySlavePacketToAllOwners();
     }
 }

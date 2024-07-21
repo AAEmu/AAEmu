@@ -10,9 +10,16 @@ publish/
 *.bak
 *.packet
 *.csproj.user
+*.DotSettings.user
 **/AAEmu.Game.xml
 *.aelcf
 **/TestResults/
+**/launchSettings.json
 /AAEmu.Game/Properties/PublishProfiles
 /AAEmu.Game/ClientData/*
+/AAEmu.Game/Config.json
+/AAEmu.Login/Config.json
+/AAEmu.IntegrationTests/Config.json
 *.sqlite3
+.server_files
+.env

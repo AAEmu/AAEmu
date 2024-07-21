@@ -1,60 +1,56 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers.World;
+
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
+
+public class IdleBehavior : BaseCombatBehavior
 {
-    public class IdleBehavior : Behavior
+    private bool _enter;
+
+    public override void Enter()
     {
-        public override void Enter()
+        // BUFF: Fly
+        Ai.Owner.InterruptSkills();
+        Ai.Owner.StopMovement();
+        Ai.Owner.SetTarget(null);
+        Ai.Owner.SendPacketToPlayers([Ai.Owner.CurrentTarget], new SCAggroTargetChangedPacket(Ai.Owner.ObjId, 0));
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        if (Ai.Owner is { } npc)
         {
+            npc.Events.InIdle(this, new InIdleArgs { Owner = npc });
+        }
+        _enter = true;
+    }
+
+    public override void Tick(TimeSpan delta)
+    {
+        if (!_enter)
+            return; // not initialized yet Enter()
+
+        var delay = 150;
+        // Will delay for 150 Milliseconds to eliminate the hanging of the skill
+        if (!Ai.Owner.CheckInterval(delay))
+        {
+            Logger.Trace($"Skill: CooldownTime [{delay}]!");
+        }
+        else
+        {
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
         }
 
-        public override void Tick(TimeSpan delta)
-        {
-            if (!Ai.Owner.Template.Aggression)
-                return;//Remove this if we need non-aggressive npcs to search for targetsegion.IsEmpty())
+        if (!CheckAggression())
+            CheckAlert();
+        //Ai.GoToFollowPath();
+    }
 
-            var nearbyUnits = WorldManager.Instance.GetAround<Unit>(Ai.Owner, 10 * Ai.Owner.Template.SightRangeScale);
-
-            foreach (var unit in nearbyUnits)
-            {
-                if (Ai.Owner.Template.Aggression)
-                {
-                    //Need to check for stealth detection here..
-                    if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
-                    {
-                        if (Ai.Owner.CanAttack(unit))
-                        {
-                            OnEnemySeen(unit);
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner, unit, true);
-                        if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
-                        {
-                            if (Ai.Owner.CanAttack(unit))
-                            {
-                                OnEnemySeen(unit);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        public void OnEnemySeen(Unit target)
-        {
-            Ai.Owner.AddUnitAggro(NPChar.AggroKind.Damage, target, 1);
-            Ai.GoToCombat();
-        }
-
-        public override void Exit()
-        {
-        }
+    public override void Exit()
+    {
+        _enter = false;
     }
 }

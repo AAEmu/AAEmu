@@ -1,21 +1,22 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Static;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActConAcceptDoodad(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActConAcceptDoodad : QuestActTemplate
+    public uint DoodadId { get; set; }
+
+    /// <summary>
+    /// Checks if the Quest starter was indeed the specified doodad
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        public uint DoodadId { get; set; }
-
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Warn("QuestActConAcceptDoodad: DoodadId {0}", DoodadId);
-
-            quest.QuestAcceptorType = QuestAcceptorType.Doodad;
-            quest.AcceptorType = DoodadId;
-
-            return true;
-        }
+        Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), DoodadId {DoodadId}");
+        return (quest.QuestAcceptorType == QuestAcceptorType.Doodad) && (quest.AcceptorId == DoodadId);
     }
 }

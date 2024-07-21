@@ -1,16 +1,31 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActCheckCompleteComponent(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActCheckCompleteComponent : QuestActTemplate
-    {
-        public uint CompleteComponent { get; set; }
+    public uint CompleteComponent { get; set; }
 
-        public override bool Use(ICharacter character, Quest quest, int objective)
+    /// <summary>
+    /// Checks if a specific component of this quest has its objective completed
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
+    {
+        Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent}");
+        if (questAct.QuestComponent.Parent.Components.TryGetValue(CompleteComponent, out var targetComponent))
         {
-            _log.Warn("QuestActCheckCompleteComponent: Complete Component {0}", CompleteComponent);
-            return false;
+            // Found target component, check if it's completed
+            // Basically the Same as doing a RunAct on all acts of this component to check the results
+            return targetComponent.RunComponent();
         }
+        else
+        {
+            Logger.Error($"{QuestActTemplateName}({DetailId}).RunAct: Quest {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), Complete Component {CompleteComponent} NOT FOUND!");
+        }
+        return false;
     }
 }

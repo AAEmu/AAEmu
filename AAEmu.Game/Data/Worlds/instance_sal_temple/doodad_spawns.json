@@ -1,19 +1,1475 @@
 [
   {
-    "UnitId": 4535,
+    "Id": 97,
+    "UnitId": 4740,
+    "Title": "Western Ishvara Palace Cellar Machine",
     "Position": {
-      "X": 429.4,
-      "Y": 300.1,
-      "Z": 153.0,
-      "Yaw": 89.3565
-    }
+      "X": 508.124,
+      "Y": 247.966,
+      "Z": 136.7881,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -16.99904
+    },
+    "funcGroupId": 11712,
+    "Scale": 1.0
   },
   {
-    "UnitId": 4535,
+    "Id": 57,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
     "Position": {
-      "X": 606.3,
-      "Y": 416.4,
-      "Z": 147.0
-    }
+      "X": 505.706,
+      "Y": 248.988,
+      "Z": 143.7588,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.71
+  },
+  {
+    "Id": 56,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 505.444,
+      "Y": 248.2,
+      "Z": 143.7588,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 1.0
+  },
+  {
+    "Id": 7,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 506.176,
+      "Y": 247.928,
+      "Z": 143.7588,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0
+  },
+  {
+    "Id": 6,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 506.174,
+      "Y": 248.544,
+      "Z": 143.7588,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 18.9995918
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0
+  },
+  {
+    "Id": 102,
+    "UnitId": 5006,
+    "Title": "Water Bucket",
+    "Position": {
+      "X": 511.316,
+      "Y": 261.078,
+      "Z": 140.8767,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 12705,
+    "Scale": 1.0
+  },
+  {
+    "Id": 88,
+    "UnitId": 4580,
+    "Title": "Salphira's Barrier",
+    "Position": {
+      "X": 487.6,
+      "Y": 300.016,
+      "Z": 147.2412,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.00115
+    },
+    "funcGroupId": 11230,
+    "Scale": 1.0
+  },
+  {
+    "Id": 54,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 489.584,
+      "Y": 295.094,
+      "Z": 147.2422,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.616
+  },
+  {
+    "Id": 53,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 489.582,
+      "Y": 295.768,
+      "Z": 147.2552,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.798
+  },
+  {
+    "Id": 52,
+    "UnitId": 4535,
+    "Title": "Palace Cellar Exit",
+    "Position": {
+      "X": 429.11,
+      "Y": 300.028,
+      "Z": 153.4036,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.00115
+    },
+    "funcGroupId": 11112,
+    "Scale": 0.484
+  },
+  {
+    "Id": 45,
+    "UnitId": 4106,
+    "Title": "Chapel Door",
+    "Position": {
+      "X": 510.814,
+      "Y": 288.042,
+      "Z": 149.1109,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 180.0
+    },
+    "funcGroupId": 9966,
+    "Scale": 1.0
+  },
+  {
+    "Id": 44,
+    "UnitId": 4105,
+    "RelatedIds": [4109],
+    "Title": "Palace Dungeon Machine",
+    "Position": {
+      "X": 510.724,
+      "Y": 310.328,
+      "Z": 147.1472,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 90.00115
+    },
+    "funcGroupId": 9964,
+    "Scale": 0.7
+  },
+  {
+    "Id": 10,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 509.048,
+      "Y": 273.218,
+      "Z": 147.0211,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -18.0003967
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.39
+  },
+  {
+    "Id": 9,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 508.462,
+      "Y": 272.556,
+      "Z": 147.0061,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 3.00090933
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.08
+  },
+  {
+    "Id": 8,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 508.29,
+      "Y": 273.398,
+      "Z": 146.9991,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.13
+  },
+  {
+    "Id": 5,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 489.748,
+      "Y": 296.426,
+      "Z": 147.2702,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 60.002018
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0
+  },
+  {
+    "Id": 4,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 489.128,
+      "Y": 294.702,
+      "Z": 147.1982,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 24.9997253
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0
+  },
+  {
+    "Id": 3,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 477.412,
+      "Y": 297.974,
+      "Z": 146.9931,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -36.0016174
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0
+  },
+  {
+    "Id": 2,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 476.728,
+      "Y": 297.96,
+      "Z": 146.9921,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.17
+  },
+  {
+    "Id": 103,
+    "UnitId": 5947,
+    "Title": "Restricted Attack Area",
+    "Position": {
+      "X": 540.674,
+      "Y": 249.988,
+      "Z": 143.4667,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 15320,
+    "Scale": 1.0
+  },
+  {
+    "Id": 98,
+    "UnitId": 4741,
+    "Title": "Palace Cellar Crimson Flame",
+    "Position": {
+      "X": 541.52,
+      "Y": 250.008,
+      "Z": 144.0329,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11715,
+    "Scale": 1.0
+  },
+  {
+    "Id": 86,
+    "UnitId": 4577,
+    "Title": "Palace Cellar Gate",
+    "Position": {
+      "X": 543.95,
+      "Y": 250.07,
+      "Z": 143.9679,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.00115
+    },
+    "funcGroupId": 11224,
+    "Scale": 1.0
+  },
+  {
+    "Id": 71,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 581.346,
+      "Y": 247.358,
+      "Z": 144.075,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.81315
+  },
+  {
+    "Id": 70,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 580.818,
+      "Y": 246.984,
+      "Z": 144.07,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.666783
+  },
+  {
+    "Id": 69,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 580.734,
+      "Y": 247.618,
+      "Z": 144.086,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.584902
+  },
+  {
+    "Id": 60,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 524.634,
+      "Y": 245.768,
+      "Z": 143.9949,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 6.00037766
+    },
+    "funcGroupId": 11137,
+    "Scale": 1.0
+  },
+  {
+    "Id": 22,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 581.128,
+      "Y": 248.144,
+      "Z": 144.091,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 32.0006943
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0318
+  },
+  {
+    "Id": 21,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 580.766,
+      "Y": 246.384,
+      "Z": 144.071,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -20.9988918
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0318
+  },
+  {
+    "Id": 15,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 545.382,
+      "Y": 254.142,
+      "Z": 144.155,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 47.00072
+    },
+    "funcGroupId": 5852,
+    "Scale": 0.952
+  },
+  {
+    "Id": 14,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 545.376,
+      "Y": 253.38,
+      "Z": 144.07,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.36
+  },
+  {
+    "Id": 105,
+    "UnitId": 7660,
+    "Title": "Akmit's Secret Chest",
+    "Position": {
+      "X": 610.718,
+      "Y": 430.286,
+      "Z": 148.8298,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -30.0010014
+    },
+    "funcGroupId": 20846,
+    "Scale": 1.0
+  },
+  {
+    "Id": 104,
+    "UnitId": 5947,
+    "Title": "Restricted Attack Area",
+    "Position": {
+      "X": 590.0,
+      "Y": 327.994,
+      "Z": 146.8891,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 15320,
+    "Scale": 1.0
+  },
+  {
+    "Id": 101,
+    "UnitId": 5005,
+    "Title": "Vine",
+    "Position": {
+      "X": 597.248,
+      "Y": 444.106,
+      "Z": 102.4587,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -119.999611
+    },
+    "funcGroupId": 12704,
+    "Scale": 1.0
+  },
+  {
+    "Id": 100,
+    "UnitId": 4752,
+    "RelatedIds": [4751],
+    "Title": "Palace Cellar Ice Machine",
+    "Position": {
+      "X": 583.33,
+      "Y": 308.828,
+      "Z": 147.0741,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.00115
+    },
+    "funcGroupId": 11798,
+    "Scale": 0.5
+  },
+  {
+    "Id": 99,
+    "UnitId": 4751,
+    "Title": "Palace Cellar Ice Trap",
+    "Position": {
+      "X": 589.672,
+      "Y": 309.316,
+      "Z": 147.0681,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11795,
+    "Scale": 1.0
+  },
+  {
+    "Id": 96,
+    "UnitId": 4630,
+    "Title": "Nulling Potion",
+    "Position": {
+      "X": 615.718,
+      "Y": 425.286,
+      "Z": 148.8158,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11418,
+    "Scale": 1.0
+  },
+  {
+    "Id": 95,
+    "UnitId": 4630,
+    "Title": "Nulling Potion",
+    "Position": {
+      "X": 609.566,
+      "Y": 425.322,
+      "Z": 148.7868,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11418,
+    "Scale": 1.0
+  },
+  {
+    "Id": 94,
+    "UnitId": 4630,
+    "Title": "Nulling Potion",
+    "Position": {
+      "X": 605.354,
+      "Y": 439.82,
+      "Z": 148.8228,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11418,
+    "Scale": 1.0
+  },
+  {
+    "Id": 93,
+    "UnitId": 4630,
+    "Title": "Nulling Potion",
+    "Position": {
+      "X": 605.238,
+      "Y": 428.87,
+      "Z": 148.8228,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11418,
+    "Scale": 1.0
+  },
+  {
+    "Id": 92,
+    "UnitId": 4630,
+    "Title": "Nulling Potion",
+    "Position": {
+      "X": 603.508,
+      "Y": 434.342,
+      "Z": 148.8228,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11418,
+    "Scale": 1.0
+  },
+  {
+    "Id": 91,
+    "UnitId": 4596,
+    "Title": "Nulling Potion",
+    "Position": {
+      "X": 635.832,
+      "Y": 454.01,
+      "Z": 169.7679,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11314,
+    "Scale": 1.0
+  },
+  {
+    "Id": 90,
+    "UnitId": 4582,
+    "Title": "Salphira's Barrier",
+    "Position": {
+      "X": 594.334,
+      "Y": 434.206,
+      "Z": 163.4464,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.00115
+    },
+    "funcGroupId": 11234,
+    "Scale": 1.0
+  },
+  {
+    "Id": 89,
+    "UnitId": 4581,
+    "Title": "Salphira's Barrier",
+    "Position": {
+      "X": 564.826,
+      "Y": 300.228,
+      "Z": 150.0973,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.00115
+    },
+    "funcGroupId": 11232,
+    "Scale": 1.0
+  },
+  {
+    "Id": 87,
+    "UnitId": 4577,
+    "Title": "Palace Cellar Gate",
+    "Position": {
+      "X": 589.782,
+      "Y": 331.306,
+      "Z": 146.9671,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11224,
+    "Scale": 1.0
+  },
+  {
+    "Id": 85,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 627.502,
+      "Y": 423.45,
+      "Z": 148.6357,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.555
+  },
+  {
+    "Id": 84,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 626.582,
+      "Y": 422.386,
+      "Z": 148.6357,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.75
+  },
+  {
+    "Id": 83,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 611.94,
+      "Y": 452.98,
+      "Z": 148.6347,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 1.0
+  },
+  {
+    "Id": 82,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 611.896,
+      "Y": 452.282,
+      "Z": 148.6367,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.75
+  },
+  {
+    "Id": 81,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 603.19,
+      "Y": 450.158,
+      "Z": 148.6357,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 1.0
+  },
+  {
+    "Id": 80,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 601.618,
+      "Y": 419.55,
+      "Z": 148.6357,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.77
+  },
+  {
+    "Id": 79,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 600.416,
+      "Y": 420.252,
+      "Z": 148.6347,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.69
+  },
+  {
+    "Id": 77,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 594.246,
+      "Y": 320.494,
+      "Z": 147.0041,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.6177
+  },
+  {
+    "Id": 75,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 591.472,
+      "Y": 292.67,
+      "Z": 146.759,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.4355
+  },
+  {
+    "Id": 74,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 586.008,
+      "Y": 368.38,
+      "Z": 147.0061,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.891752
+  },
+  {
+    "Id": 73,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 584.978,
+      "Y": 368.616,
+      "Z": 147.0071,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 1.36
+  },
+  {
+    "Id": 72,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 584.472,
+      "Y": 367.762,
+      "Z": 147.0091,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.869176
+  },
+  {
+    "Id": 67,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 557.25,
+      "Y": 437.094,
+      "Z": 160.6234,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.726
+  },
+  {
+    "Id": 65,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 556.688,
+      "Y": 436.152,
+      "Z": 160.6524,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.5676
+  },
+  {
+    "Id": 64,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 536.844,
+      "Y": 305.062,
+      "Z": 147.4353,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 1.0
+  },
+  {
+    "Id": 63,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 536.16,
+      "Y": 305.114,
+      "Z": 147.2682,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.64
+  },
+  {
+    "Id": 59,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 515.546,
+      "Y": 310.224,
+      "Z": 147.2562,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.6048
+  },
+  {
+    "Id": 58,
+    "UnitId": 4544,
+    "Title": "Clay Jar",
+    "Position": {
+      "X": 514.49,
+      "Y": 310.488,
+      "Z": 147.2572,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 11137,
+    "Scale": 0.7992
+  },
+  {
+    "Id": 51,
+    "UnitId": 4173,
+    "Title": "Palace Cellar Bomb Chest",
+    "Position": {
+      "X": 619.022,
+      "Y": 440.842,
+      "Z": 148.8238,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 10337,
+    "Scale": 1.0
+  },
+  {
+    "Id": 50,
+    "UnitId": 4169,
+    "Title": "Drillmaster's Trap",
+    "Position": {
+      "X": 567.546,
+      "Y": 298.728,
+      "Z": 150.0573,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 10294,
+    "Scale": 1.0
+  },
+  {
+    "Id": 49,
+    "UnitId": 4139,
+    "Title": "Palace Cellar Exit",
+    "Position": {
+      "X": 606.748,
+      "Y": 417.492,
+      "Z": 148.6317,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -20.9988918
+    },
+    "funcGroupId": 10846,
+    "Scale": 0.72
+  },
+  {
+    "Id": 48,
+    "UnitId": 4128,
+    "Title": "Locked Gate",
+    "Position": {
+      "X": 539.068,
+      "Y": 297.982,
+      "Z": 149.1739,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -90.00115
+    },
+    "funcGroupId": 10012,
+    "Scale": 1.0
+  },
+  {
+    "Id": 47,
+    "UnitId": 4123,
+    "RelatedIds": [4106],
+    "Title": "Palace Dungeon Secret Device",
+    "Position": {
+      "X": 519.998,
+      "Y": 299.782,
+      "Z": 143.0826,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 10000,
+    "Scale": 0.7
+  },
+  {
+    "Id": 46,
+    "UnitId": 4109,
+    "Title": "Sacred Flame",
+    "Position": {
+      "X": 512.07,
+      "Y": 299.732,
+      "Z": 143.2966,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 9971,
+    "Scale": 1.0
+  },
+  {
+    "Id": 43,
+    "UnitId": 4104,
+    "Title": "Hall of Retribution",
+    "Position": {
+      "X": 592.148,
+      "Y": 370.394,
+      "Z": 148.9949,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 9963,
+    "Scale": 1.0
+  },
+  {
+    "Id": 42,
+    "UnitId": 3952,
+    "Title": "Powder Keg",
+    "Position": {
+      "X": 618.096,
+      "Y": 451.012,
+      "Z": 148.5907,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 9554,
+    "Scale": 1.0
+  },
+  {
+    "Id": 41,
+    "UnitId": 3952,
+    "Title": "Powder Keg",
+    "Position": {
+      "X": 617.874,
+      "Y": 417.174,
+      "Z": 148.6317,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 9554,
+    "Scale": 1.0
+  },
+  {
+    "Id": 40,
+    "UnitId": 3952,
+    "Title": "Powder Keg",
+    "Position": {
+      "X": 607.78,
+      "Y": 451.054,
+      "Z": 148.6317,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 9554,
+    "Scale": 1.0
+  },
+  {
+    "Id": 39,
+    "UnitId": 3952,
+    "Title": "Powder Keg",
+    "Position": {
+      "X": 597.71,
+      "Y": 425.08,
+      "Z": 148.6317,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 9554,
+    "Scale": 1.0
+  },
+  {
+    "Id": 38,
+    "UnitId": 3952,
+    "Title": "Powder Keg",
+    "Position": {
+      "X": 594.862,
+      "Y": 434.506,
+      "Z": 148.6317,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 9554,
+    "Scale": 1.0
+  },
+  {
+    "Id": 37,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 630.414,
+      "Y": 429.388,
+      "Z": 148.6467,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.88
+  },
+  {
+    "Id": 36,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 630.372,
+      "Y": 430.374,
+      "Z": 148.6808,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -24.9997253
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.45888
+  },
+  {
+    "Id": 35,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 629.922,
+      "Y": 428.244,
+      "Z": 148.6377,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 42.99945
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.45888
+  },
+  {
+    "Id": 34,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 626.906,
+      "Y": 423.154,
+      "Z": 148.6357,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 42.99945
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.45888
+  },
+  {
+    "Id": 33,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 623.064,
+      "Y": 448.842,
+      "Z": 148.5657,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 71.00045
+    },
+    "funcGroupId": 5852,
+    "Scale": 2.14032
+  },
+  {
+    "Id": 32,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 622.416,
+      "Y": 449.818,
+      "Z": 148.5587,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 33.9994736
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.45542
+  },
+  {
+    "Id": 31,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 612.638,
+      "Y": 452.568,
+      "Z": 148.6367,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 71.00045
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.5288
+  },
+  {
+    "Id": 30,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 602.536,
+      "Y": 449.5,
+      "Z": 148.6367,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.57
+  },
+  {
+    "Id": 29,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 601.232,
+      "Y": 420.4,
+      "Z": 148.6367,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.45
+  },
+  {
+    "Id": 28,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 594.272,
+      "Y": 322.12,
+      "Z": 146.9911,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 21.9991512
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.0
+  },
+  {
+    "Id": 27,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 591.972,
+      "Y": 291.638,
+      "Z": 147.0891,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 18.9995918
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.28323
+  },
+  {
+    "Id": 26,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 591.908,
+      "Y": 292.942,
+      "Z": 146.759,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -1.00020146
+    },
+    "funcGroupId": 5852,
+    "Scale": 0.85549
+  },
+  {
+    "Id": 25,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 591.32,
+      "Y": 292.318,
+      "Z": 146.759,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -34.99917
+    },
+    "funcGroupId": 5852,
+    "Scale": 0.85549
+  },
+  {
+    "Id": 24,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 585.32,
+      "Y": 367.746,
+      "Z": 147.0081,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 24.9997253
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.69
+  },
+  {
+    "Id": 23,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 583.902,
+      "Y": 368.716,
+      "Z": 147.0091,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 0.0
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.4534
+  },
+  {
+    "Id": 20,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 566.076,
+      "Y": 267.974,
+      "Z": 144.0379,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -24.9997253
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.47
+  },
+  {
+    "Id": 19,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 565.186,
+      "Y": 267.582,
+      "Z": 144.0139,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -2.00047922
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.1907
+  },
+  {
+    "Id": 18,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 564.628,
+      "Y": 268.344,
+      "Z": 144.0139,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 20.00025
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.7346
+  },
+  {
+    "Id": 17,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 556.476,
+      "Y": 437.096,
+      "Z": 160.6634,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -32.0006943
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.4762
+  },
+  {
+    "Id": 16,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 556.204,
+      "Y": 436.268,
+      "Z": 160.6774,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -74.0014343
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.03334
+  },
+  {
+    "Id": 13,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 536.606,
+      "Y": 306.08,
+      "Z": 147.2492,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 4.00156832
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.6184
+  },
+  {
+    "Id": 12,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 536.062,
+      "Y": 304.514,
+      "Z": 147.2632,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -18.0003967
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.19
+  },
+  {
+    "Id": 11,
+    "UnitId": 2691,
+    "Title": "Crate",
+    "Position": {
+      "X": 514.922,
+      "Y": 309.986,
+      "Z": 147.2842,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": 39.00056
+    },
+    "funcGroupId": 5852,
+    "Scale": 1.1172
+  },
+  {
+    "Id": 1,
+    "UnitId": 333,
+    "Title": "Vine",
+    "Position": {
+      "X": 637.696,
+      "Y": 523.658,
+      "Z": 119.9996,
+      "Roll": 0.0,
+      "Pitch": 0.0,
+      "Yaw": -119.999611
+    },
+    "funcGroupId": 117,
+    "Scale": 1.1
   }
 ]

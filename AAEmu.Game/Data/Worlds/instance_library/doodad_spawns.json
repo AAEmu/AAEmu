@@ -1,7 +1,7 @@
 [
-    { // instance_library_1
+    { // instance_library_1 - Encyclopedia Room
         "UnitId": 7450,
-        "Title": "Diamond Shores Door",
+        "Title": "Diamond Shores Door", // Exit
         "Position": {
             "X": 640.473,
             "Y": 632.958,
@@ -49,9 +49,9 @@
             "Yaw": 0
         }
     },
-    { // instance_library_2
+    { // instance_library_2 - Libris Garden
         "UnitId": 7458,
-        "Title": "Introspect Path Door",
+        "Title": "Introspect Path Door", // Return to instance_library_1 - Encyclopedia Room
         "Position": {
             "X": 511.81,
             "Y": 2560.038,
@@ -99,9 +99,9 @@
             "Yaw": 0
         }
     },
-    { // instance_library_3
+    { // instance_library_3 -= Screaming Archives
         "UnitId": 7464,
-        "Title": "Verdant Skychamber Door",
+        "Title": "Verdant Skychamber Door", // Return (528) Istance_library_2 - Libris Garden
         "Position": {
             "X": 512.296,
             "Y": 4608.3,
@@ -246,7 +246,7 @@
             "X": 3671.562,
             "Y": 631.305,
             "Z": 210.962,
-            "Yaw": 0
+            "Yaw": 90.0
         }
     },
     {
@@ -256,7 +256,7 @@
             "X": 3704.499,
             "Y": 631.371,
             "Z": 210.962,
-            "Yaw": 0
+            "Yaw": 90.0
         }
     },
     {

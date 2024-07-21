@@ -1,14 +1,13 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
+namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
+
+public class DoodadFuncExchange : DoodadPhaseFuncTemplate
 {
-    public class DoodadFuncExchange : DoodadPhaseFuncTemplate
+    public override bool Use(BaseUnit caster, Doodad owner)
     {
-        public override bool Use(Unit caster, Doodad owner)
-        {
-            _log.Trace("DoodadFuncExchange");
-            return false;
-        }
+        Logger.Trace("DoodadFuncExchange");
+        return false;
     }
 }

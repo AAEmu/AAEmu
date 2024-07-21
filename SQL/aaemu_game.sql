@@ -19,11 +19,26 @@ CREATE TABLE `abilities` (
 
 DROP TABLE IF EXISTS `accounts`;
 CREATE TABLE `accounts` (
-  `account_id` int NOT NULL,
-  `credits` int NOT NULL DEFAULT '0',
+  `account_id` INT(11) NOT NULL,
+  `access_level` INT(11) NOT NULL DEFAULT '0',
+  `labor` INT(11) NOT NULL DEFAULT '0',
+  `credits` INT(11) NOT NULL DEFAULT '0',
+  `loyalty` INT(11) NOT NULL DEFAULT '0',
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_labor_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account specific values not related to login';
 
+DELIMITER //
+CREATE TRIGGER update_timestamps BEFORE UPDATE ON accounts
+FOR EACH ROW
+BEGIN
+   SET NEW.last_updated = UTC_TIMESTAMP();
+END;//
+DELIMITER ;
 
 DROP TABLE IF EXISTS `actabilities`;
 CREATE TABLE `actabilities` (
@@ -83,40 +98,6 @@ CREATE TABLE `blocked` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 
-DROP TABLE IF EXISTS `cash_shop_item`;
-CREATE TABLE `cash_shop_item` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
-  `uniq_id` int unsigned DEFAULT '0' COMMENT 'Unique ID',
-  `cash_name` varchar(255) NOT NULL COMMENT 'Sale Item Name',
-  `main_tab` tinyint unsigned DEFAULT '1' COMMENT 'Main Tab Page 1-6',
-  `sub_tab` tinyint unsigned DEFAULT '1' COMMENT 'Sub Tab Page 1-7',
-  `level_min` tinyint unsigned DEFAULT '0' COMMENT 'Minimum level to buy',
-  `level_max` tinyint unsigned DEFAULT '0' COMMENT 'Maximum level to buy',
-  `item_template_id` int unsigned DEFAULT '0' COMMENT 'Item Template Id',
-  `is_sell` tinyint unsigned DEFAULT '0' COMMENT 'Is it for sale',
-  `is_hidden` tinyint unsigned DEFAULT '0' COMMENT 'Hidden item',
-  `limit_type` tinyint unsigned DEFAULT '0',
-  `buy_count` smallint unsigned DEFAULT '0',
-  `buy_type` tinyint unsigned DEFAULT '0',
-  `buy_id` int unsigned DEFAULT '0',
-  `start_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Sell start date',
-  `end_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Sell end date',
-  `type` tinyint unsigned DEFAULT '0' COMMENT 'Currency Type',
-  `price` int unsigned DEFAULT '0' COMMENT 'Sell price',
-  `remain` int unsigned DEFAULT '0' COMMENT 'Remaining stock',
-  `bonus_type` int unsigned DEFAULT '0' COMMENT 'Bonus type',
-  `bouns_count` int unsigned DEFAULT '0' COMMENT 'Bonus amount',
-  `cmd_ui` tinyint unsigned DEFAULT '0' COMMENT 'Whether to restrict one person at a time',
-  `item_count` int unsigned DEFAULT '1' COMMENT 'Number of bundles',
-  `select_type` tinyint unsigned DEFAULT '0',
-  `default_flag` tinyint unsigned DEFAULT '0',
-  `event_type` tinyint unsigned DEFAULT '0' COMMENT 'Event type',
-  `event_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Event time',
-  `dis_price` int unsigned DEFAULT '0' COMMENT 'Current selling price',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='In-game cashshop listings';
-
-
 DROP TABLE IF EXISTS `characters`;
 CREATE TABLE `characters` (
   `id` int unsigned NOT NULL,
@@ -127,12 +108,10 @@ CREATE TABLE `characters` (
   `gender` tinyint(1) NOT NULL,
   `unit_model_params` blob NOT NULL,
   `level` tinyint NOT NULL,
-  `expirience` int NOT NULL,
+  `experience` int NOT NULL,
   `recoverable_exp` int NOT NULL,
   `hp` int NOT NULL,
   `mp` int NOT NULL,
-  `labor_power` mediumint NOT NULL,
-  `labor_power_modified` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `consumed_lp` int NOT NULL,
   `ability1` tinyint NOT NULL,
   `ability2` tinyint NOT NULL,
@@ -155,18 +134,18 @@ CREATE TABLE `characters` (
   `rez_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `rez_penalty_duration` int NOT NULL,
   `leave_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `money` bigint NOT NULL,
-  `money2` bigint NOT NULL,
-  `honor_point` int NOT NULL,
-  `vocation_point` int NOT NULL,
-  `crime_point` int NOT NULL,
-  `crime_record` int NOT NULL,
+  `money` bigint NOT NULL DEFAULT '0',
+  `money2` bigint NOT NULL DEFAULT '0',
+  `honor_point` int NOT NULL DEFAULT '0',
+  `vocation_point` int NOT NULL DEFAULT '0',
+  `crime_point` int NOT NULL DEFAULT '0',
+  `crime_record` int NOT NULL DEFAULT '0',
+  `jury_point` int NOT NULL DEFAULT '0',
   `hostile_faction_kills` int NOT NULL DEFAULT '0',
   `pvp_honor` int NOT NULL DEFAULT '0',
   `delete_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `transfer_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `delete_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `bm_point` int NOT NULL,
   `auto_use_aapoint` tinyint(1) NOT NULL,
   `prev_point` int NOT NULL,
   `point` int NOT NULL,
@@ -197,6 +176,7 @@ CREATE TABLE `doodads` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` int DEFAULT NULL COMMENT 'Character DB Id',
   `owner_type` tinyint unsigned DEFAULT '255',
+  `attach_point` int unsigned NULL DEFAULT '0' COMMENT 'Slot this doodad fits in on the owner',
   `template_id` int NOT NULL,
   `current_phase_id` int NOT NULL,
   `plant_time` datetime NOT NULL,
@@ -208,12 +188,14 @@ CREATE TABLE `doodads` (
   `roll` float NOT NULL,
   `pitch` float NOT NULL,
   `yaw` float NOT NULL,
+  `scale` FLOAT NOT NULL DEFAULT '1' ,
   `item_id` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Item DB Id of the associated item',
   `house_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'House DB Id if it is on actual house land',
   `parent_doodad` int unsigned NOT NULL DEFAULT '0' COMMENT 'doodads DB Id this object is standing on',
   `item_template_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'ItemTemplateId of associated item',
   `item_container_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'ItemContainer Id for Coffers',
   `data` int NOT NULL DEFAULT '0' COMMENT 'Doodad specific data',
+  `farm_type` int NOT NULL DEFAULT '0' COMMENT 'farm type for Public Farm',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Persistent doodads (e.g. tradepacks, furniture)';
 
@@ -310,6 +292,21 @@ CREATE TABLE `housings` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player buildings';
 
+-- ----------------------------
+-- Records of housings
+-- ----------------------------
+INSERT INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21441.7, 24211.7, 154.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
 
 DROP TABLE IF EXISTS `items`;
 CREATE TABLE `items` (
@@ -317,7 +314,7 @@ CREATE TABLE `items` (
   `type` varchar(100) NOT NULL,
   `template_id` int unsigned NOT NULL,
   `container_id` int unsigned NOT NULL DEFAULT '0',
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System') NOT NULL,
+  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') NOT NULL,
   `slot` int NOT NULL,
   `count` int NOT NULL,
   `details` blob,
@@ -475,12 +472,127 @@ CREATE TABLE `music` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User Created Content (music)';
 
+
 DROP TABLE IF EXISTS `item_containers`;
 CREATE TABLE `item_containers` (
   `container_id` int unsigned NOT NULL,
   `container_type` varchar(64) COLLATE 'utf8mb4_general_ci' NOT NULL DEFAULT 'ItemContainer' COMMENT 'Partial Container Class Name',
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System') NOT NULL COMMENT 'Internal Container Type',
+  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') NOT NULL COMMENT 'Internal Container Type',
   `container_size` int NOT NULL DEFAULT '50' COMMENT 'Maximum Container Size',
   `owner_id` int unsigned NOT NULL COMMENT 'Owning Character Id',
+  `mate_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Owning Mate Id', 
   PRIMARY KEY (`container_id`) 
 ) COLLATE 'utf8mb4_general_ci';
+
+
+DROP TABLE IF EXISTS `slaves`;
+CREATE TABLE `slaves` (
+	`id` INT(10) UNSIGNED NOT NULL,
+	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
+	`template_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Slave template Id of this vehicle',
+	`attach_point` INT(10) NULL DEFAULT NULL COMMENT 'Binding point Id',
+	`name` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+	`owner_type` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit type',
+	`owner_id` INT(10) UNSIGNED NULL DEFAULT '0' COMMENT 'Parent unit DB Id',
+	`summoner` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Owning player',
+	`created_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+	`hp` INT(11) NULL DEFAULT NULL,
+	`mp` INT(11) NULL DEFAULT NULL,
+	`x` FLOAT NULL DEFAULT NULL,
+	`y` FLOAT NULL DEFAULT NULL,
+	`z` FLOAT NULL DEFAULT NULL,
+	PRIMARY KEY (`id`) USING BTREE
+) COMMENT='Player vehicles summons' COLLATE 'utf8mb4_general_ci' ENGINE=InnoDB;
+
+
+DROP TABLE IF EXISTS `ics_skus`;
+CREATE TABLE `ics_skus` (
+    `sku` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `shop_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Reference to the shop item',
+    `position` INT(10) NOT NULL DEFAULT '0' COMMENT 'Used for display order inside the item details',
+    `item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Item that is for sale',
+    `item_count` INT(10) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Number of items for this detail',
+    `select_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `is_default` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Is this the default selection?',
+    `event_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `event_end_date` DATETIME NULL DEFAULT NULL,
+    `currency` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Credits(0), AAPoints(1), Loyalty(2), Coins(3)',
+    `price` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Price of the item',
+    `discount_price` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Discounted price (this is used if set)',
+    `bonus_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Bonus item included for this purchase',
+    `bonus_item_count` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of bonus items included',
+    PRIMARY KEY (`sku`) USING BTREE
+)
+COMMENT='Has the actual sales items for the details'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=1000000
+;
+
+
+DROP TABLE IF EXISTS `ics_shop_items`;
+CREATE TABLE `ics_shop_items` (
+    `shop_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU item id',
+    `display_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Item who\'s icon to use for displaying in the shop, leave 0 for first item in the group',
+    `name` TEXT NULL DEFAULT NULL COMMENT 'Can be used to override the name in the shop' COLLATE 'utf8mb4_general_ci',
+    `limited_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Enables limited stock mode if non-zero, Account(1), Chracter(2)',
+    `limited_stock_max` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of items left in stock for this SKU if limited stock is enabled',
+    `level_min` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Minimum level to buy the item (does not show on UI)',
+    `level_max` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Maximum level to buy the item (does not show on UI)',
+    `buy_restrict_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Buy restriction rule, none (0), level (1) or quest(2)',
+    `buy_restrict_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Level or QuestId for restrict rule',
+    `is_sale` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `is_hidden` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `sale_start` DATETIME NULL DEFAULT NULL COMMENT 'Limited sale start time',
+    `sale_end` DATETIME NULL DEFAULT NULL COMMENT 'Limited sale end time',
+    `shop_buttons` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'All (0), NoCart (1), NoGift (2), OnlyBuy (3)',
+    `remaining` INT(11) NOT NULL DEFAULT '-1' COMMENT 'Number of items remaining, only for tab 1-1 (limited)',
+    PRIMARY KEY (`shop_id`) USING BTREE
+)
+COMMENT='Possible Item listings that are for sale'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=2000000
+;
+
+
+DROP TABLE IF EXISTS `ics_menu`;
+CREATE TABLE `ics_menu` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `main_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which main tab to display on',
+    `sub_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which sub tab to display on',
+    `tab_pos` INT(11) NOT NULL DEFAULT '0' COMMENT 'Used to change display order',
+    `shop_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Id of the item group for sale (shop item)',
+    PRIMARY KEY (`id`) USING BTREE
+)
+COMMENT='Contains what item will be displayed on which tab'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=100
+;
+
+
+DROP TABLE IF EXISTS `audit_ics_sales`;
+CREATE TABLE `audit_ics_sales` (
+    `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `buyer_account` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Account ID of the person buying this item',
+    `buyer_char` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Character that was logged in when buying',
+    `target_account` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Account of the person receiving the goods',
+    `target_char` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Character that received the goods',
+    `sale_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time of purchase (in UTC)',
+    `shop_item_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Shop item entry id of the sold item',
+    `sku` INT(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'SKU of the sold item',
+    `sale_cost` INT(11) NOT NULL DEFAULT '0' COMMENT 'Amount this item was sold for',
+    `sale_currency` TINYINT(4) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Which currency was used',
+    `description` TEXT NOT NULL COMMENT 'Added description of this transaction' COLLATE 'utf8mb4_general_ci',
+    PRIMARY KEY (`id`) USING BTREE,
+    INDEX `buyer_account` (`buyer_account`) USING BTREE,
+    INDEX `buyer_char` (`buyer_char`) USING BTREE,
+    INDEX `target_account` (`target_account`) USING BTREE,
+    INDEX `target_char` (`target_char`) USING BTREE
+)
+COMMENT='Sales history for the ICS'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+;

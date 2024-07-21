@@ -1,254 +1,73 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
+
 using AAEmu.Game.Core.Packets;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Models.Game.Skills.Effects
+namespace AAEmu.Game.Models.Game.Skills.Effects;
+
+/*
+ * Original Authors: nikes, AAGene, Hexlulz
+ * Modified by: ZeromusXYZ
+ */
+
+public class GainLootPackItemEffect : EffectTemplate
 {
-    public class GainLootPackItemEffect : EffectTemplate
+    public uint LootPackId { get; set; }
+    public bool ConsumeSourceItem { get; set; }
+    public uint ConsumeItemId { get; set; }
+    public int ConsumeCount { get; set; }
+    public bool InheritGrade { get; set; }
+
+    public override bool OnActionTime => false;
+
+    public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
+        CompressedGamePackets packetBuilder = null)
     {
-        public uint LootPackId { get; set; }
-        public bool ConsumeSourceItem { get; set; }
-        public uint ConsumeItemId { get; set; }
-        public int ConsumeCount { get; set; }
-        public bool InheritGrade { get; set; }
+        // Ignore if not a player
+        if (caster is not Character character)
+            return;
 
-        public override bool OnActionTime => false;
+        // Get Pack data
+        var pack = LootGameData.Instance.GetPack(LootPackId);
+        if (pack == null || pack.Loots.Count <= 0)
+            return;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+        if (!ConsumeSourceItem && ConsumeCount == 0)
         {
-            var character = (Character)caster;
-            if (character == null) return;
-
-            var lootPack = (SkillItem)casterObj;
-            if (lootPack == null) return;
-
-            var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
-            var lootGroups = ItemManager.Instance.GetLootGroups(LootPackId);
-            var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
-
-            Item sourceItem = null;
-            if (casterObj is SkillItem skillItem)
-                sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
-
-
-            _log.Trace("LootGroups {0}", string.Join(',', lootGroups.Select(x => x.Id)));
-
-            var rowG = lootGroups.Length;
-            var rowP = lootPacks.Length;
-            if (rowG >= 1)
-            {
-                const float maxDropRate = (float)10000000;
-                for (var i = 0; i < rowG; i++)
-                {
-                    var itemIdLoot = (uint)0;
-                    var minAmount = 0;
-                    var maxAmount = 0;
-                    var gradeId = (byte)0;
-                    var dropRateMax = (uint)0;
-                    var dropRate = Rand.Next(0, maxDropRate);
-                    var dropRateGroup = (uint)10000000;
-                    if (lootGroups[i].GroupNo > 1 && rowG >= 2)
-                    {
-                        dropRateGroup = 0;
-                        for (var di = 0; di < lootGroups[i].GroupNo; di++)
-                            if (lootGroups[di].GroupNo > 1)
-                                dropRateGroup += lootGroups[di].DropRate;
-                    }
-
-                    if (dropRateGroup >= dropRate)
-                    {
-                        for (var ui = 0; ui < rowP; ui++)
-                        {
-                            if (lootPacks[ui].Group == lootGroups[i].GroupNo)
-                            {
-                                dropRateMax += lootPacks[ui].DropRate;
-                            }
-                        }
-
-                        var dropRateItem = Rand.Next(0, dropRateMax);
-                        var dropRateItemId = (uint)0;
-                        for (var uii = 0; uii < rowP; uii++)
-                        {
-                            if (lootPacks[uii].Group == lootGroups[i].GroupNo)
-                            {
-                                if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
-                                {
-                                    itemIdLoot = lootPacks[uii].ItemId;
-                                    minAmount = lootPacks[uii].MinAmount;
-                                    maxAmount = lootPacks[uii].MaxAmount;
-                                    gradeId = lootPacks[uii].GradeId;
-                                    uii = rowP;
-                                }
-                                else
-                                {
-                                    dropRateItemId += lootPacks[uii].DropRate;
-                                }
-                            }
-                        }
-                    }
-
-                    if (minAmount > 1 && itemIdLoot == Item.Coins)
-                    {
-                        AddGold(caster, minAmount, maxAmount);
-                    }
-
-                    if (itemIdLoot > 0 && itemIdLoot != Item.Coins)
-                    {
-                        if (InheritGrade)
-                            gradeId = lootPackItem.Grade;
-
-                        if (lootGroups[i].ItemGradeDistributionId > 0)
-                            gradeId = GetGradeDistributionId(lootGroups[i].ItemGradeDistributionId);
-
-                        AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, sourceItem);
-                    }
-                }
-            }
-            else
-            {
-                if (rowP >= 1)
-                {
-                    for (var i = 1; i <= 17; i++) ////////max group here ////// in sqlite max group = 17 /////
-                    {
-                        var itemIdLoot = (uint)0;
-                        var minAmount = 0;
-                        var maxAmount = 0;
-                        var gradeId = (byte)0;
-                        var dropRateMax = (uint)0;
-                        for (var ui = 0; ui < rowP; ui++)
-                            if (lootPacks[ui].Group == i)
-                                dropRateMax += lootPacks[ui].DropRate;
-
-                        var dropRateItem = Rand.Next(0, dropRateMax);
-                        var dropRateItemId = (uint)0;
-                        for (var uii = 0; uii < rowP; uii++)
-                        {
-                            if (lootPacks[uii].Group == i)
-                            {
-                                if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
-                                {
-                                    itemIdLoot = lootPacks[uii].ItemId;
-                                    minAmount = lootPacks[uii].MinAmount;
-                                    maxAmount = lootPacks[uii].MaxAmount;
-                                    gradeId = lootPacks[uii].GradeId;
-                                    uii = rowP;
-                                }
-                                else
-                                {
-                                    dropRateItemId += lootPacks[uii].DropRate;
-                                }
-                            }
-                        }
-
-                        if (minAmount > 1 && itemIdLoot == 500)
-                            AddGold(caster, minAmount, maxAmount);
-
-                        if (itemIdLoot > 0 && itemIdLoot != 500)
-                        {
-                            if (InheritGrade)
-                                gradeId = lootPackItem.Grade;
-
-                            AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, sourceItem);
-                        }
-                    }
-                }
-            }
-
-            //if (sourceItem != null)
-            //    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, sourceItem.TemplateId, 1, sourceItem);   
-
-            _log.Trace("GainLootPackItemEffect {0}", LootPackId);
+            // the tractor collects water
+            character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
+            pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
+            Logger.Debug($"GainLootPackItemEffect {LootPackId}");
+            return;
         }
 
-        private void AddGold(Unit caster, int goldMin, int goldMax)
+        if (casterObj is not SkillItem skillItem)
+            return;
+
+        var sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
+        if (sourceItem == null)
         {
-            var character = (Character)caster;
-            if (character == null) return;
-            var goldAdd = Rand.Next(goldMin, goldMax);
-            var jackpot = Rand.Next(0, 10000);
-            if (jackpot <= 50)
-                goldAdd = goldAdd * 1000;
-
-            if (jackpot <= 5)
-                goldAdd = goldAdd * 5000;
-
-            character.Money += goldAdd;
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectGainItem,
-                new List<ItemTask> {new MoneyChange(goldAdd)}, new List<ulong>()));
+            Logger.Warn($"Invalid loot result items {skillItem.ItemId} in lootpack {LootPackId}");
+            return;
         }
 
-        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount,
-            Item sourceItem = null)
+        if (ConsumeSourceItem)
         {
-            var character = (Character)caster;
-            if (character == null) return;
-            var amount = Rand.Next(minAmount, maxAmount);
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount, gradeId))
-            {
-                // TODO: do proper handling of insufficient bag space
-                character.SendErrorMessage(ErrorMessageType.BagFull);
-            }
-            /*
-            else
-            {
-                if(ConsumeSourceItem)
-                {
-                    character.Inventory.Bag.RemoveItem(ItemTaskType.ConsumeSkillSource, sourceItem, true);
-                }
-                else
-                {
-                    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, sourceItem);
-                }
-            }
-            */
+            character.Inventory.Bag.RemoveItem(ItemTaskType.ConsumeSkillSource, sourceItem, true);
+        }
+        else
+        {
+            character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
         }
 
-        private byte GetGradeDistributionId(byte gradeId)
-        {
-            var gradeDist = ItemManager.Instance.GetGradeDistributions(gradeId);
-            var array = new[]
-            {
-                gradeDist.Weight0,
-                gradeDist.Weight1,
-                gradeDist.Weight2,
-                gradeDist.Weight3,
-                gradeDist.Weight4,
-                gradeDist.Weight5,
-                gradeDist.Weight6,
-                gradeDist.Weight7,
-                gradeDist.Weight8,
-                gradeDist.Weight9,
-                gradeDist.Weight10,
-                gradeDist.Weight11
-            };
-            var old = 0;
-            var gradeDrop = Rand.Next(0, 100);
-            for (byte i = 0; i <= 11; i++)
-            {
-                if (gradeDrop <= array[i] + old)
-                {
-                    gradeId = i;
-                    i = 11;
-                }
-                else
-                {
-                    old += array[i];
-                }
-            }
+        // Give the results
+        pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
 
-            return gradeId;
-        }
+        Logger.Debug($"GainLootPackItemEffect {LootPackId}");
     }
 }

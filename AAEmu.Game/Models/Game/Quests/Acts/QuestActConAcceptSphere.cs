@@ -1,21 +1,22 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Quests.Static;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
-namespace AAEmu.Game.Models.Game.Quests.Acts
+namespace AAEmu.Game.Models.Game.Quests.Acts;
+
+public class QuestActConAcceptSphere(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public class QuestActConAcceptSphere : QuestActTemplate
+    public uint SphereId { get; set; }
+
+    /// <summary>
+    /// Checks if a Quest was started with the specified Sphere
+    /// </summary>
+    /// <param name="quest"></param>
+    /// <param name="questAct"></param>
+    /// <param name="currentObjectiveCount"></param>
+    /// <returns></returns>
+    public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
-        public uint SphereId { get; set; }
-
-        public override bool Use(ICharacter character, Quest quest, int objective)
-        {
-            _log.Warn("QuestActConAcceptSphere: SphereId {0}", SphereId);
-
-            quest.QuestAcceptorType = QuestAcceptorType.Sphere;
-            quest.AcceptorType = SphereId;
-
-            return false;
-        }
+        Logger.Trace($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), SkillId {SphereId}");
+        return quest.QuestAcceptorType == QuestAcceptorType.Sphere && quest.AcceptorId == SphereId;
     }
 }

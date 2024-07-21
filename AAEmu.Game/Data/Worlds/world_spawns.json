@@ -5,46 +5,56 @@
             "ZoneId": 260,
             "X": 3680.518,
             "Y": 4572.221,
-            "Z": 156
+            "Z": 156,
+            "Yaw": 200.0
         }
     },
     {
+
         "Name": "arche_mall",
         "SpawnPosition": {
             "ZoneId": 260,
             "X": 3680.518,
             "Y": 4572.221,
-            "Z": 156
+            "Z": 156,
+            "Yaw": 200.0
         }
     },
     {
+
         "Name": "instance_burntcastle_armory",
         "SpawnPosition": {
             "ZoneId": 236,
-            "X": 169,
-            "Y": 90.62,
-            "Z": 25.13
+            "X": 170.6,
+            "Y": 98.7,
+            "Z": 20.5,
+            "Yaw": -84.4
         }
     },
     {
+
         "Name": "instance_cradle_of_destruction",
         "SpawnPosition": {
             "ZoneId": 264,
             "X": 898.942,
             "Y": 837.212,
-            "Z": 194.87
+            "Z": 194.87,
+            "Yaw": 90.0
         }
     },
     {
+
         "Name": "instance_cuttingwind_deadmine",
         "SpawnPosition": {
             "ZoneId": 262,
             "X": 796.3,
             "Y": 325.386,
-            "Z": 249.54
+            "Z": 249.54,
+            "Yaw": 90.0
         }
     },
     {
+
         "Name": "instance_hadir_farm",
         "SpawnPosition": {
             "ZoneId": 241,
@@ -54,24 +64,29 @@
         }
     },
     {
+
         "Name": "instance_howling_abyss",
         "SpawnPosition": {
             "ZoneId": 265,
             "X": 693.7,
             "Y": 727.3,
-            "Z": 185.4
+            "Z": 185.4,
+            "Yaw": 90.0
         }
     },
     {
+
         "Name": "instance_howling_abyss_2",
         "SpawnPosition": {
             "ZoneId": 280,
             "X": 693.7,
             "Y": 727.3,
-            "Z": 185.4
+            "Z": 185.4,
+            "Yaw": 90.0
         }
     },
     {
+
         "Name": "instance_immortal_isle",
         "SpawnPosition": {
             "ZoneId": 285,
@@ -81,6 +96,7 @@
         }
     },
     {
+
         "Name": "instance_immortal_isle_easy",
         "SpawnPosition": {
             "ZoneId": 290,
@@ -90,6 +106,7 @@
         }
     },
     {
+
         "Name": "instance_library",
         "SpawnPosition": {
             "ZoneId": 296,
@@ -117,12 +134,13 @@
         }
     },
     {
-        "Name": "instance_library_3",
+        "Name": "instance_library_3", // Screaming Archives Entrance 
         "SpawnPosition": {
             "ZoneId": 298,
             "X": 516.8,
             "Y": 4611.5,
-            "Z": 255.7
+            "Z": 255.7,
+            "Yaw": 0.0
         }
     },
     {
@@ -131,7 +149,8 @@
             "ZoneId": 303,
             "X": 2498.29,
             "Y": 181.488,
-            "Z": 131.087
+            "Z": 131.087,
+            "Yaw": 0.0
         }
     },
     {
@@ -140,7 +159,8 @@
             "ZoneId": 304,
             "X": 2867.995,
             "Y": 1645.93,
-            "Z": 136.859
+            "Z": 136.859,
+            "Yaw": 0.0
         }
     },
     {
@@ -149,34 +169,48 @@
             "ZoneId": 305,
             "X": 2624.0,
             "Y": 2416.0,
-            "Z": 129.0
+            "Z": 129.0,
+            "Yaw": 0.0
         }
     },
     {
-        "Name": "instance_library_tower_defense",
+        "Name": "instance_library_tower_defense", // Corner Reading Room lobby
         "SpawnPosition": {
             "ZoneId": 306,
-            "X": 3671.562,
-            "Y": 631.305,
-            "Z": 210.962 // TODO уточнить координаты
+            "X": 3701.7,
+            "Y": 631.2,
+            "Z": 210.9,
+            "Yaw": 90.0 // TODO уточнить координаты
         }
     },
     {
         "Name": "instance_nachashgar",
         "SpawnPosition": {
             "ZoneId": 278,
-            "X": 341.8,
-            "Y": 381.1,
-            "Z": 152
+            "X": 344.3,
+            "Y": 379.8,
+            "Z": 152,
+            "Yaw": -90.0
         }
     },
     {
         "Name": "instance_nachashgar_easy",
         "SpawnPosition": {
             "ZoneId": 292,
-            "X": 341.8,
-            "Y": 381.1,
-            "Z": 152
+            "X": 344.3,
+            "Y": 379.8,
+            "Z": 152,
+            "Yaw": -90.0
+        }
+    },
+    {
+        "Name": "instance_prologue",
+        "SpawnPosition": {
+            "ZoneId": 300,
+            "X": 431.406, // уточнить координаты
+            "Y": 300.08,
+            "Z": 154.036,
+            "Yaw": -90.0
         }
     },
     {
@@ -185,7 +219,28 @@
             "ZoneId": 240,
             "X": 431.406,
             "Y": 300.08,
-            "Z": 154.036
+            "Z": 154.036,
+            "Yaw": -90.0
+        }
+    },
+    {
+        "Name": "instance_training_camp",
+        "SpawnPosition": {
+            "ZoneId": 198,
+            "X": 431.406, // уточнить координаты
+            "Y": 300.08,
+            "Z": 154.036,
+            "Yaw": -90.0
+        }
+    },
+    {
+        "Name": "instance_training_camp_1on1",
+        "SpawnPosition": {
+            "ZoneId": 302,
+            "X": 431.406, // уточнить координаты
+            "Y": 300.08,
+            "Z": 154.036,
+            "Yaw": -90.0
         }
     }
 ]

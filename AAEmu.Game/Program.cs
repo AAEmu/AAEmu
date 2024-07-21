@@ -4,142 +4,200 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
-using AAEmu.Game.Genesis;
 using AAEmu.Game.Models;
+using AAEmu.Game.Services;
+using AAEmu.Game.Services.WebApi;
+using AAEmu.Game.Utils.DB;
+using AAEmu.Game.Utils.Scripts;
+
+using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
 using NLog;
 using NLog.Config;
 
-namespace AAEmu.Game
+namespace AAEmu.Game;
+
+public static class Program
 {
-    public static class Program
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private static Thread _thread = Thread.CurrentThread;
+    private static DateTime _startTime;
+    private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
+    private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
+    public static AutoResetEvent ShutdownSignal => new(false); // TODO save to shutdown server?
+
+    public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
+    private static string[] _launchArgs;
+
+    public static async Task<int> Main(string[] args)
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-        private static Thread _thread = Thread.CurrentThread;
-        private static DateTime _startTime;
-        private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
-        private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
-        public static AutoResetEvent ShutdownSignal = new AutoResetEvent(false); // TODO save to shutdown server?
+        _launchArgs = args;
+        Initialization();
 
-        public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
-        private static string[] _launchArgs;
-
-        public static async Task Main(string[] args)
+        if (args.Length > 0 && args[0] == "compiler-check")
         {
-            Initialization();
-            _launchArgs = args;
-            if (!LoadConfiguration())
-            {
-                return;
-            }
+            Logger.Info("Check compilation");
+            var result = ScriptCompiler.CompileScriptsWithAllDependencies(out _, out var diagnostics);
 
-            _log.Info($"{Name} version {Version}");
-            
-            // Apply MySQL Configuration
-            try
+            if (result)
             {
-                MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+                Logger.Info("Compilation successful");
+                return 0;
             }
-            catch
+            else
             {
-                _log.Fatal("MySQL configuration could not be loaded !");
-                return;
+                Logger.Error(new CompilationErrorException("Compilation failed", diagnostics), "Compilation failed");
+                return 1;
             }
-            
+        }
+
+        if (!LoadConfiguration())
+        {
+            return 1;
+        }
+
+        // Apply MySQL Configuration
+        MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+
+        try
+        {
             // Test the DB connection
             var connection = MySQL.CreateConnection();
-            if (connection == null)
-            {
-                LogManager.Flush();
-                return;
-            }
-
             connection.Close();
-
-            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-
-            var builder = new HostBuilder()
-                .ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    config.AddEnvironmentVariables();
-
-                    if (args != null)
-                    {
-                        config.AddCommandLine(args);
-                    }
-                })
-                .ConfigureServices((hostContext, services) =>
-                {
-                    services.AddOptions();
-                    services.AddSingleton<IHostedService, GameService>();
-                    services.AddSingleton<IHostedService, DiscordBotService>();
-                });
-
-            try
-            {
-                await builder.RunConsoleAsync();
-            }
-            catch (OperationCanceledException ocex)
-            {
-                _log.Fatal(ocex.Message);
-            }
+            connection.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Logger.Fatal(ex, "MySQL connection failed, check your configuration!");
+            LogManager.Flush();
+            return 1;
         }
 
-        private static void Initialization()
+        try
         {
-            _thread.Name = "AA.Game Base Thread";
-            _startTime = DateTime.UtcNow;
+            // Test the DB connection
+            using var connection = SQLite.CreateConnection();
+        }
+        catch (Exception ex)
+        {
+            Logger.Fatal(ex, "Failed to load compact.sqlite3 database check if it exists!");
+            LogManager.Flush();
+            return 1;
         }
 
-        public static bool LoadConfiguration()
-        {
-            var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (!File.Exists(mainConfig))
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+
+        var builder = new HostBuilder()
+            .ConfigureAppConfiguration((hostingContext, config) =>
             {
-                _log.Fatal($"{mainConfig} doesn't exist!");
+                config.AddEnvironmentVariables();
+
+                if (args != null)
+                {
+                    config.AddCommandLine(args);
+                }
+            })
+            .ConfigureServices((hostContext, services) =>
+            {
+                services.AddOptions();
+                services.AddSingleton<IHostedService, GameService>();
+                services.AddSingleton<IHostedService, WebApiService>();
+                services.AddSingleton<IHostedService, DiscordBotService>();
+            });
+
+        try
+        {
+            await builder.RunConsoleAsync();
+        }
+        catch (OperationCanceledException ocex)
+        {
+            Logger.Fatal(ocex.Message);
+        }
+        return 0;
+    }
+
+    private static void Initialization()
+    {
+        Logger.Info($"{Name} version {Version}");
+        _thread.Name = "AA.Game Base Thread";
+        _startTime = DateTime.UtcNow;
+    }
+
+    public static bool LoadConfiguration()
+    {
+        var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
+        if (!File.Exists(mainConfig))
+        {
+            // If user secrets are defined the configuration file is not required
+            var isUserSecretsDefined = IsUserSecretsDefined();
+            if (!isUserSecretsDefined)
+            {
+                Logger.Fatal($"{mainConfig} doesn't exist!");
                 return false;
             }
 
-            Configuration(_launchArgs, mainConfig);
-            return true;            
+            //return false;
+            mainConfig = null;
         }
 
-        private static void Configuration(string[] args, string mainConfigJson)
-        {
-            // Load NLog configuration
-            LogManager.ThrowConfigExceptions = false;
-            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
+        Configuration(_launchArgs, mainConfig);
+        return true;
+    }
 
-            // Load Game server configuration
-            // Get files inside in the Configurations folder
-            var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json", SearchOption.AllDirectories).ToList();
-            configFiles.Sort();
-            // Add the old main Config.json file
+    private static bool IsUserSecretsDefined()
+    {
+        // Check if user secrets are defined
+        var config = new ConfigurationBuilder()
+            .AddUserSecrets<GameService>()
+            .Build();
+
+        bool userSecretsDefined = config.AsEnumerable().Any();
+        return userSecretsDefined;
+    }
+
+    private static void Configuration(string[] args, string mainConfigJson)
+    {
+        // Load NLog configuration
+        LogManager.ThrowConfigExceptions = false;
+        LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
+
+        // Load Game server configuration
+        // Get files inside in the Configurations folder
+        var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json", SearchOption.AllDirectories).ToList();
+        configFiles.Sort();
+        // Add the old main Config.json file
+        if (mainConfigJson != null)
+        {
             configFiles.Insert(0, mainConfigJson);
-
-            var configurationBuilder = new ConfigurationBuilder();
-            // Add config json files
-            foreach (var file in configFiles)
-            {
-                _log.Info($"Config: {file}");
-                configurationBuilder.AddJsonFile(file);
-            }
-
-            // Add command-line arguments
-            configurationBuilder.AddCommandLine(args);
-
-            var configurationBuilderResult = configurationBuilder.Build();
-            configurationBuilderResult.Bind(AppConfiguration.Instance);
         }
 
-        private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        var configurationBuilder = new ConfigurationBuilder();
+
+        // Add config json files
+        foreach (var file in configFiles)
         {
-            var exceptionStr = e.ExceptionObject.ToString();
-            _log.Fatal(exceptionStr);
+            Logger.Info($"Config: {file}");
+            configurationBuilder.AddJsonFile(file);
         }
+
+        configurationBuilder.AddUserSecrets<GameService>();
+
+        // Add command-line arguments
+        configurationBuilder.AddCommandLine(args);
+
+        var configurationBuilderResult = configurationBuilder.Build();
+        configurationBuilderResult.Bind(AppConfiguration.Instance);
+    }
+
+    private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        var exceptionStr = e.ExceptionObject.ToString();
+        Logger.Fatal(exceptionStr);
     }
 }
