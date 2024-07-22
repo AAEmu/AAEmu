@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Numerics;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
@@ -12,24 +13,21 @@ public static class AIUtils
 {
 
     // This is taken from x2ai.lua
-    public static Transform CalcNextRoamingPosition(NpcAi ai)
+    public static Vector3 CalcNextRoamingPosition(NpcAi ai)
     {
-        using var idlePos = ai.IdlePosition.CloneDetached();
-        var newPosition = idlePos.Clone();
-
         var maxRoamingDistance = 6;
-        newPosition.Local.SetPosition(
-            (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + idlePos.Local.Position.X,
-            (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + idlePos.Local.Position.Y,
-            idlePos.Local.Position.Z);
+        var newPosition = new Vector3(
+            (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.X,
+            (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.Y,
+            ai.IdlePosition.Z);
 
-        var terrainHeight = WorldManager.Instance.GetHeight(newPosition.ZoneId, newPosition.Local.Position.X, newPosition.Local.Position.Y);
+        var terrainHeight = WorldManager.Instance.GetHeight(ai.Owner.Transform.ZoneId, newPosition.X, newPosition.Y);
         // Handles disabled heightmaps
         if (terrainHeight <= 0.0f || ai.Owner.CanFly)
-            terrainHeight = newPosition.Local.Position.Z;
+            terrainHeight = newPosition.Z;
 
-        if (newPosition.Local.Position.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Local.Position.Z)
-            newPosition.Local.SetHeight(terrainHeight);
+        if (newPosition.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Z)
+            newPosition.Z = terrainHeight;
 
         return newPosition;
     }

@@ -57,9 +57,6 @@ public class RoamingBehavior : BaseCombatBehavior
     private void UpdateRoaming()
     {
         // TODO : Group member handling
-        using (var transform = AIUtils.CalcNextRoamingPosition(Ai))
-        {
-            _targetRoamPosition = transform.Local.Position;
-        }
+        _targetRoamPosition = AIUtils.CalcNextRoamingPosition(Ai);
     }
 }

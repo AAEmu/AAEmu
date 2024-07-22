@@ -1106,7 +1106,7 @@ public partial class Npc : Unit
 
         if (npc.Ai != null)
         {
-            var distanceToIdle = MathUtil.CalculateDistance(npc.Ai.IdlePosition.Local.Position, npc.Transform.World.Position, true);
+            var distanceToIdle = MathUtil.CalculateDistance(npc.Ai.IdlePosition, npc.Transform.World.Position, true);
             if (distanceToIdle > 4)
                 npc.Ai.GoToReturn();
         }
@@ -1121,7 +1121,7 @@ public partial class Npc : Unit
         {
             if (Ai != null)
             {
-                var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position, true);
+                var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Transform.World.Position, true);
                 if (distanceToIdle > 4)
                     Ai.GoToReturn();
             }

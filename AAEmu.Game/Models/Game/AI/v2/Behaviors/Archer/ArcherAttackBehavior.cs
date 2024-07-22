@@ -61,7 +61,7 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 
         if (Phase == "needMakeAGap")
         {
-            var idlePosition = Ai.IdlePosition.World.Position;
+            var idlePosition = Ai.IdlePosition;
             var npcPosition = Ai.Owner.Transform.World.Position;
             var abuserPosition = Ai.Owner.CurrentTarget.Transform.World.Position;
 

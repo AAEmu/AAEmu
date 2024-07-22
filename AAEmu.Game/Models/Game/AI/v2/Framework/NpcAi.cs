@@ -27,7 +27,7 @@ public abstract class NpcAi
     public bool AlreadyTargetted { get; set; }
 
     public Npc Owner { get; set; }
-    public Transform IdlePosition { get; set; }
+    public Vector3 IdlePosition { get; set; }
     public AiParams Param { get; set; }
     public PathNode PathNode { get; set; }
 

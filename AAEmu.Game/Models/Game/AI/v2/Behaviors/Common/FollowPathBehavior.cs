@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -42,17 +43,58 @@ public class FollowPathBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        if (Ai.Param is not AlmightyNpcAiParams aiParams)
+        //if (Ai.Param is not AlmightyNpcAiParams aiParams)
+        //   return;
+
+        //_aiParams = aiParams;
+
+        if (!UpdateTarget())
+            Ai.Owner.SetTarget(Ai.Owner);
+
+        if (CheckAggression())
             return;
 
-        _aiParams = aiParams;
+        if (CheckAlert())
+            return;
 
-        Ai.Owner.SetTarget(Ai.Owner);
+        if (Ai.Owner.IsInBattle && !Ai.Owner.AggroTable.IsEmpty)
+        {
+            Ai.GoToCombat();
+            return;
+        }
 
-        UpdateTarget();
+        
+        // Queue empty? refill!
+        if (Ai.AiPathPointsRemaining.Count <= 0 && Ai.AiPathPoints.Count > 0)
+        {
+            foreach (var aiPathPoint in Ai.AiPathPoints)
+            {
+                Ai.AiPathPointsRemaining.Enqueue(aiPathPoint);
+            }
+        }
 
+        // Are we there yet?
+        if (Ai.Owner.Simulation.TargetPosition != Vector3.Zero && MathUtil.CalculateDistance(Ai.Owner.Simulation.TargetPosition, Ai.Owner.Transform.World.Position, true) < Ai.Owner.Template.Scale)
+        {
+            Ai.Owner.Simulation.TargetPosition = Vector3.Zero;
+        }
+
+        // No current target? Set it!
+        if (Ai.Owner.Simulation.TargetPosition == Vector3.Zero && Ai.AiPathPointsRemaining.Count > 0)
+        {
+            var nextPos = Ai.AiPathPointsRemaining.Dequeue();
+            Ai.Owner.Simulation.TargetPosition = nextPos;
+            // Move the idle "home" location long with the path, so it doesn't immediately trigger a return to home state when going into combat
+            Ai.IdlePosition = nextPos;
+        }
+
+        if (Ai.Owner.Simulation.TargetPosition != Vector3.Zero)
+        {
+            Ai.Owner.MoveTowards(Ai.Owner.Simulation.TargetPosition, Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), 4);
+        }
+        
+/*
         CheckPipeName();
-
         if (!CanUseSkill)
             return;
 
@@ -91,11 +133,14 @@ public class FollowPathBehavior : BaseCombatBehavior
         var healthRatio = (float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100;
         if (!(healthRatio <= 80f))
             return;
+        */
 
+        /*
         Ai.Owner.IsInPatrol = false;
         Ai.Owner.Simulation.MoveToPathEnabled = false;
         Ai.Owner.StopMovement();
         Ai.GoToDefaultBehavior();
+        */
     }
 
     public override void Exit()

@@ -195,7 +195,7 @@ public class FlytrapAttackBehavior : Behavior
         var abuser = (Unit)Ai.Owner.CurrentTarget;
         var abuserPos = Ai.Owner.CurrentTarget.Transform.World.Position;
         var currentPos = Ai.Owner.Transform.World.Position;
-        var idlePos = Ai.IdlePosition.World.Position;
+        var idlePos = Ai.IdlePosition;
         // Check out of idle pos
         if (Ai.Param.AlwaysTeleportOnReturn && MathUtil.DistanceSqVectors(currentPos, idlePos) > 3 * 3)
         {

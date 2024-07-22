@@ -44,10 +44,22 @@ public class IdleBehavior : BaseCombatBehavior
             PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
         }
 
-        if (!CheckAggression())
-            CheckAlert();
-        //Ai.GoToFollowPath();
-        Ai.GoToDefaultBehavior();
+        if (CheckAggression())
+        {
+            Ai.GoToCombat();
+        }
+        else if (CheckAlert())
+        {
+            Ai.GoToAlert();
+        }
+        else if (CheckFollowPath())
+        {
+            Ai.GoToFollowPath();
+        }
+        else
+        {
+            Ai.GoToDefaultBehavior();
+        }
     }
 
     public override void Exit()

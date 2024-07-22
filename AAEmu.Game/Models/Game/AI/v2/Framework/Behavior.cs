@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -388,6 +388,14 @@ public abstract class Behavior
         _maxWeaponRange = (float)maxRangeCheck;
     }
 
+    public bool CheckFollowPath()
+    {
+        if (Ai.AiPathPoints.Count <= 0)
+            return false;
+
+        return true;
+    }
+    
     public Behavior SetDefaultBehavior()
     {
         Ai.SetDefaultBehavior(this);

@@ -93,7 +93,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
             if (npc.Ai != null)
             {
-                npc.Ai.IdlePosition = npc.Transform.CloneDetached();
+                npc.Ai.IdlePosition = npc.Transform.World.Position;
                 npc.Ai.GoToSpawn();
             }
 

@@ -70,14 +70,6 @@ public class TestAI : ICommand
                     return;
                 }
 
-                if (npc.Ai == null)
-                {
-                    character.SendMessage($"[AI] installing default behavior for this NPC as it did not have a AI yet");
-                    npc.Patrol = null;
-                    npc.Ai = new AlmightyNpcAiCharacter() { Owner = npc, IdlePosition = npc.Transform.CloneDetached() };
-                    AIManager.Instance.AddAi(npc.Ai);
-                }
-
                 switch (newBehavior)
                 {
                     case BehaviorKind.Alert:

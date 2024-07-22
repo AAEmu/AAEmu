@@ -189,7 +189,7 @@ public abstract class BaseCombatBehavior : Behavior
                 return true; // нет цели, возвращаемся
 
             var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true);
-            var distanceToIdlePosition = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true);
+            var distanceToIdlePosition = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition, true);
 
             var res = distanceToTarget > returnDistance || distanceToIdlePosition > returnDistance;
             if (res)
