@@ -101,7 +101,7 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
                 var skill = new Skill(skillTemplate);
                 if (targetDist >= skill.Template.MinRange && targetDist <= skill.Template.MaxRange)
                 {
-                    SetMaxWeaponRange(skill, Ai.Owner.CurrentTarget); // set the maximum distance to attack with the skill
+                    SetWeaponRange(skill, Ai.Owner.CurrentTarget); // set the maximum distance to attack with the skill
                     var result = UseSkill(skill, Ai.Owner.CurrentTarget);
                     if (result == SkillResult.CooldownTime)
                     {

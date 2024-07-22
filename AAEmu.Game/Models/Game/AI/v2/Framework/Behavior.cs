@@ -25,6 +25,7 @@ public abstract class Behavior
 
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
+    protected float _minWeaponRange;
     protected float _maxWeaponRange;
 
     public NpcAi Ai { get; set; }
@@ -104,7 +105,7 @@ public abstract class Behavior
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
         var skill = new Skill(skillTemplate);
 
-        SetMaxWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
+        SetWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
 
         var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
         if (Ai.Owner.Template.BaseSkillDelay == 0)
@@ -356,7 +357,7 @@ public abstract class Behavior
         }
     }
 
-    public void SetMaxWeaponRange(Skill skill, BaseUnit target)
+    public void SetWeaponRange(Skill skill, BaseUnit target)
     {
         var unit = (Unit)target;
         // Check if target is within range
@@ -383,6 +384,7 @@ public abstract class Behavior
             maxRangeCheck = maxWeaponRange;
         }
 
+        _minWeaponRange = (float)minRangeCheck;
         _maxWeaponRange = (float)maxRangeCheck;
     }
 
