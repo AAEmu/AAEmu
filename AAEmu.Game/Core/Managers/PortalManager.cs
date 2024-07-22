@@ -198,6 +198,8 @@ public class PortalManager : Singleton<PortalManager>
         if (JsonHelper.TryDeserializeObject(contents, out List<Portal> recalls, out _))
             foreach (var recall in recalls)
             {
+                recall.Name = LocalizationManager.Instance.Get("return_points", "name", recall.Id, recall.Name);
+
                 var rp = new List<Portal>();
                 if (!_recalls.ContainsKey(recall.SubZoneId))
                 {
