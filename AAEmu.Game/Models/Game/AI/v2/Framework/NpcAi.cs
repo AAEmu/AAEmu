@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using AAEmu.Game.Models.Game.AI.AStar;
@@ -300,5 +301,39 @@ public abstract class NpcAi
     public void SetDefaultBehavior(Behavior behavior)
     {
         _defaultBehavior = behavior;
+    }
+
+    public bool LoadAiPathPoints(string aiPathFileName)
+    {
+        try
+        {
+            var fullPathFileName = Path.Combine("Data", "Path", aiPathFileName + ".path");
+            if (!File.Exists(fullPathFileName))
+                return false;
+
+            var lines = File.ReadAllLines(fullPathFileName);
+
+            AiPathPoints.Clear();
+            foreach (var line in lines)
+            {
+                var columns = line.Split('|');
+                if (columns.Length != 5)
+                    continue;
+                if (!float.TryParse(columns[1], out var X))
+                    X = 0f;
+                if (!float.TryParse(columns[2], out var Y))
+                    Y = 0f;
+                if (!float.TryParse(columns[3], out var Z))
+                    Z = 0f;
+                AiPathPoints.Add(new Vector3(X, Y, Z));
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.Error($"LoadAiPathPoint({aiPathFileName}), Exception: {e.Message}");
+            return false;
+        }
+
+        return true;
     }
 }

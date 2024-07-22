@@ -88,17 +88,14 @@ public class FollowPathBehavior : BaseCombatBehavior
 
         #endregion
 
-        if (Ai.Owner is not { } npc)
-            return;
-
-        var healthRatio = (float)npc.Hp / npc.MaxHp * 100;
+        var healthRatio = (float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100;
         if (!(healthRatio <= 80f))
             return;
 
-        npc.IsInPatrol = false;
-        npc.Simulation.MoveToPathEnabled = false;
-        npc.StopMovement();
-        Ai.GoToAlert();
+        Ai.Owner.IsInPatrol = false;
+        Ai.Owner.Simulation.MoveToPathEnabled = false;
+        Ai.Owner.StopMovement();
+        Ai.GoToDefaultBehavior();
     }
 
     public override void Exit()

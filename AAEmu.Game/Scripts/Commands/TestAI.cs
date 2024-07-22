@@ -1,8 +1,13 @@
 ﻿using System;
+using System.IO;
+using System.Net.Mime;
+using System.Reflection;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils.Scripts;
@@ -43,70 +48,115 @@ public class TestAI : ICommand
 
         if (args.Length <= 0)
         {
-            character.SendMessage("[AI] No new target behavior set");
-
-            if (npc.Ai == null)
-                return;
-
-            var aiBehaviorList = npc.Ai.GetAiBehaviorList();
-            foreach (var (behaviorKind, behavior) in aiBehaviorList)
-            {
-                character.SendMessage($"[AI] {behaviorKind} -> {behavior.ToString()?.Replace("AAEmu.Game.Models.Game","")}");
-            }
-            
-            return;
-        }
-
-        if (!Enum.TryParse<BehaviorKind>(args[0], out var newBehavior))
-        {
-            character.SendMessage($"[AI] Not a valid behavior value {args[0]}");
+            character.SendMessage($"[AI] No action provided, allowed actions");
+            character.SendMessage($"[AI] set, list, info, queue_skill");
             return;
         }
 
         if (npc.Ai == null)
         {
-            character.SendMessage($"[AI] installing default behavior for this NPC as it did not have a AI yet");
-            npc.Patrol = null;
-            npc.Ai = new AlmightyNpcAiCharacter() { Owner = npc, IdlePosition = npc.Transform.CloneDetached() };
-            AIManager.Instance.AddAi(npc.Ai);
+            character.SendMessage($"[AI] Target has no AI attached");
+            return;
         }
         
-        switch (newBehavior)
+        var action = args[0].ToLower();
+
+        switch (action)
         {
-            case BehaviorKind.Alert:
-                npc.Ai.GoToAlert();
+            case "set":
+                if (args.Length <= 1 || !Enum.TryParse<BehaviorKind>(args[1], out var newBehavior))
+                {
+                    character.SendMessage($"[AI] Not a valid behavior value {args[0]}");
+                    return;
+                }
+
+                if (npc.Ai == null)
+                {
+                    character.SendMessage($"[AI] installing default behavior for this NPC as it did not have a AI yet");
+                    npc.Patrol = null;
+                    npc.Ai = new AlmightyNpcAiCharacter() { Owner = npc, IdlePosition = npc.Transform.CloneDetached() };
+                    AIManager.Instance.AddAi(npc.Ai);
+                }
+
+                switch (newBehavior)
+                {
+                    case BehaviorKind.Alert:
+                        npc.Ai.GoToAlert();
+                        break;
+                    case BehaviorKind.Despawning:
+                        npc.Ai.GoToDespawn();
+                        break;
+                    case BehaviorKind.Idle:
+                        npc.Ai.GoToIdle();
+                        break;
+                    case BehaviorKind.ReturnState:
+                        npc.Ai.GoToReturn();
+                        break;
+                    case BehaviorKind.RunCommandSet:
+                        npc.Ai.GoToRunCommandSet();
+                        break;
+                    case BehaviorKind.Spawning:
+                        npc.Ai.GoToSpawn();
+                        break;
+                    case BehaviorKind.Talk:
+                        npc.Ai.GoToTalk();
+                        break;
+                    case BehaviorKind.Dummy:
+                        npc.Ai.GoToDummy();
+                        break;
+                    case BehaviorKind.FollowPath:
+                        npc.Ai.GoToFollowPath();
+                        break;
+                    case BehaviorKind.FollowUnit:
+                        npc.Ai.GoToFollowUnit();
+                        break;
+                    default:
+                        character.SendMessage($"[AI] unsupported behavior {newBehavior} for /testai");
+                        return;
+                }
+
+                character.SendMessage($"[AI] Target AI set to {newBehavior}");
                 break;
-            case BehaviorKind.Despawning:
-                npc.Ai.GoToDespawn();
+            case "list":
+                character.SendMessage($"[AI] Available behaviors for {npc.ObjId}");
+                var aiBehaviorList = npc.Ai.GetAiBehaviorList();
+                foreach (var (behaviorKind, behavior) in aiBehaviorList)
+                {
+                    character.SendMessage($"[AI] {behaviorKind} -> {behavior.ToString()?.Replace("AAEmu.Game.Models.Game","")}");
+                }
                 break;
-            case BehaviorKind.Idle:
-                npc.Ai.GoToIdle();
+            case "info":
+                character.SendMessage($"[AI] Using AI: {npc.Ai.GetType().Name.Replace("AiCharacter", "")}, CurrentBehavior: {npc.Ai.GetCurrentBehavior().ToString()?.Replace("AAEmu.Game.Models.Game.AI.","")}");
+                character.SendMessage($"[AI] AI Path has {npc.Ai.AiPathPoints.Count} points ({npc.Ai.AiPathPointsRemaining.Count} remaining in queue)");
+                character.SendMessage($"[AI] AI Commands has {npc.Ai.AiCommandsQueue.Count} actions in queue");
                 break;
-            case BehaviorKind.ReturnState:
-                npc.Ai.GoToReturn();
+            case "load_path":
+                if (args.Length <= 1)
+                {
+                    character.SendMessage($"[AI] No path file provided");
+                    return;
+                }
+
+                if (!npc.Ai.LoadAiPathPoints(args[1]))
+                {
+                    character.SendMessage($"[AI] Failed to load path file {args[1]}");
+                    return;
+                }
+                
+                character.SendMessage($"[AI] Loaded path file {args[1]}, containing {npc.Ai.AiPathPoints.Count} points");
                 break;
-            case BehaviorKind.RunCommandSet:
-                npc.Ai.GoToRunCommandSet();
-                break;
-            case BehaviorKind.Spawning:
-                npc.Ai.GoToSpawn();
-                break;
-            case BehaviorKind.Talk:
-                npc.Ai.GoToTalk();
-                break;
-            case BehaviorKind.Dummy:
-                npc.Ai.GoToDummy();
-                break;
-            case BehaviorKind.FollowPath:
-                npc.Ai.GoToFollowPath();
-                break;
-            case BehaviorKind.FollowUnit:
-                npc.Ai.GoToFollowUnit();
+            case "qs":
+            case "queue_skill":
+                if (args.Length <= 1 || !uint.TryParse(args[1], out var skillId))
+                {
+                    character.SendMessage($"[AI] No skill Id provided to add");
+                    return;
+                }
+                npc.Ai.EnqueueAiCommands(new []{ new AiCommands() { CmdId = AiCommandCategory.UseSkill, Param1 = skillId }});
                 break;
             default:
-                character.SendMessage($"[AI] unsupported behavior {newBehavior} for /testai");
-                return;
+                character.SendMessage($"[AI] No valid action provided");
+                break;
         }
-        character.SendMessage($"[AI] Target AI set to {newBehavior}");
     }
 }
