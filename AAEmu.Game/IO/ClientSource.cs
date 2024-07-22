@@ -71,21 +71,17 @@ public class ClientSource
     /// <returns>List of filenames</returns>
     public List<string> GetFilesInDirectory(string directory, string searchPattern, bool includeSubDirectories)
     {
-        var list = new List<string>();
+        List<string> list = [];
         switch (SourceType)
         {
             case ClientSourceType.Directory:
                 {
                     var rootDir = directory.Replace('/', Path.DirectorySeparatorChar);
-                    try
+                    if (Directory.Exists(Path.Combine(PathName, rootDir)))
                     {
                         var files = Directory.GetFiles(Path.Combine(PathName, rootDir), searchPattern,
                             includeSubDirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
                         list.AddRange(files);
-                    }
-                    catch
-                    {
-                        // ignored
                     }
                     break;
                 }
