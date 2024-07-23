@@ -390,10 +390,7 @@ public abstract class Behavior
 
     public bool CheckFollowPath()
     {
-        if ((Ai.AiPathPoints.Count <= 0 && Ai.AiPathLooping) || (Ai.AiPathPointsRemaining.Count > 0))
-            return false;
-
-        return true;
+        return Ai.PathHandler.HasPathMovementData();
     }
     
     public Behavior SetDefaultBehavior()

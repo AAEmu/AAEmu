@@ -218,7 +218,7 @@ public abstract class BaseCombatBehavior : Behavior
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargetted)
+                    if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargeted)
                     {
                         // TODO найдем путь к abuser
                         Ai.Owner.FindPath(abuser);

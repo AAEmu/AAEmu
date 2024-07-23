@@ -150,7 +150,7 @@ public class FlytrapAttackBehavior : Behavior
         foreach (var abuser in abusers)
         {
             Ai.Owner.LookTowards(abuser.Transform.World.Position);
-            if (Ai.AlreadyTargetted)
+            if (Ai.AlreadyTargeted)
                 return true;
 
             if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)

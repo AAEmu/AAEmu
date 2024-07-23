@@ -34,7 +34,7 @@ public class FollowUnitBehavior : BaseCombatBehavior
 
         var targetDistance = Ai.Owner.GetDistanceTo(Ai.AiFollowUnitObj, true);
 
-        var followSpeedMultiplier = (float)Math.Min(Math.Sqrt(targetDistance), targetDistance / 2.0);
+        var followSpeedMultiplier = (float)Math.Min(5.0, targetDistance / 1.5);
         
         Ai.Owner.MoveTowards(Ai.AiFollowUnitObj.Transform.World.Position, followSpeedMultiplier * Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), 4);
         Ai.IdlePosition = Ai.Owner.Transform.World.Position;

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+
 using System.Linq;
 using System.Numerics;
-
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
@@ -26,9 +26,9 @@ public abstract class NpcAi
 
     // Test
     public bool ShouldTick { get; set; }
-    public bool AlreadyTargetted { get; set; }
+    public bool AlreadyTargeted { get; set; }
 
-    public Npc Owner { get; set; }
+    public Npc Owner { get; init; }
     public Vector3 IdlePosition { get; set; }
     public Vector3 HomePosition { get; set; }
     public AiParams Param { get; set; }
@@ -50,7 +50,7 @@ public abstract class NpcAi
     /// <summary>
     /// Currently executing command
     /// </summary>
-    public AiCommands AiCurrentCommand { get; set; } = null;
+    public AiCommands AiCurrentCommand { get; set; }
 
     /// <summary>
     /// Time that AiCurrentCommand started
@@ -59,28 +59,9 @@ public abstract class NpcAi
     public TimeSpan AiCurrentCommandRunTime { get; set; } = TimeSpan.Zero;
     #endregion ai_commands
 
-    /// <summary>
-    /// Loaded AI Path Points
-    /// </summary>
-    public List<AiPathPoint> AiPathPoints { get; set; } = new();
+    public AiPathHandler PathHandler { get; set; }
 
-    /// <summary>
-    /// Queue of locations to go to next
-    /// </summary>
-    public Queue<AiPathPoint> AiPathPointsRemaining { get; set; } = new();
-
-    public bool AiPathLooping { get; set; } = true; // Needs to be set to true to trigger initial loading into queue
-    /// <summary>
-    /// Speed multiplier when moving on the Path
-    /// </summary>
-    public float AiPathSpeed { get; set; } = 1f;
-
-    /// <summary>
-    /// Stance to use when moving on the Path
-    /// </summary>
-    public byte AiPathStanceFlags { get; set; } = 4;
-
-    public Unit AiFollowUnitObj { get; set; } = null;
+    public Unit AiFollowUnitObj { get; set; }
 
     // Persistent arguments for AiCommands queue
     public string AiFileName { get; set; } = string.Empty;
@@ -88,11 +69,12 @@ public abstract class NpcAi
     public uint AiSkillId { get; set; }
     public uint AiTimeOut { get; set; }
 
-    public NpcAi()
+    protected NpcAi()
     {
         _behaviors = new Dictionary<BehaviorKind, Behavior>();
         _transitions = new Dictionary<Behavior, List<Transition>>();
         PathNode = new PathNode();
+        PathHandler = new AiPathHandler(this);
     }
 
     public void Start()
@@ -109,8 +91,7 @@ public abstract class NpcAi
         foreach (var transition in _transitions.Values.SelectMany(transitions =>
                      transitions.Where(transition => !_behaviors.ContainsKey(transition.Kind))))
         {
-            Logger.Error("Transition is invalid. Type {0} missing, while used in transition on {1}",
-                transition.Kind.GetType().Name, transition.On);
+            Logger.Error($"Transition is invalid. Type {transition.Kind.GetType().Name} missing, while used in transition on {transition.On}");
         }
     }
 
@@ -179,26 +160,29 @@ public abstract class NpcAi
                 return;
             }
 
-            var toRemove = new List<Unit>();
-            foreach (var (id, aggro) in Owner.AggroTable)
-                if (aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.NoFight) ||
-                    aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.Returning) ||
-                    !Owner.CanAttack(aggro.Owner))
-                    toRemove.Add(aggro.Owner);
+            if (Owner != null)
+            {
+                var toRemove = new List<Unit>();
+                foreach (var (_, aggro) in Owner.AggroTable)
+                    if (aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.NoFight) ||
+                        aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.Returning) ||
+                        !Owner.CanAttack(aggro.Owner))
+                        toRemove.Add(aggro.Owner);
 
-            if (toRemove.Count <= 0)
-                return;
+                if (toRemove.Count <= 0)
+                    return;
 
-            foreach (var unitToRemove in toRemove)
-                Owner.ClearAggroOfUnit(unitToRemove);
+                foreach (var unitToRemove in toRemove)
+                    Owner.ClearAggroOfUnit(unitToRemove);
+            }
         }
     }
 
     private void Transition(TransitionEvent on)
     {
-        if (!_transitions.ContainsKey(_currentBehavior))
+        if (!_transitions.TryGetValue(_currentBehavior, out var transitionList))
             return;
-        var transition = _transitions[_currentBehavior].SingleOrDefault(t => t.On == on);
+        var transition = transitionList.SingleOrDefault(t => t.On == on);
         if (transition == null)
             return;
 
@@ -321,53 +305,22 @@ public abstract class NpcAi
 
     public bool LoadAiPathPoints(string aiPathFileName, bool addToQueueOnly)
     {
-        try
-        {
-            var fullPathFileName = Path.Combine("Data", "Path", aiPathFileName + ".path");
-            if (!File.Exists(fullPathFileName))
-                return false;
-
-            var lines = File.ReadAllLines(fullPathFileName);
-
-            if (!addToQueueOnly)
-            {
-                AiPathPoints.Clear();
-                AiPathLooping = true; // Set to true to trigger initial loading, need to enable it again in the .path file
-            }
-
-            foreach (var line in lines)
-            {
-                var columns = line.Split('|');
-                if (columns.Length != 5)
-                    continue;
-                if (!float.TryParse(columns[1], out var X))
-                    X = 0f;
-                if (!float.TryParse(columns[2], out var Y))
-                    Y = 0f;
-                if (!float.TryParse(columns[3], out var Z))
-                    Z = 0f;
-                var param = columns[4];
-
-                if (!Enum.TryParse<AiPathPointAction>(columns[0], true, out var action))
-                    action = AiPathPointAction.None;
-                
-                var newPoint = new AiPathPoint()
-                {
-                    Position = new Vector3(X, Y, Z),
-                    Action = action,
-                    Param = param
-                };
-
-                if (addToQueueOnly)
-                    AiPathPointsRemaining.Enqueue(newPoint);
-                else
-                    AiPathPoints.Add(newPoint);
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error($"LoadAiPathPoint({aiPathFileName}), Exception: {e.Message}");
+        var points = AiPathsManager.Instance.LoadAiPathPoints(aiPathFileName);
+        if (points.Count <= 0)
             return false;
+
+        if (!addToQueueOnly)
+        {
+            PathHandler.AiPathPoints.Clear();
+            PathHandler.AiPathLooping = true; // Set to true to trigger initial loading, need to enable it again in the .path file
+            PathHandler.AiPathPoints.AddRange(points);
+        }
+        else
+        {
+            foreach (var point in points)
+            {
+                PathHandler.AiPathPointsRemaining.Enqueue(point);
+            }
         }
 
         return true;

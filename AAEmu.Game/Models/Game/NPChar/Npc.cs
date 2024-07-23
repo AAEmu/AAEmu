@@ -1342,7 +1342,7 @@ public partial class Npc : Unit
     {
         CurrentTarget = other;
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
-        Ai.AlreadyTargetted = other != null;
+        Ai.AlreadyTargeted = other != null;
     }
 
     public void FindPath(Unit abuser)

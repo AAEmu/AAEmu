@@ -27,7 +27,7 @@ public class DeadBehavior : BaseCombatBehavior
 
         if (Ai.Owner.Hp == 0)
         {
-            Ai.AlreadyTargetted = false;
+            Ai.AlreadyTargeted = false;
         }
     }
 

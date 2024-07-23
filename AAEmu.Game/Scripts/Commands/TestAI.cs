@@ -49,7 +49,7 @@ public class TestAI : ICommand
         if (args.Length <= 0)
         {
             character.SendMessage($"[AI] No action provided, allowed actions");
-            character.SendMessage($"[AI] set, list, info, queue_skill");
+            character.SendMessage($"[AI] set, list, info, queue_skill, follow_npc, clear_path_cache");
             return;
         }
 
@@ -119,12 +119,18 @@ public class TestAI : ICommand
                 break;
             case "info":
                 character.SendMessage($"[AI] Using AI: {npc.Ai.GetType().Name.Replace("AiCharacter", "")}, CurrentBehavior: {npc.Ai.GetCurrentBehavior().ToString()?.Replace("AAEmu.Game.Models.Game.AI.","")}");
-                character.SendMessage($"[AI] AI Path has {npc.Ai.AiPathPoints.Count} points ({npc.Ai.AiPathPointsRemaining.Count} remaining in queue)");
+                character.SendMessage($"[AI] AI Path has {npc.Ai.PathHandler.AiPathPoints.Count} points ({npc.Ai.PathHandler.AiPathPointsRemaining.Count} remaining in queue)");
                 character.SendMessage($"[AI] AI Commands has {npc.Ai.AiCommandsQueue.Count} actions in queue");
-                if (npc.Spawner?.FollowNpc > 0)
-                    character.SendMessage($"[AI] Spawner set to follow @NPC_NAME({npc.Spawner.FollowNpc}) ({npc.Spawner.FollowNpc})");
+                if (npc.Spawner != null)
+                {
+                    character.SendMessage($"[AI] SpawnerId {npc.Spawner.Id}, SpawnerTemplateId {npc.Spawner.Template.Id} @ {npc.Spawner.Position}");
+                    if (npc.Spawner?.FollowNpc > 0)
+                        character.SendMessage($"[AI] Spawner set to follow @NPC_NAME({npc.Spawner.FollowNpc}) ({npc.Spawner.FollowNpc})");
+                }
+
                 if (npc.Ai.AiFollowUnitObj is Npc followingNpc)
                     character.SendMessage($"[AI] Currently following ObjId {followingNpc.ObjId} @NPC_NAME({followingNpc.TemplateId}) ({followingNpc.TemplateId})");
+                character.SendMessage($"[AI] AI Commands has {npc.Ai.AiCommandsQueue.Count} actions in queue");
                 break;
             case "load_path":
                 if (args.Length <= 1)
@@ -140,7 +146,7 @@ public class TestAI : ICommand
                 }
                 npc.Ai.GoToFollowPath();
                 
-                character.SendMessage($"[AI] Loaded path file {args[1]}, containing {npc.Ai.AiPathPoints.Count} points");
+                character.SendMessage($"[AI] Loaded path file {args[1]}, containing {npc.Ai.PathHandler.AiPathPoints.Count} points");
                 break;
             case "qs":
             case "queue_skill":
@@ -166,6 +172,11 @@ public class TestAI : ICommand
                 {
                     character.SendMessage($"[AI] Could not find a @NPC_NAME({npcId}) ({npcId}) to follow.");
                 }
+                break;
+            case "clear_path_cache":
+            case "clear_cache":
+                AiPathsManager.Instance.ClearCache();
+                character.SendMessage($"[AI] Cleared AI Path cache.");
                 break;
             default:
                 character.SendMessage($"[AI] No valid action provided");
