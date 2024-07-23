@@ -81,6 +81,12 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             case 1: // выход к списку персонажей, go to character select
                 if (connection.State == GameState.World)
                 {
+
+                    if (connection.LeaveTask != null)
+                    {
+                        break;
+                    }
+                    
                     // Say goodbye if player is quitting (but not going to character select)
                     if (type == 0)
                         connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
@@ -99,14 +105,11 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
 
                     connection.CancelTokenSource = new CancellationTokenSource();
                     var token = connection.CancelTokenSource.Token;
-                    connection.LeaveTask = new Task(() =>
+                    connection.LeaveTask = Task.Run(async () =>
                     {
-                        Thread.Sleep(TimeSpan.FromMilliseconds(logoutTime));
-                        if (token.IsCancellationRequested)
-                            return;
+                        await Task.Delay(logoutTime, token);
                         LeaveWorldTask(connection, type);
                     }, token);
-                    connection.LeaveTask.Start();
                 }
 
                 break;
