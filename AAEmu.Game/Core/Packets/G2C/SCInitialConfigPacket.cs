@@ -77,8 +77,8 @@ public class SCInitialConfigPacket : GamePacket
          */
 
         stream.Write(0); // initLp
-        stream.Write(true); // canPlaceHouse
-        stream.Write(true); // canPayTax
+        stream.Write(false); // canPlaceHouse
+        stream.Write(false); // canPayTax
         stream.Write(true); // canUseAuction
         stream.Write(true); // canTrade
         stream.Write(true); // canSendMail
@@ -100,7 +100,7 @@ public class SCInitialConfigPacket : GamePacket
         stream.Write((byte)0); // premium
         stream.Write((byte)0); // maxch
         stream.Write((ushort)400); // honorPointDuringWarPercent
-        stream.Write((byte)5); // uccver
+        stream.Write((byte)0); // uccver - 5
         stream.Write((byte)1); // memberType
 
         return stream;

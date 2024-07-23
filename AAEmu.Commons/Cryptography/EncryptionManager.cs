@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -70,7 +71,7 @@ namespace AAEmu.Commons.Cryptography
             var keys = ConnectionKeys[accountId];
             var xorConstRaw = keys.RsaKeyPair.Decrypt(xorKeyEncrypted, false);
             var head = BitConverter.ToUInt32(xorConstRaw, 0);
-            Logger.Warn("XOR: {0}", head);
+            Logger.Warn("XOR: {0}", head); // <-- этот сырой XOR записываем в поле xorConst from AAEMU моего OpcodeFinder`a
             //head = (head ^ 0x15a0248e) * head ^ 0x070f1f23 & 0xffffffff; // 3.0.3.0 archerage.to
             head = (head ^ 0x15A314A2) * head ^ 0x070F1F23 & 0xffffffff; // 3.0.4.2 AAClassic
             keys.XorKey = head * head & 0xffffffff;
@@ -220,6 +221,16 @@ namespace AAEmu.Commons.Cryptography
             return result;
         }
 
+        static string ByteArrayToHexString(byte[] bytes)
+        {
+            StringBuilder hex = new StringBuilder(bytes.Length * 2);
+            foreach (byte b in bytes)
+            {
+                hex.AppendFormat("{0:X2}", b);
+            }
+            return hex.ToString();
+        }
+
         public static byte[] DecodeXor(byte[] bodyPacket, uint xorKey, ConnectionKeychain keys)
         {
             //          +-Hash начало блока для DecodeXOR, где второе число, в данном случае F(16 байт)-реальная длина данных в пакете, к примеру A(10 байт)-реальная длина данных в пакете
@@ -231,9 +242,26 @@ namespace AAEmu.Commons.Cryptography
             Buffer.BlockCopy(bodyPacket, 3, mBodyPacket, 0, bodyPacket.Length - 3);
             var msgKey = ((uint)(bodyPacket.Length / 16 - 1) << 4) + (uint)(bodyPacket[2] - 47); // это реальная длина данных в пакете
             var array = new byte[mBodyPacket.Length];
-            var mul = msgKey * xorKey;
+            var mul = msgKey * xorKey; // <-- ставим бряк здесь и смотрим xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
+
+            //// расскоментируйте блок кода для записи xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
+            //using (StreamWriter writer = new StreamWriter("o:/output.txt", true))
+            //{
+            //    writer.WriteLine("xorkey:");
+            //    writer.WriteLine(keys.XorKey.ToString("X8"));
+
+            //    writer.WriteLine("aesKey:");
+            //    writer.WriteLine(ByteArrayToHexString(keys.AesKey));
+
+            //    writer.WriteLine("packetBody:");
+            //    writer.WriteLine(ByteArrayToHexString(bodyPacket));
+
+            //    writer.WriteLine("IV:");
+            //    writer.WriteLine(ByteArrayToHexString(keys.IV));
+            //}
+
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a024a4) ^ 0xc3903b6a; // 3.0.3.0 archerage.to
-            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a02423) ^ 0x423c9265; // 3.0.4.2 AAClassic
+            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a0244b) ^ 0xcb3c931c; // 3.0.4.2 AAClassic
             var offset = 4;
             if (seq != 0)
             {
