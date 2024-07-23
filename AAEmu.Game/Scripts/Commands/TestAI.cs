@@ -121,6 +121,10 @@ public class TestAI : ICommand
                 character.SendMessage($"[AI] Using AI: {npc.Ai.GetType().Name.Replace("AiCharacter", "")}, CurrentBehavior: {npc.Ai.GetCurrentBehavior().ToString()?.Replace("AAEmu.Game.Models.Game.AI.","")}");
                 character.SendMessage($"[AI] AI Path has {npc.Ai.AiPathPoints.Count} points ({npc.Ai.AiPathPointsRemaining.Count} remaining in queue)");
                 character.SendMessage($"[AI] AI Commands has {npc.Ai.AiCommandsQueue.Count} actions in queue");
+                if (npc.Spawner?.FollowNpc > 0)
+                    character.SendMessage($"[AI] Spawner set to follow @NPC_NAME({npc.Spawner.FollowNpc}) ({npc.Spawner.FollowNpc})");
+                if (npc.Ai.AiFollowUnitObj is Npc followingNpc)
+                    character.SendMessage($"[AI] Currently following ObjId {followingNpc.ObjId} @NPC_NAME({followingNpc.TemplateId}) ({followingNpc.TemplateId})");
                 break;
             case "load_path":
                 if (args.Length <= 1)
@@ -129,11 +133,12 @@ public class TestAI : ICommand
                     return;
                 }
 
-                if (!npc.Ai.LoadAiPathPoints(args[1]))
+                if (!npc.Ai.LoadAiPathPoints(args[1], false))
                 {
                     character.SendMessage($"[AI] Failed to load path file {args[1]}");
                     return;
                 }
+                npc.Ai.GoToFollowPath();
                 
                 character.SendMessage($"[AI] Loaded path file {args[1]}, containing {npc.Ai.AiPathPoints.Count} points");
                 break;
@@ -145,6 +150,22 @@ public class TestAI : ICommand
                     return;
                 }
                 npc.Ai.EnqueueAiCommands(new []{ new AiCommands() { CmdId = AiCommandCategory.UseSkill, Param1 = skillId }});
+                break;
+            case "follow_npc":
+                if (args.Length <= 1 || !uint.TryParse(args[1], out var npcId))
+                {
+                    character.SendMessage($"[AI] No NPC TemplateId provided to follow");
+                    return;
+                }
+
+                if (!npc.Ai.DoFollowNearestNpc(npcId, 100f))
+                {
+                    character.SendMessage($"[AI] {npc.ObjId} is now following {npc.Ai.AiFollowUnitObj?.ToString() ?? "nothing"} @NPC_NAME({npcId}) ({npcId}) to follow.");
+                }
+                else
+                {
+                    character.SendMessage($"[AI] Could not find a @NPC_NAME({npcId}) ({npcId}) to follow.");
+                }
                 break;
             default:
                 character.SendMessage($"[AI] No valid action provided");

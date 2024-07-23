@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -108,6 +108,9 @@ public class FollowPathBehavior : BaseCombatBehavior
                     if (byte.TryParse(nextPos.Param, out var newStance))
                         Ai.AiPathStanceFlags = newStance;
                     break;
+                case AiPathPointAction.ReturnToCommandSet:
+                    Ai.GoToRunCommandSet();
+                    return;
                 default:
                     throw new ArgumentOutOfRangeException();
             }

@@ -122,9 +122,10 @@ public class NpcSpawnerNpc : Spawner<Npc>
             
             if (npc.Ai != null && !string.IsNullOrWhiteSpace(npcSpawner.FollowPath))
             {
-                if (!npc.Ai.LoadAiPathPoints(npcSpawner.FollowPath))
+                if (!npc.Ai.LoadAiPathPoints(npcSpawner.FollowPath, false))
                     Logger.Warn($"Failed to load {npcSpawner.FollowPath} for NPC {npc.TemplateId} ({npc.ObjId})");
             }
+
             npcs.Add(npc);
         }
 

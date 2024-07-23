@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 
 using NLog;
@@ -78,6 +79,8 @@ public abstract class NpcAi
     /// Stance to use when moving on the Path
     /// </summary>
     public byte AiPathStanceFlags { get; set; } = 4;
+
+    public Unit AiFollowUnitObj { get; set; } = null;
 
     // Persistent arguments for AiCommands queue
     public string AiFileName { get; set; } = string.Empty;
@@ -316,7 +319,7 @@ public abstract class NpcAi
         _defaultBehavior = behavior;
     }
 
-    public bool LoadAiPathPoints(string aiPathFileName)
+    public bool LoadAiPathPoints(string aiPathFileName, bool addToQueueOnly)
     {
         try
         {
@@ -326,8 +329,12 @@ public abstract class NpcAi
 
             var lines = File.ReadAllLines(fullPathFileName);
 
-            AiPathPoints.Clear();
-            AiPathLooping = true; // Set to true to trigger initial loading, need to enable it again in the .path file
+            if (!addToQueueOnly)
+            {
+                AiPathPoints.Clear();
+                AiPathLooping = true; // Set to true to trigger initial loading, need to enable it again in the .path file
+            }
+
             foreach (var line in lines)
             {
                 var columns = line.Split('|');
@@ -344,12 +351,17 @@ public abstract class NpcAi
                 if (!Enum.TryParse<AiPathPointAction>(columns[0], true, out var action))
                     action = AiPathPointAction.None;
                 
-                AiPathPoints.Add(new AiPathPoint()
+                var newPoint = new AiPathPoint()
                 {
                     Position = new Vector3(X, Y, Z),
                     Action = action,
                     Param = param
-                });
+                };
+
+                if (addToQueueOnly)
+                    AiPathPointsRemaining.Enqueue(newPoint);
+                else
+                    AiPathPoints.Add(newPoint);
             }
         }
         catch (Exception e)
@@ -359,5 +371,41 @@ public abstract class NpcAi
         }
 
         return true;
+    }
+
+    public bool DoFollowDefaultNearestNpc()
+    {
+        if (Owner.Spawner?.FollowNpc > 0)
+        {
+            return DoFollowNearestNpc(Owner.Spawner.FollowNpc, 100f);
+        }
+        return false;
+    }
+
+    public bool DoFollowNearestNpc(uint followNpc, float maxRange)
+    {
+        var nearbyNpcs = WorldManager.GetAround<Npc>(Owner, maxRange, true).ToList();
+        Npc nearestNpc = null;
+        var closestDistance = maxRange;
+        foreach (var n in nearbyNpcs)
+        {
+            if (n.TemplateId != followNpc)
+                continue;
+            var dist = n.GetDistanceTo(Owner);
+            if (dist < closestDistance)
+            {
+                closestDistance = dist;
+                nearestNpc = n;
+            }
+        }
+
+        if (nearestNpc != null)
+        {
+            AiFollowUnitObj = nearestNpc;
+            GoToFollowUnit();
+            return true;
+        }
+
+        return false;
     }
 }

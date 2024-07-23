@@ -36,6 +36,7 @@ public class HoldPositionBehavior : BaseCombatBehavior
 
         CheckAggression();
         CheckAlert();
+        Ai.DoFollowDefaultNearestNpc();
     }
 
     public override void Exit()

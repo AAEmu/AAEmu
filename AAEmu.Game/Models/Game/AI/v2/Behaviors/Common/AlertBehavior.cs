@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
@@ -51,7 +52,7 @@ public class AlertBehavior : BaseCombatBehavior
             // Ai.Owner.SetTarget(null);
             Ai.Owner.Transform.Local.SetRotation(_oldRotation.X,_oldRotation.Y, _oldRotation.Z);
             Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState), false);
-            Ai.GoToIdle(); // TODO: This should go back to whatever was the last one, but Idle will have to do for now
+            Ai.GoToIdle();
             return;
         }
 

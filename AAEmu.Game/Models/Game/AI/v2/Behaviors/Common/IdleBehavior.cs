@@ -58,6 +58,8 @@ public class IdleBehavior : BaseCombatBehavior
         }
         else
         {
+            if (Ai.DoFollowDefaultNearestNpc())
+                return;
             Ai.GoToDefaultBehavior();
         }
     }

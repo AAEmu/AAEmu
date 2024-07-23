@@ -1,6 +1,9 @@
 using System;
+using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.Enums;
+using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -76,7 +79,13 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 Logger.Warn($"AI Command: {aiCommand.CmdId} not implemented, NPC {Ai.Owner.ObjId} ({Ai.Owner.TemplateId}), CommandSet {aiCommand.CmdSetId}, P1 {aiCommand.Param1}, P2 {aiCommand.Param2}");
                 break;
             case AiCommandCategory.FollowPath:
-                if (string.IsNullOrEmpty(Ai.AiFileName))
+                Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == 1);
+                if (aiCommand.Param1 == 1)
+                {
+                    Ai.AiPathPointsRemaining.Enqueue(new AiPathPoint() { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty});
+                }
+                Ai.GoToFollowPath();
+                if (aiCommand.Param1 == 1)
                 {
                     Ai.AiFileName = aiCommand.Param2;
                 }
@@ -103,6 +112,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 throw new NotSupportedException(nameof(aiCommand.CmdId));
         }
 
+        /*
         if (!string.IsNullOrEmpty(Ai.AiFileName))
         {
             if (Ai.Owner.IsInPatrol) { return; }
@@ -115,6 +125,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
             Ai.Owner.Simulation.MoveFileName2 = Ai.AiFileName2;
             Ai.Owner.Simulation.GoToPath(Ai.Owner, true, Ai.AiSkillId, Ai.AiTimeOut);
         }
+        */
 
         if (Ai.AiCurrentCommandRunTime == TimeSpan.Zero)
             Ai.AiCurrentCommandRunTime = TimeSpan.FromSeconds(-1);
