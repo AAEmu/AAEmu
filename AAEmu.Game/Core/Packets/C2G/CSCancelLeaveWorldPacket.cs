@@ -16,8 +16,8 @@ public class CSCancelLeaveWorldPacket : GamePacket
     {
         if (Connection?.LeaveTask == null)
             return;
-        if (Connection.LeaveTask.Status != TaskStatus.Running)
-            return;
+        // if (Connection.LeaveTask.Status != TaskStatus.Running)
+        //     return;
         Connection.CancelTokenSource.Cancel();
         Connection.CancelTokenSource.Dispose();
         Connection.LeaveTask = null;
