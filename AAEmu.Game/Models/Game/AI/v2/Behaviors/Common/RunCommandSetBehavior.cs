@@ -36,7 +36,8 @@ public class RunCommandSetBehavior : BaseCombatBehavior
             return;
         }
 
-        Ai.GoToDefaultBehavior();
+        Ai.GoToIdle();
+        // Ai.GoToDefaultBehavior();
     }
 
     public override void Exit()

@@ -288,6 +288,7 @@ public class NpcSpawner : Spawner<Npc>
             }
         }
 
+        /*
         if (IsNullOrEmpty(FollowPath)) { return; }
 
         foreach (var npc in npcs)
@@ -300,6 +301,7 @@ public class NpcSpawner : Spawner<Npc>
             npc.Simulation.MoveFileName = FollowPath;
             npc.Simulation.GoToPath(npc, true);
         }
+        */
     }
 
     /// <summary>

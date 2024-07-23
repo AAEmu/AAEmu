@@ -62307,6 +62307,7 @@
     },
     {
         "UnitId": 987,
+        "FollowPath": "windscour_bull_elephant_1",
         "Position": {
             "X": 25833.54,
             "Y": 6372.93,

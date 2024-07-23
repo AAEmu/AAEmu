@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -56,17 +59,21 @@ public class FollowPathBehavior : BaseCombatBehavior
 
         if (CheckAlert())
             return;
+        
+        //var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+        //PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
 
+        // If still aggro, go back to combat
         if (Ai.Owner.IsInBattle && !Ai.Owner.AggroTable.IsEmpty)
         {
             Ai.GoToCombat();
             return;
         }
 
-        
         // Queue empty? refill!
-        if (Ai.AiPathPointsRemaining.Count <= 0 && Ai.AiPathPoints.Count > 0)
+        if (Ai.AiPathPointsRemaining.Count <= 0 && Ai.AiPathPoints.Count > 0 && Ai.AiPathLooping)
         {
+            Ai.AiPathLooping = false;
             foreach (var aiPathPoint in Ai.AiPathPoints)
             {
                 Ai.AiPathPointsRemaining.Enqueue(aiPathPoint);
@@ -83,16 +90,47 @@ public class FollowPathBehavior : BaseCombatBehavior
         if (Ai.Owner.Simulation.TargetPosition == Vector3.Zero && Ai.AiPathPointsRemaining.Count > 0)
         {
             var nextPos = Ai.AiPathPointsRemaining.Dequeue();
-            Ai.Owner.Simulation.TargetPosition = nextPos;
-            // Move the idle "home" location long with the path, so it doesn't immediately trigger a return to home state when going into combat
-            Ai.IdlePosition = nextPos;
+            switch (nextPos.Action)
+            {
+                case AiPathPointAction.None:
+                    break;
+                case AiPathPointAction.DisableLoop:
+                    Ai.AiPathLooping = false;
+                    break;
+                case AiPathPointAction.EnableLoop:
+                    Ai.AiPathLooping = true;
+                    break;
+                case AiPathPointAction.Speed:
+                    if (float.TryParse(nextPos.Param, CultureInfo.InvariantCulture, out var newSpeed))
+                        Ai.AiPathSpeed = newSpeed;
+                    break;
+                case AiPathPointAction.StanceFlags:
+                    if (byte.TryParse(nextPos.Param, out var newStance))
+                        Ai.AiPathStanceFlags = newStance;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            // Set next move point if it's not zero
+            if (!nextPos.Position.Equals(Vector3.Zero))
+            {
+                Ai.Owner.Simulation.TargetPosition = nextPos.Position;
+                // Move the idle "home" location long with the path, so it doesn't immediately trigger a return to home state when going into combat
+                Ai.IdlePosition = nextPos.Position;
+            }
         }
 
+        // We know where to go? Then go that direction
         if (Ai.Owner.Simulation.TargetPosition != Vector3.Zero)
         {
-            Ai.Owner.MoveTowards(Ai.Owner.Simulation.TargetPosition, Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), 4);
+            Ai.Owner.MoveTowards(Ai.Owner.Simulation.TargetPosition, Ai.AiPathSpeed * Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), Ai.AiPathStanceFlags);
         }
-        
+
+        if (Ai.AiPathPointsRemaining.Count <= 0 && Ai.AiPathLooping == false)
+        {
+            Ai.GoToIdle();
+        }
 /*
         CheckPipeName();
         if (!CanUseSkill)

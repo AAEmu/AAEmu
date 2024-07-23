@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
+using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -28,6 +29,7 @@ public abstract class NpcAi
 
     public Npc Owner { get; set; }
     public Vector3 IdlePosition { get; set; }
+    public Vector3 HomePosition { get; set; }
     public AiParams Param { get; set; }
     public PathNode PathNode { get; set; }
 
@@ -59,12 +61,23 @@ public abstract class NpcAi
     /// <summary>
     /// Loaded AI Path Points
     /// </summary>
-    public List<Vector3> AiPathPoints { get; set; } = new();
+    public List<AiPathPoint> AiPathPoints { get; set; } = new();
 
     /// <summary>
     /// Queue of locations to go to next
     /// </summary>
-    public Queue<Vector3> AiPathPointsRemaining { get; set; } = new();
+    public Queue<AiPathPoint> AiPathPointsRemaining { get; set; } = new();
+
+    public bool AiPathLooping { get; set; } = true; // Needs to be set to true to trigger initial loading into queue
+    /// <summary>
+    /// Speed multiplier when moving on the Path
+    /// </summary>
+    public float AiPathSpeed { get; set; } = 1f;
+
+    /// <summary>
+    /// Stance to use when moving on the Path
+    /// </summary>
+    public byte AiPathStanceFlags { get; set; } = 4;
 
     // Persistent arguments for AiCommands queue
     public string AiFileName { get; set; } = string.Empty;
@@ -314,6 +327,7 @@ public abstract class NpcAi
             var lines = File.ReadAllLines(fullPathFileName);
 
             AiPathPoints.Clear();
+            AiPathLooping = true; // Set to true to trigger initial loading, need to enable it again in the .path file
             foreach (var line in lines)
             {
                 var columns = line.Split('|');
@@ -325,7 +339,17 @@ public abstract class NpcAi
                     Y = 0f;
                 if (!float.TryParse(columns[3], out var Z))
                     Z = 0f;
-                AiPathPoints.Add(new Vector3(X, Y, Z));
+                var param = columns[4];
+
+                if (!Enum.TryParse<AiPathPointAction>(columns[0], true, out var action))
+                    action = AiPathPointAction.None;
+                
+                AiPathPoints.Add(new AiPathPoint()
+                {
+                    Position = new Vector3(X, Y, Z),
+                    Action = action,
+                    Param = param
+                });
             }
         }
         catch (Exception e)
