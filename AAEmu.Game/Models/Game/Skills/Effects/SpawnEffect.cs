@@ -112,7 +112,7 @@ public class SpawnEffect : EffectTemplate
                         transform.World.AddDistanceToFront(PosDistance);
                         transform.World.Rotate(transform.World.Rotation with { Z = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad() });
 
-                        var slave = SlaveManager.Instance.Create(SubType, transform);
+                        var slave = SlaveManager.Instance.Create(SubType, false, transform);
                         if (slave is { Template: null })
                         {
                             Logger.Info($"SpawnEffect: SubType={SubType} not found...");

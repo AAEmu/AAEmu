@@ -89,7 +89,7 @@ public class SCUnitStatePacket : GamePacket
                 stream.Write(slave.Id);             // Id ? slave.Id
                 stream.Write(slave.TlId);           // tl
                 stream.Write(slave.TemplateId);     // templateId
-                stream.Write(slave.Summoner?.ObjId ?? 0); // ownerId ? slave.Summoner.ObjId
+                stream.Write(slave.Summoner?.Id ?? 0); // ownerId
                 break;
             case BaseUnitType.Housing:
                 var house = (House)_unit;
@@ -131,7 +131,7 @@ public class SCUnitStatePacket : GamePacket
         stream.WritePosition(_unit.Transform.Local.Position);
         stream.Write(_unit.Scale); // scale
         stream.Write(_unit.Level); // level
-        stream.Write((byte)0);     // level for 3.0.3.0
+        stream.Write(_unit.HierLevel); // hierarchy level for 3.0.3.0
         for (var i = 0; i < 4; i++)
             stream.Write((sbyte)-1); // slot for 3.0.3.0
 

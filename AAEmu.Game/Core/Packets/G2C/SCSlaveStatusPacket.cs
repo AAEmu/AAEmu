@@ -10,8 +10,7 @@ public class SCSlaveStatusPacket : GamePacket
     private readonly int _tagCount = 0;
     private readonly Slave _slave;
 
-    public SCSlaveStatusPacket(Slave slave) :
-        base(SCOffsets.SCSlaveStatusPacket, 5)
+    public SCSlaveStatusPacket(Slave slave) : base(SCOffsets.SCSlaveStatusPacket, 5)
     {
         _slave = slave;
         _skillCount = slave.Skills?.Count ?? 0;
@@ -27,18 +26,18 @@ public class SCSlaveStatusPacket : GamePacket
         stream.Write(_skillCount); // skillCount
         if (_skillCount > 0)
         {
-            for (var i = 0; i < _skillCount; i+=3)
+            for (var i = 0; i < _skillCount; i += 3)
             {
                 stream.Write(_slave.Skills[i]);   // type
-                stream.Write(_slave.Skills[i+1]); // type
-                stream.Write(_slave.Skills[i+2]); // type
+                stream.Write(_slave.Skills[i + 1]); // type
+                stream.Write(_slave.Skills[i + 2]); // type
             }
         }
 
         stream.Write(_tagCount); // tagCount
         if (_tagCount > 0)
         {
-            for (var i = 0; i < _tagCount; i+=3)
+            for (var i = 0; i < _tagCount; i += 3)
             {
                 stream.Write(0u);   // type
                 stream.Write(0u);  // type
@@ -47,9 +46,9 @@ public class SCSlaveStatusPacket : GamePacket
         }
         #endregion
 
-        stream.Write(_slave.Summoner?.Name ?? string.Empty);  // creatorName
-        stream.Write(_slave.Summoner?.ObjId ?? 0);          // type
-        stream.Write(_slave.Id);                           // dbId DbHouseId
+        stream.Write(_slave.Summoner?.Name ?? string.Empty); // creatorName
+        stream.Write(_slave.Summoner?.Id ?? 0);              // ownerId
+        stream.Write(_slave.SummoningItem == null ? 0 : _slave.Id); // dbId DbHouseId, для связных должен быть 0
 
         return stream;
     }

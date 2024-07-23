@@ -184,7 +184,7 @@ public class ItemManager : Singleton<ItemManager>
         // Check all people with a claim on the NPC
 
         var eligiblePlayers = new HashSet<Character>();
-        if ( unit.CharacterTagging.TagTeam != 0)
+        if (unit.CharacterTagging.TagTeam != 0)
         {
             //A team has tagging rights
             var team = TeamManager.Instance.GetActiveTeam(unit.CharacterTagging.TagTeam);
@@ -691,7 +691,7 @@ public class ItemManager : Singleton<ItemManager>
                     {
                         var template = new ItemLookConvert
                         {
-                            Id = reader.GetUInt32("item_look_convert_id"), 
+                            Id = reader.GetUInt32("item_look_convert_id"),
                             RequiredItemId = reader.GetUInt32("item_id"),
                             RequiredItemCount = reader.GetInt32("item_count")
                         };
@@ -1646,11 +1646,12 @@ public class ItemManager : Singleton<ItemManager>
         return _allItems.GetValueOrDefault(itemId);
     }
 
-    public uint GetDoodadByItemId(uint itemId)
+    public uint GetDoodadIdByItemId(uint itemId)
     {
         return _ItemSlaveEquips.TryGetValue(itemId, out var item) ? item.DoodadId : 0;
     }
-    public uint GetSlaveByItemId(uint itemId)
+
+    public uint GetSlaveIdByItemId(uint itemId)
     {
         return _ItemSlaveEquips.TryGetValue(itemId, out var item) ? item.SlaveId : 0;
     }
@@ -1828,7 +1829,7 @@ public class ItemManager : Singleton<ItemManager>
                     catch (Exception ex)
                     {
                         // Create a manual SQL string with the data provided
-                        var sqlString = $"REPLACE INTO items (id, type, template_id, container_id, slot_type, slot, count, details, lifespan_mins, made_unit_id, unsecure_time, unpack_time, owner, created_at, grade, flags, ucc, expire_time, expire_online_minutes, charge_time, charge_count) VALUES ({item.Id}, {item.GetType()}, {item.TemplateId}, {item._holdingContainer?.ContainerId ?? 0}, {item.SlotType.ToString()}, {item.Slot}, {item.Count}, {details.GetBytes()}, {item.LifespanMins}, {item.MadeUnitId}, {item.UnsecureTime}, {item.UnpackTime}, {item.CreateTime}, {item.OwnerId}, {item.Grade}, {(byte)item.ItemFlags}, {item.UccId}, {item.ExpirationTime}, {item.ExpirationOnlineMinutesLeft}, {item.ChargeStartTime}, {item.ChargeCount})";
+                        var sqlString = $"REPLACE INTO items (id, type, template_id, container_id, slot_type, slot, count, details, lifespan_mins, made_unit_id, unsecure_time, unpack_time, owner, created_at, grade, flags, ucc, expire_time, expire_online_minutes, charge_time, charge_count) VALUES ({item.Id}, {item.GetType()}, {item.TemplateId}, {item._holdingContainer?.ContainerId ?? 0}, {item.SlotType}, {item.Slot}, {item.Count}, {details.GetBytes()}, {item.LifespanMins}, {item.MadeUnitId}, {item.UnsecureTime}, {item.UnpackTime}, {item.CreateTime}, {item.OwnerId}, {item.Grade}, {(byte)item.ItemFlags}, {item.UccId}, {item.ExpirationTime}, {item.ExpirationOnlineMinutesLeft}, {item.ChargeStartTime}, {item.ChargeCount})";
 
                         Logger.Error($"Error: {ex.Message}\nSQL Query: {sqlString}\n");
                     }

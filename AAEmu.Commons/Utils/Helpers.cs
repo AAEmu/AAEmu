@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
 
 namespace AAEmu.Commons.Utils;
 
@@ -276,6 +278,11 @@ public static class Helpers
         return (T)inst?.Invoke(obj, null);
     }
 
+    public static T DeepCopy<T>(T obj)
+    {
+        var json = JsonSerializer.Serialize(obj);
+        return JsonSerializer.Deserialize<T>(json);
+    }
 
     // Метод для разделения списка на несколько списков с указанным размером
     // Method for splitting a list into several lists with a specified size

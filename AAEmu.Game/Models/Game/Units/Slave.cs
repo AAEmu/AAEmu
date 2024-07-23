@@ -16,7 +16,6 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -40,7 +39,7 @@ public class Slave : Unit
     // public Character Driver { get; set; }
     public Character Summoner { get; set; }
     public BaseUnitType OwnerType { get; set; }
-    
+
     public Item SummoningItem { get; set; }
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Slave> AttachedSlaves { get; set; }
@@ -62,6 +61,7 @@ public class Slave : Unit
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
     public List<uint> Skills { get; set; }
+    public bool IsLoadedPlayerSlave { get; set; }
 
     public Slave()
     {
@@ -73,7 +73,6 @@ public class Slave : Unit
         HpTriggerPointsPercent.Add(50);
         HpTriggerPointsPercent.Add(75);
         HpTriggerPointsPercent.Add(100);
-        Equipment = new SlaveEquipmentContainer(0, SlotType.EquipmentSlave, false);
     }
 
     #region Attributes
@@ -600,7 +599,6 @@ public class Slave : Unit
     {
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
-        //character.SendPacket(new SCSlaveStatusPacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
         character.SendPacket(new SCSlaveStatusPacket(this));
 
         base.AddVisibleObject(character);
@@ -861,7 +859,7 @@ public class Slave : Unit
         }
 
         // Also save its children if needed
-        foreach(var child in AttachedSlaves)
+        foreach (var child in AttachedSlaves)
             if (child.Id > 0)
                 child.Save(connection, transaction);
 

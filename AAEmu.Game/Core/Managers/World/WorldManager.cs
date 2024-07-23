@@ -843,6 +843,54 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return null;
     }
 
+    /// <summary>
+    /// Get ChildSlave by ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public List<Slave> GetChildSlave(uint objId)
+    {
+        var res = new List<Slave>();
+        foreach (var slave in _slaves)
+        {
+            if (slave.Key == objId)
+            {
+                res.Add(slave.Value);
+            }
+        }
+        return res;
+    }
+    public List<Slave> GetAttachedSlavesByObjId(uint objId)
+    {
+        var res = new List<Slave>();
+        foreach (var slave in _slaves)
+        {
+            if (slave.Key == objId)
+            {
+                res.AddRange(slave.Value.AttachedSlaves);
+            }
+        }
+        return res;
+    }
+    public List<Doodad> GetAttachedDoodadsByObjId(uint objId, uint templateId)
+    {
+        var res = new List<Doodad>();
+        foreach (var slave in _slaves)
+        {
+            if (slave.Key == objId)
+            {
+                foreach (var doodad in slave.Value.AttachedDoodads)
+                {
+                    if (doodad.TemplateId == templateId)
+                    {
+                        res.Add(doodad);
+                    }
+                }
+            }
+        }
+        return res;
+    }
+
     public void AddObject(GameObject obj)
     {
         if (obj == null)

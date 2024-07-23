@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -17,7 +18,6 @@ public class CSChangeSlaveEquipmentPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        // TODO ... coming soon
         var characterId = stream.ReadUInt32();
         var tl = stream.ReadUInt16(); // slave tl
         var DbSlaveId = stream.ReadUInt32();
@@ -43,9 +43,13 @@ public class CSChangeSlaveEquipmentPacket : GamePacket
         {
             invItems[i].Item3 = new Item();
             invItems[i].Item3.Read(stream);
+            invItems[i].Item3.ItemFlags = ItemFlag.SoulBound; // связанный
+            invItems[i].Item3.ChargeUseSkillTime = DateTime.UtcNow;
 
             equipItems[i].Item3 = new Item();
             equipItems[i].Item3.Read(stream);
+            equipItems[i].Item3.ItemFlags = ItemFlag.SoulBound; // связанный
+            equipItems[i].Item3.ChargeUseSkillTime = DateTime.UtcNow;
 
             invItems[i].Item1 = (SlotType)stream.ReadByte();
             invItems[i].Item2 = stream.ReadByte();
@@ -69,9 +73,9 @@ public class CSChangeSlaveEquipmentPacket : GamePacket
 
                     if (character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, character.Inventory.Bag, slave.Equipment, invItems[i].Item3.Id, invItems[i].Item1, invItems[i].Item2, 0, equipItems[i].Item1, equipItems[i].Item2))
                     {
-                        Connection.SendPacket(new SCSlaveEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, DbSlaveId, bts));
-                        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, itemTasks, new List<ulong>()));
-                        //Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonSlaveItem, [new ItemUpdate(invItems[i].Item3)], [])); // TODO - maybe update details
+                        Connection.SendPacket(new SCSlaveEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, slave.Id, bts));
+                        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, itemTasks, []));
+                        //SlaveManager.Instance.Update(character, slave, invItems[i].Item3.TemplateId, invItems[i].Item3, isEquip);
                     }
                 }
             }
@@ -81,18 +85,12 @@ public class CSChangeSlaveEquipmentPacket : GamePacket
                 {
                     if (character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, slave.Equipment, character.Inventory.Bag, equipItems[i].Item3.Id, equipItems[i].Item1, equipItems[i].Item2, 0, invItems[i].Item1, invItems[i].Item2))
                     {
-                        Connection.SendPacket(new SCSlaveEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, DbSlaveId, bts));
-                        //Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonSlaveItem, [new ItemUpdate(equipItems[i].Item3)], [])); // TODO - maybe update details
-                        //if (ItemManager.Instance.GetDoodadByItemId(equipItems[i].Item3.TemplateId) != 0)
-                        //{
-                        //    Connection.SendPacket(new SCDoodadRemovedPacket();
-                        //}
+                        Connection.SendPacket(new SCSlaveEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, slave.Id, bts));
+                        //SlaveManager.Instance.Update(character, slave, equipItems[i].Item3.TemplateId, equipItems[i].Item3, isEquip);
                     }
-
                 }
             }
         }
-
 
         ////slaveEquipment = new SlaveEquipment();
         ////slaveEquipment.Read(stream);

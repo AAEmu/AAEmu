@@ -55,6 +55,7 @@ public class Unit : BaseUnit, IUnit
     }
 
     public byte Level { get; set; }
+    public byte HierLevel { get; set; } // hierarchy level for 3.0.3.0
 
     public int Hp { get; set; }
 
@@ -450,8 +451,8 @@ public class Unit : BaseUnit, IUnit
                 case Character character:
                     DespawnMate(character);
                     break;
-                //default:
-                //    break;
+                    //default:
+                    //    break;
             }
             return;
         }
@@ -618,7 +619,7 @@ public class Unit : BaseUnit, IUnit
 
         var newTask = new UseAutoAttackSkillTask(skill, character);
         character.AutoAttackTask = newTask;
-        var attackDelayTimes = newTask.GetAttackDelay(); 
+        var attackDelayTimes = newTask.GetAttackDelay();
 
         TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(attackDelayTimes),
             TimeSpan.FromMilliseconds(attackDelayTimes), -1);

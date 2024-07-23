@@ -47,7 +47,7 @@ public class SummonSlave : Item
         if (stream.LeftBytes < DetailBytesLength)
             return;
         SlaveType = stream.ReadByte(); // Type? (2 = slave?)
-        SlaveDbId = stream.ReadBc(); // DbId
+        SlaveDbId = stream.ReadBc();   // DbId
         IsDestroyed = stream.ReadByte();
         try
         {
@@ -66,24 +66,27 @@ public class SummonSlave : Item
 
     public override void WriteDetails(PacketStream stream)
     {
-        stream.Write(SlaveType);
-        stream.WriteBc(SlaveDbId);
-        stream.Write(IsDestroyed);
+        stream.Write(SlaveType);   // 1
+        stream.WriteBc(SlaveDbId); // 3 4
+        stream.Write(IsDestroyed); // 1 5
 
         if (RepairStartTime == DateTime.MinValue)
-            stream.Write(0);
+        {
+            stream.Write(0);       // 4 9
+            stream.Write(0);       // 4 13
+        }
         else
-            stream.Write(RepairStartTime);
+            stream.Write(RepairStartTime); // 8 13
 
-        stream.Write(0); // If this is anything besides 0, it will count as being in recovering (negative at that)
+        stream.Write(0);           // 4 17 // If this is anything besides 0, it will count as being in recovering (negative at that)
 
         // The following 16 bytes somehow determine where a Vehicle is allowed to be summoned
         // TODO: Get real live data capture of this value being set
         // TODO: Get this from having a vehicle out when maintenance starts
-        stream.Write(0);
-        stream.Write(0);
-        stream.Write(0);
-        stream.Write(0);
+        stream.Write(0); // 4 21
+        stream.Write(0); // 4 25
+        stream.Write(0); // 4 29
+        //stream.Write(0); // 4 33
     }
 
     public override void OnManuallyDestroyingItem()

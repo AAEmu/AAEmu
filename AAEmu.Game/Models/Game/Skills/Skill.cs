@@ -483,6 +483,18 @@ public class Skill
                 }
             case SkillTargetType.CursorPos:
                 break;
+            case SkillTargetType.Parent:
+                break;
+            case SkillTargetType.ChildSlave:
+                break;
+            case SkillTargetType.AnyUnitAlways:
+                break;
+            case SkillTargetType.CommanderPos:
+                break;
+            case SkillTargetType.PetOwner:
+                break;
+            case SkillTargetType.IgnoreProtected:
+                break;
             default:
                 throw new NotSupportedException($"SkillTargetType not supported {Template.TargetType}");
         }

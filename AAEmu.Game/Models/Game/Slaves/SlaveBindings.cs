@@ -9,4 +9,5 @@ public class SlaveBindings
     public string OwnerType { get; set; }
     public uint SlaveId { get; set; }
     public AttachPointKind AttachPointId { get; set; }
+    public bool Basic { get; set; }
 }

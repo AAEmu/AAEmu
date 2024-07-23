@@ -63,31 +63,6 @@ public class SCSlaveEquipmentChangedPacket : GamePacket
 
         stream.Write(true); // success
 
-        //_slaveEquipment.Write(stream);
-
-        //var id = stream.ReadUInt32(); // type (id)
-        //var tl = stream.ReadUInt16();
-        //var dbSlaveId = stream.ReadUInt32();
-        //var bts = stream.ReadBoolean();
-        //var num = stream.ReadByte();
-        //for (var i = 0; i < num; i++)
-        //{
-        //    // read item1
-        //    var item1 = new Item();
-        //    item1.Read(stream);
-
-        //    // read item2
-        //    var item2 = new Item();
-        //    item2.Read(stream);
-
-        //    var slotType1 = (SlotType)stream.ReadByte();   // type
-        //    var slot1 = stream.ReadByte();            // index
-
-        //    var slotType2 = (SlotType)stream.ReadByte();  // type
-        //    var slot2 = stream.ReadByte();           // index
-        //}
-
-        //stream.Write(_success);
         return stream;
     }
 }
