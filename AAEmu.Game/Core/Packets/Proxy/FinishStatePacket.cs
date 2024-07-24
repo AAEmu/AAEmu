@@ -43,12 +43,12 @@ public class FinishStatePacket : GamePacket
                 var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
 
                 // It seems this packet can be ignored if you don't use the wiki/shop
-                Connection.SendPacket(new SCTrionConfigPacket(
-                    true,
-                    authUrl,
-                    platformUrl,
-                    commerceUrl)
-                ); // TODO - config files
+                //Connection.SendPacket(new SCTrionConfigPacket(
+                //    true,
+                //    authUrl,
+                //    platformUrl,
+                //    commerceUrl)
+                //); // TODO - config files
                 Connection.SendPacket(new SCAccountInfoPacket(
                         (int)Connection.Payment.Method,
                         Connection.Payment.Location,

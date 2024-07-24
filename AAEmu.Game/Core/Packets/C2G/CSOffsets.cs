@@ -247,7 +247,7 @@ public static class CSOffsets
     public const ushort CSLeaveTrialAudiencePacket = 0x0D5;
     public const ushort CSUnMountMatePacket = 0x0F2;
     public const ushort CSDetachFromDoodadPacket = 0x0D5; // CSUnbondPacket
-    public const ushort CSInstanceLoadedPacket = 0x015;
+    public const ushort CSInstanceLoadedPacket = 0x004;
     public const ushort CSApplyToInstantGamePacket = 0x124;
     public const ushort CSCancelInstantGamePacket = 0x060;
     public const ushort CSJoinInstantGamePacket = 0x18C;

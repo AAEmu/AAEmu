@@ -284,6 +284,10 @@ public class Buffs : IBuffs
 
     public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
     {
+        if (buff?.Template is null)
+        {
+            return;
+        }
         var finalToleranceBuffId = 0u;
         lock (_lock)
         {
