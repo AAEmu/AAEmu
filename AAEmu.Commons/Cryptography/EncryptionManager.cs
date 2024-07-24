@@ -261,7 +261,7 @@ namespace AAEmu.Commons.Cryptography
             //}
 
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a024a4) ^ 0xc3903b6a; // 3.0.3.0 archerage.to
-            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a0244c) ^ 0x7b3c933a; // 3.0.4.2 AAClassic
+            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a0242e) ^ 0x383c9338; // 3.0.4.2 AAClassic
             var offset = 4;
             if (seq != 0)
             {
