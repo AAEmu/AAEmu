@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
 using Unit = AAEmu.Game.Models.Game.Units.Unit;
@@ -8,24 +9,21 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitModelPostureChangedPacket : GamePacket
 {
-    private Unit _unit;
-    private BaseUnitType _baseUnitType;
-    private ModelPostureType _modelPostureType;
-    private uint _animActionId;
+    private readonly Unit _unit;
+    private readonly uint _animActionId;
+    private readonly bool _activateAnimation;
 
-    public SCUnitModelPostureChangedPacket(Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF) : base(SCOffsets.SCUnitModelPostureChangedPacket, 1)
+    public SCUnitModelPostureChangedPacket(Unit unit, uint animActionId, bool activateAnimation) : base(SCOffsets.SCUnitModelPostureChangedPacket, 1)
     {
         _unit = unit;
-        _baseUnitType = baseUnitType;
-        _modelPostureType = modelPostureType;
         _animActionId = animActionId;
+        _activateAnimation = activateAnimation;
     }
-
+    
     public override PacketStream Write(PacketStream stream)
     {
         stream.WriteBc(_unit.ObjId);
-        Unit.ModelPosture(stream, _unit, _baseUnitType, _modelPostureType, _animActionId);
-
+        Unit.ModelPosture(stream, _unit, _animActionId, _activateAnimation);
         return stream;
     }
 }

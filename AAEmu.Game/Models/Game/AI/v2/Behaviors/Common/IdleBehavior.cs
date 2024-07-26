@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -20,6 +21,7 @@ public class IdleBehavior : BaseCombatBehavior
         Ai.Owner.SetTarget(null);
         Ai.Owner.SendPacketToPlayers([Ai.Owner.CurrentTarget], new SCAggroTargetChangedPacket(Ai.Owner.ObjId, 0));
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
         if (Ai.Owner is { } npc)
         {
             npc.Events.InIdle(this, new InIdleArgs { Owner = npc });

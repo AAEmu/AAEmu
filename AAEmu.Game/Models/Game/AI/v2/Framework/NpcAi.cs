@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 
 using NLog;
@@ -360,5 +361,20 @@ public abstract class NpcAi
         }
 
         return false;
+    }
+
+    public double GetRealMovementSpeed()
+    {
+        var moveSpeed = (double)Owner.BaseMoveSpeed;
+        var speedMul = (Owner.CalculateWithBonuses(0, UnitAttribute.MoveSpeedMul) / 1000.0) + 1.0;
+        if (Math.Abs(speedMul - 1.0) > double.Epsilon)
+            moveSpeed *= speedMul;
+
+        return moveSpeed;
+    }
+
+    public byte GetRealMovementFlags(double moveSpeed)
+    {
+        return (byte)(moveSpeed < 0.1 ? 3 : moveSpeed < 1.0 ? 5 : 4);
     }
 }

@@ -1424,4 +1424,31 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         //    Logger.Info($"[Dungeon] could not delete the list of NpcEventSpawners for dungeon id={worldId}!");
         //}
     }
+
+    /// <summary>
+    /// Time of Day changed
+    /// </summary>
+    /// <param name="newTime">In-Game time in seconds</param>
+    /// <param name="oldTime"></param>
+    public void OnTimeOfDayChange(float newTime, float oldTime)
+    {
+        // Only check if it changed at least to the next minute
+        if ((int)Math.Floor(newTime * 60f) == (int)Math.Floor(oldTime * 60f))
+            return;
+
+        // check all active Npcs to check if their animation needs to be updated
+        foreach (var (_, npc) in _npcs)
+        {
+            if (npc.Template.NpcPostureSets.Count <= 1)
+                continue;
+            
+            var oldAnim = npc.Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= oldTime)?.AnimActionId ?? 0;
+            var newAnim = npc.Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= newTime)?.AnimActionId ?? 0;
+
+            if (oldAnim != newAnim)
+                npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, newAnim, true), false);
+        }
+        
+    }
+
 }

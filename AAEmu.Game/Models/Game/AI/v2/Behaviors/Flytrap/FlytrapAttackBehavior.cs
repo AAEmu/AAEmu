@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Linq;
 using System.Numerics;
-
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params.Flytrap;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
@@ -21,6 +22,8 @@ public class FlytrapAttackBehavior : Behavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
         
         if (Ai.Owner is { } npc)
         {

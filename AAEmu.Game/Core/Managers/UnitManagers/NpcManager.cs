@@ -649,14 +649,22 @@ public class NpcManager : Singleton<NpcManager>
                         {
                             using (var command2 = connection.CreateCommand())
                             {
-                                command2.CommandText = "SELECT * FROM npc_postures WHERE npc_posture_set_id=@id";
+                                // Sort it by reverse "Time Of Day" so it's easier to do searches on it later
+                                command2.CommandText = "SELECT * FROM npc_postures WHERE npc_posture_set_id=@id ORDER BY start_tod_time DESC";
                                 command2.Parameters.AddWithValue("id", template.NpcPostureSetId);
                                 command2.Prepare();
                                 using (var sqliteReader2 = command2.ExecuteReader())
                                 using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
                                 {
-                                    if (reader2.Read())
-                                        template.AnimActionId = reader2.GetUInt32("anim_action_id");
+                                    while (reader2.Read())
+                                    {
+                                        var npcPosture = new NpcPosture();
+                                        npcPosture.NpcPostureSetId = reader2.GetUInt32("npc_posture_set_id");
+                                        npcPosture.AnimActionId = reader2.GetUInt32("anim_action_id");
+                                        npcPosture.TalkAnim = reader2.GetString("talk_anim");
+                                        npcPosture.StartTodTime = reader2.GetFloat("start_tod_time");
+                                        template.NpcPostureSets.Add(npcPosture);
+                                    }
                                 }
                             }
                         }

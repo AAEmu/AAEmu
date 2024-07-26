@@ -3,6 +3,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -15,6 +16,7 @@ public class HoldPositionBehavior : BaseCombatBehavior
         Ai.Owner.InterruptSkills();
         Ai.Owner.StopMovement();
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
         _enter = true;
     }
     public override void Tick(TimeSpan delta)

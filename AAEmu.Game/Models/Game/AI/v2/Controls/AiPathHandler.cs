@@ -102,7 +102,11 @@ public class AiPathHandler(NpcAi aiOwner)
         // We know where to go? Then go that direction
         if (TargetPosition != Vector3.Zero)
         {
-            Owner.Owner.MoveTowards(TargetPosition, AiPathSpeed * Owner.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), AiPathStanceFlags);
+            var moveSpeed = Owner.GetRealMovementSpeed();
+            // var moveFlags = Owner.GetRealMovementFlags(moveSpeed);
+            moveSpeed *= (delta.Milliseconds / 1000.0);
+            Owner.Owner.MoveTowards(TargetPosition, (float)moveSpeed, AiPathStanceFlags);
+            // Owner.Owner.MoveTowards(TargetPosition, AiPathSpeed * Owner.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), AiPathStanceFlags);
         }
 
         return HasUnhandledPathMovementData();

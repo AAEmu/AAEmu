@@ -2,11 +2,13 @@
 using System.Linq;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar;
 
@@ -26,6 +28,8 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
     {
         Ai.Param = Ai.Owner.Template.AiParams;
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
         
         if (Ai.Owner is { } npc)
         {

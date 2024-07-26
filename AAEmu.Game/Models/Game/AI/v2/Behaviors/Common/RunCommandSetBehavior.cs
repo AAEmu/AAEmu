@@ -5,8 +5,10 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -14,7 +16,8 @@ public class RunCommandSetBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {
-        //
+        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
     }
 
     public override void Tick(TimeSpan delta)

@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -13,6 +14,7 @@ public class DeadBehavior : BaseCombatBehavior
         Ai.Owner.InterruptSkills();
         Ai.Owner.StopMovement();
         Ai.Owner.ClearAllAggro();
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnDeath(this, new OnDeathArgs { Killer = npc, Victim = npc });

@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
@@ -24,7 +25,8 @@ public class FollowPathBehavior : BaseCombatBehavior
     {
         Ai.Owner.InterruptSkills();
         _skillQueue = new Queue<AiSkill>();
-        Ai.Owner.CurrentGameStance = GameStanceType.Fly;
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
 
         _combatStartTime = DateTime.UtcNow;
 

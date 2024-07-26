@@ -230,7 +230,7 @@ namespace AAEmu.Game.Core.Managers
                                 {
                                     Id = reader.GetUInt32("id"),
                                     ActorModelId = reader.GetUInt32("actor_model_id"),
-                                    StanceId = (GameStanceType)reader.GetByte("stance_id"),
+                                    StanceId = (GameStanceType)(reader.GetByte("stance_id")-1), // This seems to be +1 in the DB compared to the packets
                                     Name = reader.GetString("name"),
                                     AiMoveSpeedRun = reader.GetFloat("ai_move_speed_run"),
                                     AiMoveSpeedSlow = reader.GetFloat("ai_move_speed_slow"),

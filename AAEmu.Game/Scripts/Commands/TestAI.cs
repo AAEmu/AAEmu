@@ -3,12 +3,14 @@ using System.IO;
 using System.Net.Mime;
 using System.Reflection;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils.Scripts;
 
@@ -49,7 +51,7 @@ public class TestAI : ICommand
         if (args.Length <= 0)
         {
             character.SendMessage($"[AI] No action provided, allowed actions");
-            character.SendMessage($"[AI] set, list, info, queue_skill, follow_npc, clear_path_cache");
+            character.SendMessage($"[AI] set, list, info, queue_skill, follow_npc, clear_path_cache, set_stance, anim");
             return;
         }
 
@@ -124,7 +126,7 @@ public class TestAI : ICommand
                 if (npc.Spawner != null)
                 {
                     character.SendMessage($"[AI] SpawnerId {npc.Spawner.Id}, SpawnerTemplateId {npc.Spawner.Template.Id} @ {npc.Spawner.Position}");
-                    if (npc.Spawner?.FollowNpc > 0)
+                    if (npc.Spawner.FollowNpc > 0)
                         character.SendMessage($"[AI] Spawner set to follow @NPC_NAME({npc.Spawner.FollowNpc}) ({npc.Spawner.FollowNpc})");
                 }
 
@@ -177,6 +179,43 @@ public class TestAI : ICommand
             case "clear_cache":
                 AiPathsManager.Instance.ClearCache();
                 character.SendMessage($"[AI] Cleared AI Path cache.");
+                break;
+            case "stance":
+            case "set_stance":
+                if (args.Length <= 1)
+                {
+                    character.SendMessage($"[AI] No stance provided");
+                    return;
+                }
+
+                if (!Enum.TryParse<GameStanceType>(args[1], out var newStance))
+                {
+                    character.SendMessage($"[AI] Not a valid stance");
+                    return;
+                }
+
+                npc.CurrentGameStance = newStance;
+                character.SendMessage($"[AI] {npc.ObjId}: @NPC_NAME({npc.TemplateId}) ({npc.TemplateId}) is now using stance {newStance}");
+                break;
+            case "set_anim":
+            case "anim":
+                if (args.Length <= 1)
+                {
+                    character.SendMessage($"[AI] No AnimActionId provided");
+                    return;
+                }
+
+                if (!int.TryParse(args[1], out var newAnimVal))
+                {
+                    character.SendMessage($"[AI] Not a valid AnimActionId");
+                    return;
+                }
+
+                var newAnim = (uint)Math.Abs(newAnimVal);
+                var enableAnim = newAnimVal > 0;
+
+                npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, newAnim, enableAnim), false);
+                character.SendMessage($"[AI] {npc.ObjId}: @NPC_NAME({npc.TemplateId}) ({npc.TemplateId}) is {(enableAnim ? "now" : "no longer")} using AnimActionId {newAnim}");
                 break;
             default:
                 character.SendMessage($"[AI] No valid action provided");

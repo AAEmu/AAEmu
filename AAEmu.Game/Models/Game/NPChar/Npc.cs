@@ -31,6 +31,8 @@ public partial class Npc : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Npc;
     public override BaseUnitType BaseUnitType => BaseUnitType.Npc;
+    public override ModelPostureType ModelPostureType { get => AnimActionId > 0 ? ModelPostureType.ActorModelState : ModelPostureType.None; }
+
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
@@ -38,6 +40,31 @@ public partial class Npc : Unit
     public Gimmick Gimmick { get; set; }
 
     public override UnitCustomModelParams ModelParams => Template.ModelParams;
+
+    /// <summary>
+    /// This is the "Idle Animation Id" that is used in UnitModelChangePosture, it can change depending on the time of the day
+    /// </summary>
+    public uint AnimActionId {
+        get
+        {
+            switch (Template.NpcPostureSets.Count)
+            {
+                // If no postures, just return 0
+                case 0:
+                    return 0;
+                // If only one, always return that one
+                case 1:
+                    return Template.NpcPostureSets.FirstOrDefault()?.AnimActionId ?? 0;
+                default:
+                    {
+                        // If more than one, we need to grab the Time of Day first
+                        var myTime = TimeManager.Instance.GetTime();
+                        return Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= myTime)?.AnimActionId ?? 0;
+                    }
+            }
+        }
+    }
+    
     public override float Scale => Template.Scale;
 
     public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
@@ -119,6 +146,7 @@ public partial class Npc : Unit
             _currentGameStance = value;
         }
     }
+    public MoveTypeAlertness CurrentAlertness { get; set; }
 
     #region Attributes
     [UnitAttribute(UnitAttribute.Str)]
@@ -1263,8 +1291,8 @@ public partial class Npc : Unit
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 127;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.Stance = CurrentGameStance;    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         CheckMovedPosition(oldPosition);
@@ -1302,7 +1330,7 @@ public partial class Npc : Unit
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
         moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         CheckMovedPosition(oldPosition);
@@ -1327,8 +1355,8 @@ public partial class Npc : Unit
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = (sbyte)(CurrentAggroTarget?.ObjId > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
-        moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        moveType.Stance = CurrentGameStance;// (sbyte)(CurrentAggroTarget?.ObjId > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
