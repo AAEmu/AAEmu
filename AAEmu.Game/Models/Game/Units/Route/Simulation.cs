@@ -393,13 +393,18 @@ public class Simulation : Patrol
             var travelDist = Math.Min(targetDist, distance);
 
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
-            var (newX, newY, _) = PositionAndRotation.AddDistanceToFront(travelDist, targetDist, npc.Transform.Local.Position, target);
+            var (newX, newY, newZ) = PositionAndRotation.AddDistanceToFront(travelDist, targetDist, npc.Transform.Local.Position, target);
 
-            var newZ = WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Z);
-            if (newZ == 0)
+            // Do not modify the altitude value when moving according to the roadmap, otherwise the altitude of the flying NPC will be destroyed
+            if (!npc.CanFly)
             {
-                newZ = npc.Transform.World.Position.Z;
+                newZ = WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Y);
+                if (newZ == 0)
+                {
+                    newZ = npc.Transform.World.Position.Z;
+                }
             }
+
 
             npc.Transform.Local.SetPosition(newX, newY, newZ);
 

@@ -126,6 +126,10 @@ public class SpawnManager : Singleton<SpawnManager>
                 {
                     Logger.Warn($"Templates not found for Npc templateId {spawner.UnitId} in world {worldId}");
                 }
+                else if (!spawner.Begin)
+                {
+                    // Not spawn at the beginning
+                }
                 else
                 {
                     spawner.SpawnAll(true);
@@ -994,6 +998,33 @@ public class SpawnManager : Singleton<SpawnManager>
             foreach (var spawner in spawners)
             {
                 if (spawner.Id != spawnerId) { continue; }
+
+                spawner.Template.Npcs[^1].MemberId = spawner.UnitId;
+                spawner.Template.Npcs[^1].UnitId = spawner.UnitId;
+                spawner.Template.Npcs[^1].MemberType = "Npc";
+                ret.Add(spawner);
+            }
+        }
+
+        return ret;
+    }
+    
+    public List<NpcSpawner> GetNpcSpawners(uint spawnerId, byte worldId)
+    {
+        var ret = new List<NpcSpawner>();
+        _npcSpawners.TryGetValue(worldId, out var npcSpawners);
+        if (npcSpawners == null)
+        {
+            return null;
+        }
+
+        
+        foreach (var spawners in npcSpawners.Values)
+        {
+            foreach (var spawner in spawners)
+            {
+                if (spawner.Id != spawnerId) { continue; }
+
                 spawner.Template.Npcs[^1].MemberId = spawner.UnitId;
                 spawner.Template.Npcs[^1].UnitId = spawner.UnitId;
                 spawner.Template.Npcs[^1].MemberType = "Npc";

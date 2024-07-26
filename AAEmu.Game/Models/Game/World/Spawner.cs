@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.World.Transform;
+﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -8,6 +9,7 @@ public class Spawner<T> where T : GameObject
     public uint UnitId { get; set; } // MemberId | TemplateId
     public string FollowPath { get; set; } = string.Empty;
     public uint FollowNpc { get; set; } = 0; // nearest Npc TemplateId to follow
+    public List<string> FollowPaths { get; set; }
     public WorldSpawnPosition Position { get; set; }
     public int RespawnTime { get; set; } = 15;
     public int DespawnTime { get; set; } = 20;

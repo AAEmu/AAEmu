@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Utils.DB;
@@ -10,7 +11,7 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 {
-    private Dictionary<uint, TowerDef> _towerDefs;
+    public Dictionary<uint, TowerDef> _towerDefs;
     private Dictionary<uint, TowerDefProg> _towerDefProgs;
 
     public void Load(SqliteConnection connection)
@@ -29,6 +30,10 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                     var template = new TowerDef()
                     {
                         Id = reader.GetUInt32("id"),
+                        StartMsg = LocalizationManager.Instance.Get("tower_defs", "start_msg", reader.GetUInt32("id"),
+                            reader.GetString("start_msg")),
+                        EndMsg = LocalizationManager.Instance.Get("tower_defs", "end_msg", reader.GetUInt32("id"),
+                            reader.GetString("end_msg")),
                         TimeOfDay = reader.GetFloat("tod"),
                         FirstWaveAfter = reader.GetFloat("first_wave_after"),
                         TargetNpcSpawnId = reader.GetUInt32("target_npc_spawner_id", 0),
@@ -54,11 +59,13 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                 {
                     var towerDefId = reader.GetUInt32("tower_def_id");
                     if (!_towerDefs.TryGetValue(towerDefId, out var towerDef))
-                        return;
+                        continue;
 
                     var template = new TowerDefProg()
                     {
                         Id = reader.GetUInt32("id"),
+                        Msg = LocalizationManager.Instance.Get("tower_def_progs", "msg", reader.GetUInt32("id"),
+                            reader.GetString("msg")),
                         TowerDef = towerDef,
                         CondToNextTime = reader.GetFloat("cond_to_next_time"),
                         CondCompByAnd = reader.GetBoolean("cond_comp_by_and", true),
@@ -82,7 +89,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                 {
                     var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                     if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
-                        return;
+                        continue;
 
                     var template = new TowerDefProgSpawnTarget()
                     {
@@ -108,7 +115,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                 {
                     var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                     if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
-                        return;
+                        continue;
 
                     var template = new TowerDefProgKillTarget()
                     {

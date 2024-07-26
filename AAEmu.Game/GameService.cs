@@ -210,6 +210,11 @@ public sealed class GameService : IHostedService, IDisposable
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
         Logger.Info($"Units spawned in {spawnSw.Elapsed}");
+        
+        # region TowerDefenseManager
+        TowerDefenseManager.Instance.Initialize();
+        // TowerDefenseManager.Instance.start(257,3);
+        # endregion
 
         // Start running Physics when everything is loaded
         WorldManager.Instance.StartPhysics();

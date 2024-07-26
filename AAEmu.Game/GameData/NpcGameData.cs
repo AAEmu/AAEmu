@@ -124,6 +124,8 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
                 nsn.MemberType = reader.GetString("member_type");
                 nsn.Weight = reader.GetFloat("weight");
 
+                nsn.UnitId = nsn.MemberId;
+
                 _npcSpawnerTemplateNpcs.Add(nsn.Id, nsn);
                 _npcSpawnerTemplates[nsn.NpcSpawnerTemplateId].Npcs.Add(nsn);
             }
@@ -187,6 +189,12 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
     {
         //_npcSpawnerTemplateNpcs.TryGetValue(spawnerId, out var nsn);
         return _npcSpawnerTemplateNpcs.Values.FirstOrDefault(nsn => nsn.NpcSpawnerTemplateId == spawnerId);
+    }
+
+    public List<NpcSpawnerNpc> GetNpcSpawnerNpcs(uint spawnerId)
+    {
+        //_npcSpawnerTemplateNpcs.TryGetValue(spawnerId, out var nsn);
+        return _npcSpawnerTemplateNpcs.Values.Where(nsn => nsn.NpcSpawnerTemplateId == spawnerId).ToList();
     }
 
     public List<NpcSkill> GetNpSkills(uint npcId, SkillUseConditionKind skillCondition = SkillUseConditionKind.None)

@@ -6,7 +6,10 @@ public class TowerDef
 {
     public uint Id { get; set; }
     // StartMsg
+    public string StartMsg { get; set; }
+
     // EndMsg
+    public string EndMsg { get; set; }
     public float TimeOfDay { get; set; }
     public float FirstWaveAfter { get; set; }
     public uint TargetNpcSpawnId { get; set; }

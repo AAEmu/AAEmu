@@ -81,6 +81,17 @@ public class NpcSpawnerNpc : Spawner<Npc>
                 }
             }
 
+            var position = npcSpawner.Position;
+
+            if (npcSpawner.Nearby > 0)
+            {
+                var rand = new Random();
+                position.X += (float)(rand.NextDouble() * npcSpawner.Nearby) - npcSpawner.Nearby / 2;
+                position.Y += (float)(rand.NextDouble() * npcSpawner.Nearby) - npcSpawner.Nearby / 2;
+                position.Z = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X,
+                    npcSpawner.Position.Y);
+            }
+
             npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
             if (npc.Transform == null)
             {

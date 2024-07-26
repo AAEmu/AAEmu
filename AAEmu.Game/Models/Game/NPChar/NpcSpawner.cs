@@ -37,6 +37,10 @@ public class NpcSpawner : Spawner<Npc>
     public List<uint> NpcSpawnerIds { get; set; }
     private bool _isScheduled { get; set; }
     public NpcSpawnerTemplate Template { get; set; } // npcSpawnerId(NpcSpawnerTemplateId), template
+    
+    public float Nearby { get; set; }
+
+    public bool Begin { get; set; } = true;
 
     public NpcSpawner()
     {
@@ -46,6 +50,7 @@ public class NpcSpawner : Spawner<Npc>
         NpcSpawnerIds = new List<uint>();
         Template = null;
         _lastSpawn = null;
+        Nearby = 0;
     }
 
     /// <summary>
@@ -252,7 +257,7 @@ public class NpcSpawner : Spawner<Npc>
                 continue;
             }
 
-            delnpcs.AddRange(npcs);
+            // delnpcs.AddRange(npcs);
 
             _spawned.AddRange(npcs);
 
@@ -278,15 +283,15 @@ public class NpcSpawner : Spawner<Npc>
         }
 
         // удалим чуть позже всех лишних Npc, оставим только одного
-        var deleteCount = delnpcs.Count - 1;
-        if (deleteCount > 1)
-        {
-            for (var i = 0; i < deleteCount; i++)
-            {
-                Logger.Trace($"Let's schedule npc removal {UnitId} from spawnerId {Template.Id}");
-                DoDespawnSchedule(delnpcs[i], false, 60); // через 1 минуту
-            }
-        }
+        // var deleteCount = delnpcs.Count - 1;
+        // if (deleteCount > 1)
+        // {
+        //     for (var i = 0; i < deleteCount; i++)
+        //     {
+        //         Logger.Trace($"Let's schedule npc removal {UnitId} from spawnerId {Template.Id}");
+        //         DoDespawnSchedule(delnpcs[i], false, 60); // через 1 минуту
+        //     }
+        // }
 
         /*
         if (IsNullOrEmpty(FollowPath)) { return; }
@@ -657,5 +662,18 @@ public class NpcSpawner : Spawner<Npc>
     public Unit GetLastSpawn()
     {
         return _lastSpawn;
+    }
+
+    public List<Npc> GetSpawnedList()
+    {
+        return _spawned;
+    }
+
+    public void DoDespawnAll()
+    {
+        for (var i = 0; i < _spawnCount; i++)
+        {
+            Despawn(_lastSpawn);
+        }
     }
 }
