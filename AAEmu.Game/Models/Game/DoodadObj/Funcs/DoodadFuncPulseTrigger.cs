@@ -11,6 +11,10 @@ public class DoodadFuncPulseTrigger : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
+        return true;
+        // TODO: Currently disabled because of lacking functionality of Pulse Triggers
+
+        /*
         // Grab the calling PhaseFunc
         var thisPhaseFunc = owner.CurrentPhaseFuncs.FirstOrDefault(x => x.FuncId == Id);
         if (thisPhaseFunc == null)
@@ -30,5 +34,6 @@ public class DoodadFuncPulseTrigger : DoodadPhaseFuncTemplate
         }
 
         return false;
+        */
     }
 }

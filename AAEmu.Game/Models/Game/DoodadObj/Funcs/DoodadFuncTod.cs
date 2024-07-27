@@ -52,15 +52,12 @@ public class DoodadFuncTod : DoodadPhaseFuncTemplate
         //    Logger.Trace("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
         //}
 
-        return false; // Temporary ignore for now
+        // return false; // Temporary ignore for now
 
         var curTime = TimeManager.Instance.GetTime;
         if (curTime >= TodAsHours)
         {
-            if (caster is Character)
-                Logger.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
-            else
-                Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
+            Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
             owner.OverridePhase = NextPhase;
             return true; // it is necessary to interrupt the phase functions and switch to NextPhase
         }
