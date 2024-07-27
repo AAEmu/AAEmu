@@ -77,6 +77,11 @@ public class FollowPathBehavior : BaseCombatBehavior
             Ai.GoToIdle();
         }
 
+        if (Ai.PathHandler.TargetPosition == Vector3.Zero && Ai.PathHandler.AiPathPoints.Count <= 0 && Ai.PathHandler.AiPathPointsRemaining.Count <= 0)
+        {
+            Ai.GoToIdle();
+        }
+
         /*
         CheckPipeName();
         if (!CanUseSkill)

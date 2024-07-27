@@ -239,8 +239,12 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Need to check for stealth detection here
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
+            // Arbitrary value
+            var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 3.5f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.5f);
+
+            // Check if in front, and not too far up or down
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {
@@ -310,8 +314,12 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Need to check for stealth detection here
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
+            // Arbitrary value 
+            var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 4f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.75f);
+
+            // Check if in front, and not too far up or down
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {

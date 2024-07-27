@@ -375,6 +375,9 @@ public abstract class NpcAi
 
     public byte GetRealMovementFlags(double moveSpeed)
     {
-        return (byte)(moveSpeed < 0.1 ? 3 : moveSpeed < 1.0 ? 5 : 4);
+        // 3 = Stand still
+        // 4 = Run
+        // 5 = Walk
+        return (byte)(moveSpeed < 0.1 ? 3 : moveSpeed < 2.0 ? 5 : 4);
     }
 }
