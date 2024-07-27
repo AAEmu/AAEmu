@@ -10,6 +10,7 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
@@ -17,6 +18,7 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -1432,6 +1434,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="oldTime"></param>
     public void OnTimeOfDayChange(float newTime, float oldTime)
     {
+        if (oldTime > newTime)
+            oldTime -= 24f;
         // Only check if it changed at least to the next minute
         if ((int)Math.Floor(newTime * 60f) == (int)Math.Floor(oldTime * 60f))
             return;
@@ -1449,6 +1453,45 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, newAnim, true), false);
         }
         
+        // check all doodad of they have a ToD trigger in the current active group, and try to run it again
+        return;
+        var doodadsToTrigger = new List<Doodad>();
+        foreach (var doodad in GetAllDoodads())
+        {
+            if (doodad.TemplateId == 2325)
+            {
+                // Checking Lamp
+                Logger.Info($"Checking Lamp");
+            }
+            if (doodad.CurrentPhaseFuncs == null)
+                continue;
+            foreach (var doodadCurrentPhaseFunc in doodad.CurrentPhaseFuncs)
+            {
+                if (doodadCurrentPhaseFunc.FuncType != "DoodadFuncTod")
+                    continue;
+                var todPhaseFunc = DoodadManager.Instance.GetPhaseFuncTemplate(doodadCurrentPhaseFunc.FuncId, doodadCurrentPhaseFunc.FuncType);
+                if (todPhaseFunc is not DoodadFuncTod doodadFuncTod)
+                {
+                    Logger.Error($"DoodadFuncTod is not a DoodadFuncTod");
+                    continue;
+                }
+
+                if (newTime >= doodadFuncTod.TodAsHours && oldTime < doodadFuncTod.TodAsHours)
+                {
+                    doodadsToTrigger.Add(doodad);
+                    break;
+                }
+            }
+        }
+
+        if (doodadsToTrigger.Count > 0)
+        {
+            // Trigger the doodads that have a ToD in them
+            foreach (var doodad in doodadsToTrigger)
+            {
+                doodad.Use(doodad);
+            }
+        }
     }
 
 }

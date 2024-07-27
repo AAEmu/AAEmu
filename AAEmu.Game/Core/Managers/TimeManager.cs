@@ -19,7 +19,12 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
     private const float TickDelay = 3600f * Speed;
 
     private const float Speed = .0016666f;
-    public float GetTime() => _time / 3600f;
+    /// <summary>
+    /// Current game time in hours
+    /// </summary>
+    /// <returns></returns>
+    public float GetTime { get => _time / 3600f; }
+
     private float _lastTime;
 
     public TimeManager()
@@ -38,7 +43,7 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
 
     public IDisposable Subscribe(GameConnection connection, IObserver<float> observer)
     {
-        connection.SendPacket(new SCDetailedTimeOfDayPacket(GetTime()));
+        connection.SendPacket(new SCDetailedTimeOfDayPacket(GetTime));
         return Subscribe(observer);
     }
 
@@ -83,7 +88,7 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
 
     private void Push()
     {
-        var time = GetTime();
+        var time = GetTime;
         foreach (var observer in _observers)
             observer.OnNext(time);
         WorldManager.Instance.OnTimeOfDayChange(time, _lastTime);

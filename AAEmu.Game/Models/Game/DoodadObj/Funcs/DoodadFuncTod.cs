@@ -7,8 +7,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
 public class DoodadFuncTod : DoodadPhaseFuncTemplate
 {
-    public int Tod { get; set; }
+    /// <summary>
+    /// Time of Day as HH:MM represented by a uint
+    /// </summary>
+    public uint Tod { get; set; }
     public int NextPhase { get; set; }
+    /// <summary>
+    /// Helper property for ToD
+    /// </summary>
+    public float TodAsHours { get; set; }
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
@@ -45,40 +52,19 @@ public class DoodadFuncTod : DoodadPhaseFuncTemplate
         //    Logger.Trace("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
         //}
 
-        if (Tod > 2400 || Tod < 100)
+        return false; // Temporary ignore for now
+
+        var curTime = TimeManager.Instance.GetTime;
+        if (curTime >= TodAsHours)
         {
-            return false; // TODO я думаю, что tod это время в формате hh:mm, но там есть величины : 0, 1, 10, 30, 4000 и 60000
-        }
-
-        var tod = Tod / 100f;
-        var curTime = TimeManager.Instance.GetTime();
-        curTime = tod >= 20f && curTime >= tod ? curTime - tod : curTime;
-        if (curTime > tod)
-        {
-            if (NextPhase <= 0)
-            {
-                if (caster is Character)
-                    Logger.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
-                else
-                    Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
-
-                return false; // nextPhase = -1, let's continue with the phase functions
-            }
-
             if (caster is Character)
                 Logger.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
             else
                 Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
-
             owner.OverridePhase = NextPhase;
             return true; // it is necessary to interrupt the phase functions and switch to NextPhase
         }
 
-        if (caster is Character)
-            Logger.Debug($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
-        else
-            Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, NextPhase {owner.FuncGroupId}");
-
-        return false; // let's continue with the phase functions
+        return false;
     }
 }

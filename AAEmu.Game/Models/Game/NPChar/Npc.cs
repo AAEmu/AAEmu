@@ -58,7 +58,7 @@ public partial class Npc : Unit
                 default:
                     {
                         // If more than one, we need to grab the Time of Day first
-                        var myTime = TimeManager.Instance.GetTime();
+                        var myTime = TimeManager.Instance.GetTime;
                         return Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= myTime)?.AnimActionId ?? 0;
                     }
             }

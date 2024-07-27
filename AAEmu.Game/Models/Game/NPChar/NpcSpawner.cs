@@ -330,7 +330,7 @@ public class NpcSpawner : Spawner<Npc>
         // Check if Time Of Day matches Template.StartTime or Template.EndTime
         if (Template.StartTime > 0.0f | Template.EndTime > 0.0f)
         {
-            var curTime = TimeManager.Instance.GetTime();
+            var curTime = TimeManager.Instance.GetTime;
             if (!TimeSpan.FromHours(curTime).IsBetween(TimeSpan.FromHours(Template.StartTime), TimeSpan.FromHours(Template.EndTime)))
             {
                 var start = (int)Math.Round(Template.StartTime);
@@ -425,7 +425,7 @@ public class NpcSpawner : Spawner<Npc>
 
         if (Template.StartTime > 0.0f | Template.EndTime > 0.0f)
         {
-            var curTime = TimeManager.Instance.GetTime();
+            var curTime = TimeManager.Instance.GetTime;
             if (TimeSpan.FromHours(curTime).IsBetween(TimeSpan.FromHours(Template.StartTime), TimeSpan.FromHours(Template.EndTime)))
             {
                 var end = (int)Math.Round(Template.EndTime);

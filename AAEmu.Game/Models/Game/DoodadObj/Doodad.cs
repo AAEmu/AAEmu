@@ -206,7 +206,7 @@ public class Doodad : BaseUnit
     public VehicleSeat Seat { get; set; }
     private List<uint> ListGroupId { get; set; }
     public List<AreaTrigger> AttachAreaTriggers { get; set; } = new();
-
+    
     public Doodad()
     {
         _scale = 1f;
