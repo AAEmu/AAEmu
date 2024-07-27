@@ -496,15 +496,15 @@ public static class SCOffsets
     public const ushort SCUnkPacket10 = 0x1fd;
     public const ushort SCUnkPacket11 = 0x1fe;
     public const ushort SCUnkPacket12 = 0x1ff;
-    public const ushort SCUnkPacket13 = 0x200;
+    public const ushort SCUnkPacket13 = 0x200; // Sleepless/Nightshift sent?
     public const ushort SCUpdatePremiumPointPacket = 0x201;
     public const ushort SCPremiumPointChangedPacket = 0x202;
     public const ushort SCUnitGmModeChangedPacket = 0x203;
     public const ushort SCUnitPvPPointsChangedPacket = 0x204;
     public const ushort SCRankAlarmPacket = 0x205;
-    public const ushort SCUnkPacket15 = 0x206;
+    public const ushort SCUnkPacket15 = 0x206; // Select Dimension, uint ZoneGroupId
     public const ushort SCUnkPacket16 = 0x207;
-    public const ushort SCUnkPacket17 = 0x208;
+    public const ushort SCUnkPacket17 = 0x208; // Secure mode error message
     public const ushort SCUnkCharacterAddStatPacket = 0x209;
     public const ushort SCUnlockCurrencySlotPacket = 0x20a;
     public const ushort SCUnkPacket20 = 0x20b;
@@ -512,6 +512,7 @@ public static class SCOffsets
     public const ushort SCUnkPacket22 = 0x20d;
     public const ushort SCUnkPacket23 = 0x20e;
     public const ushort SCUnkPacket24 = 0x20f;
+    public const ushort SCUnkPacket28 = 0x210;
     public const ushort SCWorldMessagePacket = 0x211;
     public const ushort SCUnkPacket25 = 0x212;
     public const ushort SCUnkPacket26 = 0x213;

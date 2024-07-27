@@ -43,17 +43,21 @@ public class DoodadFuncLootItem : DoodadFuncTemplate
             character.Money += count;
             res = character.AddMoney(SlotType.Inventory, count);
         }
-        else if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
-        {
-            var item = ItemManager.Instance.Create(ItemId, count, 0);
-            if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
-            {
-                res = character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item, (int)Items.EquipmentItemSlot.Backpack);
-            }
-        }
         else
         {
-            res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, ItemId, count);
+            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
+            {
+                var item = ItemManager.Instance.Create(ItemId, count, 0);
+                if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
+                {
+                    res = character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item,
+                        (int)Items.EquipmentItemSlot.Backpack);
+                }
+            }
+            else
+            {
+                res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, ItemId, count);
+            }
         }
 
         if (res == false)
