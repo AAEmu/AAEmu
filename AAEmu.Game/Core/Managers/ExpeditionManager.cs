@@ -496,8 +496,17 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
     public static void SendExpeditionInfo(Character character)
     {
+        var members = character.Expedition.Members;
+        var total = (uint)members.Count;
+        var id = character.Expedition.Id;
+
         character.SendPacket(new SCExpeditionRolePolicyListPacket(character.Expedition.Policies));
-        character.SendPacket(new SCExpeditionMemberListPacket(character.Expedition));
+
+        for (int i = 0; i < members.Count; i += 20)
+        {
+            var block = members.Skip(i).Take(20).ToList();
+            character.SendPacket(new SCExpeditionMemberListPacket(total, id, block));
+        }
     }
 
     public static void Save(Expedition expedition)
