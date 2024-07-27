@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -16,13 +16,6 @@ public class SCExpeditionMemberListPacket : GamePacket
         _total = total;
         _id = id;
         _members = members;
-    }
-
-    public SCExpeditionMemberListPacket(Expedition expedition) : base(SCOffsets.SCExpeditionMemberListPacket, 1)
-    {
-        _total = (uint)expedition.Members.Count;
-        _id = expedition.Id;
-        _members = expedition.Members; // TODO max 20
     }
 
     public override PacketStream Write(PacketStream stream)
