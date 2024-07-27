@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 using System.Linq;
@@ -124,19 +124,15 @@ public abstract class NpcAi
 
     protected void SetCurrentBehavior(BehaviorKind kind)
     {
-        if (!_behaviors.TryGetValue(kind, out var nextBehavior))
+        if (!_behaviors.ContainsKey(kind))
         {
             Logger.Trace(
                 $"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
             return;
         }
 
-        // Ignore if not changed
-        if (_currentBehavior == nextBehavior)
-            return;
-
-        //Logger.Trace($"Set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior: {kind}");
-        SetCurrentBehavior(nextBehavior);
+        Logger.Trace($"Set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior: {kind}");
+        SetCurrentBehavior(_behaviors[kind]);
     }
 
     public Behavior AddTransition(Behavior source, Transition target)

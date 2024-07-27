@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -46,7 +47,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
         _aiParams = aiParams;
 
-        if (!UpdateTarget() || ShouldReturn) // проверим, что таблица abuser не пустая и назначим текущую цель
+        if (!UpdateTarget() || ShouldReturn)
         {
             Ai.OnNoAggroTarget();
             return;
@@ -104,7 +105,9 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
             Ai.Owner.CurrentGameStance = GameStanceType.Combat;
             Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint()
             {
-                Action = AiPathPointAction.Speed, Param = "3", Position = Ai.HomePosition
+                Action = AiPathPointAction.Speed,
+                Param = "3",
+                Position = Ai.HomePosition
             });
             Ai.GoToFollowPath();
         }

@@ -27,6 +27,7 @@ public class SCUnitStatePacket : GamePacket
     public SCUnitStatePacket(Unit unit) : base(SCOffsets.SCUnitStatePacket, 5)
     {
         _unit = unit;
+        _modelPostureType = unit.ModelPostureType;
         switch (_unit)
         {
             case Character:
@@ -35,7 +36,7 @@ public class SCUnitStatePacket : GamePacket
                 break;
             case Npc npc:
                 _baseUnitType = BaseUnitType.Npc;
-                _modelPostureType = npc.Template.AnimActionId > 0 ? ModelPostureType.ActorModelState : ModelPostureType.None;
+                _modelPostureType = npc.AnimActionId > 0 ? ModelPostureType.ActorModelState : ModelPostureType.None;
                 break;
             case Slave:
                 _baseUnitType = BaseUnitType.Slave;
@@ -81,7 +82,7 @@ public class SCUnitStatePacket : GamePacket
             case BaseUnitType.Npc:
                 stream.WriteBc(npc.ObjId);    // objId
                 stream.Write(npc.TemplateId); // npc templateId
-                stream.Write(0u);             // type(id)
+                stream.Write(0);              // type(id) (ownerId?)
                 stream.Write((byte)0);        // clientDriven
                 break;
             case BaseUnitType.Slave:
@@ -218,7 +219,7 @@ public class SCUnitStatePacket : GamePacket
 
         #region UnitModelPosture
 
-        Unit.ModelPosture(stream, _unit, _baseUnitType, _modelPostureType);
+        Unit.ModelPosture(stream, _unit, (_unit as Npc)?.AnimActionId ?? 0, true);
 
         #endregion
 

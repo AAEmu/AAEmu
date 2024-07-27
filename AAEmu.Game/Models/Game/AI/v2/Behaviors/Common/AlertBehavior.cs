@@ -28,7 +28,7 @@ public class AlertBehavior : BaseCombatBehavior
 
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
         Ai.Owner.CurrentAlertness = MoveTypeAlertness.Alert;
-        
+
         if (Ai.Owner is { } npc)
         {
             // npc.Events.OnAlert(this, new OnAlertArgs { Npc = npc, Target = npc.CurrentTarget});
@@ -52,7 +52,7 @@ public class AlertBehavior : BaseCombatBehavior
         if ((DateTime.UtcNow > Ai._alertEndTime) && (Ai.Owner.SkillTask == null))
         {
             // Ai.Owner.SetTarget(null);
-            Ai.Owner.Transform.Local.SetRotation(_oldRotation.X,_oldRotation.Y, _oldRotation.Z);
+            Ai.Owner.Transform.Local.SetRotation(_oldRotation.X, _oldRotation.Y, _oldRotation.Z);
             // Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, BaseUnitType.Npc, ModelPostureType.ActorModelState, Ai.Owner.Template.AnimActionId, true), false);
             Ai.Owner.SetTarget(null);
             Ai.GoToIdle();
