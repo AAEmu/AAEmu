@@ -1,12 +1,13 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Models;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
 public class UnitMoveType : MoveType
 {
     public sbyte[] DeltaMovement { get; set; }
-    public sbyte Stance { get; set; }
-    public sbyte Alertness { get; set; }
+    public GameStanceType Stance { get; set; }
+    public MoveTypeAlertness Alertness { get; set; }
     public byte GcFlags { get; set; }
     public ushort GcPartId { get; set; }
     public float X2 { get; set; }
@@ -34,8 +35,8 @@ public class UnitMoveType : MoveType
         DeltaMovement[0] = stream.ReadSByte();
         DeltaMovement[1] = stream.ReadSByte();
         DeltaMovement[2] = stream.ReadSByte();
-        Stance = stream.ReadSByte();
-        Alertness = stream.ReadSByte();
+        Stance = (GameStanceType)stream.ReadSByte();
+        Alertness = (MoveTypeAlertness)stream.ReadByte();
         ActorFlags = stream.ReadByte();
         if ((ActorFlags & 0x80) == 0x80)
             FallVel = stream.ReadUInt16(); // actor.fallVel
@@ -68,8 +69,8 @@ public class UnitMoveType : MoveType
         stream.Write(DeltaMovement[0]);
         stream.Write(DeltaMovement[1]);
         stream.Write(DeltaMovement[2]);
-        stream.Write(Stance);
-        stream.Write(Alertness);
+        stream.Write((byte)Stance);
+        stream.Write((byte)Alertness);
         stream.Write(ActorFlags);
         if ((ActorFlags & 0x80) == 0x80)
             stream.Write(FallVel);

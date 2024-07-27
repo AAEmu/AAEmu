@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -20,7 +25,8 @@ public class FollowPathBehavior : BaseCombatBehavior
     {
         Ai.Owner.InterruptSkills();
         _skillQueue = new Queue<AiSkill>();
-        Ai.Owner.CurrentGameStance = GameStanceType.Fly;
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
 
         _combatStartTime = DateTime.UtcNow;
 
@@ -42,17 +48,42 @@ public class FollowPathBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        if (Ai.Param is not AlmightyNpcAiParams aiParams)
+        //if (Ai.Param is not AlmightyNpcAiParams aiParams)
+        //   return;
+
+        //_aiParams = aiParams;
+
+        if (!UpdateTarget())
+            Ai.Owner.SetTarget(Ai.Owner);
+
+        if (CheckAggression())
             return;
 
-        _aiParams = aiParams;
+        if (CheckAlert())
+            return;
+        
+        //var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+        //PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
 
-        Ai.Owner.SetTarget(Ai.Owner);
+        // If still aggro, go back to combat
+        if (Ai.Owner.IsInBattle && !Ai.Owner.AggroTable.IsEmpty)
+        {
+            Ai.GoToCombat();
+            return;
+        }
 
-        UpdateTarget();
+        if (!Ai.PathHandler.RunCurrentPath(delta))
+        {
+            Ai.GoToIdle();
+        }
 
+        if (Ai.PathHandler.TargetPosition == Vector3.Zero && Ai.PathHandler.AiPathPoints.Count <= 0 && Ai.PathHandler.AiPathPointsRemaining.Count <= 0)
+        {
+            Ai.GoToIdle();
+        }
+
+        /*
         CheckPipeName();
-
         if (!CanUseSkill)
             return;
 
@@ -88,17 +119,17 @@ public class FollowPathBehavior : BaseCombatBehavior
 
         #endregion
 
-        if (Ai.Owner is not { } npc)
-            return;
-
-        var healthRatio = (float)npc.Hp / npc.MaxHp * 100;
+        var healthRatio = (float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100;
         if (!(healthRatio <= 80f))
             return;
+        */
 
-        npc.IsInPatrol = false;
-        npc.Simulation.MoveToPathEnabled = false;
-        npc.StopMovement();
-        Ai.GoToAlert();
+        /*
+        Ai.Owner.IsInPatrol = false;
+        Ai.Owner.Simulation.MoveToPathEnabled = false;
+        Ai.Owner.StopMovement();
+        Ai.GoToDefaultBehavior();
+        */
     }
 
     public override void Exit()

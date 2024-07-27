@@ -8,7 +8,7 @@ public class DummyAiCharacter : NpcAi
     protected override void Build()
     {
         AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
-        AddBehavior(BehaviorKind.Dummy, new DummyBehavior());
+        AddBehavior(BehaviorKind.Dummy, new DummyBehavior()).SetDefaultBehavior();
         AddBehavior(BehaviorKind.Dead, new DeadBehavior());
         AddBehavior(BehaviorKind.Despawning, new DespawningBehavior());
     }

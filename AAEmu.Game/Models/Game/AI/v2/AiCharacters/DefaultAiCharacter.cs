@@ -10,6 +10,7 @@ public class DefaultAiCharacter : NpcAi
         AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
 
         AddBehavior(BehaviorKind.DoNothing, new DoNothingBehavior())
+            .SetDefaultBehavior()
             .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.Attack)
             .AddTransition(TransitionEvent.OnTalk, BehaviorKind.Talk);
 
@@ -37,12 +38,13 @@ public class DefaultAiCharacter : NpcAi
         AddBehavior(BehaviorKind.ReturnState, new ReturnStateBehavior());
         AddBehavior(BehaviorKind.Dead, new DeadBehavior());
         AddBehavior(BehaviorKind.Despawning, new DespawningBehavior());
+        AddBehavior(BehaviorKind.Idle, new IdleBehavior());
     }
 
-    public override void GoToIdle()
-    {
-        SetCurrentBehavior(BehaviorKind.DoNothing);
-    }
+    // public override void GoToIdle()
+    // {
+    //     SetCurrentBehavior(BehaviorKind.DoNothing);
+    // }
 
     public override void GoToCombat()
     {

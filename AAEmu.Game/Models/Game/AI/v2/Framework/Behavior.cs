@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -25,6 +25,7 @@ public abstract class Behavior
 
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
+    protected float _minWeaponRange;
     protected float _maxWeaponRange;
 
     public NpcAi Ai { get; set; }
@@ -104,7 +105,7 @@ public abstract class Behavior
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
         var skill = new Skill(skillTemplate);
 
-        SetMaxWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
+        SetWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
 
         var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
         if (Ai.Owner.Template.BaseSkillDelay == 0)
@@ -238,8 +239,12 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Need to check for stealth detection here
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
+            // Arbitrary value
+            var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 3.5f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.5f);
+
+            // Check if in front, and not too far up or down
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {
@@ -309,8 +314,12 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Need to check for stealth detection here
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
+            // Arbitrary value 
+            var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 4f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.75f);
+
+            // Check if in front, and not too far up or down
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {
@@ -356,7 +365,7 @@ public abstract class Behavior
         }
     }
 
-    public void SetMaxWeaponRange(Skill skill, BaseUnit target)
+    public void SetWeaponRange(Skill skill, BaseUnit target)
     {
         var unit = (Unit)target;
         // Check if target is within range
@@ -383,6 +392,18 @@ public abstract class Behavior
             maxRangeCheck = maxWeaponRange;
         }
 
+        _minWeaponRange = (float)minRangeCheck;
         _maxWeaponRange = (float)maxRangeCheck;
+    }
+
+    public bool CheckFollowPath()
+    {
+        return Ai.PathHandler.HasPathMovementData();
+    }
+    
+    public Behavior SetDefaultBehavior()
+    {
+        Ai.SetDefaultBehavior(this);
+        return this;
     }
 }

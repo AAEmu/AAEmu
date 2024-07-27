@@ -65,7 +65,9 @@ public abstract class BaseCombatBehavior : Behavior
         {
             range -= 1f; // Fix that ID=7927, Plateau Earth Elemental can hit with a melee attack
         }
-        var speed = Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f);
+        var speed = Ai.GetRealMovementSpeed();
+        var moveFlags = Ai.GetRealMovementFlags(speed);
+        speed *= (delta.Milliseconds / 1000.0);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
         if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
@@ -97,7 +99,7 @@ public abstract class BaseCombatBehavior : Behavior
                     distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
                     if (distanceToTarget > range)
                     {
-                        Ai.Owner.MoveTowards(position, speed);
+                        Ai.Owner.MoveTowards(position, (float)speed, moveFlags);
                     }
                     else
                     {
@@ -116,7 +118,7 @@ public abstract class BaseCombatBehavior : Behavior
                 else
                 {
                     if (distanceToTarget > range)
-                        Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+                        Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
                     else
                         Ai.Owner.StopMovement();
                 }
@@ -124,7 +126,7 @@ public abstract class BaseCombatBehavior : Behavior
             else
             {
                 if (distanceToTarget > range && target != null)
-                    Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+                    Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
                 else
                     Ai.Owner.StopMovement();
             }
@@ -132,7 +134,7 @@ public abstract class BaseCombatBehavior : Behavior
         else
         {
             if (distanceToTarget > range && target != null)
-                Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
+                Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
             else
                 Ai.Owner.StopMovement();
         }
@@ -189,7 +191,7 @@ public abstract class BaseCombatBehavior : Behavior
                 return true; // нет цели, возвращаемся
 
             var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true);
-            var distanceToIdlePosition = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position, true);
+            var distanceToIdlePosition = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition, true);
 
             var res = distanceToTarget > returnDistance || distanceToIdlePosition > returnDistance;
             if (res)
@@ -218,7 +220,7 @@ public abstract class BaseCombatBehavior : Behavior
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
-                    if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargetted)
+                    if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargeted)
                     {
                         // TODO найдем путь к abuser
                         Ai.Owner.FindPath(abuser);

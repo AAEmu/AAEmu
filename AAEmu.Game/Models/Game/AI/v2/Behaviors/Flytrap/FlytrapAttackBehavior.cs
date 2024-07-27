@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Linq;
 using System.Numerics;
-
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params.Flytrap;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap;
@@ -21,6 +22,8 @@ public class FlytrapAttackBehavior : Behavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
         
         if (Ai.Owner is { } npc)
         {
@@ -150,7 +153,7 @@ public class FlytrapAttackBehavior : Behavior
         foreach (var abuser in abusers)
         {
             Ai.Owner.LookTowards(abuser.Transform.World.Position);
-            if (Ai.AlreadyTargetted)
+            if (Ai.AlreadyTargeted)
                 return true;
 
             if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
@@ -195,7 +198,7 @@ public class FlytrapAttackBehavior : Behavior
         var abuser = (Unit)Ai.Owner.CurrentTarget;
         var abuserPos = Ai.Owner.CurrentTarget.Transform.World.Position;
         var currentPos = Ai.Owner.Transform.World.Position;
-        var idlePos = Ai.IdlePosition.World.Position;
+        var idlePos = Ai.IdlePosition;
         // Check out of idle pos
         if (Ai.Param.AlwaysTeleportOnReturn && MathUtil.DistanceSqVectors(currentPos, idlePos) > 3 * 3)
         {

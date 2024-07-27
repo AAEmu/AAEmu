@@ -111,6 +111,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         FormulaManager.Instance.Load();
         ExperienceManager.Instance.Load();
+        AiPathsManager.Instance.Load();
 
         TlIdManager.Instance.Initialize();
         SpecialtyManager.Instance.Load();

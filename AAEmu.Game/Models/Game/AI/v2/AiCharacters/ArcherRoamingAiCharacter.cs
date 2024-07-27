@@ -11,6 +11,7 @@ public class ArcherRoamingAiCharacter : NpcAi
         AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
 
         AddBehavior(BehaviorKind.Roaming, new RoamingBehavior())
+            .SetDefaultBehavior()
             .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.ArcherAttack)
             .AddTransition(TransitionEvent.OnTalk, BehaviorKind.Talk);
 
@@ -38,12 +39,13 @@ public class ArcherRoamingAiCharacter : NpcAi
         AddBehavior(BehaviorKind.ReturnState, new ReturnStateBehavior());
         AddBehavior(BehaviorKind.Dead, new DeadBehavior());
         AddBehavior(BehaviorKind.Despawning, new DespawningBehavior());
+        AddBehavior(BehaviorKind.Idle, new IdleBehavior());
     }
 
-    public override void GoToIdle()
-    {
-        SetCurrentBehavior(BehaviorKind.Roaming);
-    }
+    // public override void GoToIdle()
+    // {
+    //     SetCurrentBehavior(BehaviorKind.Roaming);
+    // }
 
     public override void GoToCombat()
     {

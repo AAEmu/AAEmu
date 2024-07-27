@@ -43,7 +43,7 @@ public class Simulation : Patrol
     public bool AbandonTo { get; set; } = false; // to interrupt repeat()
     public bool Cycle { get; set; } // for non-stop movement along the route
     public bool Remove { get; set; } // удалить Npc в конце движения по маршруту
-    public Transform TargetPosition { get; set; } // Target position
+    public Vector3 TargetPosition { get; set; } // Target position
 
     // movement data
     public Dictionary<string, List<Vector3>> Paths { get; set; } // available routes for Npc movement
@@ -170,11 +170,11 @@ public class Simulation : Patrol
 
         for (var i = 0; i < pointsList.Count - 1; i++)
         {
-            TargetPosition.World.SetPosition(pointsList[i]);
+            TargetPosition = pointsList[i];
 
             //Logger.Warn($"Проверяем точку #{i} с координатами  x={TargetPosition.World.Position.X} y={TargetPosition.World.Position.Y}");
 
-            var m = MathUtil.CalculateDistance(TargetPosition.World.Position, npc.Transform.World.Position, true);
+            var m = MathUtil.CalculateDistance(TargetPosition, npc.Transform.World.Position, true);
             if (m <= 0) { continue; }
 
             if (result == -1)
@@ -225,7 +225,7 @@ public class Simulation : Patrol
         {
             foreach (var b in RecordPath)
             {
-                sw.WriteLine(b.ToString());
+                sw.WriteLine(b);
             }
         }
         //Logger.Warn("Route recording completed.");
@@ -250,8 +250,8 @@ public class Simulation : Patrol
     public void ParseMoveClient(Npc npc)
     {
         if (!SavePathEnabled) { return; }
-        TargetPosition.World.SetPosition(npc.Transform.World.Position.X, npc.Transform.World.Position.Y, npc.Transform.World.Position.Z);
-        var s = "|" + TargetPosition.World.Position.X + "|" + TargetPosition.World.Position.Y + "|" + TargetPosition.World.Position.Z + "|";
+        TargetPosition = new Vector3(npc.Transform.World.Position.X, npc.Transform.World.Position.Y, npc.Transform.World.Position.Z);
+        var s = "|" + TargetPosition.X + "|" + TargetPosition.Y + "|" + TargetPosition.Z + "|";
         RecordPath.Add(s);
         PointsCount++;
         //Logger.Warn("добавлен чекпоинт # {0}", PointsCount);
@@ -279,7 +279,7 @@ public class Simulation : Patrol
         //Logger.Warn("trying to get on the path...");
         //Character.SendMessage("[MoveTo] trying to get on the path...");
         // first go to the closest checkpoint
-        npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), true);
+        npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, npc.AnimActionId, false), true);
         Path = GetPaths(MoveFileName);
 
         if (Path.Count == 0)
@@ -303,12 +303,12 @@ public class Simulation : Patrol
         //Logger.Warn($"checkpoint #{i}");
         //Character.SendMessage($"[MoveTo] checkpoint #{i}");
         var s = MovePath[MoveStepIndex];
-        TargetPosition.World.SetPosition(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
-        if (Math.Abs(OldPos.X - TargetPosition.World.Position.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.World.Position.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.World.Position.Z) > tolerance)
+        TargetPosition = new Vector3(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+        if (Math.Abs(OldPos.X - TargetPosition.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.Z) > tolerance)
         {
-            OldPos = new Vector3(TargetPosition.World.Position.X, TargetPosition.World.Position.Y, TargetPosition.World.Position.Z);
+            OldPos = new Vector3(TargetPosition.X, TargetPosition.Y, TargetPosition.Z);
         }
-        RepeatMove(this, npc, TargetPosition.World.Position);
+        RepeatMove(this, npc, TargetPosition);
     }
     public void GoToPath2(Npc npc, bool toForward, uint skillId = 0, uint timeout = 0)
     {
@@ -323,7 +323,7 @@ public class Simulation : Patrol
         //Logger.Warn("trying to get on the path...");
         //Character.SendMessage("[MoveTo] trying to get on the path...");
         // first go to the closest checkpoint
-        npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, BaseUnitType.Npc, ModelPostureType.ActorModelState, 2), true);
+        npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, npc.AnimActionId, false), true);
         Path = GetPaths(MoveFileName);
 
         if (Path.Count == 0)
@@ -347,12 +347,12 @@ public class Simulation : Patrol
         //Logger.Warn($"checkpoint #{i}");
         //Character.SendMessage($"[MoveTo] checkpoint #{i}");
         var s = MovePath[MoveStepIndex];
-        TargetPosition.World.SetPosition(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
-        if (Math.Abs(OldPos.X - TargetPosition.World.Position.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.World.Position.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.World.Position.Z) > tolerance)
+        TargetPosition = new Vector3(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+        if (Math.Abs(OldPos.X - TargetPosition.X) > tolerance && Math.Abs(OldPos.Y - TargetPosition.Y) > tolerance && Math.Abs(OldPos.Z - TargetPosition.Z) > tolerance)
         {
-            OldPos = new Vector3(TargetPosition.World.Position.X, TargetPosition.World.Position.Y, TargetPosition.World.Position.Z);
+            OldPos = new Vector3(TargetPosition.X, TargetPosition.Y, TargetPosition.Z);
         }
-        RepeatMove(this, npc, TargetPosition.World.Position, timeout);
+        RepeatMove(this, npc, TargetPosition, timeout);
     }
 
     public void MoveTo(Simulation sim, Npc npc, Vector3 target)
@@ -393,9 +393,9 @@ public class Simulation : Patrol
             var travelDist = Math.Min(targetDist, distance);
 
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
-            var (newX, newY, newZ) = PositionAndRotation.AddDistanceToFront(travelDist, targetDist, npc.Transform.Local.Position, target);
+            var (newX, newY, _) = PositionAndRotation.AddDistanceToFront(travelDist, targetDist, npc.Transform.Local.Position, target);
 
-            newZ = WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Z);
+            var newZ = WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Z);
             if (newZ == 0)
             {
                 newZ = npc.Transform.World.Position.Z;
@@ -423,8 +423,8 @@ public class Simulation : Patrol
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = (sbyte)(RunningMode ? 127 : 63);
             moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
-            moveType.Alertness = 1; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Stance = npc.CurrentGameStance;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = npc.CurrentAlertness; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
             npc.CheckMovedPosition(oldPosition);
@@ -507,11 +507,11 @@ public class Simulation : Patrol
             StopMove(npc);
             return;
         }
-        TargetPosition.World.SetPosition(Path[MoveStepIndex]);
+        TargetPosition = Path[MoveStepIndex];
 
-        if (!PosInRange(npc, TargetPosition.World.Position, 3))
+        if (!PosInRange(npc, TargetPosition, 3))
         {
-            RepeatMove(this, npc, TargetPosition.World.Position);
+            RepeatMove(this, npc, TargetPosition);
             return;
         }
         if (MoveToForward)
@@ -524,7 +524,7 @@ public class Simulation : Patrol
                 MoveStepIndex--;
                 //Logger.Warn($"walk to #{MoveStepIndex}");
                 //Character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
-                TargetPosition.World.SetPosition(Path[MoveStepIndex]);
+                TargetPosition = Path[MoveStepIndex];
                 if (Cycle)
                 {
                     // let's pause, use skill
@@ -547,7 +547,7 @@ public class Simulation : Patrol
                         //Timeout = 0;
                     }
 
-                    RepeatMove(this, npc, TargetPosition.World.Position, time);
+                    RepeatMove(this, npc, TargetPosition, time);
                 }
                 else if (!string.IsNullOrEmpty(MoveFileName2))
                 {
@@ -585,7 +585,7 @@ public class Simulation : Patrol
                 MoveStepIndex++;
                 //Logger.Warn($"walk to #{MoveStepIndex}");
                 //Character.SendMessage("[MoveTo] walk to #{MoveStepIndex});
-                TargetPosition.World.SetPosition(Path[MoveStepIndex]);
+                TargetPosition = Path[MoveStepIndex];
                 if (Cycle)
                 {
                     // let's pause, use skill
@@ -608,7 +608,7 @@ public class Simulation : Patrol
                         //Timeout = 0;
                     }
 
-                    RepeatMove(this, npc, TargetPosition.World.Position, time);
+                    RepeatMove(this, npc, TargetPosition, time);
                 }
                 else
                 {
@@ -619,8 +619,8 @@ public class Simulation : Patrol
         }
         //Logger.Warn($"walk to #{MoveStepIndex}");
         //Character.SendMessage("[MoveTo] walk to #{MoveStepIndex});
-        TargetPosition.World.SetPosition(Path[MoveStepIndex]);
-        RepeatMove(this, npc, TargetPosition.World.Position);
+        TargetPosition = Path[MoveStepIndex];
+        RepeatMove(this, npc, TargetPosition);
     }
 
     private void Init(GameObject unit) // Called when the script is enabled
@@ -635,7 +635,7 @@ public class Simulation : Patrol
                 break;
         }
 
-        TargetPosition = new Transform(unit, unit.ParentObj?.Transform);
+        TargetPosition = unit.ParentObj?.Transform?.World?.Position ?? Vector3.Zero;
         RecordPath = new List<string>();
         Paths = new Dictionary<string, List<Vector3>>();
     }

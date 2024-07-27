@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -17,6 +18,7 @@ public class SpawningBehavior : BaseCombatBehavior
     public override void Enter()
     {
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
         if (Ai.Owner is { } npc)
         {
             npc.Events.OnSpawn(this, new OnSpawnArgs { Npc = npc });
@@ -56,6 +58,7 @@ public class SpawningBehavior : BaseCombatBehavior
                 skill.Use(Ai.Owner, skillCaster, skillTarget, null, true, out _);
             }
         }
+
         // TODO: This follows the game's way of doing it. This will need code later, obviously
         Ai.GoToRunCommandSet();
     }

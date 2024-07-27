@@ -196,7 +196,7 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_faction_match, Value1, unit?.Faction?.Id == Value1);
 
             case UnitReqsKindType.Tod:
-                var currentTime = (uint)Math.Floor(TimeManager.Instance.GetTime() * 100f);
+                var currentTime = (uint)Math.Floor(TimeManager.Instance.GetTime * 100f);
                 return Ret(SkillResultKeys.skill_urk_tod, currentTime >= Value1 && currentTime <= Value2);
 
             case UnitReqsKindType.MotherFaction:

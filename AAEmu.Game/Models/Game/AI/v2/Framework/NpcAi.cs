@@ -1,16 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 
+using System.Linq;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
-using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
+using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 
 using NLog;
@@ -26,45 +27,55 @@ public abstract class NpcAi
 
     // Test
     public bool ShouldTick { get; set; }
-    public bool AlreadyTargetted { get; set; }
+    public bool AlreadyTargeted { get; set; }
 
-    public Npc Owner { get; set; }
-    public Transform IdlePosition { get; set; }
+    public Npc Owner { get; init; }
+    public Vector3 IdlePosition { get; set; }
+    public Vector3 HomePosition { get; set; }
     public AiParams Param { get; set; }
     public PathNode PathNode { get; set; }
 
-    private Dictionary<BehaviorKind, Behavior> _behaviors;
-    private Dictionary<Behavior, List<Transition>> _transitions;
+    private readonly Dictionary<BehaviorKind, Behavior> _behaviors;
+    private readonly Dictionary<Behavior, List<Transition>> _transitions;
     private Behavior _currentBehavior;
+    private Behavior _defaultBehavior;
     public DateTime _nextAlertCheckTime = DateTime.MinValue;
     public DateTime _alertEndTime = DateTime.MinValue;
 
+    #region ai_commands
     /// <summary>
     /// A list of AiCommands that should take priority over any other behavior
     /// </summary>
-    private Queue<AiCommands> AiCommandsQueue { get; set; } = new();
+    public Queue<AiCommands> AiCommandsQueue { get; set; } = new();
 
     /// <summary>
     /// Currently executing command
     /// </summary>
-    private AiCommands AiCurrentCommand { get; set; } = null;
+    public AiCommands AiCurrentCommand { get; set; }
 
     /// <summary>
     /// Time that AiCurrentCommand started
     /// </summary>
     public DateTime AiCurrentCommandStartTime { get; set; } = DateTime.MinValue;
-    // Persistent arguments for AiCommands queue
-    private string AiFileName { get; set; } = string.Empty;
-    private string AiFileName2 { get; set; } = string.Empty;
-    private uint AiSkillId { get; set; }
-    private uint AiTimeOut { get; set; }
-    private TimeSpan AiCurrentCommandRunTime { get; set; } = TimeSpan.Zero;
+    public TimeSpan AiCurrentCommandRunTime { get; set; } = TimeSpan.Zero;
+    #endregion ai_commands
 
-    public NpcAi()
+    public AiPathHandler PathHandler { get; set; }
+
+    public Unit AiFollowUnitObj { get; set; }
+
+    // Persistent arguments for AiCommands queue
+    public string AiFileName { get; set; } = string.Empty;
+    public string AiFileName2 { get; set; } = string.Empty;
+    public uint AiSkillId { get; set; }
+    public uint AiTimeOut { get; set; }
+
+    protected NpcAi()
     {
         _behaviors = new Dictionary<BehaviorKind, Behavior>();
         _transitions = new Dictionary<Behavior, List<Transition>>();
         PathNode = new PathNode();
+        PathHandler = new AiPathHandler(this);
     }
 
     public void Start()
@@ -81,8 +92,7 @@ public abstract class NpcAi
         foreach (var transition in _transitions.Values.SelectMany(transitions =>
                      transitions.Where(transition => !_behaviors.ContainsKey(transition.Kind))))
         {
-            Logger.Error("Transition is invalid. Type {0} missing, while used in transition on {1}",
-                transition.Kind.GetType().Name, transition.On);
+            Logger.Error($"Transition is invalid. Type {transition.Kind.GetType().Name} missing, while used in transition on {transition.On}");
         }
     }
 
@@ -100,7 +110,7 @@ public abstract class NpcAi
 
     private Behavior GetBehavior(BehaviorKind kind)
     {
-        return !_behaviors.ContainsKey(kind) ? null : _behaviors[kind];
+        return _behaviors.GetValueOrDefault(kind);
     }
 
     private void SetCurrentBehavior(Behavior behavior)
@@ -139,19 +149,6 @@ public abstract class NpcAi
             || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
         if (Owner?.Region?.HasPlayerActivity() ?? false)
         {
-            // If there are commands in the AI Command queue, execute those first
-            if ((AiCurrentCommand != null) || (AiCommandsQueue.Count > 0))
-            {
-                if (AiCurrentCommand == null)
-                {
-                    AiCurrentCommand = AiCommandsQueue.Dequeue();
-                    AiCurrentCommandStartTime = DateTime.UtcNow;
-                }
-
-                TickCurrentAiCommand(AiCurrentCommand, delta);
-                return;
-            }
-
             _currentBehavior?.Tick(delta);
 
             // If aggro table is populated, check if current aggro targets need to be cleared
@@ -164,26 +161,29 @@ public abstract class NpcAi
                 return;
             }
 
-            var toRemove = new List<Unit>();
-            foreach (var (id, aggro) in Owner.AggroTable)
-                if (aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.NoFight) ||
-                    aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.Returning) ||
-                    !Owner.CanAttack(aggro.Owner))
-                    toRemove.Add(aggro.Owner);
+            if (Owner != null)
+            {
+                var toRemove = new List<Unit>();
+                foreach (var (_, aggro) in Owner.AggroTable)
+                    if (aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.NoFight) ||
+                        aggro.Owner.Buffs.CheckBuffTag((uint)TagsEnum.Returning) ||
+                        !Owner.CanAttack(aggro.Owner))
+                        toRemove.Add(aggro.Owner);
 
-            if (toRemove.Count <= 0)
-                return;
+                if (toRemove.Count <= 0)
+                    return;
 
-            foreach (var unitToRemove in toRemove)
-                Owner.ClearAggroOfUnit(unitToRemove);
+                foreach (var unitToRemove in toRemove)
+                    Owner.ClearAggroOfUnit(unitToRemove);
+            }
         }
     }
 
     private void Transition(TransitionEvent on)
     {
-        if (!_transitions.ContainsKey(_currentBehavior))
+        if (!_transitions.TryGetValue(_currentBehavior, out var transitionList))
             return;
-        var transition = _transitions[_currentBehavior].SingleOrDefault(t => t.On == on);
+        var transition = transitionList.SingleOrDefault(t => t.On == on);
         if (transition == null)
             return;
 
@@ -266,81 +266,118 @@ public abstract class NpcAi
         SetCurrentBehavior(BehaviorKind.Despawning);
     }
 
+    public virtual void GoToDefaultBehavior()
+    {
+        if (_defaultBehavior != null)
+            SetCurrentBehavior(_defaultBehavior);
+    }
+
     #endregion
 
-    public void EnqueueAiCommands(List<AiCommands> aiCommandsList)
+    /// <summary>
+    /// Adds a list of AI commands to the execution Queue and goes to the RunCommandSet behavior if there are items in the queue
+    /// </summary>
+    /// <param name="aiCommandsList">List of commands</param>
+    /// <param name="addOnly">If true, will not go to the RunCommandSet behavior</param>
+    public void EnqueueAiCommands(IEnumerable<AiCommands> aiCommandsList, bool addOnly = false)
     {
         foreach (var aiCommand in aiCommandsList)
             AiCommandsQueue.Enqueue(aiCommand);
-    }
-
-    private void TickCurrentAiCommand(AiCommands aiCommand, TimeSpan delta)
-    {
-        if (AiCurrentCommandRunTime < TimeSpan.Zero)
-        {
-            AiCurrentCommand = null;
-            AiCurrentCommandRunTime = TimeSpan.Zero;
+        if (addOnly)
             return;
-        }
-
-
-        // Check if we're still waiting
-        if (AiCurrentCommandRunTime > TimeSpan.Zero)
-        {
-            AiCurrentCommandRunTime -= delta;
-            return;
-        }
-
-        switch (aiCommand.CmdId)
-        {
-            case AiCommandCategory.FollowUnit:
-                break;
-            case AiCommandCategory.FollowPath:
-                if (string.IsNullOrEmpty(AiFileName))
-                {
-                    AiFileName = aiCommand.Param2;
-                }
-                else
-                {
-                    AiFileName2 = aiCommand.Param2;
-                }
-
-                break;
-            case AiCommandCategory.UseSkill:
-                AiSkillId = aiCommand.Param1;
-                var skillTemplate = SkillManager.Instance.GetSkillTemplate(AiSkillId);
-                if (skillTemplate != null && Owner.UseSkill(AiSkillId, Owner.CurrentTarget as Unit ?? Owner) == SkillResult.Success)
-                {
-                    AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(skillTemplate.CooldownTime);
-                }
-                break;
-            case AiCommandCategory.Timeout:
-                AiTimeOut = aiCommand.Param1;
-                AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(AiTimeOut);
-                break;
-            default:
-                throw new NotSupportedException(nameof(aiCommand.CmdId));
-        }
-
-        if (!string.IsNullOrEmpty(AiFileName))
-        {
-            if (Owner.IsInPatrol) { return; }
-
-            Owner.IsInPatrol = true;
-            Owner.Simulation.RunningMode = false;
-            Owner.Simulation.Cycle = false;
-            Owner.Simulation.MoveToPathEnabled = false;
-            Owner.Simulation.MoveFileName = AiFileName;
-            Owner.Simulation.MoveFileName2 = AiFileName2;
-            Owner.Simulation.GoToPath(Owner, true, AiSkillId, AiTimeOut);
-        }
-
-        if (AiCurrentCommandRunTime == TimeSpan.Zero)
-            AiCurrentCommandRunTime = TimeSpan.FromSeconds(-1);
+        if (AiCommandsQueue.Count > 0)
+            GoToRunCommandSet();
     }
 
     public virtual void GoToDummy()
     {
         SetCurrentBehavior(BehaviorKind.Dummy);
+    }
+
+    public Dictionary<BehaviorKind, Behavior> GetAiBehaviorList()
+    {
+        return _behaviors;
+    }
+
+    public void SetDefaultBehavior(Behavior behavior)
+    {
+        _defaultBehavior = behavior;
+    }
+
+    public bool LoadAiPathPoints(string aiPathFileName, bool addToQueueOnly)
+    {
+        var points = AiPathsManager.Instance.LoadAiPathPoints(aiPathFileName);
+        if (points.Count <= 0)
+            return false;
+
+        if (!addToQueueOnly)
+        {
+            PathHandler.AiPathPoints.Clear();
+            PathHandler.AiPathLooping = true; // Set to true to trigger initial loading, need to enable it again in the .path file
+            PathHandler.AiPathPoints.AddRange(points);
+        }
+        else
+        {
+            foreach (var point in points)
+            {
+                PathHandler.AiPathPointsRemaining.Enqueue(point);
+            }
+        }
+
+        return true;
+    }
+
+    public bool DoFollowDefaultNearestNpc()
+    {
+        if (Owner.Spawner?.FollowNpc > 0)
+        {
+            return DoFollowNearestNpc(Owner.Spawner.FollowNpc, 100f);
+        }
+        return false;
+    }
+
+    public bool DoFollowNearestNpc(uint followNpc, float maxRange)
+    {
+        var nearbyNpcs = WorldManager.GetAround<Npc>(Owner, maxRange, true).ToList();
+        Npc nearestNpc = null;
+        var closestDistance = maxRange;
+        foreach (var n in nearbyNpcs)
+        {
+            if (n.TemplateId != followNpc)
+                continue;
+            var dist = n.GetDistanceTo(Owner);
+            if (dist < closestDistance)
+            {
+                closestDistance = dist;
+                nearestNpc = n;
+            }
+        }
+
+        if (nearestNpc != null)
+        {
+            AiFollowUnitObj = nearestNpc;
+            GoToFollowUnit();
+            return true;
+        }
+
+        return false;
+    }
+
+    public double GetRealMovementSpeed()
+    {
+        var moveSpeed = (double)Owner.BaseMoveSpeed;
+        var speedMul = (Owner.CalculateWithBonuses(0, UnitAttribute.MoveSpeedMul) / 1000.0) + 1.0;
+        if (Math.Abs(speedMul - 1.0) > double.Epsilon)
+            moveSpeed *= speedMul;
+
+        return moveSpeed;
+    }
+
+    public byte GetRealMovementFlags(double moveSpeed)
+    {
+        // 3 = Stand still
+        // 4 = Run
+        // 5 = Walk
+        return (byte)(moveSpeed < 0.1 ? 3 : moveSpeed < 2.0 ? 5 : 4);
     }
 }

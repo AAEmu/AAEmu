@@ -2473,9 +2473,23 @@ public class DoodadManager : Singleton<DoodadManager>
                         var func = new DoodadFuncTod
                         {
                             Id = reader.GetUInt32("id"),
-                            Tod = reader.GetInt32("tod"),
+                            Tod = reader.GetUInt32("tod"),
                             NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1
                         };
+
+                        // Calculate the ToD value as a float in hours
+                        var tod = func.Tod;
+                        // Correction for typos in the compact DB
+                        while (tod >= 2400)
+                            tod /= 10;
+                        // Conversion from int to float
+                        var hh = tod / 100;
+                        var mm = tod % 100;
+                        if (mm >= 60)
+                            Logger.Warn($"DoodadFuncToD has invalid value for minutes, Id {func.Id}, ToD {func.Tod}");
+                        mm %= 60;
+                        func.TodAsHours = (hh * 1f) + (mm / 60f);
+                            
                         _phaseFuncTemplates["DoodadFuncTod"].Add(func.Id, func);
                     }
                 }
