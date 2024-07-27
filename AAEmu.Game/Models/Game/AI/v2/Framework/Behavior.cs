@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -25,6 +25,7 @@ public abstract class Behavior
 
     protected DateTime _delayEnd;
     protected float _nextTimeToDelay;
+    protected float _minWeaponRange;
     protected float _maxWeaponRange;
 
     public NpcAi Ai { get; set; }
@@ -50,8 +51,90 @@ public abstract class Behavior
             sightRangeScale = value;
         }
 
-        return sightRangeScale;
+        if (targetDist == 0 && kind == SkillUseConditionKind.InIdle)
+        {
+            // This SkillTargetType.Self & SkillUseConditionKind.InIdle
+            if (skills.Count <= 0)
+            {
+                return res;
+            }
+            var skillSelfId = skills[Rand.Next(skills.Count)].SkillId;
+            var skillTemplateSelf = SkillManager.Instance.GetSkillTemplate(skillSelfId);
+            var skillSelf = new Skill(skillTemplateSelf);
+
+            var delay1 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
+            if (Ai.Owner.Template.BaseSkillDelay == 0)
+            {
+                const uint Delay1 = 10000u;
+                const uint Delay2 = 13000u;
+                delay1 = (int)Rand.Next(Delay1, Delay2);
+            }
+
+            if (this.CheckInterval(delay1))
+            {
+                Logger.Debug("PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
+                res = UseSkill(skillSelf, target);
+            }
+            return res;
+        }
+
+        // This SkillUseConditionKind.InCombat
+        var pickedSkillId = (uint)Ai.Owner.Template.BaseSkillId;
+        if (skills.Count > 0)
+        {
+            pickedSkillId = skills[Rand.Next(skills.Count)].SkillId;
+        }
+
+        // Hackfix for Melee attack. Needs to look at the held weapon (if any) or default to 3m
+        if (pickedSkillId == 2 && targetDist > 4.0f)
+        {
+            return SkillResult.TooFarRange;
+        }
+        var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
+        var skill = new Skill(skillTemplate);
+
+        SetWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
+
+        var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
+        if (Ai.Owner.Template.BaseSkillDelay == 0)
+        {
+            const uint Delay1 = 1500u;
+            const uint Delay2 = 1550u;
+            delay2 = (int)Rand.Next(Delay1, Delay2);
+        }
+
+        if (this.CheckInterval(delay2))
+        {
+            Logger.Debug("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2} on Target {3}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id, target.ObjId);
+            res = UseSkill(skill, target);
+        }
+
+        return res;
     }
+
+    /// <summary>
+    /// Use a skill
+    /// </summary>
+    /// <param name="skill">Skill object to use</param>
+    /// <param name="target">Target Unit</param>
+    /// <param name="delay">Delay (in seconds) after this skill is used before the next one is allowed</param>
+    /// <returns>Skill result of the used skill</returns>
+    public SkillResult UseSkill(Skill skill, BaseUnit target, float delay = 0)
+    {
+        if (target == null)
+        {
+            return SkillResult.NoTarget;
+        }
+
+        if (skill == null)
+        {
+            return SkillResult.Failure;
+        }
+
+        if (Ai.Owner.Cooldowns.CheckCooldown(skill.Id))
+        {
+            return SkillResult.CooldownTime;
+        }
 
     /// <summary>
     /// Trigger when AI is about to attack target and goes to combat mode
@@ -87,8 +170,12 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Need to check for stealth detection here
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
+            // Arbitrary value
+            var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 3.5f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.5f);
+
+            // Check if in front, and not too far up or down
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {
@@ -158,8 +245,12 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Need to check for stealth detection here
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale))
+            // Arbitrary value 
+            var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 4f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.75f);
+
+            // Check if in front, and not too far up or down
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {
@@ -210,7 +301,7 @@ public abstract class Behavior
         }
     }
 
-    public void SetMaxWeaponRange(Skill skill, BaseUnit target)
+    public void SetWeaponRange(Skill skill, BaseUnit target)
     {
         var unit = (Unit)target;
         // Check if target is within range
@@ -237,6 +328,18 @@ public abstract class Behavior
             maxRangeCheck = maxWeaponRange;
         }
 
+        _minWeaponRange = (float)minRangeCheck;
         _maxWeaponRange = (float)maxRangeCheck;
+    }
+
+    public bool CheckFollowPath()
+    {
+        return Ai.PathHandler.HasPathMovementData();
+    }
+    
+    public Behavior SetDefaultBehavior()
+    {
+        Ai.SetDefaultBehavior(this);
+        return this;
     }
 }

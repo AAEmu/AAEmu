@@ -61,7 +61,7 @@ public class SCAuctionSearchedPacket : GamePacket
             }
         }
         stream.Write((ushort)0);
-        stream.Write((ulong)TimeManager.Instance.GetTime());
+        stream.Write((ulong)TimeManager.Instance.GetTime);
         return stream;
     }
 }

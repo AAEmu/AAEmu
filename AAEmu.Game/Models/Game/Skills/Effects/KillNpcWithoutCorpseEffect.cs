@@ -35,6 +35,8 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         else
         {
             var npcs = WorldManager.GetAround<Npc>(target, Radius);
+            if (caster is Npc thisNpc)
+                npcs.Add(thisNpc);
             if (npcs == null) { return; }
             foreach (var npc in npcs.Where(npc => npc.TemplateId == NpcId))
             {
@@ -48,6 +50,7 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         unit.Buffs.RemoveAllEffects();
         if (unit is Npc npc && npc.Spawner != null)
         {
+            npc.DoDespawn(npc);
             npc.Spawner.DespawnWithRespawn(npc);
         }
     }

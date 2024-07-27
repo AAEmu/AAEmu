@@ -13,6 +13,7 @@ public class AlmightyNpcAiCharacter : NpcAi
         AddBehavior(BehaviorKind.Spawning, new SpawningBehavior());
 
         AddBehavior(BehaviorKind.Idle, new IdleBehavior())
+            .SetDefaultBehavior()
             .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.AlmightyAttack)
             .AddTransition(TransitionEvent.ReturnToIdlePos, BehaviorKind.ReturnState)
             .AddTransition(TransitionEvent.OnTalk, BehaviorKind.Talk);

@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -20,6 +23,8 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
         Ai.Owner.InterruptSkills();
         _skillQueue = new Queue<AiSkill>();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
 
         _combatStartTime = DateTime.UtcNow;
 
@@ -90,6 +95,20 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
     public override void Exit()
     {
+        // Experimental handling of guards returning to their home position after chasing somebody
+        // TODO: Fix walking animation
+        if (Ai.Owner.AggroTable.Count == 0 && Ai.PathHandler.AiPathPointsRemaining.Count == 0)
+        {
+            Ai.PathHandler.TargetPosition = Vector3.Zero;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
+            Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+            Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint()
+            {
+                Action = AiPathPointAction.Speed, Param = "3", Position = Ai.HomePosition
+            });
+            Ai.GoToFollowPath();
+        }
+
         _enter = false;
     }
 }

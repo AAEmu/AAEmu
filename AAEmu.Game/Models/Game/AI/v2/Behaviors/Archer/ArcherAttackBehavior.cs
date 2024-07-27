@@ -4,10 +4,12 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2.Params.Archer;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer;
@@ -34,6 +36,9 @@ public class ArcherAttackBehavior : BaseCombatBehavior
         MakeAGapCount = 0;
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+        
         Ai.Owner.IsInBattle = true;
         if (Ai.Owner is { } npc)
         {
@@ -61,11 +66,14 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 
         if (Phase == "needMakeAGap")
         {
-            var idlePosition = Ai.IdlePosition.World.Position;
+            var idlePosition = Ai.IdlePosition;
             var npcPosition = Ai.Owner.Transform.World.Position;
             var abuserPosition = Ai.Owner.CurrentTarget.Transform.World.Position;
 
-            Ai.Owner.MoveTowards(idlePosition, Ai.Owner.BaseMoveSpeed * (100 / 1000.0f));
+            var moveSpeed = Ai.GetRealMovementSpeed();
+            var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
+            moveSpeed *= (delta.Milliseconds / 1000.0);
+            Ai.Owner.MoveTowards(idlePosition, (float)moveSpeed, moveFlags);
 
             var dist = MathUtil.CalculateDistance(npcPosition, idlePosition, true);
             var dist2 = MathUtil.CalculateDistance(npcPosition, abuserPosition, true);

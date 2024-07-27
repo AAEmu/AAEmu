@@ -20,6 +20,7 @@ public sealed class House : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Housing;
     public override BaseUnitType BaseUnitType => BaseUnitType.Housing;
+    public override ModelPostureType ModelPostureType { get => ModelPostureType.HouseState; }
     private object _lock = new();
     private HousingTemplate _template;
     private int _currentStep;

@@ -1,12 +1,13 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Models;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
 public class UnitMoveType : MoveType
 {
     public sbyte[] DeltaMovement { get; set; }
-    public sbyte Stance { get; set; }
-    public sbyte Alertness { get; set; }
+    public GameStanceType Stance { get; set; }
+    public MoveTypeAlertness Alertness { get; set; }
     public byte GcFlags { get; set; }
     public ushort GcPart { get; set; }
     public ushort GcPartId { get; set; }
@@ -36,12 +37,12 @@ public class UnitMoveType : MoveType
         DeltaMovement[0] = stream.ReadSByte();
         DeltaMovement[1] = stream.ReadSByte();
         DeltaMovement[2] = stream.ReadSByte();
-        Stance = stream.ReadSByte();
-        Alertness = stream.ReadSByte();
+        Stance = (GameStanceType)stream.ReadSByte();
+        Alertness = (MoveTypeAlertness)stream.ReadByte();
         ActorFlags = stream.ReadUInt16(); // ushort in 3.0.3.0, sbyte in 1.2
         if ((ActorFlags & 0x80) == 0x80)
             FallVel = stream.ReadUInt16(); // actor.fallVel
-        if ((ActorFlags & 0x20) == 0x20) // TODO если находится на движущейся повозке/лифте/корабле, то здесь координаты персонажа
+        if ((ActorFlags & 0x20) == 0x20) // TODO ���� ��������� �� ���������� �������/�����/�������, �� ����� ���������� ���������
         {
             GcFlags = stream.ReadByte();    // actor.gcFlags
             GcPart = stream.ReadUInt16();   // actor.gcPart
@@ -73,8 +74,8 @@ public class UnitMoveType : MoveType
         stream.Write(DeltaMovement[0]);
         stream.Write(DeltaMovement[1]);
         stream.Write(DeltaMovement[2]);
-        stream.Write(Stance);
-        stream.Write(Alertness);
+        stream.Write((byte)Stance);
+        stream.Write((byte)Alertness);
         stream.Write(ActorFlags);
         if ((ActorFlags & 0x80) == 0x80)
             stream.Write(FallVel);

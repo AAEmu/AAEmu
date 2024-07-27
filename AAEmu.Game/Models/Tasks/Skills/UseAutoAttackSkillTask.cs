@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
@@ -46,7 +47,7 @@ public class UseAutoAttackSkillTask : SkillTask
             // _caster.SendMessage($"[UseAutoAttackSkillTask] Using {_skill.Template.Id} on {target.ObjId}");
             _skill.Use(_caster, casterCaster, targetCaster, skillObject, true, out _);
 
-            var newDelay = TimeSpan.FromMilliseconds(GetAttackDelay());
+            var newDelay = TimeSpan.FromMilliseconds(SkillManager.GetAttackDelay(_skill.Template, _caster));
             if (newDelay != RepeatInterval)
             {
                 _caster.SendMessage($"[AutoAttack] Delay changed {RepeatInterval.TotalMilliseconds} -> {newDelay.TotalMilliseconds}");
@@ -57,19 +58,5 @@ public class UseAutoAttackSkillTask : SkillTask
         {
             _caster.SendMessage($"[UseAutoAttackSkillTask] Cannot attack with {_skill.Template.Id} on {target.ObjId}");
         }
-    }
-
-    /// <summary>
-    /// Calculate the delay between Auto-Attacks
-    /// </summary>
-    /// <returns></returns>
-    public double GetAttackDelay()
-    {
-        // This isn't 100% accurate, but it feels "close enough"
-        // TODO: Implement weapon speed delays
-        var castTime = _skill.Template.CastingTime * _caster.CastTimeMul;
-        var coolDownTime = _skill.Template.CooldownTime * (_caster.GlobalCooldownMul / 100.0);
-        var additionalDelay = 1000.0 * (_caster.GlobalCooldownMul / 100.0);
-        return castTime + coolDownTime + additionalDelay;
     }
 }

@@ -69,6 +69,7 @@ public class NpcTemplate
     public uint SpecialtyCoinId { get; set; }
     public bool UseRangeMod { get; set; }
     public int NpcPostureSetId { get; set; }
+    public List<NpcPosture> NpcPostureSets { get; set; } = new();
     public int MateEquipSlotPackId { get; set; }
     public int MateKindId { get; set; }
     public uint EngageCombatGiveQuestId { get; set; }
@@ -81,7 +82,6 @@ public class NpcTemplate
     public bool LookConverter { get; set; }
     public bool UseDDCMSMountSkill { get; set; }
     public bool CrowdEffect { get; set; }
-    public uint AnimActionId { get; set; }
     public byte Race { get; set; }
     public byte Gender { get; set; }
     public uint MerchantPackId { get; set; }

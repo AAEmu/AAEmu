@@ -619,7 +619,7 @@ public class Unit : BaseUnit, IUnit
 
         var newTask = new UseAutoAttackSkillTask(skill, character);
         character.AutoAttackTask = newTask;
-        var attackDelayTimes = newTask.GetAttackDelay();
+        var attackDelayTimes = SkillManager.GetAttackDelay(skill.Template, character); 
 
         TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(attackDelayTimes),
             TimeSpan.FromMilliseconds(attackDelayTimes), -1);
@@ -880,6 +880,10 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
+    // TODO: Implement this to grab actual loot info
+    public virtual bool HasLootLeft { get; set; } = false;
+    public virtual ModelPostureType ModelPostureType { get => ModelPostureType.None; }
+
     public virtual void OnSkillEnd(Skill skill)
     {
 
@@ -983,49 +987,22 @@ public class Unit : BaseUnit, IUnit
         return skill.Use(this, caster, sct, null, true, out _);
     }
 
-    public static void ModelPosture(PacketStream stream, Unit unit, BaseUnitType baseUnitType, ModelPostureType modelPostureType, uint animActionId = 0xFFFFFFFF)
+    public static void ModelPosture(PacketStream stream, Unit unit, uint animActionId, bool activateAnimation)
     {
-        // TODO added that NPCs can be hunted to move their legs while moving, but if they sit or do anything they will just stand there
-        if (baseUnitType == BaseUnitType.Npc) // NPC
-        {
-            if (unit is Npc npc)
-            {
-                // TODO UnitModelPosture
-                if (npc.Faction.GuardHelp == false)
-                {
-                    // для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно)
-                    // for NPCs that can be attacked and that they move their legs (especially for people)
-                    modelPostureType = 0;
-                }
-                stream.Write((byte)modelPostureType);
-                //Logger.Warn($"baseUnitType={baseUnitType}, modelPostureType={modelPostureType} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
-            }
-        }
-        else // other
-        {
-            stream.Write((byte)modelPostureType);
-        }
+        var npc = unit as Npc;
 
-        stream.Write(false); // isLooted
+        stream.Write((byte)unit.ModelPostureType);
+        stream.Write(unit.HasLootLeft); // isLooted
 
-        switch (modelPostureType)
+        switch (unit.ModelPostureType)
         {
             case ModelPostureType.HouseState: // build
                 stream.Write((byte)0xF); // flags Byte (2 - door, 6 - window)
                 break;
             case ModelPostureType.ActorModelState: // npc
-                var npc = (Npc)unit;
-                stream.Write(animActionId == 0xFFFFFFFF ? npc.Template.AnimActionId : animActionId); // TODO to check for AnimActionId substitution
-                if (animActionId == 0xFFFFFFFF)
-                {
-                    Logger.Warn($"NPC.Template.AnimActionId={npc.Template.AnimActionId}, missing animActionId for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
-                }
-                else
-                {
-                    Logger.Debug($"NPC.Template.AnimActionId={animActionId} for NPC TemplateId: {npc.TemplateId}, ObjId:{npc.ObjId}");
-                }
-
-                stream.Write(true); // activate
+                // Logger.Debug($"Using AnimActionId={animActionId} for NPC TemplateId: {npc?.TemplateId}, ObjId:{npc?.ObjId}");
+                stream.Write(animActionId); // Animation override
+                stream.Write(activateAnimation); // activate
                 break;
             case ModelPostureType.FarmfieldState:
                 stream.Write(0u); // type(id)

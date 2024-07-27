@@ -1,9 +1,11 @@
 ﻿using System;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -15,6 +17,9 @@ public class AttackBehavior : BaseCombatBehavior
     {
         Ai.Owner.InterruptSkills();
         Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+        
         Ai.Owner.IsInBattle = true;
         if (Ai.Owner is { } npc)
         {

@@ -93,7 +93,8 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
             if (npc.Ai != null)
             {
-                npc.Ai.IdlePosition = npc.Transform.CloneDetached();
+                npc.Ai.HomePosition = npc.Transform.World.Position; // Original spawn location
+                npc.Ai.IdlePosition = npc.Ai.HomePosition; // Can be updated by paths, starts at spawn
                 npc.Ai.GoToSpawn();
             }
 
@@ -118,6 +119,13 @@ public class NpcSpawnerNpc : Spawner<Npc>
             var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
             world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
             npc.Simulation = new Simulation(npc);
+            
+            if (npc.Ai != null && !string.IsNullOrWhiteSpace(npcSpawner.FollowPath))
+            {
+                if (!npc.Ai.LoadAiPathPoints(npcSpawner.FollowPath, false))
+                    Logger.Warn($"Failed to load {npcSpawner.FollowPath} for NPC {npc.TemplateId} ({npc.ObjId})");
+            }
+
             npcs.Add(npc);
         }
 

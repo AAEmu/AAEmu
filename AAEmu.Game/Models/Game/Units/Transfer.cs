@@ -22,6 +22,9 @@ public class Transfer : Unit
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
     public override BaseUnitType BaseUnitType => BaseUnitType.Transfer;
+
+    public override ModelPostureType ModelPostureType { get => ModelPostureType.TurretState; }
+
     //public uint Id { get; set; } // moved to BaseUnit
     //public uint TemplateId { get; set; } // moved to BaseUnit
     public uint BondingObjId { get; set; }

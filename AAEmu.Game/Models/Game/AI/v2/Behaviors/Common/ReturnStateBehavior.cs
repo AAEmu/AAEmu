@@ -1,8 +1,9 @@
 ﻿using System;
-
+using System.Numerics;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils;
 
@@ -25,6 +26,11 @@ public class ReturnStateBehavior : BaseCombatBehavior
 
         Ai.Owner.IsInBattle = false;
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+        
+        // Ai.AiPathPointsRemaining.Clear(); // Remove whatever path we're on
+        // Ai.Owner.Simulation.TargetPosition = Vector3.Zero; // And reset expected target
 
         //var needRestorationOnReturn = true; // TODO: Use params & alertness values
         //if (needRestorationOnReturn)
@@ -62,9 +68,12 @@ public class ReturnStateBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, Ai.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
+        var moveSpeed = Ai.GetRealMovementSpeed();
+        var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
+        moveSpeed *= (delta.Milliseconds / 1000.0);
+        Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
 
-        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position);
+        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Transform.World.Position);
         if (distanceToIdle < 1.0f)
         {
             OnCompletedReturnNoTeleport();
@@ -77,10 +86,10 @@ public class ReturnStateBehavior : BaseCombatBehavior
 
     private void OnCompletedReturn()
     {
-        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position);
+        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Transform.World.Position);
         if (distanceToIdle > 2 * 2)
         {
-            Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, 1000000.0f);
+            Ai.Owner.MoveTowards(Ai.IdlePosition, 1000000.0f);
             Ai.Owner.StopMovement();
         }
 
@@ -90,13 +99,14 @@ public class ReturnStateBehavior : BaseCombatBehavior
     public void OnCompletedReturnNoTeleport()
     {
         // TODO: Handle return signal override
-        Ai.GoToRunCommandSet();
+        Ai.GoToIdle();
+        // Ai.GoToDefaultBehavior();
     }
 
     public override void Exit()
     {
         // TODO: Ai.Owner.EnableAggro();
-
+        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, true), false);
         Ai.Owner.Buffs.RemoveBuff((uint)BuffConstants.NpcReturn);
         _enter = false;
     }

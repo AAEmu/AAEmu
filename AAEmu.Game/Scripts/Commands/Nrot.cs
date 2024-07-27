@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.Models;
 using NLog;
 using AAEmu.Game.Utils.Scripts;
 
@@ -77,8 +78,8 @@ public class Nrot : ICommand
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 1; //combat=0, idle=1
-            moveType.Alertness = 0; //idle=0, combat=2
+            moveType.Stance = GameStanceType.Relaxed; // 1; //combat=0, idle=1
+            moveType.Alertness = MoveTypeAlertness.Idle; //idle=0, combat=2
             moveType.Time = Seq;
 
             character.SendMessage($"[nrot] New position {character.CurrentTarget.Transform.Local}");

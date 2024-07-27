@@ -114,6 +114,22 @@ public class Doodad : BaseUnit
 
                 CurrentFuncs = DoodadManager.Instance.GetFuncsForGroup(_funcGroupId);
                 CurrentPhaseFuncs = DoodadManager.Instance.GetPhaseFunc(_funcGroupId);
+
+                // Register new ToD triggers (if any)
+                CurrentToDTriggers.Clear();
+                foreach (var currentPhaseFunc in CurrentPhaseFuncs)
+                {
+                    if (currentPhaseFunc.FuncType != "DoodadFuncTod")
+                        continue;
+                    var todPhaseFunc = DoodadManager.Instance.GetPhaseFuncTemplate(currentPhaseFunc.FuncId, currentPhaseFunc.FuncType);
+                    if (todPhaseFunc is not DoodadFuncTod doodadFuncTod)
+                    {
+                        Logger.Error($"DoodadFuncTod is not a DoodadFuncTod");
+                        continue;
+                    }
+
+                    CurrentToDTriggers.TryAdd(doodadFuncTod.TodAsHours, doodadFuncTod.NextPhase);
+                }
             }
         }
     }
@@ -156,6 +172,10 @@ public class Doodad : BaseUnit
 
     public List<DoodadFunc> CurrentFuncs { get; set; }
     public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
+    /// <summary>
+    /// ToD, next_phase
+    /// </summary>
+    public Dictionary<float, int> CurrentToDTriggers { get; set; }
 
     /// <summary>
     /// Time left to show on Doodads in milliseconds
@@ -206,7 +226,7 @@ public class Doodad : BaseUnit
     public VehicleSeat Seat { get; set; }
     private List<uint> ListGroupId { get; set; }
     public List<AreaTrigger> AttachAreaTriggers { get; set; } = new();
-
+    
     public Doodad()
     {
         _scale = 1f;
@@ -216,6 +236,7 @@ public class Doodad : BaseUnit
         ListGroupId = new List<uint>();
         CurrentFuncs = new List<DoodadFunc>();
         CurrentPhaseFuncs = new List<DoodadPhaseFunc>();
+        CurrentToDTriggers = new Dictionary<float, int>();
     }
 
     public void SetScale(float scale)
@@ -538,6 +559,11 @@ public class Doodad : BaseUnit
         //}
 
         if (nextPhase <= 0) { return false; }
+
+        // Skip if moving to self.
+        //if (nextPhase == FuncGroupId)
+        //    return true;
+            
 
         if (caster is Character)
         {

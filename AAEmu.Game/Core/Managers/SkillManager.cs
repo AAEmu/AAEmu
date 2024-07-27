@@ -1825,4 +1825,22 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
         _loaded = true;
     }
+
+    /// <summary>
+    /// Create an estimated use time for a skill
+    /// </summary>
+    /// <param name="skillTemplate">SkillTemplate to base on</param>
+    /// <param name="caster">Unit to use the stats from for calculations</param>
+    /// <param name="includeCooldown">Include the skill's cooldown time</param>
+    /// <param name="additionalDelay">Additional delay to add (uses cooldown multiplier)</param>
+    /// <returns></returns>
+    public static double GetAttackDelay(SkillTemplate skillTemplate, Unit caster, bool includeCooldown = true, double additionalDelay = 1000.0)
+    {
+        // This isn't 100% accurate, but it feels "close enough"
+        // TODO: Implement weapon speed delays
+        var castTime = skillTemplate.CastingTime * caster.CastTimeMul * 1.0;
+        var coolDownTime = includeCooldown ? skillTemplate.CooldownTime * (caster.GlobalCooldownMul / 100.0) : 0.0;
+        var additionalTime = additionalDelay * (caster.GlobalCooldownMul / 100.0);
+        return castTime + coolDownTime + additionalTime;
+    }
 }

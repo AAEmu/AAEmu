@@ -6,7 +6,8 @@ public class Spawner<T> where T : GameObject
 {
     public uint Id { get; set; }     // index
     public uint UnitId { get; set; } // MemberId | TemplateId
-    public string FollowPath { get; set; }
+    public string FollowPath { get; set; } = string.Empty;
+    public uint FollowNpc { get; set; } = 0; // nearest Npc TemplateId to follow
     public WorldSpawnPosition Position { get; set; }
     public int RespawnTime { get; set; } = 15;
     public int DespawnTime { get; set; } = 20;
