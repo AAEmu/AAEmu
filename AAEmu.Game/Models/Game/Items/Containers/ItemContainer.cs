@@ -25,15 +25,18 @@ public class ItemContainer
     private ICharacter _owner;
     private uint _ownerId;
     public bool IsDirty { get; set; }
-    private SlotType _containerType;
+    private readonly SlotType _containerType;
     private ulong _containerId;
 
     public ICharacter Owner
     {
         get
         {
-            if ((_owner == null) && (_ownerId > 0))
+            if (_owner == null && _ownerId > 0)
+            {
                 _owner = WorldManager.Instance.GetCharacterById(_ownerId);
+            }
+
             return _owner;
         }
         set
@@ -49,21 +52,16 @@ public class ItemContainer
 
     public uint OwnerId
     {
-        get
-        {
-            if (_owner != null)
-                return _owner.Id;
-            else
-                return _ownerId;
-        }
-        set
+        get => _owner?.Id ?? _ownerId;
+        private init
         {
             if (value != _ownerId)
             {
                 _ownerId = value;
                 IsDirty = true;
             }
-            _owner = null; // this will make it so it'll try to fetch on the next query
+
+            _owner = null; // this will make it so that it will try to fetch on the next query
         }
     }
 
@@ -72,7 +70,7 @@ public class ItemContainer
     public SlotType ContainerType
     {
         get => _containerType;
-        set
+        private init
         {
             if (value != _containerType)
             {
@@ -97,31 +95,23 @@ public class ItemContainer
 
     public List<Item> Items { get; set; }
 
-    public bool PartOfPlayerInventory
-    {
-        get
+    private bool PartOfPlayerInventory =>
+        ContainerType switch
         {
-            return ContainerType switch
-            {
-                SlotType.None => false,
-                SlotType.Equipment => true,
-                SlotType.Inventory => true,
-                SlotType.Bank => true,
-                SlotType.Trade => true,
-                SlotType.Mail => false,
-                SlotType.System => false,
-                SlotType.EquipmentMate => false,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-        }
-    }
+            SlotType.None => false,
+            SlotType.Equipment => true,
+            SlotType.Inventory => true,
+            SlotType.Bank => true,
+            SlotType.Trade => true,
+            SlotType.Mail => false,
+            SlotType.System => false,
+            SlotType.EquipmentMate => false,
+            _ => throw new ArgumentOutOfRangeException()
+        };
 
     public int ContainerSize
     {
-        get
-        {
-            return _containerSize;
-        }
+        get => _containerSize;
         set
         {
             if (value != _containerSize)
@@ -129,16 +119,12 @@ public class ItemContainer
                 _containerSize = value;
                 IsDirty = true;
             }
+
             UpdateFreeSlotCount();
         }
     }
-    public int FreeSlotCount
-    {
-        get
-        {
-            return _freeSlotCount;
-        }
-    }
+
+    public int FreeSlotCount => _freeSlotCount;
 
     protected ItemContainer()
     {
@@ -156,7 +142,9 @@ public class ItemContainer
         Items = new List<Item>();
         ContainerSize = -1; // Unlimited
         if (createWithNewId)
+        {
             ContainerId = ContainerIdManager.Instance.GetNextId();
+        }
     }
 
     public void ReNumberSlots(bool reverse = false)
@@ -182,10 +170,10 @@ public class ItemContainer
     }
 
     /// <summary>
-    /// Returns a slot index number of the first free location in a inventory
+    /// Returns a slot index number of the first free location in an inventory
     /// </summary>
     /// <param name="preferredSlot">Preferred location if available</param>
-    /// <returns>Location if a empty slot was found, or -1 in case the item container is full</returns>
+    /// <returns>Location if an empty slot was found, or -1 in case the item container is full</returns>
     public int GetUnusedSlot(int preferredSlot)
     {
         // No max size defined, get the highest number and add one
@@ -193,8 +181,13 @@ public class ItemContainer
         {
             var highestSlot = -1;
             foreach (var i in Items)
+            {
                 if (i.Slot > highestSlot)
+                {
                     highestSlot = i.Slot;
+                }
+            }
+
             highestSlot++;
             return preferredSlot > highestSlot ? preferredSlot : highestSlot;
         }
@@ -216,6 +209,7 @@ public class ItemContainer
                 }
             }
         }
+
         // Find a new slot if needed
         if (needNewSlot)
         {
@@ -227,6 +221,7 @@ public class ItemContainer
                     return i;
                 }
             }
+
             // inventory container is full
             return -1;
         }
@@ -240,11 +235,14 @@ public class ItemContainer
     private bool TryGetItemBySlot(int slot, out Item theItem)
     {
         foreach (var i in Items)
+        {
             if (i.Slot == slot)
             {
                 theItem = i;
                 return true;
             }
+        }
+
         theItem = null;
         return false;
     }
@@ -252,19 +250,26 @@ public class ItemContainer
     public Item GetItemBySlot(int slot)
     {
         if (TryGetItemBySlot(slot, out var res))
+        {
             return res;
+        }
         else
+        {
             return null;
+        }
     }
 
     private bool TryGetItemByItemId(ulong itemId, out Item theItem)
     {
         foreach (var i in Items)
+        {
             if (i.Id == itemId)
             {
                 theItem = i;
                 return true;
             }
+        }
+
         theItem = null;
         return false;
     }
@@ -272,13 +277,17 @@ public class ItemContainer
     public Item GetItemByItemId(ulong itemId)
     {
         if (TryGetItemByItemId(itemId, out var res))
+        {
             return res;
+        }
         else
+        {
             return null;
+        }
     }
 
     /// <summary>
-    /// Adds a Item Object to this container and also updates source container, for new items like craft results, use AcquireDefaultItem instead
+    /// Adds an Item Object to this container and also updates source container, for new items like craft results, use AcquireDefaultItem instead
     /// </summary>
     /// <param name="taskType"></param>
     /// <param name="item">Item Object to add/move to this container</param>
@@ -287,7 +296,9 @@ public class ItemContainer
     public bool AddOrMoveExistingItem(ItemTaskType taskType, Item item, int preferredSlot = -1)
     {
         if (item == null)
+        {
             return false;
+        }
 
         var sourceContainer = item._holdingContainer;
         var sourceSlot = (byte)item.Slot;
@@ -298,7 +309,7 @@ public class ItemContainer
         var canAddToSameSlot = false;
 
         // When adding wearables to equipment container, for the slot numbers if needed
-        if ((this is EquipmentContainer) && (item is EquipItem _) && (preferredSlot < 0))
+        if (this is EquipmentContainer && item is EquipItem _ && preferredSlot < 0)
         {
             var validSlots = EquipmentContainer.GetAllowedGearSlots(item.Template);
             // find valid empty slot (if any), stop looking if it is the preferred slot
@@ -314,10 +325,10 @@ public class ItemContainer
 
         // Make sure the item is in container size's range
         if (
-            (ContainerType == SlotType.Inventory) && (item.Template.MaxCount > 1) &&
-            (currentPreferredSlotItem != null) &&
-            (currentPreferredSlotItem.TemplateId == item.TemplateId) && (currentPreferredSlotItem.Grade == item.Grade) &&
-            (item.Count + currentPreferredSlotItem.Count <= item.Template.MaxCount))
+            ContainerType == SlotType.Inventory && item.Template.MaxCount > 1 &&
+            currentPreferredSlotItem != null &&
+            currentPreferredSlotItem.TemplateId == item.TemplateId && currentPreferredSlotItem.Grade == item.Grade &&
+            item.Count + currentPreferredSlotItem.Count <= item.Template.MaxCount)
         {
             newSlot = preferredSlot;
             canAddToSameSlot = true;
@@ -325,9 +336,14 @@ public class ItemContainer
         else
         {
             if (newSlot < 0)
+            {
                 newSlot = GetUnusedSlot(preferredSlot);
+            }
+
             if (newSlot < 0)
+            {
                 return false; // Inventory Full
+            }
         }
 
         // Check if the newSlot fits
@@ -342,8 +358,10 @@ public class ItemContainer
         if (canAddToSameSlot)
         {
             currentPreferredSlotItem.Count += item.Count;
-            if (this.ContainerType != SlotType.None)
+            if (ContainerType != SlotType.None)
+            {
                 itemTasks.Add(new ItemCountUpdate(currentPreferredSlotItem, item.Count));
+            }
         }
         else
         {
@@ -357,8 +375,10 @@ public class ItemContainer
             UpdateFreeSlotCount();
 
             // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
-            if (this.ContainerType != SlotType.None)
+            if (ContainerType != SlotType.None)
+            {
                 itemTasks.Add(new ItemAdd(item));
+            }
 
             if (sourceContainer != this)
             {
@@ -368,49 +388,58 @@ public class ItemContainer
         }
 
         // Item Tasks
-        if ((sourceContainer != null) && (sourceContainer != this))
+        if (sourceContainer != null && sourceContainer != this)
         {
             sourceContainer.Items.Remove(item);
             sourceContainer.UpdateFreeSlotCount();
             if (sourceContainer.ContainerType != SlotType.Mail)
+            {
                 sourceItemTasks.Add(new ItemRemoveSlot(item.Id, sourceSlotType, sourceSlot));
+            }
         }
+
         // We use Invalid when doing internals, don't send to client
         if (taskType != ItemTaskType.Invalid)
         {
             if (itemTasks.Count > 0)
+            {
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            }
+
             if (sourceItemTasks.Count > 0)
-                sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks, new List<ulong>()));
+            {
+                sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks,
+                    new List<ulong>()));
+            }
         }
 
         ApplyBindRules(taskType);
 
         // Moved to the end of the method so that the item is already in the inventory
-        // Only trigger when moving between container with different owners with the exception of this being move to Mail container
+        // Only trigger when moving between containers with different owners except for this being move to Mail container
         //if ((sourceContainer != this) && (item.OwnerId != OwnerId) && (this.ContainerType != SlotType.Mail))
-        if ((sourceContainer != this) && (this.ContainerType != SlotType.Mail))
+        if (sourceContainer != this && ContainerType != SlotType.Mail)
         {
             Owner?.Inventory.OnAcquiredItem(item, item.Count);
         }
         else
-        // Got attachment from Mail
-        if ((item.SlotType == SlotType.Mail) && (this.ContainerType != SlotType.Mail))
+            // Got attachment from Mail
+        if (item.SlotType == SlotType.Mail && ContainerType != SlotType.Mail)
         {
             Owner?.Inventory.OnAcquiredItem(item, item.Count);
         }
         else
-        // Adding mail attachment
-        if ((item.SlotType != SlotType.Mail) && (this.ContainerType == SlotType.Mail))
+            // Adding mail attachment
+        if (item.SlotType != SlotType.Mail && ContainerType == SlotType.Mail)
         {
             Owner?.Inventory.OnConsumedItem(item, item.Count);
         }
 
-        return ((itemTasks.Count + sourceItemTasks.Count) > 0);
+        return itemTasks.Count + sourceItemTasks.Count > 0;
     }
 
     /// <summary>
-    /// Removes (and Destroys if needed) a item from the container
+    /// Removes (and Destroys if needed) an item from the container
     /// </summary>
     /// <param name="task"></param>
     /// <param name="item">Item object to be removed</param>
@@ -419,23 +448,36 @@ public class ItemContainer
     public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
     {
         if (!item.CanDestroy())
+        {
             return false;
+        }
 
         // Handle items that can expire
         GamePacket sync = null;
-        if ((item.ExpirationOnlineMinutesLeft > 0.0) || (item.ExpirationTime > DateTime.UtcNow) || (item.UnpackTime > DateTime.UtcNow))
+        if (item.ExpirationOnlineMinutesLeft > 0.0 || item.ExpirationTime > DateTime.UtcNow ||
+            item.UnpackTime > DateTime.UtcNow)
+        {
             sync = ItemManager.ExpireItemPacket(item);
+        }
+
         if (sync != null)
-            this.Owner?.SendPacket(sync);
+        {
+            Owner?.SendPacket(sync);
+        }
 
         var res = item._holdingContainer.Items.Remove(item);
         if (res && task != ItemTaskType.Invalid)
-            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, new List<ItemTask> { new ItemRemoveSlot(item) }, new List<ulong>()));
+        {
+            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)],
+                []));
+        }
+
         if (res && releaseIdAsWell)
         {
             item._holdingContainer = null;
             ItemManager.Instance.ReleaseId(item.Id);
         }
+
         UpdateFreeSlotCount();
 
         Owner?.Inventory.OnConsumedItem(item, item.Count);
@@ -454,18 +496,21 @@ public class ItemContainer
     /// <returns>The amount of items that was actually consumed, 0 when failed or not found</returns>
     public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
     {
-        if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out var count))
+        if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out _))
+        {
             return 0; // Nothing found
+        }
 
-        if ((preferredItem != null) && (templateId != preferredItem.TemplateId))
+        if (preferredItem != null && templateId != preferredItem.TemplateId)
+        {
             return 0; // Preferred item template did not match the requested template
-        // TODO: implement use of preferredItem (required for using specific items when you have more than one stack)
+        }
 
         var totalConsumed = 0;
         var itemTasks = new List<ItemTask>();
 
         // Try to consume preferred item first
-        if ((amountToConsume > 0) && (preferredItem != null))
+        if (amountToConsume > 0 && preferredItem != null)
         {
             // Remove this entry from our list
             if (!foundItems.Remove(preferredItem))
@@ -486,6 +531,7 @@ public class ItemContainer
             {
                 RemoveItem(taskType, preferredItem, true); // Normally, this can never fail
             }
+
             Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
 
             totalConsumed += toRemove;
@@ -512,13 +558,18 @@ public class ItemContainer
 
                 totalConsumed += toRemove;
                 if (amountToConsume <= 0)
+                {
                     break; // We are done with the list, leave the rest as is
+                }
             }
         }
 
         // We use Invalid when doing internals, don't send to client
         if (taskType != ItemTaskType.Invalid)
+        {
             Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+        }
+
         UpdateFreeSlotCount();
         return totalConsumed;
     }
@@ -532,7 +583,8 @@ public class ItemContainer
     /// <param name="gradeToAdd">Overrides default grade if possible</param>
     /// <param name="crafterId"></param>
     /// <returns></returns>
-    public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1, uint crafterId = 0)
+    public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1,
+        uint crafterId = 0)
     {
         return AcquireDefaultItemEx(taskType, templateId, amountToAdd, gradeToAdd, out _, out _, crafterId);
     }
@@ -549,30 +601,47 @@ public class ItemContainer
     /// <param name="crafterId"></param>
     /// <param name="preferredSlot"></param>
     /// <returns></returns>
-    public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot = -1)
+    public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd,
+        out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot = -1)
     {
         newItemsList = new List<Item>();
         updatedItemsList = new List<Item>();
         if (amountToAdd <= 0)
+        {
             return true;
+        }
 
         GetAllItemsByTemplate(templateId, gradeToAdd, out var currentItems, out var currentTotalItemCount);
         var template = ItemManager.Instance.GetTemplate(templateId);
         if (template == null)
+        {
             return false; // Invalid item templateId
-        var totalFreeSpaceForThisItem = (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+        }
+
+        var totalFreeSpaceForThisItem = currentItems.Count * template.MaxCount - currentTotalItemCount +
+                                        FreeSlotCount * template.MaxCount;
 
         // Trying to add too many item units to this container ?
         if (amountToAdd > totalFreeSpaceForThisItem)
+        {
             return false;
+        }
 
         // Calculate grade to actually add for new items
-        if ((template.FixedGrade >= 0) && (template.Gradable == false))
+        if (template.FixedGrade >= 0 && template.Gradable == false)
+        {
             gradeToAdd = template.FixedGrade;
+        }
+
         if (gradeToAdd == -1)
+        {
             gradeToAdd = template.FixedGrade;
+        }
+
         if (gradeToAdd < 0)
+        {
             gradeToAdd = 0;
+        }
 
         // First try to add to existing item counts
         var itemTasks = new List<ItemTask>();
@@ -594,7 +663,9 @@ public class ItemContainer
                 }
 
                 if (amountToAdd < 0)
+                {
                     break;
+                }
             }
         }
 
@@ -606,55 +677,86 @@ public class ItemContainer
             if (newItem == null)
             {
                 Logger.Error($"Failed to add item with ID {templateId}, possible duplicate entries!");
+                return false;
             }
+
             // Add name if marked as crafter (single stack items only)
-            if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
+            if (crafterId > 0 && newItem.Template.MaxCount == 1)
             {
                 newItem.MadeUnitId = crafterId;
-                newItem.WorldId = 1; // TODO: proper world id handling, this should actually be the ServerId
+                newItem.WorldId =
+                    (byte)WorldManager
+                        .DefaultWorldId; // TODO: proper world id handling, this should actually be the ServerId
             }
+
             amountToAdd -= addAmount;
             var prefSlot = preferredSlot;
-            if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))
+            if (newItem.Template is BackpackTemplate && ContainerType == SlotType.Equipment)
+            {
                 prefSlot = (int)EquipmentItemSlot.Backpack;
+            }
 
             // Timers
             if (newItem.Template.ExpAbsLifetime > 0)
-                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
-            if (newItem.Template.ExpOnlineLifetime > 0)
-                syncPackets.Add(ItemManager.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
-            if (newItem.Template.ExpDate > DateTime.MinValue)
-                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
-
-            if ((newItem is EquipItem equipItem) && (newItem.Template is EquipItemTemplate equipItemTemplate))
             {
-                equipItem.ChargeCount = equipItemTemplate.ChargeCount;
-                if ((equipItemTemplate.ChargeLifetime > 0) && (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) == false))
-                    equipItem.ChargeStartTime = DateTime.UtcNow;
+                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem,
+                    DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
             }
 
-            if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, prefSlot)) // Task set to invalid as we send our own packets inside this function
+            if (newItem.Template.ExpOnlineLifetime > 0)
+            {
+                syncPackets.Add(ItemManager.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
+            }
+
+            if (newItem.Template.ExpDate > DateTime.MinValue)
+            {
+                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
+            }
+
+            if (newItem is EquipItem equipItem && newItem.Template is EquipItemTemplate equipItemTemplate)
+            {
+                equipItem.ChargeCount = equipItemTemplate.ChargeCount;
+                if (equipItemTemplate.ChargeLifetime > 0 &&
+                    equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) == false)
+                {
+                    equipItem.ChargeStartTime = DateTime.UtcNow;
+                }
+            }
+
+            if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem,
+                    prefSlot)) // Task set to invalid as we send our own packets inside this function
             {
                 itemTasks.Add(new ItemAdd(newItem));
                 newItemsList.Add(newItem);
             }
             else
-                throw new GameException("AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
+            {
+                throw new GameException(
+                    "AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
+            }
         }
+
         if (taskType != ItemTaskType.Invalid)
+        {
             Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+        }
+
         UpdateFreeSlotCount();
 
         // Send item expire packets if needed
         foreach (var sync in syncPackets)
+        {
             if (sync != null)
+            {
                 Owner?.SendPacket(sync);
+            }
+        }
 
-        return (itemTasks.Count > 0);
+        return itemTasks.Count > 0;
     }
 
     /// <summary>
-    /// Count the maximum amount of items of a given templateID that can be added to a inventory taking into account the max stack size. Ignores item grade
+    /// Count the maximum amount of items of a given templateID that can be added to an inventory taking into account the max stack size. Ignores item grade
     /// </summary>
     /// <param name="templateId">Item template ID</param>
     /// <returns>Amount of item units that can be added before the bag is full</returns>
@@ -663,12 +765,15 @@ public class ItemContainer
         GetAllItemsByTemplate(templateId, -1, out var currentItems, out var currentTotalItemCount);
         var template = ItemManager.Instance.GetTemplate(templateId);
         if (template == null)
+        {
             return 0; // Invalid item templateId
-        return (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+        }
+
+        return currentItems.Count * template.MaxCount - currentTotalItemCount + FreeSlotCount * template.MaxCount;
     }
 
     /// <summary>
-    /// Count the maximum amount of items of a given item that can be added to a inventory taking into account the max stack size using a specific item to be added. Takes into account item grade
+    /// Count the maximum amount of items of a given item that can be added to an inventory taking into account the max stack size using a specific item to be added. Takes into account item grade
     /// </summary>
     /// <param name="itemToAdd">Item we wish to add for</param>
     /// <param name="currentItems">List of items in the current container that match the itemToAdd criteria (template and grade)</param>
@@ -680,8 +785,10 @@ public class ItemContainer
             currentItems = new List<Item>();
             return 0;
         }
+
         GetAllItemsByTemplate(itemToAdd.TemplateId, itemToAdd.Grade, out currentItems, out var currentTotalItemCount);
-        return (currentItems.Count * itemToAdd.Template.MaxCount) - currentTotalItemCount + (FreeSlotCount * itemToAdd.Template.MaxCount);
+        return currentItems.Count * itemToAdd.Template.MaxCount - currentTotalItemCount +
+               FreeSlotCount * itemToAdd.Template.MaxCount;
     }
 
     /// <summary>
@@ -692,7 +799,10 @@ public class ItemContainer
     {
         var res = new List<Item>(ContainerSize);
         for (var i = 0; i < ContainerSize; i++)
+        {
             res.Add(GetItemBySlot(i));
+        }
+
         return res;
     }
 
@@ -704,17 +814,21 @@ public class ItemContainer
     /// <param name="gradeToFind">Only lists items of specific grade equal to gradeToFind or any grade if -1 was provided</param>
     /// <param name="unitsOfItemFound">Total count of the count values of the found items</param>
     /// <returns>True if any item was found</returns>
-    public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems, out int unitsOfItemFound)
+    public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems,
+        out int unitsOfItemFound)
     {
         foundItems = new List<Item>();
         unitsOfItemFound = 0;
         foreach (var i in Items)
-            if ((i.TemplateId == templateId) && ((gradeToFind < 0) || (gradeToFind == i.Grade)))
+        {
+            if (i.TemplateId == templateId && (gradeToFind < 0 || gradeToFind == i.Grade))
             {
                 foundItems.Add(i);
                 unitsOfItemFound += i.Count;
             }
-        return (foundItems.Count > 0);
+        }
+
+        return foundItems.Count > 0;
     }
 
     public void ApplyBindRules(ItemTaskType taskType)
@@ -724,11 +838,15 @@ public class ItemContainer
         {
             if (i.HasFlag(ItemFlag.SoulBound) == false)
             {
-                if ((ContainerType == SlotType.Inventory) && (i.Template.BindType == ItemBindType.BindOnPickup))
+                if (ContainerType == SlotType.Inventory && i.Template.BindType == ItemBindType.BindOnPickup)
+                {
                     i.SetFlag(ItemFlag.SoulBound);
+                }
 
-                if ((ContainerType == SlotType.Equipment) && (i.Template.BindType == ItemBindType.BindOnEquip))
+                if (ContainerType == SlotType.Equipment && i.Template.BindType == ItemBindType.BindOnEquip)
+                {
                     i.SetFlag(ItemFlag.SoulBound);
+                }
 
                 if (i.HasFlag(ItemFlag.SoulBound))
                 {
@@ -736,8 +854,11 @@ public class ItemContainer
                 }
             }
         }
+
         if (itemTasks.Count > 0)
+        {
             Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+        }
     }
 
     /// <summary>
@@ -746,17 +867,27 @@ public class ItemContainer
     public void Wipe()
     {
         while (Items.Count > 0)
+        {
             RemoveItem(ItemTaskType.Invalid, Items[0], true);
+        }
+
         UpdateFreeSlotCount();
     }
 
     public virtual bool CanAccept(Item item, int targetSlot)
     {
         if (item == null)
+        {
             return true;
+        }
+
         // When it's a backpack, allow only gliders by default
-        if (PartOfPlayerInventory && (item.Template is BackpackTemplate backpackTemplate))
-            return (backpackTemplate.BackpackType == BackpackType.Glider) || (backpackTemplate.BackpackType == BackpackType.ToyFlag);
+        if (PartOfPlayerInventory && item.Template is BackpackTemplate backpackTemplate)
+        {
+            return backpackTemplate.BackpackType == BackpackType.Glider ||
+                   backpackTemplate.BackpackType == BackpackType.ToyFlag;
+        }
+
         return true;
     }
 
@@ -766,19 +897,25 @@ public class ItemContainer
     /// <param name="containerTypeName"></param>
     /// <param name="ownerId"></param>
     /// <param name="slotType"></param>
-    /// <param name="isPartOfPlayerInventory"></param>
     /// <param name="createWithNewId"></param>
     /// <returns></returns>
-    public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool createWithNewId)
+    public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType,
+        bool createWithNewId)
     {
         if (containerTypeName.EndsWith("MateEquipmentContainer"))
+        {
             return new MateEquipmentContainer(ownerId, slotType, createWithNewId);
+        }
 
         if (containerTypeName.EndsWith("EquipmentContainer"))
+        {
             return new EquipmentContainer(ownerId, slotType, createWithNewId);
+        }
 
         if (containerTypeName.EndsWith("CofferContainer"))
+        {
             return new CofferContainer(ownerId, createWithNewId);
+        }
 
         // Fall-back
         return new ItemContainer(ownerId, slotType, createWithNewId);
@@ -788,7 +925,10 @@ public class ItemContainer
     {
         var cName = GetType().Name;
         if (cName.Contains('.'))
+        {
             cName = cName.Substring(cName.LastIndexOf(".", StringComparison.InvariantCulture) + 1);
+        }
+
         return cName;
     }
 
