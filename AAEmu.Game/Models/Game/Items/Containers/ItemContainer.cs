@@ -177,40 +177,8 @@ public class ItemContainer
             return;
         }
 
-        try
-        {
-            Items.Sort();
-            var usedSlots = new List<int>();
-            foreach (var item in Items)
-            {
-                if (item == null)
-                {
-                    Logger.Warn($"Null Item Slot");
-                    continue;
-                }
-                if (item.Slot <= 0)
-                    continue;
-                //if (usedSlots.Contains(item.Slot))
-                //    Logger.Warn($"Duplicate Item Slot used {item.Slot}");
-
-                usedSlots.Add(item.Slot);
-            }
-            
-            // var usedSlots = (from iSlot in Items select iSlot.Slot).ToList();
-            var res = 0;
-            for (var i = 0; i < _containerSize; i++)
-            {
-                if (!usedSlots.Contains(i))
-                    res++;
-            }
-
-            _freeSlotCount = res;
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e.Message);
-            throw;
-        }
+        var usedSlotsCount = Items.Count(i => i != null);
+        _freeSlotCount = _containerSize - usedSlotsCount;
     }
 
     /// <summary>
