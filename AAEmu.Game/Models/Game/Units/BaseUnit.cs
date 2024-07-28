@@ -60,7 +60,8 @@ public class BaseUnit : GameObject, IBaseUnit
         var zoneFaction = FactionManager.Instance.GetFaction(zoneFactionId);
         if (zoneFaction == null)
         {
-            Logger.Warn($"CanAttack zone faction is null {this.ObjId} - {target.ObjId}");
+            // This is normal behavior for let's say Diamond Shores in 1.2 which is marked with non-existing FactionId 5
+            // Logger.Warn($"CanAttack zone faction is null {this.ObjId} - {target.ObjId}");
             zoneFaction = FactionManager.Instance.GetFaction(FactionsEnum.Neutral);
         }
         var targetMotherFaction = target.Faction?.MotherId ?? 0;
