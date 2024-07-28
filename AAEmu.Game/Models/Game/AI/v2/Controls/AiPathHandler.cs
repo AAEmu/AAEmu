@@ -114,7 +114,7 @@ public class AiPathHandler(NpcAi aiOwner)
 
     public bool HasUnhandledPathMovementData()
     {
-        return AiPathPointsRemaining.Count > 0 || AiPathLooping;
+        return AiPathPointsRemaining.Count > 0 || AiPathLooping || TargetPosition != Vector3.Zero;
     }
 
     public bool HasPathMovementData()
