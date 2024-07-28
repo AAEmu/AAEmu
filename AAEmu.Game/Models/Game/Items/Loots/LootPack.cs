@@ -175,25 +175,53 @@ public class LootPack
     /// <param name="character"></param>
     /// <param name="taskType"></param>
     /// <param name="generatedList"></param>
-    public void GiveLootPack(Character character, ItemTaskType taskType, List<(uint itemId, int count, byte grade)> generatedList = null)
+    public bool GiveLootPack(Character character, ItemTaskType taskType, List<(uint itemId, int count, byte grade)> generatedList = null)
     {
         // If it is not generated yet, generate loot pack info now
         if (generatedList == null)
             generatedList = GeneratePack(character);
 
-        // Distribute the items (and coins)
-        foreach (var tuple in generatedList)
+        var canAdd = true;
+        // First check for room
+        foreach (var (itemTemplateId, count, grade) in generatedList)
         {
-            if (tuple.itemId == 500)
+            if (itemTemplateId == Item.Coins)
+                continue;
+            var freeSpace = character.Inventory.Bag.SpaceLeftForItem(itemTemplateId);
+            if (freeSpace < count)
+            {
+                canAdd = false;
+                break;
+            }
+
+        }
+
+        // Not enough room to give the items, give none
+        if (!canAdd)
+            return false;
+
+        // Distribute the items (and coins)
+        foreach (var (itemTemplateId, count, grade) in generatedList)
+        {
+            if (itemTemplateId == Item.Coins)
             {
                 // Logger.Debug("{Category} - {Character} got {Amount} from lootpack {Lootpack}");
-                character.AddMoney(SlotType.Inventory, tuple.count, taskType);
+                character.AddMoney(SlotType.Inventory, count, taskType);
                 continue;
             }
 
-            if (!character.Inventory.TryAddNewItem(taskType, tuple.itemId, tuple.count, tuple.grade))
-                Logger.Error($"Unable to give loot to {character.Name} - ItemId: {tuple.itemId} x {tuple.count} at grade {tuple.grade}");
+            // Get actual grade
+            var itemTemplate = ItemManager.Instance.GetTemplate(itemTemplateId);
+            var gradeToAdd = itemTemplate.FixedGrade > 0 ? itemTemplate.FixedGrade : grade > 1 ? grade : -1;
+
+            if (!character.Inventory.TryAddNewItem(taskType, itemTemplateId, count, gradeToAdd))
+            {
+                Logger.Error($"Unable to give loot to {character.Name} - ItemId: {itemTemplate} x {count} at grade {gradeToAdd} (loot grade {grade})");
+                return false;
+            }
         }
+
+        return true;
     }
 
     private static byte GetGradeFromDistribution(uint id)

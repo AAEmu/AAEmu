@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -23,6 +24,12 @@ public class CSLootItemPacket : GamePacket
         var lootDropItem = lootDropItems.Find(a => a.Id == iid);
         if (lootDropItem != null)
         {
+            var freeSpace = Connection.ActiveChar.Inventory.Bag.SpaceLeftForItem(lootDropItem, out _); 
+            if (freeSpace < lootDropItem.Count)
+            {
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagFull);
+                return;
+            }
             ItemManager.Instance.TookLootDropItem(Connection.ActiveChar, lootDropItems, lootDropItem, count);
         }
         else

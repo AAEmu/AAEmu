@@ -45,8 +45,8 @@ public class FishingLoot : SpecialEffectAction
         {
             Logger.Warn($"FishingLoot: {character.Name} в таблицах добычи отсутствует требуемый LootPackId={lootTableId}");
             return;
-        }
-
-        pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
+        
+        if (!pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem))
+            character.SendErrorMessage(ErrorMessageType.BagFull);
     }
 }
