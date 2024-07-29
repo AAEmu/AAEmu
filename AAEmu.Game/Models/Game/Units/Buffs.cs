@@ -251,7 +251,7 @@ public class Buffs : IBuffs
         return count;
     }
 
-    public void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs)
+    public void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
         IEnumerable<Buff> effects;
@@ -262,16 +262,20 @@ public class Buffs : IBuffs
 
         foreach (var buff in effects.ToList())
         {
-            if (buff.Passive) continue;
             switch (buff.Template.Kind)
             {
                 case BuffKind.Good:
+                    if (buff.Passive && !includeAllPassives)
+                        continue;
                     goodBuffs.Add(buff);
                     break;
                 case BuffKind.Bad:
+                    if (buff.Passive && !includeAllPassives)
+                        continue;
                     badBuffs.Add(buff);
                     break;
                 case BuffKind.Hidden:
+                    // Always include passives of Hidden Buffs, required by for example WorldBoss and Queen Bee captures
                     hiddenBuffs.Add(buff);
                     break;
                 default:

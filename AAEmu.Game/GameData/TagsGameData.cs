@@ -132,5 +132,22 @@ namespace AAEmu.Game.GameData
         public void PostLoad()
         {
         }
+
+        public IReadOnlySet<uint> GetTagsByTargetId(TagType tagType, uint ownerId)
+        {
+            var res = new HashSet<uint>();
+            if (_tags.TryGetValue(tagType, out var tagDictionary))
+            {
+                foreach (var (tagKey, tagOwners) in tagDictionary)
+                {
+                    if (tagOwners.Contains(ownerId))
+                    {
+                        res.Add(tagKey);
+                    }
+                }
+            }
+
+            return res;
+        }
     }
 }
