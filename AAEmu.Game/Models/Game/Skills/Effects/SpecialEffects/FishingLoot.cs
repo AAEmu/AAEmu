@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -45,8 +46,11 @@ public class FishingLoot : SpecialEffectAction
         {
             Logger.Warn($"FishingLoot: {character.Name} в таблицах добычи отсутствует требуемый LootPackId={lootTableId}");
             return;
-        
+        }
+
         if (!pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem))
+        {
             character.SendErrorMessage(ErrorMessageType.BagFull);
+        }
     }
 }
