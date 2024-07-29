@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
@@ -431,6 +432,24 @@ public class PortalManager : Singleton<PortalManager>
         character.DisabledSetPosition = true;
         // TODO - UnitPortalUsed
         // TODO - Maybe need unitState?
+        if (portalInfo.TeleportPosition.InstanceId != character.InstanceId)
+        {
+            character.SendPacket(
+                new SCLoadInstancePacket(
+                    portalInfo.TeleportPosition.WorldId,
+                    portalInfo.TeleportPosition.ZoneId,
+                    portalInfo.TeleportPosition.World.Position.X,
+                    portalInfo.TeleportPosition.World.Position.Y,
+                    portalInfo.TeleportPosition.World.Position.Z,
+                    portalInfo.TeleportPosition.World.Rotation.X.DegToRad(),
+                    portalInfo.TeleportPosition.World.Rotation.Y.DegToRad(),
+                    portalInfo.TeleportPosition.World.Rotation.Z.DegToRad()
+                )
+            );
+
+            character.Transform = portalInfo.TeleportPosition.Clone(character);
+            character.InstanceId = portalInfo.TeleportPosition.WorldId;
+        }
         // TODO - Reason, ErrorMessage
         character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, portalInfo.TeleportPosition.World.Position.X,
             portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z,
