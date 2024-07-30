@@ -625,7 +625,7 @@ public class SCUnitStatePacket : GamePacket
         var badBuffs = new List<Buff>();
         var hiddenBuffs = new List<Buff>();
 
-        _unit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+        _unit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs, false);
 
         stream.Write((byte)goodBuffs.Count); // TODO max 32
         foreach (var buff in goodBuffs)
