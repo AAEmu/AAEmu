@@ -147,7 +147,7 @@ public abstract class NpcAi
     {
         /*if ((!Owner?.Region?.IsEmpty() ?? false)
             || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
-        if (Owner?.Region?.HasPlayerActivity() ?? false)
+        if (HasPersistentAi() || (Owner?.Region?.HasPlayerActivity() ?? false))
         {
             _currentBehavior?.Tick(delta);
 
@@ -177,6 +177,14 @@ public abstract class NpcAi
                     Owner.ClearAggroOfUnit(unitToRemove);
             }
         }
+    }
+
+    private bool HasPersistentAi()
+    {
+        return PathHandler.AiPathPoints.Count > 0 || 
+               PathHandler.AiPathPointsRemaining.Count > 0 || 
+               AiFollowUnitObj != null ||
+               AiCommandsQueue.Count > 0; 
     }
 
     private void Transition(TransitionEvent on)
