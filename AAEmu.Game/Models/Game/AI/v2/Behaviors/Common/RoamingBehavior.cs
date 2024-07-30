@@ -43,7 +43,7 @@ public class RoamingBehavior : BaseCombatBehavior
         if (_targetRoamPosition.Equals(Vector3.Zero))
             return;
 
-        var moveSpeed = Ai.GetRealMovementSpeed();
+        var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
         var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
         moveSpeed *= (delta.Milliseconds / 1000.0);
         Ai.Owner.MoveTowards(_targetRoamPosition, (float)moveSpeed, moveFlags);

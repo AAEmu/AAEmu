@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.Scripts;
+using Discord;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -48,6 +52,9 @@ public class AddBuff : ICommand
             return;
         }
         targetUnit = selectedUnit;
+        var userFriendlyName = string.Empty;
+        if (targetUnit is Npc targetNpc)
+            userFriendlyName = $"@NPC_NAME({targetNpc.TemplateId})";
 
         var a0 = args[0].ToLower();
         if ((a0 == "view") || (a0 == "v"))
@@ -55,17 +62,37 @@ public class AddBuff : ICommand
             var goodBuffs = new List<Buff>();
             var badBuffs = new List<Buff>();
             var hiddenBuffs = new List<Buff>();
-            selectedUnit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+            selectedUnit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs, true);
 
+            var tags = new List<uint>();
             if (goodBuffs.Count + badBuffs.Count + hiddenBuffs.Count > 0)
             {
-                character.SendMessage($"[AddBuff] Listing buffs for {selectedUnit.ObjId} - {selectedUnit.Name} !");
+                character.SendMessage($"[AddBuff] Listing buffs for {targetUnit.ObjId} - {targetUnit.Name} {userFriendlyName} !");
                 foreach (var b in goodBuffs)
-                    character.SendMessage($"[AddBuff] |cFF00FF00{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
+                {
+                    tags.AddRange(TagsGameData.Instance.GetTagsByTargetId(TagsGameData.TagType.Buffs, b.Template.Id));
+                    character.SendMessage(
+                        $"[AddBuff] |cFF00FF00{(b.Passive ? "Passive " : "")}{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
+                }
+
                 foreach (var b in badBuffs)
-                    character.SendMessage($"[AddBuff] |cFFFF0000{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
+                {
+                    tags.AddRange(TagsGameData.Instance.GetTagsByTargetId(TagsGameData.TagType.Buffs, b.Template.Id));
+                    character.SendMessage(
+                        $"[AddBuff] |cFFFF0000{(b.Passive ? "Passive " : "")}{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
+                }
+
                 foreach (var b in hiddenBuffs)
-                    character.SendMessage($"[AddBuff] |cFF6666FF{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
+                {
+                    tags.AddRange(TagsGameData.Instance.GetTagsByTargetId(TagsGameData.TagType.Buffs, b.Template.Id));
+                    character.SendMessage(
+                        $"[AddBuff] |cFF6666FF{(b.Passive ? "Passive " : "")}{b.Template.Id} - {LocalizationManager.Instance.Get("buffs", "name", b.Template.Id)}|r");
+                }
+
+                if (tags.Count > 0)
+                {
+                    character.SendMessage($"[AddBuff] |cFF888888Tags: {string.Join(",",tags)}|r");
+                }
             }
             else
             {

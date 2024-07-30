@@ -31,7 +31,7 @@ public class AiPathHandler(NpcAi aiOwner)
     /// <summary>
     /// Stance to use when moving on the Path; 5-walk, 4-run, 3-stand still
     /// </summary>
-    public byte AiPathStanceFlags { get; set; } = 4;
+    public byte AiPathActorFlags { get; set; } = 4;
 
     /// <summary>
     /// Currently targeted position for path movement
@@ -79,9 +79,9 @@ public class AiPathHandler(NpcAi aiOwner)
                     if (float.TryParse(nextPos.Param, CultureInfo.InvariantCulture, out var newSpeed))
                         AiPathSpeed = newSpeed;
                     break;
-                case AiPathPointAction.StanceFlags:
+                case AiPathPointAction.ActorFlags:
                     if (byte.TryParse(nextPos.Param, out var newStance))
-                        AiPathStanceFlags = newStance;
+                        AiPathActorFlags = newStance;
                     break;
                 case AiPathPointAction.ReturnToCommandSet:
                     Owner.GoToRunCommandSet();
@@ -94,19 +94,20 @@ public class AiPathHandler(NpcAi aiOwner)
             if (!nextPos.Position.Equals(Vector3.Zero))
             {
                 TargetPosition = nextPos.Position;
-                // Move the idle "home" location long with the path, so it doesn't immediately trigger a return to home state when going into combat
-                Owner.IdlePosition = nextPos.Position;
             }
         }
 
         // We know where to go? Then go that direction
         if (TargetPosition != Vector3.Zero)
         {
-            var moveSpeed = Owner.GetRealMovementSpeed();
+            var moveSpeed = Owner.GetRealMovementSpeed(AiPathSpeed);
             // var moveFlags = Owner.GetRealMovementFlags(moveSpeed);
             moveSpeed *= (delta.Milliseconds / 1000.0);
-            Owner.Owner.MoveTowards(TargetPosition, (float)moveSpeed, AiPathStanceFlags);
+            Owner.Owner.MoveTowards(TargetPosition, (float)moveSpeed, AiPathActorFlags);
             // Owner.Owner.MoveTowards(TargetPosition, AiPathSpeed * Owner.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), AiPathStanceFlags);
+
+            // Move the idle "home" location along with the path, so it doesn't immediately trigger a return to home state when going into combat
+            Owner.IdlePosition = Owner.Owner.Transform.World.Position;
         }
 
         return HasUnhandledPathMovementData();

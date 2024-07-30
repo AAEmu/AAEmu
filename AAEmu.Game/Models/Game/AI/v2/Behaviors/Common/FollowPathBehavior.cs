@@ -51,7 +51,7 @@ public class FollowPathBehavior : BaseCombatBehavior
         //_aiParams = aiParams;
 
         if (!UpdateTarget())
-            Ai.Owner.SetTarget(Ai.Owner);
+            Ai.Owner.SetTarget(null);
 
         if (CheckAggression())
             return;

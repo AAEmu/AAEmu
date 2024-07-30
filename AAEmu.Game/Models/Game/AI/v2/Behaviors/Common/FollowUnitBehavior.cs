@@ -22,7 +22,7 @@ public class FollowUnitBehavior : BaseCombatBehavior
             return;
 
         if (!UpdateTarget())
-            Ai.Owner.SetTarget(Ai.Owner);
+            Ai.Owner.SetTarget(null);
 
         if (CheckAggression())
             return;
@@ -40,8 +40,8 @@ public class FollowUnitBehavior : BaseCombatBehavior
         var targetDistance = Ai.Owner.GetDistanceTo(Ai.AiFollowUnitObj, true);
 
         var followSpeedMultiplier = (float)Math.Min(5.0, targetDistance / 1.5);
-
-        var moveSpeed = Ai.GetRealMovementSpeed() * followSpeedMultiplier;
+        
+        var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed) * followSpeedMultiplier;
         var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
         moveSpeed *= (delta.Milliseconds / 1000.0);
         Ai.Owner.MoveTowards(Ai.AiFollowUnitObj.Transform.World.Position, (float)moveSpeed, moveFlags);

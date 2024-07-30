@@ -17,7 +17,7 @@ public interface IBuffs
     bool CheckBuffTag(uint tagId);
     bool CheckDamageImmune(DamageType damageType);
     IEnumerable<Buff> GetAbsorptionEffects();
-    void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs);
+    void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives);
     int GetBuffCountById(uint buffId);
     IEnumerable<Buff> GetBuffsRequiring(uint buffId);
     Buff GetEffectByIndex(uint index);

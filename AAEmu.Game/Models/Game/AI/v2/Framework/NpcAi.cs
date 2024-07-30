@@ -147,7 +147,7 @@ public abstract class NpcAi
     {
         /*if ((!Owner?.Region?.IsEmpty() ?? false)
             || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
-        if (Owner?.Region?.HasPlayerActivity() ?? false)
+        if (HasPersistentAi() || (Owner?.Region?.HasPlayerActivity() ?? false))
         {
             _currentBehavior?.Tick(delta);
 
@@ -177,6 +177,14 @@ public abstract class NpcAi
                     Owner.ClearAggroOfUnit(unitToRemove);
             }
         }
+    }
+
+    private bool HasPersistentAi()
+    {
+        return PathHandler.AiPathPoints.Count > 0 || 
+               PathHandler.AiPathPointsRemaining.Count > 0 || 
+               AiFollowUnitObj != null ||
+               AiCommandsQueue.Count > 0; 
     }
 
     private void Transition(TransitionEvent on)
@@ -363,14 +371,13 @@ public abstract class NpcAi
         return false;
     }
 
-    public double GetRealMovementSpeed()
+    public double GetRealMovementSpeed(double baseMoveSpeed)
     {
-        var moveSpeed = (double)Owner.BaseMoveSpeed;
         var speedMul = (Owner.CalculateWithBonuses(0, UnitAttribute.MoveSpeedMul) / 1000.0) + 1.0;
         if (Math.Abs(speedMul - 1.0) > double.Epsilon)
-            moveSpeed *= speedMul;
+            baseMoveSpeed *= speedMul;
 
-        return moveSpeed;
+        return baseMoveSpeed;
     }
 
     public byte GetRealMovementFlags(double moveSpeed)
