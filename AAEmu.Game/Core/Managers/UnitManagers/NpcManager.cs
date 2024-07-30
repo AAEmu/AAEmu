@@ -118,6 +118,7 @@ public class NpcManager : Singleton<NpcManager>
                 SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, slot, 0, template.BodyItems[i].NpcOnly);
         }
 
+        // Initial Buffs
         foreach (var buffId in template.Buffs)
         {
             var buff = SkillManager.Instance.GetBuffTemplate(buffId);
@@ -131,12 +132,14 @@ public class NpcManager : Singleton<NpcManager>
             buff.Apply(npc, obj, npc, null, null, new EffectSource(), null, DateTime.UtcNow);
         }
 
+        // Passive Buffs
         foreach (var npcPassiveBuff in template.PassiveBuffs)
         {
             var passive = new PassiveBuff() { Template = npcPassiveBuff.PassiveBuff };
             passive.Apply(npc);
         }
 
+        // Stat bonus effects
         foreach (var bonusTemplate in template.Bonuses)
         {
             var bonus = new Bonus();

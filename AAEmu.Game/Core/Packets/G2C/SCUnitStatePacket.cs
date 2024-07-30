@@ -356,7 +356,7 @@ public class SCUnitStatePacket : GamePacket
             }
         }
 
-        _unit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+        _unit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs, false);
 
         stream.Write((byte)goodBuffs.Count); // TODO max 32
         foreach (var effect in goodBuffs)

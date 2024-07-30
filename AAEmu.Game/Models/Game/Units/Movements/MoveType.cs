@@ -2,6 +2,7 @@
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
@@ -20,13 +21,13 @@ public abstract class MoveType : PacketMarshaler
     public MoveTypeEnum Type { get; set; }
     public uint Time { get; set; }
     public WorldPos WorldPos { get; set; }
-    public byte Flags { get; set; }
+    public MoveTypeFlags Flags { get; set; }
     public uint ScType { get; set; }
     public byte Phase { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
     public float Z { get; set; }
-    public Quaternion Rot { get; set; } // значение поворота по оси Z должно быть в радианах
+    public Quaternion Rot { get; set; } // Z-axis rotation value must be in radians
     public Vector3 Velocity { get; set; }
     public short VelX { get; set; }
     public short VelY { get; set; }
@@ -38,8 +39,8 @@ public abstract class MoveType : PacketMarshaler
     public override void Read(PacketStream stream)
     {
         Time = stream.ReadUInt32();
-        Flags = stream.ReadByte();
-        if ((Flags & 0x10) == 0x10)
+        Flags = (MoveTypeFlags)stream.ReadByte();
+        if (Flags.HasFlag(MoveTypeFlags.HasScTypeAndPhase))
         {
             ScType = stream.ReadUInt32();
             Phase = stream.ReadByte();
@@ -50,8 +51,8 @@ public abstract class MoveType : PacketMarshaler
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(Time);
-        stream.Write(Flags);
-        if ((Flags & 0x10) == 0x10)
+        stream.Write((byte)Flags);
+        if (Flags.HasFlag(MoveTypeFlags.HasScTypeAndPhase))
         {
             stream.Write(ScType);
             stream.Write(Phase);

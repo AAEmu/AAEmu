@@ -45,9 +45,7 @@ public class UseSkill : ICommand
 
         if (args[0] == "target")
         {
-            var temp = source;
-            source = target;
-            target = temp;
+            (source, target) = (target, source);
             argsIdx++;
         }
 
