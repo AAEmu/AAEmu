@@ -363,14 +363,13 @@ public abstract class NpcAi
         return false;
     }
 
-    public double GetRealMovementSpeed()
+    public double GetRealMovementSpeed(double baseMoveSpeed)
     {
-        var moveSpeed = (double)Owner.BaseMoveSpeed;
         var speedMul = (Owner.CalculateWithBonuses(0, UnitAttribute.MoveSpeedMul) / 1000.0) + 1.0;
         if (Math.Abs(speedMul - 1.0) > double.Epsilon)
-            moveSpeed *= speedMul;
+            baseMoveSpeed *= speedMul;
 
-        return moveSpeed;
+        return baseMoveSpeed;
     }
 
     public byte GetRealMovementFlags(double moveSpeed)

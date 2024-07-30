@@ -65,7 +65,7 @@ public abstract class BaseCombatBehavior : Behavior
         {
             range -= 1f; // Fix that ID=7927, Plateau Earth Elemental can hit with a melee attack
         }
-        var speed = Ai.GetRealMovementSpeed();
+        var speed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
         var moveFlags = Ai.GetRealMovementFlags(speed);
         speed *= (delta.Milliseconds / 1000.0);
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);

@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.StaticValues;
 using NLog;
 using AAEmu.Game.Utils.Scripts;
 
@@ -73,7 +74,7 @@ public class Nrot : ICommand
             moveType.RotationY = characterRot.Item2;
             moveType.RotationZ = characterRot.Item3;
 
-            moveType.Flags = 5;
+            moveType.Flags = MoveTypeFlags.Moving;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;

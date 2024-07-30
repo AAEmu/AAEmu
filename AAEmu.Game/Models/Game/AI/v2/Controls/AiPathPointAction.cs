@@ -21,7 +21,7 @@ public enum AiPathPointAction
     /// <summary>
     /// Stance to be used when following the path
     /// </summary>
-    StanceFlags,
+    ActorFlags,
     /// <summary>
     /// Inserted by RunCommandSet to part that it needs to return there, do not manually put this in .path files
     /// </summary>

@@ -70,7 +70,7 @@ public class ArcherAttackBehavior : BaseCombatBehavior
             var npcPosition = Ai.Owner.Transform.World.Position;
             var abuserPosition = Ai.Owner.CurrentTarget.Transform.World.Position;
 
-            var moveSpeed = Ai.GetRealMovementSpeed();
+            var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
             var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
             moveSpeed *= (delta.Milliseconds / 1000.0);
             Ai.Owner.MoveTowards(idlePosition, (float)moveSpeed, moveFlags);

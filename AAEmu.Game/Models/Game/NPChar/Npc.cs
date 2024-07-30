@@ -1218,7 +1218,7 @@ public partial class Npc : Unit
         */
     }
 
-    public void MoveTowards(Vector3 other, float distance, byte flags = 4)
+    public void MoveTowards(Vector3 other, float distance, byte actorFlags = 4)
     {
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
@@ -1284,8 +1284,8 @@ public partial class Npc : Unit
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
-        moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-        moveType.Flags = 4;
+        moveType.ActorFlags = actorFlags;     // 5-walk, 4-run, 3-stand still
+        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0);; // MoveTypeFlags.Stopping;
 
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
@@ -1323,7 +1323,7 @@ public partial class Npc : Unit
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
         moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-        moveType.Flags = 4;
+        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0);; // 4;
 
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
@@ -1350,7 +1350,7 @@ public partial class Npc : Unit
         moveType.RotationX = 0;
         moveType.RotationY = 0;
         moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
-        moveType.Flags = 4;
+        moveType.Flags = MoveTypeFlags.Stopping | (IsInBattle ? MoveTypeFlags.InCombat : 0); // 4;
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;

@@ -12153,6 +12153,7 @@
     },
     {
         "UnitId": 8123,
+		"FollowPath": "falcorth_farkrag",
         "Position": {
             "X": 23719.08,
             "Y": 9449.88,
