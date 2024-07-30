@@ -244,21 +244,21 @@ namespace AAEmu.Commons.Cryptography
             var array = new byte[mBodyPacket.Length];
             var mul = msgKey * xorKey; // <-- ставим бряк здесь и смотрим xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
 
-            // расскоментируйте блок кода для записи xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
-            using (StreamWriter writer = new StreamWriter("o:/output.txt", true))
-            {
-                writer.WriteLine("xorkey:");
-                writer.WriteLine(keys.XorKey.ToString("X8"));
+            //// расскоментируйте блок кода для записи xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
+            //using (StreamWriter writer = new StreamWriter("o:/output.txt", true))
+            //{
+            //    writer.WriteLine("xorkey:");
+            //    writer.WriteLine(keys.XorKey.ToString("X8"));
 
-                writer.WriteLine("aesKey:");
-                writer.WriteLine(ByteArrayToHexString(keys.AesKey));
+            //    writer.WriteLine("aesKey:");
+            //    writer.WriteLine(ByteArrayToHexString(keys.AesKey));
 
-                writer.WriteLine("packetBody:");
-                writer.WriteLine(ByteArrayToHexString(bodyPacket));
+            //    writer.WriteLine("packetBody:");
+            //    writer.WriteLine(ByteArrayToHexString(bodyPacket));
 
-                writer.WriteLine("IV:");
-                writer.WriteLine(ByteArrayToHexString(keys.IV));
-            }
+            //    writer.WriteLine("IV:");
+            //    writer.WriteLine(ByteArrayToHexString(keys.IV));
+            //}
 
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a024a4) ^ 0xc3903b6a; // 3.0.3.0 archerage.to
             var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a024c4) ^ 0x2d3c9291; // 3.0.4.2 AAClassic
