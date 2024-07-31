@@ -35,12 +35,12 @@
      <Folder Include="Data\" />
    </ItemGroup>
 
-   <ItemGroup>
-     <None Update="Config.json">
-       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-     </None>
-     <None Update="ExampleConfig.json">
-       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-     </None>
-   </ItemGroup>
+  <ItemGroup>
+    <None Include="Config.json" Condition="Exists('Config.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ExampleConfig.json" Condition="!Exists('Config.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

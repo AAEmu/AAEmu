@@ -19,18 +19,20 @@
     </ItemGroup>
 
     <ItemGroup>
+    <None Include="Config.json" Condition="Exists('Config.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ExampleConfig.json" Condition="!Exists('Config.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+    <ItemGroup>
         <Content Include="Configurations\AccessLevels.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="NLog.config">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <None Update="Config.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Remove="ExampleConfig.xml" />
-        <Content Include="ExampleConfig.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <None Update="Configurations\Expedition.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

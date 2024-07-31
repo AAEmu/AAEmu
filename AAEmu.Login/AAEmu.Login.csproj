@@ -27,14 +27,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="ExampleConfig.json" />
-    <Content Include="ExampleConfig.json">
+    <None Include="Config.json" Condition="Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <None Remove="NLog.config" />
-    <Content Include="NLog.config">
+    </None>
+    <None Include="ExampleConfig.json" Condition="!Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
+    <None Include="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
