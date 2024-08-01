@@ -9,6 +9,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitModelPostureChangedPacket : GamePacket
 {
+    public override PacketLogLevel LogLevel => PacketLogLevel.Off;
+    
     private readonly Unit _unit;
     private readonly uint _animActionId;
     private readonly bool _activateAnimation;

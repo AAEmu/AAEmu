@@ -20,22 +20,22 @@ namespace AAEmu.Commons.Cryptography
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        private static int DwKeySize { get; } = 1024;
+        private static readonly int DwKeySize = 1024;
         private Dictionary<ulong, ConnectionKeychain> ConnectionKeys { get; set; } //Dictionary of valid keys bound to account Id and connection Id
 
         public void Load()
         {
             ConnectionKeys = new Dictionary<ulong, ConnectionKeychain>();
-
             Logger.Info("Loaded Encryption Manager.");
         }
 
-        private ConnectionKeychain GetConnectionKeys(uint connectionId, ulong accountId)
+        private ConnectionKeychain GetOrCreateConnectionKeys(uint connectionId, ulong accountId)
         {
-            if (ConnectionKeys.ContainsKey(accountId) && ConnectionKeys[accountId].ConnectionId == connectionId)
+            if (ConnectionKeys.TryGetValue(accountId, out var keys) && keys.ConnectionId == connectionId)
             {
-                return ConnectionKeys[accountId];
+                return keys;
             }
+
             return GenerateRsaKeyPair(connectionId, accountId);
         }
 
@@ -48,6 +48,7 @@ namespace AAEmu.Commons.Cryptography
             var rsaKeyPair = new RSACryptoServiceProvider();
             var keys = new ConnectionKeychain(connectionId, rsaKeyPair);
             ConnectionKeys.Add(accountId, keys);
+
             return keys;
         }
 
@@ -58,17 +59,17 @@ namespace AAEmu.Commons.Cryptography
             stream.Write(rsaParameters.Modulus);
             stream.Write(new byte[125]);
             stream.Write(rsaParameters.Exponent);
+
             return stream;
         }
 
         public void StoreClientKeys(byte[] aesKeyEncrypted, byte[] xorKeyEncrypted, ulong accountId, ulong connectionId)
         {
-            if (!ConnectionKeys.ContainsKey(accountId))
+            if (!ConnectionKeys.TryGetValue(accountId, out var keys))
             {
                 return;
             }
             Logger.Warn("AccountId: {0}, ConnectionId: {1}", accountId, connectionId);
-            var keys = ConnectionKeys[accountId];
             var xorConstRaw = keys.RsaKeyPair.Decrypt(xorKeyEncrypted, false);
             var head = BitConverter.ToUInt32(xorConstRaw, 0);
             Logger.Warn("XOR: {0}", head); // <-- этот сырой XOR записываем в поле xorConst from AAEMU моего OpcodeFinder`a
@@ -82,7 +83,7 @@ namespace AAEmu.Commons.Cryptography
 
         public byte GetSCMessageCount(uint connectionId, ulong accountId)
         {
-            var keys = GetConnectionKeys(connectionId, accountId);
+            var keys = GetOrCreateConnectionKeys(connectionId, accountId);
             var mc = keys.SCMessageCount;
             Logger.Trace("SCMessageCount={0}, connectionId={1}, accountId={2}", mc, connectionId, accountId);
 
@@ -91,13 +92,13 @@ namespace AAEmu.Commons.Cryptography
 
         public void IncSCMsgCount(uint connectionId, ulong accountId)
         {
-            var keys = GetConnectionKeys(connectionId, accountId);
+            var keys = GetOrCreateConnectionKeys(connectionId, accountId);
             keys.SCMessageCount++;
         }
 
         public byte GetAndIncSCMessageCount(uint connectionId, ulong accountId)
         {
-            var keys = GetConnectionKeys(connectionId, accountId);
+            var keys = GetOrCreateConnectionKeys(connectionId, accountId);
             var mc = keys.SCMessageCount++;
             Logger.Warn("SCMessageCount={0}, connectionId={1}, accountId={2}", mc, connectionId, accountId);
 
@@ -105,6 +106,7 @@ namespace AAEmu.Commons.Cryptography
         }
 
         #region S->C Encryption
+
         //Methods for SC packet Encryption
         /// <summary>
         /// Подсчет контрольной суммы пакета, используется в шифровании пакетов DD05 и 0005
@@ -114,20 +116,19 @@ namespace AAEmu.Commons.Cryptography
         /// <returns>Crc8</returns>
         private byte Crc8(byte[] data, int size)
         {
-            var len = size;
             uint checksum = 0;
-            for (var i = 0; i <= len - 1; i++)
+            for (var i = 0; i < size; i++)
             {
                 checksum *= 0x13;
                 checksum += data[i];
             }
-            return (byte)(checksum);
+
+            return (byte)checksum;
         }
 
         public byte Crc8(byte[] data)
         {
-            var size = data.Length;
-            return Crc8(data, size);
+            return Crc8(data, data.Length);
         }
         //--------------------------------------------------------------------------------------
         /// <summary>
@@ -140,6 +141,7 @@ namespace AAEmu.Commons.Cryptography
             cry += 0x2FCBD5U;
             var n = (byte)(cry >> 0x10);
             n = (byte)(n & 0x0F7);
+
             return (byte)(n == 0 ? 0x0FE : n);
         }
 
@@ -154,6 +156,7 @@ namespace AAEmu.Commons.Cryptography
             var length = bodyPacket.Length;
             var array = new byte[length];
             var cry = (uint)(length ^ 0x1F2175A0);
+
             return ByteXor(bodyPacket, length, array, cry);
         }
 
@@ -168,11 +171,14 @@ namespace AAEmu.Commons.Cryptography
             {
                 array[i] = (byte)(bodyPacket[i] ^ (uint)Inline(ref cry));
             }
+
             return array;
         }
+
         #endregion
 
         #region C->S Decryption
+
         //Methods for CS packet Decryption
         //------------------------------
         // здесь распаковка пакетов от клиента 0005
@@ -180,13 +186,14 @@ namespace AAEmu.Commons.Cryptography
         //------------------------------
         public byte[] Decode(byte[] data, uint connectionId, ulong accountId)
         {
-            var keys = GetConnectionKeys(connectionId, accountId);
+            var keys = GetOrCreateConnectionKeys(connectionId, accountId);
             var iv = keys.IV;
             var xorKey = keys.XorKey;
             var aesKey = keys.AesKey;
             var ciphertext = DecodeXor(data, xorKey, keys);
             var plaintext = DecodeAes(ciphertext, aesKey, iv);
             keys.CSMessageCount++;
+
             return plaintext;
         }
         //--------------------------------------------------------------------------------------
@@ -200,6 +207,7 @@ namespace AAEmu.Commons.Cryptography
             cry += 0x2FCBD5;
             var n = (byte)(cry >> 0x10);
             n = (byte)(n & 0x0F7);
+
             return (byte)(n == 0 ? 0x0FE : n);
         }
         //--------------------------------------------------------------------------------------
@@ -218,13 +226,14 @@ namespace AAEmu.Commons.Cryptography
                 result = (byte)0xFEu;
             }
             keys.CSSecondaryOffsetSequence = seq;
+
             return result;
         }
 
-        static string ByteArrayToHexString(byte[] bytes)
+        private static string ByteArrayToHexString(byte[] bytes)
         {
-            StringBuilder hex = new StringBuilder(bytes.Length * 2);
-            foreach (byte b in bytes)
+            var hex = new StringBuilder(bytes.Length * 2);
+            foreach (var b in bytes)
             {
                 hex.AppendFormat("{0:X2}", b);
             }
@@ -295,14 +304,13 @@ namespace AAEmu.Commons.Cryptography
             }
             keys.CSOffsetSequence += MakeSeq(keys);
             keys.CSOffsetSequence += 1;
+
             return array;
         }
-        //--------------------------------------------------------------------------------------
-        private const int Size = 16;
-        //--------------------------------------------------------------------------------------
+
         private static RijndaelManaged CryptAes(byte[] aesKey, byte[] iv)
         {
-            var rm = new RijndaelManaged
+            return new RijndaelManaged
             {
                 KeySize = 128,
                 BlockSize = 128,
@@ -311,7 +319,6 @@ namespace AAEmu.Commons.Cryptography
                 Key = aesKey,
                 IV = iv
             };
-            return rm;
         }
         //--------------------------------------------------------------------------------------
         /// <summary>
@@ -322,43 +329,43 @@ namespace AAEmu.Commons.Cryptography
         /// <param name="iv"></param>
         /// <returns></returns>
         //--------------------------------------------------------------------------------------
-        public static byte[] DecodeAes(byte[] cipherData, byte[] aesKey, byte[] iv)
+        private static byte[] DecodeAes(byte[] cipherData, byte[] aesKey, byte[] iv)
         {
-            var mIv = new byte[16];
+            const int Size = 16;
+            var mIv = new byte[Size];
             Buffer.BlockCopy(iv, 0, mIv, 0, Size);
             var len = cipherData.Length / Size;
             //Save last 16 bytes in IV
             Buffer.BlockCopy(cipherData, (len - 1) * Size, iv, 0, Size);
             // Create a MemoryStream that is going to accept the decrypted bytes
-            using (var memoryStream = new MemoryStream())
+            using var memoryStream = new MemoryStream();
+            // Create a symmetric algorithm.
+            // We are going to use RijndaelRijndael because it is strong and available on all platforms.
+            // You can use other algorithms, to do so substitute the next line with something like
+            // TripleDES alg = TripleDES.Create();
+            using (var alg = CryptAes(aesKey, mIv))
             {
-                // Create a symmetric algorithm.
-                // We are going to use RijndaelRijndael because it is strong and available on all platforms.
-                // You can use other algorithms, to do so substitute the next line with something like
-                // TripleDES alg = TripleDES.Create();
-                using (var alg = CryptAes(aesKey, mIv))
+                // Create a CryptoStream through which we are going to be pumping our data.
+                // CryptoStreamMode.Write means that we are going to be writing data to the stream
+                // and the output will be written in the MemoryStream we have provided.
+                using (var cs = new CryptoStream(memoryStream, alg.CreateDecryptor(), CryptoStreamMode.Write))
                 {
-                    // Create a CryptoStream through which we are going to be pumping our data.
-                    // CryptoStreamMode.Write means that we are going to be writing data to the stream
-                    // and the output will be written in the MemoryStream we have provided.
-                    using (var cs = new CryptoStream(memoryStream, alg.CreateDecryptor(), CryptoStreamMode.Write))
-                    {
-                        // Write the data and make it do the decryption
-                        cs.Write(cipherData, 0, cipherData.Length);
+                    // Write the data and make it do the decryption
+                    cs.Write(cipherData, 0, cipherData.Length);
 
-                        // Close the crypto stream (or do FlushFinalBlock).
-                        // This will tell it that we have done our decryption and there is no more data coming in,
-                        // and it is now a good time to remove the padding and finalize the decryption process.
-                        cs.FlushFinalBlock();
-                        cs.Close();
-                    }
+                    // Close the crypto stream (or do FlushFinalBlock).
+                    // This will tell it that we have done our decryption and there is no more data coming in,
+                    // and it is now a good time to remove the padding and finalize the decryption process.
+                    cs.FlushFinalBlock();
+                    cs.Close();
                 }
-                // Now get the decrypted data from the MemoryStream.
-                // Some people make a mistake of using GetBuffer() here, which is not the right way.
-                var decryptedData = memoryStream.ToArray();
-                return decryptedData;
             }
+            // Now get the decrypted data from the MemoryStream.
+            // Some people make a mistake of using GetBuffer() here, which is not the right way.
+
+            return memoryStream.ToArray();
         }
+
         #endregion
     }
 }
