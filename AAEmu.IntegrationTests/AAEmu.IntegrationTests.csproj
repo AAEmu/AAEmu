@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -7,33 +6,33 @@
     <VersionSuffix>alpha</VersionSuffix>
     <NoWarn>CA1859</NoWarn>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
     <ProjectReference Include="..\AAEmu.Game\AAEmu.Game.csproj" />
   </ItemGroup>
 
-   <ItemGroup>
-     <PackageReference Include="coverlet.collector" Version="6.0.0">
-       <PrivateAssets>all</PrivateAssets>
-       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-     </PackageReference>
-     <PackageReference Include="coverlet.msbuild" Version="6.0.0">
-       <PrivateAssets>all</PrivateAssets>
-       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-     </PackageReference>
-     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23503-02" />
-     <PackageReference Include="Moq" Version="4.18.1" />
-     <PackageReference Include="xunit" Version="2.5.3" />
-     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
-       <PrivateAssets>all</PrivateAssets>
-       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-     </PackageReference>
-   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23503-02" />
+    <PackageReference Include="Moq" Version="4.18.1" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
-   <ItemGroup>
-     <Folder Include="Data\" />
-   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Data\" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="Config.json" Condition="Exists('Config.json')">

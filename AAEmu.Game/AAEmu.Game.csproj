@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -12,13 +11,13 @@
     <ApplicationIcon>Resources\icon_game.ico</ApplicationIcon>
   </PropertyGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
-      <InternalsVisibleTo Include="AAEmu.IntegrationTests" />
-      <InternalsVisibleTo Include="AAEmu.UnitTests" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
+    <InternalsVisibleTo Include="AAEmu.IntegrationTests" />
+    <InternalsVisibleTo Include="AAEmu.UnitTests" />
+  </ItemGroup>
 
-    <ItemGroup>
+  <ItemGroup>
     <None Include="Config.json" Condition="Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -30,134 +29,134 @@
     </None>
   </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="Configurations\AccessLevels.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <None Update="Configurations\Expedition.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Configurations\World.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Configurations\CharacterDeleteSettings.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Configurations\ClientData.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Configurations\Specialty.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Configurations\CharacterSettings.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
+  <ItemGroup>
+    <Content Include="Configurations\AccessLevels.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Update="Configurations\Expedition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\World.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\CharacterDeleteSettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\ClientData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\Specialty.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\CharacterSettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
-    <ItemGroup>
-      <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
-      <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
-      <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
-      <None Include="ClientData\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="ClientData\" />
-    </ItemGroup>
+  <ItemGroup>
+    <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
+    <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
+    <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
+    <None Include="ClientData\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="ClientData\" />
+  </ItemGroup>
 
-    <ItemGroup>
-      <Compile Remove="Models\Tasks\Telescopes\**" />
-      <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
-      <None Remove="Models\Tasks\Telescopes\**" />
-      <Compile Update="Scripts\Commands\DeSpawnAll.cs">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Compile>
-    </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Models\Tasks\Telescopes\**" />
+    <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
+    <None Remove="Models\Tasks\Telescopes\**" />
+    <Compile Update="Scripts\Commands\DeSpawnAll.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+  </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Models\ClientData" />
-    </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Models\ClientData" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Discord.Net" Version="3.12.0" />
+    <PackageReference Include="Jace" Version="1.0.0" />
+    <PackageReference Include="Jitter.Core" Version="0.2.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0-rc.2.23480.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="NCrontab" Version="3.3.3" />
+    <PackageReference Include="NLog" Version="5.2.5" />
+    <PackageReference Include="NLua" Version="1.6.3" />
+    <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />
+    <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+  </ItemGroup>
   
-    <ItemGroup>
-        <PackageReference Include="Discord.Net" Version="3.12.0" />
-        <PackageReference Include="Jace" Version="1.0.0" />
-        <PackageReference Include="Jitter.Core" Version="0.2.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.7.0" />
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0-rc.2.23480.1" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0-rc.2.23479.6" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0-rc.2.23479.6" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="8.0.0-rc.2.23479.6" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0-rc.2.23479.6" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0-rc.2.23479.6" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-rc.2.23479.6" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0-rc.2.23479.6" />
-        <PackageReference Include="NCrontab" Version="3.3.3" />
-        <PackageReference Include="NLog" Version="5.2.5" />
-        <PackageReference Include="NLua" Version="1.6.3" />
-        <PackageReference Include="Ionic.Zlib.Core" Version="1.0.0" />
-        <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />        
-        <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="Scripts\Commands\GodMode.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\GoldCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\FishFinderCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TimeCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\ItemCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\SlaveCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\NpcCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\DoodadCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\ReloadConfigs.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\ClearCombat.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestFSets.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestHeight.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\Kit.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\AddXP.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\kits.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="Scripts\Commands\SoloParty.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\Despawn.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\SpawnGrid.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestZoneState.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestEcho.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\GetAttribute.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-    </ItemGroup>
+  <ItemGroup>
+    <None Update="Scripts\Commands\GodMode.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\GoldCmd.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\FishFinderCmd.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\TimeCmd.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\ItemCmd.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\SlaveCmd.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\NpcCmd.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\DoodadCmd.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\ReloadConfigs.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\ClearCombat.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\TestFSets.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\TestHeight.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\Kit.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\AddXP.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\kits.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Scripts\Commands\SoloParty.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\Despawn.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\SpawnGrid.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\TestZoneState.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\TestEcho.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+    <None Update="Scripts\Commands\GetAttribute.cs">
+      <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+    </None>
+  </ItemGroup>
 </Project>
