@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -10,7 +9,7 @@
     <UserSecretsId>68f0c4f8-94e8-45b8-b1a0-03a4ccf61ed2</UserSecretsId>
     <ApplicationIcon>Resources\icon_login.ico</ApplicationIcon>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
   </ItemGroup>
@@ -27,14 +26,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="ExampleConfig.json" />
-    <Content Include="ExampleConfig.json">
+    <None Include="Config.json" Condition="Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <None Remove="NLog.config" />
-    <Content Include="NLog.config">
+    </None>
+    <None Include="ExampleConfig.json" Condition="!Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
+    <None Include="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
-
 </Project>
