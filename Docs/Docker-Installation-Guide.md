@@ -4,7 +4,7 @@ We made this little docker installation script in powershell or bash - depending
 - New people to this project who wants a server to run quicker and with less headache even if it's easy if you know your basics.
 
 ## Prerequisites
-Get the **compact.sqlite3** server database and the **game_pak** of the ArcheAge client version you are using. And put them where the script tell you too.
+Get the **compact.sqlite3** server database ([Google Drive](https://drive.google.com/file/d/18Nm_Q7OgWOfdw_8Xl4TBXa1Z51uGHEIh/view) or [MEGA](https://mega.nz/file/ujhFAaIS#disveSrjdUVjY9mZ3Q2xJ2b7I4te2gwbKnzMYD8HLZ4)) and the **game_pak** of the ArcheAge client version you are using. And put them where the script tell you too.
 
 **Windows**:
 - Git : https://git-scm.com/downloads
