@@ -10,14 +10,18 @@ public class SCAiAggroPacket : GamePacket
     private readonly uint _npcId;
     private readonly int _count;
     private readonly uint _hostileUnitId;
-    private readonly int _value;
+    private readonly int _summarizeDamage;
+    private readonly int _value2;
+    private readonly int _value3;
 
-    public SCAiAggroPacket(uint npcId, int count, uint hostileUnitId = 0, int summarizeDamage = 0) : base(SCOffsets.SCUnitAiAggroPacket, 5)
+    public SCAiAggroPacket(uint npcId, int count, uint hostileUnitId = 0, int summarizeDamage = 0, int val2 = 0, int val3 = 0) : base(SCOffsets.SCAiAggroPacket, 5)
     {
         _npcId = npcId;
         _count = count;
         _hostileUnitId = hostileUnitId;
-        _value = summarizeDamage;
+        _summarizeDamage = summarizeDamage;
+        _value2 = val2;
+        _value3 = val3;
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -28,9 +32,9 @@ public class SCAiAggroPacket : GamePacket
         if (_count > 0)
         {
             stream.WriteBc(_hostileUnitId);
-            stream.Write(_value); // value 
-            stream.Write(0);   // value
-            stream.Write(0);   // value
+            stream.Write(_summarizeDamage); // value1 
+            stream.Write(_value2);   // value2
+            stream.Write(_value3);   // value3
             stream.Write((byte)135); // topFlags
 
             /*

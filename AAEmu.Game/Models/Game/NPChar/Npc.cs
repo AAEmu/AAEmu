@@ -1031,6 +1031,9 @@ public partial class Npc : Unit
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
                     player.Quests.AddQuest(Template.EngageCombatGiveQuestId);
             }
+            
+            // Send initial hit packet as well
+            unit.SendPacketToPlayers([this, unit], new SCCombatFirstHitPacket(this.ObjId, unit.ObjId, 0));
         }
 
         if (player == null)

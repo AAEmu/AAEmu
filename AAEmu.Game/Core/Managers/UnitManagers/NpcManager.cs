@@ -538,7 +538,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.ShowNameTag = reader.GetBoolean("show_name_tag", true);
                         template.VisibleToCreatorOnly = reader.GetBoolean("visible_to_creator_only", true);
                         template.NoExp = reader.GetBoolean("no_exp", true);
-                        template.PetItemId = reader.GetInt32("pet_item_id", 0);
+                        template.PetItemId = reader.GetUInt32("pet_item_id", 0);
                         template.BaseSkillId = reader.GetInt32("base_skill_id");
                         template.TrackFriendship = reader.GetBoolean("track_friendship", true);
                         template.Priest = reader.GetBoolean("priest", true);
