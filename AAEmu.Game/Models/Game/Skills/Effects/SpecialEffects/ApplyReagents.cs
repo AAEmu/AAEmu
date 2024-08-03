@@ -35,5 +35,10 @@ public class ApplyReagents : SpecialEffectAction
                 player.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
             }
         }
+        else if (casterObj is SkillItem item)
+        {
+            var player = (Character)caster;
+            player.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.SkillReagents, item.ItemTemplateId, 1, null);
+        }
     }
 }
