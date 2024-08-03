@@ -58,72 +58,50 @@ public sealed class GameService : IHostedService, IDisposable
 
         stopWatch.Start();
 
+        // Starting all Id managers
+        await Task.WhenAll([
+            Task.Run(() => TaskIdManager.Instance.Initialize(),cancellationToken),
+            Task.Run(() => ObjectIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => TradeIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => ContainerIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => ItemIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => DoodadIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => CharacterIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => FamilyIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => ExpeditionIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => VisitedSubZoneIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => PrivateBookIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => FriendIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => MateIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => HousingIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => HousingTldManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => TeamIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => QuestIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => MailIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => UccIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => MusicIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => ShipyardIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => WorldIdManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => TlIdManager.Instance.Initialize(), cancellationToken),
+            // SkillTlIdManager.Instance.Initialize();
+        ]);
+
+
         await Task.WhenAll([
             Task.Run(() => TickManager.Instance.Initialize(),cancellationToken),
-            Task.Run(() => TaskIdManager.Instance.Initialize(),cancellationToken),
             Task.Run(() => TaskManager.Instance.Initialize(),cancellationToken),
             Task.Run(() => FeaturesManager.Initialize(), cancellationToken),
             Task.Run(() => LocalizationManager.Instance.Load(), cancellationToken),
-            Task.Run(() => ObjectIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => TradeIdManager.Instance.Initialize(), cancellationToken),
             Task.Run(() => ZoneManager.Instance.Load(), cancellationToken),
-            Task.Run(() =>
-            {
-                WorldManager.Instance.Load();
-                WorldIdManager.Instance.Initialize();
-            },cancellationToken),
+            Task.Run(() => WorldManager.Instance.Load(), cancellationToken),
         ]);
 
         var heightmapTask = Task.Run(() => WorldManager.Instance.LoadHeightmaps(), cancellationToken);
         var waterBodyTask = Task.Run(() => WorldManager.Instance.LoadWaterBodies(), cancellationToken);
 
         await Task.WhenAll([
-            Task.Run(() => ContainerIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => ItemIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => DoodadIdManager.Instance.Initialize(), cancellationToken),
-        ]);
-
-        await Task.WhenAll([
             Task.Run(() => ChatManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => CharacterIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => FamilyIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => ExpeditionIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => VisitedSubZoneIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => PrivateBookIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => FriendIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => MateIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => HousingIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => HousingTldManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => TeamIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => QuestIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => MailIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => UccIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => MusicIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => ShipyardIdManager.Instance.Initialize(), cancellationToken),
-        ]);
-
-        await Task.WhenAll([
-            Task.Run(() => ChatManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => CharacterIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => FamilyIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => ExpeditionIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => VisitedSubZoneIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => PrivateBookIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => FriendIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => MateIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => HousingIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => HousingTldManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => TeamIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => QuestIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => MailIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => UccIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => MusicIdManager.Instance.Initialize(), cancellationToken),
-            Task.Run(() => ShipyardIdManager.Instance.Initialize(), cancellationToken),
-        ]);
-
-        await Task.WhenAll([
             Task.Run(() => ShipyardManager.Instance.Initialize(), cancellationToken),
-        // SkillTlIdManager.Instance.Initialize();
             Task.Run(() => IndunManager.Instance.Initialize(), cancellationToken),
 
             Task.Run(() => GameDataManager.Instance.LoadGameData(), cancellationToken),
@@ -138,7 +116,6 @@ public sealed class GameService : IHostedService, IDisposable
         ]);
 
         await Task.WhenAll([
-            Task.Run(() => TlIdManager.Instance.Initialize(), cancellationToken),
             Task.Run(() => SpecialtyManager.Instance.Load(), cancellationToken),
             Task.Run(() =>
             {
@@ -168,55 +145,57 @@ public sealed class GameService : IHostedService, IDisposable
             Task.Run(() => GameScheduleManager.Instance.Load(), cancellationToken),
         ]);
 
-        NpcManager.Instance.Load();
+        await Task.WhenAll([
+            Task.Run(() => NpcManager.Instance.Load(), cancellationToken),
+            Task.Run(() => DoodadManager.Instance.Load(), cancellationToken),
+        ]);
 
-        DoodadManager.Instance.Load();
-        TaxationsManager.Instance.Load();
-        HousingManager.Instance.Load();
-        TransferManager.Instance.Load();
-        GimmickManager.Instance.Load();
-        ShipyardManager.Instance.Load();
+        await Task.WhenAll([
+            Task.Run(() => SpawnManager.Instance.Load(), cancellationToken),
+            Task.Run(() => TaxationsManager.Instance.Load(), cancellationToken),
+            Task.Run(() => HousingManager.Instance.Load(), cancellationToken),
+            Task.Run(() => TransferManager.Instance.Load(), cancellationToken),
+            Task.Run(() => GimmickManager.Instance.Load(), cancellationToken),
+            Task.Run(() => ShipyardManager.Instance.Load(), cancellationToken),
 
-        SubZoneManager.Instance.Load();
-        PublicFarmManager.Instance.Load();
+            Task.Run(() => SubZoneManager.Instance.Load(), cancellationToken),
+            Task.Run(() => PublicFarmManager.Instance.Load(), cancellationToken),
+            Task.Run(() => AccessLevelManager.Instance.Load(), cancellationToken),
+            Task.Run(() => CashShopManager.Instance.Load(), cancellationToken),
+            Task.Run(() => CashShopManager.Instance.EnabledShop(), cancellationToken),
+            Task.Run(() => UccManager.Instance.Load(), cancellationToken),
+            Task.Run(() => MusicManager.Instance.Load(), cancellationToken),
+            Task.Run(() => AiGeoDataManager.Instance.Load(), cancellationToken),
+            Task.Run(() => {
+                if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
+                {
+                    ScriptCompiler.Compile();
+                }
+                else
+                {
+                    // (Preferred for debugging)
+                    // Use reflection to load scripts 
+                    ScriptReflector.Reflect();
+                }
+            }),
+            Task.Run(() => TimeManager.Instance.Start(), cancellationToken),
+            Task.Run(() => TaskManager.Instance.Start(), cancellationToken),
+            // LaborPowerManager.Initialize();
+            Task.Run(() => TimedRewardsManager.Instance.Initialize(), cancellationToken),
 
-        SpawnManager.Instance.Load();
-
-        AccessLevelManager.Instance.Load();
-        CashShopManager.Instance.Load();
-        CashShopManager.Instance.EnabledShop();
-        UccManager.Instance.Load();
-        MusicManager.Instance.Load();
-        AiGeoDataManager.Instance.Load();
-
-        if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
-        {
-            ScriptCompiler.Compile();
-        }
-        else
-        {
-            // (Preferred for debugging)
-            // Use reflection to load scripts 
-            ScriptReflector.Reflect();
-        }
-
-        TimeManager.Instance.Start();
-        TaskManager.Instance.Start();
-        // LaborPowerManager.Initialize();
-        TimedRewardsManager.Instance.Initialize();
-
-        DuelManager.Initialize();
-        SaveManager.Instance.Initialize();
-        AreaTriggerManager.Instance.Initialize();
-        SpecialtyManager.Initialize();
-        TransferManager.Instance.Initialize();
-        GimmickManager.Instance.Initialize();
-        SlaveManager.Initialize();
-        CashShopManager.Instance.Initialize();
-        GameDataManager.Instance.PostLoadGameData();
-        FishSchoolManager.Instance.Initialize();
-        RadarManager.Instance.Initialize();
-        PublicFarmManager.Instance.Initialize();
+            Task.Run(() => DuelManager.Initialize(), cancellationToken),
+            Task.Run(() => SaveManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => AreaTriggerManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => SpecialtyManager.Initialize(), cancellationToken),
+            Task.Run(() => TransferManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => GimmickManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => SlaveManager.Initialize(), cancellationToken),
+            Task.Run(() => CashShopManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => GameDataManager.Instance.PostLoadGameData(), cancellationToken),
+            Task.Run(() => FishSchoolManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => RadarManager.Instance.Initialize(), cancellationToken),
+            Task.Run(() => PublicFarmManager.Instance.Initialize(), cancellationToken),
+        ]);
 
         if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
         {
@@ -229,6 +208,7 @@ public sealed class GameService : IHostedService, IDisposable
             Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
             await heightmapTask;
         }
+
 
         var spawnSw = new Stopwatch();
         Logger.Info("Spawning units...");
