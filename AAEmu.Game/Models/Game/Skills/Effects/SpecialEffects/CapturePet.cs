@@ -1,6 +1,5 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
@@ -50,42 +49,17 @@ public class CapturePet : SpecialEffectAction
         
         // TODO: Verify Target NPC Grade
 
-        // TODO: Currently hard-coded since I can't find any table with this information
-        // You could add things here if you make new pet items for them, and add the current passive buffs to the NPCs
-        var captureItem = 0u;
-        switch (targetNpc.TemplateId)
-        {
-            case 2048: // Giant Queen Bee Lv26
-            case 3494: // Queen Bee Lv7
-            case 8561: // Queen Bee Lv18
-            case 13621: // Queen Bee Lv10
-                captureItem = 28483; // Nymphal Queen Bee
-                break;
-            case 7978: // Windlord
-                captureItem = 27203; // Captive Windlord
-                break;
-            case 8181: // Flamelord
-                captureItem = 27204; // Captive Flamelord
-                break;
-            case 8123: // Farkrag the Wanderer
-                captureItem = 27205; // Captive Farkrag the Wanderer
-                break;
-            case 5985: // Daruda the Watcher
-                captureItem = 27207; // Captive Daruda the Watcher
-                break;
-            case 5984: // Tarian the Grim
-                captureItem = 27209; // Captive Tarian the Grim
-                break;
-            case 6446: // Gatekeeper Harrod (final form)
-                captureItem = 27210; // Captive Harrod the Gatekeeper
-                break;
-        }
-
         // If valid target
-        if (captureItem > 0)
+        if (targetNpc.Template.PetItemId > 0)
         {
+            var itemTemplate = ItemManager.Instance.GetTemplate(targetNpc.Template.PetItemId);
+            if (itemTemplate == null)
+            {
+                player.SendErrorMessage(ErrorMessageType.BagInvalidItem);
+                return;
+            }
             // And player can get the item
-            if (!player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CapturePet, captureItem, 1))
+            if (!player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CapturePet, targetNpc.Template.PetItemId, 1))
             {
                 player.SendErrorMessage(ErrorMessageType.BagFull);
                 return;
