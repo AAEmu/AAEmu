@@ -334,4 +334,87 @@ public class AccountManager : Singleton<AccountManager>
             }
         }
     }
+
+    /// <summary>
+    /// Updates the divine_clock_time and divine_clock_taken values for given account
+    /// </summary>
+    /// <param name="accountId"></param>
+    /// <param name="timeElapsed"></param>
+    /// <param name="timesTaken"></param>
+    public void UpdateDivineClock(uint accountId, uint timeElapsed, uint timesTaken)
+    {
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "UPDATE accounts SET divine_clock_time = @divine_clock_time , divine_clock_taken = @divine_clock_taken WHERE account_id = @account_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Parameters.AddWithValue("@divine_clock_time", timeElapsed);
+                command.Parameters.AddWithValue("@divine_clock_taken", timesTaken);
+                command.Prepare();
+                command.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the divine_clock_time and divine_clock_taken values for given account
+    /// </summary>
+    /// <param name="accountId"></param>
+    /// <returns></returns>
+    public (uint, uint) GetDivineClock(uint accountId)
+    {
+        var timeElapsed = 0u;
+        var timesTaken = 0u;
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT account_id, divine_clock_time, divine_clock_taken FROM accounts WHERE account_id = @account_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Prepare();
+                using var reader = command.ExecuteReader();
+                if (reader.Read())
+                {
+                    timeElapsed = reader.GetUInt32("divine_clock_time");
+                    timesTaken = reader.GetUInt32("divine_clock_taken");
+                }
+                reader.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+            }
+        }
+
+        return (timeElapsed, timesTaken);
+    }
+
+    
 }

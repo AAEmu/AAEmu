@@ -30,6 +30,8 @@ CREATE TABLE `accounts` (
   `last_labor_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `divine_clock_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Time that has been passed already',
+  `divine_clock_taken` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Number of clicks taken today',
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account specific values not related to login';
 
@@ -163,6 +165,7 @@ CREATE TABLE `characters` (
   `updated_at` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
   `deleted` int(11) NOT NULL DEFAULT 0,
   `return_district` int(11) NOT NULL DEFAULT 0,
+  `online_time` INT(11) NOT NULL DEFAULT 0 COMMENT 'Time that the character has been online',
   PRIMARY KEY (`id`, `account_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
