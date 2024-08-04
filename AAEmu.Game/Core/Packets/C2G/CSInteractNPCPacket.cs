@@ -27,6 +27,6 @@ public class CSInteractNPCPacket : GamePacket
             Connection.ActiveChar.CurrentTarget = unit;
         }
 
-        Connection.SendPacket(new SCAiAggroPacket(objId, 0)); // TODO проверить count=1
+        Connection.SendPacket(new SCUnitAiAggroPacket(objId, 0)); // TODO проверить count=1
     }
 }

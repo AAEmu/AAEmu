@@ -341,7 +341,7 @@ public class AccountManager : Singleton<AccountManager>
     /// <param name="accountId"></param>
     /// <param name="timeElapsed"></param>
     /// <param name="timesTaken"></param>
-    public void UpdateDivineClock(uint accountId, uint timeElapsed, uint timesTaken)
+    public void UpdateDivineClock(ulong accountId, uint timeElapsed, uint timesTaken)
     {
         object accLock;
         lock (_locks)
@@ -377,7 +377,7 @@ public class AccountManager : Singleton<AccountManager>
     /// </summary>
     /// <param name="accountId"></param>
     /// <returns></returns>
-    public (uint, uint) GetDivineClock(uint accountId)
+    public (uint, uint) GetDivineClock(ulong accountId)
     {
         var timeElapsed = 0u;
         var timesTaken = 0u;
@@ -415,6 +415,4 @@ public class AccountManager : Singleton<AccountManager>
 
         return (timeElapsed, timesTaken);
     }
-
-    
 }

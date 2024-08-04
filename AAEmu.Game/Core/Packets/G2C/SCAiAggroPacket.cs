@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+// obsolete packet name
 public class SCAiAggroPacket : GamePacket
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
@@ -14,7 +15,7 @@ public class SCAiAggroPacket : GamePacket
     private readonly int _value2;
     private readonly int _value3;
 
-    public SCAiAggroPacket(uint npcId, int count, uint hostileUnitId = 0, int summarizeDamage = 0, int val2 = 0, int val3 = 0) : base(SCOffsets.SCAiAggroPacket, 5)
+    public SCAiAggroPacket(uint npcId, int count, uint hostileUnitId = 0, int summarizeDamage = 0, int val2 = 0, int val3 = 0) : base(SCOffsets.SCUnitAiAggroPacket, 5)
     {
         _npcId = npcId;
         _count = count;

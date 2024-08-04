@@ -419,7 +419,7 @@ public class DamageEffect : EffectTemplate
 
         if (trg is Npc npc)
         {
-            trg.SendPacketToPlayers([trg, caster], new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, ((Unit)caster).SummarizeDamage, 0, 0));
+            trg.SendPacketToPlayers([trg, caster], new SCUnitAiAggroPacket(trg.ObjId, 1, caster.ObjId, ((Unit)caster).SummarizeDamage, 0, 0));
             npc.OnDamageReceived((Unit)caster, value);
         }
 
