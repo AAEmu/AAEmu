@@ -215,6 +215,7 @@ public sealed class GameService : IHostedService, IDisposable
         WorldManager.Instance.StartPhysics();
 
         CharacterManager.CheckForDeletedCharacters();
+        CharacterManager.Instance.StartOnlineTracking();
 
         GameNetwork.Instance.Start();
         StreamNetwork.Instance.Start();

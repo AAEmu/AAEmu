@@ -922,4 +922,13 @@ public class CharacterManager : Singleton<CharacterManager>
 
         return false;
     }
+
+    /// <summary>
+    /// Starts the tracker for online time
+    /// </summary>
+    public void StartOnlineTracking()
+    {
+        var onlineTrackerTasks = new CharacterOnlineTrackingTask();
+        TaskManager.Instance.Schedule(onlineTrackerTasks, TimeSpan.Zero, CharacterOnlineTrackingTask.CheckPrecision);
+    }
 }
