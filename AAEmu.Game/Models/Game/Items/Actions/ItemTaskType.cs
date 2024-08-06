@@ -119,5 +119,6 @@ public enum ItemTaskType : byte
     Sknize = 113,
     ItemTaskThistimeUnpack = 114,
     BuyPremiumService = 115,
-    BuyAaPoint = 116
+    BuyAaPoint = 116,
+    Unk136 = 136
 }

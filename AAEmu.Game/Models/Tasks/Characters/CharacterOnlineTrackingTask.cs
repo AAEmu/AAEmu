@@ -1,6 +1,8 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Models.Tasks.Characters;
 
@@ -45,6 +47,18 @@ public class CharacterOnlineTrackingTask : Task
 
             // TODO: Use lastSeconds and newSeconds as a comparison for triggering time played achievements
             // TODO: Add divine clock feedback packets
+
+            if (time % 60 == 0)
+            {
+                var si = new ScheduleItem
+                {
+                    ItemTemplateId = 9000003,
+                    Gave = (byte)taken,
+                    Acumulated = time,
+                    Updated = DateTime.UtcNow
+                };
+                character.SendPacket(new SCScheduleItemUpdatePacket([si]));
+            }
         }
 
         lock (_lock)

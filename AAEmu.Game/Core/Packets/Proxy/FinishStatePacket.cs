@@ -38,9 +38,9 @@ public class FinishStatePacket : GamePacket
                 // Test URLs                                          // Original Trion values
                 // Client treats these as folders and will add a trailing slash (/) with whatever it needs
                 // For example, opening the Wiki would send http://localhost/aaemu/platform/login
-                var authUrl = "http://localhost/aaemu/login";         // "https://session.draft.integration.triongames.priv";
-                var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
-                var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
+                //var authUrl = "http://localhost/aaemu/login";         // "https://session.draft.integration.triongames.priv";
+                //var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
+                //var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
 
                 // It seems this packet can be ignored if you don't use the wiki/shop
                 //Connection.SendPacket(new SCTrionConfigPacket(
@@ -56,7 +56,7 @@ public class FinishStatePacket : GamePacket
                         Connection.Payment.EndTime)
                 );
                 Connection.SendPacket(new SCChatSpamConfigPacket());
-                Connection.SendPacket(new SCAccountAttributeConfigPacket([false, false, false]));
+                Connection.SendPacket(new SCAccountAttributeConfigPacket([false, true, false]));
                 Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 10, 10, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])); // TODO - config files
 
                 Connection.SendPacket(new SCTaxItemConfigPacket(0));

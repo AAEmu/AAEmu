@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -64,18 +65,8 @@ public class CSSelectCharacterPacket : GamePacket
             Connection.ActiveChar.Simulation = new Simulation(character);
 
             // TODO: Fix the patron and auction house license buff issue
-            if (Connection.ActiveChar is { } unit)
-            {
-                if (!unit.Buffs.CheckBuff((uint)SkillConstants.Patron)) //TODO Wrong place
-                {
-                    unit.Buffs.AddBuff(new Buff(unit, unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
-                }
-
-                if (!unit.Buffs.CheckBuff((uint)SkillConstants.AuctionLicense)) //TODO Wrong place
-                {
-                    unit.Buffs.AddBuff(new Buff(unit, unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
-                }
-            }
+            Connection.ActiveChar.Buffs.AddBuff((uint)SkillConstants.Patron, Connection.ActiveChar);
+            Connection.ActiveChar.Buffs.AddBuff((uint)SkillConstants.AuctionLicense, Connection.ActiveChar);
 
             Connection.SendPacket(new SCResidentInfoListPacket(ResidentManager.Instance.GetInfo()));
             Connection.SendPacket(new SCCharacterStatePacket(character));
@@ -126,6 +117,7 @@ public class CSSelectCharacterPacket : GamePacket
             character.Breath = character.LungCapacity;
 
             Connection.SendPacket(new SCScheduledEventStartedPacket());
+            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Unk136, [], []));
 
             Connection.ActiveChar.OnZoneChange(0, Connection.ActiveChar.Transform.ZoneId);
         }

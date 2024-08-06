@@ -7,7 +7,7 @@ public class ScheduleItem : PacketMarshaler
 {
     public uint ItemTemplateId { get; set; }
     public byte Gave { get; set; }
-    public int Acumulated { get; set; }
+    public uint Acumulated { get; set; }
     public DateTime Updated { get; set; }
 
     public override PacketStream Write(PacketStream stream)

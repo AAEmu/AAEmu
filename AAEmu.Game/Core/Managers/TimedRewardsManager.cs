@@ -97,7 +97,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
 
         if (AppConfiguration.Instance.Loyalty.DailyLogin > 0)
             AccountManager.Instance.AddLoyalty(accountId, AppConfiguration.Instance.Loyalty.DailyLogin);
-        
+
         AccountManager.Instance.UpdateDivineClock(accountId, 0, 0);
     }
 
