@@ -669,7 +669,7 @@ public static class SCOffsets
     public const ushort SCUnitAiAggroPacket = 0x027;
     public const ushort SCCharacterGenderAndModelModifiedPacket = 0x172;
     public const ushort SCAccountAttributePacket = 0x28C; // off_39C19E24
-    public const ushort off_39C19E30 = 0x112;
+    public const ushort SCAccountAttribute2Packet = 0x112; // off_39C19E30
     public const ushort off_39C19E48 = 0x008;
     public const ushort off_39C19E54 = 0x108;
     public const ushort SCItemLinkTextForLootPackItemBroadcastPacket = 0x2BB;

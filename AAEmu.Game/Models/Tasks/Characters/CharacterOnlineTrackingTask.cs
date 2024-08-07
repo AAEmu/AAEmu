@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Tasks.Characters;
 
@@ -58,6 +59,8 @@ public class CharacterOnlineTrackingTask : Task
                     Updated = DateTime.UtcNow
                 };
                 character.SendPacket(new SCScheduleItemUpdatePacket([si]));
+                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Unk136, [], []));
+
             }
         }
 
