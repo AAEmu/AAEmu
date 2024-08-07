@@ -18,7 +18,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
-using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -44,7 +43,8 @@ public partial class Npc : Unit
     /// <summary>
     /// This is the "Idle Animation Id" that is used in UnitModelChangePosture, it can change depending on the time of the day
     /// </summary>
-    public uint AnimActionId {
+    public uint AnimActionId
+    {
         get
         {
             switch (Template.NpcPostureSets.Count)
@@ -64,7 +64,7 @@ public partial class Npc : Unit
             }
         }
     }
-    
+
     public override float Scale => Template.Scale;
 
     public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
@@ -82,7 +82,7 @@ public partial class Npc : Unit
 
             if (value != null)
                 SendPacketToPlayers([value], new SCAggroTargetChangedPacket(ObjId, value.ObjId));
-                // BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, value.ObjId), false);
+            // BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, value.ObjId), false);
 
             _currentAggroTarget = value;
         }
@@ -840,7 +840,7 @@ public partial class Npc : Unit
                     }
                 }
             }
-            
+
             foreach (var pl in eligiblePlayers)
             {
                 var plKillXP = 0;
@@ -883,7 +883,7 @@ public partial class Npc : Unit
                 }
 
                 //Now we need to scale XP based on level difference, which gets a bit more complex.
-               
+
 
                 if (pl.Level >= this.Level + 10 || pl.Level <= this.Level - 10)
                 {
@@ -948,7 +948,7 @@ public partial class Npc : Unit
         }
         // Clear the aggro table
         AggroTable.Clear();
-        
+
         // Check if those target players still have aggro on something else, if not, clear their combat timers
         foreach (var player in playerAggroList)
         {
@@ -1031,7 +1031,7 @@ public partial class Npc : Unit
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
                     player.Quests.AddQuest(Template.EngageCombatGiveQuestId);
             }
-            
+
             // Send initial hit packet as well
             unit.SendPacketToPlayers([this, unit], new SCCombatFirstHitPacket(this.ObjId, unit.ObjId, 0));
         }
@@ -1059,11 +1059,15 @@ public partial class Npc : Unit
         {
             player.IsInAggroListOf.Remove(ObjId);
         }
-        
+
         // var player = unit as Character;
         // player?.SendMessage($"ClearAggroOfUnit {player.Name} for {this.ObjId}");
 
         var lastAggroCount = AggroTable.Count;
+        if (lastAggroCount <= 0)
+        {
+            return;
+        }
         if (AggroTable.TryRemove(unit.ObjId, out var value))
         {
             unit.Events.OnHealed -= OnAbuserHealed;
@@ -1243,7 +1247,7 @@ public partial class Npc : Unit
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
         moveType.ActorFlags = actorFlags;     // 5-walk, 4-run, 3-stand still
-        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0);; // MoveTypeFlags.Stopping;
+        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0); // MoveTypeFlags.Stopping;
 
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
@@ -1281,7 +1285,7 @@ public partial class Npc : Unit
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
         moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
-        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0);; // 4;
+        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0); ; // 4;
 
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;

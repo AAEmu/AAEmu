@@ -562,7 +562,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.NpcAiParamId = reader.GetInt32("npc_ai_param_id");
                         template.NonPushableByActor = reader.GetBoolean("non_pushable_by_actor", true);
                         template.Banker = reader.GetBoolean("banker", true);
-                        template.AggroLinkSpecialRuleId = reader.GetInt32("aggro_link_special_rule_id");
+                        template.AggroLinkSpecialRuleId = (AggroLinkSpecialRuleKind)reader.GetInt32("aggro_link_special_rule_id");
                         template.AggroLinkHelpDist = reader.GetFloat("aggro_link_help_dist");
                         template.AggroLinkSightCheck = reader.GetBoolean("aggro_link_sight_check", true);
                         template.Expedition = reader.GetBoolean("expedition", true);
