@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -233,7 +234,7 @@ public abstract class Behavior
             unitsWithDistance.Add((nearbyUnit, rangeOfUnit));
         }
         unitsWithDistance.Sort((p, q) => p.Item2.CompareTo(q.Item2));
-        
+
         foreach (var (unit, rangeOfUnit) in unitsWithDistance)
         {
             if (unit.IsDead || unit.Hp <= 0)
@@ -243,7 +244,7 @@ public abstract class Behavior
             var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 3.5f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.5f);
 
             // Check if in front, and not too far up or down
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) &&
                 Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
@@ -278,16 +279,16 @@ public abstract class Behavior
         //     var degree = MathUtil.ClampDegAngle(MathUtil.CalculateAngleFrom(Ai.Owner, player));
         //     player.SendMessage($"ObjId {Ai.Owner.ObjId} has seen you at a angle of {degree:F0}°");
         // }
-        
+
         // TODO: Tweak these values, or grab them from DB somewhere?
         Ai._alertEndTime = DateTime.UtcNow.AddSeconds(5);
         Ai._nextAlertCheckTime = DateTime.UtcNow.AddSeconds(7);
         // Ai.Owner.CurrentAggroTarget = target;
         Ai.Owner.SetTarget(target);
-        
+
         Ai.GoToAlert();
     }
-    
+
     public bool CheckAlert()
     {
         if (Ai._nextAlertCheckTime > DateTime.UtcNow)
@@ -299,7 +300,7 @@ public abstract class Behavior
 
         var res = false;
         var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, Ai.Owner.Template.SightRangeScale * 15f);
-        
+
         // Sort by distance
         var unitsWithDistance = new List<(Unit, float)>();
         foreach (var nearbyUnit in nearbyUnits)
@@ -308,7 +309,7 @@ public abstract class Behavior
             unitsWithDistance.Add((nearbyUnit, rangeOfUnit));
         }
         unitsWithDistance.Sort((p, q) => p.Item2.CompareTo(q.Item2));
-        
+
         foreach (var (unit, rangeOfUnit) in unitsWithDistance)
         {
             if (unit.IsDead || unit.Hp <= 0)
@@ -318,7 +319,7 @@ public abstract class Behavior
             var maxHeightGap = Ai.Owner.CanFly ? (Ai.Owner.ModelSize * Ai.Owner.Scale * 4f) : (Ai.Owner.ModelSize * Ai.Owner.Scale * 1.75f);
 
             // Check if in front, and not too far up or down
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) && 
+            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) &&
                 Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
@@ -347,18 +348,49 @@ public abstract class Behavior
         return res;
     }
 
-    public void UpdateAggroHelp(Unit abuser, int radius = 20)
+    public void UpdateAggroHelp(Unit abuser, int radius = 200)
     {
-        var npcs = WorldManager.GetAround<Npc>(Ai.Owner,  Ai.Owner.Template.AttackStartRangeScale * radius);
+        bool needHelp;
+        var npcs = WorldManager.GetAround<Npc>(Ai.Owner, Ai.Owner.Template.AttackStartRangeScale * radius);
         if (npcs == null)
+        {
             return;
+        }
 
         foreach (var npc in npcs
-                     .Where(npc => npc.Template.Aggression && !npc.IsInBattle && npc.Template.AcceptAggroLink)
+                     .Where(npc => !npc.IsInBattle && npc.Template.AcceptAggroLink)
                      .Where(npc => npc.GetDistanceTo(npc.Ai.Owner) <= npc.Template.AggroLinkHelpDist))
         {
-            if (Ai.Owner.IsInBattle)
-                return; // already in battle, let's not change the target
+            if (npc.Template.Aggression && npc.Template.AggroLinkSpecialRuleId == AggroLinkSpecialRuleKind.None)
+            {
+                needHelp = true;
+            }
+            else
+            {
+                if (!(npc.Template.AggroLinkSightCheck && npc.CanSeeTarget(abuser)))
+                {
+                    continue;
+                }
+
+                switch (npc.Template.AggroLinkSpecialRuleId)
+                {
+                    case AggroLinkSpecialRuleKind.FactionHelp when npc.Faction.Id == Ai.Owner.Faction.Id:
+                    case AggroLinkSpecialRuleKind.FriendlyHelp when npc.GetRelationStateTo(Ai.Owner) == RelationState.Friendly:
+                    case AggroLinkSpecialRuleKind.NeutralHelp when npc.GetRelationStateTo(Ai.Owner) == RelationState.Neutral:
+                    case AggroLinkSpecialRuleKind.EveryoneHelp:
+                        needHelp = true;
+                        break;
+                    case AggroLinkSpecialRuleKind.None:
+                    default:
+                        needHelp = false;
+                        break;
+                }
+            }
+
+            if (!needHelp)
+            {
+                continue;
+            }
 
             npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, abuser, 1);
             npc.Ai.OnAggroTargetChanged();
@@ -400,7 +432,7 @@ public abstract class Behavior
     {
         return Ai.PathHandler.HasPathMovementData();
     }
-    
+
     public Behavior SetDefaultBehavior()
     {
         Ai.SetDefaultBehavior(this);

@@ -51,7 +51,7 @@ public class NpcTemplate
     public int NpcAiParamId { get; set; }
     public bool NonPushableByActor { get; set; }
     public bool Banker { get; set; }
-    public int AggroLinkSpecialRuleId { get; set; }
+    public AggroLinkSpecialRuleKind AggroLinkSpecialRuleId { get; set; }
     public float AggroLinkHelpDist { get; set; }
     public bool AggroLinkSightCheck { get; set; }
     public bool Expedition { get; set; }
