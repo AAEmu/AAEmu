@@ -1292,7 +1292,7 @@ public partial class Npc : Unit
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
         moveType.ActorFlags = actorFlags;     // 5-walk, 4-run, 3-stand still
-        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0); ; // MoveTypeFlags.Stopping;
+        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0); // MoveTypeFlags.Stopping;
 
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
