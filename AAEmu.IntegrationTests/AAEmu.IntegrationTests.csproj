@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <VersionPrefix>0.3.0.0</VersionPrefix>
-    <VersionSuffix>alpha</VersionSuffix>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
     <NoWarn>CA1859</NoWarn>
   </PropertyGroup>
   
