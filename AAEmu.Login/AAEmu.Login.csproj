@@ -2,11 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <RuntimeIdentifiers>win7-x64;win7-x86;win8-x64;win8-x86;win81-x64;win81-x86;win10-x64;win10-x86;centos.7-x64;debian.9-x64;ubuntu.18.04-x64;sles-x64;sles.12-x64;sles.12.1-x64;sles.12.2-x64;sles.12.3-x64;alpine-x64;alpine.3.7-x64</RuntimeIdentifiers>
-    <VersionPrefix>3.0.4.2</VersionPrefix>
-    <UseRidGraph>true</UseRidGraph>
-    <VersionSuffix>alpha</VersionSuffix>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
     <UserSecretsId>68f0c4f8-94e8-45b8-b1a0-03a4ccf61ed2</UserSecretsId>
     <ApplicationIcon>Resources\icon_login.ico</ApplicationIcon>
   </PropertyGroup>
