@@ -359,7 +359,7 @@ public abstract class Behavior
 
         foreach (var npc in npcs
                      .Where(npc => !npc.IsInBattle && npc.Template.AcceptAggroLink)
-                     .Where(npc => npc.GetDistanceTo(npc.Ai.Owner) <= npc.Template.AggroLinkHelpDist))
+                     .Where(npc => npc.GetDistanceTo(Ai.Owner) <= npc.Template.AggroLinkHelpDist))
         {
             if (npc.Template.Aggression && npc.Template.AggroLinkSpecialRuleId == AggroLinkSpecialRuleKind.None)
             {
