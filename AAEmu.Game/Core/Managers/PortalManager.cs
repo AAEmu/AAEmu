@@ -430,6 +430,14 @@ public class PortalManager : Singleton<PortalManager>
         var portalInfo = (Models.Game.Units.Portal)WorldManager.Instance.GetNpc(objId);
         if (portalInfo == null) return;
 
+
+        //have Overburdened buff cannot UsePortal
+        if (character.Buffs.CheckBuffTag((uint)BuffConstants.Overburdened))
+        {
+            character.SendErrorMessage(ErrorMessageType.CannotUsePortalWithBackpack);
+            return;
+        }
+
         character.DisabledSetPosition = true;
         // TODO - UnitPortalUsed
         // TODO - Maybe need unitState?
