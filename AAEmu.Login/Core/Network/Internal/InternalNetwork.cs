@@ -25,6 +25,7 @@ public class InternalNetwork : Singleton<InternalNetwork>
         RegisterPacket(GLOffsets.GLPlayerEnterPacket, typeof(GLPlayerEnterPacket));
         RegisterPacket(GLOffsets.GLPlayerReconnectPacket, typeof(GLPlayerReconnectPacket));
         RegisterPacket(GLOffsets.GLRequestInfoPacket, typeof(GLRequestInfoPacket));
+        RegisterPacket(GLOffsets.GLGameServerLoadPacket, typeof(GLGameServerLoadPacket));
     }
 
     public void Start()

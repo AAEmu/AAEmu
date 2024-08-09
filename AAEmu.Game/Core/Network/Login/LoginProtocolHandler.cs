@@ -5,7 +5,9 @@ using System.Text;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Models.Tasks.ServerLoad;
 using NLog;
 
 namespace AAEmu.Game.Core.Network.Login;
@@ -16,6 +18,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
     private ConcurrentDictionary<uint, Type> _packets;
     private PacketStream _lastPacket;
+    private LoadTask _loadTask;
 
     public LoginProtocolHandler()
     {
@@ -28,6 +31,9 @@ public class LoginProtocolHandler : BaseProtocolHandler
         var con = new LoginConnection(session);
         con.OnConnect();
         LoginNetwork.Instance.SetConnection(con);
+
+        _loadTask = new LoadTask();
+        TaskManager.Instance.Schedule(_loadTask,null,TimeSpan.FromMinutes(1));
     }
 
     public override void OnDisconnect(ISession session)
@@ -35,6 +41,12 @@ public class LoginProtocolHandler : BaseProtocolHandler
         Logger.Info("Connect to LoginServer has been lost");
         LoginNetwork.Instance.SetConnection(null);
         session.Close();
+        if (_loadTask != null)
+        {
+            TaskManager.Instance.Cancel(_loadTask);
+            _loadTask = null;
+        }
+
 
         // TODO Hard Restart
         LoginNetwork.Instance.Stop();

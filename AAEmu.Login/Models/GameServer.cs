@@ -71,5 +71,15 @@ public class GameServer
             return result;
         }
     }
+
+    public void SetLoad(byte load)
+    {
+        Load = (GSLoad)load;
+    }
+
+    public void SetLoad(GSLoad load)
+    {
+        Load = load;
+    }
 }
 
