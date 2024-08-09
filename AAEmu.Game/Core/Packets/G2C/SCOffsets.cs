@@ -492,11 +492,11 @@ public static class SCOffsets
     public const ushort SCRankRewardMailPacket = 0x1f9;
     public const ushort SCRankCharacterPacket = 0x1fa;
     public const ushort SCRankSnapshotPacket = 0x1fb;
-    public const ushort SCUnkPacket9 = 0x1fc;
-    public const ushort SCUnkPacket10 = 0x1fd;
-    public const ushort SCUnkPacket11 = 0x1fe;
-    public const ushort SCUnkPacket12 = 0x1ff;
-    public const ushort SCUnkPacket13 = 0x200; // Sleepless/Nightshift sent?
+    public const ushort SCAchievementsPacket = 0x1fc;
+    public const ushort SCAchievementChangedPacket = 0x1fd;
+    public const ushort SCAchievementCompletedPacket = 0x1fe;
+    public const ushort SCAchievementResetedPacket = 0x1ff;
+    public const ushort SCAchievementItemSentPacket = 0x200; // Sleepless/Nightshift sent?
     public const ushort SCUpdatePremiumPointPacket = 0x201;
     public const ushort SCPremiumPointChangedPacket = 0x202;
     public const ushort SCUnitGmModeChangedPacket = 0x203;
