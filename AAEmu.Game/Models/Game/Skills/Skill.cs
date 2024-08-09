@@ -247,6 +247,14 @@ public class Skill
             return SkillResult.TooFarRange;
         }
 
+        if (Template.Effects.Count > 0 && Template.Effects.First()?.Template is OpenPortalEffect)
+        {
+            if (0 != caster.InstanceId)
+            {
+                return SkillResult.InvalidLocation;
+            }
+        }
+
         // Calculate casting time if needed
         var castTime = 0;
         if (Template.CastingTime > 0)
