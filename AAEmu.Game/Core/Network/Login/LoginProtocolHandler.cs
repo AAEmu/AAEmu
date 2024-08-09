@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
@@ -39,6 +40,8 @@ public class LoginProtocolHandler : BaseProtocolHandler
     public override void OnDisconnect(ISession session)
     {
         Logger.Info("Connect to LoginServer has been lost");
+        Thread.Sleep(2000);
+
         LoginNetwork.Instance.SetConnection(null);
         session.Close();
         if (_loadTask != null)
