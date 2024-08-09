@@ -7,4 +7,5 @@ public static class GLOffsets
     public const ushort GLPlayerEnterPacket = 0x001;
     public const ushort GLPlayerReconnectPacket = 0x002;
     public const ushort GLRequestInfoPacket = 0x003;
+    public const ushort GLGameServerLoadPacket = 0x004;
 }

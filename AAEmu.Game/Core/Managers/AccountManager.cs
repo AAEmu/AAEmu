@@ -65,6 +65,8 @@ public class AccountManager : Singleton<AccountManager>
         return _accounts.ContainsKey(id);
     }
 
+    public int Count() => _accounts.Count; 
+
     private AccountDetails GetAccountDetailsInternal(uint accountId)
     {
         var res = new AccountDetails();
