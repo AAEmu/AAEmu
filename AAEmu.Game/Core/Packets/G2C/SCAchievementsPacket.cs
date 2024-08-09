@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly List<AchievementInfo> _achievements;
 
-        public SCAchievementsPacket(List<AchievementInfo> achievements) : base(SCOffsets.SCAchievementsPacket, 5)
+        public SCAchievementsPacket(List<AchievementInfo> achievements) : base(SCOffsets.SCAchievementsPacket, 1)
         {
             _achievements = achievements;
         }

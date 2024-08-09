@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _id;
 
-        public SCAchievementCompletedPacket(uint id) : base(SCOffsets.SCAchievementCompletedPacket, 5)
+        public SCAchievementCompletedPacket(uint id) : base(SCOffsets.SCAchievementCompletedPacket, 1)
         {
             _id = id;
         }

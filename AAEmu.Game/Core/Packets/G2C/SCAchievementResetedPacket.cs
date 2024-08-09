@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly int _amount;
 
-        public SCAchievementResetedPacket(uint id, int amount) : base(SCOffsets.SCAchievementResetedPacket, 5)
+        public SCAchievementResetedPacket(uint id, int amount) : base(SCOffsets.SCAchievementResetedPacket, 1)
         {
             _id = id;
             _amount = amount;

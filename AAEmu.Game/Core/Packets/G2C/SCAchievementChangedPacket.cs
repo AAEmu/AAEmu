@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly int _amount;
 
-        public SCAchievementChangedPacket(uint id, int amount) : base(SCOffsets.SCAchievementChangedPacket, 5)
+        public SCAchievementChangedPacket(uint id, int amount) : base(SCOffsets.SCAchievementChangedPacket, 1)
         {
             _id = id;
             _amount = amount;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly bool _byMail;
 
-        public SCAchievementItemSentPacket(uint id, bool byMail) : base(SCOffsets.SCAchievementItemSentPacket, 5)
+        public SCAchievementItemSentPacket(uint id, bool byMail) : base(SCOffsets.SCAchievementItemSentPacket, 1)
         {
             _id = id;
             _byMail = byMail;
