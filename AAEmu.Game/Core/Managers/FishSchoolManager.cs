@@ -17,7 +17,7 @@ public class FishSchoolManager : Singleton<FishSchoolManager>
     public void Initialize()
     {
         FishSchools = new Dictionary<uint, List<Doodad>>();
-        Logger.Info("Initialising FishSchool Manager...");
+        Logger.Info("Initializing FishSchool Manager...");
     }
 
     public void Load(uint worldId)

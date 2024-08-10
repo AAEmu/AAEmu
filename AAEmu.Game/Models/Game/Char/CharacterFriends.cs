@@ -21,7 +21,7 @@ public class CharacterFriends
 
     public void AddFriend(string name)
     {
-        var friend = FriendMananger.GetFriendInfo(name);
+        var friend = FriendManager.GetFriendInfo(name);
         if (friend == null || FriendsIdList.ContainsKey(friend.CharacterId))
         {
             // TODO - ERROR MESSAGE ALREADY ADDED
@@ -35,20 +35,20 @@ public class CharacterFriends
             Owner = Owner.Id
         };
         FriendsIdList.Add(friend.CharacterId, template);
-        FriendMananger.Instance.AddToAllFriends(template);
+        FriendManager.Instance.AddToAllFriends(template);
         Owner.SendPacket(new SCAddFriendPacket(friend, true, 0));
     }
 
     public void RemoveFriend(string name)
     {
-        var friend = FriendMananger.GetFriendInfo(name);
+        var friend = FriendManager.GetFriendInfo(name);
         if (friend == null || !FriendsIdList.ContainsKey(friend.CharacterId))
         {
             // TODO - ERROR MESSAGE NOT FRIEND
             return;
         }
 
-        FriendMananger.Instance.RemoveFromAllFriends(FriendsIdList[friend.CharacterId].Id);
+        FriendManager.Instance.RemoveFromAllFriends(FriendsIdList[friend.CharacterId].Id);
         FriendsIdList.Remove(friend.CharacterId);
         _removedFriends.Add(friend.CharacterId);
         Owner.SendPacket(new SCDeleteFriendPacket(friend.CharacterId, true, name, 0));
@@ -58,7 +58,7 @@ public class CharacterFriends
     {
         if (FriendsIdList.Count <= 0) return;
 
-        var allFriends = FriendMananger.GetFriendInfo(new List<uint>(FriendsIdList.Keys));
+        var allFriends = FriendManager.GetFriendInfo(new List<uint>(FriendsIdList.Keys));
         var allFriendsArray = new Friend[allFriends.Count];
         allFriends.CopyTo(allFriendsArray, 0);
         Owner.SendPacket(new SCFriendsPacket(allFriendsArray.Length, allFriendsArray));

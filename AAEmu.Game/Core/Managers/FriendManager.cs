@@ -13,7 +13,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FriendMananger : Singleton<FriendMananger>
+public class FriendManager : Singleton<FriendManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, FriendTemplate> _allFriends; // temp id, template
@@ -68,12 +68,12 @@ public class FriendMananger : Singleton<FriendMananger>
             var friendOwner = WorldManager.Instance.GetCharacterById(value.Owner);
             if (friendOwner != null)
             {
-                var myInfos = FormatFriend(unit);
+                var myInfo = FormatFriend(unit);
                 if (forOnline)
-                    myInfos.IsOnline = boolean;
+                    myInfo.IsOnline = boolean;
                 else
-                    myInfos.InParty = boolean;
-                friendOwner.SendPacket(new SCFriendStatusChangedPacket(myInfos));
+                    myInfo.InParty = boolean;
+                friendOwner.SendPacket(new SCFriendStatusChangedPacket(myInfo));
             }
         }
     }
