@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Achievement
