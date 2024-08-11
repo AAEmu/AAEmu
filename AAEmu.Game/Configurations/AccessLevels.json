@@ -1,10 +1,10 @@
 {
     "AccessLevel": {
         // Everyone
-        "fly": 0,
+        // Always keep help at zero
         "help": 0,
+        "fly": 0,
         
-        // always keep help at zero
         "online": 0,
         "soloparty": 0,
         "teleport": 0,
@@ -69,11 +69,13 @@
         "testmail": 100,
         "testhouse": 100,
         "testslave": 100,
-        "testtransfer": 100,
         "tickdoodad": 100,
         "tower_def": 100,
         "useskill": 100,
         "wipeauctionhouse": 100,
-        "zonestate": 100
+        "zonestate": 100,
+        
+        // Disabled
+        "testtransfer": 999
     }
 }

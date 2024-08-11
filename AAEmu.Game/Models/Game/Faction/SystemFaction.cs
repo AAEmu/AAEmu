@@ -8,11 +8,11 @@ namespace AAEmu.Game.Models.Game.Faction;
 
 public class SystemFaction : PacketMarshaler
 {
-    public uint Id { get; set; }
+    public FactionsEnum Id { get; set; }
     public string Name { get; set; }
     public uint OwnerId { get; set; }
     public string OwnerName { get; set; }
-    public uint MotherId { get; set; }
+    public FactionsEnum MotherId { get; set; }
     public sbyte UnitOwnerType { get; set; }
     public byte PoliticalSystem { get; set; }
     public bool DiplomacyTarget { get; set; }
@@ -21,18 +21,13 @@ public class SystemFaction : PacketMarshaler
     public byte AllowChangeName { get; set; }
     public DateTime Created { get; set; }
 
-    public Dictionary<uint, FactionRelation> Relations { get; set; }
-
-    public SystemFaction()
-    {
-        Relations = new Dictionary<uint, FactionRelation>();
-    }
+    public Dictionary<FactionsEnum, FactionRelation> Relations { get; set; } = new();
 
     public RelationState GetRelationState(SystemFaction otherFaction)
     {
         if (otherFaction == null) return RelationState.Neutral;
 
-        var factionId = MotherId != 0 ? MotherId : Id;
+        var factionId = MotherId != FactionsEnum.Invalid ? MotherId : Id;
         var otherFactionId = otherFaction.MotherId != 0 ? otherFaction.MotherId : otherFaction.Id;
 
         // Handle Root Factions
@@ -79,8 +74,8 @@ public class SystemFaction : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Id);                // type
-        stream.Write(MotherId);          // type
+        stream.Write((uint)Id);                // type
+        stream.Write((uint)MotherId);          // type
         stream.Write(Name);              // name
         stream.Write(OwnerId);           // ownerId Int32
         stream.Write(OwnerName);         // ownerName

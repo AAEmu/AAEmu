@@ -3,6 +3,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -23,9 +24,9 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
     public bool IsParty { get; set; } // Always the same as TeamShare by the looks of it
     public int LvlMinNpc { get; set; }
     public int LvlMaxNpc { get; set; }
-    public uint PcFactionId { get; set; }
+    public FactionsEnum PcFactionId { get; set; }
     public bool PcFactionExclusive { get; set; }
-    public uint NpcFactionId { get; set; }
+    public FactionsEnum NpcFactionId { get; set; }
     public bool NpcFactionExclusive { get; set; }
 
     /// <summary>

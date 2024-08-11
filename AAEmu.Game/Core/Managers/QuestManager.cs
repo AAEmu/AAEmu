@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Quests;
 using AAEmu.Game.Utils.DB;
 
@@ -1622,9 +1623,9 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     template.IsParty = reader.GetBoolean("is_party", true);
                     template.LvlMinNpc = reader.GetInt32("lv_min_npc");
                     template.LvlMaxNpc = reader.GetInt32("lv_max_npc");
-                    template.PcFactionId = reader.GetUInt32("pc_faction_id", 0);
+                    template.PcFactionId = (FactionsEnum)reader.GetUInt32("pc_faction_id", 0);
                     template.PcFactionExclusive = reader.GetBoolean("pc_faction_exclusive", true);
-                    template.NpcFactionId = reader.GetUInt32("npc_faction_id", 0);
+                    template.NpcFactionId = (FactionsEnum)reader.GetUInt32("npc_faction_id", 0);
                     template.NpcFactionExclusive = reader.GetBoolean("npc_faction_exclusive", true);
                     AddActTemplate(template);
                 }

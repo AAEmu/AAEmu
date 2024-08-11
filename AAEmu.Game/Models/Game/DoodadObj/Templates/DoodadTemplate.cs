@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Templates;
 
@@ -29,7 +30,7 @@ public class DoodadTemplate
     public bool ForceUpAction { get; set; }
     public bool Parentable { get; set; }
     public bool Childable { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public int GrowthTime { get; set; }
     public bool DespawnOnCollision { get; set; }
     public bool NoCollision { get; set; }

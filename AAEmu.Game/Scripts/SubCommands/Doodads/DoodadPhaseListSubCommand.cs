@@ -19,7 +19,9 @@ public class DoodadPhaseListSubCommand : SubCommandBase
         CallPrefix = $"{CommandManager.CommandPrefix}doodad phase list";
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
     }
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint doodadObjId = parameters["ObjId"];
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
@@ -27,6 +29,7 @@ public class DoodadPhaseListSubCommand : SubCommandBase
         {
             SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} Does not exist");
         }
+
         if (!(doodad is Doodad))
         {
             SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} is invalid (not a Doodad)");
@@ -34,7 +37,9 @@ public class DoodadPhaseListSubCommand : SubCommandBase
 
         var availablePhases = string.Join(", ", DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId));
 
-        SendMessage(messageOutput, $"TemplateId {doodad.TemplateId}: ObjId{doodad.ObjId}, Available phase ids (func groups): {availablePhases}");
-        Logger.Warn($"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId},  Available phase ids (func groups): {availablePhases}");
+        SendMessage(messageOutput,
+            $"TemplateId {doodad.TemplateId}: ObjId{doodad.ObjId}, Available phase ids (func groups): {availablePhases}");
+        Logger.Warn(
+            $"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId},  Available phase ids (func groups): {availablePhases}");
     }
 }

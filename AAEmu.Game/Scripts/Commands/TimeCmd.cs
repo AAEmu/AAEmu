@@ -10,14 +10,17 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TimeCmd : SubCommandBase, ICommand, ICommandV2
 {
+    public string[] CommandNames { get; set; } = new string[] { "time" };
+
     public TimeCmd()
     {
         Title = "[Time]";
         Description = "Root command to manage Time";
-        CallPrefix = $"{CommandManager.CommandPrefix}time";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new TimeSetSubCommand(), "set", "s");
     }
+
     public void OnLoad()
     {
         string[] name = { "time" };
@@ -36,6 +39,7 @@ public class TimeCmd : SubCommandBase, ICommand, ICommandV2
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

@@ -25,6 +25,7 @@ using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -940,7 +941,7 @@ public class Unit : BaseUnit, IUnit
     /// Set the faction of the owner
     /// </summary>
     /// <param name="factionId"></param>
-    public void SetFaction(uint factionId)
+    public void SetFaction(FactionsEnum factionId)
     {
         // Keep origin faction data temporarily for arena players
         OriginFaction = Faction;

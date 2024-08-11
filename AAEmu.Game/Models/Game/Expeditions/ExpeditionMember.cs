@@ -8,13 +8,14 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World.Transform;
 
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions;
 
 public class ExpeditionMember : PacketMarshaler
 {
-    public uint ExpeditionId { get; set; }
+    public FactionsEnum ExpeditionId { get; set; }
     public uint CharacterId { get; set; }
     public bool InParty { get; set; }
     public bool IsOnline { get; set; }
@@ -108,9 +109,9 @@ public class ExpeditionMember : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        Refresh(CharacterId);
-
         stream.Write(ExpeditionId);
+
+        stream.Write((uint)ExpeditionId);
         stream.Write(CharacterId);
         stream.Write(InParty);
         stream.Write(IsOnline);

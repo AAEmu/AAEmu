@@ -29,7 +29,8 @@ public class SlaveSaveSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object Id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         if (parameters.TryGetValue("ObjId", out var objId))
         {
@@ -100,13 +101,16 @@ public class SlaveSaveSubCommand : SubCommandBase
                         {
                             slaveSpawnersToFile.Remove(slaveSpawn);
                         }
+
                         break;
                     }
             }
         }
 
-        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, "slave_spawns_new.json");
-        var json = JsonConvert.SerializeObject(slaveSpawnersToFile.ToArray(), Formatting.Indented, new JsonModelsConverter());
+        var jsonPathOut =
+            Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, "slave_spawns_new.json");
+        var json = JsonConvert.SerializeObject(slaveSpawnersToFile.ToArray(), Formatting.Indented,
+            new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
         SendMessage(messageOutput, "All slaves have been saved!");
     }
@@ -148,6 +152,7 @@ public class SlaveSaveSubCommand : SubCommandBase
         {
             spawnersFromFile.TryAdd(spawnerFromFile.Id, spawnerFromFile);
         }
+
         if (spawnersFromFile.ContainsKey(spawn.Id))
         {
             spawnersFromFile[spawn.Id] = spawn;
@@ -158,9 +163,11 @@ public class SlaveSaveSubCommand : SubCommandBase
         }
 
         var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "slave_spawns_new.json");
-        var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
+        var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented,
+            new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
-        SendMessage(messageOutput, $"All slaves have been saved with added slave ObjId:{slave.ObjId}, TemplateId:{slave.TemplateId}");
+        SendMessage(messageOutput,
+            $"All slaves have been saved with added slave ObjId:{slave.ObjId}, TemplateId:{slave.TemplateId}");
     }
 
     private List<JsonSlaveSpawns> LoadSlavesFromFileByWorld(World world)

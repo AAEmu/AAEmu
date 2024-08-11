@@ -19,6 +19,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -186,7 +187,7 @@ public class NpcManager : Singleton<NpcManager>
         var _template = new NpcTemplate();
         var totalCustomId = template.TotalCustomId;
 
-        if (totalCustomId != 0 || template.FactionId == 115 || template.FactionId == 116) // 115 - Monstrosity, 116 - Animal
+        if (totalCustomId != 0 || template.FactionId == FactionsEnum.Monstrosity || template.FactionId == FactionsEnum.Animal) // 115 - Monstrosity, 116 - Animal
         {
             return template;
         }
@@ -528,7 +529,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.Level = reader.GetByte("level");
                         template.NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id");
                         template.ModelId = reader.GetUInt32("model_id");
-                        template.FactionId = reader.GetUInt32("faction_id");
+                        template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id");
                         //template.HeirLevel = reader.GetUInt32("heir_level"); // there is no such field in the database for version 3.0.3.0
                         template.SkillTrainer = reader.GetBoolean("skill_trainer", true);
                         template.AiFileId = reader.GetInt32("ai_file_id");

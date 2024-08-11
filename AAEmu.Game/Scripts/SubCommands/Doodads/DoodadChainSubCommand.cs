@@ -18,7 +18,8 @@ public class DoodadChainSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("templateId", "Template Id", true));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint templateId = parameters["templateId"];
         var doodad = DoodadManager.Instance.Create(0, templateId);
@@ -48,9 +49,11 @@ public class DoodadChainSubCommand : SubCommandBase
                 foreach (var phaseFunc in phaseFuncs)
                 {
                     // phaseFunc.Use
-                    Logger.Info($"{Title} PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType);
+                    Logger.Info($"{Title} PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId,
+                        phaseFunc.FuncId, phaseFunc.FuncType);
                 }
             }
+
             // Get all doodad_funcs
             var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
             if (doodadFuncs.Count == 0)
@@ -62,7 +65,8 @@ public class DoodadChainSubCommand : SubCommandBase
                 foreach (var func in doodadFuncs)
                 {
                     // func.Use
-                    Logger.Info($"{Title} Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
+                    Logger.Info($"{Title} Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}",
+                        func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
                 }
             }
         }

@@ -1,3 +1,5 @@
+using AAEmu.Game.Models.StaticValues;
+
 namespace AAEmu.Game.Models.Game.World.Zones;
 
 public class Zone
@@ -7,6 +9,6 @@ public class Zone
     public uint ZoneKey { get; set; }
     public uint GroupId { get; set; }
     public bool Closed { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public uint ZoneClimateId { get; set; }
 }

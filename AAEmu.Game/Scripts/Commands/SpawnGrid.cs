@@ -16,12 +16,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SpawnGrid : ICommand
 {
-    // Unused protected static Logger Logger = LogManager.GetCurrentClassLogger();
+    public string[] CommandNames { get; set; } = new string[] { "spawngrid", "spawngroup" };
 
     public void OnLoad()
     {
-        string[] names = { "spawngrid", "spawngroup" };
-        CommandManager.Instance.Register(names, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -31,8 +30,9 @@ public class SpawnGrid : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Spawns a large amount of NPCs or doodads using <templateID> as a template in a grid in front of you using specified number of colums, rows and spacing.\n" +
-            "Example: " + CommandManager.CommandPrefix + "spawngrid doodad 320 5 5 2";
+        return
+            "Spawns a large amount of NPCs or doodads using <templateID> as a template in a grid in front of you using specified number of columns, rows and spacing.\n" +
+            $"Example: {CommandManager.CommandPrefix}{CommandNames[0]} doodad 320 5 5 2";
     }
 
     public static void SpawnDoodad(uint unitId, Character character, float newX, float newY)
@@ -43,12 +43,14 @@ public class SpawnGrid : ICommand
         doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
         doodadSpawner.Position.Y = newY;
         doodadSpawner.Position.X = newX;
-        var angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.X, doodadSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
-        doodadSpawner.Position.Yaw = angle.DegToRad(); // TODO: this seems wrong for now, will need to replace with a LookAt() at some later point
+        var angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.X, doodadSpawner.Position.Y,
+            character.Transform.World.Position.X, character.Transform.World.Position.Y);
+        doodadSpawner.Position.Yaw =
+            angle.DegToRad(); // TODO: this seems wrong for now, will need to replace with a LookAt() at some later point
         doodadSpawner.Position.Pitch = 0;
         doodadSpawner.Position.Roll = 0;
         doodadSpawner.Spawn(0);
-        character.SendMessage(doodadSpawner.Position.ToString());
+        // character.SendMessage(doodadSpawner.Position.ToString());
     }
 
     public static void SpawnNPC(uint unitId, Character character, float newX, float newY)
@@ -59,12 +61,13 @@ public class SpawnGrid : ICommand
         npcSpawner.Position = character.Transform.CloneAsSpawnPosition();
         npcSpawner.Position.Y = newY;
         npcSpawner.Position.X = newX;
-        var angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
+        var angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y,
+            character.Transform.World.Position.X, character.Transform.World.Position.Y);
         npcSpawner.Position.Yaw = angle.DegToRad();
         npcSpawner.Position.Pitch = 0;
         npcSpawner.Position.Roll = 0;
 
-		SpawnManager.Instance.AddNpcSpawner(npcSpawner);
+        SpawnManager.Instance.AddNpcSpawner(npcSpawner);
         npcSpawner.SpawnAll();
     }
 
@@ -72,54 +75,68 @@ public class SpawnGrid : ICommand
     {
         if (args.Length < 5)
         {
-            character.SendMessage("[Spawn] " + CommandManager.CommandPrefix + "spawngrid " + GetCommandLineHelp());
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        string action = args[0].ToLower();
-        if (!uint.TryParse(args[1], out var templateId) || !uint.TryParse(args[2], out var columns) || !uint.TryParse(args[3], out var rows) || !float.TryParse(args[4], out var spacing))
+        var action = args[0].ToLower();
+        if (!uint.TryParse(args[1], out var templateId) || !uint.TryParse(args[2], out var columns) ||
+            !uint.TryParse(args[3], out var rows) ||
+            !float.TryParse(args[4], CultureInfo.InvariantCulture, out var spacing))
         {
-            character.SendMessage("|cFFFF0000[Spawn] Parse error|r");
+            CommandManager.SendErrorText(this, messageOutput, "Arguments parse error");
             return;
         }
+
         if (columns < 1)
+        {
             columns = 1;
+        }
+
         if (rows < 1)
+        {
             rows = 1;
+        }
+
         if (spacing < 0.1f)
+        {
             spacing = 0.1f;
+        }
 
         switch (action)
         {
             case "npc":
                 if (!NpcManager.Instance.Exist(templateId))
                 {
-                    character.SendMessage(ChatType.System, $"[Spawn] NPC {templateId} don't exist", Color.Red);
+                    CommandManager.SendErrorText(this, messageOutput, $"NPC {templateId} don't exist");
                     return;
                 }
+
                 break;
             case "doodad":
                 if (!DoodadManager.Instance.Exist(templateId))
                 {
-                    character.SendMessage(ChatType.System, $"[Spawn] Doodad {templateId} don't exist", Color.Red);
+                    CommandManager.SendErrorText(this, messageOutput, $"Doodad {templateId} don't exist");
                     return;
                 }
+
                 break;
             default:
-                character.SendMessage(ChatType.System, $"[Spawn] Unknown object type.", Color.Red);
+                CommandManager.SendErrorText(this, messageOutput, $"Unknown object type {action}");
                 return;
         }
 
         // Origin point for spawns
-        var (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
+        var (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X,
+            character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
         for (var y = 0; y < rows; y++)
         {
-            float sizeY = rows * spacing;
-            float posY = (y + 1) * spacing;
+            var sizeY = rows * spacing;
+            var posY = (y + 1) * spacing;
             for (var x = 0; x < columns; x++)
             {
-                float sizeX = columns * spacing;
-                float posX = (x * spacing) - (sizeX / 2);
+                var sizeX = columns * spacing;
+                var posX = x * spacing - sizeX / 2;
                 using var newPos = character.Transform.CloneDetached();
                 newPos.Local.AddDistanceToFront(posY);
                 newPos.Local.AddDistanceToRight(posX);
@@ -134,6 +151,5 @@ public class SpawnGrid : ICommand
                 }
             }
         }
-
     }
 }

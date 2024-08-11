@@ -11,11 +11,13 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AStarCmd : SubCommandBase, ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "pathfind", "pf" };
+
     public AStarCmd()
     {
         Title = "[AStar]";
         Description = "Root command to manage Path Findings";
-        CallPrefix = $"{CommandManager.CommandPrefix}pf";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new AStarPathFindingSubCommand(), "find", "go"); // начать поиск пути
         Register(new AStarStartPositionSubCommand(), "start", "begin"); // установить начальную точку пути
@@ -25,12 +27,11 @@ public class AStarCmd : SubCommandBase, ICommand
 
     public void OnLoad()
     {
-        CommandManager.Instance.Register("pf", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public AStarCmd(Dictionary<ICommandV2, string[]> subcommands) : base(subcommands)
     {
-
     }
 
     public string GetCommandLineHelp()
@@ -45,6 +46,7 @@ public class AStarCmd : SubCommandBase, ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

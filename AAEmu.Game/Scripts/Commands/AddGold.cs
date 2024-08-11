@@ -11,10 +11,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddGold : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "gold", "addgold", "add_gold" };
+
     public void OnLoad()
     {
-        string[] name = { "addgold", "add_gold" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -31,43 +32,49 @@ public class AddGold : ICommand
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[Gold] " + CommandManager.CommandPrefix + "addgold (target) <gold> [silver] [copper]");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
 
         var argGold = 0;
         var argSilver = 0;
         var argCopper = 0;
         var amount = 0;
 
-        if ((args.Length > firstarg) && (int.TryParse(args[firstarg], out amount)))
+        if (args.Length > firstarg && int.TryParse(args[firstarg], out amount))
         {
             argGold = amount;
         }
-        if ((args.Length > firstarg + 1) && (int.TryParse(args[firstarg + 1], out amount)))
+
+        if (args.Length > firstarg + 1 && int.TryParse(args[firstarg + 1], out amount))
         {
             argSilver = amount;
         }
-        if ((args.Length > firstarg + 2) && (int.TryParse(args[firstarg + 2], out amount)))
+
+        if (args.Length > firstarg + 2 && int.TryParse(args[firstarg + 2], out amount))
         {
             argCopper = amount;
         }
 
-        var argTotal = argCopper + (argSilver * 100) + (argGold * 10000);
+        var argTotal = argCopper + argSilver * 100 + argGold * 10000;
 
         if (argTotal != 0)
         {
             targetPlayer.Money += argTotal;
-            targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(argTotal) }, new List<ulong>()));
+            targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem,
+                new List<ItemTask> { new MoneyChange(argTotal) }, new List<ulong>()));
             if (character.Id != targetPlayer.Id)
             {
-                character.SendMessage($"[Gold] changed {targetPlayer.Name}'s money by {argGold}g {argSilver}s {argCopper}c");
+                CommandManager.SendNormalText(this, messageOutput,
+                    $"changed {targetPlayer.Name}'s money by {argGold}g {argSilver}s {argCopper}c");
                 targetPlayer.SendMessage($"[GM] {character.Name} has adjusted your money");
             }
         }
         else
-            character.SendMessage("[Gold] No valid amount provided ...");
+        {
+            CommandManager.SendErrorText(this, messageOutput, "No valid amount provided ...");
+        }
     }
 }

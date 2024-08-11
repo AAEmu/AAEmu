@@ -8,10 +8,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ClearCombat : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "clearcombat", "clear_combat", "cc" };
+
     public void OnLoad()
     {
-        string[] name = { "clearcombat", "clear_combat", "cc" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -21,7 +22,7 @@ public class ClearCombat : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Command to clear combat.";
+        return "Force sends a clear combat packet. Does not actually clear the combat flag on the server!";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)

@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game;
 
 public interface ICommand
 {
+    string[] CommandNames { get; set; }
     void Execute(Character character, string[] args, IMessageOutput messageOutput);
     string GetCommandLineHelp();
     string GetCommandHelpText();

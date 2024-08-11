@@ -10,6 +10,8 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class MoveAll : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "moveall", "move_all" };
+
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         foreach (var otherChar in WorldManager.Instance.GetAllCharacters())
@@ -17,15 +19,14 @@ public class MoveAll : ICommand
             if (otherChar != character)
             {
                 otherChar.DisabledSetPosition = true;
-                otherChar.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
+                otherChar.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, ErrorMessageType.NoErrorMessage, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
             }
         }
     }
 
     public void OnLoad()
     {
-        string[] name = { "move_all", "moveall" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()

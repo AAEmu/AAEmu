@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -11,13 +12,13 @@ public class SCUnitFactionChangedPacket : GamePacket
     private readonly uint _id2;
     private readonly bool _temp;
 
-    public SCUnitFactionChangedPacket(uint unitId, string unitName, uint id, uint id2, bool temp)
+    public SCUnitFactionChangedPacket(uint unitId, string unitName, FactionsEnum id, FactionsEnum id2, bool temp)
         : base(SCOffsets.SCUnitFactionChangedPacket, 5)
     {
         _unitId = unitId;
         _unitName = unitName;
-        _id = id;
-        _id2 = id2;
+        _id = (uint)id;
+        _id2 = (uint)id2;
         _temp = temp;
     }
 

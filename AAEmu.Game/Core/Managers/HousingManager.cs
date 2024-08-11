@@ -89,7 +89,7 @@ public class HousingManager : Singleton<HousingManager>
     /// <param name="objectId"></param>
     /// <param name="tlId"></param>
     /// <returns></returns>
-    private House Create(uint templateId, uint factionId, uint objectId = 0, ushort tlId = 0)
+    private House Create(uint templateId, FactionsEnum factionId, uint objectId = 0, ushort tlId = 0)
     {
         if (!_housingTemplates.TryGetValue(templateId, out var template))
             return null;
@@ -323,7 +323,7 @@ public class HousingManager : Singleton<HousingManager>
                     while (reader.Read())
                     {
                         var templateId = reader.GetUInt32("template_id");
-                        var factionId = reader.GetUInt32("faction_id");
+                        var factionId = (FactionsEnum)reader.GetUInt32("faction_id");
                         var house = Create(templateId, factionId);
                         house.Id = reader.GetUInt32("id");
                         house.AccountId = reader.GetUInt64("account_id");
@@ -940,7 +940,7 @@ public class HousingManager : Singleton<HousingManager>
     /// </summary>
     /// <param name="house"></param>
     /// <param name="factionId"></param>
-    private static void UpdateHouseFaction(House house, uint factionId)
+    private static void UpdateHouseFaction(House house, FactionsEnum factionId)
     {
         house.BroadcastPacket(new SCUnitFactionChangedPacket(house.ObjId, house.Name, house.Faction?.Id ?? 0, factionId, false), true);
         house.Faction = FactionManager.Instance.GetFaction(factionId);
@@ -951,7 +951,7 @@ public class HousingManager : Singleton<HousingManager>
     /// </summary>
     /// <param name="characterId"></param>
     /// <param name="factionId"></param>
-    public void UpdateOwnedHousingFaction(uint characterId, uint factionId)
+    public void UpdateOwnedHousingFaction(uint characterId, FactionsEnum factionId)
     {
         // TODO: Does this also need to be done when temporary changing factions? (like arena)
         var myHouses = new Dictionary<uint, House>();

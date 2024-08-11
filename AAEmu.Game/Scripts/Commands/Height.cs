@@ -8,9 +8,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Height : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "height" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("height", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -25,11 +27,15 @@ public class Height : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        Character targetPlayer = character;
+        var targetPlayer = character;
         if (args.Length > 0)
+        {
             targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        }
 
-        var height = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y);
-        character.SendMessage($"[Height] {targetPlayer.Name} Z-Pos: {character.Transform.World.Position.Z} - Floor: {height}");
+        var height = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId,
+            targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y);
+        CommandManager.SendNormalText(this, messageOutput,
+            $"{targetPlayer.Name} Z-Pos: {character.Transform.World.Position.Z} - Floor: {height}");
     }
 }

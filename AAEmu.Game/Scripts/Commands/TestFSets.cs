@@ -9,11 +9,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestFSets : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "testfsets", "test_fsets" };
 
     public void OnLoad()
     {
-        string[] name = { "testfsets", "test_fsets" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -28,14 +28,16 @@ public class TestFSets : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        foreach (var fObj in Enum.GetValues(typeof(Feature)))
+        foreach (Feature fObj in Enum.GetValues(typeof(Feature)))
         {
-            var f = (Feature)fObj;
-            if (FeaturesManager.Fsets.Check(f))
-                character.SendMessage("[Feature] |cFF00FF00ON  |cFF80FF80" + f.ToString() + "|r");
+            if (FeaturesManager.Fsets.Check(fObj))
+            {
+                CommandManager.SendNormalText(this, messageOutput, $"|cFF00FF00ON  |cFF80FF80{fObj}");
+            }
             else
-                character.SendMessage("[Feature] |cFFFF0000OFF |cFF802020" + f.ToString() + "|r");
+            {
+                CommandManager.SendNormalText(this, messageOutput, $"|cFFFF0000OFF |cFF802020{fObj}");
+            }
         }
-
     }
 }

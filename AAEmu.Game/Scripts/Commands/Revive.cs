@@ -10,10 +10,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Revive : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "revive" };
+
     public void OnLoad()
     {
-        string[] name = { "revive" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -28,7 +29,7 @@ public class Revive : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
         if (targetPlayer != null)
         {
             if (targetPlayer.Hp == 0)

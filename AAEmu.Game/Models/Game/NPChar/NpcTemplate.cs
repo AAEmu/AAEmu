@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
@@ -20,7 +21,7 @@ public class NpcTemplate
     public byte Level { get; set; }
     public NpcTemplateType NpcTemplateId { get; set; }
     public uint ModelId { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public uint HeirLevel { get; set; }
     public bool SkillTrainer { get; set; }
     public int AiFileId { get; set; }

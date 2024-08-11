@@ -29,7 +29,8 @@ public class NpcSaveSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object Id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         if (parameters.TryGetValue("ObjId", out var npcObjId))
         {
@@ -83,7 +84,7 @@ public class NpcSaveSubCommand : SubCommandBase
                         var npcSpawnsToRemove = new List<JsonNpcSpawns>();
 
                         foreach (var npcSpawnerToFile in npcSpawnersToFile
-                            .Where(n => n.UnitId == npc.TemplateId))
+                                     .Where(n => n.UnitId == npc.TemplateId))
                         {
                             // If the position changed don't mark to be removed
                             if (!npc.Transform.World.Position.Equals(npcSpawnerToFile.Position.AsVector3()))
@@ -99,13 +100,15 @@ public class NpcSaveSubCommand : SubCommandBase
                         {
                             npcSpawnersToFile.Remove(npcSpawn);
                         }
+
                         break;
                     }
             }
         }
 
         var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, "npc_spawns_new.json");
-        var json = JsonConvert.SerializeObject(npcSpawnersToFile.ToArray(), Formatting.Indented, new JsonModelsConverter());
+        var json = JsonConvert.SerializeObject(npcSpawnersToFile.ToArray(), Formatting.Indented,
+            new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
         SendMessage(messageOutput, "All npcs have been saved!");
     }
@@ -147,6 +150,7 @@ public class NpcSaveSubCommand : SubCommandBase
         {
             spawnersFromFile.TryAdd(spawnerFromFile.Id, spawnerFromFile);
         }
+
         if (spawnersFromFile.ContainsKey(spawn.Id))
         {
             spawnersFromFile[spawn.Id] = spawn;
@@ -157,9 +161,11 @@ public class NpcSaveSubCommand : SubCommandBase
         }
 
         var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
-        var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
+        var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented,
+            new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
-        SendMessage(messageOutput, $"All npcs have been saved with added npc ObjId:{npc.ObjId}, TemplateId:{npc.TemplateId}");
+        SendMessage(messageOutput,
+            $"All npcs have been saved with added npc ObjId:{npc.ObjId}, TemplateId:{npc.TemplateId}");
     }
 
     private List<JsonNpcSpawns> LoadNpcsFromFileByWorld(World world)

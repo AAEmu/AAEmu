@@ -10,11 +10,13 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class NpcCmd : SubCommandBase, ICommand, ICommandV2
 {
+    public string[] CommandNames { get; set; } = new string[] { "npc" };
+
     public NpcCmd()
     {
         Title = "[Npc]";
         Description = "Root command to manage Npcs";
-        CallPrefix = $"{CommandManager.CommandPrefix}npc";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new NpcInformationSubCommand(), "info");
         Register(new NpcPositionSubCommand(), "position", "pos");
@@ -22,6 +24,7 @@ public class NpcCmd : SubCommandBase, ICommand, ICommandV2
         Register(new NpcSpawnSubCommand(), "spawn");
         Register(new NpcRemoveSubCommand(), "remove");
     }
+
     public void OnLoad()
     {
         CommandManager.Instance.Register("npc", this);
@@ -39,6 +42,7 @@ public class NpcCmd : SubCommandBase, ICommand, ICommandV2
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

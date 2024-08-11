@@ -2,6 +2,7 @@
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Shipyard;
 
@@ -18,7 +19,7 @@ public class ShipyardData : PacketMarshaler
     public uint OriginItemId { get; set; } // Type
     public uint OwnerId { get; set; } // Type2S
     public string OwnerName { get; set; }
-    public uint FactionId { get; set; } // Type3
+    public FactionsEnum FactionId { get; set; } // Type3
     public DateTime Spawned { get; set; }
     public uint ObjId { get; set; }
     public int Hp { get; set; }
@@ -39,7 +40,7 @@ public class ShipyardData : PacketMarshaler
         //stream.Write(OriginItemId);
         stream.Write(OwnerId);
         stream.Write(OwnerName);
-        stream.Write(FactionId);
+        stream.Write((uint)FactionId);
         stream.Write(Spawned);
         stream.WriteBc(ObjId);
         //stream.Write(Hp);

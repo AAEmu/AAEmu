@@ -5,6 +5,7 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -81,7 +82,7 @@ public class ZoneManager : Singleton<ZoneManager>
                         template.ZoneKey = reader.GetUInt32("zone_key");
                         template.GroupId = reader.GetUInt32("group_id", 0);
                         template.Closed = reader.GetBoolean("closed", true);
-                        template.FactionId = reader.GetUInt32("faction_id", 0);
+                        template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0);
                         template.ZoneClimateId = reader.GetUInt32("zone_climate_id", 0);
                         _zoneIdToKey.Add(template.Id, template.ZoneKey);
                         _zones.Add(template.ZoneKey, template);

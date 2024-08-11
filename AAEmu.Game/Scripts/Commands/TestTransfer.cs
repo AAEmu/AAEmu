@@ -7,10 +7,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestTransfer : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "testtransfer", "test_transfer" };
+
     public void OnLoad()
     {
-        string[] name = { "testtransfer", "test_transfer" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -25,7 +26,7 @@ public class TestTransfer : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        character.SendMessage("[testtransfer] function disabled");
+        CommandManager.SendErrorText(this, messageOutput, $"function disabled");
         //if (args.Length < 1)
         //{
         //    character.SendMessage("[test_transfer] /test_transfer unitId (1..6{124})");
@@ -129,6 +130,5 @@ public class TestTransfer : ICommand
         //transfer.MaxHp = transfer.Hp = 50000;
         //transfer.ModelParams = new UnitCustomModelParams();
         //transfer.Spawn();
-
     }
 }

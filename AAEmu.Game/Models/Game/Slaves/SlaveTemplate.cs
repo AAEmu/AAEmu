@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Slaves;
 
@@ -12,7 +13,7 @@ public class SlaveTemplate
     public bool Mountable { get; set; }
     public float SpawnXOffset { get; set; }
     public float SpawnYOffset { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public uint Level { get; set; }
     public int Cost { get; set; }
     public SlaveKind SlaveKind { get; set; }

@@ -1,18 +1,21 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Utils.Scripts;
 using Discord;
 
 namespace AAEmu.Game.Utils;
 
 public class QuestCommandUtil
 {
-    public static void GetCommandChoice(ICharacter character, string choice, string[] args)
+    public static void GetCommandChoice(ICommand command, IMessageOutput messageOutput, ICharacter character, string choice, string[] args)
     {
         uint questId;
 
@@ -49,35 +52,15 @@ public class QuestCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("[Quest] Proper usage: /quest add <questId>\nBefore that, target the Npc you need for the quest");
+                    CommandManager.SendErrorText(command, messageOutput,"Proper usage: /quest add <questId> [<questAcceptorType> <acceptorId>]\nYou can also target the quest giver instead of providing the acceptor type and id");
                 }
                 break;
             case "list":
-                character.SendMessage("[Quest] LIST");
+                CommandManager.SendNormalText(command, messageOutput, "LIST");
                 foreach (var quest in character.Quests.ActiveQuests.Values)
                 {
                     var objectives = quest.GetObjectives(quest.Step).Select(t => t.ToString()).ToList();
-                    character.SendMessage($"Quest {quest.Template.Id}: Step({quest.Step}), Status({quest.Status}), ComponentId({quest.ComponentId}), Objectives({string.Join(", ", objectives)}) - @QUEST_NAME({quest.Template.Id})");
-                }
-                break;
-            case "reward":
-                if (args.Length >= 2)
-                {
-                    if (uint.TryParse(args[1], out questId))
-                    {
-                        if (args.Length >= 3 && int.TryParse(args[2], out var selectedId))
-                        {
-                            character.Quests.SetStep(questId, 8, selectedId);
-                        }
-                        else
-                        {
-                            character.Quests.SetStep(questId, 8);
-                        }
-                    }
-                }
-                else
-                {
-                    character.SendMessage("[Quest] Proper usage: /quest reward <questId>");
+                    messageOutput.SendMessage($"Quest {quest.Template.Id}: Step({quest.Step}), Status({quest.Status}), ComponentId({quest.ComponentId}), Objectives({string.Join(", ", objectives)}) - @QUEST_NAME({quest.Template.Id})");
                 }
                 break;
             case "step":
@@ -90,20 +73,21 @@ public class QuestCommandUtil
                             if (args.Length >= 3 && Enum.TryParse<QuestComponentKind>(args[2], out var stepId))
                             {
                                 if (character.Quests.SetStep(questId, (uint)stepId))
-                                    character.SendMessage($"[Quest] set Step {stepId} for Quest {questId}");
+                                    CommandManager.SendNormalText(command, messageOutput,
+                                        $"Set Step {stepId} for Quest {questId}");
                                 else
-                                    character.SendMessage("[Quest] Proper usage: /quest step <questId> <stepId>");
+                                    CommandManager.SendErrorText(command, messageOutput, "Proper usage: /quest step <questId> <stepId>");
                             }
                         }
                         else
                         {
-                            character.SendMessage($"[Quest] You do not have the quest {questId}");
+                            CommandManager.SendErrorText(command, messageOutput, $"You do not have the quest {questId}");
                         }
                     }
                 }
                 else
                 {
-                    character.SendMessage("[Quest] Proper usage: /quest step <questId> <stepId>");
+                    CommandManager.SendErrorText(command, messageOutput, "Proper usage: /quest step <questId> <stepId>");
                 }
                 break;
             case "prog":
@@ -129,18 +113,18 @@ public class QuestCommandUtil
                                 quest.Drop(true);
                                 break;
                             }
-                            character.SendMessage($"[Quest] Perform step {quest.Step} for quest {questId}");
+                            CommandManager.SendNormalText(command, messageOutput, $"Perform step {quest.Step} for quest {questId}");
                             // quest.Update();
                         }
                         else
                         {
-                            character.SendMessage($"[Quest] You do not have the quest {questId}");
+                            CommandManager.SendErrorText(command, messageOutput, $"You do not have the quest {questId}");
                         }
                     }
                 }
                 else
                 {
-                    character.SendMessage("[Quest] Proper usage: /quest update <questId>");
+                    CommandManager.SendErrorText(command, messageOutput, "Proper usage: /quest update <questId>");
                 }
                 break;
             case "remove":
@@ -150,13 +134,13 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            character.Quests.DropQuest(questId, true, true); // удаляем и из CompletedQuests
+                            character.Quests.DropQuest(questId, true, true); // Remove from CompletedQuests
                         }
                         else
                         {
-                            character.SendMessage($"[Quest] You do not have the quest {questId}");
+                            CommandManager.SendErrorText(command, messageOutput, $"You do not have the quest {questId}");
                         }
-                        // посылаем пакеты для того, что-бы клиент был в курсе обновления квестов
+                        // send packets to keep the client up-to-date on quests
                         character.Quests.Send();
                         character.Quests.SendCompleted();
                     }
@@ -174,12 +158,15 @@ public class QuestCommandUtil
                     {
                         if (character.Quests.HasQuest(questId))
                         {
-                            character.Quests.DropQuest(questId, true, true); // удаляем и из CompletedQuests
+                            character.Quests.DropQuest(questId, true, true);
+                            CommandManager.SendNormalText(command, messageOutput, $"Quest @QUEST_NAME({questId}) ({questId}) has been dropped");
                         }
 
                         if (character.Quests.IsQuestComplete(questId))
                         {
                             character.Quests.SetCompletedQuestFlag(questId, false);
+                            CommandManager.SendNormalText(command, messageOutput, $"Quest @QUEST_NAME({questId}) ({questId}) has been been marked as not completed. " +
+                                $"You will need to log in your character again to correctly reflect these changes (return to character select)");
                         }
 
                         character.Quests.Send();
@@ -188,20 +175,21 @@ public class QuestCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("[Quest] Proper usage: /quest remove <questId>");
+                    CommandManager.SendErrorText(command, messageOutput, "Proper usage: /quest remove <questId>");
                 }
                 break;
             case "resetdaily":
                 character.Quests.ResetDailyQuests(true);
+                CommandManager.SendNormalText(command, messageOutput, $"Your daily quests have been reset");
                 break;
-            case "debug":
+            case "objective":
                 if (args.Length >= 8)
                 {
                     if (!uint.TryParse(args[1], out var questVal))
                         break;
                     if (!character.Quests.ActiveQuests.TryGetValue(questVal, out var activeQuest))
                     {
-                        character.SendMessage(ChatType.System, $"[Quest] No active quest Id {questVal}", Color.Red);
+                        CommandManager.SendErrorText(command, messageOutput, $"No active quest Id {questVal}");
                         break;
                     }
                     if (!int.TryParse(args[2], out var para1))
@@ -229,17 +217,17 @@ public class QuestCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("[Quest] /quest debug <questId> <obj1> <obj2> <obj3> <obj4> <obj5> <status> <component>");
+                    CommandManager.SendErrorText(command, messageOutput, "/quest objective <questId> <obj1> <obj2> <obj3> <obj4> <obj5> <questStatus> <componentId>");
                 }
                 break;
-            case "resetprogress":
+            case "progress":
                 if (args.Length >= 1)
                 {
                     if (!uint.TryParse(args[1], out var questVal))
                         break;
                     if (!character.Quests.ActiveQuests.TryGetValue(questVal, out var activeQuest))
                     {
-                        character.SendMessage(ChatType.System, $"[Quest] No active quest Id {questVal}", Color.Red);
+                        CommandManager.SendErrorText(command, messageOutput, $"No active quest Id {questVal}");
                         break;
                     }
 
@@ -263,11 +251,11 @@ public class QuestCommandUtil
                     activeQuest.ComponentId = 0;
                     activeQuest.RequestEvaluation();
                     character.SendPacket(new SCQuestContextUpdatedPacket(activeQuest,  activeQuest.ComponentId));
-                    character.SendMessage($"[Quest] Reset progress of quest {activeQuest.TemplateId} - {activeQuest.Step}");
+                    CommandManager.SendNormalText(command, messageOutput, $"Reset objectives of quest @QUEST_NAME({activeQuest.TemplateId}) ({activeQuest.TemplateId}) and moved to {activeQuest.Step} step");
                 }
                 else
                 {
-                    character.SendMessage("[Quest] /quest resetprogress <questId>");
+                    CommandManager.SendErrorText(command, messageOutput, "/quest progress <questId>");
                 }
                 break;
             case "template":
@@ -323,7 +311,7 @@ public class QuestCommandUtil
                 }
                 break;
             default:
-                character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");
+                CommandManager.SendDefaultHelpText(command, messageOutput);
                 break;
         }
     }

@@ -75,7 +75,6 @@ public class CommandManager : Singleton<CommandManager>
         }
     }
 
-
     private static void ForceScriptsReload(Character character)
     {
         CommandManager.Instance.Clear();
@@ -185,5 +184,26 @@ public class CommandManager : Singleton<CommandManager>
     public void Clear()
     {
         _commands.Clear();
+    }
+
+    public static void SendDefaultHelpText(ICommand command, IMessageOutput messageOutput)
+    {
+        messageOutput.SendMessage(ChatType.System, command.CommandNames.Length > 0
+            ? $"Help for |cFFFFFFFF{CommandPrefix}{command.CommandNames[0]}|r |cFFEEEEAA{command.GetCommandLineHelp()}|r\n|cFF888888{command.GetCommandHelpText()}|r"
+            : "Invalid Command");
+    }
+
+    public static void SendErrorText(ICommand command, IMessageOutput messageOutput, string errorDetails)
+    {
+        messageOutput.SendMessage(ChatType.System, command.CommandNames.Length > 0
+            ? $"|cFFFFFFFF[{command.CommandNames[0]}]|r |cFFFF0000{errorDetails}|r"
+            : $"|cFFFF0000Invalid Command - {errorDetails}|r");
+    }
+
+    public static void SendNormalText(ICommand command, IMessageOutput messageOutput, string text)
+    {
+        messageOutput.SendMessage(ChatType.System, command.CommandNames.Length > 0
+            ? $"[{command.CommandNames[0]}] {text}"
+            : $"[Invalid Command] {text}");
     }
 }

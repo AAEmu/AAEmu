@@ -12,13 +12,15 @@ public class SlaveSpawnSubCommand : SubCommandBase
     public SlaveSpawnSubCommand()
     {
         Title = "[Slave Spawn]";
-        Description = "Spawn one slave in front of the player facing player (default) or a optional direction in degrees";
+        Description =
+            "Spawn one slave in front of the player facing player (default) or a optional direction in degrees";
         CallPrefix = $"{CommandManager.CommandPrefix}slave spawn";
         AddParameter(new NumericSubCommandParameter<uint>("TemplateId", "Slave template Id", true));
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<facing degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint templateId = parameters["TemplateId"];
 

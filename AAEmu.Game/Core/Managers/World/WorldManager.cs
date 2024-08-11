@@ -26,6 +26,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -1163,32 +1164,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             var cmRace = (((byte)character.Race - 1) & 0xFC);
             if (mRace != cmRace)
-                continue;
-            character.SendPacket(packet);
-        }
-    }
-
-    [Obsolete("Please use ChatManager.Instance.GetFactionChat(factionMotherId).SendPacker(packet) instead.")]
-    public void BroadcastPacketToFaction(GamePacket packet, uint factionMotherId)
-    {
-        foreach (var character in _characters.Values)
-        {
-            if (character.Faction.MotherId != factionMotherId)
-                continue;
-            character.SendPacket(packet);
-        }
-    }
-
-    [Obsolete("Please use ChatManager.Instance.GetZoneChat(zoneKey).SendPacker(packet) instead.")]
-    public void BroadcastPacketToZone(GamePacket packet, uint zoneKey)
-    {
-        // First find the zone group, so functions like /shout work in larger zones that use multiple zone keys
-        var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
-        var zoneGroupId = zone?.GroupId ?? 0;
-        var validZones = ZoneManager.Instance.GetZoneKeysInZoneGroupById(zoneGroupId);
-        foreach (var character in _characters.Values)
-        {
-            if (!validZones.Contains(character.Transform.ZoneId))
                 continue;
             character.SendPacket(packet);
         }

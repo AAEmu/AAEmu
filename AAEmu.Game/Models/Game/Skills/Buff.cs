@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-
+using AAEmu.Game.Models.StaticValues;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -44,7 +44,7 @@ public class Buff
     public ushort AbLevel { get; set; } // int in 1.2, ushort in 3+
     public BuffEvents Events { get; }
     public BuffTriggersHandler Triggers { get; }
-    public Dictionary<uint, uint> saveFactions { get; set; }
+    public Dictionary<uint, FactionsEnum> saveFactions { get; set; }
 
     public Buff(IBaseUnit owner, IBaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
     {
@@ -58,7 +58,7 @@ public class Buff
         AbLevel = 1;
         Events = new BuffEvents();
         Triggers = new BuffTriggersHandler(this);
-        saveFactions = new Dictionary<uint, uint>();
+        saveFactions = new();
     }
 
     public void UpdateEffect()

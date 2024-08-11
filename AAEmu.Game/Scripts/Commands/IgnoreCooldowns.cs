@@ -7,10 +7,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class IgnoreCooldowns : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "ignoreskillcds", "disablecooldowns", "ignorecooldowns", "ignorecd" };
+
     public void OnLoad()
     {
-        string[] name = { "ignoreskillcds", "disablecooldowns", "ignorecooldowns", "ignorecd" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -27,13 +28,17 @@ public class IgnoreCooldowns : ICommand
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[IgnoreCooldowns] " + CommandManager.CommandPrefix + "ignorecd <true||false>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
         if (bool.TryParse(args[0], out var ignoreCooldowns))
+        {
             character.IgnoreSkillCooldowns = ignoreCooldowns;
+        }
         else
-            character.SendMessage("|cFFFF0000[IgnoreCooldowns] Throw parse bool!|r");
+        {
+            CommandManager.SendErrorText(this, messageOutput, "Bool parse error!");
+        }
     }
 }

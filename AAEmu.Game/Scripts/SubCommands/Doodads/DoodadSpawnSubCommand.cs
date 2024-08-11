@@ -15,13 +15,15 @@ public class DoodadSpawnSubCommand : SubCommandBase
     public DoodadSpawnSubCommand()
     {
         Title = "[Doodad Spawn]";
-        Description = "Add a new doodad of a specific template 3 meters in front of the player. Default yaw will use characters facing angle.";
+        Description =
+            "Add a new doodad of a specific template 3 meters in front of the player. Default yaw will use characters facing angle.";
         CallPrefix = $"{CommandManager.CommandPrefix}doodad spawn";
         AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", true));
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<yaw facing degrees>", false, "yaw"));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint unitTemplateId = parameters["templateId"];
         if (!DoodadManager.Instance.Exist(unitTemplateId))
@@ -34,11 +36,7 @@ public class DoodadSpawnSubCommand : SubCommandBase
         charPos.Local.AddDistanceToFront(3f);
         var defaultYaw = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
         var newYaw = GetOptionalParameterValue(parameters, "yaw", defaultYaw).DegToRad();
-        var doodadSpawner = new DoodadSpawner
-        {
-            Id = 0,
-            UnitId = unitTemplateId
-        };
+        var doodadSpawner = new DoodadSpawner { Id = 0, UnitId = unitTemplateId };
 
         doodadSpawner.Position = charPos.CloneAsSpawnPosition();
         doodadSpawner.Position.Yaw = newYaw;
@@ -48,11 +46,13 @@ public class DoodadSpawnSubCommand : SubCommandBase
 
         if (parameters.ContainsKey("yaw"))
         {
-            character.SendMessage($"Doodad ObjId:{createdDoodad.ObjId}, Template:{unitTemplateId} spawned using yaw {newYaw.RadToDeg():0.#}° = {newYaw} rad");
+            character.SendMessage(
+                $"Doodad ObjId:{createdDoodad.ObjId}, Template:{unitTemplateId} spawned using yaw {newYaw.RadToDeg():0.#}° = {newYaw} rad");
         }
         else
         {
-            character.SendMessage($"Doodad ObjId:{createdDoodad.ObjId}, Template {unitTemplateId} spawned facing you, characters yaw {newYaw.RadToDeg():0.#}°");
+            character.SendMessage(
+                $"Doodad ObjId:{createdDoodad.ObjId}, Template {unitTemplateId} spawned facing you, characters yaw {newYaw.RadToDeg():0.#}°");
         }
     }
 }

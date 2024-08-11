@@ -18,18 +18,16 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddKit : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "kit", "addkit", "add_kit" };
+
     private readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     public class GMItemKitItem
     {
-        [JsonProperty("names")]
-        public List<string> kitnames { get; set; }
-        [JsonProperty("id")]
-        public uint itemId { get; set; }
-        [JsonProperty("grade")]
-        public byte itemGrade { get; set; }
-        [JsonProperty("count")]
-        public int itemCount { get; set; }
+        [JsonProperty("names")] public List<string> kitnames { get; set; }
+        [JsonProperty("id")] public uint itemId { get; set; }
+        [JsonProperty("grade")] public byte itemGrade { get; set; }
+        [JsonProperty("count")] public int itemCount { get; set; }
 
         public GMItemKitItem()
         {
@@ -41,18 +39,17 @@ public class AddKit : ICommand
 
         public GMItemKitItem(string kit, uint id, byte grade = 0, int count = 1)
         {
-            this.kitnames.Clear();
-            this.kitnames.Add(kit.ToLower());
-            this.itemId = id;
-            this.itemGrade = grade;
-            this.itemCount = count;
+            kitnames.Clear();
+            kitnames.Add(kit.ToLower());
+            itemId = id;
+            itemGrade = grade;
+            itemCount = count;
         }
     }
 
     public class GMItemKitConfig
     {
-        [JsonProperty("itemkits")]
-        public List<GMItemKitItem> itemkits = new();
+        [JsonProperty("itemkits")] public List<GMItemKitItem> itemkits = new();
 
         public List<string> itemkitnames = new();
 
@@ -67,9 +64,7 @@ public class AddKit : ICommand
 
     public void OnLoad()
     {
-        string[] name = { "kit", "addkit", "add_kit" };
-        CommandManager.Instance.Register(name, this);
-
+        CommandManager.Instance.Register(CommandNames, this);
         InitKits();
     }
 
@@ -88,24 +83,30 @@ public class AddKit : ICommand
         if (args.Length == 0)
         {
             character.SendMessage("[Items] " + CommandManager.CommandPrefix + "kit (target) <kitname>");
-            character.SendMessage("[Items] " + kitconfig.itemkitnames.Count.ToString() + " kits have been loaded, use " + CommandManager.CommandPrefix + "kit ?  to get a list of kits");
+            CommandManager.SendNormalText(this, messageOutput,
+                $"{kitconfig.itemkitnames.Count} kits have been loaded, use {CommandManager.CommandPrefix}{CommandNames[0]} ? to get a list of kits");
             return;
         }
 
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
 
-        string kitname = string.Empty;
-        int itemsAdded = 0;
+        var kitname = string.Empty;
+        var itemsAdded = 0;
 
         if (args.Length > firstarg + 0)
+        {
             kitname = args[firstarg + 0].ToLower();
+        }
 
         if (kitname == "?")
         {
             character.SendMessage("[Items] " + CommandManager.CommandPrefix + "kit has the following kits registered:");
-            string s = string.Empty;
+            var s = string.Empty;
             foreach (var n in kitconfig.itemkitnames)
+            {
                 s += n + "  ";
+            }
+
             character.SendMessage("|cFFFFFFFF" + s + "|r");
             return;
         }
@@ -115,7 +116,9 @@ public class AddKit : ICommand
         {
             //Logger.Debug("kit.kitname: " + kit.kitname);
             if (!kit.kitnames.Contains(kitname))
+            {
                 continue;
+            }
 
             //Logger.Debug("kit.itemID: " + kit.itemID.ToString());
 
@@ -128,7 +131,8 @@ public class AddKit : ICommand
             }
             else
             {
-                if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, kit.itemId, kit.itemCount, kit.itemGrade))
+                if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, kit.itemId, kit.itemCount,
+                        kit.itemGrade))
                 {
                     character.SendMessage(ChatType.System, "Item could not be created!", Color.Red);
                     continue;
@@ -139,10 +143,10 @@ public class AddKit : ICommand
                     character.SendMessage($"[Items] added item {kit.itemId} to {targetPlayer.Name}'s inventory");
                     targetPlayer.SendMessage($"[GM] {character.Name} has added a item to your inventory");
                 }
+
                 itemsAdded++;
                 //Logger.Debug("kit.itemID: " + kit.itemID.ToString()+ " added to " + targetPlayer.Name);
             }
-
         }
 
         if (itemsAdded > 0)
@@ -157,7 +161,6 @@ public class AddKit : ICommand
         {
             character.SendMessage($"[Items] No items in kit \"{kitname}\"");
         }
-
     }
 
     public void InitKits()
@@ -171,7 +174,10 @@ public class AddKit : ICommand
             var filePath = Path.Combine(FileManager.AppPath, "Scripts", "Commands", "kits.json");
             var contents = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 throw new IOException($"File {filePath} doesn't exists or is empty.");
+            }
+
             jsonKit = JsonConvert.DeserializeObject<GMItemKitConfig>(contents);
 
             kitconfig.itemkits.AddRange(jsonKit.itemkits);
@@ -185,9 +191,14 @@ public class AddKit : ICommand
         foreach (var kit in kitconfig.itemkits)
         {
             foreach (var kn in kit.kitnames)
+            {
                 if (!kitconfig.itemkitnames.Contains(kn))
+                {
                     kitconfig.itemkitnames.Add(kn);
+                }
+            }
         }
+
         kitconfig.itemkitnames.Sort();
     }
 }

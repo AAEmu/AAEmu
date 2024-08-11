@@ -12,10 +12,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Heal : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "heal" };
+
     public void OnLoad()
     {
-        string[] name = { "heal" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -33,16 +34,19 @@ public class Heal : ICommand
         var playerTarget = character.CurrentTarget;
 
         var chatTarget = args.Length > 0 ? args[0] : "";
-        Character targetPlayer = WorldManager.Instance.GetCharacter(chatTarget);
-        if ((chatTarget != string.Empty) && (targetPlayer != null))
+        var targetPlayer = WorldManager.Instance.GetCharacter(chatTarget);
+        if (chatTarget != string.Empty && targetPlayer != null)
+        {
             playerTarget = targetPlayer;
+        }
 
-        if ((targetPlayer is Character) && (playerTarget != null))
+        if (targetPlayer != null && playerTarget != null)
         {
             if (targetPlayer.Hp == 0)
             {
                 // This check is needed otherwise the player will be kicked
-                character.SendMessage("Cannot heal a dead target, use the revive command instead");
+                CommandManager.SendErrorText(this, messageOutput,
+                    "Cannot heal a dead target, use the revive command instead");
             }
             else
             {
@@ -53,13 +57,12 @@ public class Heal : ICommand
                 targetPlayer.PostUpdateCurrentHp(targetPlayer,oldHp, targetPlayer.Hp, KillReason.Unknown);
             }
         }
-        else
-        if (playerTarget is Unit unit)
+        else if (playerTarget is Unit unit)
         {
             // Player is trying to heal some other unit
             if (unit.Hp == 0)
             {
-                character.SendMessage("Cannot heal a dead target");
+                CommandManager.SendErrorText(this, messageOutput, "Cannot heal a dead target");
             }
             else
             {
@@ -68,9 +71,8 @@ public class Heal : ICommand
                 unit.Mp = unit.MaxMp;
                 unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp, unit.HighAbilityRsc), true);
                 character.SendMessage($"{unit.Name} => {unit.Hp}/{unit.MaxHp} HP, {unit.Mp}/{unit.MaxMp} MP");
-                unit.PostUpdateCurrentHp(unit,oldHp, unit.Hp, KillReason.Unknown);
+                unit.PostUpdateCurrentHp(unit, oldHp, unit.Hp, KillReason.Unknown);
             }
         }
-
     }
 }

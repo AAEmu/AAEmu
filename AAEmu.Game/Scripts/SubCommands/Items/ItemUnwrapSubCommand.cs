@@ -19,10 +19,15 @@ public class ItemUnwrapSubCommand : SubCommandBase
         Description = "Set target item's unwrap time to now, or to expire a specified amount of minutes from now.";
         CallPrefix = $"{CommandManager.CommandPrefix}item unwrap";
         AddParameter(new NumericSubCommandParameter<ulong>("itemId", "item id", true));
-        AddParameter(new NumericSubCommandParameter<float>("minutes", "minutes=-1", false, -1f, 1000000f) { DefaultValue = -1f });
+        AddParameter(
+            new NumericSubCommandParameter<float>("minutes", "minutes=-1", false, -1f, 1000000f)
+            {
+                DefaultValue = -1f
+            });
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         //Character addTarget;
         var selfCharacter = (Character)character;
@@ -55,11 +60,18 @@ public class ItemUnwrapSubCommand : SubCommandBase
 
         item.SetFlag(ItemFlag.Unpacked);
         if (item.Template.BindType == ItemBindType.BindOnUnpack)
+        {
             item.SetFlag(ItemFlag.SoulBound);
-        var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, new List<ulong>()));
+        }
+
+        var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure),
+            item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
+        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask,
+            new List<ulong>()));
         if (equipItemTemplate.ChargeLifetime > 0)
+        {
             character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
+        }
 
         character.SendMessage($"Item @ITEM_NAME({item.TemplateId}) unwrap time set to {newTime}");
     }

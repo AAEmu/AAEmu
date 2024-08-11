@@ -10,10 +10,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestTracker : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "testtracker", "track", "tt" };
+
     public void OnLoad()
     {
-        string[] name = { "testtracker", "track", "tt" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -31,13 +32,15 @@ public class TestTracker : ICommand
         var playerTarget = character.CurrentTarget;
 
         GameObject targetObject = character.CurrentTarget;
-        if ((args.Length > 0) && (uint.TryParse(args[0], out var targetObjIdVal)))
+        if (args.Length > 0 && uint.TryParse(args[0], out var targetObjIdVal))
+        {
             targetObject = WorldManager.Instance.GetGameObject(targetObjIdVal);
+        }
 
-        if ((targetObject != null) && (targetObject.Transform != null))
+        if (targetObject != null && targetObject.Transform != null)
         {
             var toggleResult = targetObject.Transform.ToggleDebugTracker(character) ? "Now" : "No longer";
-            var unitName = (targetObject is BaseUnit bu) ? bu.Name : "<gameobject>";
+            var unitName = targetObject is BaseUnit bu ? bu.Name : "<gameobject>";
             character.SendMessage($"[TestTracking] {toggleResult} tracking {targetObject.ObjId} - {unitName}");
         }
         else

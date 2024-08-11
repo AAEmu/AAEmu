@@ -11,14 +11,15 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Teleport : ICommand
 {
-    public List<TPloc> locations = new();
-    public bool AllowPingPos { get; set; } = true; // Enable or Disable /teleport . (dot) command functionality
+    public string[] CommandNames { get; set; } = new string[] { "teleport" };
+
+    private List<TPloc> Locations { get; init; } = new();
+    private bool AllowPingPos { get; set; } = true; // Enable or Disable /teleport . (dot) command functionality
 
     public void OnLoad()
     {
-        CommandManager.Instance.Register("teleport", this);
-
-        loadLocations();
+        CommandManager.Instance.Register(CommandNames, this);
+        LoadLocations();
     }
 
     public string GetCommandLineHelp()
@@ -29,19 +30,25 @@ public class Teleport : ICommand
     public string GetCommandHelpText()
     {
         if (AllowPingPos)
+        {
             return
                 "Teleports you to target location. if no [location] is provided, you will get a list of available names. " +
                 "You can also use a period (.) as a location name to teleport to a location you marked on the map.";
+        }
         else
-            return "Teleports you to target location. if no [location] is provided, you will get a list of available names.";
+        {
+            return
+                "Teleports you to target location. if no [location] is provided, you will get a list of available names.";
+        }
     }
 
-    public void loadLocations()
+    private void LoadLocations()
     {
         #region west
+
         // West
         // locations.Add(new TPloc { Region = TeleReg.West, Name = "aubrecradle", Info = "Aubre Cradle, Ironwrought", X = 7664, Y = 12957, Z = 400 });//228,71
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "cinderstone",
@@ -51,7 +58,7 @@ public class Teleport : ICommand
             Z = 107,
             AltNames = new string[] { "cinder" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "dewstone",
@@ -61,7 +68,7 @@ public class Teleport : ICommand
             Z = 178,
             AltNames = new string[] { "dew" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "gweonid",
@@ -71,7 +78,7 @@ public class Teleport : ICommand
             Z = 280,
             AltNames = new string[] { "gwen" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "halcyona",
@@ -81,7 +88,7 @@ public class Teleport : ICommand
             Z = 187,
             AltNames = new string[] { "halcy" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "hellswamp",
@@ -91,7 +98,7 @@ public class Teleport : ICommand
             Z = 189,
             AltNames = new string[] { "hell" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "karkasse",
@@ -101,7 +108,7 @@ public class Teleport : ICommand
             Z = 186,
             AltNames = new string[] { "kar", "karkase" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "lilyut",
@@ -111,7 +118,7 @@ public class Teleport : ICommand
             Z = 165,
             AltNames = new string[] { "lily", "lili" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "marianople",
@@ -121,7 +128,7 @@ public class Teleport : ICommand
             Z = 145,
             AltNames = new string[] { "maria", "west" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "sanddeep",
@@ -131,7 +138,7 @@ public class Teleport : ICommand
             Z = 105,
             AltNames = new string[] { "sand" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "solzreed",
@@ -141,7 +148,7 @@ public class Teleport : ICommand
             Z = 159,
             AltNames = new string[] { "solz" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "twocrowns",
@@ -151,7 +158,7 @@ public class Teleport : ICommand
             Z = 223,
             AltNames = new string[] { "2c", "twoc" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "whitearden",
@@ -161,7 +168,7 @@ public class Teleport : ICommand
             Z = 161,
             AltNames = new string[] { "arden" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "ahnimar",
@@ -171,7 +178,7 @@ public class Teleport : ICommand
             Z = 457,
             AltNames = new string[] { "ahnim" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "airan",
@@ -181,7 +188,7 @@ public class Teleport : ICommand
             Z = 457,
             AltNames = new string[] { "airanrock" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.West,
             Name = "aubre",
@@ -194,8 +201,9 @@ public class Teleport : ICommand
         #endregion
 
         #region east
+
         // East
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "arcumiris",
@@ -205,7 +213,7 @@ public class Teleport : ICommand
             Z = 193,
             AltNames = new string[] { "arcum" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "falcorth",
@@ -214,7 +222,7 @@ public class Teleport : ICommand
             Y = 9102,
             Z = 589
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "rokhala",
@@ -223,7 +231,7 @@ public class Teleport : ICommand
             Y = 10005,
             Z = 866
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "hasla",
@@ -232,7 +240,7 @@ public class Teleport : ICommand
             Y = 8760,
             Z = 539
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "mahadevi",
@@ -242,7 +250,7 @@ public class Teleport : ICommand
             Z = 227,
             AltNames = new string[] { "maha" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "perinoor",
@@ -252,7 +260,7 @@ public class Teleport : ICommand
             Z = 572,
             AltNames = new string[] { "peri", "perinor" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "rookborne",
@@ -262,7 +270,7 @@ public class Teleport : ICommand
             Z = 714,
             AltNames = new string[] { "rook", "rookborn" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "silentforest",
@@ -272,7 +280,7 @@ public class Teleport : ICommand
             Z = 271,
             AltNames = new string[] { "sf", "silent" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "solis",
@@ -282,7 +290,7 @@ public class Teleport : ICommand
             Z = 120,
             AltNames = new string[] { "austera", "east" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "tigerspine",
@@ -292,7 +300,7 @@ public class Teleport : ICommand
             Z = 404,
             AltNames = new string[] { "tiger" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "villanelle",
@@ -302,7 +310,7 @@ public class Teleport : ICommand
             Z = 119,
             AltNames = new string[] { "villa" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "windscour",
@@ -312,7 +320,7 @@ public class Teleport : ICommand
             Z = 362,
             AltNames = new string[] { "windscoure", "ws" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "ynyster",
@@ -322,7 +330,7 @@ public class Teleport : ICommand
             Z = 116,
             AltNames = new string[] { "yny" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.East,
             Name = "Sunbite",
@@ -335,8 +343,9 @@ public class Teleport : ICommand
         #endregion
 
         #region origin
+
         // Auroria
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "calmlands",
@@ -345,7 +354,7 @@ public class Teleport : ICommand
             Y = 24941,
             Z = 189
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "oshcastle",
@@ -355,7 +364,7 @@ public class Teleport : ICommand
             Z = 141,
             AltNames = new string[] { "oc" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "wastelandofcorvus",
@@ -366,7 +375,7 @@ public class Teleport : ICommand
             AltNames = new string[] { "woc" }
 
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "blooddewgorge",
@@ -377,7 +386,7 @@ public class Teleport : ICommand
             AltNames = new string[] { "bg" }
 
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "diamondshores",
@@ -387,7 +396,7 @@ public class Teleport : ICommand
             Z = 130,
             AltNames = new string[] { "ds", "auroria", "origin" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "exeloch",
@@ -397,7 +406,7 @@ public class Teleport : ICommand
             Z = 189,
             AltNames = new string[] { "exe" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "goldenruins",
@@ -407,7 +416,7 @@ public class Teleport : ICommand
             Z = 141,
             AltNames = new string[] { "golden" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "heedmar",
@@ -416,7 +425,7 @@ public class Teleport : ICommand
             Y = 24568,
             Z = 156
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "marcala",
@@ -425,7 +434,7 @@ public class Teleport : ICommand
             Y = 24768,
             Z = 189
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "nuimari",
@@ -434,7 +443,7 @@ public class Teleport : ICommand
             Y = 23751,
             Z = 146
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "reedwind",
@@ -443,7 +452,7 @@ public class Teleport : ICommand
             Y = 28339,
             Z = 295
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Auroria,
             Name = "sungold",
@@ -453,12 +462,14 @@ public class Teleport : ICommand
             Z = 163
         });
         // locations.Add(new TPloc { Region = TeleReg.Origin, Name = "whalesong", Info = "Whalesong Harbor", X = 14436, Y = 26696, Z = 135, altNames = ("whale"} });
+
         #endregion
 
         #region misc
+
         // Others
         // locations.Add(new TPloc { Region = TeleReg.Other, Name = "aegisisland", Info = "Aegis Island", X = 14436, Y = 26696, Z = 134, altNames = ("aegis"} });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "freedich",
@@ -468,7 +479,7 @@ public class Teleport : ICommand
             Z = 134,
             AltNames = new string[] { "freeditch", "free" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "growlgate",
@@ -478,7 +489,7 @@ public class Teleport : ICommand
             Z = 105,
             AltNames = new string[] { "pirate" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "ynys",
@@ -487,7 +498,7 @@ public class Teleport : ICommand
             Y = 14885,
             Z = 102
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "nuiajail",
@@ -497,7 +508,7 @@ public class Teleport : ICommand
             Z = 132,
             AltNames = new string[] { "nuianjail", "westjail" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "haranyajail",
@@ -507,7 +518,7 @@ public class Teleport : ICommand
             Z = 135,
             AltNames = new string[] { "haranijail", "eastjail" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "nuian",
@@ -516,7 +527,7 @@ public class Teleport : ICommand
             Y = 15382,
             Z = 128
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "elf",
@@ -525,7 +536,7 @@ public class Teleport : ICommand
             Y = 15982,
             Z = 370
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "harani",
@@ -535,7 +546,7 @@ public class Teleport : ICommand
             Z = 215,
             AltNames = new string[] { "harihana" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Other,
             Name = "firran",
@@ -545,11 +556,13 @@ public class Teleport : ICommand
             Z = 592,
             AltNames = new string[] { "ferre" }
         });
+
         #endregion
 
         #region dungeons
+
         // Dungeons
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Dungeons,
             Name = "sharpwind",
@@ -559,7 +572,7 @@ public class Teleport : ICommand
             Z = 146,
             AltNames = new string[] { "sm", "gsm", "mines" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Dungeons,
             Name = "burnt",
@@ -569,7 +582,7 @@ public class Teleport : ICommand
             Z = 170,
             AltNames = new string[] { "bc", "bca", "gbc", "castle", "orchidna" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Dungeons,
             Name = "cellar",
@@ -579,7 +592,7 @@ public class Teleport : ICommand
             Z = 198,
             AltNames = new string[] { "pc", "gpc", "sewer" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Dungeons,
             Name = "hadir",
@@ -589,7 +602,7 @@ public class Teleport : ICommand
             Z = 140,
             AltNames = new string[] { "hf", "ghf", "farm" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Dungeons,
             Name = "cradle",
@@ -599,7 +612,7 @@ public class Teleport : ICommand
             Z = 777,
             AltNames = new string[] { "kc", "gkc", "kroloal", "kroloa", "koala" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Dungeons,
             Name = "abyss",
@@ -609,7 +622,7 @@ public class Teleport : ICommand
             Z = 251,
             AltNames = new string[] { "ha", "gha", "howling" }
         });
-        locations.Add(new TPloc
+        Locations.Add(new TPloc
         {
             Region = TeleportCommandRegions.Dungeons,
             Name = "serpentis",
@@ -619,6 +632,21 @@ public class Teleport : ICommand
             Z = 142,
             AltNames = new string[] { "snake", "snek" }
         });
+
+        #endregion
+
+        #region debug_regions
+
+        Locations.Add(new TPloc
+        {
+            Region = TeleportCommandRegions.Other,
+            Name = "debug",
+            Info = "Out of Bounds",
+            X = 8192,
+            Y = 6144,
+            Z = 130
+        });
+
         #endregion
     }
 
@@ -628,41 +656,46 @@ public class Teleport : ICommand
         {
             var n = args[0].ToLower();
 
-            if (AllowPingPos && (n == "."))
+            if (AllowPingPos && n == ".")
             {
-                if ((character.LocalPingPosition.Positions[1].X == 0f) && (character.LocalPingPosition.Positions[1].Y == 0f))
+                if (character.LocalPingPosition.X == 0f && character.LocalPingPosition.Y == 0f)
                 {
-                    character.SendMessage("|cFFFFFF00[Teleport] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, before using this teleport function.\n" +
-                        "If required, you can use the /soloparty command to make a party of just yourself.|r");
+                    CommandManager.SendNormalText(this, messageOutput,
+                        "|cFFFFFF00Make sure you marked a location on the map WHILE IN A PARTY OR RAID, before using this teleport function.\n" +
+                        $"If required, you can use the {CommandManager.CommandPrefix}soloparty command to make a party of just yourself.|r");
                 }
                 else
                 {
-                    var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.Positions[1].X, character.LocalPingPosition.Positions[1].Y);
+                    var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId,
+                        character.LocalPingPosition.X, character.LocalPingPosition.Y);
                     if (height == 0f)
                     {
-                        character.SendMessage("|cFFFF0000[Teleport] Target height was |cFFFFFFFFzero|cFFFF0000. " +
-                            "You likely tried to teleport out of bounds, or no heightmaps where loaded on the server.\n" +
-                            "If you still want to move to the target location, you can use |cFFFFFFFF/move|cFFFF0000 to go to the following location|cFF40FF40\n" +
-                            "X:" + character.LocalPingPosition.Positions[1].X.ToString("0.0") + " Y:" + character.LocalPingPosition.Positions[1].Y.ToString("0.0") + "|r");
+                        CommandManager.SendNormalText(this,
+                            messageOutput, "|cFFFF0000Target height was |cFFFFFFFFzero|cFFFF0000. " +
+                                           "You likely tried to teleport out of bounds, or no heightmap data was loaded on the server.\n" +
+                                           $"If you still want to move to the target location, you can use |cFFFFFFFF{CommandManager.CommandPrefix}move|cFFFF0000 to go to the following location|cFF40FF40\n" +
+                                           $"X:{character.LocalPingPosition.X:0.0} Y:{character.LocalPingPosition.Y:0.0}|r");
                     }
                     else
                     {
                         height += 2.5f; // compensate a bit for terrain irregularities
-                        character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.Positions[1].X + " Y:" + character.LocalPingPosition.Positions[1].Y + " Z:" + height + "|r");
+                        CommandManager.SendNormalText(this, messageOutput,
+                            "Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" +
+                            character.LocalPingPosition.Y + " Z:" + height + "|r");
                         character.ForceDismount();
                         character.DisabledSetPosition = true;
-                        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, ErrorMessageType.NoErrorMessage, character.LocalPingPosition.Positions[1].X, character.LocalPingPosition.Positions[1].Y, height, 0));
+                        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, character.LocalPingPosition.Positions[1].X, character.LocalPingPosition.Positions[1].Y, height, 0));
                     }
                 }
             }
             else if (character.InstanceId != WorldManager.DefaultInstanceId)
             {
-                character.SendMessage("|cFFFFFF00[Teleport] Named teleports are not allowed inside a instance.|r");
+                CommandManager.SendErrorText(this, messageOutput, "Named teleports are not allowed inside a instance");
             }
             else
             {
-                bool foundIt = false;
-                foreach (TPloc item in locations)
+                var foundIt = false;
+                foreach (var item in Locations)
                 {
                     if (item.Name == n)
                     {
@@ -670,7 +703,7 @@ public class Teleport : ICommand
                     }
                     else if (item.AltNames != null)
                     {
-                        foreach (string alt in item.AltNames)
+                        foreach (var alt in item.AltNames)
                         {
                             if (alt == n)
                             {
@@ -679,9 +712,11 @@ public class Teleport : ICommand
                             }
                         }
                     }
+
                     if (foundIt)
                     {
-                        character.SendMessage("Teleporting to |cFFFFFFFF" + item.Info + "|r");
+                        CommandManager.SendNormalText(this, messageOutput,
+                            "Teleporting to |cFFFFFFFF" + item.Info + "|r");
                         character.ForceDismount();
                         character.DisabledSetPosition = true;
                         character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, item.X, item.Y, item.Z, 0));
@@ -689,31 +724,38 @@ public class Teleport : ICommand
                         break;
                     }
                 }
+
                 if (!foundIt)
                 {
-                    character.SendMessage("|cFFFF0000[Teleport] Unavailable Location [" + args[0] + "]|r");
+                    CommandManager.SendErrorText(this, messageOutput, "Unavailable Location [" + args[0] + "]");
                 }
             }
         }
         else
         {
             if (AllowPingPos)
-                character.SendMessage("Usage : " + CommandManager.CommandPrefix + "teleport <Location>\n" +
-                                      "Use a period (.) to teleport to YOUR marked location on the map, " +
-                                      "or use one of the following locations :");
-            /*else
-                character.SendMessage("Usage : " + CommandManager.CommandPrefix + "teleport <Location>\n" +
-                                      "Teleport to one of the following locations :"); */
+            {
+                CommandManager.SendNormalText(this, messageOutput,
+                    $"Usage : {CommandManager.CommandPrefix}{CommandNames[0]} <Location>\n" +
+                    "Use a period (.) to teleport to YOUR marked location on the map, " +
+                    "or use one of the following locations :");
+            }
 
-            List<string> sb = new List<string>();
+            var sb = new List<string>();
             foreach (TeleportCommandRegions r in System.Enum.GetValues(typeof(TeleportCommandRegions)))
-                sb.Add("|cFFFFFFFF" + r.ToString() + "|r: ");
-            foreach (TPloc item in locations)
+            {
+                sb.Add($"|cFFFFFFFF{r}|r: ");
+            }
+
+            foreach (var item in Locations)
             {
                 sb[(int)item.Region] += item.Name + "  ";
             }
-            foreach (string s in sb)
-                character.SendMessage(s + "\n");
+
+            foreach (var s in sb)
+            {
+                CommandManager.SendNormalText(this, messageOutput, s);
+            }
         }
     }
 

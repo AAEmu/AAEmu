@@ -10,15 +10,18 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class FeatureCmd : SubCommandBase, ICommand, ICommandV2
 {
+    public string[] CommandNames { get; set; } = new string[] { "feature" };
+
     public FeatureCmd()
     {
         Title = "[Feature]";
         Description = "Root command to manage Feature";
-        CallPrefix = $"{CommandManager.CommandPrefix}feature";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new FeatureSetSubCommand(), "set", "s");
         Register(new FeatureCheckSubCommand(), "check", "c");
     }
+
     public void OnLoad()
     {
         string[] name = { "feature", "fset", "fs" };
@@ -37,6 +40,7 @@ public class FeatureCmd : SubCommandBase, ICommand, ICommandV2
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

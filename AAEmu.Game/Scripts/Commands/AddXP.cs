@@ -8,10 +8,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddXP : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "xp", "add_xp", "addxp", "givexp" };
+
     public void OnLoad()
     {
-        string[] name = { "addxp", "add_xp", "givexp", "xp" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -28,19 +29,21 @@ public class AddXP : ICommand
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[XP] " + CommandManager.CommandPrefix + "add_xp (target) <exp>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
 
-        var xptoadd = 0;
-        if (int.TryParse(args[firstarg + 0], out int parsexp))
+        var xpToAdd = 0;
+        if (int.TryParse(args[firstArg + 0], out var parseXp))
         {
-            xptoadd = parsexp;
+            xpToAdd = parseXp;
         }
 
-        if (xptoadd > 0)
-            targetPlayer.AddExp(xptoadd, true);
+        if (xpToAdd > 0)
+        {
+            targetPlayer.AddExp(xpToAdd, true);
+        }
     }
 }

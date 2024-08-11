@@ -6,6 +6,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -17,21 +18,17 @@ public class FactionManager : Singleton<FactionManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
-    private Dictionary<uint, SystemFaction> _systemFactions;
+    private Dictionary<FactionsEnum, SystemFaction> _systemFactions;
     private List<FactionRelation> _relations;
 
-    public SystemFaction GetFaction(uint id)
+    public SystemFaction GetFaction(FactionsEnum id)
     {
-        if (_systemFactions.TryGetValue(id, out var faction))
-            return faction;
-
-        return null;
+        return _systemFactions.GetValueOrDefault(id);
     }
 
     public void AddFaction(SystemFaction faction)
     {
-        if (!_systemFactions.ContainsKey(faction.Id))
-            _systemFactions.Add(faction.Id, faction);
+        _systemFactions.TryAdd(faction.Id, faction);
     }
 
     public void Load()
@@ -39,8 +36,8 @@ public class FactionManager : Singleton<FactionManager>
         if (_loaded)
             return;
 
-        _systemFactions = new Dictionary<uint, SystemFaction>();
-        _relations = new List<FactionRelation>();
+        _systemFactions = new();
+        _relations = new();
         using (var connection = SQLite.CreateConnection())
         {
             Logger.Info("Loading system factions...");
@@ -55,13 +52,13 @@ public class FactionManager : Singleton<FactionManager>
                     {
                         var faction = new SystemFaction
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = (FactionsEnum)reader.GetUInt32("id"),
                             Name = LocalizationManager.Instance.Get("system_factions", "name", reader.GetUInt32("id")),
                             OwnerName = reader.GetString("owner_name"),
                             UnitOwnerType = (sbyte)reader.GetInt16("owner_type_id"),
                             OwnerId = reader.GetUInt32("owner_id"),
                             PoliticalSystem = reader.GetByte("political_system_id"),
-                            MotherId = reader.GetUInt32("mother_id"),
+                            MotherId = (FactionsEnum)reader.GetUInt32("mother_id"),
                             AggroLink = reader.GetBoolean("aggro_link", true),
                             GuardHelp = reader.GetBoolean("guard_help", true),
                             DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true)
@@ -71,7 +68,7 @@ public class FactionManager : Singleton<FactionManager>
                 }
             }
 
-            Logger.Info("Loaded {0} system factions", _systemFactions.Count);
+            Logger.Info($"Loaded {_systemFactions.Count} system factions");
             Logger.Info("Loading faction relations...");
             using (var command = connection.CreateCommand())
             {
@@ -84,8 +81,8 @@ public class FactionManager : Singleton<FactionManager>
                     {
                         var relation = new FactionRelation
                         {
-                            Id = reader.GetUInt32("faction1_id"),
-                            Id2 = reader.GetUInt32("faction2_id"),
+                            Id = (FactionsEnum)reader.GetUInt32("faction1_id"),
+                            Id2 = (FactionsEnum)reader.GetUInt32("faction2_id"),
                             State = (RelationState)reader.GetByte("state_id")
                         };
                         _relations.Add(relation);

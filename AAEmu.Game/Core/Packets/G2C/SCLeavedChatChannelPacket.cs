@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -10,11 +11,11 @@ public class SCLeavedChatChannelPacket : GamePacket
     private readonly short _subType;
     private readonly uint _factionId;
 
-    public SCLeavedChatChannelPacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCLeavedChatChannelPacket, 5)
+    public SCLeavedChatChannelPacket(ChatType type, short subType, FactionsEnum factionId) : base(SCOffsets.SCLeavedChatChannelPacket, 5)
     {
         _type = type;
         _subType = subType;
-        _factionId = factionId;
+        _factionId = (uint)factionIdId;
     }
 
     public override PacketStream Write(PacketStream stream)
