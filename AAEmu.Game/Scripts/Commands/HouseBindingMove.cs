@@ -10,10 +10,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class HouseBindingMove : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "house_binding_move", "housebindingmove" };
+
     public void OnLoad()
     {
-        string[] name = { "housebindingmove", "house_binding_move" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -32,9 +33,10 @@ public class HouseBindingMove : ICommand
         {
             if (args.Length < 4)
             {
-                character.SendMessage("[HouseBindings] " + CommandManager.CommandPrefix + "house_binding_move <AttachPointId> <X> <Y> <Z>");
+                CommandManager.SendDefaultHelpText(this, messageOutput);
                 return;
             }
+
             if (uint.TryParse(args[0], out var attachPointIdVal) &&
                 float.TryParse(args[1], out var x) &&
                 float.TryParse(args[2], out var y) &&
@@ -52,17 +54,22 @@ public class HouseBindingMove : ICommand
 
                     character.CurrentTarget = house;
 
-                    character
-                        .BroadcastPacket(
-                            new SCTargetChangedPacket(character.ObjId, character.CurrentTarget.ObjId), true);
+                    character.BroadcastPacket(new SCTargetChangedPacket(character.ObjId, character.CurrentTarget.ObjId),
+                        true);
                 }
                 else
-                    character.SendMessage("|cFFFF0000[HouseBindings] Not found this attach doodad|r");
+                {
+                    CommandManager.SendErrorText(this, messageOutput, "Not found this attach doodad");
+                }
             }
             else
-                character.SendMessage("|cFFFF0000[HouseBindings] Throw parse args|r");
+            {
+                CommandManager.SendErrorText(this, messageOutput, "Float parse error on coordinates");
+            }
         }
         else
-            character.SendMessage("|cFFFF0000[HouseBindings] First select house|r");
+        {
+            CommandManager.SendErrorText(this, messageOutput, "No house selected");
+        }
     }
 }

@@ -9,31 +9,31 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Sphere : ICommand
 {
-    protected static Logger Logger = LogManager.GetCurrentClassLogger();
+    public string[] CommandNames { get; set; } = new string[] { "sphere" };
 
     public void OnLoad()
     {
-        CommandManager.Instance.Register("sphere", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "<list||add||remove>";
+        return "<list||add||remove||quest||goto>";
     }
 
     public string GetCommandHelpText()
     {
-        return "/sphere ";
+        return "Sphere related commands ";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 1)
         {
-            character.SendMessage("/sphere <add/remove/list>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        SphereCommandUtil.GetCommandChoice(character, args[0], args);
+        SphereCommandUtil.GetCommandChoice(this, messageOutput, character, args[0], args);
     }
 }

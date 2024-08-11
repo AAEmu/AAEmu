@@ -7,9 +7,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class GodMode : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "godmode" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("godmode", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -26,11 +28,13 @@ public class GodMode : ICommand
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[GodMode] " + CommandManager.CommandPrefix + "godmode <true||false>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
         if (bool.TryParse(args[0], out var value))
+        {
             character.SetGodMode(value);
+        }
     }
 }

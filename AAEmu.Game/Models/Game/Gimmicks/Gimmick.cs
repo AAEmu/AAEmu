@@ -59,7 +59,7 @@ public class Gimmick : Unit
         stream.Write(ObjId);            // same as ObjId in GameObject
         stream.Write(TemplateId);       // TemplateId aka GimmickId
         stream.Write(EntityGuid);       // entityGUID = 0x4227234CE506AFDB box
-        stream.Write(Faction.Id);       // Faction
+        stream.Write((uint)Faction.Id);       // Faction
         stream.Write(SpawnerUnitId);    // spawnerUnitId
         stream.Write(GrasperUnitId);    // grasperUnitId
         stream.Write(Transform.ZoneId);

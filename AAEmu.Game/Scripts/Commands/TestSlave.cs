@@ -4,16 +4,18 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
 public class TestSlave : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "testslave", "test_slave" };
+
     public void OnLoad()
     {
-        string[] name = { "testslave", "test_slave" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -34,7 +36,7 @@ public class TestSlave : ICommand
         slave.ModelId = 1008;
         slave.ObjId = ObjectIdManager.Instance.GetNextId();
         slave.TlId = (ushort)TlIdManager.Instance.GetNextId();
-        slave.Faction = FactionManager.Instance.GetFaction(143);
+        slave.Faction = FactionManager.Instance.GetFaction((FactionsEnum)143);
         slave.Level = 50;
         slave.Transform = character.Transform.CloneDetached(slave);
         slave.Transform.Local.AddDistanceToFront(5f);

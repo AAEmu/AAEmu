@@ -1,15 +1,26 @@
 ﻿namespace AAEmu.Game.Models.StaticValues;
 
-public static class FactionsEnum
+public enum FactionsEnum : uint
 {
-    public const uint Friendly = 1;
-    public const uint Neutral = 2;
-    public const uint Hostile = 3;
-    public const uint Monstrosity = 115;
-    public const uint Animal = 116;
-    public const uint RedTeam = 159;
-    public const uint BlueTeam = 160;
-    public const uint Pirate = 161;
-    public const uint PcFriendly = 165;
-    public const uint Fish = 172;
+    Invalid = 0,
+    Friendly = 1,
+    Neutral = 2,
+    Hostile = 3,
+
+    Nuian = 101,
+    Elf = 103,
+    Harani = 109,
+    Firran = 113,
+    
+    Monstrosity = 115,
+    Animal = 116,
+    NuiaAlliance = 148,
+    HaranyaAlliance = 149,
+    
+    RedTeam = 159,
+    BlueTeam = 160,
+
+    Pirate = 161,
+    PcFriendly = 165,
+    Fish = 172,
 }

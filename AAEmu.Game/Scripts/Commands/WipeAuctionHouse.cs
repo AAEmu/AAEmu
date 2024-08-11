@@ -5,25 +5,34 @@ using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
-class WipeAuctionHouse : ICommand
+internal class WipeAuctionHouse : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "wipeauctionhouse", "wipeah" };
+
     public void OnLoad()
     {
-        string[] name = { "wipeauctionhouse", "wipeah" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "Deletes ALL Items from the AH. No going back from this.";
+        return "<WIPE>";
     }
 
     public string GetCommandHelpText()
     {
-        return "Deletes ALL Items from the AH. No going back from this.";
+        return
+            "Deletes ALL Items from the AH. No going back from this. Use WIPE as a argument to actual wipe the items";
     }
+
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
+        if (args.Length < 1 || args[0] != "WIPE")
+        {
+            CommandManager.SendDefaultHelpText(this, messageOutput);
+            return;
+        }
+
         AuctionManager.Instance.Load();
 
         foreach (var item in AuctionManager.Instance._auctionItems)

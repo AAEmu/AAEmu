@@ -10,10 +10,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Revive : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "revive" };
+
     public void OnLoad()
     {
-        string[] name = { "revive" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -28,15 +29,19 @@ public class Revive : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
         if (targetPlayer != null)
         {
             if (targetPlayer.Hp == 0)
             {
                 targetPlayer.Hp = targetPlayer.MaxHp;
                 targetPlayer.Mp = targetPlayer.MaxMp;
-                targetPlayer.BroadcastPacket(new SCCharacterResurrectedPacket(targetPlayer.ObjId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z, targetPlayer.Transform.World.Rotation.Z), true);
-                targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                targetPlayer.BroadcastPacket(
+                    new SCCharacterResurrectedPacket(targetPlayer.ObjId, targetPlayer.Transform.World.Position.X,
+                        targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z,
+                        targetPlayer.Transform.World.Rotation.Z), true);
+                targetPlayer.BroadcastPacket(
+                    new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
                 targetPlayer.PostUpdateCurrentHp(targetPlayer, 0, targetPlayer.Hp, KillReason.Unknown);
             }
             else

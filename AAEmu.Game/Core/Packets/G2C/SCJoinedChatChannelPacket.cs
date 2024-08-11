@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -8,9 +9,9 @@ public class SCJoinedChatChannelPacket : GamePacket
 {
     private readonly ChatType _type;
     private readonly short _subType;
-    private readonly uint _factionId;
+    private readonly FactionsEnum _factionId;
 
-    public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCJoinedChatChannelPacket, 1)
+    public SCJoinedChatChannelPacket(ChatType type, short subType, FactionsEnum factionId) : base(SCOffsets.SCJoinedChatChannelPacket, 1)
     {
         _type = type;
         _subType = subType;
@@ -21,7 +22,7 @@ public class SCJoinedChatChannelPacket : GamePacket
     {
         stream.Write((short)_type);
         stream.Write(_subType);
-        stream.Write(_factionId);
+        stream.Write((uint)_factionId);
         // -------------
         stream.Write(""); // name
         return stream;

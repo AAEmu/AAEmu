@@ -9,27 +9,28 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class BuildHouse : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "build", "build_house" };
+
     public void OnLoad()
     {
-        string[] name = { "build", "build_house" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "";
+        return "[stepcount]";
     }
 
     public string GetCommandHelpText()
     {
-        return "Advances the targetted house one step further";
+        return "Advances the target house further by [stepcount] or 1 if omitted";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (character.CurrentTarget is not House targetHouse)
         {
-            character.SendMessage("You must target a house");
+            CommandManager.SendErrorText(this, messageOutput, "You must target a house");
             return;
         }
 
@@ -37,13 +38,16 @@ public class BuildHouse : ICommand
         if (args.Length > 0)
         {
             if (uint.TryParse(args[0], out var val))
+            {
                 buildActionCount = val;
+            }
         }
 
         var actionsLeftForStep = targetHouse.AllAction - targetHouse.CurrentAction;
         if (buildActionCount > actionsLeftForStep)
         {
-            character.SendMessage($"Cannot do {buildActionCount} build actions when the maximum allowed for the current step is {actionsLeftForStep}");
+            CommandManager.SendErrorText(this, messageOutput,
+                $"Cannot do {buildActionCount} build actions when the maximum allowed for the current step is {actionsLeftForStep}");
             return;
         }
 
@@ -65,7 +69,9 @@ public class BuildHouse : ICommand
         {
             var doodads = targetHouse.AttachedDoodads.ToArray();
             foreach (var doodad in doodads)
+            {
                 doodad.Spawn();
+            }
         }
     }
 }

@@ -21,12 +21,13 @@ public class SlaveRemoveSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
-        Models.Game.Units.Slave slave;
+        Slave slave;
         if (parameters.TryGetValue("ObjId", out var objId))
         {
-            slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
+            slave = (Slave)WorldManager.Instance.GetGameObject(objId);
             if (slave is null)
             {
                 SendColorMessage(messageOutput, Color.Red, $"Slave with objId {objId} does not exist");
@@ -41,13 +42,19 @@ public class SlaveRemoveSubCommand : SubCommandBase
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Slave first");
                 return;
             }
-            slave = (Models.Game.Units.Slave)currentTarget;
+
+            slave = (Slave)currentTarget;
         }
 
         // Remove Slave
         if (slave.Spawner != null)
-            slave.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
+        {
+            slave.Spawner.Id =
+                0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
+        }
+
         slave.Hide();
-        SendMessage(messageOutput, $"Slave ({slave.Name}), ObjId: {slave.ObjId}, TemplateId:{slave.TemplateId} removed successfully");
+        SendMessage(messageOutput,
+            $"Slave ({slave.Name}), ObjId: {slave.ObjId}, TemplateId:{slave.TemplateId} removed successfully");
     }
 }

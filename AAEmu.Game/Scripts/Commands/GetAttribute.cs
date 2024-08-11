@@ -11,30 +11,31 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class GetAttribute : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "getattribute", "getattr", "attr" };
+
     public void OnLoad()
     {
-        string[] name = { "getattribute", "getattr", "attr" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "[target] <attrId || attrName || all || used>";
+        return "[\"target\"] <attrId || attrName || all || used>";
     }
 
     public string GetCommandHelpText()
     {
-        return "getattribute " + GetCommandLineHelp();
+        return $"Shows a list of all attributes of target";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         Unit target = character;
-        int argsIdx = 0;
+        var argsIdx = 0;
 
         if (args.Length == 0)
         {
-            character.SendMessage("[GetAttribute] " + CommandManager.CommandPrefix + GetCommandHelpText());
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
@@ -42,14 +43,15 @@ public class GetAttribute : ICommand
         {
             if (character.CurrentTarget == null || !(character.CurrentTarget is Unit))
             {
-                character.SendPacket(new SCChatMessagePacket(ChatType.System, $"No Target Selected"));
+                CommandManager.SendErrorText(this, messageOutput, $"No Target Selected");
                 return;
             }
+
             target = (Unit)character.CurrentTarget;
             argsIdx++;
         }
 
-        character.SendPacket(new SCChatMessagePacket(ChatType.System, $"[GetAttribute] Stats for target {target.Name} ({target.ObjId})"));
+        CommandManager.SendNormalText(this, messageOutput, $"Stats for target {target.Name} ({target.ObjId})");
 
         if (args[argsIdx].ToLower() == "all")
         {
@@ -64,34 +66,42 @@ public class GetAttribute : ICommand
             foreach (var attr in Enum.GetValues(typeof(UnitAttribute)))
             {
                 var value = target.GetAttribute((UnitAttribute)attr);
-                var hide = (value == "NotFound") || (value == "0");
+                var hide = value == "NotFound" || value == "0";
                 // Exception for multipliers
-                if ((value != "NotFound") && ((UnitAttribute)attr).ToString().Contains("Mul"))
-                    hide = (value == "1");
+                if (value != "NotFound" && ((UnitAttribute)attr).ToString().Contains("Mul"))
+                {
+                    hide = value == "1";
+                }
 
                 if (!hide)
+                {
                     character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
+                }
             }
         }
-        else if (byte.TryParse(args[argsIdx], out byte attrId))
+        else if (byte.TryParse(args[argsIdx], out var attrId))
         {
             if (Enum.IsDefined(typeof(UnitAttribute), attrId))
             {
-                string value = target.GetAttribute(attrId);
+                var value = target.GetAttribute(attrId);
                 character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attrId}: {value}"));
             }
             else
+            {
                 character.SendPacket(new SCChatMessagePacket(ChatType.System, $"Attribute doesn't exist."));
+            }
         }
         else
         {
             if (Enum.TryParse(typeof(UnitAttribute), args[argsIdx], true, out var attr))
             {
-                string value = target.GetAttribute((UnitAttribute)attr);
+                var value = target.GetAttribute((UnitAttribute)attr);
                 character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
             }
             else
+            {
                 character.SendPacket(new SCChatMessagePacket(ChatType.System, $"Attribute doesn't exist."));
+            }
         }
     }
 }

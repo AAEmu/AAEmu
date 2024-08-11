@@ -1,5 +1,4 @@
 ﻿using NLog;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -11,7 +10,8 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class MoveTo : ICommand
 {
-    protected static Logger Logger = LogManager.GetCurrentClassLogger();
+    public string[] CommandNames { get; set; } = new string[] { "moveto" };
+
     public void OnLoad()
     {
         CommandManager.Instance.Register("moveto", this);
@@ -38,18 +38,20 @@ public class MoveTo : ICommand
             "|15626.0|14983.88|141.3446|\n" +
             "===================================================;\n";
     }
+
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        string nameFile = "movefile";
-        string cmd = "";
+        var nameFile = "movefile";
+        var cmd = "";
         Simulation moveTo;
-        bool run = true;
         //bool walk = false;
+
         if (args.Length < 1)
         {
             character.SendMessage("[MoveTo] /moveto <rec||save filename||go filename||back filename||stop||run||walk>");
             return;
         }
+
         if (args[0] == "rec" || args[0] == "stop" || args[0] == "run" || args[0] == "walk")
         {
             cmd = args[0];
@@ -61,52 +63,53 @@ public class MoveTo : ICommand
         }
         else
         {
-            character.SendMessage("[MoveTo] there should be two parameters, a command and a file_name...");
+            CommandManager.SendErrorText(this, messageOutput,
+                "there should be two parameters, a command and a file_name...");
             return;
         }
 
-        character.SendMessage($"[MoveTo] cmd: {cmd}, nameFile: {nameFile}");
+        CommandManager.SendNormalText(this, messageOutput, $"cmd: {cmd}, nameFile: {nameFile}");
         moveTo = character.Simulation; // take the AI movement
         moveTo.Npc = (Npc)character.CurrentTarget;
         if (moveTo.Npc == null)
         {
-            character.SendMessage("[MoveTo] You need a target NPC to manage it!");
+            CommandManager.SendNormalText(this, messageOutput, $"You need a target NPC to manage it!");
         }
         else
         {
             switch (cmd)
             {
                 case "rec":
-                    character.SendMessage("[MoveTo] start recording...");
+                    CommandManager.SendNormalText(this, messageOutput, $"start recording...");
                     moveTo.StartRecord(moveTo, character);
                     break;
                 case "save":
-                    character.SendMessage("[MoveTo] have finished recording...");
+                    CommandManager.SendNormalText(this, messageOutput, $"have finished recording...");
                     moveTo.MoveFileName = nameFile;
                     moveTo.StopRecord(moveTo);
                     break;
                 case "go":
-                    character.SendMessage("[MoveTo] walk go...");
+                    CommandManager.SendNormalText(this, messageOutput, $"walk go...");
                     moveTo.RunningMode = false;
                     moveTo.MoveFileName = nameFile;
                     moveTo.GoToPath((Npc)character.CurrentTarget, true);
                     break;
                 case "back":
-                    character.SendMessage("[MoveTo] walk back...");
+                    CommandManager.SendNormalText(this, messageOutput, $"walk back...");
                     moveTo.RunningMode = false;
                     moveTo.MoveFileName = nameFile;
                     moveTo.GoToPath((Npc)character.CurrentTarget, false);
                     break;
                 case "run":
-                    character.SendMessage("[MoveTo] turned on running mode...");
-                    moveTo.RunningMode = run;
+                    CommandManager.SendNormalText(this, messageOutput, $"turned on running mode...");
+                    moveTo.RunningMode = true;
                     break;
                 //case "walk":
                 //    character.SendMessage("[MoveTo] turned off running mode...");
                 //    moveTo.RunningMode = walk;
                 //    break;
                 case "stop":
-                    character.SendMessage("[MoveTo] standing still...");
+                    CommandManager.SendNormalText(this, messageOutput, $"standing still...");
                     moveTo.StopMove((Npc)character.CurrentTarget);
                     break;
             }

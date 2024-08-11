@@ -2016,9 +2016,9 @@ public partial class Character : Unit, ICharacter
                         reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),
                         reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll")
                         );
-                    character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
+                    character.Faction = FactionManager.Instance.GetFaction((FactionsEnum)reader.GetUInt32("faction_id"));
                     character.FactionName = reader.GetString("faction_name");
-                    character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
+                    character.Expedition = ExpeditionManager.Instance.GetExpedition((FactionsEnum)reader.GetUInt32("expedition_id"));
                     character.Family = reader.GetUInt32("family");
                     character.DeadCount = reader.GetInt16("dead_count");
                     character.DeadTime = reader.GetDateTime("dead_time");
@@ -2132,9 +2132,9 @@ public partial class Character : Unit, ICharacter
                         reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),
                         reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll")
                         );
-                    character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
+                    character.Faction = FactionManager.Instance.GetFaction((FactionsEnum)reader.GetUInt32("faction_id"));
                     character.FactionName = reader.GetString("faction_name");
-                    character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
+                    character.Expedition = ExpeditionManager.Instance.GetExpedition((FactionsEnum)reader.GetUInt32("expedition_id"));
                     character.Family = reader.GetUInt32("family");
                     character.DeadCount = reader.GetInt16("dead_count");
                     character.DeadTime = reader.GetDateTime("dead_time");
@@ -2532,9 +2532,9 @@ public partial class Character : Unit, ICharacter
         stream.Write(Hp);
         stream.Write(Mp);
         stream.Write(Transform.ZoneId);
-        stream.Write(Faction.Id);
+        stream.Write((uint)Faction.Id);
         stream.Write(FactionName);
-        stream.Write(Expedition?.Id ?? 0);
+        stream.Write((uint)(Expedition?.Id ?? 0));
         stream.Write(Family);
 
         var items = Inventory.Equipment.GetSlottedItemsList();

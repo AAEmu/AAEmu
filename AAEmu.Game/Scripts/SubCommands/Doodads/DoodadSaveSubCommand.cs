@@ -26,7 +26,8 @@ public class DoodadSaveSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint doodadObjId = parameters["ObjId"];
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
@@ -81,7 +82,7 @@ public class DoodadSaveSubCommand : SubCommandBase
                 Z = doodad.Transform.Local.Position.Z,
                 Roll = doodad.Transform.Local.Rotation.X.RadToDeg(),
                 Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg(),
-                Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg(),
+                Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg()
             }
         };
 
@@ -94,7 +95,8 @@ public class DoodadSaveSubCommand : SubCommandBase
             fileSpawners.Add(spawn.Id, spawn);
         }
 
-        var serialized = JsonConvert.SerializeObject(fileSpawners.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
+        var serialized = JsonConvert.SerializeObject(fileSpawners.Values.ToArray(), Formatting.Indented,
+            new JsonModelsConverter());
         FileManager.SaveFile(serialized, string.Format(jsonFileName, FileManager.AppPath));
         SendMessage(messageOutput, $"Doodad ObjId: {doodad.ObjId} has been saved!");
     }

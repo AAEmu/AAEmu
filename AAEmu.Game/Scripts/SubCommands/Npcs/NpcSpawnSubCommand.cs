@@ -23,7 +23,8 @@ public class NpcSpawnSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<facing degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint npcTemplateId = parameters["NpcTemplateId"];
 
@@ -32,6 +33,7 @@ public class NpcSpawnSubCommand : SubCommandBase
             SendColorMessage(messageOutput, Color.Red, $"NPC template {npcTemplateId} doesn't exist");
             return;
         }
+
         var selfCharacter = (Character)character;
 
         var npcSpawner = new NpcSpawner();
@@ -41,7 +43,8 @@ public class NpcSpawnSubCommand : SubCommandBase
         charPos.Local.AddDistanceToFront(3f);
         npcSpawner.Position = charPos.CloneAsSpawnPosition();
 
-        var angle = GetOptionalParameterValue(parameters, "yaw", (float)MathUtil.CalculateAngleFrom(charPos, selfCharacter.Transform)).DegToRad();
+        var angle = GetOptionalParameterValue(parameters, "yaw",
+            (float)MathUtil.CalculateAngleFrom(charPos, selfCharacter.Transform)).DegToRad();
 
 
         if (!parameters.ContainsKey("yaw"))

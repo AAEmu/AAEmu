@@ -13,10 +13,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ShowInventory : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "inventory", "showinv", "show_inv", "showinventory", "show_inventory" };
+
     public void OnLoad()
     {
-        string[] name = { "showinv", "show_inv", "showinventory", "show_inventory", "inventory" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -26,81 +27,108 @@ public class ShowInventory : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Show content of target's item container.\rEquipment = 1, Inventory = 2 (default), Bank = 3, Trade = 4, Mail = 5";
+        return
+            "Show content of target's item container.\rEquipment = 1, Inventory = 2 (default), Bank = 3, Trade = 4, Mail = 5";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        if ((!(character.CurrentTarget is Character)) && (character.CurrentTarget is Unit unit))
+        if (character.CurrentTarget is not Character && character.CurrentTarget is Unit unit)
         {
             var targetContainer = unit.Equipment;
             var templateName = "Unit";
             foreach (var item in targetContainer.Items)
             {
                 if (unit is Npc npc)
+                {
                     templateName = string.Format("|nc;@NPC_NAME({0})|r", npc.TemplateId);
+                }
+
                 var slotName = ((EquipmentItemSlot)item.Slot).ToString();
                 var countName = "|ng;" + item.Count.ToString() + "|r x ";
                 if (item.Count == 1)
+                {
                     countName = string.Empty;
-                character.SendMessage($"[{templateName}][{slotName}] {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
+                }
+
+                messageOutput.SendMessage(
+                    $"[{templateName}][{slotName}] {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
             }
-            character.SendMessage($"[ShowInv][{templateName}][{targetContainer.ContainerType}] {targetContainer.Items.Count} entries");
+
+            CommandManager.SendNormalText(this, messageOutput,
+                $"[{templateName}][{targetContainer.ContainerType}] {targetContainer.Items.Count} entries");
             return;
         }
         else
         {
-            Character targetPlayer = character;
+            var targetPlayer = character;
             var firstarg = 0;
             if (args.Length > 0)
+            {
                 targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out firstarg);
+            }
 
             var containerId = SlotType.Inventory;
 
-            if ((args.Length > firstarg + 0) && (uint.TryParse(args[firstarg + 0], out uint argcontainerId)))
+            if (args.Length > firstarg + 0 && uint.TryParse(args[firstarg + 0], out var argcontainerId))
             {
-                if (((argcontainerId >= 0) && (argcontainerId <= (byte)SlotType.Mail)) || (argcontainerId == (byte)SlotType.System))
+                if (argcontainerId <= (byte)SlotType.Mail || argcontainerId == (byte)SlotType.System)
+                {
                     containerId = (SlotType)argcontainerId;
+                }
                 else
                 {
-                    character.SendMessage("|cFFFF0000[ShowInv] Invalid container Id |r");
+                    CommandManager.SendErrorText(this, messageOutput, $"Invalid container Id {argcontainerId}");
                     return;
                 }
             }
 
 
-            var targetContainer = targetPlayer.Inventory.Bag;
-            if (targetPlayer.Inventory._itemContainers.TryGetValue(containerId, out targetContainer))
+            if (targetPlayer.Inventory._itemContainers.TryGetValue(containerId, out var targetContainer))
             {
-                var showWarnings = (targetContainer.ContainerType == SlotType.Equipment) || (targetContainer.ContainerType == SlotType.Inventory) || (targetContainer.ContainerType == SlotType.Bank);
+                var showWarnings = targetContainer.ContainerType == SlotType.Equipment ||
+                                   targetContainer.ContainerType == SlotType.Inventory ||
+                                   targetContainer.ContainerType == SlotType.Bank;
                 var lastSlotNumber = -1;
                 var hasSlotErrors = 0;
                 foreach (var item in targetContainer.Items)
                 {
                     var slotName = targetContainer.ContainerType.ToString() + "-" + item.Slot.ToString();
                     if (item.SlotType == SlotType.Equipment)
+                    {
                         slotName = ((EquipmentItemSlot)item.Slot).ToString();
-                    if (lastSlotNumber == item.Slot)
+                    }
+
+                    if (lastSlotNumber == item.Slot && showWarnings)
                     {
                         slotName = $"|cFFFF0000**{slotName}**|r";
                         hasSlotErrors++;
                     }
-                    var countName = "|ng;" + item.Count.ToString() + "|r x ";
+
+                    var countName = $"|ng;{item.Count}|r x ";
                     if (item.Count == 1)
+                    {
                         countName = string.Empty;
-                    character.SendMessage($"[|nd;{targetPlayer.Name}|r][{slotName}] |nb;{item.Id}|r {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
+                    }
+
+                    messageOutput.SendMessage(
+                        $"[|nd;{targetPlayer.Name}|r][{slotName}] |nb;{item.Id}|r {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId})");
                     lastSlotNumber = item.Slot;
                 }
 
                 if (hasSlotErrors > 0)
-                    character.SendMessage($"[ShowInv][|nd;{targetPlayer.Name}|r] |cFFFF0000{targetContainer.ContainerType} contains {hasSlotErrors} slot number related errors, please manually fix these!|r");
-                character.SendMessage($"[ShowInv][|nd;{targetPlayer.Name}|r][{targetContainer.ContainerType}] {targetContainer.Items.Count} entries");
+                {
+                    CommandManager.SendNormalText(this, messageOutput,
+                        $"[|nd;{targetPlayer.Name}|r] |cFFFF0000{targetContainer.ContainerType} contains {hasSlotErrors} slot number related errors, please manually fix these!|r");
+                }
+
+                CommandManager.SendNormalText(this, messageOutput,
+                    $"[|nd;{targetPlayer.Name}|r][{targetContainer.ContainerType}] {targetContainer.Items.Count} entries");
             }
             else
             {
-                character.SendMessage(ChatType.System, $"[ShowInv] Unused container Id.", Color.Red);
+                CommandManager.SendErrorText(this, messageOutput, $"Unused container Id {containerId}");
             }
         }
-
     }
 }

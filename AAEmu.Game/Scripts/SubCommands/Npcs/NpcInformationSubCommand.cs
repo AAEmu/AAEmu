@@ -21,7 +21,8 @@ public class NpcInformationSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Npc npc;
         if (parameters.TryGetValue("ObjId", out var npcObjId))
@@ -41,6 +42,7 @@ public class NpcInformationSubCommand : SubCommandBase
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Npc first");
                 return;
             }
+
             npc = (Npc)currentTarget;
         }
 
@@ -52,6 +54,7 @@ public class NpcInformationSubCommand : SubCommandBase
         var roll = npc.Transform.Local.Rotation.X.RadToDeg();
 
         //TODO: There is much more potential information to show on this command.
-        SendMessage(messageOutput, $"Name:@NPC_NAME({npc.TemplateId}) ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
+        SendMessage(messageOutput,
+            $"Name:@NPC_NAME({npc.TemplateId}) ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
     }
 }

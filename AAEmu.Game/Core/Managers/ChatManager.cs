@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Team;
+using AAEmu.Game.Models.StaticValues;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -17,40 +18,28 @@ public class ChatManager : Singleton<ChatManager>
     /// <summary>
     /// nullChannel is used as a fallback channel, do not use directly
     /// </summary>
-    private ChatChannel nullChannel;
-    private ConcurrentDictionary<long, ChatChannel> _factionChannels;
-    private ConcurrentDictionary<long, ChatChannel> _nationChannels;
-    private ConcurrentDictionary<long, ChatChannel> _zoneChannels;
-    private ConcurrentDictionary<long, ChatChannel> _partyChannels;
-    private ConcurrentDictionary<long, ChatChannel> _raidChannels;
-    private ConcurrentDictionary<long, ChatChannel> _guildChannels;
-    private ConcurrentDictionary<long, ChatChannel> _familyChannels;
-
-    public ChatManager()
-    {
-        nullChannel = new ChatChannel() { chatType = ChatType.White, faction = 0, internalName = "Null" };
-        _factionChannels = new ConcurrentDictionary<long, ChatChannel>();
-        _nationChannels = new ConcurrentDictionary<long, ChatChannel>();
-        _zoneChannels = new ConcurrentDictionary<long, ChatChannel>();
-        _partyChannels = new ConcurrentDictionary<long, ChatChannel>();
-        _raidChannels = new ConcurrentDictionary<long, ChatChannel>();
-        _guildChannels = new ConcurrentDictionary<long, ChatChannel>();
-        _familyChannels = new ConcurrentDictionary<long, ChatChannel>();
-    }
+    private ChatChannel nullChannel = new() { ChatType = ChatType.White, Faction = 0, InternalName = "Null" };
+    private ConcurrentDictionary<FactionsEnum, ChatChannel> _factionChannels = new();
+    private ConcurrentDictionary<long, ChatChannel> _nationChannels = new();
+    private ConcurrentDictionary<long, ChatChannel> _zoneChannels = new();
+    private ConcurrentDictionary<long, ChatChannel> _partyChannels = new();
+    private ConcurrentDictionary<long, ChatChannel> _raidChannels = new();
+    private ConcurrentDictionary<FactionsEnum, ChatChannel> _guildChannels = new();
+    private ConcurrentDictionary<long, ChatChannel> _familyChannels = new();
 
     public void Initialize()
     {
         Logger.Info("Initializing Chat Manager...");
 
         // Create Faction Channels
-        AddFactionChannel(148, "Nuia");
-        AddFactionChannel(149, "Haranya");
-        AddFactionChannel(114, "Pirate");
+        AddFactionChannel(FactionsEnum.NuiaAlliance, "Nuia");
+        AddFactionChannel(FactionsEnum.HaranyaAlliance, "Haranya");
+        AddFactionChannel(FactionsEnum.Pirate, "Pirate");
         // TODO: Player Factions ?
 
         // Create Nation Channels
-        AddNationChannel(Race.Nuian, 148, "Nuian-Elf-Dwarf");
-        AddNationChannel(Race.Hariharan, 149, "Harani-Firran-Warborn");
+        AddNationChannel(Race.Nuian, FactionsEnum.NuiaAlliance, "Nuian-Elf-Dwarf");
+        AddNationChannel(Race.Hariharan, FactionsEnum.HaranyaAlliance, "Harani-Firran-Warborn");
 
         // Zone, Party/Raid, Guild, Family channels are created on the fly
     }
@@ -98,31 +87,31 @@ public class ChatManager : Singleton<ChatManager>
     {
         var res = 0;
         foreach (var c in _zoneChannels)
-            if (c.Value.members.Count <= 0)
+            if (c.Value.Members.Count <= 0)
             {
                 _zoneChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in _partyChannels)
-            if (c.Value.members.Count <= 0)
+            if (c.Value.Members.Count <= 0)
             {
                 _partyChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in _raidChannels)
-            if (c.Value.members.Count <= 0)
+            if (c.Value.Members.Count <= 0)
             {
                 _raidChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in _guildChannels)
-            if (c.Value.members.Count <= 0)
+            if (c.Value.Members.Count <= 0)
             {
                 _guildChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in _familyChannels)
-            if (c.Value.members.Count <= 0)
+            if (c.Value.Members.Count <= 0)
             {
                 _familyChannels.TryRemove(c.Key, out _);
                 res++;
@@ -130,13 +119,13 @@ public class ChatManager : Singleton<ChatManager>
         return res;
     }
 
-    private bool AddFactionChannel(uint factionId, string name)
+    private bool AddFactionChannel(FactionsEnum factionId, string name)
     {
-        var channel = new ChatChannel() { chatType = ChatType.Ally, faction = factionId, internalId = factionId, internalName = name };
+        var channel = new ChatChannel() { ChatType = ChatType.Ally, Faction = factionId, InternalId = (uint)factionId, InternalName = name };
         return _factionChannels.TryAdd(factionId, channel);
     }
 
-    public ChatChannel GetFactionChat(uint factionMotherId)
+    public ChatChannel GetFactionChat(FactionsEnum factionMotherId)
     {
         if (_factionChannels.TryGetValue(factionMotherId, out var c))
             return c;
@@ -149,10 +138,10 @@ public class ChatManager : Singleton<ChatManager>
         return GetFactionChat(character.Faction.MotherId);
     }
 
-    private bool AddNationChannel(Race race, uint factionDisplayId, string name)
+    private bool AddNationChannel(Race race, FactionsEnum factionDisplayId, string name)
     {
         var mRace = (((byte)race - 1) & 0xFC);
-        var channel = new ChatChannel() { chatType = ChatType.Region, faction = factionDisplayId, internalId = mRace, internalName = name };
+        var channel = new ChatChannel() { ChatType = ChatType.Region, Faction = factionDisplayId, InternalId = mRace, InternalName = name };
         return _nationChannels.TryAdd(mRace, channel);
     }
 
@@ -174,7 +163,7 @@ public class ChatManager : Singleton<ChatManager>
 
     private bool AddZoneChannel(uint zoneGroupId, string name)
     {
-        var channel = new ChatChannel() { chatType = ChatType.Shout, subType = (short)zoneGroupId, internalId = zoneGroupId, internalName = name };
+        var channel = new ChatChannel() { ChatType = ChatType.Shout, SubType = (short)zoneGroupId, InternalId = zoneGroupId, InternalName = name };
         return _zoneChannels.TryAdd(zoneGroupId, channel);
     }
 
@@ -204,7 +193,7 @@ public class ChatManager : Singleton<ChatManager>
 
     private bool AddGuildChannel(Expedition guild)
     {
-        var channel = new ChatChannel() { chatType = ChatType.Clan, subType = (short)guild.Id, internalId = guild.Id, internalName = guild.Name };
+        var channel = new ChatChannel() { ChatType = ChatType.Clan, SubType = (short)guild.Id, InternalId = (uint)guild.Id, InternalName = guild.Name };
         return _guildChannels.TryAdd(guild.Id, channel);
     }
 
@@ -230,7 +219,7 @@ public class ChatManager : Singleton<ChatManager>
 
     private bool AddFamilyChannel(uint familyId)
     {
-        var channel = new ChatChannel() { chatType = ChatType.Family, subType = (short)familyId, internalId = familyId, internalName = $"Family {familyId}" };
+        var channel = new ChatChannel() { ChatType = ChatType.Family, SubType = (short)familyId, InternalId = familyId, InternalName = $"Family {familyId}" };
         return _familyChannels.TryAdd(familyId, channel);
     }
     
@@ -256,7 +245,7 @@ public class ChatManager : Singleton<ChatManager>
 
     private bool AddPartyChannel(uint partyId)
     {
-        var channel = new ChatChannel() { chatType = ChatType.Party, subType = (short)partyId, internalId = partyId, internalName = "Party(" + partyId.ToString() + ")" };
+        var channel = new ChatChannel() { ChatType = ChatType.Party, SubType = (short)partyId, InternalId = partyId, InternalName = "Party(" + partyId.ToString() + ")" };
         return _partyChannels.TryAdd(partyId, channel);
     }
 
@@ -292,7 +281,7 @@ public class ChatManager : Singleton<ChatManager>
 
         if (_partyChannels.TryGetValue(partyId, out var channel))
         {
-            channel.internalName = "Party " + (partyNumber + 1).ToString() + " of " + WorldManager.Instance.GetCharacterById(party.OwnerId)?.Name ?? " ???";
+            channel.InternalName = "Party " + (partyNumber + 1).ToString() + " of " + WorldManager.Instance.GetCharacterById(party.OwnerId)?.Name ?? " ???";
             return channel;
         }
         else
@@ -304,7 +293,7 @@ public class ChatManager : Singleton<ChatManager>
 
     private bool AddRaidChannel(uint partyId)
     {
-        var channel = new ChatChannel() { chatType = ChatType.Raid, subType = (short)partyId, internalId = partyId, internalName = "Party(" + partyId.ToString() + ")" };
+        var channel = new ChatChannel() { ChatType = ChatType.Raid, SubType = (short)partyId, InternalId = partyId, InternalName = "Party(" + partyId.ToString() + ")" };
         return _raidChannels.TryAdd(partyId, channel);
     }
 
@@ -324,7 +313,7 @@ public class ChatManager : Singleton<ChatManager>
 
         if (_raidChannels.TryGetValue(party.Id, out var channel))
         {
-            channel.internalName = "Raid of " + WorldManager.Instance.GetCharacterById(party.OwnerId)?.Name ?? " ???";
+            channel.InternalName = "Raid of " + WorldManager.Instance.GetCharacterById(party.OwnerId)?.Name ?? " ???";
             return channel;
         }
         else

@@ -28,6 +28,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -880,7 +881,7 @@ public class SlaveManager : Singleton<SlaveManager>
                             Mountable = reader.GetBoolean("mountable"),
                             SpawnXOffset = reader.GetFloat("spawn_x_offset"),
                             SpawnYOffset = reader.GetFloat("spawn_y_offset"),
-                            FactionId = reader.GetUInt32("faction_id", 0),
+                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0),
                             Level = reader.GetUInt32("level"),
                             Cost = reader.GetInt32("cost"),
                             SlaveKind = (SlaveKind)reader.GetUInt32("slave_kind_id"),

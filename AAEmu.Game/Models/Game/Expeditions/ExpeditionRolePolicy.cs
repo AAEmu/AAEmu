@@ -1,11 +1,12 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions;
 
 public class ExpeditionRolePolicy : PacketMarshaler
 {
-    public uint Id { get; set; }
+    public FactionsEnum ExpeditionId { get; set; }
     public byte Role { get; set; }
     public string Name { get; set; } // TODO max length 128
     public bool DominionDeclare { get; set; }
@@ -30,7 +31,7 @@ public class ExpeditionRolePolicy : PacketMarshaler
                 "expedition_role_policies(`expedition_id`,`role`,`name`,`dominion_declare`,`invite`,`expel`,`promote`,`dismiss`, `chat`, `manager_chat`, `siege_master`, `join_siege`) " +
                 "VALUES (@expedition_id,@role,@name,@dominion_declare,@invite,@expel,@promote,@dismiss,@chat,@manager_chat,@siege_master,@join_siege)";
 
-            command.Parameters.AddWithValue("@expedition_id", this.Id);
+            command.Parameters.AddWithValue("@expedition_id", this.ExpeditionId);
             command.Parameters.AddWithValue("@role", this.Role);
             command.Parameters.AddWithValue("@name", this.Name);
             command.Parameters.AddWithValue("@dominion_declare", this.DominionDeclare);
@@ -48,7 +49,7 @@ public class ExpeditionRolePolicy : PacketMarshaler
 
     public override void Read(PacketStream stream)
     {
-        Id = stream.ReadUInt32();
+        ExpeditionId = (FactionsEnum)stream.ReadUInt32();
         Role = stream.ReadByte();
         Name = stream.ReadString();
         DominionDeclare = stream.ReadBoolean();
@@ -64,7 +65,7 @@ public class ExpeditionRolePolicy : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Id);
+        stream.Write((uint)ExpeditionId);
         stream.Write(Role);
         stream.Write(Name);
         stream.Write(DominionDeclare);
@@ -82,7 +83,7 @@ public class ExpeditionRolePolicy : PacketMarshaler
     public ExpeditionRolePolicy Clone()
     {
         var rolePolicy = new ExpeditionRolePolicy();
-        rolePolicy.Id = Id;
+        rolePolicy.ExpeditionId = ExpeditionId;
         rolePolicy.Role = Role;
         rolePolicy.Name = Name;
         rolePolicy.DominionDeclare = DominionDeclare;

@@ -272,7 +272,7 @@ public class SCUnitStatePacket : GamePacket
         }
 
         // Faction and Guild
-        stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
+        stream.WritePisc((uint)(_unit.Faction?.Id ?? 0), (uint)(_unit.Expedition?.Id ?? 0), 0, 0); // pisc
 
         if (character is not null)
         {

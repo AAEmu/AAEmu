@@ -117,12 +117,13 @@ public static class ScriptCompiler
         Assembly assemblyResult = null;
         var assemblyName = Path.GetRandomFileName();
 
+        var compileOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+        
         var compilation = CSharpCompilation.Create(
             assemblyName,
             syntaxTrees,
             references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
+            compileOptions);
 
         using (var ms = new MemoryStream())
         {

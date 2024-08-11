@@ -16,10 +16,15 @@ public class ItemExpireSubCommand : SubCommandBase
         Description = "Set target to expire after a specific amount of minutes, or 30 seconds if ommited.";
         CallPrefix = $"{CommandManager.CommandPrefix}item expire";
         AddParameter(new NumericSubCommandParameter<ulong>("itemId", "item id", true));
-        AddParameter(new NumericSubCommandParameter<float>("minutes", "minutes=0.5", false, -1f, 1000000f) { DefaultValue = 0.5f });
+        AddParameter(
+            new NumericSubCommandParameter<float>("minutes", "minutes=0.5", false, -1f, 1000000f)
+            {
+                DefaultValue = 0.5f
+            });
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         //Character addTarget;
         var selfCharacter = (Character)character;

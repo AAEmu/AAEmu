@@ -35,13 +35,13 @@ public class SCChatMessagePacket : GamePacket
     {
         stream.Write((short)_type);
         stream.Write((short)(_character?.Faction.Id ?? 0)); //chat
-        stream.Write(_character?.Faction.Id ?? 0); //chat, factionId?
+        stream.Write((uint)(_character?.Faction.Id ?? 0)); //chat, factionId?
         stream.WriteBc(_character?.ObjId ?? 0);
         stream.Write(_character?.Id ?? 0);
         stream.Write((byte)0); // TODO: remove this, use line under
         // stream.Write(_character != null ? _languageType : (byte) 0);
         stream.Write(_character != null ? (byte)_character.Race : (byte)0);
-        stream.Write(_character?.Faction.Id ?? 0); //type, factionId?
+        stream.Write((uint)(_character?.Faction.Id ?? 0)); //type, factionId?
         if (_character?.Connection?.GetAttribute("gmFlag") != null)
             stream.Write(_character != null ? "GM " + _character.Name : "");
         else

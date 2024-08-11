@@ -10,18 +10,20 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class FishFinderCmd : SubCommandBase, ICommand, ICommandV2
 {
+    public string[] CommandNames { get; set; } = new string[] { "fishfinder" };
+
     public FishFinderCmd()
     {
         Title = "[FishFinder]";
         Description = "Root command to manage FishFinder";
-        CallPrefix = $"{CommandManager.CommandPrefix}fishfinder";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new FishFinderSetSubCommand(), "set", "s");
     }
+
     public void OnLoad()
     {
-        string[] name = { "fishfinder", "ff" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -36,6 +38,7 @@ public class FishFinderCmd : SubCommandBase, ICommand, ICommandV2
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

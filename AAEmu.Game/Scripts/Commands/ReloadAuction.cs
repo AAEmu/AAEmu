@@ -5,12 +5,13 @@ using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
-class ReloadAuction : ICommand
+internal class ReloadAuction : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "reloadauction", "reload_auction", "reloadah", "reload_ah" };
+
     public void OnLoad()
     {
-        string[] name = { "reloadauction", "reload_auction", "reloadah", "reload_ah" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -22,6 +23,7 @@ class ReloadAuction : ICommand
     {
         return "Reloads the AuctionManager";
     }
+
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         AuctionManager.Instance.Load();

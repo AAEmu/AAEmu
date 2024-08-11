@@ -16,15 +16,19 @@ public class ItemAddSubCommand : SubCommandBase
     public ItemAddSubCommand()
     {
         Title = "[Item]";
-        Description = "Adds to self or a player name or a selected target an amount of a specific item template of a specific [grade].";
+        Description =
+            "Adds to self or a player name or a selected target an amount of a specific item template of a specific [grade].";
         CallPrefix = $"{CommandManager.CommandPrefix}item add";
         AddParameter(new StringSubCommandParameter("target", "player name||target||self", true));
         AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", true));
         AddParameter(new NumericSubCommandParameter<int>("amount", "amount=1", false, 1, 1000) { DefaultValue = 1 });
-        AddParameter(new NumericSubCommandParameter<byte>("grade", "item grade=0", false, (byte)ItemGrade.Crude, (byte)ItemGrade.Mythic) { DefaultValue = (byte)ItemGrade.Crude });
+        AddParameter(
+            new NumericSubCommandParameter<byte>("grade", "item grade=0", false, (byte)ItemGrade.Crude,
+                (byte)ItemGrade.Mythic) { DefaultValue = (byte)ItemGrade.Crude });
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Character addTarget;
         var selfCharacter = (Character)character;
@@ -37,6 +41,7 @@ public class ItemAddSubCommand : SubCommandBase
                 SendColorMessage(messageOutput, Color.Red, "Please select a valid character player");
                 return;
             }
+
             addTarget = selfCharacter.CurrentTarget as Character;
         }
         else if (firstArgument == "self")
@@ -51,6 +56,7 @@ public class ItemAddSubCommand : SubCommandBase
                 SendColorMessage(messageOutput, Color.Red, $"Player: {firstArgument} was not found.");
                 return;
             }
+
             addTarget = player;
         }
 
@@ -65,7 +71,9 @@ public class ItemAddSubCommand : SubCommandBase
             return;
         }
 
-        if (ItemManager.Instance.IsAutoEquipTradePack(itemTemplate.Id))// .Category_Id == 133) || (itemTemplate.Category_Id == 122)) // Speciality Packs or Tradepacks
+        if (ItemManager.Instance
+            .IsAutoEquipTradePack(itemTemplate
+                .Id)) // .Category_Id == 133) || (itemTemplate.Category_Id == 122)) // Speciality Packs or Tradepacks
         {
             var currentBackpack = addTarget.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
             if (currentBackpack != null)
@@ -73,6 +81,7 @@ public class ItemAddSubCommand : SubCommandBase
                 SendColorMessage(messageOutput, Color.Red, "No room on the backpack slot to place a tradepack!");
                 return;
             }
+
             if (!addTarget.Equipment.AcquireDefaultItem(ItemTaskType.Gm, templateId, itemAmount, itemGrade))
             {
                 SendColorMessage(messageOutput, Color.Red, "Tradepack could not be created!");
@@ -87,8 +96,10 @@ public class ItemAddSubCommand : SubCommandBase
 
         if (selfCharacter.Id != addTarget.Id)
         {
-            SendMessage(messageOutput, $"Added item {ChatConverter.ConvertAsChatMessageReference(templateId, itemGrade)} to {addTarget.Name}'s inventory");
-            SendMessage(addTarget, messageOutput, $"[GM] {selfCharacter.Name} added {ChatConverter.ConvertAsChatMessageReference(templateId, itemGrade)} to your inventory");
+            SendMessage(messageOutput,
+                $"Added item {ChatConverter.ConvertAsChatMessageReference(templateId, itemGrade)} to {addTarget.Name}'s inventory");
+            SendMessage(addTarget, messageOutput,
+                $"[GM] {selfCharacter.Name} added {ChatConverter.ConvertAsChatMessageReference(templateId, itemGrade)} to your inventory");
         }
     }
 }

@@ -29,13 +29,12 @@ public class DuelManager : Singleton<DuelManager>
     private const double DuelDurationTime = 5;    // 5 min
 
     // there can be several duels at the same time
-    private ConcurrentDictionary<uint, Duel> _duels;
-    public Dictionary<uint, uint> _saveFactions { get; set; }
+    private ConcurrentDictionary<uint, Duel> _duels = new();
+    public Dictionary<uint, FactionsEnum> _saveFactions { get; set; } = new();
 
     protected DuelManager()
     {
-        _duels = new ConcurrentDictionary<uint, Duel>();
-        _saveFactions = new Dictionary<uint, uint>();
+        //
     }
 
     public static bool Initialize()
@@ -116,7 +115,7 @@ public class DuelManager : Singleton<DuelManager>
         }
     }
 
-    private void SetFaction(Unit ower, uint factionId)
+    private void SetFaction(Unit ower, FactionsEnum factionId)
     {
         // change the faction temporarily
         if (_saveFactions.ContainsKey(ower.Id))

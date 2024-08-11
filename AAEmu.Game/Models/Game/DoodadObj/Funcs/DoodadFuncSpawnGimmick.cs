@@ -1,13 +1,14 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
 public class DoodadFuncSpawnGimmick : DoodadPhaseFuncTemplate
 {
     public uint GimmickId { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public float Scale { get; set; }
     public float OffsetX { get; set; }
     public float OffsetY { get; set; }

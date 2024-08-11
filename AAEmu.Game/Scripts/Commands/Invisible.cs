@@ -7,9 +7,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Invisible : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "invisible" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("invisible", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -26,11 +28,13 @@ public class Invisible : ICommand
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[Invisible] " + CommandManager.CommandPrefix + "invisible <true||false>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
         if (bool.TryParse(args[0], out var value))
+        {
             character.SetInvisible(value);
+        }
     }
 }

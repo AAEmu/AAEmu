@@ -193,14 +193,14 @@ public class UnitReqs
                 return Ret(SkillResultKeys.skill_urk_not_under_water, !unit?.IsUnderWater ?? false);
 
             case UnitReqsKindType.FactionMatch:
-                return RetWithValue(SkillResultKeys.skill_urk_faction_match, Value1, unit?.Faction?.Id == Value1);
+                return RetWithValue(SkillResultKeys.skill_urk_faction_match, Value1, (uint)(unit?.Faction?.Id ?? 0) == Value1);
 
             case UnitReqsKindType.Tod:
                 var currentTime = (uint)Math.Floor(TimeManager.Instance.GetTime * 100f);
                 return Ret(SkillResultKeys.skill_urk_tod, currentTime >= Value1 && currentTime <= Value2);
 
             case UnitReqsKindType.MotherFaction:
-                return Ret(SkillResultKeys.skill_urk_mother_faction, unit?.Faction.MotherId == Value1);
+                return Ret(SkillResultKeys.skill_urk_mother_faction, (uint)(unit?.Faction.MotherId ?? 0) == Value1);
 
             case UnitReqsKindType.ActAbilityPoint:
                 return RetWithValue(SkillResultKeys.skill_urk_actability_point, Value1,
@@ -257,19 +257,19 @@ public class UnitReqs
 
             case UnitReqsKindType.FactionMatchOnly:
                 // Is this the same as UnitReqsKindType.FactionMatch ? 
-                return RetWithValue(SkillResultKeys.skill_urk_faction_match_only, Value1, unit?.Faction?.Id == Value1);
+                return RetWithValue(SkillResultKeys.skill_urk_faction_match_only, Value1, (uint)(unit?.Faction?.Id ?? 0) == Value1);
             
             case UnitReqsKindType.MotherFactionOnly:
                 // Is this the same as UnitReqsKindType.MotherFaction ? 
-                return Ret(SkillResultKeys.skill_urk_mother_faction_only, unit?.Faction?.MotherId == Value1);
+                return Ret(SkillResultKeys.skill_urk_mother_faction_only, (uint)(unit?.Faction?.MotherId ?? 0) == Value1);
             
             // case UnitReqsKindType.NationOwner:
 
             case UnitReqsKindType.FactionMatchOnlyNot:
-                return Ret(SkillResultKeys.skill_urk_faction_match_only_not, unit?.Faction?.Id != Value1);
+                return Ret(SkillResultKeys.skill_urk_faction_match_only_not, (uint)(unit?.Faction?.Id ?? 0) != Value1);
 
             case UnitReqsKindType.MotherFactionOnlyNot:
-                return Ret(SkillResultKeys.skill_urk_mother_faction_only_not, unit?.Faction?.MotherId != Value1);
+                return Ret(SkillResultKeys.skill_urk_mother_faction_only_not, (uint)(unit?.Faction?.MotherId ?? 0) != Value1);
 
             // case UnitReqsKindType.NationMember:
             // case UnitReqsKindType.NationMemberNot:

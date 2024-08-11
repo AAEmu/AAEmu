@@ -15,10 +15,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class FailSkill : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "failskill", "fail_skill", "skillfail", "skill_fail" };
+
     public void OnLoad()
     {
-        string[] name = { "failskill", "fail_skill" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -33,21 +34,23 @@ public class FailSkill : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        int argsIdx = 0;
+        var argsIdx = 0;
         Unit source = character;
         Unit target = character; // Target self
 
         if (args.Length == 0)
         {
-            character.SendMessage("[FailSkill] " + CommandManager.CommandPrefix + "FailSkill " + GetCommandLineHelp());
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
         if (!byte.TryParse(args[argsIdx], out var failId) || failId == 0)
         {
-            character.SendMessage($"[FailSkill] not fail number (byte), must be larger than 0, your value: {args[argsIdx]}");
+            CommandManager.SendErrorText(this, messageOutput,
+                $"<skill result> parse error (byte), must be larger than 0, your value: {args[argsIdx]}");
             return;
         }
+
         argsIdx++;
 
         ushort ushortVal = 0;
@@ -55,8 +58,7 @@ public class FailSkill : ICommand
         {
             if (!ushort.TryParse(args[argsIdx], out ushortVal))
             {
-                character.SendMessage(
-                    $"[FailSkill] not a number (ushort), your value: {args[argsIdx]}");
+                CommandManager.SendErrorText(this, messageOutput, $"[ushort] parse error, your value: {args[argsIdx]}");
                 return;
             }
 
@@ -68,8 +70,7 @@ public class FailSkill : ICommand
         {
             if (!uint.TryParse(args[argsIdx], out uintVal))
             {
-                character.SendMessage(
-                    $"[FailSkill] not a number (uint), your value: {args[argsIdx]}");
+                CommandManager.SendNormalText(this, messageOutput, $"not a number (uint), your value: {args[argsIdx]}");
                 return;
             }
 
@@ -83,7 +84,9 @@ public class FailSkill : ICommand
         var skillId = 2u; // using basic melee attack
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
         if (skillTemplate == null)
+        {
             return;
+        }
 
         var useSkill = new Skill(skillTemplate);
         var skillStartedPacket = new SCSkillStartedPacket(skillId, 0, casterObj, targetObj, useSkill, skillObject);

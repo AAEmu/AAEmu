@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game;
 
@@ -45,6 +46,6 @@ public class DistrictReturnPoints
 {
     public uint Id { get; set; }
     public uint DistrictId { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public uint ReturnPointId { get; set; }
 }

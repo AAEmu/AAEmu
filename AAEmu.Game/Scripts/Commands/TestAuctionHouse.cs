@@ -7,12 +7,13 @@ using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
-class TestAuctionHouse : ICommand
+internal class TestAuctionHouse : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "testauctionhouse", "testah" };
+
     public void OnLoad()
     {
-        string[] name = { "testauctionhouse", "testah" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -28,7 +29,8 @@ class TestAuctionHouse : ICommand
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var allItems = ItemManager.Instance.GetAllItems();
-        character.SendMessage($"Trying to add {allItems.Count} items to the Auction House!");
+        CommandManager.SendNormalText(this, messageOutput,
+            $"Trying to add {allItems.Count} items to the Auction House!");
 
         var amount = 0;
         foreach (var item in allItems)
@@ -67,6 +69,6 @@ class TestAuctionHouse : ICommand
             amount++;
         }
 
-        character.SendMessage($"Added {amount} items to the Auction House!");
+        CommandManager.SendNormalText(this, messageOutput, $"Added {amount} items to the Auction House!");
     }
 }

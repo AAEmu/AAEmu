@@ -8,10 +8,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddLabor : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "labor", "addlabor", "add_labor" };
+
     public void OnLoad()
     {
-        string[] name = { "addlabor", "add_labor", "labor" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -22,7 +23,8 @@ public class AddLabor : ICommand
     public string GetCommandHelpText()
     {
         // Optional TODO: Add the values by extracting them from actability_groups ?
-        return "Add or remove <amount> of labor. If [vocationSkillId] is provided, then target vocation skill also gains a amount of points.\n" +
+        return
+            "Add or remove <amount> of labor. If [vocationSkillId] is provided, then target vocation skill also gains a amount of points.\n" +
             "(1)Alchemy, (2)Construction, (3)Cooking, (4)Handicrafts, (5)Husbandry, (6)Farming, (7)Fishing, (8)Logging, (9)Gathering, (10)Machining, " +
             "(11)Metalwork, (12)Printing, (13)Mining, (14)Masonry, (15)Tailoring, (16)Leatherwork, (17)Weaponry, (18)Carpentry, (20)Larceny, " +
             "(21)Nuian, (22)Elven, (23)Dwarven, (25)Harani, (26)Firran, (27)Warborn, (29)Nuia Dialect, (30)Haranya Dialect, " +
@@ -33,27 +35,31 @@ public class AddLabor : ICommand
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[Labor] " + CommandManager.CommandPrefix + "addlabor (target) <count> [targetSkill]");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
 
-        short count = 0;
+        short amount = 0;
 
-        if ((args.Length > firstarg + 0) && (short.TryParse(args[firstarg + 0], out short argcount)))
-            count = argcount;
+        if (args.Length > firstArg + 0 && short.TryParse(args[firstArg + 0], out var argAmount))
+        {
+            amount = argAmount;
+        }
 
-        int vocationSkillId = 0;
+        var vocationSkillId = 0;
 
-        if ((args.Length > firstarg + 1) && (int.TryParse(args[firstarg + 1], out int argvocationSkillId)))
-            vocationSkillId = argvocationSkillId;
+        if (args.Length > firstArg + 1 && int.TryParse(args[firstArg + 1], out var argVocationSkillId))
+        {
+            vocationSkillId = argVocationSkillId;
+        }
 
-        targetPlayer.ChangeLabor(count, vocationSkillId);
+        targetPlayer.ChangeLabor(amount, vocationSkillId);
         if (character.Id != targetPlayer.Id)
         {
-            character.SendMessage($"[Labor] added {count} labor to {targetPlayer.Name}");
-            targetPlayer.SendMessage($"[GM] {character.Name} has changed your labor by {count}");
+            CommandManager.SendNormalText(this, messageOutput, $"added {amount} labor to {targetPlayer.Name}");
+            targetPlayer.SendMessage($"[GM] {character.Name} has changed your labor by {amount}");
         }
     }
 }

@@ -7,10 +7,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SoloParty : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "soloparty", "solo_party" };
+
     public void OnLoad()
     {
-        string[] name = { "soloparty", "solo_party" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -20,15 +21,20 @@ public class SoloParty : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Creates a party with just yourself in it. This can be usefull to use with \"" + CommandManager.CommandPrefix + "teleport .\" command.";
+        return "Creates a party with just yourself in it. This can be useful to use with \"" +
+               CommandManager.CommandPrefix + "teleport .\" command.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var currentTeam = TeamManager.Instance.GetActiveTeamByUnit(character.Id);
         if (currentTeam != null)
+        {
             character.SendMessage("|cFFFFFF00[SoloParty] You are already in a party !|r");
+        }
         else
+        {
             TeamManager.Instance.CreateSoloTeam(character, true);
+        }
     }
 }
