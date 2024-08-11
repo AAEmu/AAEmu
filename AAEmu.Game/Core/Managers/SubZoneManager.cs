@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Numerics;
 using System.Xml;
@@ -93,7 +94,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
                                         }
                                         try
                                         {
-                                            startVector = new Point(float.Parse(posVals[0]), float.Parse(posVals[1]), float.Parse(posVals[2]));
+                                            startVector = new Point(float.Parse(posVals[0], CultureInfo.InvariantCulture), float.Parse(posVals[1], CultureInfo.InvariantCulture), float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                         }
                                         catch
                                         {
@@ -122,7 +123,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
                                             }
                                             try
                                             {
-                                                var vec = new Point(float.Parse(posVals[0]) + cellOffset.X, float.Parse(posVals[1]) + cellOffset.Y, float.Parse(posVals[2]));
+                                                var vec = new Point(float.Parse(posVals[0], CultureInfo.InvariantCulture) + cellOffset.X, float.Parse(posVals[1], CultureInfo.InvariantCulture) + cellOffset.Y, float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                                 vec.X += startVector.X;
                                                 vec.Y += startVector.Y;
                                                 vec.Z += startVector.Z;
@@ -217,7 +218,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
                                         }
                                         try
                                         {
-                                            startVector = new Point(float.Parse(posVals[0]), float.Parse(posVals[1]), float.Parse(posVals[2]));
+                                            startVector = new Point(float.Parse(posVals[0], CultureInfo.InvariantCulture), float.Parse(posVals[1], CultureInfo.InvariantCulture), float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                         }
                                         catch
                                         {
@@ -248,12 +249,10 @@ public class SubZoneManager : Singleton<SubZoneManager>
                                             }
                                             try
                                             {
-                                                var vec = new Point(float.Parse(posVals[0]) + cellOffset.X, float.Parse(posVals[1]) + cellOffset.Y, float.Parse(posVals[2]));
+                                                var vec = new Point(float.Parse(posVals[0], CultureInfo.InvariantCulture) + cellOffset.X, float.Parse(posVals[1], CultureInfo.InvariantCulture) + cellOffset.Y, float.Parse(posVals[2], CultureInfo.InvariantCulture));
                                                 vec.X += startVector.X;
                                                 vec.Y += startVector.Y;
                                                 vec.Z += startVector.Z;
-
-
                                                 template._points.Add(vec);
                                             }
                                             catch
