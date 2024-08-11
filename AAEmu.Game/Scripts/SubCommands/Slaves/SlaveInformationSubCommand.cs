@@ -20,7 +20,8 @@ public class SlaveInformationSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Models.Game.Units.Slave slave;
         if (parameters.TryGetValue("ObjId", out var objId))
@@ -40,6 +41,7 @@ public class SlaveInformationSubCommand : SubCommandBase
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Slave first");
                 return;
             }
+
             slave = (Models.Game.Units.Slave)currentTarget;
         }
 
@@ -51,6 +53,7 @@ public class SlaveInformationSubCommand : SubCommandBase
         var roll = slave.Transform.Local.Rotation.X.RadToDeg();
 
         //TODO: There is much more potential information to show on this command.
-        SendMessage(messageOutput, $"Name:@NPC_NAME({slave.TemplateId}) ObjId:{slave.ObjId} TemplateId:{slave.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
+        SendMessage(messageOutput,
+            $"Name:@NPC_NAME({slave.TemplateId}) ObjId:{slave.ObjId} TemplateId:{slave.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
     }
 }

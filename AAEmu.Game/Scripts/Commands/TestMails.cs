@@ -12,25 +12,26 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestMails : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "testmail", "test_mail" };
+
     public void OnLoad()
     {
-        string[] names = { "testmail", "test_mail" };
-        CommandManager.Instance.Register(names, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "<mailtype> [sendername] [title] [body] [money] [billing] [attachmentitems ID/Counts]";
+        return "<action||mailType> [senderName] [title] [body] [money] [billing] [[attachmentItems ID/Counts]]";
     }
 
     public string GetCommandHelpText()
     {
-        return "Sends a dummy mail to yourself of given type";
+        return "Execute a mail related action or sends a dummy mail to yourself of a given type\r" +
+               "Allowed actions: list, clear, check";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-
         // Example: Dummy pack base 1g at 125% no bonus, seller is not the crafter
         // /testmail 19 .sellBackpack Payment "body('Dummy Pack', 125, 12500, 10000, 0, 10500, 0, 1, 0, 0)"
 
@@ -39,58 +40,65 @@ public class TestMails : ICommand
 
         if (args.Length <= 0)
         {
-            // List all mailtypes
-            var s = "[TestMail] " + GetCommandHelpText() + "\r";
-            s += "Possible MailTypes:\r";
-            character.SendMessage(s);
-            s = string.Empty;
+            // List all mailTypes
+            CommandManager.SendNormalText(this, messageOutput, $"{GetCommandHelpText()}\rPossible MailTypes:");
+            var s = string.Empty;
             foreach (var t in Enum.GetValues(typeof(MailType)))
             {
-                s += string.Format("{0}={1}", (byte)t, t.ToString());
+                s += $"{(byte)t}={t}";
                 s += "  ";
             }
-            character.SendMessage(s);
+
+            CommandManager.SendNormalText(this, messageOutput, s);
             return;
         }
 
-        MailType mType = MailType.InvalidMailType;
+        var mType = MailType.InvalidMailType;
         if (args.Length > 0)
         {
             var a0 = args[0].ToLower();
             switch (a0)
             {
                 case "list":
-                    character.SendMessage("[TestMail] List of Mails");
+                    CommandManager.SendNormalText(this, messageOutput, $"List of Mails");
                     foreach (var m in MailManager.Instance.GetCurrentMailList(character))
-                        character.SendMessage($"{m.Value.Id} - {m.Value.MailType} - ({m.Value.Header.Status}) {m.Value.Title}");
-                    character.SendMessage("[TestMail] End of List");
+                    {
+                        CommandManager.SendNormalText(this, messageOutput,
+                            $"{m.Value.Id} - {m.Value.MailType} - ({m.Value.Header.Status}) {m.Value.Title}");
+                    }
+
+                    CommandManager.SendNormalText(this, messageOutput, $"End of List");
                     return;
                 case "clear":
-                    character.SendMessage("[TestMail] Clear List of Mails");
+                    CommandManager.SendNormalText(this, messageOutput, $"Clear List of Mails");
                     foreach (var m in MailManager.Instance.GetCurrentMailList(character))
+                    {
                         character.Mails.DeleteMail(m.Value.Id, false);
-                    return;
-                case "tax":
-                    character.SendMessage("[TestMail] This command is deprecated, please use \"/house taxmail\" instead.");
+                    }
+
                     return;
                 case "check":
                     character.Mails.SendUnreadMailCount();
-                    character.SendMessage($"[TestMail] {character.Mails.unreadMailCount.Received} unread mails");
+                    CommandManager.SendNormalText(this, messageOutput,
+                        $"{character.Mails.unreadMailCount.Received} unread mails");
                     return;
                 default:
                     if (Enum.TryParse(args[0], out MailType mTypeByName))
+                    {
                         mType = mTypeByName;
+                    }
+
                     break;
             }
         }
 
         if (mType == MailType.InvalidMailType)
         {
-            character.SendMessage($"[TestMail] Invalid type: {mType}");
+            CommandManager.SendErrorText(this, messageOutput, $"Invalid type: {mType}");
             return;
         }
 
-        character.SendMessage($"[TestMail] Testing type: {mType}");
+        CommandManager.SendNormalText(this, messageOutput, $"Testing type: {mType}");
         try
         {
             var mail = new BaseMail();
@@ -115,21 +123,21 @@ public class TestMails : ICommand
                 var n = args[1];
                 mail.Header.SenderName = n;
                 mail.Header.SenderId = NameManager.Instance.GetCharacterId(n);
-                character.SendMessage($"[TestMail] From: {n}");
+                CommandManager.SendNormalText(this, messageOutput, $"From: {n}");
             }
 
             if (args.Length > 2)
             {
                 var n = args[2];
                 mail.Title = n;
-                character.SendMessage($"[TestMail] Title: {n}");
+                CommandManager.SendNormalText(this, messageOutput, $"Title: {n}");
             }
 
             if (args.Length > 3)
             {
                 var n = args[3];
                 mail.Body.Text = n;
-                character.SendMessage($"[TestMail] Body: {n}");
+                CommandManager.SendNormalText(this, messageOutput, $"Body: {n}");
             }
 
             if (args.Length > 4)
@@ -138,11 +146,11 @@ public class TestMails : ICommand
                 if (int.TryParse(n, out var copper))
                 {
                     mail.Body.CopperCoins = copper;
-                    character.SendMessage($"[TestMail] Money: {copper}");
+                    CommandManager.SendNormalText(this, messageOutput, $"Money: {copper}");
                 }
                 else
                 {
-                    character.SendMessage("[TestMail] Money parse error");
+                    CommandManager.SendErrorText(this, messageOutput, $"Money parse error");
                 }
             }
 
@@ -152,11 +160,11 @@ public class TestMails : ICommand
                 if (int.TryParse(n, out var billing))
                 {
                     mail.Body.BillingAmount = billing;
-                    character.SendMessage($"[TestMail] BillingCost: {billing}");
+                    CommandManager.SendNormalText(this, messageOutput, $"BillingCost: {billing}");
                 }
                 else
                 {
-                    character.SendMessage("[TestMail] Billing Cost parse error");
+                    CommandManager.SendErrorText(this, messageOutput, $"Billing Cost parse error");
                 }
             }
 
@@ -173,33 +181,43 @@ public class TestMails : ICommand
                             var itemTemplate = ItemManager.Instance.GetTemplate(itemId);
                             if (itemTemplate == null)
                             {
-                                character.SendMessage(ChatType.System, $"template does not exist for {itemId} !", Color.Red);
+                                CommandManager.SendErrorText(this, messageOutput,
+                                    $"Template does not exist for {itemId} !");
                                 return;
                             }
 
                             if (itemCount < 1)
+                            {
                                 itemCount = 1;
+                            }
+
                             if (itemCount > itemTemplate.MaxCount)
+                            {
                                 itemCount = itemTemplate.MaxCount;
+                            }
 
                             var itemGrade = itemTemplate.FixedGrade;
                             if (itemGrade <= 0)
+                            {
                                 itemGrade = 0;
+                            }
+
                             var newItem = ItemManager.Instance.Create(itemId, itemCount, (byte)itemGrade, true);
                             newItem.OwnerId = character.Id;
                             newItem.SlotType = SlotType.Mail;
                             mail.Body.Attachments.Add(newItem);
 
-                            character.SendMessage($"[TestMail] Attachment: @ITEM_NAME({itemId}) ({itemId}) x {itemCount}");
+                            CommandManager.SendNormalText(this, messageOutput,
+                                $"Attachment: @ITEM_NAME({itemId}) ({itemId}) x {itemCount}");
                         }
                         else
                         {
-                            character.SendMessage("[TestMail] Parse Error on ItemCount");
+                            CommandManager.SendErrorText(this, messageOutput, $"Parse Error on ItemCount");
                         }
                     }
                     else
                     {
-                        character.SendMessage("[TestMail] Parse Error on ItemID");
+                        CommandManager.SendErrorText(this, messageOutput, $"Parse Error on ItemID");
                     }
                 }
             }
@@ -209,7 +227,7 @@ public class TestMails : ICommand
         }
         catch (Exception e)
         {
-            character.SendMessage($"[TestMail] Exception: {e.Message}");
+            CommandManager.SendErrorText(this, messageOutput, $"Exception: {e.Message}");
         }
     }
 }

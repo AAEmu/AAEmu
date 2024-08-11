@@ -9,10 +9,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddBadges : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "vocation", "vocationpoints", "add_vp", "add_vb" };
+
     public void OnLoad()
     {
-        string[] name = { "VocationPoints", "add_vp", "add_vb", "vp" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -29,17 +30,20 @@ public class AddBadges : ICommand
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[VocationPoint] " + CommandManager.CommandPrefix + "add_vp (target) <VocationPoint>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
         var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
 
         if (!int.TryParse(args[firstArg], out var vpToAdd))
+        {
             vpToAdd = 0;
+        }
 
         if (vpToAdd != 0)
+        {
             targetPlayer.ChangeGamePoints((GamePointKind)1, vpToAdd);
+        }
     }
 }
-

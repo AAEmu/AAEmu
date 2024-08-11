@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Char.Templates;
 
@@ -9,7 +10,7 @@ public class CharacterTemplate
     public Gender Gender { get; set; }
     public uint ModelId { get; set; }
     public uint ZoneId { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public uint ReturnDistrictId { get; set; }
     public uint ResurrectionDistrictId { get; set; }
     public WorldSpawnPosition SpawnPosition { get; set; }

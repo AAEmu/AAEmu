@@ -3,14 +3,15 @@ using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions;
 
 public class ExpeditionMember : PacketMarshaler
 {
-    public uint ExpeditionId { get; set; } // TODO mb faction/family id?
-    public uint CharacterId { get; set; } // TODO mb characterId?
+    public FactionsEnum ExpeditionId { get; set; }
+    public uint CharacterId { get; set; }
     public bool InParty { get; set; }
     public bool IsOnline { get; set; }
     public DateTime LastWorldLeaveTime { get; set; }
@@ -56,7 +57,7 @@ public class ExpeditionMember : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(ExpeditionId);
+        stream.Write((uint)ExpeditionId);
         stream.Write(CharacterId);
         stream.Write(InParty);
         stream.Write(IsOnline);

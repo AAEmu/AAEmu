@@ -13,10 +13,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Rotate : ICommand
 {
-    protected static Logger Logger = LogManager.GetCurrentClassLogger();
+    public string[] CommandNames { get; set; } = new string[] { "rotate", "lookatme" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("rotate", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -31,43 +32,29 @@ public class Rotate : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        //if (args.Length < 2)
-        //{
-        //    character.SendMessage("[Rotate] /rotate <objType: npc, doodad> <objId>");
-        //    return;
-        //}
-
         if (character.CurrentTarget != null)
         {
-            character.SendMessage($"[Rotate] Unit: {character.CurrentTarget.Name}, ObjId: {character.CurrentTarget.ObjId}");
+            character.SendMessage(
+                $"[Rotate] Unit: {character.CurrentTarget.Name}, ObjId: {character.CurrentTarget.ObjId}");
 
-            var Seq = (uint)Rand.Next(0, 10000);
+            // var Seq = (uint)Rand.Next(0, 10000);
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             moveType.X = character.CurrentTarget.Transform.World.Position.X;
             moveType.Y = character.CurrentTarget.Transform.World.Position.Y;
             moveType.Z = character.CurrentTarget.Transform.World.Position.Z;
 
-            var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget.Transform.World.Position, character.Transform.World.Position) - 90f;
+            var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget.Transform.World.Position,
+                character.Transform.World.Position) - 90f;
             var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
-            /*
-            if (args.Length > 0)
-            {
-                if (!sbyte.TryParse(args[0], out rotZ))
-                    character.SendMessage("Rotation sbyte out of range");
-            }
 
-            var angle2 = angle;
-            angle = (float)MathUtil.ConvertSbyteDirectionToDegree(rotZ);
-            */
             character.CurrentTarget.Transform.Local.SetRotationDegree(0f, 0f, angle);
-
-            //character.CurrentTarget.Transform.Local.LookAt(character.Transform.Local.Position);
+            // character.CurrentTarget.Transform.Local.LookAt(character.Transform.Local.Position);
 
             moveType.RotationX = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.X);
             moveType.RotationY = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.Y);
             moveType.RotationZ = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.Z);
-            //moveType.RotationZ = rotZ;
+            // moveType.RotationZ = rotZ;
 
             moveType.ActorFlags = 5;
             moveType.DeltaMovement = new sbyte[3];
@@ -79,10 +66,14 @@ public class Rotate : ICommand
             moveType.Time += 50; // has to change all the time for normal motion.
 
             character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
-            character.SendMessage($"New rotation {angle}° ({character.CurrentTarget.Transform.Local.Rotation.Z:0.00} rad, sbyte {rotZ}) for {character.CurrentTarget.ObjId}");
-            character.SendMessage($"New position {character.CurrentTarget.Transform.Local}");
+            CommandManager.SendNormalText(this, messageOutput,
+                $"New rotation {angle}° ({character.CurrentTarget.Transform.Local.Rotation.Z:0.00} rad, sbyte {rotZ}) for {character.CurrentTarget.ObjId}");
+            CommandManager.SendNormalText(this, messageOutput,
+                $"New position {character.CurrentTarget.Transform.Local}");
         }
         else
-            character.SendMessage("[Rotate] You need to target something first");
+        {
+            CommandManager.SendErrorText(this, messageOutput, "You need to target a unit first");
+        }
     }
 }

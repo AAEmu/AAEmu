@@ -49,7 +49,7 @@ public class DeclareDominion : SpecialEffectAction
             Z = lodestone.Transform.World.Position.Z,
             TaxRate = 50,
             ReignStartTime = DateTime.UtcNow,
-            ExpeditionId = ((Unit)caster).Expedition.Id,
+            ExpeditionId = (uint)((Unit)caster).Expedition.Id,
             CurHouseTaxMoney = 500000,
             CurHuntTaxMoney = 9000,
             PeaceTaxMoney = 300000,

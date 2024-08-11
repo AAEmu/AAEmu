@@ -11,11 +11,13 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class DoodadCmd : SubCommandBase, ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "doodad" };
+
     public DoodadCmd()
     {
         Title = "[Doodad]";
         Description = "Root command to manage Doodads";
-        CallPrefix = $"{CommandManager.CommandPrefix}doodad";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new DoodadChainSubCommand(), "chain");
         Register(new DoodadPhaseSubCommand(), "phase", "setphase");
@@ -31,7 +33,6 @@ public class DoodadCmd : SubCommandBase, ICommand
 
     public DoodadCmd(Dictionary<ICommandV2, string[]> subcommands) : base(subcommands)
     {
-
     }
 
     public string GetCommandLineHelp()
@@ -46,6 +47,7 @@ public class DoodadCmd : SubCommandBase, ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

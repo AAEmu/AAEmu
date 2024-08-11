@@ -9,27 +9,28 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Dloc : ICommand
 {
-    protected static Logger Logger = LogManager.GetCurrentClassLogger();
+    public string[] CommandNames { get; set; } = new string[] { "doodad_location", "doodadlocation", "dloc" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("dloc", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "<doodad> <objectId> <x> <y> <z>";
+        return "<doodad objId> <x> <y> <z>";
     }
 
     public string GetCommandHelpText()
     {
-        return "change doodad position";
+        return "Change doodad location. You can use * instead of the x y or z values to keep their original position.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 4)
         {
-            character.SendMessage("[dloc] /dloc <doodadID> <x> <y> <z> - Use x y z instead of a value to keep current position");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
@@ -38,22 +39,22 @@ public class Dloc : ICommand
             var doodad = WorldManager.Instance.GetDoodad(id);
             if (doodad != null)
             {
-                float value = 0;
-                float x = doodad.Transform.Local.Position.X;
-                float y = doodad.Transform.Local.Position.Y;
-                float z = doodad.Transform.Local.Position.Z;
+                var value = 0f;
+                var x = doodad.Transform.Local.Position.X;
+                var y = doodad.Transform.Local.Position.Y;
+                var z = doodad.Transform.Local.Position.Z;
 
-                if (args[1] != "x" && float.TryParse(args[1], out value))
+                if (args[1] != "*" && args[1] != "x" && float.TryParse(args[1], out value))
                 {
                     x = value;
                 }
 
-                if (args[2] != "y" && float.TryParse(args[2], out value))
+                if (args[2] != "*" && args[2] != "y" && float.TryParse(args[2], out value))
                 {
                     y = value;
                 }
 
-                if (args[3] != "z" && float.TryParse(args[3], out value))
+                if (args[3] != "*" && args[3] != "z" && float.TryParse(args[3], out value))
                 {
                     z = value;
                 }
@@ -65,8 +66,12 @@ public class Dloc : ICommand
             }
             else
             {
-                character.SendMessage("[npcloc] npc is null!");
+                CommandManager.SendErrorText(this, messageOutput, $"Doodad with objId {id} does not exist");
             }
+        }
+        else
+        {
+            CommandManager.SendErrorText(this, messageOutput, $"<doodad objId> parse error");
         }
     }
 }

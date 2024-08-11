@@ -10,16 +10,19 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class GoldCmd : SubCommandBase, ICommand, ICommandV2
 {
+    public string[] CommandNames { get; set; } = new string[] { "gold" };
+
     public GoldCmd()
     {
         Title = "[Gold]";
         Description = "Root command to manage gold";
-        CallPrefix = $"{CommandManager.CommandPrefix}gold/";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}/";
 
         Register(new GoldSetSubCommand(), "add");
         Register(new GoldSetSubCommand(), "set");
         Register(new GoldSetSubCommand(), "remove");
     }
+
     public void OnLoad()
     {
         CommandManager.Instance.Register("gold", this);
@@ -34,8 +37,10 @@ public class GoldCmd : SubCommandBase, ICommand, ICommandV2
     {
         return CallPrefix;
     }
+
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

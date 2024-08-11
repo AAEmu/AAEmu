@@ -9,10 +9,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class GetPosition : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "position", "pos" };
+
     public void OnLoad()
     {
-        string[] names = { "position", "pos" };
-        CommandManager.Instance.Register(names, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -22,7 +23,8 @@ public class GetPosition : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Displays information about the position of you, or your target if a target is selected or provided as a argument.";
+        return
+            "Displays information about the position of you, or your target if a target is selected or provided as a argument.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -32,13 +34,18 @@ public class GetPosition : ICommand
             var pos = character.CurrentTarget.Transform.CloneAsSpawnPosition();
 
             if (character.CurrentTarget is Npc npc)
-                character.SendMessage($"[Position] Id: {npc.Spawner.Id}, ObjId: {character.CurrentTarget.ObjId}, TemplateId: {npc.TemplateId} X: |cFFFFFFFF{pos.X}|r  Y: |cFFFFFFFF{pos.Y}|r  Z: |cFFFFFFFF{pos.Z}|r");
+            {
+                CommandManager.SendNormalText(this, messageOutput,
+                    $"Id: {npc.Spawner.Id}, ObjId: {character.CurrentTarget.ObjId}, TemplateId: {npc.TemplateId} X: |cFFFFFFFF{pos.X}|r  Y: |cFFFFFFFF{pos.Y}|r  Z: |cFFFFFFFF{pos.Z}|r");
+            }
         }
         else
         {
             var targetPlayer = character;
             if (args.Length > 0)
-                targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+            {
+                targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
+            }
 
 
             var pos = targetPlayer.Transform.CloneAsSpawnPosition();
@@ -46,9 +53,12 @@ public class GetPosition : ICommand
             var zonename = "???";
             var zone = ZoneManager.Instance.GetZoneByKey(pos.ZoneId);
             if (zone != null)
+            {
                 zonename = "@ZONE_NAME(" + zone.Id.ToString() + ")";
+            }
 
-            character.SendMessage($"[Position] |cFFFFFFFF{targetPlayer.Name}|r X: |cFFFFFFFF{pos.X:F1}|r  Y: |cFFFFFFFF{pos.Y:F1}|r  Z: |cFFFFFFFF{pos.Z:F1}|r  RotZ: |cFFFFFFFF{pos.Yaw:F0}|r  ZoneId: |cFFFFFFFF{pos.ZoneId}|r {zonename}  SubZoneId: |cFFFFFFFF{character.SubZoneId}|r");
+            CommandManager.SendNormalText(this, messageOutput,
+                $"|cFFFFFFFF{targetPlayer.Name}|r X: |cFFFFFFFF{pos.X:F1}|r  Y: |cFFFFFFFF{pos.Y:F1}|r  Z: |cFFFFFFFF{pos.Z:F1}|r  RotZ: |cFFFFFFFF{pos.Yaw:F0}|r  ZoneId: |cFFFFFFFF{pos.ZoneId}|r {zonename}  SubZoneId: |cFFFFFFFF{character.SubZoneId}|r");
         }
     }
 }

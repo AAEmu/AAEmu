@@ -16,10 +16,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class DeSpawnAll : ICommand
 {
-    // Unused protected static Logger Logger = LogManager.GetCurrentClassLogger();
+    public string[] CommandNames { get; set; } = new string[] { "despawnall", "despawn_all" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("despawnall", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -35,6 +36,6 @@ public class DeSpawnAll : ICommand
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var removedCount = SpawnManager.Instance.DeSpawnAll((byte)character.Transform.WorldId);
-        character.SendMessage($"[DeSpawnAll] Removed {removedCount} objects");
+        CommandManager.SendNormalText(this, messageOutput, $"Removed {removedCount} objects");
     }
 }

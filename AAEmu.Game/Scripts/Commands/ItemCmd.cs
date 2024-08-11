@@ -10,11 +10,13 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ItemCmd : SubCommandBase, ICommand, ICommandV2
 {
+    public string[] CommandNames { get; set; } = new string[] { "item" };
+
     public ItemCmd()
     {
         Title = "[Item]";
         Description = "Root command to manage Items";
-        CallPrefix = $"{CommandManager.CommandPrefix}item";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new ItemAddSubCommand(), "add");
         Register(new ItemExpireSubCommand(), "expire");
@@ -35,8 +37,10 @@ public class ItemCmd : SubCommandBase, ICommand, ICommandV2
     {
         return CallPrefix;
     }
+
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

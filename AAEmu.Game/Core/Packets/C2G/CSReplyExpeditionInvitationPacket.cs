@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -12,7 +13,7 @@ public class CSReplyExpeditionInvitationPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var id = stream.ReadUInt32(); // type(id)
+        var id = (FactionsEnum)stream.ReadUInt32(); // type(id)
         var id2 = stream.ReadUInt32(); // type(id)
         var join = stream.ReadBoolean();
 

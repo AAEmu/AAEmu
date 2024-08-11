@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates;
 
@@ -72,7 +73,7 @@ public class BuffTemplate
     public uint TickAreaRelationId { get; set; }
     public bool RemoveOnMove { get; set; }
     public bool UseSourceFaction { get; set; }
-    public uint FactionId { get; set; }
+    public FactionsEnum FactionId { get; set; }
     public bool Exempt { get; set; }
     public int TickAreaFrontAngle { get; set; }
     public int TickAreaAngle { get; set; }

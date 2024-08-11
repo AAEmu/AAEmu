@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -562,7 +563,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.TickAreaRelationId = reader.GetUInt32("tick_area_relation_id");
                         template.RemoveOnMove = reader.GetBoolean("remove_on_move", true);
                         template.UseSourceFaction = reader.GetBoolean("use_source_faction", true);
-                        template.FactionId = reader.GetUInt32("faction_id", 0);
+                        template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0);
                         template.Exempt = reader.GetBoolean("exempt", true);
                         template.TickAreaFrontAngle = reader.GetInt32("tick_area_front_angle");
                         template.TickAreaAngle = reader.GetInt32("tick_area_angle");

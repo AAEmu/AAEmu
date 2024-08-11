@@ -10,11 +10,13 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
 {
+    public string[] CommandNames { get; set; } = new string[] { "slave" };
+
     public SlaveCmd()
     {
-        Title = "[Slave]";
+        Title = $"[{CommandNames[0]}]";
         Description = "Root command to manage Slaves";
-        CallPrefix = $"{CommandManager.CommandPrefix}slave";
+        CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new SlaveInformationSubCommand(), "info");
         Register(new SlavePositionSubCommand(), "position", "pos");
@@ -22,9 +24,10 @@ public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
         Register(new SlaveSpawnSubCommand(), "spawn");
         Register(new SlaveRemoveSubCommand(), "remove");
     }
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("slave", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -39,6 +42,7 @@ public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException(
+            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }

@@ -6,43 +6,46 @@ using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Scripts.Commands
+namespace AAEmu.Game.Scripts.Commands;
+
+public class Nudge : ICommand
 {
-    public class Nudge : ICommand
+    public string[] CommandNames { get; set; } = new string[] { "nudge" };
+
+    public void OnLoad()
     {
-        public void OnLoad()
+        CommandManager.Instance.Register(CommandNames, this);
+    }
+
+    public string GetCommandLineHelp()
+    {
+        return "(distance)";
+    }
+
+    public string GetCommandHelpText()
+    {
+        return "Move yourself forward by a given distance (of 5m by default).\n" +
+               "Examples:\n" +
+               CommandManager.CommandPrefix + CommandNames[0] + "\n" +
+               CommandManager.CommandPrefix + CommandNames[0] + " 10";
+    }
+
+    public void Execute(Character character, string[] args, IMessageOutput messageOutput)
+    {
+        var dist = 5f;
+        if (args.Length > 1 && !float.TryParse(args[0], out dist))
         {
-            CommandManager.Instance.Register("nudge", this);
+            CommandManager.SendErrorText(this, messageOutput, $"Distance parse error");
+            return;
         }
 
-        public string GetCommandLineHelp()
-        {
-            return "(distance)";
-        }
-
-        public string GetCommandHelpText()
-        {
-            return "Move yourself forward by a given distance (of 5m by default).\n" +
-                "Examples:\n" +
-                CommandManager.CommandPrefix + "nudge\n" +
-                CommandManager.CommandPrefix + "nudge 10";
-        }
-
-        public void Execute(Character character, string[] args, IMessageOutput messageOutput)
-        {
-            float dist = 5f;
-            if ((args.Length > 1) && (!float.TryParse(args[0], out dist)))
-            {
-                character.SendMessage("|cFFFF0000[Nudge] Distance parse error|r");
-                return;
-            }
-
-            character.DisabledSetPosition = true;
-            // character.SendMessage("|cFFFF0000[Nudge] from {0}, {1}, {2}|r", character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
-            character.Transform.Local.AddDistanceToFront(dist, false);
-            character.Transform.FinalizeTransform();
-            // character.SendMessage("|cFFFF0000[Nudge] from {0}, {1}, {2}|r", character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
-            character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z, character.Transform.World.Rotation.Z.DegToRad()));
-        }
+        character.DisabledSetPosition = true;
+        // CommandManager.SendNormalText(this, messageOutput,$"from {character.Transform}");
+        character.Transform.Local.AddDistanceToFront(dist, false);
+        character.Transform.FinalizeTransform();
+        // CommandManager.SendNormalText(this, messageOutput,$"to {character.Transform}");
+        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, 0, character.Transform.World.Position.X,
+            character.Transform.World.Position.Y, character.Transform.World.Position.Z,
+            character.Transform.World.Rotation.Z.DegToRad()));
     }
 }

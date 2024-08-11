@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -131,7 +132,7 @@ public class PortalManager : Singleton<PortalManager>
     /// <param name="districtId"></param>
     /// <param name="factionId"></param>
     /// <returns>ReturnPointId</returns>
-    public uint GetDistrictReturnPoint(uint districtId, uint factionId)
+    public uint GetDistrictReturnPoint(uint districtId, FactionsEnum factionId)
     {
         return (
             from point in _districtReturnPoints
@@ -326,7 +327,7 @@ public class PortalManager : Singleton<PortalManager>
                     {
                         Id = reader.GetUInt32("id"),
                         DistrictId = reader.GetUInt32("district_id"),
-                        FactionId = reader.GetUInt32("faction_id"),
+                        FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
                         ReturnPointId = reader.GetUInt32("return_point_id")
                     };
                     if (!_districtReturnPoints.ContainsKey(template.Id))

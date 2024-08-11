@@ -8,10 +8,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Help : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "help", "?" };
+
     public void OnLoad()
     {
-        string[] name = { "help", "?" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -21,7 +22,8 @@ public class Help : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Displays help about a command <topic>. If no <topic> is provided, a list of all GM commands will be displayed";
+        return
+            "Displays help about a command <topic>. If no <topic> is provided, a list of all GM commands will be displayed";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -29,10 +31,12 @@ public class Help : ICommand
         if (args.Length > 0)
         {
             var thisCommand = args[0].ToLower();
-            if (AccessLevelManager.Instance.GetLevel(CommandManager.Instance.GetCommandNameBase(thisCommand)) > character.AccessLevel)
+            if (AccessLevelManager.Instance.GetLevel(CommandManager.Instance.GetCommandNameBase(thisCommand)) >
+                character.AccessLevel)
             {
                 // deliberately the same error as command not found 
-                character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + "|r not available!");
+                character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand +
+                                      "|r not available!");
             }
             else
             {
@@ -40,14 +44,17 @@ public class Help : ICommand
                 if (cmd == null)
                 {
                     // deliberately the same error as insufficient rights 
-                    character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + "|r not available!");
+                    character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand +
+                                          "|r not available!");
                     return;
                 }
 
                 var helpLineText = cmd.GetCommandLineHelp();
                 var helpText = cmd.GetCommandHelpText();
-                character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " + helpLineText + "|r\n|cFF999999" + helpText + "|r");
+                character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " +
+                                      helpLineText + "|r\n|cFF999999" + helpText + "|r");
             }
+
             return;
         }
 
@@ -58,19 +65,30 @@ public class Help : ICommand
         foreach (var command in list)
         {
             if (command == "help")
+            {
                 continue;
+            }
+
             if (AccessLevelManager.Instance.GetLevel(command) > characterAccessLevel)
+            {
                 continue;
+            }
 
             var cmd = CommandManager.Instance.GetCommandInterfaceByName(command);
             if (cmd == null)
+            {
                 continue; // should never happen
+            }
+
             var helpLineText = cmd.GetCommandLineHelp();
             if (helpLineText != string.Empty)
+            {
                 character.SendMessage(CommandManager.CommandPrefix + command + " |cFF999999" + helpLineText + "|r");
+            }
             else
+            {
                 character.SendMessage(CommandManager.CommandPrefix + command);
+            }
         }
     }
-
 }

@@ -11,10 +11,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Kill : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "kill" };
+
     public void OnLoad()
     {
-        string[] name = { "kill" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -29,14 +30,14 @@ public class Kill : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        Character targetPlayer = WorldManager.GetTargetOrSelf(character, null, out var _);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, null, out var _);
         var playerTarget = character.CurrentTarget;
         if (playerTarget is Unit aUnit)
         {
             // Player is trying to kill an NPC/Monster
             if (aUnit.Hp == 0)
             {
-                character.SendMessage("Target is already dead");
+                CommandManager.SendErrorText(this, messageOutput, "Target is already dead");
             }
             else
             {
@@ -51,8 +52,9 @@ public class Kill : ICommand
         }
         else
         {
-            character.SendMessage("Cannot kill this target");
+            CommandManager.SendNormalText(this, messageOutput, $"Cannot kill this target");
         }
+
         character.IsInBattle = false; // In case the character gets stuck in battle mode after engaging a mob
     }
 }

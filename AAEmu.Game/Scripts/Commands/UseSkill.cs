@@ -13,15 +13,16 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class UseSkill : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "useskill", "use_skill", "testskill", "test_skill" };
+
     public void OnLoad()
     {
-        string[] name = { "useskill", "test_skill", "testskill" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "[target] <skillId>";
+        return "[target||area] <skillId>";
     }
 
     public string GetCommandHelpText()
@@ -31,15 +32,18 @@ public class UseSkill : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        int argsIdx = 0;
+        var argsIdx = 0;
         Unit source = character;
-        Unit target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
+        var target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
 
-        if (target == null) return;
+        if (target == null)
+        {
+            return;
+        }
 
         if (args.Length == 0)
         {
-            character.SendMessage("[UseSkill] " + CommandManager.CommandPrefix + "useskill [target] <SkillId>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
@@ -55,8 +59,11 @@ public class UseSkill : ICommand
             {
                 var skillTemplate2 = SkillManager.Instance.GetSkillTemplate(skillIdAoe);
                 if (skillTemplate2 != null)
+                {
                     DoAoe(character, skillTemplate2);
+                }
             }
+
             return;
         }
 
@@ -66,14 +73,19 @@ public class UseSkill : ICommand
         var skillObject = new SkillObject();
 
         if (!uint.TryParse(args[argsIdx], out var skillId))
+        {
             return;
+        }
 
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
         if (skillTemplate == null)
+        {
             return;
+        }
 
         var useSkill = new Skill(skillTemplate);
-        TaskManager.Instance.Schedule(new UseSkillTask(useSkill, source, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(0));
+        TaskManager.Instance.Schedule(new UseSkillTask(useSkill, source, casterObj, target, targetObj, skillObject),
+            TimeSpan.FromMilliseconds(0));
     }
 
     private static void DoAoe(Character character, SkillTemplate skill)
@@ -86,7 +98,9 @@ public class UseSkill : ICommand
             var skillObject = new SkillObject();
 
             var useSkill = new Skill(skill);
-            TaskManager.Instance.Schedule(new UseSkillTask(useSkill, target, casterObj, character, targetObj, skillObject), TimeSpan.FromMilliseconds(0));
+            TaskManager.Instance.Schedule(
+                new UseSkillTask(useSkill, target, casterObj, character, targetObj, skillObject),
+                TimeSpan.FromMilliseconds(0));
         }
     }
 }

@@ -7,10 +7,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ResetSkillCooldowns : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "resetcd", "resetskillcooldowns", "rcd" };
+
     public void OnLoad()
     {
-        string[] name = { "resetcd", "resetskillcooldowns", "rcd" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()

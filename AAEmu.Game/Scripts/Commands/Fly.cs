@@ -10,6 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Fly : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "fly" };
     private static List<uint> characterFlyStateCache = new();
 
     private static bool GetCacheState(uint characterId)
@@ -20,24 +21,28 @@ public class Fly : ICommand
     private static void SetCacheState(uint characterId, bool state)
     {
         if (state && !GetCacheState(characterId))
+        {
             characterFlyStateCache.Add(characterId);
+        }
         else
+        {
             characterFlyStateCache.Remove(characterId);
+        }
     }
 
     public void OnLoad()
     {
-        CommandManager.Instance.Register("fly", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "(target) [true||false]";
+        return "(target) [true || false]";
     }
 
     public string GetCommandHelpText()
     {
-        return "Enables or disables fly-mode (also makes you move at hi-speed)";
+        return "Enables or disables fly-mode (also makes you move at high-speed)";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -46,7 +51,9 @@ public class Fly : ICommand
 
         var firstArg = 0;
         if (args.Length > 0)
+        {
             targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out firstArg);
+        }
 
         var isFlying = !GetCacheState(targetPlayer.Id); // We cache the playerId, not the ObjectId
 
@@ -54,12 +61,13 @@ public class Fly : ICommand
         {
             if (!bool.TryParse(args[firstArg + 0], out isFlying))
             {
-                character.SendMessage("|cFFFF0000[Fly] bool parse error!|r");
+                CommandManager.SendErrorText(this, messageOutput, $"<fly state> bool parse error!");
                 return;
             }
         }
+
         targetPlayer.SendPacket(new SCUnitFlyingStateChangedPacket(targetPlayer.ObjId, isFlying));
-        targetPlayer.SendMessage($"[Fly] State changed to |cFFFFFFFF{isFlying}|r.");
+        targetPlayer.SendMessage($"State changed to |cFFFFFFFF{isFlying}|r.");
         SetCacheState(targetPlayer.Id, isFlying);
     }
 }

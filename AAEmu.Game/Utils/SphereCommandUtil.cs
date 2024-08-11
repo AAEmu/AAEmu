@@ -4,12 +4,14 @@ using System.Numerics;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Json;
-
+using AAEmu.Game.Utils.Scripts;
 using Newtonsoft.Json;
 
 using NLog;
@@ -20,7 +22,7 @@ public class SphereCommandUtil
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public static void GetCommandChoice(Character character, string choice, string[] args)
+    public static void GetCommandChoice(ICommand command, IMessageOutput messageOutput, Character character, string choice, string[] args)
     {
         uint questId;
 
@@ -36,10 +38,9 @@ public class SphereCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("/sphere quest <questId>");
+                    CommandManager.SendErrorText(command, messageOutput, "/sphere quest <questId>");
                 }
                 break;
-
             case "add":
                 if (args.Length >= 4)
                 {
@@ -56,8 +57,8 @@ public class SphereCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("/sphere add <questId> <sphereId> <radius>");
-                    character.SendMessage("Adding a sphere uses character's current position!");
+                    CommandManager.SendErrorText(command, messageOutput, "/sphere add <questId> <sphereId> <radius>");
+                    CommandManager.SendErrorText(command, messageOutput, "Adding a sphere uses character's current position!");
                 }
                 break;
             case "list":
@@ -70,7 +71,7 @@ public class SphereCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("/sphere list <questId>");
+                    CommandManager.SendErrorText(command, messageOutput, "/sphere list <questId>");
                 }
                 break;
             case "remove":
@@ -83,7 +84,7 @@ public class SphereCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("/sphere remove <jsonId>");
+                    CommandManager.SendErrorText(command, messageOutput, "/sphere remove <jsonId>");
                 }
                 break;
             case "goto":
@@ -96,11 +97,11 @@ public class SphereCommandUtil
                 }
                 else
                 {
-                    character.SendMessage("/sphere goto <jsonId>");
+                    CommandManager.SendErrorText(command, messageOutput, "/sphere goto <jsonId>");
                 }
                 break;
             default:
-                character.SendMessage("/sphere <add/remove/list/quest/goto>");
+                CommandManager.SendDefaultHelpText(command, messageOutput);
                 break;
         }
     }

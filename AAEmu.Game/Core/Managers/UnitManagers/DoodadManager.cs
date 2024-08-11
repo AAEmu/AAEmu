@@ -23,6 +23,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
@@ -1079,7 +1080,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         {
                             Id = reader.GetUInt32("id"),
                             ZoneId = reader.GetUInt32("zone_id"),
-                            FactionId = reader.GetUInt32("faction_id", 0)
+                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0)
                         };
                         _funcTemplates["DoodadFuncEnterSysInstance"].Add(func.Id, func);
                     }
@@ -1360,7 +1361,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         var func = new DoodadFuncHousingArea
                         {
                             Id = reader.GetUInt32("id"),
-                            FactionId = reader.GetUInt32("faction_id"),
+                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
                             Radius = reader.GetInt32("radius")
                         };
                         _funcTemplates["DoodadFuncHousingArea"].Add(func.Id, func);
@@ -2337,7 +2338,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         {
                             Id = reader.GetUInt32("id"),
                             GimmickId = reader.GetUInt32("gimmick_id"),
-                            FactionId = reader.GetUInt32("faction_id"),
+                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
                             Scale = reader.GetFloat("scale"),
                             OffsetX = reader.GetFloat("offset_x"),
                             OffsetY = reader.GetFloat("offset_y"),
@@ -2669,7 +2670,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         template.ForceUpAction = reader.GetBoolean("force_up_action", true);
                         template.Parentable = reader.GetBoolean("parentable", true);
                         template.Childable = reader.GetBoolean("childable", true);
-                        template.FactionId = reader.GetUInt32("faction_id");
+                        template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id");
                         template.GrowthTime = reader.GetInt32("growth_time", 0);
                         template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                         template.NoCollision = reader.GetBoolean("no_collision", true);

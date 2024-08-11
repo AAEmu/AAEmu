@@ -8,10 +8,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddPortals : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "register_portal", "add_portal", "addportal" };
+
     public void OnLoad()
     {
-        string[] name = { "addportal", "add_portal" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -22,21 +23,20 @@ public class AddPortals : ICommand
     public string GetCommandHelpText()
     {
         return "Adds a portal with <name> to your teleport book.\n" +
-            "If [<x> <y> <z> <zoneid>] is ommited or incomplete, your current position will be used.";
+               "If [<x> <y> <z> <zoneid>] is omitted or incomplete, your current position will be used.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length == 0)
         {
-            character.SendMessage("[Portal] " + CommandManager.CommandPrefix + "add_portal (target) <name> [<x> <y> <z> <zoneid>]");
-            //character.SendMessage("[Portal] *optional (will get actual position)");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
 
-        var portalName = args[firstarg + 0];
+        var portalName = args[firstArg + 0];
         var position = character.Transform.CloneAsSpawnPosition();
         var x = position.X;
         var y = position.Y;
@@ -44,27 +44,42 @@ public class AddPortals : ICommand
         var zRot = position.Roll;
         var zoneId = position.ZoneId;
 
-        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 1], out var argX)))
+        if (args.Length == firstArg + 5 && float.TryParse(args[firstArg + 1], out var argX))
+        {
             x = argX;
-        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 2], out var argY)))
+        }
+
+        if (args.Length == firstArg + 5 && float.TryParse(args[firstArg + 2], out var argY))
+        {
             y = argY;
-        if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 3], out var argZ)))
+        }
+
+        if (args.Length == firstArg + 5 && float.TryParse(args[firstArg + 3], out var argZ))
+        {
             z = argZ;
-        if ((args.Length == firstarg + 5) && (uint.TryParse(args[firstarg + 4], out var argZoneId)))
+        }
+
+        if (args.Length == firstArg + 5 && uint.TryParse(args[firstArg + 4], out var argZoneId))
+        {
             zoneId = argZoneId;
+        }
+
         // If not using the current location, set the rotation to zero
-        if (args.Length == firstarg + 5)
+        if (args.Length == firstArg + 5)
+        {
             zRot = 0;
+        }
 
         targetPlayer.Portals.AddPrivatePortal(x, y, z, zRot, zoneId, portalName);
         if (character.Id != targetPlayer.Id)
         {
-            character.SendMessage($"[Portal] added {portalName} entry to {targetPlayer.Name}'s portal book");
+            CommandManager.SendNormalText(this, messageOutput,
+                $"added {portalName} entry to {targetPlayer.Name}'s portal book");
             targetPlayer.SendMessage($"[GM] {character.Name} has added the entry \"{portalName}\" to your portal book");
         }
         else
         {
-            character.SendMessage($"[Portal] Registered \"{portalName}\" in your portal book");
+            CommandManager.SendNormalText(this, messageOutput, $"Registered \"{portalName}\" in your portal book");
         }
     }
 }

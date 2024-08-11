@@ -20,7 +20,8 @@ public class NpcRemoveSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument,
+        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Npc npc;
         if (parameters.TryGetValue("ObjId", out var npcObjId))
@@ -40,13 +41,16 @@ public class NpcRemoveSubCommand : SubCommandBase
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Npc first");
                 return;
             }
+
             npc = (Npc)currentTarget;
         }
 
         // Remove Npc
         //npc.Spawner.Despawn(npc);
-        npc.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
+        npc.Spawner.Id =
+            0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
         npc.Hide();
-        SendMessage(messageOutput, $"Npc @NPC_NAME({npc.TemplateId}), ObjId: {npc.ObjId}, TemplateId:{npc.TemplateId} removed successfuly");
+        SendMessage(messageOutput,
+            $"Npc @NPC_NAME({npc.TemplateId}), ObjId: {npc.ObjId}, TemplateId:{npc.TemplateId} removed successfuly");
     }
 }

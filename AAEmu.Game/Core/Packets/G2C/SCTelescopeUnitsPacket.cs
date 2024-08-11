@@ -28,8 +28,8 @@ public class SCTelescopeUnitsPacket : GamePacket
             stream.Write(2); // UnitType Slave
             stream.Write(slave.Template.Id);
             stream.WritePosition(slave.Transform.World.Position);
-            stream.Write(slave.Faction?.Id ?? 0);
-            stream.Write(slave.Expedition?.Id ?? 0);
+            stream.Write((uint)(slave.Faction?.Id ?? 0));
+            stream.Write((uint)(slave.Expedition?.Id ?? 0));
             stream.Write(slave.Name);
             stream.Write(slave.Summoner?.Name ?? "");
             stream.Write(slave.Hp);

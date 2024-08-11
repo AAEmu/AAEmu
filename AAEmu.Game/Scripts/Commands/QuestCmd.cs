@@ -8,29 +8,31 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class QuestCmd : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "quest" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("quest", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
     {
-        return "<list||add||remove||prog||reward||resetdaily>";
+        return "<list||template||add||remove||step||prog||uncomplete||resetdaily||progress||objective>";
     }
 
     public string GetCommandHelpText()
     {
-        return "[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest";
+        return "[Quest] /quest <add||remove||list||prog||reward||resetdaily>";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         if (args.Length < 1)
         {
-            character.SendMessage("[Quest] /quest <add/remove/list/prog/reward/resetdaily>\nBefore that, target the Npc you need for the quest");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        QuestCommandUtil.GetCommandChoice(character, args[0], args);
+        QuestCommandUtil.GetCommandChoice(this, messageOutput, character, args[0], args);
     }
 }

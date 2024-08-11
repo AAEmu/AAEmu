@@ -9,10 +9,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Kick : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "kick_player", "kick" };
+
     public void OnLoad()
     {
-        string[] name = { "kick_player" };
-        CommandManager.Instance.Register(name, this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -29,22 +30,26 @@ public class Kick : ICommand
     {
         if (args.Length < 3)
         {
-            character.SendMessage($"[Kick] Usage : {GetCommandLineHelp()}");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        var targetChar = uint.TryParse(args[0], out var characterId) ? WorldManager.Instance.GetCharacterById(characterId) : WorldManager.Instance.GetCharacter(args[0]);
+        var targetChar = uint.TryParse(args[0], out var characterId)
+            ? WorldManager.Instance.GetCharacterById(characterId)
+            : WorldManager.Instance.GetCharacter(args[0]);
 
         if (targetChar == null)
         {
-            character.SendMessage("[Kick] Target not found");
+            CommandManager.SendNormalText(this, messageOutput, $"Target not found");
             return;
         }
 
         var reason = (KickedReason)byte.Parse(args[1]);
         var msg = "";
         for (var x = 2; x < args.Length; x++)
+        {
             msg += args[x] + " ";
+        }
 
         targetChar.SendPacket(new SCKickedPacket(reason, msg));
     }

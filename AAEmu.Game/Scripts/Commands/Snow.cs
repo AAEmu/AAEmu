@@ -9,11 +9,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Snow : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "snow" };
 
     public void OnLoad()
     {
-        ///register script
-        CommandManager.Instance.Register("snow", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -31,27 +31,25 @@ public class Snow : ICommand
         // If no argument is provided send usage information
         if (args.Length == 0)
         {
-            character.SendMessage("[Snow] " + CommandManager.CommandPrefix + "snow <true/false>");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        // determine if we recived true,false or something else             
+        // determine if we received true,false or something else             
         if (bool.TryParse(args[0], out var isSnowing))
         {
-            //Set Snowing state to user input, This will 
-            // enable Snow on all players who login to the server
+            // Set Snowing state to user input, This will 
+            // Enable Snow on all players who log into the server
             WorldManager.Instance.IsSnowing = isSnowing;
 
-            //Turn snow on or off for all online characters,
-            //put this on the script level so it only gets executed once when GM enables/disables snow
+            // Turn snow on or off for all online characters,
+            // Put this on the script level, so it only gets executed once when GM enables/disables snow
             WorldManager.Instance.BroadcastPacketToServer(new SCOnOffSnowPacket(isSnowing));
         }
         else
         {
             // user input was invalid notify them
-            character.SendMessage("[Snow] Use true or false.");
+            CommandManager.SendErrorText(this, messageOutput, $"Error parsing boolean");
         }
-
-
     }
 }

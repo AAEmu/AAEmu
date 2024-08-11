@@ -7,9 +7,11 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestEcho : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "echo" };
+
     public void OnLoad()
     {
-        CommandManager.Instance.Register("echo", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -24,9 +26,11 @@ public class TestEcho : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        string s = string.Empty;
-        foreach (string a in args)
+        var s = string.Empty;
+        foreach (var a in args)
+        {
             s = s + a + " ";
+        }
 
         // Un-escape the string, as the client sends it escaped
         // It is required if you want to test things like @NPC_NAME() and |cFF00FFFF text colors |r

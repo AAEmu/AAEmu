@@ -16,10 +16,13 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Spawn : ICommand
 {
+    public string[] CommandNames { get; set; } = new string[] { "spawn" };
+    private const uint DUMMY_NPC_TEMPLATE_ID = 7512;
+
     // Unused protected static Logger Logger = LogManager.GetCurrentClassLogger();
     public void OnLoad()
     {
-        CommandManager.Instance.Register("spawn", this);
+        CommandManager.Instance.Register(CommandNames, this);
     }
 
     public string GetCommandLineHelp()
@@ -36,14 +39,24 @@ public class Spawn : ICommand
     {
         if (args.Length < 2)
         {
-            character.SendMessage("[Spawn] " + CommandManager.CommandPrefix + "spawn <npc||doodad||remove> <unitId> [rotationZ]");
+            CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
 
-        if (uint.TryParse(args[1], out var unitId))
-        {
-            // character.SendMessage("[Spawn] Arg 0 --- {0} Arg 1 {1}", args[0], args[1]);
+        var unitId = 0u;
 
+        if (args[1].ToLower() == "dummy" && args[0] == "npc")
+        {
+            unitId = DUMMY_NPC_TEMPLATE_ID;
+        }
+        else if (!uint.TryParse(args[1], out unitId))
+        {
+            CommandManager.SendErrorText(this, messageOutput, $"<unitId> parse error");
+            return;
+        }
+
+        if (unitId > 0)
+        {
             float angle;
             using var charPos = character.Transform.CloneDetached();
             switch (args[0])
@@ -51,23 +64,25 @@ public class Spawn : ICommand
                 case "remove":
                     var myDoodad = WorldManager.Instance.GetDoodad(unitId);
 
-                    if ((myDoodad != null) && (myDoodad is Doodad))
+                    if (myDoodad != null && myDoodad is Doodad)
                     {
-                        character.SendMessage($"[Spawn] Removing Doodad with ID {myDoodad.ObjId}");
+                        CommandManager.SendNormalText(this, messageOutput, $"Removing Doodad with ID {myDoodad.ObjId}");
                         ObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
                         myDoodad.Delete();
                     }
                     else
                     {
-                        character.SendMessage(ChatType.System, $"[Spawn] Doodad with Id {unitId} Does not exist", Color.Red);
+                        CommandManager.SendErrorText(this, messageOutput, $"Doodad with Id {unitId} Does not exist");
                     }
+
                     break;
                 case "npc":
                     if (!NpcManager.Instance.Exist(unitId))
                     {
-                        character.SendMessage(ChatType.System, $"[Spawn] NPC {unitId} don't exist|r", Color.Red);
+                        CommandManager.SendErrorText(this, messageOutput, $"NPC {unitId} don't exist|r");
                         return;
                     }
+
                     var npcSpawner = new NpcSpawner();
                     npcSpawner.Id = 0;
                     npcSpawner.UnitId = unitId;
@@ -75,16 +90,20 @@ public class Spawn : ICommand
                     angle = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
                     npcSpawner.Position = charPos.CloneAsSpawnPosition();
 
-                    if ((args.Length > 2) && (float.TryParse(args[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var newRotZ)))
+                    if (args.Length > 2 && float.TryParse(args[2], NumberStyles.Float, CultureInfo.InvariantCulture,
+                            out var newRotZ))
                     {
                         angle = newRotZ.DegToRad();
-                        character.SendMessage($"[Spawn] NPC {unitId} using angle {newRotZ}° = {angle} rad");
+                        CommandManager.SendNormalText(this, messageOutput,
+                            $"Spawn NPC {unitId} using angle {newRotZ}° = {angle} rad");
                     }
                     else
                     {
                         angle = angle.DegToRad();
-                        character.SendMessage($"[Spawn] NPC {unitId} facing you using angle {angle} rad");
+                        CommandManager.SendNormalText(this, messageOutput,
+                            $"Spawn NPC {unitId} facing you using angle {angle} rad");
                     }
+
                     npcSpawner.Position.Yaw = angle;
                     npcSpawner.Position.Pitch = 0;
                     npcSpawner.Position.Roll = 0;
@@ -92,14 +111,15 @@ public class Spawn : ICommand
                     SpawnManager.Instance.AddNpcSpawner(npcSpawner);
 
                     npcSpawner.SpawnAll();
-                    // character.SendMessage("[Spawn] NPC {0} spawned with angle {1}", unitId, angle);
+                    // CommandManager.SendNormalText(this, messageOutput, "[Spawn] NPC {0} spawned with angle {1}", unitId, angle);
                     break;
                 case "doodad":
                     if (!DoodadManager.Instance.Exist(unitId))
                     {
-                        character.SendMessage(ChatType.System, $"[Spawn] Doodad {unitId} don't exist", Color.Red);
+                        CommandManager.SendErrorText(this, messageOutput, $"Doodad {unitId} don't exist");
                         return;
                     }
+
                     var doodadSpawner = new DoodadSpawner();
                     doodadSpawner.Id = 0;
                     doodadSpawner.UnitId = unitId;
@@ -110,16 +130,20 @@ public class Spawn : ICommand
                     //doodadSpawner.Position.Y = newY;
                     //doodadSpawner.Position.X = newX;
                     //angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.Y, doodadSpawner.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.X);
-                    if ((args.Length > 2) && (float.TryParse(args[2], NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var degrees)))
+                    if (args.Length > 2 && float.TryParse(args[2], NumberStyles.Float, CultureInfo.InvariantCulture,
+                            out var degrees))
                     {
                         angle = degrees.DegToRad();
-                        character.SendMessage($"[Spawn] Doodad {unitId} using user provided angle {degrees}° = {angle} rad");
+                        CommandManager.SendNormalText(this, messageOutput,
+                            $"Spawn Doodad {unitId} using user provided angle {degrees}° = {angle} rad");
                     }
                     else
                     {
                         angle = angle.DegToRad();
-                        character.SendMessage($"[Spawn] Doodad {unitId} facing you, using characters angle {angle}");
+                        CommandManager.SendNormalText(this, messageOutput,
+                            $"Spawn Doodad {unitId} facing you, using characters angle {angle}");
                     }
+
                     doodadSpawner.Position.Yaw = angle;
                     doodadSpawner.Position.Pitch = 0;
                     doodadSpawner.Position.Roll = 0;
@@ -128,6 +152,8 @@ public class Spawn : ICommand
             }
         }
         else
-            character.SendMessage("|cFFFF0000[Spawn] Throw parse unitId|r");
+        {
+            CommandManager.SendNormalText(this, messageOutput, "unitId can not be 0");
+        }
     }
 }
