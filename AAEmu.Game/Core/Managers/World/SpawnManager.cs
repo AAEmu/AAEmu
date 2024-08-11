@@ -24,7 +24,6 @@ using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Scripts.Commands;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -144,7 +143,7 @@ public class SpawnManager : Singleton<SpawnManager>
     {
         var world = WorldManager.Instance.GetWorlds().FirstOrDefault(x => x.Id == worldId);
         if (world == null)
-            return -1 ;
+            return -1;
 
         var res = 0;
         // NPCs
