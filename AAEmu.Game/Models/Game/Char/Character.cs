@@ -207,7 +207,7 @@ public partial class Character : Unit, ICharacter
         {
             if (_inParty == value) return;
             // TODO - GUILD STATUS CHANGE
-            FriendManager.Instance.SendStatusChange(this, false, value);
+            FriendMananger.Instance.SendStatusChange(this, false, value);
             _inParty = value;
         }
     }
@@ -219,7 +219,7 @@ public partial class Character : Unit, ICharacter
         {
             if (_isOnline == value) return;
             // TODO - GUILD STATUS CHANGE
-            FriendManager.Instance.SendStatusChange(this, true, value);
+            FriendMananger.Instance.SendStatusChange(this, true, value);
             if (!value) TeamManager.Instance.SetOffline(this);
             _isOnline = value;
         }

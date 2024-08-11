@@ -130,14 +130,14 @@ public class FamilyManager : Singleton<FamilyManager>
         }
     }
 
-    private Family CreateFamily(Character inviter, Character invitedChar, string invitedCharTitle)
+    private Family CreateFamily(Character invitor, Character invitedChar, string invitedCharTitle)
     {
         var family = new Family
         {
             Id = FamilyIdManager.Instance.GetNextId()
         };
 
-        AddFamilyMember(family, inviter);
+        AddFamilyMember(family, invitor);
         AddFamilyMember(family, invitedChar, invitedCharTitle);
 
         _families.Add(family.Id, family);

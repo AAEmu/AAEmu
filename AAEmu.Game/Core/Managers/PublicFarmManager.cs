@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
-            Logger.Info("Initializing Public Farm Manager...");
+            Logger.Info("Initialising Public Farm Manager...");
             PublicFarmTickStart();
         }
 
@@ -142,5 +142,6 @@ namespace AAEmu.Game.Core.Managers
             _farmZones.Add(967, FarmType.Ranch);
             _farmZones.Add(974, FarmType.Stable);
         }
+
     }
 }

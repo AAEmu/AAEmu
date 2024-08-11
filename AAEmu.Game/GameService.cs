@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -56,172 +54,153 @@ public sealed class GameService : IHostedService, IDisposable
         }
 
         var stopWatch = new Stopwatch();
+
         stopWatch.Start();
 
-        // Required for level 0
-        await Task.WhenAll(FireInParallel([
-            // Id managers
-            () => TaskIdManager.Instance.Initialize(),
-            () => ObjectIdManager.Instance.Initialize(),
-            () => TradeIdManager.Instance.Initialize(),
-            () => ContainerIdManager.Instance.Initialize(),
-            () => ItemIdManager.Instance.Initialize(),
-            () => DoodadIdManager.Instance.Initialize(),
-            () => CharacterIdManager.Instance.Initialize(),
-            () => FamilyIdManager.Instance.Initialize(),
-            () => ExpeditionIdManager.Instance.Initialize(),
-            () => VisitedSubZoneIdManager.Instance.Initialize(),
-            () => PrivateBookIdManager.Instance.Initialize(),
-            () => FriendIdManager.Instance.Initialize(),
-            () => MateIdManager.Instance.Initialize(),
-            () => HousingIdManager.Instance.Initialize(),
-            () => HousingTldManager.Instance.Initialize(),
-            () => TeamIdManager.Instance.Initialize(),
-            () => QuestIdManager.Instance.Initialize(),
-            () => MailIdManager.Instance.Initialize(),
-            () => UccIdManager.Instance.Initialize(),
-            () => MusicIdManager.Instance.Initialize(),
-            () => ShipyardIdManager.Instance.Initialize(),
-            () => WorldIdManager.Instance.Initialize(),
-            () => TlIdManager.Instance.Initialize(),
+        TickManager.Instance.Initialize();
+        TaskIdManager.Instance.Initialize();
+        TaskManager.Instance.Initialize();
 
-            // Non-Id managers
-            () => FormulaManager.Instance.Load(),
-            () => {
-                PlotManager.Instance.Load();
-                SkillManager.Instance.Load();
-            }
-            // SkillTlIdManager.Instance.Initialize();
-        ], cancellationToken));
+        WorldManager.Instance.Load();
+        WorldIdManager.Instance.Initialize();
+        FeaturesManager.Initialize();
 
-        // Independent running managers (level 0), no dependents at all
-        var independentLevel0 = FireInParallel([
-            () => // Load Scripts
-            {
-                if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
-                {
-                    ScriptCompiler.Compile();
-                }
-                else
-                {
-                    // (Preferred for debugging)
-                    // Use reflection to load scripts 
-                    ScriptReflector.Reflect();
-                }
-            },
-            () => FeaturesManager.Initialize(),
-            () => ExperienceManager.Instance.Load(),
-            () => AiPathsManager.Instance.Load(),
-            () => ChatManager.Instance.Initialize(),
-            () => PublicFarmManager.Instance.Load(),
-            () => AccessLevelManager.Instance.Load(),
-            () => UccManager.Instance.Load(),
-            () => MusicManager.Instance.Load(),
-            () => TimeManager.Instance.Start(),
-            () => DuelManager.Initialize(),
-            () => TeamManager.Instance.Load(),
-            () => ExpressTextManager.Instance.Load(),
-            () => NameManager.Instance.Load(),
-            () => ExpeditionManager.Instance.Load(),
-            () => FamilyManager.Instance.Load(),
-            () => FriendManager.Instance.Load(),
-            () => ModelManager.Instance.Load(),
-            () => NpcManager.Instance.Load(),
-            () => CraftManager.Instance.Load(),
-            () => MateManager.Instance.Load(),
-            () => AnimationManager.Instance.Load(),
-        ], cancellationToken);
+        LocalizationManager.Instance.Load();
+        ObjectIdManager.Instance.Initialize();
+        TradeIdManager.Instance.Initialize();
 
-        // Required for level 1
-        await Task.WhenAll(FireInParallel([
-            () => TickManager.Instance.Initialize(),
-            () => TaskManager.Instance.Initialize(),
-            () => LocalizationManager.Instance.Load(),
-            () => GimmickManager.Instance.Load(),
-            () => ItemManager.Instance.Load(),
-            () => TaxationsManager.Instance.Load(),
-            () => ZoneManager.Instance.Load(),
-            () => SlaveManager.Instance.Load()
-        ], cancellationToken));
-
-        // Long running LoadGameData and direct dependencies
-        var loadGameDataTasks = Task.Run(() =>
+        ZoneManager.Instance.Load();
+        var heightmapTask = Task.Run(() =>
         {
-            GameDataManager.Instance.LoadGameData();
-            DoodadManager.Instance.Load(); // Only depends on GameDataManager
-            GameDataManager.Instance.PostLoadGameData();
+            WorldManager.Instance.LoadHeightmaps();
         }, cancellationToken);
 
-        // Independent running managers (level 1)
-        // Depends on the previous ones, but do not have any dependents and can run without waiting)
-        var independentLevel1 = FireInParallel([
-            () => ItemManager.Instance.LoadUserItems(),
-            () => RadarManager.Instance.Initialize(),
-            () => AIManager.Instance.Initialize(),
-            () => IndunManager.Instance.Initialize(),
-            () => PortalManager.Instance.Load(),
-            () => FactionManager.Instance.Load(),
-            () => TaskManager.Instance.Start(),
-            () => GimmickManager.Instance.Initialize(),
-            () => PublicFarmManager.Instance.Initialize(),
-            () => TimedRewardsManager.Instance.Initialize(),
-        ], cancellationToken);
+        var waterBodyTask = Task.Run(() =>
+        {
+            WorldManager.Instance.LoadWaterBodies();
+        }, cancellationToken);
 
-        // Required for level 2
-        await Task.WhenAll(FireInParallel([
-            () => WorldManager.Instance.Load(),
-            () => ZoneManager.Instance.Load(),
-            () => SlaveManager.Instance.Load(),
-            () => QuestManager.Instance.Load(),
-            () => ShipyardManager.Instance.Initialize(),
-            () => MailManager.Instance.Load(),
-            () => AuctionManager.Instance.Load(),
-            () => SpecialtyManager.Instance.Load()
-        ], cancellationToken));
+        ContainerIdManager.Instance.Initialize();
+        ItemIdManager.Instance.Initialize();
+        DoodadIdManager.Instance.Initialize();
+        ChatManager.Instance.Initialize();
+        CharacterIdManager.Instance.Initialize();
+        FamilyIdManager.Instance.Initialize();
+        ExpeditionIdManager.Instance.Initialize();
+        VisitedSubZoneIdManager.Instance.Initialize();
+        PrivateBookIdManager.Instance.Initialize();
+        FriendIdManager.Instance.Initialize();
+        MateIdManager.Instance.Initialize();
+        HousingIdManager.Instance.Initialize();
+        HousingTldManager.Instance.Initialize();
+        TeamIdManager.Instance.Initialize();
+        QuestIdManager.Instance.Initialize();
+        MailIdManager.Instance.Initialize();
+        UccIdManager.Instance.Initialize();
+        MusicIdManager.Instance.Initialize();
+        ShipyardIdManager.Instance.Initialize();
+        ShipyardManager.Instance.Initialize();
+        // SkillTlIdManager.Instance.Initialize();
+        IndunManager.Instance.Initialize();
 
-        // Independent running managers (level 2)
-        var independentLevel2 = FireInParallel([
-            () => HousingManager.Instance.Load(),
-            () => AreaTriggerManager.Instance.Initialize(),
-            () => SubZoneManager.Instance.Load(),
-            () => WorldManager.Instance.LoadHeightmaps(),
-            () => WorldManager.Instance.LoadWaterBodies(),
-            () => AiGeoDataManager.Instance.Load(),
-            () => SlaveManager.Initialize(),
-            () => GameScheduleManager.Instance.Load(),
-            () => {
-                SphereQuestManager.Instance.Load();
-                SphereQuestManager.Instance.Initialize();
-            },
-            () => SaveManager.Instance.Initialize(),
-            () => FishSchoolManager.Instance.Initialize(),
-            () => ShipyardManager.Instance.Load(),
-            () => SpecialtyManager.Initialize(),
-            () => {
-                CashShopManager.Instance.Load();
-                CashShopManager.Instance.EnabledShop();
-                CashShopManager.Instance.Initialize();
-            },
-            () => {
-                TransferManager.Instance.Load();
-                TransferManager.Instance.Initialize();
-            }
-        ], cancellationToken);
+        GameDataManager.Instance.LoadGameData();
+        QuestManager.Instance.Load();
 
-        await loadGameDataTasks;
+        SphereQuestManager.Instance.Load();
+        SphereQuestManager.Instance.Initialize();
 
-        // Run all tasks that depends on loadGameDataTasks
-        var independentAfterGameData = FireInParallel([
-            () => SpawnManager.Instance.Load(),
-            () => CharacterManager.Instance.Load(),
-        ], cancellationToken);
+        FormulaManager.Instance.Load();
+        ExperienceManager.Instance.Load();
+        AiPathsManager.Instance.Load();
 
-        // All independent managers should be loaded after this...
-        await Task.WhenAll(
-            independentAfterGameData
-            .Concat(independentLevel0)
-            .Concat(independentLevel1)
-            .Concat(independentLevel2));
+        TlIdManager.Instance.Initialize();
+        SpecialtyManager.Instance.Load();
+        ItemManager.Instance.Load();
+        ItemManager.Instance.LoadUserItems();
+        AnimationManager.Instance.Load();
+        PlotManager.Instance.Load();
+        SkillManager.Instance.Load();
+        CraftManager.Instance.Load();
+        MateManager.Instance.Load();
+        SlaveManager.Instance.Load();
+        TeamManager.Instance.Load();
+        AuctionManager.Instance.Load();
+        MailManager.Instance.Load();
+        ExpressTextManager.Instance.Load();
+
+        NameManager.Instance.Load();
+        FactionManager.Instance.Load();
+        ExpeditionManager.Instance.Load();
+        CharacterManager.Instance.Load();
+        FamilyManager.Instance.Load();
+        PortalManager.Instance.Load();
+        FriendMananger.Instance.Load();
+        ModelManager.Instance.Load();
+
+        AIManager.Instance.Initialize();
+
+        GameScheduleManager.Instance.Load();
+        NpcManager.Instance.Load();
+
+        DoodadManager.Instance.Load();
+        TaxationsManager.Instance.Load();
+        HousingManager.Instance.Load();
+        TransferManager.Instance.Load();
+        GimmickManager.Instance.Load();
+        ShipyardManager.Instance.Load();
+
+        SubZoneManager.Instance.Load();
+        PublicFarmManager.Instance.Load();
+
+        SpawnManager.Instance.Load();
+
+        AccessLevelManager.Instance.Load();
+        CashShopManager.Instance.Load();
+        CashShopManager.Instance.EnabledShop();
+        UccManager.Instance.Load();
+        MusicManager.Instance.Load();
+        AiGeoDataManager.Instance.Load();
+
+        if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
+        {
+            ScriptCompiler.Compile();
+        }
+        else
+        {
+            // (Preferred for debugging)
+            // Use reflection to load scripts 
+            ScriptReflector.Reflect();
+        }
+
+        TimeManager.Instance.Start();
+        TaskManager.Instance.Start();
+        // LaborPowerManager.Initialize();
+        TimedRewardsManager.Instance.Initialize();
+
+        DuelManager.Initialize();
+        SaveManager.Instance.Initialize();
+        AreaTriggerManager.Instance.Initialize();
+        SpecialtyManager.Initialize();
+        TransferManager.Instance.Initialize();
+        GimmickManager.Instance.Initialize();
+        SlaveManager.Initialize();
+        CashShopManager.Instance.Initialize();
+        GameDataManager.Instance.PostLoadGameData();
+        FishSchoolManager.Instance.Initialize();
+        RadarManager.Instance.Initialize();
+        PublicFarmManager.Instance.Initialize();
+
+        if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
+        {
+            Logger.Info("Waiting on water to be loaded before proceeding, please wait ...");
+            await waterBodyTask;
+        }
+
+        if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
+        {
+            Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
+            await heightmapTask;
+        }
 
         var spawnSw = new Stopwatch();
         Logger.Info("Spawning units...");
@@ -276,16 +255,5 @@ public sealed class GameService : IHostedService, IDisposable
         Logger.Info("Disposing...");
 
         LogManager.Flush();
-    }
-
-    private List<Task> FireInParallel(IEnumerable<Action> actions, CancellationToken cancellationToken)
-    {
-        List<Task> tasks = [];
-        foreach (var action in actions)
-        {
-            tasks.Add(Task.Run(action, cancellationToken));
-        }
-
-        return tasks;
     }
 }
