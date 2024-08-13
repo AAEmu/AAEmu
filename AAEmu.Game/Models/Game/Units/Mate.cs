@@ -677,4 +677,37 @@ public sealed class Mate : Unit
         MateXpUpdateTask = null;
         //Logger.Trace("[StopUpdateXp] The current timer has been canceled...");
     }
+    
+    public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
+    {
+        var lastZoneKey = Transform.ZoneId;
+        base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+        // Check if zone changed
+        if (Transform.ZoneId == lastZoneKey)
+            return;
+        OnZoneChange(lastZoneKey, Transform.ZoneId);
+    }
+
+    public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    {
+        // We switched zonekeys, we need to do some checks
+        var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
+        var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
+        var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
+        var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
+        if (lastZoneGroupId == newZoneGroupId)
+            return;
+        
+
+        if (Passengers.Count <= 0)
+        {
+            return;
+        }
+
+        foreach (var (_, passengerInfo) in Passengers)
+        {
+            var passenger = WorldManager.Instance.GetCharacterByObjId(passengerInfo._objId);
+            passenger?.OnZoneChange(lastZoneKey, newZoneKey);
+        }
+    }
 }

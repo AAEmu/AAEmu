@@ -895,4 +895,32 @@ public class Slave : Unit
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
+    
+    
+        
+    public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
+    {
+        var lastZoneKey = Transform.ZoneId;
+        base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+        // Check if zone changed
+        if (Transform.ZoneId == lastZoneKey)
+            return;
+        OnZoneChange(lastZoneKey, Transform.ZoneId);
+    }
+
+    public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    {
+        // We switched zonekeys, we need to do some checks
+        var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
+        var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
+        var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
+        var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
+        if (lastZoneGroupId == newZoneGroupId)
+            return;
+        
+        foreach (var passenger in AttachedCharacters)
+        {
+            passenger.Value?.OnZoneChange(lastZoneKey, newZoneKey);
+        }
+    }
 }
