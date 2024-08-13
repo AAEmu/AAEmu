@@ -1522,6 +1522,8 @@ public partial class Character : Unit, ICharacter
         OnZoneChange(lastZoneKey, Transform.ZoneId);
     }
 
+    private CancellationTokenSource _unreleasedZoneTransportedOut;
+
     public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
         // We switched zonekeys, we need to do some checks
@@ -1568,8 +1570,16 @@ public partial class Character : Unit, ICharacter
         if (newZoneGroupId != 0)
             ChatManager.Instance.GetZoneChat(Transform.ZoneId).JoinChannel(this);
 
-        if (newZone != null && (!newZone.Closed))
+        if (newZone is { Closed: false })
+        {
+            if (_unreleasedZoneTransportedOut != null)
+            {
+                _unreleasedZoneTransportedOut.Cancel();
+                _unreleasedZoneTransportedOut = null;
+            }
+
             return;
+        }
 
         // Entered a forbidden zone
         /*
@@ -1583,7 +1593,36 @@ public partial class Character : Unit, ICharacter
         if (newZone != null)
             SendMessage(ChatType.System, $"You have entered a closed zone ({newZone.ZoneKey} - {newZone.Name})!\nPlease leave immediately!", Color.Red);
         // Send the error message
-        SendErrorMessage(ErrorMessageType.ClosedZone);
+
+        if (_unreleasedZoneTransportedOut != null)
+        {
+            return;
+        }
+
+        _unreleasedZoneTransportedOut = new CancellationTokenSource();
+        Task.Run(async () =>
+        {
+            // Stay for a maximum of 10 seconds
+            for (var i = 0; i < 5; i++)
+            {
+                // sendErrorMsg
+                SendErrorMessage(ErrorMessageType.ClosedZone,0,false);
+                await Task.Delay(2 * 1000,_unreleasedZoneTransportedOut.Token);
+            }
+            var portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
+            // force transported out
+            Connection.ActiveChar.BroadcastPacket(
+                new SCCharacterResurrectedPacket(
+                    Connection.ActiveChar.ObjId,
+                    portal.X,
+                    portal.Y,
+                    portal.Z,
+                    portal.ZRot
+                ),
+                true
+            );
+            
+        }, _unreleasedZoneTransportedOut.Token);
     }
 
     public override int DoFallDamage(ushort fallVel)
