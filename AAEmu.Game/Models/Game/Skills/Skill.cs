@@ -249,7 +249,7 @@ public class Skill
 
         if (Template.Effects.Count > 0 && Template.Effects.First()?.Template is OpenPortalEffect)
         {
-            if (0 != caster.InstanceId)
+            if (WorldManager.DefaultInstanceId != caster.InstanceId)
             {
                 return SkillResult.InvalidLocation;
             }
