@@ -241,7 +241,7 @@ public class CSMoveUnitPacket : GamePacket
                     }
 
                     // Actually update the position
-                    targetUnit.Transform.Local.SetPosition(dmt.X, dmt.Y, dmt.Z,
+                    targetUnit.SetPosition(dmt.X, dmt.Y, dmt.Z,
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationX),
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationY),
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationZ));
