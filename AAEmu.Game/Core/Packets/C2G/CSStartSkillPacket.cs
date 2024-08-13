@@ -4,11 +4,9 @@ using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
@@ -29,7 +27,7 @@ public class CSStartSkillPacket : GamePacket
         using var source = new CancellationTokenSource();
         var t = Task.Run(async delegate
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100), source.Token);
+            await Task.Delay(TimeSpan.FromMilliseconds(150), source.Token);
             return 0;
         });
         try
@@ -58,7 +56,7 @@ public class CSStartSkillPacket : GamePacket
         if (flagType > 0) skillObject.Read(stream);
 
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
-        
+
         var skillResult = SkillResult.Success;
         var skillResultErrorValue = 0u;
         Skill skill = null;
@@ -103,28 +101,28 @@ public class CSStartSkillPacket : GamePacket
             // Execute the rider/operator skill as the player using either target or self
             skillResult = Connection.ActiveChar.UseSkill(mountAttachedSkill, riderTarget ?? Connection.ActiveChar);
         }
-        else if (Connection.ActiveChar.IsAutoAttack && skillId == Connection.ActiveChar.AutoAttackTask?.Skill?.Template?.Id)
-        {
-            // Same as already executing auto-skill, just send the success result.
-            skill = Connection.ActiveChar.AutoAttackTask.Skill;
-            skillResult = SkillResult.Success;
-        }
+        //else if (Connection.ActiveChar.IsAutoAttack && skillId == Connection.ActiveChar.AutoAttackTask?.Skill?.Template?.Id)
+        //{
+        //    // Same as already executing auto-skill, just send the success result.
+        //    skill = Connection.ActiveChar.AutoAttackTask.Skill;
+        //    skillResult = SkillResult.Success;
+        //}
         else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
         {
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
-            if ((skillResult == SkillResult.Success) && (skillId < 5000) && (skillCaster.ObjId == Connection.ActiveChar.ObjId))
-            {
-                // All basic combat skills are below ID 5000, only 2 (melee),3 (offhand) and 4 (ranged) exist, next actual skill used is 5001
-                Connection.ActiveChar.IsAutoAttack = true;
-                Connection.ActiveChar.StartAutoSkill(skill);
-            }
+            //if ((skillResult == SkillResult.Success) && (skillId < 5000) && (skillCaster.ObjId == Connection.ActiveChar.ObjId))
+            //{
+            //    // All basic combat skills are below ID 5000, only 2 (melee),3 (offhand) and 4 (ranged) exist, next actual skill used is 5001
+            //    Connection.ActiveChar.IsAutoAttack = true;
+            //    Connection.ActiveChar.StartAutoSkill(skill);
+            //}
         }
         else if (skillCaster is SkillItem si)
         {
             // A skill triggered by a item
-            var player = Connection.ActiveChar; 
+            var player = Connection.ActiveChar;
             // var item = player.Inventory.GetItemById(si.ItemId);
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме
             if (si.SkillSourceItem == null || skillId != si.SkillSourceItem.Template.UseSkillId && si.SkillSourceItem.Template.BindType != ItemBindType.BindOnPickup)
@@ -154,7 +152,7 @@ public class CSStartSkillPacket : GamePacket
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
-        
+
         if (skillResult != SkillResult.Success)
         {
             // It actually sends a skill started packet, but not a skill fired or stopped

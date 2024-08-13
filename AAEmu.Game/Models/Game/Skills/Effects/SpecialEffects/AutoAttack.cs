@@ -22,5 +22,7 @@ public class AutoAttack : SpecialEffectAction
     {
         // TODO start auto attack...
         if (caster is Character) { Logger.Debug("Special effects: AutoAttack value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+
+        // skill_effect_Id->effect_id->skill_Id автоатаки 1->1->2, 2->2->3, 51->36->4
     }
 }

@@ -552,6 +552,14 @@ public class Skill
     {
         if (caster is not Unit unit) { return; }
 
+        var delay = 300;
+        // Will delay for 300 Milliseconds to eliminate the hanging of the skill
+        if (!caster.CheckInterval(delay))
+        {
+            //Logger.Trace($"Skill: CooldownTime [{delay}]!");
+            return;
+        }
+
         if (!_bypassGcd)
         {
             var gcd = Template.CustomGcd;
@@ -731,7 +739,7 @@ public class Skill
             doodad.Spawn();
         }
 
-        caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+        caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, caster), true);
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
         TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
     }
@@ -780,7 +788,7 @@ public class Skill
         if (Template.FireAnim != null && Template.UseAnimTime)
             totalDelay += (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
 
-        caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+        caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, caster)
         {
             ComputedDelay = (short)totalDelay
         }, true);

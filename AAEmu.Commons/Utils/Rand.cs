@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace AAEmu.Commons.Utils;
 
@@ -61,5 +62,17 @@ public static class Rand
         {
             return _random.NextSingle(true) * (maxValue - minValue) + minValue;
         }
+    }
+
+    public static int GetRandomElement(List<int> list)
+    {
+        // Создаем экземпляр класса Random
+        var random = new Random();
+
+        // Получаем случайный индекс в пределах длины списка
+        var randomIndex = random.Next(list.Count);
+
+        // Возвращаем элемент по случайному индексу
+        return list[randomIndex];
     }
 }
