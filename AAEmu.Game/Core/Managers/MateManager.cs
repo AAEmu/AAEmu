@@ -162,7 +162,7 @@ public class MateManager : Singleton<MateManager>
             {
                 targetObj = WorldManager.Instance.GetCharacterByObjId(seatInfo._objId);
                 seatInfo._objId = 0;
-                seatInfo._reason = 0;
+                seatInfo._reason = reason;
             }
         }
 

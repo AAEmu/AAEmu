@@ -115,7 +115,7 @@ public class CSMoveUnitPacket : GamePacket
 
                     // Make sure driver is attached to car
                     character.Transform.Parent = car.Transform;
-                    car.SetPosition(vmt.X, vmt.Y, vmt.Z, rotDegX, rotDegY, rotDegZ);
+                    car.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, rotDegX, rotDegY, rotDegZ);
                     car.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
                     car.Transform.FinalizeTransform(); // Propagate position updates to all children
                     break;
@@ -241,7 +241,7 @@ public class CSMoveUnitPacket : GamePacket
                     }
 
                     // Actually update the position
-                    targetUnit.SetPosition(dmt.X, dmt.Y, dmt.Z,
+                    targetUnit.Transform.Local.SetPosition(dmt.X, dmt.Y, dmt.Z,
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationX),
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationY),
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationZ));

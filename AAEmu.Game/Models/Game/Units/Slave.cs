@@ -908,15 +908,9 @@ public class Slave : Unit
         OnZoneChange(lastZoneKey, Transform.ZoneId);
     }
 
-    public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
-        // We switched zonekeys, we need to do some checks
-        var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
-        var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
-        var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
-        var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
-        if (lastZoneGroupId == newZoneGroupId)
-            return;
+        base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
         
         foreach (var passenger in AttachedCharacters)
         {

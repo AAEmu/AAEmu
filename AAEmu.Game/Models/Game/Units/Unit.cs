@@ -1428,4 +1428,53 @@ public class Unit : BaseUnit, IUnit
             }
         }
     }
+
+    public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    {
+        // We switched zone keys, we need to do some checks
+        var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
+        var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
+        var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
+        var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
+        if (lastZoneGroupId == newZoneGroupId)
+            return;
+
+        // Handle Zone Buffs
+        if (lastZone != null)
+        {
+            // Remove the old zone buff if needed
+            var lastZoneGroup = ZoneManager.Instance.GetZoneGroupById(lastZone.GroupId);
+            if ((lastZoneGroup != null) && (lastZoneGroup.BuffId != 0))
+            {
+                // Remove the applied buff from last zoneGroup
+                Buffs.RemoveBuff(lastZoneGroup.BuffId);
+            }
+        }
+        if (newZone != null)
+        {
+            // Apply the new zone buff if needed
+            var newZoneGroup = ZoneManager.Instance.GetZoneGroupById(newZone.GroupId);
+            if ((newZoneGroup != null) && (newZoneGroup.BuffId != 0))
+            {
+                // Add buff from new zoneGroup
+                var buffTemplate = SkillManager.Instance.GetBuffTemplate(newZoneGroup.BuffId);
+                if (buffTemplate != null)
+                {
+                    var casterObj = new SkillCasterUnit(ObjId);
+                    var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, DateTime.UtcNow);
+                    Buffs.AddBuff(newZoneBuff);
+                }
+            }
+        }
+        
+        // Ok, we actually changed zone groups, we'll have to do some chat channel stuff
+        if (this is Character player)
+        {
+            if (lastZoneGroupId != 0)
+                ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(player);
+
+            if (newZoneGroupId != 0)
+                ChatManager.Instance.GetZoneChat(Transform.ZoneId).JoinChannel(player);
+        }
+    }
 }
