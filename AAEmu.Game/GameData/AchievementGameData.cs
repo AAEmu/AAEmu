@@ -22,7 +22,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     private Dictionary<uint, List<AchievementObjectives>> _achievementObjectives;
     private Dictionary<uint, List<PreCompletedAchievements>> _preCompletedAchievements;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _charRecords = new Dictionary<uint, CharRecords>();
         _achievements = new Dictionary<uint, Achievements>();
