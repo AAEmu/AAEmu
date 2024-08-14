@@ -1531,6 +1531,11 @@ public partial class Character : Unit, ICharacter
         var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
         var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
 
+        if (newZone != null)
+        {
+            Expedition?.OnCharacterRefresh(this);
+        }
+
         if (newZone is { Closed: false })
         {
             if (_unreleasedZoneTransportedOut != null)
