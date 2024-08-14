@@ -269,4 +269,13 @@ public class Expedition : SystemFaction
         stream.Write(0u);                // type
         return stream;
     }
+
+    public void OnCharacterRefresh(Character character)
+    {
+        var member = GetMember(character);
+        if (member == null)
+            return;
+        member.Refresh(character);
+        SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+    }
 }

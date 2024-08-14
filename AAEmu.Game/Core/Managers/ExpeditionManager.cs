@@ -663,6 +663,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         member.Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];
         member.ExpeditionId = expedition.Id;
         member.CharacterId = character.Id;
+        member.LastWorldLeaveTime = DateTime.UtcNow;
 
         return member;
     }
