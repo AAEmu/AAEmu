@@ -317,16 +317,24 @@ public class TradeManager : Singleton<TradeManager>
     {
         var tradeInfo = _trades[tradeId];
 
-        // TODO: check if this actually works correctly with the items-rewrite with the way packets are handled
+        // Validate Money (custom client protection)
+        if (tradeInfo.OwnerMoneyPutup > owner.Money)
+        {
+            CancelTrade(owner.ObjId, 0, tradeId); // Reason?
+            Logger.Error($"{owner.Name} ({owner.Id}) is putting up more money for trade than have {tradeInfo.OwnerMoneyPutup} > {owner.Money}, possible exploit or modified client!");
+            return;
+        }
+        if (tradeInfo.TargetMoneyPutup > target.Money)
+        {
+            CancelTrade(target.ObjId, 0, tradeId); // Reason?
+            Logger.Error($"{target.Name} ({target.Id}) is putting up more money for trade than have {tradeInfo.TargetMoneyPutup} > {target.Money}, possible exploit or modified client!");
+            return;
+        }
 
-        /*
-         * TODO -
-         * try catch
-         * check if bound
-         * check untradable
-         */
+        var hasErrors = 0;
         var tasksOwner = new List<ItemTask>();
         var tasksTarget = new List<ItemTask>();
+
         // Handle Money from Owner
         if (tradeInfo.OwnerMoneyPutup > 0)
         {
@@ -350,13 +358,15 @@ public class TradeManager : Singleton<TradeManager>
         {
             foreach (var item in tradeInfo.OwnerItems)
             {
-                target.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
-                //owner.Inventory.RemoveItem(item, false);
-                tasksOwner.Add(new ItemRemove(item));
-                //item.Slot = -1;
-                //var newItem = target.Inventory.AddItem(item);
-                //tasksTarget.Add(new ItemAdd(newItem));
-                tasksTarget.Add(new ItemAdd(item));
+                if (target.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item))
+                {
+                    tasksOwner.Add(new ItemRemove(item));
+                    tasksTarget.Add(new ItemAdd(item));
+                }
+                else
+                {
+                    hasErrors++;
+                }
             }
         }
         // Handle Items from Target
@@ -364,20 +374,26 @@ public class TradeManager : Singleton<TradeManager>
         {
             foreach (var item in tradeInfo.TargetItems)
             {
-                owner.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
-                //target.Inventory.RemoveItem(item, false);
-                tasksTarget.Add(new ItemRemove(item));
-                //item.Slot = -1;
-                //var newItem = owner.Inventory.AddItem(item);
-                // tasksOwner.Add(new ItemAdd(newItem));
-                tasksOwner.Add(new ItemAdd(item));
+                if (owner.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item))
+                {
+                    tasksTarget.Add(new ItemRemove(item));
+                    tasksOwner.Add(new ItemAdd(item));
+                }
+                else
+                {
+                    hasErrors++;
+                }
             }
         }
 
+        // Trade complete, remove ID and send item task packets
         _trades.Remove(tradeId);
         owner.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksOwner, new List<ulong>()));
         target.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksTarget, new List<ulong>()));
-        Logger.Info("Trade Id:{0} finished. Owner Items/Money: {1}/{2}. Target Items/Money: {3}/{4}",
-            tradeId, tradeInfo.OwnerItems.Count, tradeInfo.OwnerMoneyPutup, tradeInfo.TargetItems.Count, tradeInfo.TargetMoneyPutup);
+        Logger.Info($"Trade Id:{tradeId} finished. Owner {owner.Name} ({owner.Id}) Items/Money: {tradeInfo.OwnerItems.Count}/{tradeInfo.OwnerMoneyPutup} <=> Target {target.Name} ({target.Id}) Items/Money: {tradeInfo.TargetItems.Count}/{tradeInfo.TargetMoneyPutup}");
+        if (hasErrors > 0)
+        {
+            Logger.Error($"{hasErrors}item(s) could not be trade for tradeId: {tradeId} between {owner.Name} ({owner.Id}) and {target.Name} ({target.Id}), possible exploit or modified client!");
+        }
     }
 }
