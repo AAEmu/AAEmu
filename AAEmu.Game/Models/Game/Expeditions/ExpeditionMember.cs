@@ -31,6 +31,9 @@ public class ExpeditionMember : PacketMarshaler
         Position = character.Transform.World.Position;
         ZoneId = character.Transform.ZoneId;
         Abilities = new[] { (byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3 };
+        Level = character.Level;
+        Name = character.Name;
+        LastWorldLeaveTime = DateTime.UtcNow;
     }
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction)

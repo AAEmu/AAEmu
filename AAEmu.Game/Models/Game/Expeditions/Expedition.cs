@@ -175,4 +175,13 @@ public class Expedition : SystemFaction
                 policy.Save(connection, transaction);
         }
     }
+
+    public void OnCharacterRefresh(Character character)
+    {
+        var member = GetMember(character);
+        if (member == null)
+            return;
+        member.Refresh(character);
+        SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+    }
 }

@@ -1354,6 +1354,7 @@ public partial class Character : Unit, ICharacter
             change = true;
             Level++;
             needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            Expedition?.OnCharacterRefresh(this);
         }
 
         if (change)
@@ -1372,6 +1373,7 @@ public partial class Character : Unit, ICharacter
         {
             Level++;
             needExp = ExperienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            Expedition?.OnCharacterRefresh(this);
         }
     }
 
@@ -1570,6 +1572,7 @@ public partial class Character : Unit, ICharacter
         }
         if (newZone != null)
         {
+            Expedition?.OnCharacterRefresh(this);
             // Apply the new zone buff if needed
             var newZoneGroup = ZoneManager.Instance.GetZoneGroupById(newZone.GroupId);
             if ((newZoneGroup != null) && (newZoneGroup.BuffId != 0))
