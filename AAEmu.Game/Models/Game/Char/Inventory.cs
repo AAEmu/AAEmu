@@ -3,12 +3,13 @@ using System.Collections.Generic;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
-
+using AAEmu.Game.Models.Game.Units;
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -35,7 +36,7 @@ public class Inventory
         _itemContainers = new Dictionary<SlotType, ItemContainer>();
 
         // Override Unit's created equipment container with a persistent one
-        Owner.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.Equipment);
+        Owner.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.Equipment, (Character)owner, 0);
 
         var slotTypes = Enum.GetValues(typeof(SlotType));
         foreach (var stv in slotTypes)
@@ -55,7 +56,7 @@ public class Inventory
             }
 
             //var newContainer = new ItemContainer(owner.Id, st, true, false);
-            var newContainer = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, st);
+            var newContainer = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, st, (Character)owner, 0);
             newContainer.Owner = Owner; // override to be sure the object reference is set correctly
             _itemContainers.Add(st, newContainer);
             switch (st)
@@ -260,7 +261,7 @@ public class Inventory
     }
 
     /// <summary>
-    /// All purpose function to move items from one slot to another
+    /// All-purpose function to move items from one slot to another
     /// </summary>
     /// <param name="taskType">Task type to report to the player</param>
     /// <param name="fromItemId">Source Item TemplateId</param>
@@ -281,20 +282,25 @@ public class Inventory
             return false;
         }
 
-        // Grab target container for easy manipulation
-        var sourceContainer = fromItem?._holdingContainer ?? Bag;
-        if (!_itemContainers.TryGetValue(toType, out var targetContainer))
+        var toItem = ItemManager.Instance.GetItemByItemId(toItemId);
+        if (toItem == null && toItemId != 0)
         {
-            targetContainer = Bag;
+            Logger.Error($"SplitOrMoveItem - ItemId {toItemId} no longer exists, possibly a phantom item.");
+            return false;
         }
+
+        // Grab containers for easy manipulation
+        var sourceContainer = fromItem?._holdingContainer ?? _itemContainers.GetValueOrDefault(fromType);
+        var targetContainer = toItem?._holdingContainer ?? _itemContainers.GetValueOrDefault(toType);
 
         return SplitOrMoveItemEx(taskType, sourceContainer, targetContainer, fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
     }
 
     public bool SplitOrMoveItemEx(ItemTaskType taskType, ItemContainer sourceContainer, ItemContainer targetContainer, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
     {
-        var info = $"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})";
-        Logger.Trace(info);
+        Logger.Trace($"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})");
+
+        // Try to grab the actual source item
         var fromItem = ItemManager.Instance.GetItemByItemId(fromItemId);
         if (fromItem == null && fromItemId != 0)
         {
@@ -302,71 +308,68 @@ public class Inventory
             return false;
         }
 
-        var itemInTargetSlot = ItemManager.Instance.GetItemByItemId(toItemId);
         var action = SwapAction.doNothing;
+
+        // Try to grab the target item by it's itemId
+        var itemInTargetSlot = ItemManager.Instance.GetItemByItemId(toItemId);
+        // If no count provided, and we have a source item, use that item's total count instead
         if (count <= 0 && fromItem != null)
             count = fromItem.Count;
 
-        // Grab target container for easy manipulation
-        /*
-        var sourceContainer = fromItem?._holdingContainer ?? Bag;
-        if (_itemContainers.TryGetValue(toType, out var targetContainer))
-        {
-            itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
-        }
-        else
-        {
-            targetContainer = Bag;
-        }
-        */
-
+        // If target item is not provided (itemId was not found), grab the item in the target slot instead
         if (itemInTargetSlot == null)
             itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
 
         // Check if containers can accept the items
         if (targetContainer is not null && !targetContainer.CanAccept(fromItem, toSlot))
         {
-            Logger.Error($"SplitOrMoveItem - fromItemId {fromItemId} is not welcome in this container {targetContainer.ContainerType}.");
+            Logger.Error($"SplitOrMoveItem - fromItemId {fromItemId} is not welcome in this container {targetContainer.ContainerType} ({targetContainer.ContainerId}).");
             return false;
         }
         if (sourceContainer is not null && !sourceContainer.CanAccept(itemInTargetSlot, fromSlot))
         {
-            Logger.Error($"SplitOrMoveItem - toItemId {toItemId} is not welcome in this container {sourceContainer.ContainerType}.");
+            Logger.Error($"SplitOrMoveItem - toItemId {toItemId} is not welcome in this container {sourceContainer.ContainerType} ({sourceContainer.ContainerId}).");
             return false;
         }
 
-        // Are we equipping into a empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
+        // Are we equipping into an empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
         if (fromItemId == 0 && fromType == SlotType.Equipment && toType != SlotType.Equipment && itemInTargetSlot != null)
         {
             action = SwapAction.doEquipInEmptySlot;
-            sourceContainer = Equipment;
+            // sourceContainer = Equipment;
         }
 
+        // Are we equipping it into an empty mount gear slot?
         if (fromItemId == 0 && fromType == SlotType.EquipmentMate && toType != SlotType.EquipmentMate && itemInTargetSlot != null)
         {
             action = SwapAction.doEquipInEmptySlot;
-            sourceContainer = Equipment;
+            // In case of MateEquipment the source container is always sent as the pet's container,
+            // and targetContainer is always the player inventory. It does not need to be overriden.
+            // sourceContainer = Equipment;
         }
 
-        // Check some conditions when we are not equipping into a empty slot
+        // Check some conditions when we are not equipping into an empty slot
         if (action != SwapAction.doEquipInEmptySlot && fromItem == null)
         {
             Logger.Error("SplitOrMoveItem didn't provide a source itemId");
             return false;
         }
 
+        // Check if what the client provides as its source container is actually what the server has as data for the item
         if (action != SwapAction.doEquipInEmptySlot && sourceContainer?.ContainerType != fromType)
         {
             Logger.Error("SplitOrMoveItem Source Item Container did not match what the client asked");
             return false;
         }
 
+        // Check if what the client provides as its source slot number is actually what the server has as data for the item
         if (action != SwapAction.doEquipInEmptySlot && fromItem?.Slot != fromSlot)
         {
             Logger.Error("SplitOrMoveItem Source Item slot did not match what the client asked");
             return false;
         }
 
+        // Check if the amount we want to move is actually available from source
         if (action != SwapAction.doEquipInEmptySlot && count > fromItem?.Count)
         {
             Logger.Error("SplitOrMoveItem Source Item has less item count than is requested to be moved");
@@ -376,19 +379,22 @@ public class Inventory
         // Validate target Item stuff
         if (itemInTargetSlot != null)
         {
+            // Check if target slot type is what the server has on data
             if (itemInTargetSlot.SlotType != toType)
             {
                 Logger.Error("SplitOrMoveItem Target Item Type does not match");
                 return false;
             }
 
+            // Check if target slot number is what the server has on data
             if (itemInTargetSlot.Slot != toSlot)
             {
                 Logger.Error("SplitOrMoveItem Target Item Slot does not match");
                 return false;
             }
 
-            if (action != SwapAction.doEquipInEmptySlot && itemInTargetSlot.TemplateId == fromItem.TemplateId && itemInTargetSlot.Count + count > fromItem.Template.MaxCount && fromItem.Template.MaxCount > 1)
+            // Check if target slot has enough room left for this item
+            if (action != SwapAction.doEquipInEmptySlot && itemInTargetSlot.TemplateId == fromItem?.TemplateId && itemInTargetSlot.Count + count > fromItem.Template.MaxCount && fromItem.Template.MaxCount > 1)
             {
                 Logger.Error("SplitOrMoveItem Target Item stack does not have enough room to take source");
                 return false;
@@ -413,12 +419,14 @@ public class Inventory
         Item mainHandWeapon = null;
         Item offHandWeapon = null;
 
+        // If swapping items or equipping new items
         if (action == SwapAction.doSwap || action == SwapAction.doEquipInEmptySlot)
         {
+            // Grab reference to old weapon slots
             mainHandWeapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
             offHandWeapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+
             // Check for equipping weapons by swapping (and if it's a 2-handed one)
-            //var isFromNon2HWeapon = false;
             var isFrom2H = false;
             if (fromItem != null && fromItem.Template is WeaponTemplate weaponFrom)
             {
@@ -438,7 +446,6 @@ public class Inventory
                 }
             }
 
-            //var isToNon2HWeapon = false;
             var isTo2H = false;
             if (itemInTargetSlot != null && itemInTargetSlot.Template is WeaponTemplate weaponTo)
             {
@@ -466,35 +473,37 @@ public class Inventory
                     case EquipmentItemSlotType.TwoHanded:
                         isMain2H = true;
                         break;
-                    /*
                     case EquipmentItemSlotType.Mainhand:
                     case EquipmentItemSlotType.Offhand:
                     case EquipmentItemSlotType.Shield:
                     case EquipmentItemSlotType.OneHanded:
-                        isFromNon2HWeapon = true;
+                        // isFromNon2HWeapon = true;
                         break;
-                    */
                     default:
                         break;
                 }
             }
 
+            // If equipping a 2-Handed weapon, and we had an off-hand slot weapon equipped, mark it for un-equip 
             if (isTo2H && sourceContainer?.ContainerType == SlotType.Equipment && fromSlot == (int)EquipmentItemSlot.Mainhand)
                 doUnEquipOffhand = true;
+
+            // If equipping a 2-Handed weapon, and we had a main slot weapon equipped, mark it for un-equip
             if (isMain2H && sourceContainer?.ContainerType == SlotType.Equipment && fromSlot == (int)EquipmentItemSlot.Offhand)
                 doUnEquipMainHand = true;
 
             // Client actually always sends from equipment => inventory no matter how you click it, this is just a safety if it ever changes
+            // Same checks as above, but in reverse order
             if (isFrom2H && targetContainer?.ContainerType == SlotType.Equipment && toSlot == (int)EquipmentItemSlot.Mainhand)
                 doUnEquipOffhand = true;
             if (isMain2H && targetContainer?.ContainerType == SlotType.Equipment && toSlot == (int)EquipmentItemSlot.Offhand)
                 doUnEquipMainHand = true;
         }
 
+        // If we need to un-equip the off-hand weapon because of equipping a 2-handed weapon 
         if (doUnEquipOffhand && offHandWeapon != null)
         {
-            //Logger.Trace("SplitOrMoveItem - UnEquip OffHand required!");
-            // Check if we have enough space to unequip the offhand
+            // Check if we have enough space to un-equip the offhand
             if (Bag.FreeSlotCount < 1)
                 return false;
             // If we can't move it to bag for whatever reason, abort
@@ -502,10 +511,10 @@ public class Inventory
                 return false;
         }
 
+        // If we need to un-equip the main-hand weapon because of equipping a 2-handed weapon
         if (doUnEquipMainHand)
         {
-            //Logger.Trace("SplitOrMoveItem - UnEquip MainHand required!");
-            // Check if we have enough space to unequip the mainhand
+            // Check if we have enough space to un-equip the main hand weapon
             if (Bag.FreeSlotCount < 1)
                 return false;
             // If we can't move it to bag for whatever reason, abort
@@ -513,6 +522,7 @@ public class Inventory
                 return false;
         }
 
+        // Owner.SendMessage($"ItemMove {action}: {fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count}");
         // Actually execute what we need to do
         var itemTasks = new List<ItemTask>();
         switch (action)
@@ -520,6 +530,7 @@ public class Inventory
             case SwapAction.doEquipInEmptySlot:
                 itemInTargetSlot.SlotType = sourceContainer.ContainerType;
                 itemInTargetSlot.Slot = fromSlot;
+                
                 itemTasks.Add(new ItemMove(fromType, fromSlot, fromItemId, toType, toSlot, toItemId));
                 if (targetContainer != sourceContainer)
                 {
@@ -541,13 +552,13 @@ public class Inventory
                 itemTasks.Add(new ItemAdd(ni));
                 if (targetContainer != sourceContainer)
                     targetContainer.UpdateFreeSlotCount();
-                else
-                    sourceContainer.UpdateFreeSlotCount();
+                sourceContainer.UpdateFreeSlotCount();
                 break;
             case SwapAction.doMoveAllToEmpty:
                 fromItem.SlotType = targetContainer.ContainerType;
                 fromItem.Slot = toSlot;
-                itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, toItemId));
+                itemTasks.Add(new ItemMove(fromType, fromSlot, fromItemId, toType, toSlot, toItemId));
+                // itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, toItemId));
                 if (targetContainer != sourceContainer)
                 {
                     sourceContainer.Items.Remove(fromItem);
@@ -559,9 +570,9 @@ public class Inventory
                 break;
             case SwapAction.doMerge:
                 // Merge x amount into target
-                var toAddCount = Math.Min(count, itemInTargetSlot.Template.MaxCount - itemInTargetSlot.Count);
+                var toAddCount = Math.Min(count, itemInTargetSlot!.Template.MaxCount - itemInTargetSlot.Count);
                 if (toAddCount < count)
-                    Logger.Trace(string.Format("SplitOrMoveItem supplied more than target can take, changed {0} to {1}", count, toAddCount));
+                    Logger.Trace($"SplitOrMoveItem supplied more than target can take, changed {count} to {toAddCount}");
                 itemInTargetSlot.Count += toAddCount;
                 fromItem.Count -= toAddCount;
                 if (fromItem.Count > 0)
@@ -577,17 +588,18 @@ public class Inventory
                 break;
             case SwapAction.doSwap:
                 // Swap both item slots
-                itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, itemInTargetSlot.Id));
-                fromItem.SlotType = targetContainer.ContainerType;
+                itemTasks.Add(new ItemMove(fromType, fromSlot, fromItemId, toType, toSlot, toItemId));
+                // itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem!.Id, toType, toSlot, itemInTargetSlot!.Id));
+                fromItem!.SlotType = targetContainer!.ContainerType;
                 fromItem.Slot = toSlot;
-                if (sourceContainer != targetContainer)
+                if (sourceContainer != null && sourceContainer != targetContainer)
                 {
                     sourceContainer.Items.Remove(fromItem);
                     targetContainer.Items.Add(fromItem);
                     fromItem._holdingContainer = targetContainer;
                     targetContainer.UpdateFreeSlotCount();
                 }
-                itemInTargetSlot.SlotType = sourceContainer.ContainerType;
+                itemInTargetSlot!.SlotType = sourceContainer!.ContainerType;
                 itemInTargetSlot.Slot = fromSlot;
                 if (sourceContainer != targetContainer)
                 {
@@ -597,7 +609,9 @@ public class Inventory
                     sourceContainer.UpdateFreeSlotCount();
                 }
                 break;
+            case SwapAction.doNothing:
             default:
+                // Should be impossible to get here
                 Owner.SendMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action + "|r");
                 Logger.Error("SplitOrMoveItem swap action not implemented " + action);
                 break;
@@ -609,45 +623,25 @@ public class Inventory
         if (itemInTargetSlot != null)
             itemInTargetSlot.OwnerId = targetContainer?.OwnerId ?? 0;
 
-        // Handle Equipment Broadcasting
-        var mate = MateManager.Instance.GetActiveMate(Owner.ObjId);
-
-        if (fromType == SlotType.Equipment)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
-        }
-        else if (mate != null && fromType == SlotType.EquipmentMate)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, fromSlot, null), true);
-        }
-
-        if (toType == SlotType.Equipment)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
-        }
-        else if (mate != null && toType == SlotType.EquipmentMate)
-        {
-            Owner.BroadcastPacket(new SCUnitEquipmentsChangedPacket(mate.ObjId, toSlot, fromItem), true);
-        }
+        // Send Item manipulation packet 
+        if (taskType != ItemTaskType.Invalid && itemTasks.Count > 0)
+            Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
 
         // Send ItemContainer events
         if (sourceContainer != targetContainer)
         {
             if (fromItem != null)
             {
-                sourceContainer?.OnLeaveContainer(fromItem, targetContainer);
-                targetContainer?.OnEnterContainer(fromItem, sourceContainer);
+                sourceContainer?.OnLeaveContainer(fromItem, targetContainer, fromSlot);
+                targetContainer?.OnEnterContainer(fromItem, sourceContainer, fromSlot);
             }
 
             if (itemInTargetSlot != null)
             {
-                targetContainer?.OnLeaveContainer(itemInTargetSlot, sourceContainer);
-                sourceContainer?.OnEnterContainer(itemInTargetSlot, targetContainer);
+                targetContainer?.OnLeaveContainer(itemInTargetSlot, sourceContainer, fromSlot);
+                sourceContainer?.OnEnterContainer(itemInTargetSlot, targetContainer, fromSlot);
             }
         }
-
-        if (taskType != ItemTaskType.Invalid && itemTasks.Count > 0)
-            Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
 
         sourceContainer.ApplyBindRules(taskType);
         if (targetContainer != sourceContainer)

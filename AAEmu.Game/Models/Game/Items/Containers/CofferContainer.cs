@@ -9,7 +9,7 @@ public class CofferContainer : ItemContainer
     public byte CofferPermission { get; set; }
     public ChestType CofferType { get; set; }
 
-    public CofferContainer(uint ownerId, bool createWithNewId) : base(ownerId, SlotType.Trade, createWithNewId)
+    public CofferContainer(uint ownerId, bool createWithNewId) : base(ownerId, SlotType.Trade, createWithNewId, null)
     {
         // Coffers are considered trade windows in the item manipulation code
         CofferPermission = 0;

@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills.Static;
 
@@ -12,4 +13,5 @@ public interface IUnit : IBaseUnit
     ItemContainer Equipment { get; set; }
     void SendPacket(GamePacket packet);
     SkillResult UseSkill(uint skillId, IUnit target);
+    void UpdateGearBonuses(Item itemAdded, Item itemRemoved);
 }

@@ -1275,33 +1275,6 @@ public partial class Character : Unit, ICharacter
         //Events.OnCombatStarted += OnEnterCombat;
     }
 
-    public WeaponWieldKind GetWeaponWieldKind()
-    {
-        var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-        if (item != null && item.Template is WeaponTemplate weapon)
-        {
-            var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
-            if (slotId == EquipmentItemSlotType.TwoHanded)
-                return WeaponWieldKind.TwoHanded;
-            else if (slotId == EquipmentItemSlotType.OneHanded || slotId == EquipmentItemSlotType.Mainhand)
-            {
-                var item2 = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
-                if (item2 != null && item2.Template is WeaponTemplate weapon2)
-                {
-                    var slotId2 = (EquipmentItemSlotType)weapon2.HoldableTemplate.SlotTypeId;
-                    if (slotId2 == EquipmentItemSlotType.OneHanded || slotId2 == EquipmentItemSlotType.Offhand)
-                        return WeaponWieldKind.DuelWielded;
-                    else
-                        return WeaponWieldKind.OneHanded;
-                }
-                else
-                    return WeaponWieldKind.OneHanded;
-            }
-        }
-
-        return WeaponWieldKind.None;
-    }
-
     public void SetHostileActivity(Character attacker)
     {
         if (_hostilePlayers.ContainsKey(attacker.ObjId))
@@ -2297,7 +2270,7 @@ public partial class Character : Unit, ICharacter
     {
         var template = CharacterManager.Instance.GetTemplate(Race, Gender);
         ModelId = template.ModelId;
-        BuyBackItems = new ItemContainer(Id, SlotType.None, false);
+        BuyBackItems = new ItemContainer(Id, SlotType.None, false, this);
         Slots = new ActionSlot[MaxActionSlots];
         for (var i = 0; i < Slots.Length; i++)
             Slots[i] = new ActionSlot();
