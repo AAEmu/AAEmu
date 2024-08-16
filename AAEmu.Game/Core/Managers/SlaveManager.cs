@@ -884,6 +884,9 @@ public class SlaveManager : Singleton<SlaveManager>
         //    Logger.Debug($"Loaded {doodadSpawnCount} doodads from DB for Slave {summonedSlave.ObjId} (Db: {summonedSlave.Id})");
         //}
 
+        // Apply equipped gear (used for future parts customization)
+        summonedSlave.UpdateGearBonuses(null, null);
+
         // Create all remaining doodads that where not previously loaded
         foreach (var doodadBinding in summonedSlave.Template.DoodadBindings)
         {

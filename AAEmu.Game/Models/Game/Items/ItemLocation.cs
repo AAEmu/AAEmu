@@ -2,6 +2,11 @@
 
 public struct ItemLocation
 {
-    public SlotType slotType;
-    public byte Slot;
+    public SlotType SlotType { get; set; }
+    public byte Slot { get; set; }
+
+    public override string ToString()
+    {
+        return $"({SlotType} #{Slot})";
+    }
 }

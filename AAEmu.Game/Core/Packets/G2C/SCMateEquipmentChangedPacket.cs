@@ -1,52 +1,55 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Models.Game.Items;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-public class SCMateEquipmentChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly ushort _tlId;
-    private readonly uint _characterId;
-    private readonly uint _passengerId;
-    private readonly bool _bts;
-    private readonly byte _num;
-    private readonly (SlotType type, byte slot, Item item) _itemA;
-    private readonly (SlotType type, byte slot, Item item) _itemB;
-
-    public SCMateEquipmentChangedPacket((SlotType type, byte slot, Item item) itemA, (SlotType type, byte slot, Item item) itemB, ushort tlId, uint characterId, uint passengerId, bool bts) : base(SCOffsets.SCMateEquipmentChangedPacket, 5)
+    public class SCMateEquipmentChangedPacket : GamePacket
     {
-        _itemA = itemA;
-        _itemB = itemB;
-        _tlId = tlId;
-        _characterId = characterId;
-        _passengerId = passengerId;
-        _bts = bts;
-        _num = 1; // all time == 1
-    }
+        private readonly ushort _mateTlId;
+        private readonly uint _characterId;
+        private readonly uint _passengerId;
+        private readonly bool _bts;
+        private readonly byte _num;
+        private readonly bool _success;
+        private readonly ItemAndLocation _itemOnPet;
+        private readonly ItemAndLocation _itemInBag;
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_characterId); // type
-        stream.Write(_tlId);        // tl
-        stream.Write(_passengerId); // type
-        stream.Write(_bts);         // bts
-        stream.Write(_num);         // num
+        public SCMateEquipmentChangedPacket(ItemAndLocation itemOnPet, ItemAndLocation itemInBag, ushort mateTlId, uint characterId, uint passengerId, bool bts, bool success) : base(SCOffsets.SCMateEquipmentChangedPacket, 5)
+        {
+            _itemOnPet = itemOnPet;
+            _itemInBag = itemInBag;
+            _mateTlId = mateTlId;
+            _characterId = characterId;
+            _passengerId = passengerId;
+            _bts = bts;
+            _num = 1; // all time == 1
+            _success = success;
+        }
 
-        if (_itemA.item == null)
-            stream.Write(0);
-        else
-            stream.Write(_itemA.item);
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_characterId); // type
+            stream.Write(_mateTlId);        // tl
+            stream.Write(_passengerId); // type
+            stream.Write(_bts);         // bts
+            stream.Write(_num);         // num
 
-        if (_itemB.item == null)
-            stream.Write(0);
-        else
-            stream.Write(_itemB.item);
+            if (_itemOnPet.Item == null)
+                stream.Write(0);
+            else
+                stream.Write(_itemOnPet.Item);
 
-        stream.Write((byte)_itemA.type);
-        stream.Write(_itemA.slot);
-        stream.Write((byte)_itemB.type);
-        stream.Write(_itemB.slot);
+            if (_itemInBag.Item == null)
+                stream.Write(0);
+            else
+                stream.Write(_itemInBag.Item);
+
+            stream.Write((byte)_itemOnPet.SlotType);
+            stream.Write(_itemOnPet.SlotNumber);
+            stream.Write((byte)_itemInBag.SlotType);
+            stream.Write(_itemInBag.SlotNumber);
 
         stream.Write(true); // success
 

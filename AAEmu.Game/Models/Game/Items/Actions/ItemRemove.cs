@@ -14,6 +14,16 @@ public class ItemRemove : ItemTask
         _item = item;
     }
 
+    public ItemRemove(ulong itemId, SlotType slotType, byte slotNumber, uint itemTemplateId)
+    {
+        _type = ItemAction.Remove;
+
+        _itemId = itemId;
+        _slotType = slotType;
+        _slot = slotNumber;
+        _templateId = itemTemplateId;
+    }
+
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);

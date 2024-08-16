@@ -11,7 +11,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
-
+using AAEmu.Game.Models.Game.Units;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
@@ -27,6 +27,8 @@ public class ItemContainer
     public bool IsDirty { get; set; }
     private readonly SlotType _containerType;
     private ulong _containerId;
+    
+    public Unit ParentUnit { get; set; }
 
     public ICharacter Owner
     {
@@ -135,10 +137,18 @@ public class ItemContainer
         ContainerSize = 0;
     }
 
-    public ItemContainer(uint ownerId, SlotType containerType, bool createWithNewId)
+    /// <summary>
+    /// Creates a Container
+    /// </summary>
+    /// <param name="ownerId">Player Id for this container</param>
+    /// <param name="containerType"></param>
+    /// <param name="createWithNewId"></param>
+    /// <param name="parentUnit">Parent that will actually hold this container (can be different from Owner)</param>
+    public ItemContainer(uint ownerId, SlotType containerType, bool createWithNewId, Unit parentUnit)
     {
         OwnerId = ownerId;
         ContainerType = containerType;
+        ParentUnit = parentUnit;
         Items = new List<Item>();
         ContainerSize = -1; // Unlimited
         if (createWithNewId)
@@ -382,8 +392,8 @@ public class ItemContainer
 
             if (sourceContainer != this)
             {
-                sourceContainer?.OnLeaveContainer(item, this);
-                OnEnterContainer(item, sourceContainer);
+                sourceContainer?.OnLeaveContainer(item, this, sourceSlot);
+                OnEnterContainer(item, sourceContainer, sourceSlot);
             }
         }
 
@@ -451,6 +461,8 @@ public class ItemContainer
             return false;
         }
 
+        var oldSlotNumber = (byte)item.Slot;
+
         // Handle items that can expire
         GamePacket sync = null;
         if (item.ExpirationOnlineMinutesLeft > 0.0 || item.ExpirationTime > DateTime.UtcNow || item.UnpackTime > DateTime.UtcNow)
@@ -478,7 +490,7 @@ public class ItemContainer
         UpdateFreeSlotCount();
 
         Owner?.Inventory.OnConsumedItem(item, item.Count);
-        OnLeaveContainer(item, null);
+        OnLeaveContainer(item, null, oldSlotNumber);
 
         return res;
     }
@@ -829,26 +841,30 @@ public class ItemContainer
         return foundItems.Count > 0;
     }
 
+    /// <summary>
+    /// Apply Bound flag to items when needed by the container (BindOnPickup, BindOnEquip)
+    /// </summary>
+    /// <param name="taskType"></param>
     public void ApplyBindRules(ItemTaskType taskType)
     {
         var itemTasks = new List<ItemTask>();
-        foreach (var i in Items)
+        foreach (var item in Items)
         {
-            if (i.HasFlag(ItemFlag.SoulBound) == false)
+            if (item.HasFlag(ItemFlag.SoulBound) == false)
             {
-                if (ContainerType == SlotType.Inventory && i.Template.BindType == ItemBindType.BindOnPickup)
+                if (ContainerType == SlotType.Inventory && item.Template.BindType == ItemBindType.BindOnPickup)
                 {
-                    i.SetFlag(ItemFlag.SoulBound);
+                    item.SetFlag(ItemFlag.SoulBound);
                 }
 
-                if (ContainerType == SlotType.Equipment && i.Template.BindType == ItemBindType.BindOnEquip)
+                if (ContainerType == SlotType.Equipment && item.Template.BindType == ItemBindType.BindOnEquip)
                 {
-                    i.SetFlag(ItemFlag.SoulBound);
+                    item.SetFlag(ItemFlag.SoulBound);
                 }
 
-                if (i.HasFlag(ItemFlag.SoulBound))
+                if (item.HasFlag(ItemFlag.SoulBound))
                 {
-                    itemTasks.Add(new ItemUpdateBits(i));
+                    itemTasks.Add(new ItemUpdateBits(item));
                 }
             }
         }
@@ -892,24 +908,25 @@ public class ItemContainer
     /// Creates a ItemContainer or descendant base of the name of the container type
     /// </summary>
     /// <param name="containerTypeName"></param>
-    /// <param name="ownerId"></param>
+    /// <param name="ownerId">Player Id that owns the items in this container</param>
     /// <param name="slotType"></param>
     /// <param name="createWithNewId"></param>
+    /// <param name="parentUnit">Actual unit that will hold this container</param>
     /// <returns></returns>
     public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType,
-        bool createWithNewId)
+        bool createWithNewId, Unit parentUnit)
     {
         if (containerTypeName.EndsWith("SlaveEquipmentContainer"))
             return new SlaveEquipmentContainer(ownerId, slotType, createWithNewId);
 
         if (containerTypeName.EndsWith("MateEquipmentContainer"))
         {
-            return new MateEquipmentContainer(ownerId, slotType, createWithNewId);
+            return new MateEquipmentContainer(ownerId, slotType, createWithNewId, parentUnit);
         }
 
         if (containerTypeName.EndsWith("EquipmentContainer"))
         {
-            return new EquipmentContainer(ownerId, slotType, createWithNewId);
+            return new EquipmentContainer(ownerId, slotType, createWithNewId, parentUnit);
         }
 
         if (containerTypeName.EndsWith("CofferContainer"))
@@ -918,7 +935,7 @@ public class ItemContainer
         }
 
         // Fall-back
-        return new ItemContainer(ownerId, slotType, createWithNewId);
+        return new ItemContainer(ownerId, slotType, createWithNewId, parentUnit);
     }
 
     public string ContainerTypeName()
@@ -937,12 +954,12 @@ public class ItemContainer
         ItemManager.Instance.DeleteItemContainer(this);
     }
 
-    public virtual void OnEnterContainer(Item item, ItemContainer lastContainer)
+    public virtual void OnEnterContainer(Item item, ItemContainer lastContainer, byte previousSlot)
     {
         // Do nothing
     }
 
-    public virtual void OnLeaveContainer(Item item, ItemContainer newContainer)
+    public virtual void OnLeaveContainer(Item item, ItemContainer newContainer, byte previousSlot)
     {
         // Do Nothing
     }
