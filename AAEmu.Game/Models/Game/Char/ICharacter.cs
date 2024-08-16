@@ -29,7 +29,6 @@ public interface ICharacter : IUnit
     void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true);
     void ChangeLabor(short change, int actabilityId);
     void AddExp(int exp, bool shouldAddAbilityExp);
-    void UpdateGearBonuses(Item itemAdded, Item itemRemoved);
     public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
     public void ChangeGamePoints(GamePointKind kind, int change);
     public void SetGrowthRate(float value);

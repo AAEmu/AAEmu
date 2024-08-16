@@ -1818,13 +1818,24 @@ public class ItemManager : Singleton<ItemManager>
         return SlotType.None;
     }
 
-
-    public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, uint mateId = 0)
+    /// <summary>
+    /// Grabs an existing container owned by a player
+    /// </summary>
+    /// <param name="characterId">Player Id</param>
+    /// <param name="slotType">Container Type to get</param>
+    /// <param name="parentUnit">If set, overrides the Parent Unit</param>
+    /// <param name="mateId">Mate Id if a new container needs to be created</param>
+    /// <returns></returns>
+    public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, Unit parentUnit, uint mateId)
     {
-        foreach (var c in _allPersistentContainers)
+        foreach (var c in _allPersistentContainers.Values)
         {
-            if (c.Value.OwnerId == characterId && c.Value.ContainerType == slotType && c.Value.MateId == mateId)
-                return c.Value;
+            if (c.OwnerId == characterId && c.ContainerType == slotType && c.MateId == mateId)
+            {
+                if (parentUnit != null)
+                    c.ParentUnit = parentUnit;
+                return c;
+            }
         }
 
         var newContainerType = slotType switch
@@ -1834,7 +1845,7 @@ public class ItemManager : Singleton<ItemManager>
             _ => "ItemContainer"
         };
 
-        var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.None);
+        var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.None, parentUnit);
 
         if (slotType != SlotType.None)
             _allPersistentContainers.Add(newContainer.ContainerId, newContainer);
@@ -1923,7 +1934,7 @@ public class ItemManager : Singleton<ItemManager>
                     var containerSize = reader.GetInt32("container_size");
                     var containerOwnerId = reader.GetUInt32("owner_id");
                     var containerMateId = reader.GetUInt32("mate_id");
-                    var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, false);
+                    var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, false, null);
                     container.ContainerId = containerId;
                     container.ContainerSize = containerSize;
                     container.MateId = containerMateId;
@@ -2040,7 +2051,7 @@ public class ItemManager : Singleton<ItemManager>
                         if (item.OwnerId > 0)
                         {
                             // Item does have an owner, let's try to create a valid container for it
-                            var cContainer = GetItemContainerForCharacter((uint)item.OwnerId, item.SlotType);
+                            var cContainer = GetItemContainerForCharacter((uint)item.OwnerId, item.SlotType, null, 0);
                             if (cContainer.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                             {
                                 item.Slot = thisItemSlot;

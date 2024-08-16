@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
 
 public class EquipmentContainer : ItemContainer
 {
-    public EquipmentContainer(uint ownerId, SlotType containerType, bool createWithNewId) : base(ownerId, containerType, createWithNewId)
+    public EquipmentContainer(uint ownerId, SlotType containerType, bool createWithNewId, Unit parentUnit) : base(ownerId, containerType, createWithNewId, parentUnit)
     {
         // Fancy way of getting the last enum value + 1 for equipment slots
         ContainerSize = (int)(Enum.GetValues(typeof(EquipmentItemSlot)).Cast<EquipmentItemSlot>().Max()) + 1;
@@ -199,15 +201,17 @@ public class EquipmentContainer : ItemContainer
         return true;
     }
 
-    public override void OnEnterContainer(Item item, ItemContainer lastContainer)
+    public override void OnEnterContainer(Item item, ItemContainer lastContainer, byte previousSlot)
     {
-        base.OnEnterContainer(item, lastContainer);
-        Owner?.UpdateGearBonuses(item, null);
+        base.OnEnterContainer(item, lastContainer, previousSlot); 
+        ParentUnit?.BroadcastPacket(new SCUnitEquipmentsChangedPacket(ParentUnit.ObjId, (byte)item.Slot, item), false);
+        ParentUnit?.UpdateGearBonuses(item, null);
     }
 
-    public override void OnLeaveContainer(Item item, ItemContainer newContainer)
+    public override void OnLeaveContainer(Item item, ItemContainer newContainer, byte previousSlot)
     {
-        base.OnLeaveContainer(item, newContainer);
-        Owner?.UpdateGearBonuses(null, item);
+        base.OnLeaveContainer(item, newContainer, previousSlot);
+        ParentUnit?.BroadcastPacket(new SCUnitEquipmentsChangedPacket(ParentUnit.ObjId, previousSlot, null), false);
+        ParentUnit?.UpdateGearBonuses(null, item);
     }
 }

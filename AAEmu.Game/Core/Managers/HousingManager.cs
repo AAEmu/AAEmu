@@ -1059,7 +1059,7 @@ public class HousingManager : Singleton<HousingManager>
             {
                 // TODO: Check if items should stay in the coffer when house is sold.
                 // Move it to new owner's SystemContainer first so they don't get destroyed
-                var ownerSystemContainer = ItemManager.Instance.GetItemContainerForCharacter(house.OwnerId, SlotType.System);
+                var ownerSystemContainer = ItemManager.Instance.GetItemContainerForCharacter(house.OwnerId, SlotType.System, null, 0);
                 for (var i = coffer.ItemContainer.Items.Count - 1; i >= 0; i--)
                 {
                     var cofferItem = coffer.ItemContainer.Items[i];
