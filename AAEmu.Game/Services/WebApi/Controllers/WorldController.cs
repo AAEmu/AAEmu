@@ -15,8 +15,8 @@ internal class WorldController : BaseController
     [WebApiGet("/world/logged-characters")]
     public HttpResponse GetCharacter(HttpRequest request)
     {
-        var loggedCharacters = WorldManager.Instance.GetAllCharacters().Select(x => new CharacterModel(x.Id, x.Name));
+        var loggedCharacters = WorldManager.Instance.GetAllCharacters()
+            .Select(x => new CharacterModel(x.Id, x.Name, x.Level, x.Created, x.IsOnline));
         return OkJson(loggedCharacters);
     }
 }
-

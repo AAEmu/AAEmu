@@ -559,4 +559,9 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     {
         return (from guild in _expeditions.Values from member in guild.Members where member.CharacterId == characterId select guild.Id).FirstOrDefault();
     }
+    
+    public List<Expedition> GetExpeditions()
+    {
+        return _expeditions.Values.ToList();
+    }
 }
