@@ -2,6 +2,8 @@
 using System.Linq;
 
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
@@ -47,6 +49,13 @@ public class CSSendMailPacket : GamePacket
 
         // Validate if we are near a MailBox
         bool mailCheckOK;
+
+        if (string.IsNullOrWhiteSpace(receiverCharName) || NameManager.Instance.GetCharacterId(receiverCharName) == 0)
+        {
+            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailReceiverNotFound);
+            return;
+        }
+        
         if (doodad != null)
         {
             // Cannot rely on doodad GroupID being "Other - Mailboxes (6)", as some of the mailboxes belong to other groups (e.g. "Housing - Furniture").
