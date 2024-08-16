@@ -67,7 +67,7 @@ internal class MailController : BaseController
                     foreach (uint recipient in mailRequest.Recipients)
                     {
                         var expedition = ExpeditionManager.Instance.GetExpedition((FactionsEnum)recipient);
-                        if (expedition == null || expedition.isDisbanded)
+                        if (expedition == null || expedition.IsDisbanded)
                         {
                             return BadRequestJson(new ErrorModel($"Invalid ExpeditionId: {recipient} ."));
                         }
