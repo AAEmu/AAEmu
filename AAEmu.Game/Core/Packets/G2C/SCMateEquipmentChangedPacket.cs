@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -16,7 +15,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ItemAndLocation _itemOnPet;
         private readonly ItemAndLocation _itemInBag;
 
-        public SCMateEquipmentChangedPacket(ItemAndLocation itemOnPet, ItemAndLocation itemInBag, ushort mateTlId, uint characterId, uint passengerId, bool bts, bool success) : base(SCOffsets.SCMateEquipmentChangedPacket, 5)
+        public SCMateEquipmentChangedPacket(ItemAndLocation itemOnPet, ItemAndLocation itemInBag, ushort mateTlId, uint characterId, uint passengerId, bool bts, bool success)
+            : base(SCOffsets.SCMateEquipmentChangedPacket, 5)
         {
             _itemOnPet = itemOnPet;
             _itemInBag = itemInBag;
@@ -31,10 +31,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_characterId); // type
-            stream.Write(_mateTlId);        // tl
+            stream.Write(_mateTlId); // tl
             stream.Write(_passengerId); // type
-            stream.Write(_bts);         // bts
-            stream.Write(_num);         // num
+            stream.Write(_bts); // bts
+            stream.Write(_num); // num
 
             if (_itemOnPet.Item == null)
                 stream.Write(0);
@@ -51,8 +51,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte)_itemInBag.SlotType);
             stream.Write(_itemInBag.SlotNumber);
 
-        stream.Write(true); // success
+            stream.Write(_success); // success
 
-        return stream;
+            return stream;
+        }
     }
 }

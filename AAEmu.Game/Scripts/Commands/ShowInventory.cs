@@ -69,7 +69,7 @@ public class ShowInventory : ICommand
                 }
                 else
                 {
-                    CommandManager.SendErrorText(this, messageOutput, $"Invalid ContainerType Id {argContainerId}");
+                    //CommandManager.SendMessage(this, messageOutput, $"Invalid ContainerType Id {argContainerId}");
                     return;
                 }
             }
@@ -108,9 +108,8 @@ public class ShowInventory : ICommand
                     var countName = $"|ng;{item.Count}|r x ";
                     if (item.Count == 1)
                         countName = string.Empty;
-                    }
 
-                    messageOutput.SendMessage($"[|nd;{targetPlayer.Name}|r][{slotName}] |nb;{item.Id}|r {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId}){additionalErrors}");
+                    //messageOutput.SendMessage($"[|nd;{targetPlayer.Name}|r][{slotName}] |nb;{item.Id}|r {countName}|nn;{item.TemplateId}|r = @ITEM_NAME({item.TemplateId}){additionalErrors}");
                     lastSlotNumber = item.Slot;
                 }
 
@@ -136,7 +135,7 @@ public class ShowInventory : ICommand
                             var nextSlot = targetContainer.Owner.Inventory.Bag.GetUnusedSlot(-1);
                             if ((nextSlot < 0) || !targetContainer.Owner.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, invalidItem))
                             {
-                                CommandManager.SendErrorText(this, messageOutput, $"Unable to fix {invalidItem.TemplateId} ({invalidItem.TemplateId}) ItemId: {invalidItem.Id}, no more room in your inventory to move this item!");
+                                //CommandManager.SendErrorText(this, messageOutput, $"Unable to fix {invalidItem.TemplateId} ({invalidItem.TemplateId}) ItemId: {invalidItem.Id}, no more room in your inventory to move this item!");
                                 continue;
                             }
                             invalidItem.Slot = nextSlot;
@@ -152,7 +151,7 @@ public class ShowInventory : ICommand
                             var nextSlot = targetContainer.GetUnusedSlot(-1);
                             if (nextSlot < 0)
                             {
-                                CommandManager.SendErrorText(this, messageOutput, $"Unable to fix {invalidItem.TemplateId} ({invalidItem.TemplateId}) ItemId: {invalidItem.Id}, no more room!");
+                                //CommandManager.SendErrorText(this, messageOutput, $"Unable to fix {invalidItem.TemplateId} ({invalidItem.TemplateId}) ItemId: {invalidItem.Id}, no more room!");
                                 continue;
                             }
                             invalidItem.Slot = nextSlot;
@@ -166,10 +165,9 @@ public class ShowInventory : ICommand
 
                 if (fixedCount > 0)
                 {
-                    CommandManager.SendNormalText(this, messageOutput, $"{fixedCount} items have been re-slotted, fully |ni;reboot your game client|r for the fixes to take affect");
+                    //CommandManager.SendNormalText(this, messageOutput, $"{fixedCount} items have been re-slotted, fully |ni;reboot your game client|r for the fixes to take affect");
                 }
             }
         }
-
     }
 }

@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
@@ -27,7 +28,7 @@ public class ItemContainer
     public bool IsDirty { get; set; }
     private readonly SlotType _containerType;
     private ulong _containerId;
-    
+
     public Unit ParentUnit { get; set; }
 
     public ICharacter Owner
@@ -917,7 +918,7 @@ public class ItemContainer
         bool createWithNewId, Unit parentUnit)
     {
         if (containerTypeName.EndsWith("SlaveEquipmentContainer"))
-            return new SlaveEquipmentContainer(ownerId, slotType, createWithNewId);
+            return new SlaveEquipmentContainer(ownerId, slotType, createWithNewId, parentUnit);
 
         if (containerTypeName.EndsWith("MateEquipmentContainer"))
         {

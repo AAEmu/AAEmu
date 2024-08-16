@@ -5,6 +5,7 @@ using System.Linq;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
 

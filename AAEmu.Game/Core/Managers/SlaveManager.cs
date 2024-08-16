@@ -740,7 +740,7 @@ public class SlaveManager : Singleton<SlaveManager>
         }
 
         // TODO: Load Gear
-        summonedSlave.Equipment = ItemManager.Instance.GetItemContainerForCharacter(owner.Id, SlotType.EquipmentSlave, summonedSlave.Id);
+        summonedSlave.Equipment = ItemManager.Instance.GetItemContainerForCharacter(owner.Id, SlotType.EquipmentSlave, summonedSlave, summonedSlave.Id);
 
         // Equip it's default items
         // TODO: Implement vehicle customization

@@ -1,68 +1,59 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 
-namespace AAEmu.Game.Core.Packets.G2C;
-
-#pragma warning disable IDE0052 // Remove unread private members
-
-public class SCSlaveEquipmentChangedPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.G2C
 {
-    private readonly ushort _tlId;
-    private readonly uint _characterId;
-    private readonly uint _dbSlaveId;
-    private readonly bool _bts;
-    private readonly byte _num;
-    private readonly (SlotType type, byte slot, Item item) _itemA;
-    private readonly (SlotType type, byte slot, Item item) _itemB;
-
-    private SlaveEquipment _slaveEquipment;
-    private bool _success;
-
-    public SCSlaveEquipmentChangedPacket(SlaveEquipment slaveEquipment, bool success) : base(SCOffsets.SCSlaveEquipmentChangedPacket, 5)
+    public class SCSlaveEquipmentChangedPacket : GamePacket
     {
-        _slaveEquipment = slaveEquipment;
-        _success = success;
-    }
+        private readonly ushort _slaveTlId;
+        private readonly uint _characterId;
+        private readonly uint _passengerId;
+        private readonly bool _bts;
+        private readonly byte _num;
+        private readonly bool _success;
+        private readonly ItemAndLocation _itemOnSlave;
+        private readonly ItemAndLocation _itemInBag;
 
-    public SCSlaveEquipmentChangedPacket((SlotType type, byte slot, Item item) itemA, (SlotType type, byte slot, Item item) itemB, ushort tlId, uint characterId, uint dbSlaveId, bool bts)
-        : base(SCOffsets.SCSlaveEquipmentChangedPacket, 5)
-    {
-        _itemA = itemA;
-        _itemB = itemB;
-        _tlId = tlId;
-        _characterId = characterId;
-        _dbSlaveId = dbSlaveId;
-        _bts = bts;
-        _num = 1; // all time == 1
-    }
+        public SCSlaveEquipmentChangedPacket(ItemAndLocation itemOnSlave, ItemAndLocation itemInBag, ushort slaveTlId, uint characterId, uint passengerId, bool bts, bool success)
+            : base(SCOffsets.SCSlaveEquipmentChangedPacket, 5)
+        {
+            _itemOnSlave = itemOnSlave;
+            _itemInBag = itemInBag;
+            _slaveTlId = slaveTlId;
+            _characterId = characterId;
+            _passengerId = passengerId;
+            _bts = bts;
+            _num = 1; // all time == 1
+            _success = success;
+        }
 
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(_characterId); // type
-        stream.Write(_tlId);        // tl
-        stream.Write(_dbSlaveId);   // type
-        stream.Write(_bts);         // bts
-        stream.Write(_num);         // num
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_characterId); // type
+            stream.Write(_slaveTlId); // tl
+            stream.Write(_passengerId); // type
+            stream.Write(_bts); // bts
+            stream.Write(_num); // num
 
-        if (_itemA.item == null)
-            stream.Write(0);
-        else
-            stream.Write(_itemA.item);
+            if (_itemOnSlave.Item == null)
+                stream.Write(0);
+            else
+                stream.Write(_itemOnSlave.Item);
 
-        if (_itemB.item == null)
-            stream.Write(0);
-        else
-            stream.Write(_itemB.item);
+            if (_itemInBag.Item == null)
+                stream.Write(0);
+            else
+                stream.Write(_itemInBag.Item);
 
-        stream.Write((byte)_itemA.type);
-        stream.Write(_itemA.slot);
-        stream.Write((byte)_itemB.type);
-        stream.Write(_itemB.slot);
+            stream.Write((byte)_itemOnSlave.SlotType);
+            stream.Write(_itemOnSlave.SlotNumber);
+            stream.Write((byte)_itemInBag.SlotType);
+            stream.Write(_itemInBag.SlotNumber);
 
-        stream.Write(true); // success
+            stream.Write(_success); // success
 
-        return stream;
+            return stream;
+        }
     }
 }

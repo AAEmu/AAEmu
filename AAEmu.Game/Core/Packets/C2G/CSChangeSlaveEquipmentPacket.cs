@@ -1,127 +1,101 @@
-﻿using System;
-using System.Collections.Generic;
-
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
-namespace AAEmu.Game.Core.Packets.C2G;
-
-public class CSChangeSlaveEquipmentPacket : GamePacket
+namespace AAEmu.Game.Core.Packets.C2G
 {
-    public CSChangeSlaveEquipmentPacket() : base(CSOffsets.CSChangeSlaveEquipmentPacket, 5)
+    public class CSChangeSlaveEquipmentPacket : GamePacket
     {
-    }
-
-    public override void Read(PacketStream stream)
-    {
-        var characterId = stream.ReadUInt32();
-        var tl = stream.ReadUInt16(); // slave tl
-        var DbSlaveId = stream.ReadUInt32();
-        var bts = stream.ReadBoolean();
-        var num = stream.ReadByte();
-
-        Logger.Debug($"ChangeSlaveEquipment, TlId: {tl}, Id: {characterId}, Id2: {DbSlaveId}, BTS: {bts}, num: {num}");
-
-        var slave = SlaveManager.Instance.GetSlaveByTlId(tl);
-        if (slave == null)
+        public CSChangeSlaveEquipmentPacket() : base(CSOffsets.CSChangeSlaveEquipmentPacket, 5)
         {
-            Logger.Warn($"ChangeSlaveEquipment, Unable to find slave with tlId {tl}!");
-            return;
         }
-        if (num == 0)
-            return;
-        //                  SlotType, Slot, Item
-        var invItems = new (SlotType, byte, Item)[num];
-        var equipItems = new (SlotType, byte, Item)[num];
-        var character = Connection.ActiveChar;
 
-        for (var i = 0; i < num; i++)
+        public override void Read(PacketStream stream)
         {
-            invItems[i].Item3 = new Item();
-            invItems[i].Item3.Read(stream);
-            invItems[i].Item3.ItemFlags = ItemFlag.SoulBound; // связанный
-            invItems[i].Item3.ChargeUseSkillTime = DateTime.UtcNow;
+            // Owner PlayerId
+            var owningPlayerId = stream.ReadUInt32();
+            // Slave tl
+            var slaveTl = stream.ReadUInt16();
+            // Should be Passenger PlayerId, but still reports 0 even when the seat is taken
+            // Maybe this was planned to be used if somehow somebody else than the owner is equipping gear onto the mount
+            var passengerPlayerId = stream.ReadUInt32();
+            // Seems to be always 0
+            var bts = stream.ReadBoolean();
+            // Always 1 for 1 item at a time
+            var itemCount = stream.ReadByte();
 
-            equipItems[i].Item3 = new Item();
-            equipItems[i].Item3.Read(stream);
-            equipItems[i].Item3.ItemFlags = ItemFlag.SoulBound; // связанный
-            equipItems[i].Item3.ChargeUseSkillTime = DateTime.UtcNow;
+            Logger.Debug($"ChangeSlaveEquipment - TlId: {slaveTl}, Owner: {owningPlayerId}, Id2: {passengerPlayerId}, BTS: {bts}, Count: {itemCount}");
 
-            invItems[i].Item1 = (SlotType)stream.ReadByte();
-            invItems[i].Item2 = stream.ReadByte();
-
-            equipItems[i].Item1 = (SlotType)stream.ReadByte();
-            equipItems[i].Item2 = stream.ReadByte();
-
-            var isEquip = invItems[i].Item3.TemplateId != 0;
-
-            invItems[i].Item3 = character.Inventory.Bag.GetItemBySlot(invItems[i].Item2);
-            equipItems[i].Item3 = slave.Equipment.GetItemBySlot(equipItems[i].Item2);
-
-            Logger.Debug($"FROM: ({invItems[i].Item1}:{invItems[i].Item2}) TO ({equipItems[i].Item1}:{equipItems[i].Item2}) ITEMS: {invItems[i].Item3?.Id}, {equipItems[i].Item3?.Id}, EQUIP: {isEquip}");
-
-            if (isEquip)
+            var character = Connection.ActiveChar;
+            var slave = SlaveManager.Instance.GetSlaveByTlId(slaveTl);
+            if (slave == null)
             {
-                if (invItems[i].Item3 != null)
-                {
-                    var itemTasks = new List<ItemTask>();
-                    itemTasks.Add(new ItemRemove(invItems[i].Item3));
+                Logger.Warn($"ChangeMateEquipment, Unable to find mate with tlId {slaveTl}!");
+                return;
+            }
 
-                    if (character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, character.Inventory.Bag, slave.Equipment, invItems[i].Item3.Id, invItems[i].Item1, invItems[i].Item2, 0, equipItems[i].Item1, equipItems[i].Item2))
+            if (itemCount == 0)
+                return;
+
+            // SlotType, SlotNum, Item
+            for (var i = 0; i < itemCount; i++)
+            {
+                var playerItem = new ItemAndLocation();
+                var mateItem = new ItemAndLocation();
+
+                playerItem.Item = new EquipItem();
+                playerItem.Item.Read(stream);
+
+                mateItem.Item = new EquipItem();
+                mateItem.Item.Read(stream);
+
+                playerItem.SlotType = (SlotType)stream.ReadByte();
+                playerItem.SlotNumber = stream.ReadByte();
+
+                mateItem.SlotType = (SlotType)stream.ReadByte();
+                mateItem.SlotNumber = stream.ReadByte();
+
+                var isEquip = playerItem.Item.TemplateId != 0;
+
+                // Override the Read data with the actual Item data
+                var sourceContainer = character.Inventory.Bag;
+                var targetContainer = slave.Equipment;
+                playerItem.Item = (EquipItem)sourceContainer.GetItemBySlot(playerItem.SlotNumber);
+                mateItem.Item = (EquipItem)targetContainer.GetItemBySlot(mateItem.SlotNumber);
+
+                // Logger.Debug($"{playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
+                // character.SendMessage($"MateEquip: {playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
+
+                // If un-equipping, swap the items around
+                if (!isEquip)
+                {
+                    (playerItem, mateItem) = (mateItem, playerItem);
+                    (sourceContainer, targetContainer) = (targetContainer, sourceContainer);
+                }
+
+                //if (isEquip)
+                if (playerItem.Item != null)
+                {
+                    var res = character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid,
+                        sourceContainer, targetContainer,
+                        playerItem.Item.Id, playerItem.SlotType, playerItem.SlotNumber,
+                        0, mateItem.SlotType, mateItem.SlotNumber);
+
+                    // character.SendMessage($"SCMateEquipmentChanged - {(isEquip ? playerItem : mateItem)} -> {(isEquip ? mateItem : playerItem)}, MateTl: {mateTl} => Success {res}");
+                    if (!res)
                     {
-                        Connection.SendPacket(new SCSlaveEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, slave.Id, bts));
-                        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, itemTasks, []));
-                        //SlaveManager.Instance.Update(character, slave, invItems[i].Item3.TemplateId, invItems[i].Item3, isEquip);
+                        character.SendPacket(new SCMateEquipmentChangedPacket(
+                            isEquip ? playerItem : mateItem,
+                            isEquip ? mateItem : playerItem,
+                            slaveTl,
+                            owningPlayerId, passengerPlayerId,
+                            bts, res));
                     }
                 }
             }
-            else
-            {
-                if (equipItems[i].Item3 != null)
-                {
-                    if (character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid, slave.Equipment, character.Inventory.Bag, equipItems[i].Item3.Id, equipItems[i].Item1, equipItems[i].Item2, 0, invItems[i].Item1, invItems[i].Item2))
-                    {
-                        Connection.SendPacket(new SCSlaveEquipmentChangedPacket(invItems[i], equipItems[i], tl, characterId, slave.Id, bts));
-                        //SlaveManager.Instance.Update(character, slave, equipItems[i].Item3.TemplateId, equipItems[i].Item3, isEquip);
-                    }
-                }
-            }
         }
-
-        ////slaveEquipment = new SlaveEquipment();
-        ////slaveEquipment.Read(stream);
-
-        //////var id = stream.ReadUInt32(); // type (id)
-        //////var tl = stream.ReadUInt16();
-        //////var dbSlaveId = stream.ReadUInt32();
-        //////var bts = stream.ReadBoolean();
-        //////var num = stream.ReadByte();
-        //////for (var i = 0; i < num; i++)
-        //////{
-        //////    // read item1
-        //////    var item1 = new Item();
-        //////    item1.Read(stream);
-
-        //////    // read item2
-        //////    var item2 = new Item();
-        //////    item2.Read(stream);
-
-        //////    var slotType1 = (SlotType)stream.ReadByte();   // type
-        //////    var slot1 = stream.ReadByte();            // index
-
-        //////    var slotType2 = (SlotType)stream.ReadByte();  // type
-        //////    var slot2 = stream.ReadByte();           // index
-        //////}
-
-        ////Logger.Debug($"ChangeSlaveEquipment, Id: {slaveEquipment.Id}, Tl: {slaveEquipment.Tl}, DbSlaveId: {slaveEquipment.DbSlaveId}, Bts: {slaveEquipment.Bts}");
-
-        ////var slave = SlaveManager.Instance.GetSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
-
-        ////Connection.SendPacket(new SCSlaveEquipmentChangedPacket(slaveEquipment, true));
-        ////Connection.ActiveChar.BroadcastPacket(new SCUnitEquipmentsChangedPacket(slave.ObjId, slaveEquipment.Slot, null), false);
     }
 }

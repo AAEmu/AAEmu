@@ -13,88 +13,86 @@ public class CSChangeMateEquipmentPacket : GamePacket
     {
     }
 
-        public override void Read(PacketStream stream)
+    public override void Read(PacketStream stream)
+    {
+        // Owner PlayerId
+        var owningPlayerId = stream.ReadUInt32();
+        // Mate tl
+        var mateTl = stream.ReadUInt16();
+        // Should be Passenger PlayerId, but still reports 0 even when the seat is taken
+        // Maybe this was planned to be used if somehow somebody else than the owner is equipping gear onto the mount
+        var passengerPlayerId = stream.ReadUInt32();
+        // Seems to be always 0
+        var bts = stream.ReadBoolean();
+        // Always 1 for 1 item at a time
+        var itemCount = stream.ReadByte();
+
+        Logger.Debug($"ChangeMateEquipment - TlId: {mateTl}, Owner: {owningPlayerId}, Id2: {passengerPlayerId}, BTS: {bts}, Count: {itemCount}");
+
+        var character = Connection.ActiveChar;
+        var mate = MateManager.Instance.GetActiveMateByTlId(character.ObjId, mateTl);
+        if (mate == null)
         {
-            // Owner PlayerId
-            var owningPlayerId = stream.ReadUInt32();
-            // Mate tl
-            var mateTl = stream.ReadUInt16();
-            // Should be Passenger PlayerId, but still reports 0 even when the seat is taken
-            // Maybe this was planned to be used if somehow somebody else than the owner is equipping gear onto the mount
-            var passengerPlayerId = stream.ReadUInt32();
-            // Seems to be always 0
-            var bts = stream.ReadBoolean();
-            // Always 1 for 1 item at a time
-            var itemCount = stream.ReadByte();
+            Logger.Warn($"ChangeMateEquipment, Unable to find mate with tlId {mateTl}!");
+            return;
+        }
 
-            Logger.Debug($"CSChangeMateEquipmentPacket - TlId: {mateTl}, Owner: {owningPlayerId}, Id2: {passengerPlayerId}, BTS: {bts}, Count: {itemCount}");
+        if (itemCount == 0)
+            return;
 
-            var mate = MateManager.Instance.GetActiveMateByTlId(mateTl);
-            if (mate == null)
+        // SlotType, SlotNum, Item
+        for (var i = 0; i < itemCount; i++)
+        {
+            var playerItem = new ItemAndLocation();
+            var mateItem = new ItemAndLocation();
+
+            playerItem.Item = new EquipItem();
+            playerItem.Item.Read(stream);
+
+            mateItem.Item = new EquipItem();
+            mateItem.Item.Read(stream);
+
+            playerItem.SlotType = (SlotType)stream.ReadByte();
+            playerItem.SlotNumber = stream.ReadByte();
+
+            mateItem.SlotType = (SlotType)stream.ReadByte();
+            mateItem.SlotNumber = stream.ReadByte();
+
+            var isEquip = playerItem.Item.TemplateId != 0;
+
+            // Override the Read data with the actual Item data
+            var sourceContainer = character.Inventory.Bag;
+            var targetContainer = mate.Equipment;
+            playerItem.Item = (EquipItem)sourceContainer.GetItemBySlot(playerItem.SlotNumber);
+            mateItem.Item = (EquipItem)targetContainer.GetItemBySlot(mateItem.SlotNumber);
+
+            // Logger.Debug($"{playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
+            // character.SendMessage($"MateEquip: {playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
+
+            // If un-equipping, swap the items around
+            if (!isEquip)
             {
-                Logger.Warn($"ChangeMateEquipment, Unable to find mate with tlId {mateTl}!");
-                return;
+                (playerItem, mateItem) = (mateItem, playerItem);
+                (sourceContainer, targetContainer) = (targetContainer, sourceContainer);
             }
 
-            if (itemCount == 0)
-                return;
-
-            // SlotType, SlotNum, Item
-            var character = Connection.ActiveChar;
-
-            for (var i = 0; i < itemCount; i++)
+            //if (isEquip)
+            if (playerItem.Item != null)
             {
-                var playerItem = new ItemAndLocation();
-                var mateItem = new ItemAndLocation();
+                var res = character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid,
+                    sourceContainer, targetContainer,
+                    playerItem.Item.Id, playerItem.SlotType, playerItem.SlotNumber,
+                    0, mateItem.SlotType, mateItem.SlotNumber);
 
-                playerItem.Item = new EquipItem();
-                playerItem.Item.Read(stream);
-
-                mateItem.Item = new EquipItem();
-                mateItem.Item.Read(stream);
-
-                playerItem.SlotType = (SlotType)stream.ReadByte();
-                playerItem.SlotNumber = stream.ReadByte();
-
-                mateItem.SlotType = (SlotType)stream.ReadByte();
-                mateItem.SlotNumber = stream.ReadByte();
-
-                var isEquip = playerItem.Item.TemplateId != 0;
-
-                // Override the Read data with the actual Item data
-                var sourceContainer = character.Inventory.Bag;
-                var targetContainer = mate.Equipment;
-                playerItem.Item = (EquipItem)sourceContainer.GetItemBySlot(playerItem.SlotNumber);
-                mateItem.Item = (EquipItem)targetContainer.GetItemBySlot(mateItem.SlotNumber);
-
-                // Logger.Debug($"{playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
-                // character.SendMessage($"MateEquip: {playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
-
-                // If un-equipping, swap the items around
-                if (!isEquip)
+                // character.SendMessage($"SCMateEquipmentChanged - {(isEquip ? playerItem : mateItem)} -> {(isEquip ? mateItem : playerItem)}, MateTl: {mateTl} => Success {res}");
+                if (!res)
                 {
-                    (playerItem, mateItem) = (mateItem, playerItem);
-                    (sourceContainer, targetContainer) = (targetContainer, sourceContainer);
-                }
-
-                //if (isEquip)
-                if (playerItem.Item != null)
-                {
-                    var res = character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid,
-                        sourceContainer, targetContainer,
-                        playerItem.Item.Id, playerItem.SlotType, playerItem.SlotNumber,
-                        0, mateItem.SlotType, mateItem.SlotNumber);
-
-                    // character.SendMessage($"SCMateEquipmentChanged - {(isEquip ? playerItem : mateItem)} -> {(isEquip ? mateItem : playerItem)}, MateTl: {mateTl} => Success {res}");
-                    if (!res)
-                    {
-                        character.SendPacket(new SCMateEquipmentChangedPacket(
-                            isEquip ? playerItem : mateItem,
-                            isEquip ? mateItem : playerItem,
-                            mateTl,
-                            owningPlayerId, passengerPlayerId,
-                            bts, res));
-                    }
+                    character.SendPacket(new SCMateEquipmentChangedPacket(
+                        isEquip ? playerItem : mateItem,
+                        isEquip ? mateItem : playerItem,
+                        mateTl,
+                        owningPlayerId, passengerPlayerId,
+                        bts, res));
                 }
             }
         }

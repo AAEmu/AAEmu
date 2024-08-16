@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             {
                 return;
             }
-            
+
             var petItem = new ItemAndLocation()
             {
                 Item = item,
