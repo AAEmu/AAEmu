@@ -483,14 +483,14 @@ public class SCUnitStatePacket : GamePacket
             // ???, ??? and Appellation (Title)
             stream.WritePisc(0, 0, character.Appellations.ActiveAppellation, 0);      // pisc
                                                                                       // Faction and Guild
-            stream.WritePisc(character.Faction?.Id ?? 0, character.Expedition?.Id ?? 0, 0, 0); // pisc
+            stream.WritePisc((uint)(character.Faction?.Id ?? 0), (uint)(character.Expedition?.Id ?? 0), 0, 0); // pisc
                                                                                                // PvP Honor gained and PvP Kills
             stream.WritePisc(character.HonorGainedInCombat, character.HostileFactionKills, 0, 0); // pisc
         }
         else
         {
             stream.WritePisc(0, 0, 0, 0); // TODO второе число больше нуля, что это за число?
-            stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
+            stream.WritePisc((uint)(_unit.Faction?.Id ?? 0), (uint)(_unit.Expedition?.Id ?? 0), 0, 0); // pisc
             stream.WritePisc(0, 0, 0, 0); // pisc
         }
 

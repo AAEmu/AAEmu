@@ -31,14 +31,14 @@ public class SCFactionRelationListPacket : GamePacket
         stream.Write((byte)_relations.Length);  // TODO max length 200
         foreach (var relation in _relations)
         {
-            stream.Write(relation.Id);          // type
-            stream.Write(relation.Id2);         // type
+            stream.Write((uint)relation.Id);    // type
+            stream.Write((uint)relation.Id2);   // type
             stream.Write((byte)relation.State); // state
             stream.Write((byte)0);              // nState
             stream.Write(0L);                   // type
             stream.Write(DateTime.MinValue);    // updateTime
             stream.Write(DateTime.MinValue);    // changeTime relation.ExpTime
-            stream.Write(relation.Id);          // type
+            stream.Write((uint)relation.Id);    // type
             stream.Write(updaterName);          // updaterName
             stream.Write(0);                    // updaterItemCount
             stream.Write(memo);                 // memo

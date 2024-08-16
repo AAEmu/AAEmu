@@ -78,7 +78,7 @@ public class SCChatMessagePacket : GamePacket
         #region Int64_chat
         stream.Write((short)_type);                         // ChatType -> ChatChannelNo
         stream.Write((short)(_character?.Faction.Id ?? 0)); // chat, subType
-        stream.Write(_character?.Faction.Id ?? 0);          // chat, factionId
+        stream.Write((uint)(_character?.Faction.Id ?? 0));  // chat, factionId
         #endregion Int64_chat
 
         stream.WriteBc(_character?.ObjId ?? 0);

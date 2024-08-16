@@ -16,7 +16,7 @@ public class CSExpeditionChangeRolePolicyPacket : GamePacket
         var rolePolicy = new ExpeditionRolePolicy();
         rolePolicy.Read(stream);
 
-        Logger.Debug($"ExpeditionChangeRolePolicy, Id: {rolePolicy.Id}, Role: {rolePolicy.Role}");
+        Logger.Debug($"ExpeditionChangeRolePolicy, Id: {rolePolicy.ExpeditionId}, Role: {rolePolicy.Role}");
         ExpeditionManager.Instance.ChangeExpeditionRolePolicy(Connection, rolePolicy);
     }
 }

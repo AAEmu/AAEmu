@@ -11,16 +11,16 @@ public enum FactionsEnum : uint
     Elf = 103,
     Harani = 109,
     Firran = 113,
-    
+
     Monstrosity = 115,
     Animal = 116,
     NuiaAlliance = 148,
     HaranyaAlliance = 149,
-    
+
     RedTeam = 159,
     BlueTeam = 160,
 
     Pirate = 161,
     PcFriendly = 165,
-    Fish = 172,
+    Fish = 172
 }

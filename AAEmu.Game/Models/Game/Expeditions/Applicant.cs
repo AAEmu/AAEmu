@@ -1,14 +1,14 @@
 ﻿using System;
 
 using AAEmu.Commons.Network;
-
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions;
 
 public class Applicant : PacketMarshaler
 {
-    public uint ExpeditionId { get; set; }
+    public FactionsEnum ExpeditionId { get; set; }
     public string Memo { get; set; }
     public uint CharacterId { get; set; }
     public string CharacterName { get; set; }
@@ -35,7 +35,7 @@ public class Applicant : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(ExpeditionId);
+        stream.Write((uint)ExpeditionId);
         stream.Write(Memo);
         return stream;
     }
@@ -45,7 +45,7 @@ public class Applicant : PacketMarshaler
         stream.Write(CharacterId);
         stream.Write(CharacterName);
         stream.Write(CharacterLevel);
-        stream.Write(ExpeditionId);
+        stream.Write((uint)ExpeditionId);
         stream.Write(Memo);
         stream.Write(RegTime);
         return stream;
@@ -59,12 +59,12 @@ public class Applicant : PacketMarshaler
 
         command.CommandText = "REPLACE INTO expedition_applicants(`expedition_id`,`character_id`,`character_name`,`character_level`,`memo`,`reg_time`)" +
                               "VALUES (@expedition_id, @character_id, @character_name, @character_level, @memo, @reg_time)";
-        command.Parameters.AddWithValue("@expedition_id", this.ExpeditionId);
-        command.Parameters.AddWithValue("@character_id", this.CharacterId);
-        command.Parameters.AddWithValue("@character_name", this.CharacterName);
-        command.Parameters.AddWithValue("@character_level", this.CharacterLevel);
-        command.Parameters.AddWithValue("@memo", this.Memo);
-        command.Parameters.AddWithValue("@reg_time", this.RegTime);
+        command.Parameters.AddWithValue("@expedition_id", (uint)ExpeditionId);
+        command.Parameters.AddWithValue("@character_id", CharacterId);
+        command.Parameters.AddWithValue("@character_name", CharacterName);
+        command.Parameters.AddWithValue("@character_level", CharacterLevel);
+        command.Parameters.AddWithValue("@memo", Memo);
+        command.Parameters.AddWithValue("@reg_time", RegTime);
         command.ExecuteNonQuery();
     }
 }

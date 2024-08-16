@@ -1,7 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var expeditionId = stream.ReadUInt32(); // type(id)
+            var expeditionId = (FactionsEnum)stream.ReadUInt32(); // type(id)
 
             Logger.Debug($"CSExpeditionApplicantDeletePacket: character={Connection.ActiveChar.Name}:{Connection.ActiveChar.Id}, expeditionId={expeditionId}");
 

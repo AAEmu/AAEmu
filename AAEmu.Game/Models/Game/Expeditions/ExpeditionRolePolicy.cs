@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 
@@ -31,18 +31,18 @@ public class ExpeditionRolePolicy : PacketMarshaler
                 "expedition_role_policies(`expedition_id`,`role`,`name`,`dominion_declare`,`invite`,`expel`,`promote`,`dismiss`, `chat`, `manager_chat`, `siege_master`, `join_siege`) " +
                 "VALUES (@expedition_id,@role,@name,@dominion_declare,@invite,@expel,@promote,@dismiss,@chat,@manager_chat,@siege_master,@join_siege)";
 
-            command.Parameters.AddWithValue("@expedition_id", this.ExpeditionId);
-            command.Parameters.AddWithValue("@role", this.Role);
-            command.Parameters.AddWithValue("@name", this.Name);
-            command.Parameters.AddWithValue("@dominion_declare", this.DominionDeclare);
-            command.Parameters.AddWithValue("@invite", this.Invite);
-            command.Parameters.AddWithValue("@expel", this.Expel);
-            command.Parameters.AddWithValue("@promote", this.Promote);
-            command.Parameters.AddWithValue("@dismiss", this.Dismiss);
-            command.Parameters.AddWithValue("@chat", this.Chat);
-            command.Parameters.AddWithValue("@manager_chat", this.ManagerChat);
-            command.Parameters.AddWithValue("@siege_master", this.SiegeMaster);
-            command.Parameters.AddWithValue("@join_siege", this.JoinSiege);
+            command.Parameters.AddWithValue("@expedition_id", (uint)ExpeditionId);
+            command.Parameters.AddWithValue("@role", Role);
+            command.Parameters.AddWithValue("@name", Name);
+            command.Parameters.AddWithValue("@dominion_declare", DominionDeclare);
+            command.Parameters.AddWithValue("@invite", Invite);
+            command.Parameters.AddWithValue("@expel", Expel);
+            command.Parameters.AddWithValue("@promote", Promote);
+            command.Parameters.AddWithValue("@dismiss", Dismiss);
+            command.Parameters.AddWithValue("@chat", Chat);
+            command.Parameters.AddWithValue("@manager_chat", ManagerChat);
+            command.Parameters.AddWithValue("@siege_master", SiegeMaster);
+            command.Parameters.AddWithValue("@join_siege", JoinSiege);
             command.ExecuteNonQuery();
         }
     }

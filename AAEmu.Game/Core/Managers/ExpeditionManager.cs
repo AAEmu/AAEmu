@@ -214,7 +214,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         }
     }
 
-    public static List<ExpeditionRolePolicy> GetDefaultPolicies(uint expeditionId)
+    public static List<ExpeditionRolePolicy> GetDefaultPolicies(FactionsEnum expeditionId)
     {
         var res = new List<ExpeditionRolePolicy>();
         foreach (var rolePolicy in AppConfiguration.Instance.Expedition.RolePolicies)
@@ -346,17 +346,14 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         //owner.SendPacket(new SCFactionCreatedPacket(expedition, owner.ObjId, new[] { (owner.ObjId, owner.Id, owner.Name) }));
         owner.SendPacket(new SCExpeditionCreatedPacket(expedition, owner.ObjId, members));
-        WorldManager.Instance.BroadcastPacketToServer(new SCFactionListPacket(expedition));
-        owner.BroadcastPacket(
-            new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
-            true
-        );
+        WorldManager.Instance.BroadcastPacketToServer(new SCSystemFactionListPacket(expedition));
+        owner.BroadcastPacket(new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false), true);
 
         foreach (var m in validMembers)
         {
             if (m.Character.Id == owner.Id)
             {
-                owner.BroadcastPacket(new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false), true);
+                owner.BroadcastPacket(new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false), true);
                 SendMyExpeditionInfo(owner);
                 ChatManager.Instance.GetGuildChat(expedition).JoinChannel(owner);
                 continue;
@@ -368,7 +365,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             invited.Expedition = expedition;
             expedition.Members.Add(newMember);
 
-            invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, (uint)expedition.Id, false), true);
+            invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false), true);
             SendMyExpeditionInfo(invited);
             expedition.OnCharacterLogin(invited);
         }
@@ -398,7 +395,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (invited == null) return;
         if (invited.Expedition != null) return;
 
-        invited.SendPacket(new SCExpeditionInvitationPacket(inviter.Id, inviter.Name, (uint)inviter.Expedition.Id, inviter.Expedition.Name));
+        invited.SendPacket(new SCExpeditionInvitationPacket(inviter.Id, inviter.Name, inviter.Expedition.Id, inviter.Expedition.Name));
     }
 
     /// <summary>
@@ -408,7 +405,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     /// <param name="expeditionId">Id гильдии</param>
     /// <param name="id2"></param>
     /// <param name="reply">Согласие или отказ</param>
-    public void ReplyInvite(GameConnection connection, FactionsEnum expeditionId, uint id2, bool reply)
+    public void ReplyInvite(GameConnection connection, FactionsEnum expeditionId, FactionsEnum id2, bool reply)
     {
         var invited = connection.ActiveChar;
         if (!reply)
@@ -420,7 +417,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         invited.Expedition = expedition;
         expedition.Members.Add(newMember);
 
-        invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, (uint)expedition.Id, false), true);
+        invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false), true);
         SendMyExpeditionInfo(invited);
         expedition.OnCharacterLogin(invited);
     }
@@ -454,7 +451,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (expedition == null) return;
 
         expedition.RemoveMember(expedition.GetMember(character));
-        var changedPacket = new SCUnitExpeditionChangedPacket(character.ObjId, character.Id, "", character.Name, (uint)expedition.Id, 0, false);
+        var changedPacket = new SCUnitExpeditionChangedPacket(character.ObjId, character.Id, "", character.Name, expedition.Id, 0, false);
         character.Expedition = null;
         character.BroadcastPacket(changedPacket, true);
         expedition.SendPacket(changedPacket);
@@ -479,7 +476,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         var kickedChar = WorldManager.Instance.GetCharacterById(kickedId);
 
-        var changedPacket = new SCUnitExpeditionChangedPacket(kickedChar?.ObjId ?? 0, kicked.CharacterId, character.Name, kicked.Name, (uint)expedition.Id, 0, true);
+        var changedPacket = new SCUnitExpeditionChangedPacket(kickedChar?.ObjId ?? 0, kicked.CharacterId, character.Name, kicked.Name, expedition.Id, FactionsEnum.Invalid, true);
 
         if (kickedChar is not null)
         {
@@ -574,8 +571,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (character.Expedition == null)
         {
             character.SendPacket(new SCExpeditionRolePolicyListPacket([]));
-            character.SendPacket(new SCExpeditionMemberListPacket(0, 0, []));
-            character.SendPacket(new SCExpeditionMemberListEndPacket(0, 0));
+            character.SendPacket(new SCExpeditionMemberListPacket(0, FactionsEnum.Invalid, []));
+            character.SendPacket(new SCExpeditionMemberListEndPacket(0, FactionsEnum.Invalid));
         }
         else
         {
@@ -584,9 +581,9 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             var dividedLists = Helpers.SplitList(character.Expedition.Members, 20); // Разделяем список на списки по 20 записей
             foreach (var members in dividedLists)
             {
-                character.SendPacket(new SCExpeditionMemberListPacket(total, (uint)character.Expedition.Id, members));
+                character.SendPacket(new SCExpeditionMemberListPacket(total, character.Expedition.Id, members));
             }
-            character.SendPacket(new SCExpeditionMemberListEndPacket(total, (uint)character.Expedition.Id));
+            character.SendPacket(new SCExpeditionMemberListEndPacket(total, character.Expedition.Id));
 
             character.SendPacket(new SCExpeditionDescReceivedPacket(character.Expedition));
         }
@@ -870,7 +867,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     private void RemoveRecruitments(Expedition expedition)
     {
         _recruitments.RemoveAll(recruitment => recruitment.ExpeditionId == expedition.Id);
-        _removedMembers.Add(expedition.Id);
+        _removedMembers.Add((uint)expedition.Id);
     }
 
     /// <summary>
@@ -879,12 +876,12 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     /// </summary>
     /// <param name="expeditionId">Id гильдии</param>
     /// <returns></returns>
-    private ExpeditionRecruitment GetRecruitment(uint expeditionId)
+    private ExpeditionRecruitment GetRecruitment(FactionsEnum expeditionId)
     {
         return _recruitments.FirstOrDefault(recruitment => recruitment.ExpeditionId == expeditionId);
     }
 
-    public void AddPretender(Character character, uint expeditionId, string memo)
+    public void AddPretender(Character character, FactionsEnum expeditionId, string memo)
     {
         var expedition = GetExpedition(expeditionId);
         var pretender = new Applicant
@@ -900,7 +897,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         character.SendPacket(new SCExpeditionApplicantAddPacket(expeditionId));
     }
 
-    public void RemovePretender(Character character, uint expeditionId)
+    public void RemovePretender(Character character, FactionsEnum expeditionId)
     {
         var expedition = GetExpedition(expeditionId);
         var pretender = GetPretender(expeditionId, character.Id);
@@ -915,7 +912,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     private void RemovePretenders(Expedition expedition)
     {
         _pretenders.RemoveAll(pretender => pretender.ExpeditionId == expedition.Id);
-        _removedMembers.Add(expedition.Id);
+        _removedMembers.Add((uint)expedition.Id);
     }
 
     /// <summary>
@@ -995,7 +992,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     /// <param name="expeditionId">Id гильдии</param>
     /// <param name="characterId">Id претендента на вступлению в гильдию</param>
     /// <returns></returns>
-    private Applicant GetPretender(uint expeditionId, uint characterId)
+    private Applicant GetPretender(FactionsEnum expeditionId, uint characterId)
     {
         return _pretenders.FirstOrDefault(pretender => pretender.ExpeditionId == expeditionId && pretender.CharacterId == characterId);
     }
@@ -1005,7 +1002,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     /// </summary>
     /// <param name="expeditionId">Id гильдии</param>
     /// <returns></returns>
-    private List<Applicant> GetPretenders(uint expeditionId)
+    private List<Applicant> GetPretenders(FactionsEnum expeditionId)
     {
         return _pretenders.Where(pretender => pretender.ExpeditionId == expeditionId).ToList();
     }
@@ -1085,7 +1082,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             characterInfo.Id = reader.GetUInt32("id");
             characterInfo.Name = reader.GetString("name");
             characterInfo.Level = reader.GetByte("level");
-            var expeditionId = reader.GetUInt32("expedition_id");
+            var expeditionId = (FactionsEnum)reader.GetUInt32("expedition_id");
             if (expeditionId != 0)
             {
                 var expedition = GetExpedition(expeditionId);

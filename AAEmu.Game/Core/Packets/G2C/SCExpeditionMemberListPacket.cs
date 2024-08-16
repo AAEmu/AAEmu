@@ -2,6 +2,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -10,15 +11,15 @@ public class SCExpeditionMemberListPacket : GamePacket
     private readonly uint _id;
     private readonly List<ExpeditionMember> _members;
 
-    public SCExpeditionMemberListPacket(uint total, uint id, List<ExpeditionMember> members) : base(SCOffsets.SCExpeditionMemberListPacket, 5)
+    public SCExpeditionMemberListPacket(uint total, FactionsEnum id, List<ExpeditionMember> members) : base(SCOffsets.SCExpeditionMemberListPacket, 5)
     {
-        _id = id;
+        _id = (uint)id;
         _members = members;
     }
 
     public SCExpeditionMemberListPacket(Expedition expedition) : base(SCOffsets.SCExpeditionMemberListPacket, 5)
     {
-        _id = expedition.Id;
+        _id = (uint)expedition.Id;
         _members = expedition.Members; // TODO max 20
     }
 

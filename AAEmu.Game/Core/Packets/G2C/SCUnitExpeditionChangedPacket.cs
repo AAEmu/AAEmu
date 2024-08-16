@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -13,15 +14,15 @@ public class SCUnitExpeditionChangedPacket : GamePacket
     private readonly uint _expeditionId;
     private readonly bool _expel;
 
-    public SCUnitExpeditionChangedPacket(uint unitId, uint characterId, string kicker, string unitName, uint id, uint expeditionId, bool expel)
+    public SCUnitExpeditionChangedPacket(uint unitId, uint characterId, string kicker, string unitName, FactionsEnum id, FactionsEnum expeditionId, bool expel)
         : base(SCOffsets.SCUnitExpeditionChangedPacket, 5)
     {
         _unitId = unitId;
         _characterId = characterId;
         _kicker = kicker;
         _unitName = unitName;
-        _id = id; // TODO nation? faction?
-        _expeditionId = expeditionId;
+        _id = (uint)id; // TODO nation? faction?
+        _expeditionId = (uint)expeditionId;
         _expel = expel;
     }
 

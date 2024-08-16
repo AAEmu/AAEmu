@@ -658,7 +658,7 @@ public class Teleport : ICommand
 
             if (AllowPingPos && n == ".")
             {
-                if (character.LocalPingPosition.X == 0f && character.LocalPingPosition.Y == 0f)
+                if (character.LocalPingPosition.Positions[1].X == 0f && character.LocalPingPosition.Positions[1].Y == 0f)
                 {
                     CommandManager.SendNormalText(this, messageOutput,
                         "|cFFFFFF00Make sure you marked a location on the map WHILE IN A PARTY OR RAID, before using this teleport function.\n" +
@@ -667,21 +667,21 @@ public class Teleport : ICommand
                 else
                 {
                     var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId,
-                        character.LocalPingPosition.X, character.LocalPingPosition.Y);
+                        character.LocalPingPosition.Positions[1].X, character.LocalPingPosition.Positions[1].Y);
                     if (height == 0f)
                     {
                         CommandManager.SendNormalText(this,
                             messageOutput, "|cFFFF0000Target height was |cFFFFFFFFzero|cFFFF0000. " +
                                            "You likely tried to teleport out of bounds, or no heightmap data was loaded on the server.\n" +
                                            $"If you still want to move to the target location, you can use |cFFFFFFFF{CommandManager.CommandPrefix}move|cFFFF0000 to go to the following location|cFF40FF40\n" +
-                                           $"X:{character.LocalPingPosition.X:0.0} Y:{character.LocalPingPosition.Y:0.0}|r");
+                                           $"X:{character.LocalPingPosition.Positions[1].X:0.0} Y:{character.LocalPingPosition.Positions[1].Y:0.0}|r");
                     }
                     else
                     {
                         height += 2.5f; // compensate a bit for terrain irregularities
                         CommandManager.SendNormalText(this, messageOutput,
-                            "Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" +
-                            character.LocalPingPosition.Y + " Z:" + height + "|r");
+                            "Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.Positions[1].X + " Y:" +
+                            character.LocalPingPosition.Positions[1].Y + " Z:" + height + "|r");
                         character.ForceDismount();
                         character.DisabledSetPosition = true;
                         character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, ErrorMessageType.NoErrorMessage, character.LocalPingPosition.Positions[1].X, character.LocalPingPosition.Positions[1].Y, height, 0));

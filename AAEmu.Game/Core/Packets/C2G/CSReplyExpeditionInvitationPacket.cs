@@ -14,7 +14,7 @@ public class CSReplyExpeditionInvitationPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var id = (FactionsEnum)stream.ReadUInt32(); // type(id)
-        var id2 = stream.ReadUInt32(); // type(id)
+        var id2 = (FactionsEnum)stream.ReadUInt32(); // type(id)
         var join = stream.ReadBoolean();
 
         Logger.Debug("ReplyExpeditionInvitation, Id: {0}, Id2: {1}, Join: {2}", id, id2, join);

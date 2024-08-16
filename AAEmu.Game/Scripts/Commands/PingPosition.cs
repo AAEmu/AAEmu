@@ -27,7 +27,7 @@ public class PingPosition : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        if (character.LocalPingPosition.X == 0f && character.LocalPingPosition.Y == 0f)
+        if (character.LocalPingPosition.Positions[1].X == 0f && character.LocalPingPosition.Positions[1].Y == 0f)
         {
             CommandManager.SendErrorText(this, messageOutput,
                 "Make sure you marked a location on the map WHILE IN A PARTY OR RAID, using this command.\n" +
@@ -35,17 +35,17 @@ public class PingPosition : ICommand
         }
         else
         {
-            var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X,
-                character.LocalPingPosition.Y);
+            var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.Positions[1].X,
+                character.LocalPingPosition.Positions[1].Y);
             if (height == 0f)
             {
                 CommandManager.SendNormalText(this, messageOutput,
-                    $"|cFFFFFFFFX:{character.LocalPingPosition.X:0.0} Y:{character.LocalPingPosition.Y:0.0} Z: ???|r");
+                    $"|cFFFFFFFFX:{character.LocalPingPosition.Positions[1].X:0.0} Y:{character.LocalPingPosition.Positions[1].Y:0.0} Z: ???|r");
             }
             else
             {
                 CommandManager.SendNormalText(this, messageOutput,
-                    $"|cFFFFFFFFX:{character.LocalPingPosition.X:0.0} Y:{character.LocalPingPosition.Y:0.0} Z:{height:0.0}|r");
+                    $"|cFFFFFFFFX:{character.LocalPingPosition.Positions[1].X:0.0} Y:{character.LocalPingPosition.Positions[1].Y:0.0} Z:{height:0.0}|r");
             }
         }
     }
