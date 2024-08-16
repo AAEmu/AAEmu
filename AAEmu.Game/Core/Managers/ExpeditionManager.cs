@@ -420,6 +420,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         invited.BroadcastPacket(new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false), true);
         SendMyExpeditionInfo(invited);
         expedition.OnCharacterLogin(invited);
+        Save(expedition);
+        // invited.Save(); // Moved to SaveMananger
     }
 
     public void ChangeExpeditionRolePolicy(GameConnection connection, ExpeditionRolePolicy policy)
@@ -439,6 +441,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         currentPolicy.Expel = policy.Expel;
 
         expedition.SendPacket(new SCExpeditionRolePolicyChangedPacket(policy, true));
+        Save(expedition);
     }
 
     /// <summary>
@@ -484,6 +487,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             kickedChar.BroadcastPacket(changedPacket, true);
         }
         expedition.SendPacket(changedPacket);
+        Save(expedition);
     }
 
     public static void ChangeMemberRole(GameConnection connection, byte newRole, uint changedId)
@@ -503,6 +507,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         changedMember.Role = newRole;
         expedition.SendPacket(new SCExpeditionMemberRoleChangedPacket(changedMember.CharacterId, changedMember.Role, changedMember.Name));
+        Save(expedition);
     }
 
     public static void ChangeOwner(GameConnection connection, uint newOwnerId)
@@ -525,6 +530,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         expedition.SendPacket(new SCExpeditionOwnerChangedPacket(ownerMember.CharacterId, newOwnerMember.CharacterId, newOwnerMember.Name));
         expedition.SendPacket(new SCExpeditionMemberRoleChangedPacket(ownerMember.CharacterId, ownerMember.Role, ownerMember.Name));
         expedition.SendPacket(new SCExpeditionMemberRoleChangedPacket(newOwnerMember.CharacterId, newOwnerMember.Role, newOwnerMember.Name));
+        Save(expedition);
     }
 
     public static bool Disband(Character owner)

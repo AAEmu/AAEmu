@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Generic;
+using System.Net;
 using System.Text.Json;
 using NetCoreServer;
 
@@ -36,5 +37,26 @@ internal class BaseController : IController
         response.SetBody(jsonResult);
 
         return response;
+    }
+    
+    public Dictionary<string, string> ParseQueryParameters(string url)
+    {
+        var queryParams = new Dictionary<string, string>();
+        var queryStartIndex = url.IndexOf('?');
+
+        if (queryStartIndex != -1)
+        {
+            var query = url.Substring(queryStartIndex + 1);
+            foreach (var pair in query.Split('&'))
+            {
+                var keyValue = pair.Split('=');
+                if (keyValue.Length == 2)
+                {
+                    queryParams[keyValue[0]] = keyValue[1];
+                }
+            }
+        }
+
+        return queryParams;
     }
 }
