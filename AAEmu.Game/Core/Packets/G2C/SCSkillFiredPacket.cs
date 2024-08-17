@@ -22,18 +22,22 @@ public class SCSkillFiredPacket : GamePacket
     private readonly Skill _skill;
     private short _effectDelay = 37;
     private bool _dist;
-    private bool _fist;
-    private bool _oneHand;
+    private bool _fist; // скилл 2 анимация 1 и 2
+    private bool _rightHand; // скилл 2 анимация 3 и 87
+    private bool _leftHand; // скилл 3 анимация 4 и 87
     private bool _twoHand;
-    private bool _bow;
+    private bool _shield;
+    private bool _bow; // по идее скилл 4
 
     private readonly Character _character;
     private readonly int _fireAnimId;
-    private static readonly Dictionary<int, int> CharacterFireAnimDataOneHand = new()
+    private static readonly Dictionary<int, int> CharacterFireAnimDataRightHand = new()
     {
-        { 3, 45 }, { 4, 45 }, { 5, 45 }, { 6, 45 },
-        { 87, 45 }, { 88, 45 }, { 89, 45 }, { 90, 45 },
-        { 92, 45 }, { 93, 45 }, { 94, 45 }
+        { 3, 46 }, { 87, 35 }
+    };
+    private static readonly Dictionary<int, int> CharacterFireAnimDataLeftHand = new()
+    {
+        { 4, 45 }, { 88, 35 }
     };
     private static readonly Dictionary<int, int> CharacterFireAnimDataTwoHand = new()
     {
@@ -43,7 +47,14 @@ public class SCSkillFiredPacket : GamePacket
     {
         { 9, 45 }
     };
-    private static readonly Dictionary<int, int> NpcFireAnimData = new() { { 1, 50 }, { 2, 45 } };
+    private static readonly Dictionary<int, int> CharacterFireAnimDataFist = new()
+    {
+        { 1, 26 }, { 2, 80 }
+    };
+    private static readonly Dictionary<int, int> NpcFireAnimData = new()
+    {
+        { 1, 37 }, { 2, 80 }
+    };
 
     private static Dictionary<int, int> FireAnimData;
     private static Queue<int> FireAnimQueue;
@@ -60,30 +71,50 @@ public class SCSkillFiredPacket : GamePacket
         _target = target;
         _skill = skill;
         _skillObject = skillObject;
-        _character = baseUnit as Character;
 
-        if (_skill.Template.Id == 2)
+        _character = baseUnit as Character;
+        _fist = false;
+        _rightHand = false;
+        _leftHand = false;
+        _shield = false;
+        _twoHand = false;
+
+        if (_skill.Template.Id == 2 || _skill.Template.Id == 3)
         {
             if (_character is not null)
             {
                 var mainHandItem = _character.Equipment.GetItemBySlot(15);
                 var offHandItem = _character.Equipment.GetItemBySlot(16);
 
-                _oneHand = mainHandItem != null;
-                _fist = mainHandItem == null;
-                _twoHand = offHandItem != null;
-            }
-            else
-            {
-                _oneHand = false;
-                _twoHand = false;
-                _fist = false;
+                if (mainHandItem is not null)
+                {
+                    _rightHand = true;
+                }
+                if (offHandItem is not null)
+                {
+                    _leftHand = true;
+                }
+                if (_character.Buffs.CheckBuff((uint)BuffConstants.EquipShield))
+                {
+                    _shield = true;
+                    _leftHand = false;
+                }
+                if (_character.Buffs.CheckBuff((uint)BuffConstants.EquipTwoHanded))
+                {
+                    _twoHand = true;
+                    _rightHand = false;
+                    _leftHand = false;
+                }
+                if (!_twoHand && !_rightHand && !_leftHand)
+                {
+                    _fist = true;
+                }
             }
 
             _fireAnimId = GetNextAnimationId();
         }
 
-        if (_skill.Template.Id == 2 && _character is not null)
+        if ((_skill.Template.Id == 2 || _skill.Template.Id == 3) && _character is not null)
         {
             Logger.Info($"SkillFired: Id={_id}:{_fireAnimId}, caster={baseUnit.ObjId}, target={_target.ObjId}");
         }
@@ -98,22 +129,40 @@ public class SCSkillFiredPacket : GamePacket
                 FireAnimData = new Dictionary<int, int>();
                 var allKeys = Enumerable.Empty<int>();
 
-                if (_oneHand)
+                // только меч в правой руке
+                // или меч в правой руке и щит в левой
+                if (_rightHand || (_rightHand && _shield))
                 {
-                    allKeys = allKeys.Concat(CharacterFireAnimDataOneHand.Keys);
-                    MergeDictionaries(FireAnimData, CharacterFireAnimDataOneHand);
+                    allKeys = allKeys.Concat(CharacterFireAnimDataRightHand.Keys);
+                    MergeDictionaries(FireAnimData, CharacterFireAnimDataRightHand);
                 }
-
+                // только меч в левой руке
+                if (_rightHand && _leftHand)
+                {
+                    allKeys = allKeys.Concat(CharacterFireAnimDataRightHand.Keys);
+                    MergeDictionaries(FireAnimData, CharacterFireAnimDataRightHand);
+                    allKeys = allKeys.Concat(CharacterFireAnimDataLeftHand.Keys);
+                    MergeDictionaries(FireAnimData, CharacterFireAnimDataLeftHand);
+                }
+                // только меч в левой руке
+                if (!_rightHand && _leftHand)
+                {
+                    allKeys = allKeys.Concat(CharacterFireAnimDataFist.Keys);
+                    MergeDictionaries(FireAnimData, CharacterFireAnimDataFist);
+                    allKeys = allKeys.Concat(CharacterFireAnimDataLeftHand.Keys);
+                    MergeDictionaries(FireAnimData, CharacterFireAnimDataLeftHand);
+                }
+                // только двуручный меч
                 if (_twoHand)
                 {
                     allKeys = allKeys.Concat(CharacterFireAnimDataTwoHand.Keys);
                     MergeDictionaries(FireAnimData, CharacterFireAnimDataTwoHand);
                 }
-
+                // только кулаки
                 if (_fist)
                 {
-                    allKeys = NpcFireAnimData.Keys;
-                    FireAnimData = NpcFireAnimData;
+                    allKeys = CharacterFireAnimDataFist.Keys;
+                    FireAnimData = CharacterFireAnimDataFist;
                 }
 
                 // Перемешивание ключей
@@ -124,17 +173,15 @@ public class SCSkillFiredPacket : GamePacket
             // Dequeue the next animation ID
             return FireAnimQueue.Dequeue();
         }
-        else
+
+        // если не персонаж, то Npc
+        if (NpcFireAnimQueue == null || NpcFireAnimQueue.Count == 0)
         {
-            // если не персонаж, то Npc
-            if (NpcFireAnimQueue == null || NpcFireAnimQueue.Count == 0)
-            {
-                var allKeys = NpcFireAnimData.Keys;
-                NpcFireAnimQueue = new Queue<int>(allKeys);
-            }
-            // Dequeue the next animation ID
-            return NpcFireAnimQueue.Dequeue();
+            var allKeys = NpcFireAnimData.Keys;
+            NpcFireAnimQueue = new Queue<int>(allKeys);
         }
+        // Dequeue the next animation ID
+        return NpcFireAnimQueue.Dequeue();
     }
 
     private void MergeDictionaries(Dictionary<int, int> target, Dictionary<int, int> source)

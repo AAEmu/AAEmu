@@ -33,23 +33,23 @@ namespace AAEmu.Game.Core.Packets.C2G
             var slave = SlaveManager.Instance.GetSlaveByTlId(slaveTl);
             if (slave == null)
             {
-                Logger.Warn($"ChangeMateEquipment, Unable to find mate with tlId {slaveTl}!");
+                Logger.Warn($"ChangeSlaveEquipment, Unable to find slave with tlId {slaveTl}!");
                 return;
             }
 
             if (itemCount == 0)
                 return;
 
-            // SlotType, SlotNum, Item
             for (var i = 0; i < itemCount; i++)
             {
+                // SlotType, SlotNum, Item
                 var playerItem = new ItemAndLocation();
                 var mateItem = new ItemAndLocation();
 
-                playerItem.Item = new EquipItem();
+                playerItem.Item = new Item();
                 playerItem.Item.Read(stream);
 
-                mateItem.Item = new EquipItem();
+                mateItem.Item = new Item();
                 mateItem.Item.Read(stream);
 
                 playerItem.SlotType = (SlotType)stream.ReadByte();
@@ -63,8 +63,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 // Override the Read data with the actual Item data
                 var sourceContainer = character.Inventory.Bag;
                 var targetContainer = slave.Equipment;
-                playerItem.Item = (EquipItem)sourceContainer.GetItemBySlot(playerItem.SlotNumber);
-                mateItem.Item = (EquipItem)targetContainer.GetItemBySlot(mateItem.SlotNumber);
+                playerItem.Item = sourceContainer.GetItemBySlot(playerItem.SlotNumber);
+                mateItem.Item = targetContainer.GetItemBySlot(mateItem.SlotNumber);
 
                 // Logger.Debug($"{playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
                 // character.SendMessage($"MateEquip: {playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
