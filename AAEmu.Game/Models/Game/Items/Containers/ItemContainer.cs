@@ -380,6 +380,7 @@ public class ItemContainer
             item.Slot = newSlot;
             item._holdingContainer = this;
             item.OwnerId = OwnerId;
+            sourceContainer = item._holdingContainer;
 
             Items.Insert(0, item); // insert at front for easy buyback handling
 

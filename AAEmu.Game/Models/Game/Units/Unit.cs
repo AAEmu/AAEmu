@@ -1168,7 +1168,7 @@ public class Unit : BaseUnit, IUnit
                         Buffs.AddBuff(newEffect);
                         appliedBuffs.Add(bonus.BuffId);
                     }
-                    if (bonus.ItemProcId != 0)
+                    if (bonus.ItemProcId != 0 && Procs != null)
                     {
                         Procs.AddProc(bonus.ItemProcId);
                     }
@@ -1177,7 +1177,7 @@ public class Unit : BaseUnit, IUnit
                 {
                     if (bonus.BuffId != 0 && Buffs.CheckBuff(bonus.BuffId) && !appliedBuffs.Contains(bonus.BuffId))
                         Buffs.RemoveBuff(bonus.BuffId);
-                    if (bonus.ItemProcId != 0)
+                    if (bonus.ItemProcId != 0 && Procs != null)
                         Procs.RemoveProc(bonus.ItemProcId);
                 }
             }

@@ -178,7 +178,7 @@ public class SpawnManager : Singleton<SpawnManager>
     {
         var world = WorldManager.Instance.GetWorlds().FirstOrDefault(x => x.Id == worldId);
         if (world == null)
-            return -1 ;
+            return -1;
 
         var res = 0;
         // NPCs
