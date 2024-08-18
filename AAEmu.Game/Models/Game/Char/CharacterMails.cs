@@ -72,8 +72,14 @@ public class CharacterMails
         Self.SendPacket(new SCCountUnreadMailPacket(UnreadMailCount));
     }
 
-    public bool SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(Items.SlotType, byte)> itemSlots)
+    public MailResult SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(SlotType, byte)> itemSlots)
     {
+        
+        if (string.IsNullOrWhiteSpace(receiverName) || NameManager.Instance.GetCharacterId(receiverName) == 0)
+        {
+            return MailResult.UnableToFindRecipient;
+        }
+        
         var mail = new MailPlayerToPlayer(Self, receiverName);
 
         mail.MailType = mailType;
@@ -91,22 +97,20 @@ public class CharacterMails
         // First verify source items, and add them to the attachments of body
         if (!mail.PrepareAttachmentItems(itemSlots))
         {
-            Self.SendErrorMessage(ErrorMessageType.MailInvalidItem);
-            return false;
+            // Self.SendErrorMessage(ErrorMessageType.MailInvalidItem);
+            return MailResult.InvalidSlot;
         }
 
         // With attachments in place, we can calculate the send fee
         var mailFee = mail.GetMailFee();
         if (mailFee + money0 > Self.Money)
         {
-            Self.SendErrorMessage(ErrorMessageType.MailNotEnoughMoney);
-            return false;
+            // Self.SendErrorMessage(ErrorMessageType.MailNotEnoughMoney);
+            return MailResult.InsufficientCoins;
         }
 
         if (!mail.FinalizeAttachments())
-        {
-            return false; // Should never fail at this point
-        }
+            return MailResult.InvalidSlot; // Should never fail at this point
 
         // Add delay if not a normal snail mail
         if (mailType == MailType.Normal)
@@ -120,11 +124,11 @@ public class CharacterMails
             Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray(), UnreadMailCount));
             // Take the fee
             Self.SubtractMoney(SlotType.Inventory, mailFee + money0);
-            return true;
+            return MailResult.Success;
         }
         else
         {
-            return false;
+            return MailResult.MailErrorOccurred;
         }
     }
 
