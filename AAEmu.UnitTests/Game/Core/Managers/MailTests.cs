@@ -54,7 +54,7 @@ public sealed class MailTests : IDisposable
         var extra = 0;
         var itemSlots = new List<(SlotType slotType, byte slot)>();
 
-        Assert.True(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots));
+        Assert.Equal(MailResult.Success, _mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots));
         Assert.Equal(400, _character.Money);
     }
 
@@ -73,7 +73,7 @@ public sealed class MailTests : IDisposable
         var extra = 0;
         var itemSlots = new List<(SlotType slotType, byte slot)>();
 
-        Assert.False(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots));
+        Assert.NotEqual(MailResult.Success, _mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots));
         Assert.Equal(1000, _character.Money);
     }
 }
