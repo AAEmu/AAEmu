@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Net;
 using System.Text.Json;
+using System.Web;
 using NetCoreServer;
 
 namespace AAEmu.Game.Services.WebApi.Controllers;
@@ -39,24 +41,11 @@ internal class BaseController : IController
         return response;
     }
     
-    public Dictionary<string, string> ParseQueryParameters(string url)
+    public NameValueCollection ParseQueryString(string url)
     {
-        var queryParams = new Dictionary<string, string>();
         var queryStartIndex = url.IndexOf('?');
+        var queryString = queryStartIndex >= 0 ? url.Substring(queryStartIndex + 1) : string.Empty;
 
-        if (queryStartIndex != -1)
-        {
-            var query = url.Substring(queryStartIndex + 1);
-            foreach (var pair in query.Split('&'))
-            {
-                var keyValue = pair.Split('=');
-                if (keyValue.Length == 2)
-                {
-                    queryParams[keyValue[0]] = keyValue[1];
-                }
-            }
-        }
-
-        return queryParams;
+        return HttpUtility.ParseQueryString(queryString);
     }
 }

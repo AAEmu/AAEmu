@@ -10,7 +10,7 @@ internal class ExpeditionController : BaseController
     [WebApiGet("/expedition/list")]
     public HttpResponse List()
     {
-        var list = ExpeditionManager.Instance.GetExpeditions().Select(x => new ExpeditionModel(
+        var list = ExpeditionManager.Instance.Expeditions.Select(x => new ExpeditionModel(
             (uint)x.Id, x.Name, x.OwnerId, x.OwnerName, (uint)x.MotherId, x.Created,
             (uint)x.Members.Count,
             (uint)x.Members.Count(member => member.IsOnline)
