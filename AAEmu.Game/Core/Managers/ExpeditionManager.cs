@@ -32,6 +32,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     private Dictionary<FactionsEnum, Expedition> _expeditions;
     public List<ExpeditionRecruitment> _recruitments { get; set; }
     public List<Applicant> _pretenders { get; set; }
+    public IEnumerable<Expedition> Expeditions { get => _expeditions.Values; }
 
     public static Expedition Create(string name, Character owner)
     {
