@@ -1,11 +1,8 @@
-# Clear the screen
-Clear-Host
-
 # Switch to the root folder
 Write-Host "Switching folder to root folder (AAEmu\)"
 Set-Location ..
 Write-Host "Done"
-Start-Sleep -Seconds 1
+
 
 # Asking the user if they are sure to continue with a fresh installation
 while ($true) {
@@ -17,9 +14,7 @@ while ($true) {
     if ($answer -eq "Y") {
         Write-Host "You chose to delete everything to start a fresh installation. Proceeding..."
         docker compose down
-        Remove-Item -Force .env
         Remove-Item -Recurse -Force .server_files
-        git checkout .env
         break
     }
     elseif ($answer -eq "N") {
@@ -37,46 +32,40 @@ Write-Host "Creating the folders needed to work"
 mkdir ".server_files\AAEmu.Database\mysql", ".server_files\AAEmu.Login", ".server_files\AAEmu.Game", ".server_files\AAEmu.Game\Data", `
       ".server_files\AAEmu.Game\ClientData", ".server_files\AAEmu.Game\Configurations"
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 # Prepare the configuration files
 # Generating a strong Database Password
 Write-Host "Generating strong SQL Database password..."
 $DB_PASSWORD = [Convert]::ToBase64String((Get-Random -Count 32 -InputObject ([byte[]]@(0..255))))
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 # Generating a strong secret between login server and game server
 Write-Host "Generating strong Secret Key between Login Server and Game Server..."
 $SECRET_KEY = [Convert]::ToBase64String((Get-Random -Count 32 -InputObject ([byte[]]@(0..255))))
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 # Copying the necessary files in place
 Write-Host "Copying file AAEmu/.env.example to Copying file AAEmu/.env if not already present."
-Copy-Item -Path ".env.example" -Destination ".env" -Force -PassThru
+if ((Test-Path -Path ".env" -PathType leaf) -eq $False) {
+    Copy-Item -Path ".env.example" -Destination ".env" -PassThru
+}
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 Write-Host "Copying file AAEmu\AAEmu.Login\ExampleConfig.json to AAEmu\.server_files\AAEmu.Login\Config.json if not already present."
 Copy-Item -Path "AAEmu.Login\ExampleConfig.json" -Destination ".server_files\AAEmu.Login\Config.json" -Force -PassThru
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 Write-Host "Copying file AAEmu\AAEmu.Game\ExampleConfig.json to AAEmu\.server_files\AAEmu.Game\Config.json if not already present."
 Copy-Item -Path "AAEmu.Game\ExampleConfig.json" -Destination ".server_files\AAEmu.Game\Config.json" -Force -PassThru
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 Write-Host "Copying folder AAEmu\AAEmu.Game\Configurations to AAEmu\.server_files\AAEmu.Game\ if not already present."
 Copy-Item -Path "AAEmu.Game\Configurations" -Destination ".server_files\AAEmu.Game\" -Recurse -Force -PassThru
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 Write-Host "Copying folder AAEmu\AAEmu.Game\Data to AAEmu\.server_files\AAEmu.Game\ if not already present."
 Copy-Item -Path "AAEmu.Game\Data" -Destination ".server_files\AAEmu.Game\" -Recurse -Force -PassThru
 Write-Host "Done"
-Start-Sleep -Seconds 1
 
 # Now configuring files in place
 # Configuring Login Server Config.json
@@ -87,8 +76,6 @@ Write-Host "Configuring Config.json for the Login Server..."
 (Get-Content -Path ".server_files\AAEmu.Login\Config.json") -replace "%db_user%", "root" | Set-Content -Path ".server_files\AAEmu.Login\Config.json"
 (Get-Content -Path ".server_files\AAEmu.Login\Config.json") -replace "%db_password%", "$DB_PASSWORD" | Set-Content -Path ".server_files\AAEmu.Login\Config.json"
 Write-Host "Done"
-Start-Sleep -Seconds 1
-
 # Configuring Game Server Config.json
 Write-Host "Configuring Config.json for the Game Server..."
 (Get-Content -Path ".server_files\AAEmu.Game\Config.json") -replace '"SecretKey": "test"', "`"SecretKey`": `"$SECRET_KEY`"" | Set-Content -Path ".server_files\AAEmu.Game\Config.json"
@@ -99,15 +86,12 @@ Write-Host "Configuring Config.json for the Game Server..."
 (Get-Content -Path ".server_files\AAEmu.Game\Config.json") -replace "%login_host%", "login" | Set-Content -Path ".server_files\AAEmu.Game\Config.json"
 (Get-Content -Path ".server_files\AAEmu.Game\Config.json") -replace "%login_port%", "1234" | Set-Content -Path ".server_files\AAEmu.Game\Config.json"
 Write-Host "Done"
-Start-Sleep -Seconds 1
+# Configuring .env
+(Get-Content -Path ".env") -replace '^DB_PASSWORD=.*$', "DB_PASSWORD=$DB_PASSWORD" | Set-Content -Path ".env"
 
 # Build the Dockerfile using the Compose File
-(Get-Content -Path ".env") -replace '^DB_PASSWORD=.*$', "DB_PASSWORD=$DB_PASSWORD" | Set-Content -Path ".env"
 docker compose build --no-cache
 Write-Host "Done"
-Start-Sleep -Seconds 1
-
-Clear-Host
 
 Write-Host "These are the generated passwords. Keep them safe; they will not be shown again except in config files:"
 Write-Host "DB Password: $DB_PASSWORD"
@@ -121,4 +105,4 @@ Write-Host ""
 Write-Host "Launch by running 'docker compose up -d' in the root of AAEmu and connect to 127.0.0.1 in AAEmu.Launcher"
 Write-Host "You can stop the server by issuing the command 'docker compose down' in the root of AAEmu"
 Write-Host "If you want a development environment (with quick reload and auto-rebuild), use the command docker compose watch or docker compose up --watch and DO NOT CLOSE the terminal"
-Read-Host "Press Enter to finish..."
+Write-Host "Docker setup done"
