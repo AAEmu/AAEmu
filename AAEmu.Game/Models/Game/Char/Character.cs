@@ -1571,6 +1571,7 @@ public partial class Character : Unit, ICharacter
                     await Task.Delay(2 * 1000,_unreleasedZoneTransportedOut.Token);
                 }
                 ForceDismount();
+                MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(this);
                 await Task.Delay(200);
                 var portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
                 // force transported out
