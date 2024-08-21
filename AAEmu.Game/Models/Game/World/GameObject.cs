@@ -166,4 +166,14 @@ public class GameObject : IGameObject
     {
         return true;
     }
+
+    /// <summary>
+    /// Called when an object switched zones
+    /// </summary>
+    /// <param name="lastZoneKey"></param>
+    /// <param name="newZoneKey"></param>
+    public virtual void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    {
+        // No special handling by default
+    }
 }
