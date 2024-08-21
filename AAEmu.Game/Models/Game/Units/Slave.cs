@@ -895,18 +895,6 @@ public class Slave : Unit
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
-    
-    
-        
-    public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
-    {
-        var lastZoneKey = Transform.ZoneId;
-        base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
-        // Check if zone changed
-        if (Transform.ZoneId == lastZoneKey)
-            return;
-        OnZoneChange(lastZoneKey, Transform.ZoneId);
-    }
 
     public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
