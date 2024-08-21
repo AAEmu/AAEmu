@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
+using AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -247,11 +248,47 @@ public class Skill
             return SkillResult.TooFarRange;
         }
 
-        if (Template.Effects.Count > 0 && Template.Effects.First()?.Template is OpenPortalEffect)
+        if (character is { AccessLevel: < 100 })
         {
-            if (WorldManager.DefaultInstanceId != caster.InstanceId)
+            // copy Return.cs
+            if (Template.Effects.Count > 0 && Template.Effects.First()?.Template is SpecialEffect specialEffect)
             {
-                return SkillResult.InvalidLocation;
+                if (specialEffect.SpecialEffectTypeId == SpecialType.Return && specialEffect.Value1 > 0)
+                {
+                    // Worldgates
+                    var trp = PortalManager.Instance.GetWorldgatesById((uint)specialEffect.Value1);
+                    if (trp != null)
+                    {
+                        var zone = ZoneManager.Instance.GetZoneById(trp.ZoneId);
+                        if (zone is null or { Closed: true })
+                        {
+                            // No more appropriate error type has been found yet
+                            return SkillResult.NoPerm;
+                        }
+                    }
+                }
+            }
+
+            if (Template.Effects.Count > 0 && Template.Effects.First()?.Template is OpenPortalEffect)
+            {
+                if (WorldManager.DefaultInstanceId != caster.InstanceId)
+                {
+                    return SkillResult.InvalidLocation;
+                }
+
+                // copy OpenPortalEffect.cs
+                var portalInfo = (SkillObjectUnk1)skillObject;
+                
+                var trp = character.Portals.GetPortalInfo((uint)portalInfo.Id);
+                if (trp != null)
+                {
+                    var zone = ZoneManager.Instance.GetZoneById(trp.ZoneId);
+                    if (zone is null or { Closed: true })
+                    {
+                        // No more appropriate error type has been found yet
+                        return SkillResult.NoPerm;
+                    }
+                }
             }
         }
 

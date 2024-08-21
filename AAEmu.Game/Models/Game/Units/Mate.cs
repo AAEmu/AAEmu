@@ -679,4 +679,20 @@ public sealed class Mate : Unit
         MateXpUpdateTask = null;
         //Logger.Trace("[StopUpdateXp] The current timer has been canceled...");
     }
+
+    public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    {
+        base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
+
+        if (Passengers.Count <= 0)
+        {
+            return;
+        }
+
+        foreach (var (_, passengerInfo) in Passengers)
+        {
+            var passenger = WorldManager.Instance.GetCharacterByObjId(passengerInfo._objId);
+            passenger?.OnZoneChange(lastZoneKey, newZoneKey);
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -1534,68 +1534,72 @@ public partial class Character : Unit, ICharacter
         OnZoneChange(lastZoneKey, Transform.ZoneId);
     }
 
-    public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
-    {
-        // We switched zonekeys, we need to do some checks
-        var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
-        var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
-        var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
-        var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
-        if (lastZoneGroupId == newZoneGroupId)
-            return;
+    private CancellationTokenSource _unreleasedZoneTransportedOut;
 
-        // Handle Zone Buffs
-        if (lastZone != null)
-        {
-            // Remove the old zone buff if needed
-            var lastZoneGroup = ZoneManager.Instance.GetZoneGroupById(lastZone.GroupId);
-            if ((lastZoneGroup != null) && (lastZoneGroup.BuffId != 0))
-            {
-                // Remove the applied buff from last zonegroup
-                Buffs.RemoveBuff(lastZoneGroup.BuffId);
-            }
-        }
+    public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    {
+        base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
+
+        var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
+        var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
+
         if (newZone != null)
         {
             Expedition?.OnCharacterRefresh(this);
-            // Apply the new zone buff if needed
-            var newZoneGroup = ZoneManager.Instance.GetZoneGroupById(newZone.GroupId);
-            if ((newZoneGroup != null) && (newZoneGroup.BuffId != 0))
-            {
-                // Add buff from new zonegroup
-                var buffTemplate = SkillManager.Instance.GetBuffTemplate(newZoneGroup.BuffId);
-                if (buffTemplate != null)
-                {
-                    var casterObj = new SkillCasterUnit(ObjId);
-                    var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, DateTime.UtcNow);
-                    Buffs.AddBuff(newZoneBuff);
-                }
-            }
         }
 
-        // Ok, we actually changed zone groups, we'll have to do some chat channel stuff
-        if (lastZoneGroupId != 0)
-            ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
-
-        if (newZoneGroupId != 0)
-            ChatManager.Instance.GetZoneChat(Transform.ZoneId).JoinChannel(this);
-
-        if (newZone != null && (!newZone.Closed))
-            return;
-
-        // Entered a forbidden zone
-        /*
-            if (!thisChar.isGM)
+        if (newZone is { Closed: false })
+        {
+            if (_unreleasedZoneTransportedOut != null)
             {
-                // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
-                // TODO: Remove backpack immediately
+                _unreleasedZoneTransportedOut.Cancel();
+                _unreleasedZoneTransportedOut = null;
             }
-        */
+
+            return;
+        }
+
         // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour!
         if (newZone != null)
             SendMessage(ChatType.System, $"You have entered a closed zone ({newZone.ZoneKey} - {newZone.Name})!\nPlease leave immediately!", Color.Red);
-        // Send the error message
-        SendErrorMessage(ErrorMessageType.ClosedZone);
+        
+        var characterAccessLevel = CharacterManager.Instance.GetEffectiveAccessLevel(this);
+        if (characterAccessLevel < 100)
+        {
+            // Do forbidden zone code handling
+            if (_unreleasedZoneTransportedOut != null)
+            {
+                return;
+            }
+
+            _unreleasedZoneTransportedOut = new CancellationTokenSource();
+            Task.Run(async () =>
+            {
+                // Stay for a maximum of 10 seconds
+                for (var i = 0; i < 5; i++)
+                {
+                    // sendErrorMsg
+                    SendErrorMessage(ErrorMessageType.ClosedZone,0,false);
+                    await Task.Delay(2 * 1000,_unreleasedZoneTransportedOut.Token);
+                }
+                ForceDismount();
+                MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(this);
+                await Task.Delay(200);
+                var portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
+                // force transported out
+                Connection.ActiveChar.BroadcastPacket(
+                    new SCCharacterResurrectedPacket(
+                        Connection.ActiveChar.ObjId,
+                        portal.X,
+                        portal.Y,
+                        portal.Z,
+                        portal.ZRot
+                    ),
+                    true
+                );
+            
+            }, _unreleasedZoneTransportedOut.Token);
+        }
     }
 
     public override int DoFallDamage(ushort fallVel)

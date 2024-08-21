@@ -898,4 +898,14 @@ public class Slave : Unit
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), false);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
+
+    public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+    {
+        base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
+        
+        foreach (var passenger in AttachedCharacters)
+        {
+            passenger.Value?.OnZoneChange(lastZoneKey, newZoneKey);
+        }
+    }
 }

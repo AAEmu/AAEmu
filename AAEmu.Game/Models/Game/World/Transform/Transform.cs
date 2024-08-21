@@ -62,10 +62,22 @@ public class Transform : IDisposable
     /// Instance ID
     /// </summary>
     public uint InstanceId { get => _instanceId; set => _instanceId = value; }
+
     /// <summary>
     /// Zone ID (Key)
     /// </summary>
-    public uint ZoneId { get => _zoneId; set => _zoneId = value; }
+    public uint ZoneId
+    {
+        get => _zoneId;
+        set
+        {
+            if (_zoneId == value)
+                return;
+            GameObject?.OnZoneChange(_zoneId, value);
+            _zoneId = value;
+        }
+    }
+
     /// <summary>
     /// The Local Transform information (relative to Parent)
     /// </summary>
