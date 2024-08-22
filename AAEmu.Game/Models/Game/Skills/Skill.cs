@@ -253,7 +253,7 @@ public class Skill
                     var trp = PortalManager.Instance.GetWorldgatesById((uint)specialEffect.Value1);
                     if (trp != null)
                     {
-                        var zone = ZoneManager.Instance.GetZoneById(trp.ZoneId);
+                        var zone = ZoneManager.Instance.GetZoneByKey(trp.ZoneId);
                         if (zone is null or { Closed: true })
                         {
                             // No more appropriate error type has been found yet
@@ -276,7 +276,7 @@ public class Skill
                 var trp = character.Portals.GetPortalInfo((uint)portalInfo.Id);
                 if (trp != null)
                 {
-                    var zone = ZoneManager.Instance.GetZoneById(trp.ZoneId);
+                    var zone = ZoneManager.Instance.GetZoneByKey(trp.ZoneId);
                     if (zone is null or { Closed: true })
                     {
                         // No more appropriate error type has been found yet
