@@ -691,7 +691,7 @@ public sealed class Mate : Unit
 
         foreach (var (_, passengerInfo) in Passengers)
         {
-            var passenger = WorldManager.Instance.GetCharacterByObjId(passengerInfo._objId);
+            var passenger = WorldManager.Instance.GetCharacterByObjId(passengerInfo.ObjId);
             passenger?.OnZoneChange(lastZoneKey, newZoneKey);
         }
     }
