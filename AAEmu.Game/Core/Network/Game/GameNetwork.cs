@@ -136,7 +136,6 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSUnhangPacket, 5, typeof(CSUnhangPacket));
         RegisterPacket(CSOffsets.CSChangeAppellationPacket, 5, typeof(CSChangeAppellationPacket));
         RegisterPacket(CSOffsets.CSStartedCinemaPacket, 5, typeof(CSStartedCinemaPacket));
-
         RegisterPacket(CSOffsets.CSBroadcastVisualOptionPacket, 5, typeof(CSBroadcastVisualOptionPacket));
         RegisterPacket(CSOffsets.CSBroadcastOpenEquipInfoPacket, 5, typeof(CSBroadcastOpenEquipInfoPacket));
         RegisterPacket(CSOffsets.CSRestrictCheckPacket, 5, typeof(CSRestrictCheckPacket));
@@ -156,7 +155,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSEnprotectStubCallResponsePacket, 5, typeof(CSEnprotectStubCallResponsePacket));
         RegisterPacket(CSOffsets.CSRepresentCharacterPacket, 5, typeof(CSRepresentCharacterPacket));
         //RegisterPacket(CSOffsets.CSPacketUnknown0x0aaPacket, 5, typeof(CSPacketUnknown0x0aaPacket));
-        RegisterPacket(CSOffsets.CSPacketUnknown0x166Packet, 5, typeof(CSPacketUnknown0x166Packet));
+        RegisterPacket(CSOffsets.CSCheckDemoModePacket, 5, typeof(CSCheckDemoModePacket));
         RegisterPacket(CSOffsets.CSCreateCharacterPacket, 5, typeof(CSCreateCharacterPacket));
         RegisterPacket(CSOffsets.CSEditCharacterPacket, 5, typeof(CSEditCharacterPacket));
         RegisterPacket(CSOffsets.CSSpawnCharacterPacket, 5, typeof(CSSpawnCharacterPacket));

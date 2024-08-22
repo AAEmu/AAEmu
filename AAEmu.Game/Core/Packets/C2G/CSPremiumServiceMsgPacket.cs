@@ -16,6 +16,19 @@ public class CSPremiumServiceMsgPacket : GamePacket
 
         var stage = stream.ReadInt32();
         Logger.Info("PremiumServieceMsg, stage {0}", stage);
-        Connection.SendPacket(new SCAccountWarnedPacket(2, "Premium ..."));
+        switch (stage)
+        {
+            case 1:
+                Connection.SendPacket(new SCAccountWarnedCodePacket(1, 0,""));
+                break;
+            case 2:
+                Connection.SendPacket(new SCAccountWarnedCodePacket(2, 7, ""));
+                break;
+            case 3:
+                Connection.SendPacket(new SCAccountWarnedCodePacket(2, 0, "Premium ..."));
+                break;
+            default:
+                break;
+        }
     }
 }

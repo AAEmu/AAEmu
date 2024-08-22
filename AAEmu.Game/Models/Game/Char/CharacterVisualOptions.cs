@@ -49,7 +49,6 @@ public class CharacterVisualOptions : PacketMarshaler
     public PacketStream WriteOptions(PacketStream stream)
     {
         // all this data must be output to the SCUnitStatePacket
-        stream.Write(Stp);             // stp
         stream.Write(Helmet);          // helmet
         stream.Write(BackHoldable);    // back_holdable
         stream.Write(Cosplay);         // cosplay

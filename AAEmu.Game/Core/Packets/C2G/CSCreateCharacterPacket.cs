@@ -11,7 +11,6 @@ public class CSCreateCharacterPacket : GamePacket
 {
     public CSCreateCharacterPacket() : base(CSOffsets.CSCreateCharacterPacket, 5)
     {
-        //
     }
 
     public override void Read(PacketStream stream)

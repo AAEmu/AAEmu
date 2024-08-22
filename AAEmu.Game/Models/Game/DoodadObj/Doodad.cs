@@ -169,6 +169,7 @@ public class Doodad : BaseUnit
     public int PuzzleGroup { get; set; } = -1; // -1 off
     public DoodadSpawner Spawner { get; set; }
     public DoodadFuncTask FuncTask { get; set; }
+    public DateTime FreshnessTime { get; set; }
 
     public List<DoodadFunc> CurrentFuncs { get; set; }
     public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
@@ -707,6 +708,13 @@ public class Doodad : BaseUnit
         stream.Write((byte)OwnerType); // ownerType
         stream.Write(OwnerDbId); // dbHouseId
         stream.Write(Data); // data - attachPointId для хранения в базе данных
+        if (Flag == 3 || Flag == 8)
+        {
+            stream.Write(FreshnessTime); // freshnessTime
+            stream.Write((uint)0);       // type crafter?
+            stream.Write((short)0);      // type
+        }
+        stream.Write(0u);              // type
 
         return stream;
     }

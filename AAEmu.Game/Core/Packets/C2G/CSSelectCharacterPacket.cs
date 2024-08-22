@@ -8,9 +8,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -65,25 +63,42 @@ public class CSSelectCharacterPacket : GamePacket
 
             Connection.ActiveChar.Simulation = new Simulation(character);
 
-            // TODO: Fix the patron and auction house license buff issue
-            Connection.ActiveChar.Buffs.AddBuff((uint)SkillConstants.Patron, Connection.ActiveChar);
-            Connection.ActiveChar.Buffs.AddBuff((uint)SkillConstants.AuctionLicense, Connection.ActiveChar);
+            // начинаем слать пакеты
+
+            // TODO подобрать правильное место для пакета
+            if (Connection.ActiveChar.Attendances.Attendances?.Count == 0)
+            {
+                Connection.ActiveChar.Attendances.SendEmptyAttendances();
+            }
+            else
+            {
+                Connection.ActiveChar.Attendances.Send();
+            }
 
             Connection.SendPacket(new SCResidentInfoListPacket(ResidentManager.Instance.GetInfo()));
             Connection.SendPacket(new SCCharacterStatePacket(character));
-            Connection.SendPacket(new SCCharacterGamePointsPacket(character));
             Connection.ActiveChar.Inventory.Send();
-            Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
+            Connection.SendPacket(new SCCharacterGamePointsPacket(character));
+            // move to CSSpawnCharacter
+            //Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
+            // added in 5.0.7.0
+            Connection.SendPacket(new SCIncreasedFavoritePortalLimitPacket(0));
+            Connection.ActiveChar.Portals.SendIndunZone();
+            Connection.SendPacket(new SCNpcFriendshipListPacket());
 
             Connection.ActiveChar.Quests.Send();
             Connection.ActiveChar.Quests.SendCompleted();
 
             Connection.ActiveChar.Actability.Send();
             Connection.ActiveChar.Mails.SendUnreadMailCount();
-            Connection.ActiveChar.Appellations.Send();
-            Connection.ActiveChar.Portals.Send();
+            // removed in 5.0.7.0
+            //Connection.ActiveChar.Appellations.Send();
+            //Connection.ActiveChar.Portals.Send();
+
             Connection.ActiveChar.Friends.Send();
             Connection.ActiveChar.Blocked.Send();
+            // added in 5.0.7.0
+            Connection.SendPacket(new SCWorldRestrictOwnerChangePacket(false));
 
             foreach (var house in houses)
             {
@@ -95,27 +110,27 @@ public class CSSelectCharacterPacket : GamePacket
                 Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime));
             }
 
-            FactionManager.Instance.SendFactions(Connection.ActiveChar);
-            ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
-            ExpeditionManager.SendMyExpeditionInfo(Connection.ActiveChar);
-            FactionManager.Instance.SendRelations(Connection.ActiveChar);
+            //FactionManager.Instance.SendFactions(Connection.ActiveChar);
+            //ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
+            //ExpeditionManager.SendMyExpeditionInfo(Connection.ActiveChar);
+            //FactionManager.Instance.SendRelations(Connection.ActiveChar);
 
             Connection.ActiveChar.SendOption(1);
             Connection.ActiveChar.SendOption(2);
             Connection.ActiveChar.SendOption(5);
 
             Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.LoggedOn, Connection.ActiveChar);
-
             var template = CharacterManager.Instance.GetTemplate(character.Race, character.Gender);
-
             foreach (var buff in template.Buffs)
             {
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(buff);
                 var casterObj = new SkillCasterUnit(character.ObjId);
                 character.Buffs.AddBuff(new Buff(character, character, casterObj, buffTemplate, null, DateTime.UtcNow) { Passive = true });
             }
-
             character.Breath = character.LungCapacity;
+            // TODO: Fix the patron and auction house license buff issue
+            Connection.ActiveChar.Buffs.AddBuff((uint)SkillConstants.Patron, Connection.ActiveChar);
+            Connection.ActiveChar.Buffs.AddBuff((uint)SkillConstants.AuctionLicense, Connection.ActiveChar);
 
             Connection.ActiveChar.OnZoneChange(0, Connection.ActiveChar.Transform.ZoneId);
         }

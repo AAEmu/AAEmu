@@ -71,6 +71,15 @@ public class SCUnitStatePacket : GamePacket
         var character = _unit as Character;
         var npc = _unit as Npc;
 
+        if (character is not null)
+        {
+            stream.Write((byte)1); // worldId, add 5070
+        }
+        else
+        {
+            stream.Write((byte)255); // add 5070
+        }
+
         #region BaseUnitType
         stream.Write((byte)_baseUnitType);
         switch (_baseUnitType)
@@ -133,6 +142,10 @@ public class SCUnitStatePacket : GamePacket
         stream.Write(_unit.Scale); // scale
         stream.Write(_unit.Level); // level
         stream.Write(_unit.HierLevel); // hierarchy level for 3.0.3.0
+        #region Level_hierLevel
+        stream.Write((byte)0); // level
+        stream.Write((byte)0); // heirLevel
+        #endregion
         for (var i = 0; i < 4; i++)
             stream.Write((sbyte)-1); // slot for 3.0.3.0
 
@@ -239,7 +252,10 @@ public class SCUnitStatePacket : GamePacket
                     if (character.Skills.PassiveBuffs.Count > 0)
                         Logger.Trace($"Warning! character.passiveBuffCount = {character.Skills.PassiveBuffs.Count}");
 
-                    stream.Write(character.HighAbilityRsc);                  // highAbilityRsc
+                    stream.Write(character.HighAbilityRsc); // highAbilityRsc
+                    stream.Write(0u);                       // type, add 5070
+                    stream.Write(0);                        // appellationStampId, add 5070
+                    stream.Write(0u);                       // vechicleDyeing, add 5070
 
                     var hcount = skillList.Count;
                     if (hcount > 0)
@@ -359,7 +375,10 @@ public class SCUnitStatePacket : GamePacket
 
                     stream.Write((byte)npc.Template.PassiveBuffs.Count); // passiveBuffCount
 
-                    stream.Write(npc.HighAbilityRsc);                    // highAbilityRsc
+                    stream.Write(npc.HighAbilityRsc); // highAbilityRsc
+                    stream.Write(0u);                 // type, add 5070
+                    stream.Write(0);                  // appellationStampId, add 5070
+                    stream.Write(0u);                 // vechicleDyeing, add 5070
 
                     var hcount = skills.Count;
                     if (hcount > 0)
@@ -450,6 +469,9 @@ public class SCUnitStatePacket : GamePacket
                     stream.Write((byte)0); // learnedSkillCount
                     stream.Write((byte)0); // passiveBuffCount
                     stream.Write(0);       // highAbilityRsc
+                    stream.Write(0u);      // type, add 5070
+                    stream.Write(0);       // appellationStampId, add 5070
+                    stream.Write(0u);      // vechicleDyeing, add 5070
                     break;
                 }
         }
@@ -484,7 +506,7 @@ public class SCUnitStatePacket : GamePacket
             stream.WritePisc(0, 0, character.Appellations.ActiveAppellation, 0);      // pisc
                                                                                       // Faction and Guild
             stream.WritePisc((uint)(character.Faction?.Id ?? 0), (uint)(character.Expedition?.Id ?? 0), 0, 0); // pisc
-                                                                                               // PvP Honor gained and PvP Kills
+                                                                                                               // PvP Honor gained and PvP Kills
             stream.WritePisc(character.HonorGainedInCombat, character.HostileFactionKills, 0, 0); // pisc
         }
         else
@@ -506,19 +528,22 @@ public class SCUnitStatePacket : GamePacket
                     stream.Write(flags.ToByteArray()); // flags(ushort)
 
                     /*
-                    * 0x0001 - 8bit - режим боя
-                    * 0x0002 - 7bit - 
-                    * 0x0004 - 6bit - невидимость?
-                    * 0x0008 - 5bit - дуэль
-                    * 0x0010 - 4bit - 
-                    * 0x0040 - 2bit - gmmode, дополнительно 7 байт
-                    * 0x0080 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
-                    * 0x0020
-                    * 0x0200
-                    * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
-                    * 0x0400 - 14bit - надпись "Отсутсвует" под именем
-                    * 0x1000
-                    * 0x0800
+                     * 0000 0000 0010 0000 = 0x20 - 5bit - Invisible
+                     * 0010 0000 0000 0000 = 0x2000 - 13bit - IdleStatus
+ 
+                     * 0x0001 - 8bit - режим боя
+                     * 0x0002 - 7bit - 
+                     * 0x0004 - 6bit - невидимость?
+                     * 0x0008 - 5bit - дуэль
+                     * 0x0010 - 4bit - 
+                     * 0x0040 - 2bit - gmmode, дополнительно 7 байт
+                     * 0x0080 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
+                     * 0x0020
+                     * 0x0200
+                     * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
+                     * 0x0400 - 14bit - надпись "Отсутсвует" под именем
+                     * 0x1000
+                     * 0x0800
                     */
                     break;
                 }
@@ -541,11 +566,13 @@ public class SCUnitStatePacket : GamePacket
                 break;
         }
 
+        stream.Write((byte)0); // attckFactionFlags, add 5070
+
         if (_unit is Character)
         {
-            #region read_Abilities_6300
+            #region read_Abilities_92B0
             var activeAbilities = character.Abilities.GetActiveAbilities();
-            foreach (var ability in character.Abilities.Values)
+            foreach (var ability in character.Abilities.Values) // size=29 in 5070
             {
                 stream.Write(ability.Exp);
                 stream.Write(ability.Order);
@@ -556,10 +583,10 @@ public class SCUnitStatePacket : GamePacket
             {
                 stream.Write((byte)ability); // active
             }
-            #endregion read_Abilities_6300
+            #endregion read_Abilities_92B0
 
-            #region read_Exp_Order_6460
-            foreach (var ability in character.Abilities.Values)
+            #region read_Exp_Order_9410
+            foreach (var ability in character.Abilities.Values) // size=29 in 5070
             {
                 stream.Write(ability.Exp);
                 stream.Write(ability.Order);  // ability.Order
@@ -572,6 +599,7 @@ public class SCUnitStatePacket : GamePacket
             stream.Write(nActive);     // nActive
             while (nHighActive > 0)
             {
+                stream.Write((byte)0); // highAbility
                 while (nActive > 0)
                 {
                     stream.Write(0); // active
@@ -579,12 +607,12 @@ public class SCUnitStatePacket : GamePacket
                 }
                 nHighActive--;
             }
-            #endregion read_Exp_Order_6460
+            #endregion read_Exp_Order_9410
 
             stream.WriteBc(0);     // objId
             stream.Write((byte)0); // camp
 
-            #region Stp
+            #region read_STP_93E0
             stream.Write((byte)30);  // stp
             stream.Write((byte)60);  // stp
             stream.Write((byte)50);  // stp
@@ -593,24 +621,50 @@ public class SCUnitStatePacket : GamePacket
             stream.Write((byte)100); // stp
 
             stream.Write((byte)7); // flags
+            stream.Write((byte)0); // helmet
+            stream.Write((byte)2); // back_holdable
+            stream.Write((byte)0); // cosplay
+            stream.Write((byte)0); // cosplay_backpack
             stream.Write((byte)0); // cosplay_visual
-
-            //character6.VisualOptions.Write(stream, 0x20); // cosplay_visual
-            //character6.VisualOptions.WriteOptions(stream);
-
-            #endregion Stp
+            //character.VisualOptions.Write(stream, 0x1f); // cosplay_visual
+            //character.VisualOptions.WriteOptions(stream);
+            #endregion read_STP_93E0
 
             stream.Write(1); // premium
 
             #region Stats
-            for (var i = 0; i < 5; i++)
+            var size = 1u;
+            stream.Write(size); // size
+            for (var i = 0; i < size; i++)
             {
-                stream.Write(0); // stats
+                for (var j = 0; j < 5; j++)
+                {
+                    stream.Write(0); // stats
+                }
+                stream.Write(0u); // applyNormalCount
+                stream.Write(0u); // applySpecialCount
             }
-            stream.Write(0); // extendMaxStats
-            stream.Write(0); // applyExtendCount
-            stream.Write(0); // applyNormalCount
-            stream.Write(0); // applySpecialCount
+
+            stream.Write(0u); // _selectPageIndex
+            stream.Write(0u); // _extendMaxStats
+            stream.Write(0u); // _applyExtendCount
+
+            size = 0u; // slotInfoList
+            stream.Write(size); // size
+            for (var i = 0; i < size; i++)
+            {
+                stream.Write(0);       // k
+                stream.Write((byte)0); // level
+                stream.Write(0);       // exp
+            }
+            size = 0u; // levelEffectList
+            stream.Write(size); // size
+            for (var i = 0; i < size; i++)
+            {
+                stream.Write((byte)0);  // equipSlot
+                stream.Write((sbyte)0); // level
+                stream.Write(0u);       // type
+            }
             #endregion Stats
 
             stream.WritePisc(0, 0, 0, 0);

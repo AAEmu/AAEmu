@@ -6,13 +6,24 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInitialConfigPacket : GamePacket
 {
+    private readonly string _host;
+    private readonly int _count;
+    private readonly uint _code;
+    private readonly string _cashHost;
+    private readonly string _securityHost;
+    
     public SCInitialConfigPacket() : base(SCOffsets.SCInitialConfigPacket, 5)
     {
+        _host = "aaemu.com";
+        _count = 0;
+        _code = 0; // TODO: code[count]
+        _cashHost = "xlcash.xlgames.com";
+        _securityHost = "cs.xlgames.com";
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write("aaemu.local"); // host
+        stream.Write(_host); // host
 
         // siege -> (byte)fset[0] & 1 == 1
         // premium -> (byte)fset[0] & 0x10 == 0x10
@@ -37,8 +48,6 @@ public class SCInitialConfigPacket : GamePacket
         // auctionPostBuff -> (uint)fset[8] & 0x80000 == 0x80000
         // houseTaxPrepay -> (uint)fset[8] & 0x100000 == 0x100000
 
-        // 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a
-        //stream.Write(new byte[] { 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03, 0xDE, 0xAE, 0x86, 0x3C, 0x0E, 0x02, 0xE6, 0x6F, 0xC7, 0xBB, 0x9B, 0x5D, 0x01, 0x00, 0x01 }, true); // fset
         FeaturesManager.Fsets.Write(stream);
 
         /*
@@ -68,17 +77,26 @@ public class SCInitialConfigPacket : GamePacket
             }
          */
 
-        // TODO 0x3E, 0x32, 0x0F, 0x0F, 0x79, 0x00, 0x33
+        stream.Write(_count);    // count // candidatelist.lua
+        if (_count > 0)
+        {
+            var i = 0;
+            do
+            {
+                stream.Write(_code);    // code
+                ++i;
+            }
+            while (i < _count);
+        }
 
-        stream.Write(0); // count // candidatelist.lua
         /*
          * local retrieveCount = X2:GetCandidateOnceRetrieveCount()
          * x2ui\baselib
          */
 
         stream.Write(0); // initLp
-        stream.Write(false); // canPlaceHouse
-        stream.Write(false); // canPayTax
+        stream.Write(true); // canPlaceHouse
+        stream.Write(true); // canPayTax
         stream.Write(true); // canUseAuction
         stream.Write(true); // canTrade
         stream.Write(true); // canSendMail
@@ -93,7 +111,7 @@ public class SCInitialConfigPacket : GamePacket
          */
         stream.Write((byte)0); // secondPasswordMaxFailCount
 
-        stream.Write(0); // idleKickTime
+        stream.Write(0u); // idleKickTime
 
         stream.Write(false); // enable
         stream.Write((byte)0); // pcbang
@@ -102,6 +120,13 @@ public class SCInitialConfigPacket : GamePacket
         stream.Write((ushort)400); // honorPointDuringWarPercent
         stream.Write((byte)0); // uccver - 5
         stream.Write((byte)1); // memberType
+
+        // added 5.0, 4.5
+        stream.Write((float)256);    // bigModel
+        stream.Write((byte)0);       // tmpMaxCharSlot
+        stream.Write(_cashHost);     // cashHost
+        stream.Write(_securityHost); // securityHost
+        stream.Write(false);         // isDev
 
         return stream;
     }

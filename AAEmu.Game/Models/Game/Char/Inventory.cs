@@ -828,16 +828,16 @@ public class Inventory
 
     private void SendFragmentedInventory(SlotType slotType, byte numItems, Item[] bag)
     {
-        var tempItem = new Item[10];
+        var tempItem = new Item[50];
 
-        if (numItems % 10 != 0)
-            Logger.Warn($"SendFragmentedInventory: Inventory Size not a multiple of 10 ({numItems})");
+        if (numItems % 50 != 0)
+            Logger.Warn($"SendFragmentedInventory: Inventory Size not a multiple of 50 ({numItems})");
         if (bag.Length != numItems)
             Logger.Warn($"SendFragmentedInventory: Inventory Size Mismatch; expected {numItems} got {bag.Length}");
 
-        for (byte chunk = 0; chunk < numItems / 10; chunk++)
+        for (byte chunk = 0; chunk < numItems / 50; chunk++)
         {
-            Array.Copy(bag, chunk * 10, tempItem, 0, 10);
+            Array.Copy(bag, chunk * 50, tempItem, 0, 50);
             Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 1, chunk, tempItem));
         }
 

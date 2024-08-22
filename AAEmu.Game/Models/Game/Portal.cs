@@ -35,6 +35,19 @@ public class Portal : PacketMarshaler
 
         return stream;
     }
+    public PacketStream WriteIndunZone(PacketStream stream)
+    {
+        stream.Write(Id);
+        stream.Write(ZoneId);
+        var origin = ZoneManager.GetZoneOriginCell(ZoneId);
+        var offX = X - origin.X * 1024f;
+        var offY = Y - origin.Y * 1024f;
+        stream.Write(offX);
+        stream.Write(offY);
+        stream.Write(Z);
+
+        return stream;
+    }
 }
 
 public class VisitedDistrict

@@ -4,12 +4,12 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFriendsPacket : GamePacket
+public class SCFriendListsPacket : GamePacket
 {
     private readonly int _total;
     private readonly Friend[] _friends;
 
-    public SCFriendsPacket(int total, Friend[] friends) : base(SCOffsets.SCFriendsPacket, 5)
+    public SCFriendListsPacket(int total, Friend[] friends) : base(SCOffsets.SCFriendListsPacket, 5)
     {
         _total = total;
         _friends = friends;

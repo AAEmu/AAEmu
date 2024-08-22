@@ -32,5 +32,7 @@ public enum EquipmentItemSlot : byte
     // ---- somehow_special
     Backpack = 26,
     Cosplay = 27,
-    Stabilizer = 28
+    Stabilizer = 28,
+    Undershirt2 = 29,
+    Underpants2 = 30
 }

@@ -26,14 +26,16 @@ public class CSSecurityReportPacket : GamePacket
                 }
             case 2:
                 {
-                    var value2 = stream.ReadUInt32();
-                    Logger.Info($"CSSecurityReportPacket, value2: {value2}");
+                    var value1 = stream.ReadUInt32();
+                    var value2 = stream.ReadInt32();
+                    Logger.Info($"CSSecurityReportPacket, value1: {value1}, value2: {value2}");
                     break;
                 }
             case 3:
                 {
-                    var value3 = stream.ReadUInt16();
-                    Logger.Info($"CSSecurityReportPacket, Msg: {value3}");
+                    var value1 = stream.ReadBc();
+                    var value2 = stream.ReadInt16();
+                    Logger.Info($"CSSecurityReportPacket, value1: {value1}, value2: {value2}");
                     break;
                 }
             default:

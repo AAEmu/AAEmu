@@ -11,8 +11,7 @@ public class SCCharacterInvenContentsPacket : GamePacket
     private readonly byte _startChunkIdx;
     private readonly Item[] _items;
 
-    public SCCharacterInvenContentsPacket(SlotType type, byte numChunks, byte startChunkIdx, Item[] items)
-        : base(SCOffsets.SCCharacterInvenContentsPacket, 5)
+    public SCCharacterInvenContentsPacket(SlotType type, byte numChunks, byte startChunkIdx, Item[] items) : base(SCOffsets.SCCharacterInvenContentsPacket, 5)
     {
         _type = type;
         _numChunks = numChunks;

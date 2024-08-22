@@ -1,7 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -21,6 +19,6 @@ public class CSSaveTutorialPacket : GamePacket
         var body = new byte[8];
         completedQuestBlock.Body.CopyTo(body, 0);
 
-        Connection.SendPacket(new SCTutorialSavedPacket(id, body));
+        //Connection.SendPacket(new SCTutorialSavedPacket(id, body));
     }
 }

@@ -5,14 +5,14 @@ namespace AAEmu.Login.Core.Packets.L2C
 {
     public class ACJoinResponsePacket : LoginPacket
     {
-        private readonly byte _reason;
+        private readonly ushort _reason; // in 3.0 byte, in 5.0 ushort
         private readonly byte _authId;
         private readonly uint _afs;
         private readonly short _unk2;
         private readonly byte _unk3;
         private readonly byte _slotCount;
 
-        public ACJoinResponsePacket(byte authId, byte reason, uint afs, byte slotCount) : base(LCOffsets.ACJoinResponsePacket)
+        public ACJoinResponsePacket(byte authId, ushort reason, uint afs, byte slotCount) : base(LCOffsets.ACJoinResponsePacket)
         {
             _reason = reason;
             _afs = afs;

@@ -61,7 +61,7 @@ public class CharacterFriends
         var allFriends = FriendMananger.GetFriendInfo(new List<uint>(FriendsIdList.Keys));
         var allFriendsArray = new Friend[allFriends.Count];
         allFriends.CopyTo(allFriendsArray, 0);
-        Owner.SendPacket(new SCFriendsPacket(allFriendsArray.Length, allFriendsArray));
+        Owner.SendPacket(new SCFriendListsPacket(allFriendsArray.Length, allFriendsArray));
     }
 
     public void Load(MySqlConnection connection)

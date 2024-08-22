@@ -25,7 +25,9 @@ public class CSAesXorKeyPacket : GamePacket
         EncryptionManager.Instance.StoreClientKeys(encAes, encXor, Connection.AccountId, Connection.Id);
 
         Connection.SendPacket(new SCGetSlotCountPacket(0));
-        Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
+        // not needed in 5070
+        //Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
+        // needed in 5070, but I don’t know how to add it here yet
         //Connection.SendPacket(new SCAccountAttendancePacket(31));
         Connection.SendPacket(new SCRaceCongestionPacket());
         Connection.LoadAccount();
@@ -46,7 +48,7 @@ public class CSAesXorKeyPacket : GamePacket
             }
         }
 
-        Connection.SendPacket(new SCAccountAttributePacket());
-
+        // not needed in 5070
+        //Connection.SendPacket(new SCAccountAttributePacket());
     }
 }

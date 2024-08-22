@@ -10,15 +10,19 @@ namespace AAEmu.Login.Core.Packets.L2C
     {
         private readonly List<GameServer> _gs;
         private readonly List<LoginCharacterInfo> _characters;
+        private readonly byte _parentId;
         private readonly byte _title;
         private readonly byte _color;
+        private readonly byte _entry;
 
         public ACWorldListPacket(List<GameServer> gs, List<LoginCharacterInfo> characters) : base(LCOffsets.ACWorldListPacket)
         {
             _gs = gs;
             _characters = characters;
-            _title = 01; //01-FRESH, 02-EVO, 03-WAR, 
-            _color = 01; //02
+            _parentId = 0;
+            _title = 00; //01-FRESH, 02-EVO, 03-WAR, 
+            _color = 00; //02
+            _entry = 1;  // 1 - можно подключаться, 0 - нельзя
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -26,11 +30,13 @@ namespace AAEmu.Login.Core.Packets.L2C
             stream.Write((byte)_gs.Count);
             foreach (var gs in _gs)
             {
-                stream.Write(gs.Id);
-                //stream.Write(_title); // надпись в списке серверов 00-нет надписи, 01- НОВЫЙ, 02-ОБЪЕДИНЕННЫЙ, 03-ОБЪЕДИНЕННЫЙ, 04-нет надписи
-                //stream.Write(_color); // цвет надписи в списке серверов 00-синий, 01- зеленый, 02-фиолетовый, 03, 04, 08-красный, 0x10-
-                stream.Write(gs.Name);
-                stream.Write(gs.Active);
+                stream.Write(gs.Id);     // id
+                stream.Write(_parentId); // parentId
+                stream.Write(_title); // add in 5070 надпись в списке серверов 00-нет надписи, 01- НОВЫЙ, 02-ОБЪЕДИНЕННЫЙ, 03-ОБЪЕДИНЕННЫЙ, 04-нет надписи
+                stream.Write(_color); // цвет надписи в списке серверов 00-синий, 01- зеленый, 02-фиолетовый, 03, 04, 08-красный, 0x10-
+                stream.Write(gs.Name);   // name
+                stream.Write(_entry);    // entry add for 5.1
+                stream.Write(gs.Active); // available
                 if (gs.Active)
                 {
                     //Server Status - 0x00 - normal / 0x01 - load / 0x02 - queue

@@ -43,9 +43,7 @@ public class FaceModel : PacketMarshaler
     public float MovableDecalRotate { get; set; }
     public short MovableDecalMoveX { get; set; }
     public short MovableDecalMoveY { get; set; }
-
     public FixedDecalAsset[] FixedDecalAsset { get; }
-
     public uint DiffuseMapId { get; set; }
     public uint NormalMapId { get; set; }
     public uint EyelashMapId { get; set; }
@@ -55,7 +53,6 @@ public class FaceModel : PacketMarshaler
     public uint RightPupilColor { get; set; }
     public uint EyebrowColor { get; set; }
     public uint DecoColor { get; set; }
-
     public byte[] Modifier { get; set; }
 
     public FaceModel()

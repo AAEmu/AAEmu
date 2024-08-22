@@ -34,6 +34,8 @@ public class FinishStatePacket : GamePacket
                 }
                 Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                 Connection.SendPacket(new SCInitialConfigPacket());
+                // added in 5.0.7.0
+                Connection.SendPacket(new SCTowerConfigPacket());
 
                 // Test URLs                                          // Original Trion values
                 // Client treats these as folders and will add a trailing slash (/) with whatever it needs
@@ -56,8 +58,8 @@ public class FinishStatePacket : GamePacket
                         Connection.Payment.EndTime)
                 );
                 Connection.SendPacket(new SCChatSpamConfigPacket());
-                Connection.SendPacket(new SCAccountAttributeConfigPacket([false, true, false]));
-                Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 10, 10, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])); // TODO - config files
+                Connection.SendPacket(new SCAccountAttributeConfigPacket([false, false, false]));
+                Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 10, 10, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])); // TODO - config files
 
                 Connection.SendPacket(new SCTaxItemConfigPacket(0));
                 Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
@@ -66,6 +68,8 @@ public class FinishStatePacket : GamePacket
                 ExpeditionManager.Instance.SendExpeditionProtect(Connection);
 
                 Connection.SendPacket(new SCTaxItemConfig2Packet(0));
+                // added in 5.0.7.0
+                Connection.SendPacket(new SCServerFileTimeSyncPacket());
                 break;
             case 1:
                 Connection.SendPacket(new ChangeStatePacket(2));

@@ -12,7 +12,7 @@ public class SummonSlave : Item
 {
     private DateTime _repairStartTime;
     public override ItemDetailType DetailType => ItemDetailType.Slave;
-    public override uint DetailBytesLength => 29;
+    public override uint DetailBytesLength => 33;
 
     public byte SlaveType { get; set; } // Not sure about this, captures show 2 here
     public uint SlaveDbId { get; set; }
@@ -86,7 +86,7 @@ public class SummonSlave : Item
         stream.Write(0); // 4 21
         stream.Write(0); // 4 25
         stream.Write(0); // 4 29
-        //stream.Write(0); // 4 33
+        stream.Write(0); // 4 33
     }
 
     public override void OnManuallyDestroyingItem()

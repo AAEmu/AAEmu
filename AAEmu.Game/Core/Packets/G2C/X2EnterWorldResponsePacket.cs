@@ -15,6 +15,7 @@ public class X2EnterWorldResponsePacket : GamePacket
     private readonly bool _gm;
     private readonly int _dwKeySize;
     private readonly short _pubKeySize;
+    private readonly int _authority = 1;
 
     public X2EnterWorldResponsePacket(short reason, bool gm, uint token, ushort port, GameConnection connection) :
         base(SCOffsets.X2EnterWorldResponsePacket, 5)
@@ -38,7 +39,7 @@ public class X2EnterWorldResponsePacket : GamePacket
         //c пустым ключом pubkey не работает
 
         stream.Write(_reason);               // Reason 0
-        stream.Write(_gm);                   // GM 0
+        //stream.Write(_gm);                   // GM 0 // // not in 5.0
         stream.Write(_token);                // SC 0
         stream.Write(_port);                 // SP 1250
         stream.Write(Helpers.UnixTimeNow()); // WF 0
@@ -53,6 +54,8 @@ public class X2EnterWorldResponsePacket : GamePacket
 
         stream.Write((uint)0x0100007F); //NAT address
         stream.Write((ushort)25375); //NAT port
+        stream.Write(_authority);    // authority 1 this field is in 3.5.5.3, but not in 3.0.3.0
+
 
         return stream;
     }

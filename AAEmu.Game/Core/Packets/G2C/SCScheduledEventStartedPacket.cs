@@ -33,7 +33,7 @@ public class SCScheduledEventStartedPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_id);
-        //for (var i = 0; i < 21; i++)
+        //for (var i = 0; i < 23; i++) // 21 in 1.2, 23 in 5.0
         {
             stream.Write(0);
             stream.Write(500);
@@ -53,7 +53,9 @@ public class SCScheduledEventStartedPacket : GamePacket
             stream.Write(0);
             stream.Write(200);
             stream.Write(0);
-            stream.Write(200);
+            stream.Write(400);
+            stream.Write(0);
+            stream.Write(0);
             stream.Write(0);
             stream.Write(0);
         }

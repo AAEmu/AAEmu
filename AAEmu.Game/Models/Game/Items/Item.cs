@@ -99,7 +99,7 @@ public class Item : PacketMarshaler, IComparable<Item>
     }
 
     public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
-    public virtual ItemDetailType DetailType { get; set; } // TODO 1.0 max type: 8, at 1.2 max type 9, at 3.0.3.0 max type 10, at 3.5.0.3 max type 12
+    public virtual ItemDetailType DetailType { get; set; } // TODO 1.0 max type: 8, at 1.2 max type 9, at 3.0.3.0 max type 10, at 3.5.0.3 max type 12, at 5.7 max type 13
     public DateTime ChargeUseSkillTime { get => _chargeUseSkillTime; set { _chargeUseSkillTime = value; _isDirty = true; } }
     public byte Flags { get => _flags; set { _flags = value; _isDirty = true; } }
     public byte Durability { get => _durability; set { _durability = value; _isDirty = true; } }
@@ -108,6 +108,8 @@ public class Item : PacketMarshaler, IComparable<Item>
     public ushort TemperPhysical { get => _TemperPhysical; set { _TemperPhysical = value; _isDirty = true; } }
     public ushort TemperMagical { get => _TemperMagical; set { _TemperMagical = value; _isDirty = true; } }
     public uint RuneId { get => _runeId; set { _runeId = value; _isDirty = true; } }
+    public DateTime ChargeProcTime { get; set; }
+    public byte MappingFailBonus { get; set; }
 
     public uint[] GemIds { get; set; }
     public byte[] Detail { get; set; }
@@ -142,7 +144,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         Slot = -1;
         _holdingContainer = null;
         _isDirty = true;
-        GemIds = new uint[16];
+        GemIds = new uint[18];
     }
 
     public Item(byte worldId)
@@ -152,7 +154,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         Slot = -1;
         _holdingContainer = null;
         _isDirty = true;
-        GemIds = new uint[16];
+        GemIds = new uint[18];
     }
 
     public Item(ulong id, ItemTemplate template, int count)
@@ -166,7 +168,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         Slot = -1;
         _holdingContainer = null;
         _isDirty = true;
-        GemIds = new uint[16];
+        GemIds = new uint[18];
     }
 
     public Item(byte worldId, ulong id, ItemTemplate template, int count)
@@ -180,7 +182,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         Slot = -1;
         _holdingContainer = null;
         _isDirty = true;
-        GemIds = new uint[16];
+        GemIds = new uint[18];
     }
 
     public override void Read(PacketStream stream)
@@ -243,6 +245,8 @@ public class Item : PacketMarshaler, IComparable<Item>
                 ChargeTime = stream.ReadDateTime();   // chargeTime
                 TemperPhysical = stream.ReadUInt16(); // scaledA
                 TemperMagical = stream.ReadUInt16();  // scaledB
+                ChargeProcTime = stream.ReadDateTime(); // chargeProcTime
+                MappingFailBonus = stream.ReadByte();   // mappingFailBonus - нет в 4.5.2.6, есть в 4.5.1.0 и 5.7
 
                 var mGems = stream.ReadPisc(4);
                 GemIds[0] = (uint)mGems[0];
@@ -267,9 +271,12 @@ public class Item : PacketMarshaler, IComparable<Item>
                 GemIds[13] = (uint)mGems[1];
                 GemIds[14] = (uint)mGems[2];
                 GemIds[15] = (uint)mGems[3];
+                mGems = stream.ReadPisc(2);
+                GemIds[16] = (uint)mGems[0];
+                GemIds[17] = (uint)mGems[1];
                 break;
             case ItemDetailType.Slave: // 2
-                mDetailLength = 30; // есть расшифровка в items/SummonSlave
+                mDetailLength = 34; // есть расшифровка в items/SummonSlave 30 in 3.5, 4.5.2.6, 34 in 4.5.1.0, 5.7
                 break;
             case ItemDetailType.Mate: // 3
                 mDetailLength = 21; // in 1.2 - 7, in 3+ - 21 - есть расшифровка в items/SummonMate
@@ -294,7 +301,12 @@ public class Item : PacketMarshaler, IComparable<Item>
             case ItemDetailType.SlaveEquipment: // 10
                 mDetailLength = 13;
                 break;
-            case ItemDetailType.TypeMax:
+            case ItemDetailType.Unk12: // 12
+                mDetailLength = 11; // 12 in 3.5, 4.5, 11 in 5.0
+                break;
+            case ItemDetailType.Unk13: // 13
+                mDetailLength = 14; // added in 5.7, 4.5
+                break;
             case ItemDetailType.Invalid:
             default:
                 break;
@@ -319,14 +331,17 @@ public class Item : PacketMarshaler, IComparable<Item>
                 stream.Write(ChargeTime);     // chargeTime
                 stream.Write(TemperPhysical); // scaledA
                 stream.Write(TemperMagical);  // scaledB
+                stream.Write(ChargeProcTime);   // chargeProcTime
+                stream.Write(MappingFailBonus); // mappingFailBonus - нет в 4.5.2.6, есть в 4.5.1.0 и 5.7
 
                 stream.WritePisc(GemIds[0], GemIds[1], GemIds[2], GemIds[3]);
                 stream.WritePisc(GemIds[4], GemIds[5], GemIds[6], GemIds[7]);
                 stream.WritePisc(GemIds[8], GemIds[9], GemIds[10], GemIds[11]);
                 stream.WritePisc(GemIds[12], GemIds[13], GemIds[14], GemIds[15]); // в 3+ длина данных 36 (когда нет информации), в 1.2 было 56
+                stream.WritePisc(GemIds[16], GemIds[17]);
                 break;
             case ItemDetailType.Slave:
-                mDetailLength = 30; // есть расшифровка в items/SummonSlave
+                mDetailLength = 34; // есть расшифровка в items/SummonSlave 30 in 3.5, 4.5.2.6, 34 in 4.5.1.0, 5.7
                 break;
             case ItemDetailType.Mate:
                 mDetailLength = 21; // in 1.2 - 7, in 3+ - 21 - есть расшифровка в items/SummonMate
@@ -351,6 +366,13 @@ public class Item : PacketMarshaler, IComparable<Item>
             case ItemDetailType.SlaveEquipment: // есть расшифровка в items/SlaveEquip, нет в 1.2
                 mDetailLength = 13;
                 break;
+            case ItemDetailType.Unk12: // 12
+                mDetailLength = 11; // 12 in 3.5, 4.5, 11 in 5.0
+                break;
+            case ItemDetailType.Unk13: // 13
+                mDetailLength = 14; // added in 5.7, 4.5
+                break;
+            case ItemDetailType.Invalid:
             default:
                 break;
         }
@@ -382,7 +404,7 @@ public class Item : PacketMarshaler, IComparable<Item>
     /// </summary>
     public virtual void OnManuallyDestroyingItem()
     {
-        
+
     }
 
     public virtual bool CanDestroy()

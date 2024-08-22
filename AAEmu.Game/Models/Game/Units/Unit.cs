@@ -60,6 +60,7 @@ public class Unit : BaseUnit, IUnit
 
     public byte Level { get; set; }
     public byte HierLevel { get; set; } // hierarchy level for 3.0.3.0
+    public uint HierExp { get; set; } // heirExp add for 3.5.0.3 : uint in 3.5, 4.5, long in 5.7
 
     public int Hp { get; set; }
 
@@ -1013,7 +1014,7 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(0f); // growRate
                 stream.Write(0); // randomSeed
                 stream.Write(false); // isWithered
-                stream.Write(false); // isHarvested
+                //stream.Write(false); // isHarvested
                 break;
             case ModelPostureType.TurretState: // slave
                 stream.Write(0f); // pitch

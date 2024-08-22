@@ -15,7 +15,10 @@ public class CSNotifyInGameCompletedPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        Connection.SendPacket(new SCScheduledEventStartedPacket());
+        //Connection.SendPacket(new SCScheduledEventStartedPacket());
+        Connection.SendPacket(new SCGlobalGameStatusAckPacket());
+        Connection.SendPacket(new SCSpawnedMonitorNpcsPacket());
+
         Connection.SendPacket(new SCChatMessagePacket(ChatType.System, AppConfiguration.Instance.World.MOTD)); // "Welcome to AAEmu!"
 
         WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
