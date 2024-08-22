@@ -250,21 +250,23 @@ public class Skill
 
         if (character is { AccessLevel: < 100 })
         {
+            Portal trp = null;
             // copy Return.cs
             if (Template.Effects.Count > 0 && Template.Effects.First()?.Template is SpecialEffect specialEffect)
             {
-                if (specialEffect.SpecialEffectTypeId == SpecialType.Return && specialEffect.Value1 > 0)
+                if (specialEffect.SpecialEffectTypeId == SpecialType.Return)
                 {
-                    // Worldgates
-                    var trp = PortalManager.Instance.GetWorldgatesById((uint)specialEffect.Value1);
-                    if (trp != null)
+                    if (specialEffect.Value1 > 0)
                     {
-                        var zone = ZoneManager.Instance.GetZoneById(trp.ZoneId);
-                        if (zone is null or { Closed: true })
-                        {
-                            // No more appropriate error type has been found yet
-                            return SkillResult.NoPerm;
-                        }
+                        // Worldgates
+                        trp = PortalManager.Instance.GetWorldgatesById((uint)specialEffect.Value1);
+                    }
+                    else
+                    {
+                        var returnPointId =
+                            PortalManager.Instance.GetDistrictReturnPoint((uint)character.ReturnDistrictId,
+                                character.Faction.Id);
+                        trp = PortalManager.Instance.GetRecallById(returnPointId);
                     }
                 }
             }
@@ -278,16 +280,16 @@ public class Skill
 
                 // copy OpenPortalEffect.cs
                 var portalInfo = (SkillObjectUnk1)skillObject;
-                
-                var trp = character.Portals.GetPortalInfo((uint)portalInfo.Id);
-                if (trp != null)
+                trp = character.Portals.GetPortalInfo((uint)portalInfo.Id);
+            }
+
+            if (trp != null)
+            {
+                var zone = ZoneManager.Instance.GetZoneByKey(trp.ZoneId);
+                if (zone is null or { Closed: true })
                 {
-                    var zone = ZoneManager.Instance.GetZoneById(trp.ZoneId);
-                    if (zone is null or { Closed: true })
-                    {
-                        // No more appropriate error type has been found yet
-                        return SkillResult.NoPerm;
-                    }
+                    // No more appropriate error type has been found yet
+                    return SkillResult.NoPerm;
                 }
             }
         }
