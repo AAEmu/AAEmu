@@ -11,9 +11,10 @@ public enum MoveTypeEnum
     Default = 0,
     Unit = 1,
     Vehicle = 2,
-    Ship = 3,
-    ShipRequest = 4,
-    Transfer = 5
+    Vehicle2 = 3,
+    Ship = 4,
+    ShipRequest = 5,
+    Transfer = 6
 }
 
 public abstract class MoveType : PacketMarshaler
@@ -70,6 +71,9 @@ public abstract class MoveType : PacketMarshaler
                 mType = new UnitMoveType();
                 break;
             case MoveTypeEnum.Vehicle:
+                mType = new VehicleMoveType();
+                break;
+            case MoveTypeEnum.Vehicle2:
                 mType = new VehicleMoveType();
                 break;
             case MoveTypeEnum.Ship:

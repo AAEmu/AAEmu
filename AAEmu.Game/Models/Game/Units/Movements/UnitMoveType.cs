@@ -42,7 +42,7 @@ public class UnitMoveType : MoveType
         ActorFlags = stream.ReadUInt16(); // ushort in 3.0.3.0, sbyte in 1.2
         if ((ActorFlags & 0x80) == 0x80)
             FallVel = stream.ReadUInt16(); // actor.fallVel
-        if ((ActorFlags & 0x20) == 0x20) // TODO ���� ��������� �� ���������� �������/�����/�������, �� ����� ���������� ���������
+        if ((ActorFlags & 0x20) == 0x20)
         {
             GcFlags = stream.ReadByte();    // actor.gcFlags
             GcPart = stream.ReadUInt16();   // actor.gcPart

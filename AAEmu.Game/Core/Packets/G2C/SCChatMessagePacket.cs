@@ -112,12 +112,16 @@ public class SCChatMessagePacket : GamePacket
                     case 4:
                         stream.Write(_itemId[i]); // itemId
                         break;
+                    case 5:
+                        stream.WriteBc(0); // recruit
+                        break;
                 }
             }
         }
 
         stream.Write(_character != null ? _ability : 0);
         stream.Write((byte)0); //option int in 1.2, byte in 3+
+        stream.Write((byte)0xff); //worldId
         return stream;
     }
 }
