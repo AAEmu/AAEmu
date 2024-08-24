@@ -180,13 +180,22 @@ public class FamilyManager : Singleton<FamilyManager>
     /// <param name="character"></param>
     public void OnCharacterLogin(Character character)
     {
-        var family = _families[character.Family];
-        var member = _familyMembers[character.Id];
-        member.Character = character;
+        var family = _families.GetValueOrDefault(character.Family);
+        var member = _familyMembers.GetValueOrDefault(character.Id);
+        if (family == null || member == null)
+        {
+            // Family no longer valid
+            character.Family = 0;
+        }
+        else
+        {
+            // Update Member field and send family packets
+            member.Character = character;
 
-        ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(character);
-        character.SendPacket(new SCFamilyDescPacket(family));
-        family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, member.Id, true));
+            ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(character);
+            character.SendPacket(new SCFamilyDescPacket(family));
+            family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, member.Id, true));
+        }
     }
 
     /// <summary>
