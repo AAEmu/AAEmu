@@ -42,6 +42,7 @@ public class Family : PacketMarshaler
     {
         var member = GetMember(character);
         RemoveMember(member);
+        character.Family = 0;
     }
 
     public FamilyMember GetMember(Character character)
