@@ -239,6 +239,7 @@ public class PortalManager : Singleton<PortalManager>
         if (JsonHelper.TryDeserializeObject(contents, out List<Portal> respawns, out _))
             foreach (var respawn in respawns)
             {
+                respawn.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldId, respawn.X, respawn.Y);
                 if (_respawns.ContainsKey(respawn.SubZoneId))
                 {
                     //
@@ -477,11 +478,19 @@ public class PortalManager : Singleton<PortalManager>
     public Portal GetClosestReturnPortal(Character character)
     {
         var cxyz = character.Transform.World.Position;
-        var distance = 5000f;
+        var distance = 999999f;
         var portal = new Portal();
 
         foreach (var (_, value) in _respawns)
         {
+            if (character is { AccessLevel: < 100 })
+            {
+                var zone = ZoneManager.Instance.GetZoneByKey(value.ZoneId);
+                if (zone is null or { Closed: true })
+                {
+                    continue;
+                }
+            }
             //if (!value.Name.ToLower().Contains("respawn")) { continue; }
             var pxyz = new Vector3(value.X, value.Y, value.Z);
             var dist = MathUtil.CalculateDistance(cxyz, pxyz);
