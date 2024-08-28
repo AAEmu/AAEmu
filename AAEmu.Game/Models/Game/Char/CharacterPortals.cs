@@ -101,6 +101,17 @@ public class CharacterPortals
         Owner.SendPacket(new SCCharacterPortalsPacket(new[] { newPortal }));
     }
 
+    public bool ChangePrivatePortalName(uint id, string name)
+    {
+        if (PrivatePortals.TryGetValue((uint)id, out var privatePortal))
+        {
+            privatePortal.Name = name;
+            Owner.SendPacket(new SCPortalInfoSavedPacket(privatePortal));
+            return true;
+        }
+
+        return false;
+    }
     public void SendIndunZone()
     {
         Owner.SendPacket(new SCIndunZone([]));
