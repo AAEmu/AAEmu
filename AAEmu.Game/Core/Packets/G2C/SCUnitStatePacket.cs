@@ -141,7 +141,7 @@ public class SCUnitStatePacket : GamePacket
         stream.WritePosition(_unit.Transform.Local.Position);
         stream.Write(_unit.Scale); // scale
         stream.Write(_unit.Level); // level
-        stream.Write(_unit.HierLevel); // hierarchy level for 3.0.3.0
+        stream.Write(_unit.HeirLevel); // hierarchy level for 3.0.3.0
         #region Level_hierLevel
         stream.Write((byte)0); // level
         stream.Write((byte)0); // heirLevel

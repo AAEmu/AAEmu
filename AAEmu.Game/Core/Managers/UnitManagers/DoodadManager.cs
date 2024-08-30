@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -77,8 +77,7 @@ public class DoodadManager : Singleton<DoodadManager>
         _phaseFuncs = new Dictionary<uint, List<DoodadPhaseFunc>>();
         _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
         _phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>();
-        foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()),
-                     "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
+        foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()), "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
         {
             if (type.BaseType == typeof(DoodadFuncTemplate))
             {
@@ -114,8 +113,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         {
                             Id = reader.GetUInt32("id"),
                             Almighty = reader.GetUInt32("doodad_almighty_id"),
-                            GroupKindId =
-                                (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
+                            GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id"),
                             SoundId = reader.GetUInt32("sound_id", 0),
                             Model = reader.GetString("model", "")
                         };
@@ -617,8 +615,16 @@ public class DoodadManager : Singleton<DoodadManager>
                     while (reader.Read())
                     {
                         var funcCloutId = reader.GetUInt32("doodad_func_clout_id");
-                        var func = (DoodadFuncClout)_phaseFuncTemplates["DoodadFuncClout"][funcCloutId];
-                        func.Effects.Add(reader.GetUInt32("effect_id"));
+                        if (_phaseFuncTemplates.ContainsKey("DoodadFuncClout") && _phaseFuncTemplates["DoodadFuncClout"].TryGetValue(funcCloutId, out var funcObject) &&
+                            funcObject is DoodadFuncClout func)
+                        {
+                            func.Effects.Add(reader.GetUInt32("effect_id"));
+                        }
+                        else
+                        {
+                            // Обработка случая, когда DoodadFuncClout не найден
+                            Logger.Warn($"DoodadFuncClout with id {funcCloutId} not found.");
+                        }
                     }
                 }
             }
@@ -2576,7 +2582,7 @@ public class DoodadManager : Singleton<DoodadManager>
                             Logger.Warn($"DoodadFuncToD has invalid value for minutes, Id {func.Id}, ToD {func.Tod}");
                         mm %= 60;
                         func.TodAsHours = (hh * 1f) + (mm / 60f);
-                            
+
                         _phaseFuncTemplates["DoodadFuncTod"].Add(func.Id, func);
                     }
                 }

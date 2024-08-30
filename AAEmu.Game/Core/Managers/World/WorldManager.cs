@@ -10,7 +10,6 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
@@ -18,7 +17,6 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -26,7 +24,6 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -306,24 +303,22 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 {
                     while (reader.Read())
                     {
-                        var idz = new IndunZone()
-                        {
-                            ZoneGroupId = reader.GetUInt32("zone_group_id"),
-                            Name = reader.GetString("name"),
-                            //Comment = reader.GetString("comment"), // there is no such field in the database for version 3.0.3.0
-                            LevelMin = reader.GetUInt32("level_min"),
-                            LevelMax = reader.GetUInt32("level_max"),
-                            MaxPlayers = reader.GetUInt32("max_players"),
-                            PvP = reader.GetBoolean("pvp"),
-                            HasGraveyard = reader.GetBoolean("has_graveyard"),
-                            ItemId = reader.IsDBNull("item_id") ? 0 : reader.GetUInt32("item_id"),
-                            RestoreItemTime = reader.GetUInt32("restore_item_time"),
-                            PartyOnly = reader.GetBoolean("party_only"),
-                            ClientDriven = reader.GetBoolean("client_driven"),
-                            SelectChannel = reader.GetBoolean("select_channel")
-                        };
-                        idz.LocalizedName =
-                            LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
+                        var idz = new IndunZone();
+                        idz.ZoneGroupId = reader.GetUInt32("zone_group_id");
+                        idz.Name = reader.GetString("name");
+                        //idz.Comment = reader.GetString("comment");
+                        idz.LevelMin = reader.GetUInt32("level_min");
+                        idz.LevelMax = reader.GetUInt32("level_max");
+                        idz.MaxPlayers = reader.GetUInt32("max_players");
+                        idz.PvP = reader.GetBoolean("pvp");
+                        idz.HasGraveyard = reader.GetBoolean("has_graveyard");
+                        idz.ItemId = reader.IsDBNull("item_id") ? 0 : reader.GetUInt32("item_id");
+                        idz.RestoreItemTime = reader.GetUInt32("restore_item_time");
+                        idz.PartyOnly = reader.GetBoolean("party_only");
+                        idz.ClientDriven = reader.GetBoolean("client_driven");
+                        idz.SelectChannel = reader.GetBoolean("select_channel");
+                        idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
+
                         if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
                             Logger.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
                     }

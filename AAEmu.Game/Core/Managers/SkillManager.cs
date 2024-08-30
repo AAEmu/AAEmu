@@ -363,7 +363,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.TargetRelation = (SkillTargetRelation)reader.GetInt32("target_relation_id");
                         template.TargetAreaCount = reader.GetInt32("target_area_count");
                         template.TargetAreaRadius = reader.GetInt32("target_area_radius");
-                        template.TargetSiege = reader.GetBoolean("target_siege", true);
+                        //template.TargetSiege = reader.GetBoolean("target_siege", true);
                         template.WeaponSlotForAngleId = reader.GetInt32("weapon_slot_for_angle_id");
                         template.TargetAngle = reader.GetInt32("target_angle");
                         template.WeaponSlotForRangeId = reader.GetInt32("weapon_slot_for_range_id");
@@ -542,7 +542,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.Ragdoll = reader.GetBoolean("ragdoll", true);
                         template.OneTime = reader.GetBoolean("one_time", true);
                         template.ReflectionChance = reader.GetInt32("reflection_chance");
-                        template.ReflectionTypeId = reader.GetUInt32("reflection_type_id");
+                        //template.ReflectionTypeId = reader.GetUInt32("reflection_type_id");
                         template.RequireBuffId = reader.GetUInt32("require_buff_id", 0);
                         template.Taunt = reader.GetBoolean("taunt", true);
                         template.TauntWithTopAggro = reader.GetBoolean("taunt_with_top_aggro", true);
@@ -719,12 +719,19 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     while (reader.Read())
                     {
                         var buffId = reader.GetUInt32("buff_id");
-                        var template = _buffs[buffId];
-                        var tickEffect = new TickEffect();
-                        tickEffect.EffectId = reader.GetUInt32("effect_id");
-                        tickEffect.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
-                        tickEffect.TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0);
-                        template.TickEffects.Add(tickEffect);
+                        if (_buffs.TryGetValue(buffId, out var template))
+                        {
+                            var tickEffect = new TickEffect();
+                            tickEffect.EffectId = reader.GetUInt32("effect_id");
+                            tickEffect.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
+                            tickEffect.TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0);
+                            template.TickEffects.Add(tickEffect);
+                        }
+                        else
+                        {
+                            // Обработка случая, когда template не найден
+                            Logger.Warn($"Template for buffId {buffId} not found.");
+                        }
                     }
                 }
             }
@@ -737,15 +744,20 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     while (reader.Read())
                     {
                         var buffId = reader.GetUInt32("owner_id");
-                        if (!_buffs.ContainsKey(buffId))
-                            continue;
-                        var buff = _buffs[buffId];
-                        var template = new BonusTemplate();
-                        template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
-                        template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
-                        template.Value = reader.GetInt32("value");
-                        template.LinearLevelBonus = reader.GetInt32("linear_level_bonus");
-                        buff.Bonuses.Add(template);
+                        if (_buffs.TryGetValue(buffId, out var buff))
+                        {
+                            var template = new BonusTemplate();
+                            template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
+                            template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
+                            template.Value = reader.GetInt32("value");
+                            template.LinearLevelBonus = reader.GetInt32("linear_level_bonus");
+                            buff.Bonuses.Add(template);
+                        }
+                        else
+                        {
+                            // Обработка случая, когда template не найден
+                            Logger.Warn($"Template for buffId {buffId} not found.");
+                        }
                     }
                 }
             }
@@ -758,15 +770,20 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     while (reader.Read())
                     {
                         var buffId = reader.GetUInt32("buff_id");
-                        if (!_buffs.ContainsKey(buffId))
-                            continue;
-                        var buff = _buffs[buffId];
-                        var template = new DynamicBonusTemplate();
-                        template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
-                        template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
-                        template.FuncId = reader.GetUInt32("func_id");
-                        template.FuncType = reader.GetString("func_type");
-                        buff.DynamicBonuses.Add(template);
+                        if (_buffs.TryGetValue(buffId, out var buff))
+                        {
+                            var template = new DynamicBonusTemplate();
+                            template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
+                            template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
+                            template.FuncId = reader.GetUInt32("func_id");
+                            template.FuncType = reader.GetString("func_type");
+                            buff.DynamicBonuses.Add(template);
+                        }
+                        else
+                        {
+                            // Обработка случая, когда template не найден
+                            Logger.Warn($"Template for buffId {buffId} not found.");
+                        }
                     }
                 }
             }
@@ -780,13 +797,16 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 {
                     while (reader.Read())
                     {
-                        var template = new SkillControllerTemplate
-                        {
-                            Id = reader.GetUInt32("id"),
-                            KindId = reader.GetUInt32("kind_id"),
-                            ActiveWeaponId = reader.GetByte("active_weapon_id"),
-                            // TODO 1.2 // EndSkillId = reader.GetUInt32("end_skill_id")
-                        };
+                        var template = new SkillControllerTemplate();
+                        template.Id = reader.GetUInt32("id");
+                        template.ActiveWeaponId = reader.GetByte("active_weapon_id");
+                        template.EndAnimId = reader.GetUInt32("end_anim_id");
+                        template.EndSkillId = reader.GetUInt32("end_skill_id");
+                        template.KindId = reader.GetUInt32("kind_id");
+                        template.StartAnimId = reader.GetUInt32("start_anim_id");
+                        template.StrValue1 = reader.GetString("str_value1");
+                        template.TransitionAnim1Id = reader.GetUInt32("transition_anim_1_id");
+                        template.TransitionAnim2Id = reader.GetUInt32("transition_anim_2_id");
                         for (var i = 0; i < 15; i++)
                             template.Value[i] = reader.GetInt32($"value{i + 1}", 0);
                         _effects["SkillController"].Add(template.Id, template);
@@ -804,10 +824,11 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     {
                         var template = new AccountAttributeEffect();
                         template.Id = reader.GetUInt32("id");
-                        template.KindId = reader.GetUInt32("kind_id");
                         template.BindWorld = reader.GetBoolean("bind_world");
-                        template.IsAdd = reader.GetBoolean("is_add");
                         template.Count = reader.GetUInt32("count");
+                        template.IsAdd = reader.GetBoolean("is_add");
+                        template.KindId = reader.GetUInt32("kind_id");
+                        template.KindValue = reader.GetUInt32("kind_value");
                         template.Time = reader.GetUInt32("time");
                         _effects["AccountAttributeEffect"].Add(template.Id, template);
                     }

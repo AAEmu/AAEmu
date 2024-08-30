@@ -12,7 +12,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Attendance;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
@@ -20,7 +19,6 @@ using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Items.Slave;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -150,8 +148,16 @@ public class CharacterManager : Singleton<CharacterManager>
                     {
                         var characterId = reader.GetUInt32("character_id");
                         var buffId = reader.GetUInt32("buff_id");
-                        var template = _templates[temp[characterId]];
-                        template.Buffs.Add(buffId);
+
+                        if (temp.TryGetValue(characterId, out var tempValue) && _templates.TryGetValue(tempValue, out var template))
+                        {
+                            template.Buffs.Add(buffId);
+                        }
+                        else
+                        {
+                            // Обработка случая, когда template не найден
+                            Logger.Warn($"Template for characterId {characterId} not found.");
+                        }
                     }
                 }
             }
@@ -165,16 +171,18 @@ public class CharacterManager : Singleton<CharacterManager>
                     while (reader.Read())
                     {
                         var ability = (AbilityType)reader.GetByte("ability_id");
-                        var item = new AbilitySupplyItem
-                        {
-                            Id = reader.GetUInt32("item_id"),
-                            Amount = reader.GetInt32("amount"),
-                            Grade = reader.GetByte("grade_id")
-                        };
+                        var item = new AbilitySupplyItem();
+                        item.Id = reader.GetUInt32("item_id");
+                        item.Amount = reader.GetInt32("amount");
+                        item.Grade = reader.GetByte("grade_id");
 
-                        if (!_abilityItems.ContainsKey(ability))
-                            _abilityItems.Add(ability, new AbilityItems());
-                        _abilityItems[ability].Supplies.Add(item);
+                        if (!_abilityItems.TryGetValue(ability, out var abilityItems))
+                        {
+                            abilityItems = new AbilityItems();
+                            _abilityItems.Add(ability, abilityItems);
+                        }
+
+                        abilityItems.Supplies.Add(item);
                     }
                 }
             }
@@ -187,7 +195,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     while (reader.Read())
                     {
-                        var ability = (AbilityType)reader.GetByte("ability_id");
+                        var ability = (AbilityType)reader.GetUInt32("id");
                         var template = new AbilityItems { Ability = ability, Items = new EquipItemsTemplate() };
                         var clothPack = reader.GetUInt32("newbie_cloth_pack_id", 0);
                         var weaponPack = reader.GetUInt32("newbie_weapon_pack_id", 0);
@@ -202,32 +210,34 @@ public class CharacterManager : Singleton<CharacterManager>
                                 {
                                     while (reader2.Read())
                                     {
+                                        template.Items.Back = reader2.GetUInt32("back_id");
+                                        template.Items.BackGrade = reader2.GetByte("back_grade_id");
+                                        template.Items.Backpack = reader2.GetByte("backpack_id");
+                                        template.Items.BackpackGrade = reader2.GetUInt32("backpack_grade_id");
+                                        template.Items.Belt = reader2.GetUInt32("belt_id");
+                                        template.Items.BeltGrade = reader2.GetByte("belt_grade_id");
+                                        template.Items.Bracelet = reader2.GetUInt32("bracelet_id");
+                                        template.Items.BraceletGrade = reader2.GetByte("bracelet_grade_id");
+                                        template.Items.Cosplay = reader2.GetUInt32("cosplay_id");
+                                        template.Items.CosplayGrade = reader2.GetByte("cosplay_grade_id");
+                                        template.Items.Gloves = reader2.GetUInt32("glove_id");
+                                        template.Items.GlovesGrade = reader2.GetByte("glove_grade_id");
                                         template.Items.Headgear = reader2.GetUInt32("headgear_id");
                                         template.Items.HeadgearGrade = reader2.GetByte("headgear_grade_id");
                                         template.Items.Necklace = reader2.GetUInt32("necklace_id");
                                         template.Items.NecklaceGrade = reader2.GetByte("necklace_grade_id");
-                                        template.Items.Shirt = reader2.GetUInt32("shirt_id");
-                                        template.Items.ShirtGrade = reader2.GetByte("shirt_grade_id");
-                                        template.Items.Belt = reader2.GetUInt32("belt_id");
-                                        template.Items.BeltGrade = reader2.GetByte("belt_grade_id");
                                         template.Items.Pants = reader2.GetUInt32("pants_id");
                                         template.Items.PantsGrade = reader2.GetByte("pants_grade_id");
-                                        template.Items.Gloves = reader2.GetUInt32("glove_id");
-                                        template.Items.GlovesGrade = reader2.GetByte("glove_grade_id");
+                                        template.Items.Shirt = reader2.GetUInt32("shirt_id");
+                                        template.Items.ShirtGrade = reader2.GetByte("shirt_grade_id");
                                         template.Items.Shoes = reader2.GetUInt32("shoes_id");
                                         template.Items.ShoesGrade = reader2.GetByte("shoes_grade_id");
-                                        template.Items.Bracelet = reader2.GetUInt32("bracelet_id");
-                                        template.Items.BraceletGrade = reader2.GetByte("bracelet_grade_id");
-                                        template.Items.Back = reader2.GetUInt32("back_id");
-                                        template.Items.BackGrade = reader2.GetByte("back_grade_id");
-                                        template.Items.Cosplay = reader2.GetUInt32("cosplay_id");
-                                        template.Items.CosplayGrade = reader2.GetByte("cosplay_grade_id");
-                                        template.Items.Undershirts = reader2.GetUInt32("undershirt_id");
-                                        template.Items.UndershirtsGrade = reader2.GetByte("undershirt_grade_id");
-                                        template.Items.Underpants = reader2.GetUInt32("underpants_id");
-                                        template.Items.UnderpantsGrade = reader2.GetByte("underpants_grade_id");
                                         template.Items.Stabilizer = reader2.GetUInt32("stabilizer_id");
                                         template.Items.StabilizerGrade = reader2.GetByte("stabilizer_grade_id");
+                                        template.Items.Underpants = reader2.GetUInt32("underpants_id");
+                                        template.Items.UnderpantsGrade = reader2.GetByte("underpants_grade_id");
+                                        template.Items.Undershirts = reader2.GetUInt32("undershirt_id");
+                                        template.Items.UndershirtsGrade = reader2.GetByte("undershirt_grade_id");
                                     }
                                 }
                             }
@@ -246,12 +256,12 @@ public class CharacterManager : Singleton<CharacterManager>
                                     {
                                         template.Items.Mainhand = reader2.GetUInt32("mainhand_id");
                                         template.Items.MainhandGrade = reader2.GetByte("mainhand_grade_id");
+                                        template.Items.Musical = reader2.GetUInt32("musical_id");
+                                        template.Items.MusicalGrade = reader2.GetByte("musical_grade_id");
                                         template.Items.Offhand = reader2.GetUInt32("offhand_id");
                                         template.Items.OffhandGrade = reader2.GetByte("offhand_grade_id");
                                         template.Items.Ranged = reader2.GetUInt32("ranged_id");
                                         template.Items.RangedGrade = reader2.GetByte("ranged_grade_id");
-                                        template.Items.Musical = reader2.GetUInt32("musical_id");
-                                        template.Items.MusicalGrade = reader2.GetByte("musical_grade_id");
                                     }
                                 }
                             }
@@ -271,24 +281,29 @@ public class CharacterManager : Singleton<CharacterManager>
                     while (reader.Read())
                     {
                         var expand = new Expand();
-                        expand.IsBank = reader.GetBoolean("is_bank", true);
-                        expand.Step = reader.GetInt32("step");
-                        expand.Price = reader.GetInt32("price");
-                        expand.ItemId = reader.GetUInt32("item_id", 0);
-                        expand.ItemCount = reader.GetInt32("item_count");
                         expand.CurrencyId = reader.GetInt32("currency_id");
+                        expand.IsBank = reader.GetBoolean("is_bank", true);
+                        expand.ItemCount = reader.GetInt32("item_count");
+                        expand.ItemId = reader.GetUInt32("item_id", 0);
+                        expand.Price = reader.GetInt32("price");
+                        expand.Step = reader.GetInt32("step");
 
-                        if (!_expands.ContainsKey(expand.Step))
-                            _expands.Add(expand.Step, new List<Expand> { expand });
+                        if (!_expands.TryGetValue(expand.Step, out var expandList))
+                        {
+                            expandList = new List<Expand> { expand };
+                            _expands.Add(expand.Step, expandList);
+                        }
                         else
-                            _expands[expand.Step].Add(expand);
+                        {
+                            expandList.Add(expand);
+                        }
                     }
                 }
             }
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT id, buff_id FROM appellations";
+                command.CommandText = "SELECT * FROM appellations";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -296,7 +311,15 @@ public class CharacterManager : Singleton<CharacterManager>
                     {
                         var template = new AppellationTemplate();
                         template.Id = reader.GetUInt32("id");
+                        template.ApplyAppellationAtOnce = reader.GetBoolean("apply_appellation_at_once");
                         template.BuffId = reader.GetUInt32("buff_id", 0);
+                        template.IconId = reader.GetUInt32("icon_id", 0);
+                        template.Name = reader.GetString("name");
+                        template.OrderIndex = reader.GetUInt32("order_index", 0);
+                        template.RouteDesc = reader.GetString("route_desc");
+                        template.RouteKindId = reader.GetUInt32("route_kind_id", 0);
+                        template.RoutePopup = reader.GetBoolean("route_popup");
+                        template.RouteType = reader.GetUInt32("route_type", 0);
 
                         _appellations.Add(template.Id, template);
                     }
@@ -313,8 +336,12 @@ public class CharacterManager : Singleton<CharacterManager>
                     {
                         var template = new ActabilityTemplate();
                         template.Id = reader.GetUInt32("id");
+                        template.IconId = reader.GetUInt32("icon_id", 0);
                         template.Name = reader.GetString("name");
+                        template.SkillPageVisible = reader.GetBoolean("skill_page_visible");
                         template.UnitAttributeId = reader.GetInt32("unit_attr_id");
+                        template.Visible = reader.GetBoolean("visible");
+
                         _actabilities.Add(template.Id, template);
                     }
                 }

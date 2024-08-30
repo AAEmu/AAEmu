@@ -17,10 +17,10 @@ public enum AbilityType : byte
     //Trooper = 12,  // add in 3+
     //None = 13      // add in 3+
     Hatred = 11, // in 5.7.5.0
-    //Assassin = 12, // in 5.7.5.0
-    //Madness = 13, // in 5.7.5.0
-    Space1 = 12,
-    Space2 = 13,
+    Assassin = 12, // in 5.7.5.0
+    Madness = 13, // in 5.7.5.0
+    //Space1 = 12,
+    //Space2 = 13,
     Space3 = 14,
     Space4 = 15,
     Space5 = 16,

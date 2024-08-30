@@ -17,6 +17,7 @@ public class CSSpawnCharacterPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         Connection.State = GameState.World;
+        var character = Connection.ActiveChar;
 
         Connection.ActiveChar.VisualOptions = new CharacterVisualOptions();
         Connection.ActiveChar.VisualOptions.Read(stream);
@@ -24,6 +25,11 @@ public class CSSpawnCharacterPacket : GamePacket
         Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));
 
         Connection.ActiveChar.PushSubscriber(TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar)));
+
+        //Connection.SendPacket(new SCCooldownsPacket(Connection.ActiveChar));
+        //Connection.SendPacket(new SCListSkillActiveTypsPacket([]));
+        //Connection.SendPacket(new SCDetailedTimeOfDayPacket(12f));
+        //Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
         Logger.Info("CSSpawnCharacterPacket");
     }

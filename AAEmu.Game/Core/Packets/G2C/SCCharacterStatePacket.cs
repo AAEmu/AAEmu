@@ -32,7 +32,7 @@ public class SCCharacterStatePacket : GamePacket
         stream.Write(0f); // anglesY
         stream.Write(0f); // anglesZ
         stream.Write(_character.Experience);     // exp
-        stream.Write(_character.HierExp);        // uint hierExp add in 3.5.0.3 NA, 5.0, long in 5.7
+        stream.Write(_character.HeirExp);        // uint hierExp add in 3.5.0.3 NA, 5.0, long in 5.7
         stream.Write(_character.RecoverableExp); // recoverableExp
         stream.Write(0u);                        // penaltiedExp
         stream.Write(0u);                        // returnDistrictId

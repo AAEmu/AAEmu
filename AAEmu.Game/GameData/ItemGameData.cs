@@ -7,12 +7,15 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
+using NLog;
 
 namespace AAEmu.Game.GameData;
 
 [GameData]
 public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    
     private Dictionary<uint, Dictionary<byte, uint>> _itemGradeBuffs;
 
     public BuffTemplate GetItemBuff(uint itemId, byte gradeId)
@@ -43,7 +46,14 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
                     if (!_itemGradeBuffs.ContainsKey(itemId))
                         _itemGradeBuffs.Add(itemId, new Dictionary<byte, uint>());
 
-                    _itemGradeBuffs[itemId].Add(itemGrade, buffId);
+                    if (!_itemGradeBuffs[itemId].ContainsKey(itemGrade))
+                    {
+                        _itemGradeBuffs[itemId].Add(itemGrade, buffId);
+                    }
+                    else
+                    {
+                        Logger.Warn($"Duplicate detected:itemId={itemId}, itemGrade={itemGrade}, buffId={buffId}");
+                    }
                 }
             }
         }

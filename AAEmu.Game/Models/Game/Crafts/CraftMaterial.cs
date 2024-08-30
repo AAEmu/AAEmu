@@ -10,4 +10,6 @@ public class CraftMaterial
     public uint ItemId { get; set; }
     public int Amount { get; set; }
     public bool MainGrade { get; set; }
+    public uint RequireGrade { get; set; }
+    public bool UpperGrade { get; set; }
 }

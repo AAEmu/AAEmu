@@ -122,7 +122,7 @@ public class Skill
                 if (unit.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
                 {
                     // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-                    if (!caster.CheckInterval(delay))
+                    //if (!caster.CheckInterval(delay))
                     {
                         Logger.Trace($"Skill: CooldownTime [{delay}]!");
                         return SkillResult.CooldownTime;
@@ -133,7 +133,7 @@ public class Skill
                 if (unit.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
                 {
                     // Will delay for 50 Milliseconds to eliminate the hanging of the skill
-                    if (!caster.CheckInterval(delay))
+                    //if (!caster.CheckInterval(delay))
                     {
                         Logger.Trace($"Skill: CooldownTime [{delay}]!");
                         return SkillResult.CooldownTime;

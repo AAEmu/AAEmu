@@ -60,9 +60,9 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                         template.Id = reader.GetUInt32("id");
                         template.RowZoneGroupId = reader.GetUInt32("row_zone_group_id");
                         template.ColZoneGroupId = reader.GetUInt32("col_zone_group_id");
-                        template.Ratio = reader.GetUInt32("ratio");
-                        template.Profit = reader.GetUInt32("profit");
-                        template.VendorExist = reader.GetBoolean("id", true);
+                        //template.Ratio = reader.GetUInt32("ratio");
+                        //template.Profit = reader.GetUInt32("profit");
+                        //template.VendorExist = reader.GetBoolean("id", true);
                         _specialties.Add(template.Id, template);
                     }
                 }
@@ -84,10 +84,28 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                         template.Ratio = reader.GetUInt32("ratio");
                         _specialtyBundleItems.Add(template.Id, template);
 
+                        // Проверка на дубликат в _specialtyBundleItems
+                        if (!_specialtyBundleItems.ContainsKey(template.Id))
+                        {
+                            _specialtyBundleItems.Add(template.Id, template);
+                        }
+                        else
+                        {
+                            Logger.Warn($"Дубликат обнаружен в _specialtyBundleItems: id={template.Id}");
+                        }
+
+                        // Проверка на дубликат в _specialtyBundleItemsMapped
                         if (!_specialtyBundleItemsMapped.ContainsKey(template.ItemId))
                             _specialtyBundleItemsMapped.Add(template.ItemId, new Dictionary<uint, SpecialtyBundleItem>());
 
-                        _specialtyBundleItemsMapped[template.ItemId].Add(template.SpecialtyBundleId, template);
+                        if (!_specialtyBundleItemsMapped[template.ItemId].ContainsKey(template.SpecialtyBundleId))
+                        {
+                            _specialtyBundleItemsMapped[template.ItemId].Add(template.SpecialtyBundleId, template);
+                        }
+                        else
+                        {
+                            Logger.Warn($"Дубликат обнаружен в _specialtyBundleItemsMapped: itemId={template.ItemId}, specialtyBundleId={template.SpecialtyBundleId}");
+                        }
                     }
                 }
             }

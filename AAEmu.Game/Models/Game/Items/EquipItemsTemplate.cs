@@ -36,4 +36,6 @@ public class EquipItemsTemplate
     public byte MusicalGrade { get; set; }
     public uint Stabilizer { get; set; }
     public byte StabilizerGrade { get; set; }
+    public uint BackpackGrade { get; set; }
+    public byte Backpack { get; set; }
 }

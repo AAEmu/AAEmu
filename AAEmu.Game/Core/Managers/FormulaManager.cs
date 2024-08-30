@@ -58,6 +58,8 @@ public class FormulaManager : Singleton<FormulaManager>
         if (_loaded)
             return;
         // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
+        // Functions can be used inside the mathemical formulas.
+        // Jace.NET currently offers four functions accepting one argument (sin, cos, loge and log10) and one function accepting two arguments (logn).
         CalculationEngine = new(new JaceOptions
         {
             CacheEnabled = true,

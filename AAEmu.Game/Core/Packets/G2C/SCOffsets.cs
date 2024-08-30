@@ -734,7 +734,7 @@
         public const ushort SCOtherTradeitemTookdownPacket = 0x217;
         public const ushort SCLoadInstancePacket = 0x0E5;
         public const ushort SCZonePermissionChangedPacket = 0x12D;
-        public const ushort off_39E9EED4 = 0x11A;
+        public const ushort SCResponseCommonFarmListPacket = 0x11A; // off_39E9EED4
         public const ushort SCTransferTelescopeUnitsPacket = 0x30A;
         public const ushort SCBossTelescopeUnitsPacket = 0x2BB;
         public const ushort SCSchoolOfFishDoodadsPacket = 0x21A;
@@ -855,7 +855,6 @@
         public const ushort SCSystemFactionListPacket = 0xFFF;
         public const ushort SCSearchListPacket = 0xFFF;
         public const ushort SCOtherTradeItemTookdownPacket = 0xFFF;
-        public const ushort SCResponseCommonFarmListPacket = 0xFFF;
         public const ushort SCAuctionSearchedPacket = 0xFFF;
         public const ushort SCDominionDataPacket = 0xFFF;
         public const ushort SCNationalMonumentChangedPacket = 0xFFF;

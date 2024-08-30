@@ -80,10 +80,10 @@ public class CSSelectCharacterPacket : GamePacket
             Connection.ActiveChar.Inventory.Send();
             Connection.SendPacket(new SCCharacterGamePointsPacket(character));
             // move to CSSpawnCharacter
-            //Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
+            Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
             // added in 5.0.7.0
             Connection.SendPacket(new SCIncreasedFavoritePortalLimitPacket(0));
-            Connection.ActiveChar.Portals.SendIndunZone();
+            //Connection.ActiveChar.Portals.SendIndunZone();
             Connection.SendPacket(new SCNpcFriendshipListPacket());
 
             Connection.ActiveChar.Quests.Send();
@@ -92,8 +92,8 @@ public class CSSelectCharacterPacket : GamePacket
             Connection.ActiveChar.Actability.Send();
             Connection.ActiveChar.Mails.SendUnreadMailCount();
             // removed in 5.0.7.0
-            //Connection.ActiveChar.Appellations.Send();
-            //Connection.ActiveChar.Portals.Send();
+            Connection.ActiveChar.Appellations.Send();
+            Connection.ActiveChar.Portals.Send();
 
             Connection.ActiveChar.Friends.Send();
             Connection.ActiveChar.Blocked.Send();

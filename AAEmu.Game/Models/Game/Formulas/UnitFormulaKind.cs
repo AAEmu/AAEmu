@@ -51,5 +51,23 @@ public enum UnitFormulaKind : byte
     HealDpsInc = 43,
     HealCriticalBonus = 44,
     Block = 45,
-    Dodge = 46
+    Dodge = 46,
+
+    // TODO v.5.0
+    Mass = 47,
+    SteeringSpeed = 48,
+    ReverseVelocity = 49,
+    MeleeDynamicNormalizable = 50,
+    RangedDynamicNormalizable = 51,
+    MagicDynamicNormalizable = 52,
+    HealDynamicNormalizable = 53,
+    DefenceDynamicNormalizable = 54,
+    MusicDynamicNormalizable = 55,
+    unk59 = 59,
+    unk60 = 60,
+    unk61 = 61,
+    unk63 = 63,
+    unk64 = 64,
+    unk65 = 65,
+    unk66 = 66
 }

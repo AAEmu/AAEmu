@@ -40,17 +40,21 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                 {
                     var template = new Achievements();
                     template.Id = reader.GetUInt32("id");
-                    template.CategoryId = reader.GetUInt32("category_id", 0);
+                    template.SubCategoryId = reader.GetUInt32("achievement_sub_category_id", 0);
+                    template.AppellationId = reader.GetUInt32("appellation_id", 0);
+                    //template.CategoryId = reader.GetUInt32("category_id", 0);
                     template.CompleteNum = reader.GetUInt32("complete_num", 0);
                     template.CompleteOr = reader.GetBoolean("complete_or");
+                    template.GradeId = reader.GetUInt32("grade_id", 0);
                     template.IconId = reader.GetUInt32("icon_id", 0);
-                    template.IsActive = reader.GetBoolean("is_active");
                     template.IsHidden = reader.GetBoolean("is_hidden");
+                    //template.IsActive = reader.GetBoolean("is_active");
+                    template.ItemNum = reader.GetUInt32("item_num");
                     template.ItemId = reader.GetUInt32("item_id", 0);
                     template.OrUnitReqs = reader.GetBoolean("or_unit_reqs");
                     template.ParentAchievementId = reader.GetUInt32("parent_achievement_id", 0);
                     template.Priority = reader.GetUInt32("priority", 0);
-                    template.SubCategoryId = reader.GetUInt32("sub_category_id", 0);
+                    template.SeasonOff = reader.GetBoolean("season_off");
 
                     _achievements.TryAdd(template.Id, template);
                 }

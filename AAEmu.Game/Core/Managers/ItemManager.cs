@@ -1151,18 +1151,22 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new BackpackTemplate
-                        {
-                            Id = reader.GetUInt32("item_id"),
-                            AssetId = reader.GetUInt32("asset_id"),
-                            BackpackType = (BackpackType)reader.GetUInt32("backpack_type_id"),
-                            DeclareSiegeZoneGroupId = reader.GetUInt32("declare_siege_zone_group_id"),
-                            Heavy = reader.GetBoolean("heavy"),
-                            Asset2Id = reader.GetUInt32("asset2_id"),
-                            NormalSpeciality = reader.GetBoolean("normal_specialty"),
-                            UseAsStat = reader.GetBoolean("use_as_stat"),
-                            SkinKindId = reader.GetUInt32("skin_kind_id")
-                        };
+                        var template = new BackpackTemplate();
+                        template.Id = reader.GetUInt32("item_id");
+                        template.AssetId = reader.GetUInt32("asset_id");
+                        template.Asset2Id = reader.GetUInt32("asset2_id");
+                        template.BackpackType = (BackpackType)reader.GetUInt32("backpack_type_id");
+                        template.DeclareSiegeZoneGroupId = reader.GetUInt32("declare_siege_zone_group_id");
+                        template.FreshnessGroupId = reader.GetUInt32("freshness_group_id");
+                        template.GliderAnimActionId = reader.GetUInt32("glider_anim_action_id");
+                        template.GliderFastAnimActionId = reader.GetUInt32("glider_fast_anim_action_id");
+                        template.GliderSlidingAnimActionId = reader.GetUInt32("glider_sliding_anim_action_id");
+                        template.GliderSlowAnimActionId = reader.GetUInt32("glider_slow_anim_action_id");
+                        //template.NormalSpeciality = reader.GetBoolean("normal_specialty");
+                        template.Heavy = reader.GetBoolean("heavy");
+                        template.SkinKindId = reader.GetUInt32("skin_kind_id");
+                        template.UseAsStat = reader.GetBoolean("use_as_stat");
+
                         _templates.Add(template.Id, template);
                     }
                 }

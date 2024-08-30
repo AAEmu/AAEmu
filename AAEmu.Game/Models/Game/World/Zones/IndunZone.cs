@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.World.Zones;
+﻿namespace AAEmu.Game.Models.Game.World.Zones;
 
 public class IndunZone
 {
@@ -16,6 +16,12 @@ public class IndunZone
     public bool ClientDriven { get; set; }
     public bool SelectChannel { get; set; }
     public string LocalizedName { get; set; }
+    public bool Pvp { get; set; }
+    public uint VictoryTargetNpc { get; set; }
+    public bool CanUseForceAttack { get; set; }
+    public bool Duel { get; set; }
+    public bool ExpPanelty { get; set; }
+    public uint GearScore { get; set; }
 
     public override string ToString()
     {

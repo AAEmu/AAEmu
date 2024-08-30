@@ -332,6 +332,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSDeleteAbilitySetPacket, 5, typeof(CSDeleteAbilitySetPacket));
         RegisterPacket(CSOffsets.CSRepairSlaveItemsPacket, 5, typeof(CSRepairSlaveItemsPacket));
         RegisterPacket(CSOffsets.CSRepairPetItemsPacket, 5, typeof(CSRepairPetItemsPacket));
+        RegisterPacket(CSOffsets.CSSaveTutorialPacket, 5, typeof(CSSaveTutorialPacket));
         //RegisterPacket(CSOffsets.CSFactionIssuanceOfMobilizationOrderPacket, 5, typeof(CSFactionIssuanceOfMobilizationOrderPacket));
         RegisterPacket(CSOffsets.CSGetExpeditionMyRecruitmentsPacket, 5, typeof(CSGetExpeditionMyRecruitmentsPacket));
         RegisterPacket(CSOffsets.CSExpeditionRecruitmentAddPacket, 5, typeof(CSExpeditionRecruitmentAddPacket));

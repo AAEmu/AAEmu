@@ -13,6 +13,7 @@ public class AccountAttributeEffect : EffectTemplate
     public bool IsAdd { get; set; }
     public uint Count { get; set; }
     public uint Time { get; set; }
+    public uint KindValue { get; set; }
 
     public override bool OnActionTime => false;
 

@@ -37,6 +37,13 @@ public class Craft
         }
     }
 
+    public uint CraftCCategoryId { get; set; }
+    public uint CraftDCcategoryId { get; set; }
+    public bool Orderable { get; set; }
+    public uint ProductsPackIid { get; set; }
+    public bool UseOnlyCactability { get; set; }
+    public uint CraftPackId { get; set; }
+
     public Craft()
     {
         CraftProducts = new List<CraftProduct>();
