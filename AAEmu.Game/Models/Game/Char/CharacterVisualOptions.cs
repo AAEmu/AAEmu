@@ -25,8 +25,6 @@ public class CharacterVisualOptions : PacketMarshaler
             Cosplay = stream.ReadBoolean();
         if ((_flag & 16) == 16)
             CosplayBackpack = stream.ReadBoolean();
-        if ((_flag & 16) == 16)
-            CosplayBackpack = stream.ReadBoolean();
         if ((_flag & 32) == 32)
             CosplayVisual = stream.ReadBoolean(); // cosplay_visual
     }
