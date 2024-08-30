@@ -4,9 +4,9 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSaveTutorialPacket : GamePacket
+public class CSCompletedTutorialPacket : GamePacket
 {
-    public CSSaveTutorialPacket() : base(CSOffsets.CSSaveTutorialPacket, 5)
+    public CSCompletedTutorialPacket() : base(CSOffsets.CSCompletedTutorialPacket, 5)
     {
     }
 
@@ -20,6 +20,6 @@ public class CSSaveTutorialPacket : GamePacket
         var body = new byte[8];
         completedQuestBlock.Body.CopyTo(body, 0);
 
-        Connection.SendPacket(new SCTutorialSavedPacket(id, body));
+        Connection.SendPacket(new SCTutorialCompletedPacket(id, body));
     }
 }

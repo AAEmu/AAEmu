@@ -172,7 +172,7 @@
         public const ushort off_39E9E160 = 0xfff;
         //public const ushort CSAesXorKeyPacket = 0x1A2;
         public const ushort CSNotifySubZonePacket = 0x00C;
-        public const ushort CSQuestStartContext2 = 0x18B; //off_39EA7494
+        public const ushort CSCompletedTutorialPacket = 0x18B; //off_39EA7494
         public const ushort CSRequestUIDataPacket = 0x0AC;
         public const ushort CSSaveUIDataPacket = 0x0C7;
         public const ushort CSBeautyShopDataPacket = 0x005;
