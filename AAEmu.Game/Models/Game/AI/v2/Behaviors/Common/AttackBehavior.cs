@@ -48,17 +48,8 @@ public class AttackBehavior : BaseCombatBehavior
         if (!CanUseSkill)
             return;
 
-        var delay = 150;
-        // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-        if (!Ai.Owner.CheckInterval(delay))
-        {
-            Logger.Trace($"Skill: CooldownTime [{delay}]!");
-        }
-        else
-        {
-            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-            PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
-        }
+        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
     }
 
     public override void Exit()

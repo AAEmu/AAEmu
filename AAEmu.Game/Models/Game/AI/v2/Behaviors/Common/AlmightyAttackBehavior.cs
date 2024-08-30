@@ -65,31 +65,22 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
         #region Pick a skill
 
-        var delay = 150;
-        // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-        if (!Ai.Owner.CheckInterval(delay))
+        if (_skillQueue.Count == 0)
         {
-            Logger.Trace($"Skill: CooldownTime [{delay}]!");
-        }
-        else
-        {
-            if (_skillQueue.Count == 0)
-            {
-                if (!RefreshSkillQueue(_aiParams.AiSkillLists, _aiParams))
-                    return;
-            }
-
-            var selectedSkill = _skillQueue.Dequeue();
-            if (selectedSkill == null)
+            if (!RefreshSkillQueue(_aiParams.AiSkillLists, _aiParams))
                 return;
-            var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillId);
-            if (skillTemplate == null)
-                return;
-
-            UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.Delay);
-
-            _strafeDuringDelay = selectedSkill.Strafe;
         }
+
+        var selectedSkill = _skillQueue.Dequeue();
+        if (selectedSkill == null)
+            return;
+        var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillId);
+        if (skillTemplate == null)
+            return;
+
+        UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.Delay);
+
+        _strafeDuringDelay = selectedSkill.Strafe;
 
         #endregion
     }

@@ -34,17 +34,8 @@ public class IdleBehavior : BaseCombatBehavior
         if (!_enter)
             return; // not initialized yet Enter()
 
-        var delay = 150;
-        // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-        if (!Ai.Owner.CheckInterval(delay))
-        {
-            Logger.Trace($"Skill: CooldownTime [{delay}]!");
-        }
-        else
-        {
-            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-            PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
-        }
+        var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+        PickSkillAndUseIt(SkillUseConditionKind.InIdle, Ai.Owner, targetDist);
 
         if (CheckAggression())
         {
