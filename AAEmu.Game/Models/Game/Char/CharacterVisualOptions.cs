@@ -10,10 +10,11 @@ public class CharacterVisualOptions : PacketMarshaler
     public bool BackHoldable;
     public bool Cosplay;
     public bool CosplayBackpack;
+    public bool CosplayVisual;
 
     public override void Read(PacketStream stream)
     {
-        _flag = stream.ReadByte();
+        _flag = stream.ReadByte(); // voptflag
         if ((_flag & 1) == 1)
             Stp = stream.ReadBytes(6);
         if ((_flag & 2) == 2)
@@ -24,6 +25,10 @@ public class CharacterVisualOptions : PacketMarshaler
             Cosplay = stream.ReadBoolean();
         if ((_flag & 16) == 16)
             CosplayBackpack = stream.ReadBoolean();
+        if ((_flag & 16) == 16)
+            CosplayBackpack = stream.ReadBoolean();
+        if ((_flag & 32) == 32)
+            CosplayVisual = stream.ReadBoolean(); // cosplay_visual
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -44,6 +49,8 @@ public class CharacterVisualOptions : PacketMarshaler
             stream.Write(Cosplay);
         if ((flag & 16) == 16)
             stream.Write(CosplayBackpack);
+        if ((flag & 32) == 32)
+            stream.Write(CosplayVisual); // cosplay_visual
         return stream;
     }
     public PacketStream WriteOptions(PacketStream stream)
