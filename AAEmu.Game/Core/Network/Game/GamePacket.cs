@@ -70,11 +70,11 @@ public abstract class GamePacket : PacketBase<GameConnection>
                             data
                                 .Write(crc8) // CRC
                                 .Write(bodyCrc, false); // data
-                            var encrypt = EncryptionManager.Instance.StoCEncrypt(data);
-                            var body = new PacketStream()
-                                .Write(encrypt, false); // encrypted packet body
+                            //var encrypt = EncryptionManager.Instance.StoCEncrypt(data);
+                            //var body = new PacketStream()
+                            //    .Write(encrypt, false); // encrypted packet body
                             packet
-                                .Write(body, false);
+                                .Write(EncryptionManager.Instance.StoCEncrypt(data), false);
                             break;
                         }
                 }

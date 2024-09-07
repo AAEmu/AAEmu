@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Text;
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using NLog;
@@ -153,6 +155,20 @@ public class GameProtocolHandler : BaseProtocolHandler
                         var input = new byte[stream2.Count - 2];
                         Buffer.BlockCopy(stream2, 2, input, 0, stream2.Count - 2);
                         var output = EncryptionManager.Instance.Decode(input, connection.Id, connection.AccountId);
+
+                        //// расскоментируйте блок кода для записи xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
+                        //var bodyCrc = new byte[output.Length];
+                        //Buffer.BlockCopy(output, 1, bodyCrc, 0, output.Length - 1); //получим тело пакета для подсчета контрольной суммы
+                        //var crc8 = Crc8(bodyCrc); //посчитали CRC пакета
+
+                        //using (StreamWriter writer = new StreamWriter("o:/inputCrc.txt", true))
+                        //{
+                        //    //writer.WriteLine("packetBodyCrypt:");
+                        //    //writer.WriteLine(Helpers.ByteArrayToString(input));
+                        //    writer.WriteLine("packetCrcBody:");
+                        //    writer.WriteLine(Helpers.ByteArrayToString(output));
+                        //}
+
                         var OutBytes = new byte[output.Length + 5];
                         Buffer.BlockCopy(stream2, 0, OutBytes, 0, 5);
                         // create a complete decrypted packet
@@ -205,4 +221,28 @@ public class GameProtocolHandler : BaseProtocolHandler
             dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
         Logger.Error("Unknown packet 0x{0:x2}({3}) from {1}:\n{2}", type, connection.Ip, dump, level);
     }
+
+    //Methods for SC packet Encryption
+    /// <summary>
+    /// Подсчет контрольной суммы пакета, используется в шифровании пакетов DD05 и 0005
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="size"></param>
+    /// <returns>Crc8</returns>
+    private byte Crc8(byte[] data, int size)
+    {
+        uint checksum = 0;
+        for (var i = 0; i < size; i++)
+        {
+            checksum *= 0x13;
+            checksum += data[i];
+        }
+        return (byte)checksum;
+    }
+
+    public byte Crc8(byte[] data)
+    {
+        return Crc8(data, data.Length);
+    }
+
 }

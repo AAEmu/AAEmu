@@ -229,7 +229,6 @@ namespace AAEmu.Commons.Cryptography
             //          |  +-начало блока для DecodeAES
             //          V  V
             //1300 0005 3F D831012E6DFA489A268BC6AD5BC69263
-            var seq = keys.CSOffsetSequence;
             var mBodyPacket = new byte[bodyPacket.Length - 3];
             Buffer.BlockCopy(bodyPacket, 3, mBodyPacket, 0, bodyPacket.Length - 3);
             var msgKey = ((uint)(bodyPacket.Length / 16 - 1) << 4) + (uint)(bodyPacket[2] - 47); // это реальная длина данных в пакете
@@ -237,7 +236,7 @@ namespace AAEmu.Commons.Cryptography
             var mul = msgKey * xorKey; // <-- ставим бряк здесь и смотрим xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
 
             //// расскоментируйте блок кода для записи xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
-            //using (StreamWriter writer = new StreamWriter("o:/output.txt", true))
+            //using (StreamWriter writer = new StreamWriter("o:/input.txt", true))
             //{
             //    writer.WriteLine("xorkey:");
             //    writer.WriteLine(keys.XorKey.ToString("X8"));
@@ -247,14 +246,14 @@ namespace AAEmu.Commons.Cryptography
 
             //    writer.WriteLine("packetBody:");
             //    writer.WriteLine(ByteArrayToHexString(bodyPacket));
-
-            //    writer.WriteLine("IV:");
-            //    writer.WriteLine(ByteArrayToHexString(keys.IV));
             //}
 
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a024a4) ^ 0xc3903b6a; // 3.0.3.0 archerage.to
             //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a024c4) ^ 0x2d3c9291; // 3.0.4.2 AAClassic
-            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a02403) ^ 0x47a3afc6; // 5.0.7.0 AAFree
+            //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a02403) ^ 0x47a3afc6; // 5.0.7.0 AAFree - работает, но плохо
+            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a02476) ^ 0x45a3af75; // 5.0.7.0 AAFree - работает, довольно хорошо
+            
+            var seq = keys.CSOffsetSequence;
             var offset = 4;
             if (seq != 0)
             {
