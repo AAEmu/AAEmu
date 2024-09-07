@@ -15,9 +15,11 @@ public class CSLootOpenBagPacket : GamePacket
         var objId = stream.ReadBc();
         var obj2Id = stream.ReadBc();
         var lootAll = stream.ReadBoolean();
+        // TODO check the distance to the loot to be picked up
+        var dist = stream.ReadSingle();
+        var autoLoot = stream.ReadBoolean();
 
-
-        ItemManager.Instance.TookLootDropItems(Connection.ActiveChar, objId, lootAll);
+        ItemManager.Instance.TookLootDropItems(Connection.ActiveChar, objId, obj2Id, lootAll, dist, autoLoot);
 
     }
 }

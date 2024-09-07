@@ -318,7 +318,7 @@ public class ItemManager : Singleton<ItemManager>
     /// <param name="id"></param>
     /// <param name="lootAll"></param>
     /// <returns>True if everything was looted, false if not all could be looted</returns>
-    public bool TookLootDropItems(Character character, uint id, bool lootAll)
+    public bool TookLootDropItems(Character character, uint id, uint id2, bool lootAll, float dist, bool autoLoot)
     {
         // TODO: Bug fix for the following; 
         /*
@@ -338,12 +338,12 @@ public class ItemManager : Singleton<ItemManager>
                 isDone &= TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
             }
             if (lootDropItems.Count > 0)
-                character.SendPacket(new SCLootingBagPacket(lootDropItems, true));
+                character.SendPacket(new SCLootingBagPacket(lootDropItems, true, autoLoot));
         }
         else
         {
             isDone = lootDropItems.Count <= 0;
-            character.SendPacket(new SCLootingBagPacket(lootDropItems, false));
+            character.SendPacket(new SCLootingBagPacket(lootDropItems, false, autoLoot));
         }
         return isDone;
     }
@@ -369,7 +369,7 @@ public class ItemManager : Singleton<ItemManager>
                 count > lootDropItem.Count ? lootDropItem.Count : count, lootDropItem.Grade))
             {
                 // character.SendErrorMessage(ErrorMessageType.BagFull);
-                character.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, lootDropItem.Id, lootDropItem.TemplateId));
+                character.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, lootDropItem.Id, lootDropItem.TemplateId, character.ObjId));
                 return false;
             }
         }
@@ -1298,27 +1298,28 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
 
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM item_cap_scales";
-                command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new ItemCapScale
-                        {
-                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
-                            SkillId = reader.GetUInt32("skill_id"),
-                            ScaleMin = reader.GetInt32("scale_min"),
-                            ScaleMax = reader.GetInt32("scale_max")
-                        };
+            // TODO there is no such table in 5070 AAFree 
+            //using (var command = connection.CreateCommand())
+            //{
+            //    command.CommandText = "SELECT * FROM item_cap_scales";
+            //    command.Prepare();
+            //    using (var sqliteReader = command.ExecuteReader())
+            //    using (var reader = new SQLiteWrapperReader(sqliteReader))
+            //    {
+            //        while (reader.Read())
+            //        {
+            //            var template = new ItemCapScale
+            //            {
+            //                //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+            //                SkillId = reader.GetUInt32("skill_id"),
+            //                ScaleMin = reader.GetInt32("scale_min"),
+            //                ScaleMax = reader.GetInt32("scale_max")
+            //            };
 
-                        _itemCapScales.TryAdd(template.SkillId, template);
-                    }
-                }
-            }
+            //            _itemCapScales.TryAdd(template.SkillId, template);
+            //        }
+            //    }
+            //}
 
             // Load main item templates
 

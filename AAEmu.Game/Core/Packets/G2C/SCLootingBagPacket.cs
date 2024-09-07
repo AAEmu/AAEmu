@@ -10,11 +10,13 @@ class SCLootingBagPacket : GamePacket
 {
     private readonly List<Item> _items;
     private readonly bool _lootAll;
+    private readonly bool _autoLoot;
 
-    public SCLootingBagPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootingBagPacket, 5)
+    public SCLootingBagPacket(List<Item> items, bool lootAll, bool autoLoot) : base(SCOffsets.SCLootingBagPacket, 5)
     {
         _items = items;
         _lootAll = lootAll;
+        _autoLoot = autoLoot;
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -26,6 +28,7 @@ class SCLootingBagPacket : GamePacket
             stream.Write(item);
         }
         stream.Write(_lootAll);
+        stream.Write(_autoLoot);
 
         return stream;
     }
