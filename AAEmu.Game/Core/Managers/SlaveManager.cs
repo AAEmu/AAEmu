@@ -211,6 +211,13 @@ public class SlaveManager : Singleton<SlaveManager>
         if (slave == null || slave.AttachedCharacters.ContainsKey(attachPoint))
             return;
 
+        // Check if the vehicle has the MasterOwnership buff and if the character is not the owner, block the attachment.
+        if (slave.Buffs.CheckBuff((uint)BuffConstants.MasterOwnership) && slave.Summoner.ObjId != character.ObjId)
+        {
+            character.SendErrorMessage(ErrorMessageType.SlaveAlreadyHasMaster);
+            return;
+        }
+
         character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, bondKind, objId), true);
         character.AttachedPoint = attachPoint;
         switch (attachPoint)

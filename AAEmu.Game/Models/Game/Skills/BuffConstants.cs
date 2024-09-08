@@ -29,6 +29,7 @@ public enum BuffConstants : uint
     EquipTwoHanded = 8227,
     InBeautySalon = 6117,
     SearchSchoolOfFish = 5736,
-    Overburdened = 831 // SustainBuff - Carrying heavy objects reduces movement speed and prevents teleporting or gliding.
-   // Overburdened = 7221
+    Overburdened = 831, // SustainBuff - Carrying heavy objects reduces movement speed and prevents teleporting or gliding.
+    MasterOwnership = 4867  // Vehicle ownership buff, prevents non-owners from attaching to the vehicle.
+    // Overburdened = 7221
 }
