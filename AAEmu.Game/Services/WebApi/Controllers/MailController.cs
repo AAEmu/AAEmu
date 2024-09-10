@@ -74,7 +74,8 @@ internal class MailController : BaseController
 
                         foreach (var expeditionMember in expedition.Members)
                         {
-                            var character = Character.Load(expeditionMember.CharacterId);
+                            var character = WorldManager.Instance.GetCharacterById(expeditionMember.CharacterId) ??
+                                            Character.Load(expeditionMember.CharacterId);
                             if (character == null || character.DeleteTime > DateTime.MinValue ||
                                 character.DeleteRequestTime > DateTime.MinValue)
                             {
@@ -143,7 +144,8 @@ internal class MailController : BaseController
                 {
                     foreach (uint recipient in mailRequest.Recipients)
                     {
-                        var character = Character.Load(recipient);
+                        var character = WorldManager.Instance.GetCharacterById(recipient) ??
+                                        Character.Load(recipient);
                         if (character == null || character.DeleteTime > DateTime.MinValue ||
                             character.DeleteRequestTime > DateTime.MinValue)
                         {
