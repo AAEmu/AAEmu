@@ -16,10 +16,10 @@ public class SCAccountAttributePacket : GamePacket
 
     public SCAccountAttributePacket() : base(SCOffsets.SCAccountAttributePacket, 5)
     {
-        _AccountAttributeKind = 1;
-        _extraKind = 0;
-        _worldId = 0x1;
-        _count = 0;
+        _AccountAttributeKind = 2;
+        _extraKind = 6;
+        _worldId = 0xFF;
+        _count = 1;
         _startDate = DateTime.Now;
         _endData = DateTime.MinValue;
     }

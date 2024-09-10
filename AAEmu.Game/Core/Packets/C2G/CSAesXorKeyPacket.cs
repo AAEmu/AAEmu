@@ -48,7 +48,11 @@ public class CSAesXorKeyPacket : GamePacket
             }
         }
 
-        // not needed in 5070
-        //Connection.SendPacket(new SCAccountAttributePacket());
+        // TODO пакеты будут ответом на CSRequestUIDataPacket
+        //Connection.ActiveChar.SendOption(1);
+        //Connection.ActiveChar.SendOption(2);
+        //Connection.ActiveChar.SendOption(3);
+
+        Connection.SendPacket(new SCAccountAttributePacket());
     }
 }

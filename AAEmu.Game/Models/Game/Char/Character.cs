@@ -139,7 +139,7 @@ public partial class Character : Unit, ICharacter
 
     public CharacterVisualOptions VisualOptions { get; set; }
 
-    public const int MaxActionSlots = 133; // 85 in 1.2, 121 in 3.0.3.0, 133 in 3.5.0.3, 4.5.1.0, 5.0+
+    public const int MaxActionSlots = 157; // 85 in 1.2, 121 in 3.0.3.0, 133 in 3.5.0.3, 4.5.1.0, 157 in 5.0+
     public ActionSlot[] Slots { get; set; }
     public Inventory Inventory { get; set; }
     public byte NumInventorySlots { get; set; }

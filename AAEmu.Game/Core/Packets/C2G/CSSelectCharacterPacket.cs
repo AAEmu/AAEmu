@@ -115,9 +115,9 @@ public class CSSelectCharacterPacket : GamePacket
             //ExpeditionManager.SendMyExpeditionInfo(Connection.ActiveChar);
             //FactionManager.Instance.SendRelations(Connection.ActiveChar);
 
-            Connection.ActiveChar.SendOption(1);
-            Connection.ActiveChar.SendOption(2);
+            Connection.ActiveChar.SendOption(4);
             Connection.ActiveChar.SendOption(5);
+            Connection.ActiveChar.SendOption(6);
 
             Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.LoggedOn, Connection.ActiveChar);
             var template = CharacterManager.Instance.GetTemplate(character.Race, character.Gender);

@@ -12,7 +12,7 @@ public class AttendanceManager : Singleton<AttendanceManager>
     public void Add(uint characterId)
     {
         var character = WorldManager.Instance.GetCharacterById(characterId);
-        character.Attendances.Add(character);
+        character?.Attendances.Add(character);
     }
 
 }

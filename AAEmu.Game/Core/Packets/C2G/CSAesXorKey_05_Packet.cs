@@ -51,6 +51,11 @@ public class CSAesXorKey_05_Packet : GamePacket
             }
         }
 
-        //Connection.SendPacket(new SCAccountAttributePacket());
+        // TODO пакеты будут ответом на CSRequestUIDataPacket
+        //Connection.ActiveChar.SendOption(1);
+        //Connection.ActiveChar.SendOption(2);
+        //Connection.ActiveChar.SendOption(3);
+
+        Connection.SendPacket(new SCAccountAttributePacket());
     }
 }
