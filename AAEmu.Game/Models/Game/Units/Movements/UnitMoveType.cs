@@ -40,9 +40,10 @@ public class UnitMoveType : MoveType
         Stance = (GameStanceType)stream.ReadSByte();
         Alertness = (MoveTypeAlertness)stream.ReadByte();
         ActorFlags = stream.ReadUInt16(); // ushort in 3.0.3.0, sbyte in 1.2
-        if ((ActorFlags & 0x80) == 0x80)
+        var actorFlags = (int)ActorFlags;
+        if (actorFlags < 0)
             FallVel = stream.ReadUInt16(); // actor.fallVel
-        if ((ActorFlags & 0x20) == 0x20)
+        if ((ActorFlags & 0x20) != 0)
         {
             GcFlags = stream.ReadByte();    // actor.gcFlags
             GcPart = stream.ReadUInt16();   // actor.gcPart
@@ -54,9 +55,28 @@ public class UnitMoveType : MoveType
         }
         if ((ActorFlags & 0x60) != 0)
             GcId = stream.ReadUInt32();            // actor.gcId
-        if ((ActorFlags & 0x40) == 0x40)
+        if ((ActorFlags & 0x40) != 0 || (ActorFlags & 0x8000) != 0)
             ClimbData = stream.ReadUInt32();       // actor.climbData
-        if ((ActorFlags & 0x100) == 0x100)
+        if (actorFlags < 0)
+        {
+            var type = stream.ReadByte();   // type
+            var posx = stream.ReadInt16(); // posx
+            var posy = stream.ReadInt16(); // posy
+            var posz = stream.ReadInt16(); // posz
+            if (type == 1)
+            {
+                var unk1 = stream.ReadBc(); // unk1
+            }
+            else if (type == 2)
+            {
+                var unk3 = stream.ReadBc(); // unk2
+            }
+            else if (type == 3)
+            {
+                var unk2 = stream.ReadBc(); // unk3
+            }
+        }
+        if ((ActorFlags & 0x100) != 0)
             MaxPushedUnitId = stream.ReadUInt32(); // actor.maxPushedUnitId
     }
 
@@ -77,9 +97,10 @@ public class UnitMoveType : MoveType
         stream.Write((byte)Stance);
         stream.Write((byte)Alertness);
         stream.Write(ActorFlags);
-        if ((ActorFlags & 0x80) == 0x80)
+        var actorFlags = (int)ActorFlags;
+        if (actorFlags < 0)
             stream.Write(FallVel);
-        if ((ActorFlags & 0x20) == 0x20)
+        if ((ActorFlags & 0x20) != 0)
         {
             stream.Write(GcFlags);
             stream.Write(GcPart);
@@ -91,9 +112,29 @@ public class UnitMoveType : MoveType
         }
         if ((ActorFlags & 0x60) != 0)
             stream.Write(GcId);
-        if ((ActorFlags & 0x40) == 0x40)
+        if ((ActorFlags & 0x40) != 0 || (ActorFlags & 0x8000) != 0)
             stream.Write(ClimbData);
-        if ((ActorFlags & 0x100) == 0x100)
+        if (actorFlags < 0)
+        {
+            var type = 0;
+            stream.Write((byte)0); // type
+            stream.Write((short)0); // posx
+            stream.Write((short)0); // posy
+            stream.Write((short)0); // posz
+            if (type == 1)
+            {
+                stream.WriteBc(0u); // unk1
+            }
+            else if (type == 2)
+            {
+                stream.WriteBc(0u); // unk2
+            }
+            else if (type == 3)
+            {
+                stream.WriteBc(0u); // unk3
+            }
+        }
+        if ((ActorFlags & 0x100) != 0)
             stream.Write(MaxPushedUnitId);
         return stream;
     }
