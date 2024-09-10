@@ -387,6 +387,15 @@ public class Buffs : IBuffs
                             else
                                 last = e;
                     break;
+                case BuffStackRule.Multiple:
+                    if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) < buff.Template.MaxStack)
+                    {
+                        buff.Stack = GetBuffCountById(buff.Template.BuffId) +1;
+                    }
+                    goto default;
+                case BuffStackRule.ChargeExtend:
+                case BuffStackRule.Extend:
+                case BuffStackRule.Independent:
                 default:
                     if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
                         foreach (var e in new List<Buff>(_effects))

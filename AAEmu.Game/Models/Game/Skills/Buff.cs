@@ -45,6 +45,7 @@ public class Buff
     public BuffEvents Events { get; }
     public BuffTriggersHandler Triggers { get; }
     public Dictionary<uint, FactionsEnum> saveFactions { get; set; }
+    public int Stack { get; set; } = 1; // добавил для учета стака баффов в пакете SCBuffCreatedPacket
 
     public Buff(IBaseUnit owner, IBaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
     {
@@ -230,7 +231,7 @@ public class Buff
 
     public void WriteData(PacketStream stream)
     {
-        stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
+        stream.WritePisc(Charge, Duration / 10, 0 / 10, (long)(Template.Tick / 10));
     }
 
     /// <summary>
