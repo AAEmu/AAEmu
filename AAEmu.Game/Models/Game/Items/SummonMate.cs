@@ -24,20 +24,19 @@ public class SummonMate : Item
         if (stream.LeftBytes < DetailBytesLength)
             return;
         DetailMateExp = stream.ReadInt32(); // exp
-        _ = stream.ReadByte();
-        DetailLevel = stream.ReadByte(); // level
-        _ = stream.ReadBytes(14); // unknown
+        _ = stream.ReadByte();              // unk = 0
+        DetailLevel = stream.ReadByte();    // level
+        _ = stream.ReadBytes(14);     // unknown
     }
 
     public override void WriteDetails(PacketStream stream)
     {
         stream.Write(DetailMateExp); // exp
-        stream.Write((byte)0);
-        stream.Write(DetailLevel); // level
-
-        stream.Write(new byte[14]); // add up to 20
+        stream.Write((byte)0);       // unk = 0
+        stream.Write(DetailLevel);   // level
+        stream.Write(new byte[14]);  // add up to 20
     }
-    
+
     public override void OnManuallyDestroyingItem()
     {
         base.OnManuallyDestroyingItem();

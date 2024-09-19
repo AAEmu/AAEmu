@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -248,32 +249,34 @@ public class Item : PacketMarshaler, IComparable<Item>
                 ChargeProcTime = stream.ReadDateTime(); // chargeProcTime
                 MappingFailBonus = stream.ReadByte();   // mappingFailBonus - нет в 4.5.2.6, есть в 4.5.1.0 и 5.7
 
-                var mGems = stream.ReadPisc(4);
-                GemIds[0] = (uint)mGems[0];
-                GemIds[1] = (uint)mGems[1];
-                GemIds[2] = (uint)mGems[2];
-                GemIds[3] = (uint)mGems[3];
+                var mGems = stream.ReadPiscW(GemIds.Length);
+                GemIds = mGems.Select(id => (uint)id).ToArray();
+                //var mGems = stream.ReadPisc(4);
+                //GemIds[0] = (uint)mGems[0];
+                //GemIds[1] = (uint)mGems[1];
+                //GemIds[2] = (uint)mGems[2];
+                //GemIds[3] = (uint)mGems[3];
 
-                mGems = stream.ReadPisc(4);
-                GemIds[4] = (uint)mGems[0];
-                GemIds[5] = (uint)mGems[1];
-                GemIds[6] = (uint)mGems[2];
-                GemIds[7] = (uint)mGems[3];
+                //mGems = stream.ReadPisc(4);
+                //GemIds[4] = (uint)mGems[0];
+                //GemIds[5] = (uint)mGems[1];
+                //GemIds[6] = (uint)mGems[2];
+                //GemIds[7] = (uint)mGems[3];
 
-                mGems = stream.ReadPisc(4);
-                GemIds[8] = (uint)mGems[0];
-                GemIds[9] = (uint)mGems[1];
-                GemIds[10] = (uint)mGems[2];
-                GemIds[11] = (uint)mGems[3];
+                //mGems = stream.ReadPisc(4);
+                //GemIds[8] = (uint)mGems[0];
+                //GemIds[9] = (uint)mGems[1];
+                //GemIds[10] = (uint)mGems[2];
+                //GemIds[11] = (uint)mGems[3];
 
-                mGems = stream.ReadPisc(4);
-                GemIds[12] = (uint)mGems[0];
-                GemIds[13] = (uint)mGems[1];
-                GemIds[14] = (uint)mGems[2];
-                GemIds[15] = (uint)mGems[3];
-                mGems = stream.ReadPisc(2);
-                GemIds[16] = (uint)mGems[0];
-                GemIds[17] = (uint)mGems[1];
+                //mGems = stream.ReadPisc(4);
+                //GemIds[12] = (uint)mGems[0];
+                //GemIds[13] = (uint)mGems[1];
+                //GemIds[14] = (uint)mGems[2];
+                //GemIds[15] = (uint)mGems[3];
+                //mGems = stream.ReadPisc(2);
+                //GemIds[16] = (uint)mGems[0];
+                //GemIds[17] = (uint)mGems[1];
                 break;
             case ItemDetailType.Slave: // 2
                 mDetailLength = 34; // есть расшифровка в items/SummonSlave 30 in 3.5, 4.5.2.6, 34 in 4.5.1.0, 5.7
@@ -334,11 +337,13 @@ public class Item : PacketMarshaler, IComparable<Item>
                 stream.Write(ChargeProcTime);   // chargeProcTime
                 stream.Write(MappingFailBonus); // mappingFailBonus - нет в 4.5.2.6, есть в 4.5.1.0 и 5.7
 
-                stream.WritePisc(GemIds[0], GemIds[1], GemIds[2], GemIds[3]);
-                stream.WritePisc(GemIds[4], GemIds[5], GemIds[6], GemIds[7]);
-                stream.WritePisc(GemIds[8], GemIds[9], GemIds[10], GemIds[11]);
-                stream.WritePisc(GemIds[12], GemIds[13], GemIds[14], GemIds[15]); // в 3+ длина данных 36 (когда нет информации), в 1.2 было 56
-                stream.WritePisc(GemIds[16], GemIds[17]);
+                var gemIds = GemIds.Select(id => (long)id).ToArray();
+                stream.WritePiscW(gemIds.Length, gemIds);
+                //stream.WritePisc(GemIds[0], GemIds[1], GemIds[2], GemIds[3]);
+                //stream.WritePisc(GemIds[4], GemIds[5], GemIds[6], GemIds[7]);
+                //stream.WritePisc(GemIds[8], GemIds[9], GemIds[10], GemIds[11]);
+                //stream.WritePisc(GemIds[12], GemIds[13], GemIds[14], GemIds[15]); // в 3+ длина данных 36 (когда нет информации), в 1.2 было 56
+                //stream.WritePisc(GemIds[16], GemIds[17]);
                 break;
             case ItemDetailType.Slave:
                 mDetailLength = 34; // есть расшифровка в items/SummonSlave 30 in 3.5, 4.5.2.6, 34 in 4.5.1.0, 5.7

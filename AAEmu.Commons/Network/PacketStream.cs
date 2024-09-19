@@ -543,6 +543,66 @@ public class PacketStream : ICloneable, IComparable
         return result;
     }
 
+    public long[] ReadPiscW(int hcount)
+    {
+        if (hcount <= 0)
+        {
+            return new long[0];
+        }
+
+        var values = new long[hcount];
+        var index = 0;
+
+        do
+        {
+            var pcount = 4;
+            if (hcount <= 4)
+                pcount = hcount;
+
+            switch (pcount)
+            {
+                case 1:
+                    {
+                        var temp = ReadPisc(1);
+                        values[index] = temp[0];
+                        index += 1;
+                        break;
+                    }
+                case 2:
+                    {
+                        var temp = ReadPisc(2);
+                        values[index] = temp[0];
+                        values[index + 1] = temp[1];
+                        index += 2;
+                        break;
+                    }
+                case 3:
+                    {
+                        var temp = ReadPisc(3);
+                        values[index] = temp[0];
+                        values[index + 1] = temp[1];
+                        values[index + 2] = temp[2];
+                        index += 3;
+                        break;
+                    }
+                case 4:
+                    {
+                        var temp = ReadPisc(4);
+                        values[index] = temp[0];
+                        values[index + 1] = temp[1];
+                        values[index + 2] = temp[2];
+                        values[index + 3] = temp[3];
+                        index += 4;
+                        break;
+                    }
+            }
+
+            hcount -= pcount;
+        } while (hcount > 0);
+
+        return values;
+    }
+
     public (float x, float y, float z) ReadPosition()
     {
         var position = ReadBytes(9);
