@@ -40,6 +40,8 @@ public sealed class Mate : Unit
     public int Mileage { get; set; }
     public uint SpawnDelayTime { get; set; }
     public List<uint> Skills { get; set; }
+    public List<uint> Tags { get; set; }
+    public List<uint> Charges { get; set; }
     public MateDb DbInfo { get; set; }
     public Task MateXpUpdateTask { get; set; }
     public MateType MateType { get; set; }  // added in 3+
@@ -499,6 +501,8 @@ public sealed class Mate : Unit
     {
         ModelParams = new UnitCustomModelParams();
         Skills = new List<uint>();
+        Tags = new List<uint>();
+        Charges = new List<uint>();
         Passengers = new Dictionary<AttachPointKind, MatePassengerInfo>();
         Equipment = new MateEquipmentContainer(0, SlotType.EquipmentMate, false, this);
 
@@ -578,7 +582,7 @@ public sealed class Mate : Unit
         base.AddVisibleObject(character);
 
         character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCMateStatusPacket(ObjId));
+        character.SendPacket(new SCMateStatusPacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
         // TODO: Maybe let base handle this ?
         foreach (var ati in Passengers)

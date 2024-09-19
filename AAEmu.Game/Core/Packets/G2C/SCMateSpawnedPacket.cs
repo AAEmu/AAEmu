@@ -30,6 +30,7 @@ public class SCMateSpawnedPacket : GamePacket
             stream.Write(skill);
         }
 
+        // TODO добавляем если меньше 10
         for (var i = 0; i < 10 - _mate.Skills.Count; i++)
         {
             stream.Write(0);

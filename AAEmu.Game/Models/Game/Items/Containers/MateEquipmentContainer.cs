@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 SlotNumber = (byte)item.Slot,
             };
             // Owner.SendMessage($"MateEquipmentContainer - {petItem} -> {inventoryItem}, MateTl: {mate.TlId}");
-            Owner.SendPacket(new SCMateEquipmentChangedPacket(petItem, inventoryItem, mate.TlId, Owner.Id, 0, false, true));
+            Owner.SendPacket(new SCMateEquipmentChangedPacket(petItem, inventoryItem, mate.TlId, Owner.Id, 0, false, true, DateTime.MinValue));
         }
 
         public override void OnLeaveContainer(Item item, ItemContainer newContainer, byte previousSlot)
@@ -63,7 +63,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 SlotNumber = previousSlot,
             };
             // Owner.SendMessage($"MateEquipmentContainer - {petItem} -> {inventoryItem}, MateTl: {mate.TlId}");
-            Owner.SendPacket(new SCMateEquipmentChangedPacket(petItem, inventoryItem, mate.TlId, Owner.Id, 0, false, true));
+            Owner.SendPacket(new SCMateEquipmentChangedPacket(petItem, inventoryItem, mate.TlId, Owner.Id, 0, false, true, DateTime.MinValue));
         }
     }
 }

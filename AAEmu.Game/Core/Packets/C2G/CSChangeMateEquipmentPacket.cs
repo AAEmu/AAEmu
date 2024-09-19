@@ -58,6 +58,8 @@ public class CSChangeMateEquipmentPacket : GamePacket
             mateItem.SlotType = (SlotType)stream.ReadByte();
             mateItem.SlotNumber = stream.ReadByte();
 
+            var expireTime = stream.ReadDateTime(); // add in 5+
+            
             var isEquip = playerItem.Item.TemplateId != 0;
 
             // Override the Read data with the actual Item data
@@ -92,7 +94,7 @@ public class CSChangeMateEquipmentPacket : GamePacket
                         isEquip ? mateItem : playerItem,
                         mateTl,
                         owningPlayerId, passengerPlayerId,
-                        bts, res));
+                        bts, res, expireTime));
                 }
             }
         }

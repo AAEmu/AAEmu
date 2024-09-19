@@ -512,7 +512,7 @@ public class MateManager : Singleton<MateManager>
         {
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM npc_mount_skills";
+                command.CommandText = "SELECT * FROM npc_mount_skills ORDER BY npc_id";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {

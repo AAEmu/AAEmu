@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 return;
             }
 
-            var petItem = new ItemAndLocation
+            var slaveItem = new ItemAndLocation
             {
                 Item = item,
                 SlotType = lastContainer.ContainerType, // ContainerType,
@@ -36,21 +36,21 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 SlotType = ContainerType,
                 SlotNumber = (byte)item.Slot,
             };
-            // Owner.SendMessage($"MateEquipmentContainer - {petItem} -> {inventoryItem}, MateTl: {mate.TlId}");
-            Owner.SendPacket(new SCSlaveEquipmentChangedPacket(petItem, inventoryItem, slave.TlId, Owner.Id, 0, false, true));
+            // Owner.SendMessage($"SlaveEquipmentContainer - {slaveItem} -> {inventoryItem}, SlaveTl: {slave.TlId}");
+            Owner.SendPacket(new SCSlaveEquipmentChangedPacket(slaveItem, inventoryItem, slave.TlId, Owner.Id, 0, false, true, DateTime.MinValue));
         }
 
         public override void OnLeaveContainer(Item item, ItemContainer newContainer, byte previousSlot)
         {
             base.OnLeaveContainer(item, newContainer, previousSlot); // base EquipmentContainer
 
-            // Extra pockets for mates
-            if (ParentUnit is not Units.Mate mate)
+            // Extra pockets for slaves
+            if (ParentUnit is not Units.Slave slave)
             {
                 return;
             }
 
-            var petItem = new ItemAndLocation()
+            var slaveItem = new ItemAndLocation()
             {
                 Item = null,
                 SlotType = item.SlotType, // newContainer
@@ -62,8 +62,8 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 SlotType = ContainerType,
                 SlotNumber = previousSlot,
             };
-            // Owner.SendMessage($"MateEquipmentContainer - {petItem} -> {inventoryItem}, MateTl: {mate.TlId}");
-            Owner.SendPacket(new SCMateEquipmentChangedPacket(petItem, inventoryItem, mate.TlId, Owner.Id, 0, false, true));
+            // Owner.SendMessage($"SlaveEquipmentContainer - {slaveItem} -> {inventoryItem}, SlaveTl: {slave.TlId}");
+            Owner.SendPacket(new SCSlaveEquipmentChangedPacket(slaveItem, inventoryItem, slave.TlId, Owner.Id, 0, false, true, DateTime.MinValue));
         }
     }
 }

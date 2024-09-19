@@ -778,7 +778,7 @@ public class SlaveManager : Singleton<SlaveManager>
                     newItem.DetailType = ItemDetailType.SlaveEquipment;
                     newItem.DetailBytesLength = 12;
 
-                    owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, newItem.Id, summonedSlave.Hp)); // Уровень HP для предмета где брать?
+                    owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, newItem.Id, summonedSlave.Hp, initialItem.EquipSlotId)); // Уровень HP для предмета где брать?
                     var slaveBinding = new SlaveBindings
                     {
                         Id = 0,
@@ -829,7 +829,7 @@ public class SlaveManager : Singleton<SlaveManager>
                     newItem.ItemFlags = ItemFlag.SoulBound; // связанный
                     newItem.ChargeUseSkillTime = DateTime.UtcNow;
 
-                    owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, newItem.Id, summonedSlave.Hp)); // Уровень HP для предмета где брать?
+                    owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, newItem.Id, summonedSlave.Hp, (byte)newItem.Slot)); // Уровень HP для предмета где брать?
                     var slaveBinding = new SlaveBindings
                     {
                         Id = 0,
@@ -958,7 +958,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 item.DetailType = ItemDetailType.SlaveEquipment;
                 item.DetailBytesLength = 12;
 
-                owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, item.Id, summonedSlave.Hp)); // Уровень HP для предмета где брать?
+                owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, item.Id, summonedSlave.Hp, (byte)item.Slot)); // Уровень HP для предмета где брать?
                 var slaveBinding = new SlaveBindings
                 {
                     Id = 0,
@@ -1000,7 +1000,7 @@ public class SlaveManager : Singleton<SlaveManager>
                 var attachPoint = GetAttachPointBySlotId(summonedSlave.TemplateId, (uint)item.Slot);
 
                 owner.BroadcastPacket(new SCUnitDetachedPacket(slaves[0].ObjId, AttachUnitReason.BoardTransfer), true);
-                owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, item.Id, summonedSlave.Hp)); // Уровень HP для предмета где брать?
+                owner.SendPacket(new SCUpdateSlaveSourceItemPacket(summonedSlave.ObjId, item.Id, summonedSlave.Hp, (byte)item.Slot)); // Уровень HP для предмета где брать?
             }
 
             var doodadId = ItemManager.Instance.GetDoodadIdByItemId(item.TemplateId);

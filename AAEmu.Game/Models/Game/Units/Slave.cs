@@ -62,6 +62,8 @@ public class Slave : Unit
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
     public List<uint> Skills { get; set; }
+    public List<uint> Tags { get; set; }
+    public List<uint> Charges { get; set; }
     public bool IsLoadedPlayerSlave { get; set; }
 
     public Slave()
@@ -74,6 +76,9 @@ public class Slave : Unit
         HpTriggerPointsPercent.Add(50);
         HpTriggerPointsPercent.Add(75);
         HpTriggerPointsPercent.Add(100);
+        Skills = new List<uint>();
+        Tags = new List<uint>();
+        Charges = new List<uint>();
     }
 
     #region Attributes

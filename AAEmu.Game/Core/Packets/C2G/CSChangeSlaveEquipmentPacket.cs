@@ -19,15 +19,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             var owningPlayerId = stream.ReadUInt32();
             // Slave tl
             var slaveTl = stream.ReadUInt16();
-            // Should be Passenger PlayerId, but still reports 0 even when the seat is taken
-            // Maybe this was planned to be used if somehow somebody else than the owner is equipping gear onto the mount
-            var passengerPlayerId = stream.ReadUInt32();
+            // dbSlaveId = 0
+            var dbSlaveId = stream.ReadUInt32();
             // Seems to be always 0
             var bts = stream.ReadBoolean();
-            // Always 1 for 1 item at a time
+            // num Always 1 for 1 item at a time
             var itemCount = stream.ReadByte();
 
-            Logger.Debug($"ChangeSlaveEquipment - TlId: {slaveTl}, Owner: {owningPlayerId}, Id2: {passengerPlayerId}, BTS: {bts}, Count: {itemCount}");
+            Logger.Debug($"ChangeSlaveEquipment - TlId: {slaveTl}, Owner: {owningPlayerId}, dbSlaveId: {dbSlaveId}, BTS: {bts}, Count: {itemCount}");
 
             var character = Connection.ActiveChar;
             var slave = SlaveManager.Instance.GetSlaveByTlId(slaveTl);
@@ -44,19 +43,21 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 // SlotType, SlotNum, Item
                 var playerItem = new ItemAndLocation();
-                var mateItem = new ItemAndLocation();
+                var slaveItem = new ItemAndLocation();
 
                 playerItem.Item = new Item();
                 playerItem.Item.Read(stream);
 
-                mateItem.Item = new Item();
-                mateItem.Item.Read(stream);
+                slaveItem.Item = new Item();
+                slaveItem.Item.Read(stream);
 
                 playerItem.SlotType = (SlotType)stream.ReadByte();
                 playerItem.SlotNumber = stream.ReadByte();
 
-                mateItem.SlotType = (SlotType)stream.ReadByte();
-                mateItem.SlotNumber = stream.ReadByte();
+                slaveItem.SlotType = (SlotType)stream.ReadByte();
+                slaveItem.SlotNumber = stream.ReadByte();
+
+                var expireTime = stream.ReadDateTime(); // add in 5+
 
                 var isEquip = playerItem.Item.TemplateId != 0;
 
@@ -64,7 +65,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var sourceContainer = character.Inventory.Bag;
                 var targetContainer = slave.Equipment;
                 playerItem.Item = sourceContainer.GetItemBySlot(playerItem.SlotNumber);
-                mateItem.Item = targetContainer.GetItemBySlot(mateItem.SlotNumber);
+                slaveItem.Item = targetContainer.GetItemBySlot(slaveItem.SlotNumber);
 
                 // Logger.Debug($"{playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
                 // character.SendMessage($"MateEquip: {playerItem.SlotType} #{playerItem.SlotNumber} ItemId:{playerItem.Item?.Id ?? 0} -> {mateItem.SlotType} #{mateItem.SlotNumber} ItemId:{mateItem.Item?.Id ?? 0}");
@@ -72,7 +73,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 // If un-equipping, swap the items around
                 if (!isEquip)
                 {
-                    (playerItem, mateItem) = (mateItem, playerItem);
+                    (playerItem, slaveItem) = (slaveItem, playerItem);
                     (sourceContainer, targetContainer) = (targetContainer, sourceContainer);
                 }
 
@@ -82,17 +83,17 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var res = character.Inventory.SplitOrMoveItemEx(ItemTaskType.Invalid,
                         sourceContainer, targetContainer,
                         playerItem.Item.Id, playerItem.SlotType, playerItem.SlotNumber,
-                        0, mateItem.SlotType, mateItem.SlotNumber);
+                        0, slaveItem.SlotType, slaveItem.SlotNumber);
 
                     // character.SendMessage($"SCMateEquipmentChanged - {(isEquip ? playerItem : mateItem)} -> {(isEquip ? mateItem : playerItem)}, MateTl: {mateTl} => Success {res}");
                     if (!res)
                     {
                         character.SendPacket(new SCMateEquipmentChangedPacket(
-                            isEquip ? playerItem : mateItem,
-                            isEquip ? mateItem : playerItem,
+                            isEquip ? playerItem : slaveItem,
+                            isEquip ? slaveItem : playerItem,
                             slaveTl,
-                            owningPlayerId, passengerPlayerId,
-                            bts, res));
+                            owningPlayerId, dbSlaveId,
+                            bts, res, expireTime));
                     }
                 }
             }
