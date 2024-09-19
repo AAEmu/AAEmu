@@ -984,7 +984,7 @@ public partial class Character : Unit, ICharacter
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MagicResist);
             var parameters = new Dictionary<string, double>();
-            parameters["sta"] = Sta;
+            parameters["spi"] = Spi;
             var res = (int)formula.Evaluate(parameters);
             foreach (var item in Inventory.Equipment.Items)
             {
