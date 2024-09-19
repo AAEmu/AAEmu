@@ -49,7 +49,10 @@ public abstract class SkillCastTarget : PacketMarshaler
                 obj = new SkillCastPosition3Target();
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+                //throw new ArgumentOutOfRangeException(nameof(type), type, null);
+                obj = new SkillCastUnitTarget();
+                Logger.Fatal(new ArgumentOutOfRangeException(nameof(type), type, null));
+                break;
         }
 
         obj.Type = type;

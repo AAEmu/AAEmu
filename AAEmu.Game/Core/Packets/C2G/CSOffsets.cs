@@ -167,8 +167,8 @@
         public const ushort CSCheckDemoModePacket = 0x114;
         public const ushort CSCreateCharacterPacket = 0x0F2;
         public const ushort CSEditCharacterPacket = 0x064;
-        public const ushort CSBroadcastVisualOption_0_Packet = 0xfff; //0x126;
-        public const ushort CSSpawnCharacterPacket = 0x126; //0x154;
+        public const ushort CSBroadcastVisualOption_0_Packet = 0x126; //0x126;
+        public const ushort CSSpawnCharacterPacket = 0x154; //;0x126
         public const ushort off_39E9E160 = 0xfff;
         //public const ushort CSAesXorKeyPacket = 0x1A2;
         public const ushort CSNotifySubZonePacket = 0x00C;

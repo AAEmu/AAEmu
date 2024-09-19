@@ -158,6 +158,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSCheckDemoModePacket, 5, typeof(CSCheckDemoModePacket));
         RegisterPacket(CSOffsets.CSCreateCharacterPacket, 5, typeof(CSCreateCharacterPacket));
         RegisterPacket(CSOffsets.CSEditCharacterPacket, 5, typeof(CSEditCharacterPacket));
+        RegisterPacket(CSOffsets.CSBroadcastVisualOption_0_Packet, 5, typeof(CSBroadcastVisualOption_0_Packet));
         RegisterPacket(CSOffsets.CSSpawnCharacterPacket, 5, typeof(CSSpawnCharacterPacket));
         RegisterPacket(CSOffsets.CSNotifySubZonePacket, 5, typeof(CSNotifySubZonePacket));
         RegisterPacket(CSOffsets.CSCompletedTutorialPacket, 5, typeof(CSCompletedTutorialPacket));

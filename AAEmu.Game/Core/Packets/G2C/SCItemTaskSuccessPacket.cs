@@ -45,4 +45,19 @@ public class SCItemTaskSuccessPacket : GamePacket
 
         return stream;
     }
+
+    //public void ProcessFlags(PacketStream stream)
+    //{
+    //    uint flags = 0;
+    //    uint v8;
+
+    //    for (var j = 0; j < 31; ++j)
+    //    {
+    //        v8 = this[j + 19480] << j;
+    //        flags |= v8;
+    //    }
+
+    //    uint v9 = flags;
+    //    stream.Write(0u); // flags
+    //}
 }

@@ -1,10 +1,8 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Observers;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -17,20 +15,14 @@ public class CSSpawnCharacterPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         Connection.State = GameState.World;
-        var character = Connection.ActiveChar;
+        var x = Helpers.ConvertLongX(stream.ReadInt64());
+        var y = Helpers.ConvertLongY(stream.ReadInt64());
+        var z = stream.ReadSingle();
+        var ori = stream.ReadBytes(16); // TODO example: 00000000 00000000 00000000 0000803F
 
-        Connection.ActiveChar.VisualOptions = new CharacterVisualOptions();
-        Connection.ActiveChar.VisualOptions.Read(stream);
+        Connection.ActiveChar.DisabledSetPosition = false;
+        Logger.Warn("CSSpawnCharacterPacket, X: {0}, Y: {1}, Z: {2}", x, y, z);
 
-        Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));
-
-        Connection.ActiveChar.PushSubscriber(TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar)));
-
-        //Connection.SendPacket(new SCCooldownsPacket(Connection.ActiveChar));
-        //Connection.SendPacket(new SCListSkillActiveTypsPacket([]));
-        //Connection.SendPacket(new SCDetailedTimeOfDayPacket(12f));
-        //Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
-
-        Logger.Info("CSSpawnCharacterPacket");
+        WorldManager.ResendVisibleObjectsToCharacter(Connection.ActiveChar);
     }
 }
