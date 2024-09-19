@@ -27,26 +27,22 @@ public class SCSlaveStatusPacket : GamePacket
 
         #region skill&tag
         stream.Write(_skillCount); // skillCount
-        for (var i = 0; i < _skillCount; i += 3)
+
+        // TODO я считаю, что в итоге требуется выводить все скиллы, тэги и чарджи
+        for (var i = 0; i < _skillCount; i++)
         {
             stream.Write(_slave.Skills[i]);     // type
-            stream.Write(_slave.Skills[i + 1]); // type
-            stream.Write(_slave.Skills[i + 2]); // type
         }
 
         stream.Write(_tagCount); // tagCount
-        for (var i = 0; i < _tagCount; i += 3)
+        for (var i = 0; i < _tagCount; i++)
         {
-            stream.Write(0u); // type
-            stream.Write(0u); // type
             stream.Write(0u); // type
         }
 
         stream.Write(_chargeCount); // chargeCount
-        for (var i = 0; i < _skillCount; i += 3)
+        for (var i = 0; i < _skillCount; i++)
         {
-            stream.Write(0u); // type
-            stream.Write(0u); // type
             stream.Write(0u); // type
         }
         #endregion

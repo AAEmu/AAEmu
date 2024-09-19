@@ -40,8 +40,7 @@ public class UnitMoveType : MoveType
         Stance = (GameStanceType)stream.ReadSByte();
         Alertness = (MoveTypeAlertness)stream.ReadByte();
         ActorFlags = stream.ReadUInt16(); // ushort in 3.0.3.0, sbyte in 1.2
-        var actorFlags = (int)ActorFlags;
-        if (actorFlags < 0)
+        if ((short)ActorFlags < 0)
             FallVel = stream.ReadUInt16(); // actor.fallVel
         if ((ActorFlags & 0x20) != 0)
         {
@@ -57,7 +56,7 @@ public class UnitMoveType : MoveType
             GcId = stream.ReadUInt32();            // actor.gcId
         if ((ActorFlags & 0x40) != 0 || (ActorFlags & 0x8000) != 0)
             ClimbData = stream.ReadUInt32();       // actor.climbData
-        if (actorFlags < 0)
+        if ((short)ActorFlags < 0)
         {
             var type = stream.ReadByte();   // type
             var posx = stream.ReadInt16(); // posx
@@ -97,8 +96,7 @@ public class UnitMoveType : MoveType
         stream.Write((byte)Stance);
         stream.Write((byte)Alertness);
         stream.Write(ActorFlags);
-        var actorFlags = (int)ActorFlags;
-        if (actorFlags < 0)
+        if ((short)ActorFlags < 0)
             stream.Write(FallVel);
         if ((ActorFlags & 0x20) != 0)
         {
@@ -114,7 +112,7 @@ public class UnitMoveType : MoveType
             stream.Write(GcId);
         if ((ActorFlags & 0x40) != 0 || (ActorFlags & 0x8000) != 0)
             stream.Write(ClimbData);
-        if (actorFlags < 0)
+        if ((short)ActorFlags < 0)
         {
             var type = 0;
             stream.Write((byte)0); // type
