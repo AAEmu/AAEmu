@@ -1,9 +1,9 @@
 ﻿using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Team;
 
@@ -204,13 +204,22 @@ public class Team : PacketMarshaler
         stream.Write(OwnerId);
         stream.Write(IsParty);
 
+        // TODO выводим 10 раз
         foreach (var count in GetPartyCounts())
             stream.Write(count);
-
+        for (var i = 0; i < 10 - Members.Length; i++)
+        {
+            stream.Write((byte)0);
+        }
+        // TODO выводим 50 раз 
         foreach (var member in Members)
         {
             stream.Write(member?.Character?.Id ?? 0u);
             stream.Write(member?.Character?.IsOnline ?? false);
+        }
+        for (var i = 0; i < 50 - Members.Length; i++)
+        {
+            stream.Write(0u);
         }
 
         for (var i = 0; i < 12; i++)
@@ -225,6 +234,10 @@ public class Team : PacketMarshaler
         }
 
         stream.Write(LootingRule);
+        stream.Write(0u);    // jointId
+        stream.Write(true);  // isJointLeader
+        stream.Write(0u);    // jointOrder
+
         return stream;
     }
 }

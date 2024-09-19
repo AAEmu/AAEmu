@@ -22,6 +22,7 @@ public class SCJoinedTeamPacket : GamePacket
                 continue;
             stream.Write(member);
         }
+        stream.Write(true); // isMine
 
         return stream;
     }

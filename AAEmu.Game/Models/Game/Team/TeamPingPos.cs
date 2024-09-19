@@ -16,7 +16,7 @@ public enum PingType : byte
 public class TeamPingPos : PacketMarshaler
 {
     public uint TeamId { get; set; }
-    public byte SetPingType { get; set; }
+    public PingType SetPingType { get; set; }
     public byte Flag { get; set; }
     public byte LineCount { get; set; }
     public WorldSpawnPosition[] Positions { get; set; }
@@ -41,7 +41,7 @@ public class TeamPingPos : PacketMarshaler
     public override void Read(PacketStream stream)
     {
         TeamId = stream.ReadUInt32();
-        SetPingType = stream.ReadByte();
+        SetPingType = (PingType)stream.ReadByte();
         Flag = stream.ReadByte();
 
         for (var i = 0; i < 6; i++)
@@ -81,8 +81,8 @@ public class TeamPingPos : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        //stream.Write(TeamId);
-        stream.Write(SetPingType);
+        stream.Write(TeamId);
+        stream.Write((byte)SetPingType);
         stream.Write(Flag);
         for (var i = 0; i < 6; i++)
         {

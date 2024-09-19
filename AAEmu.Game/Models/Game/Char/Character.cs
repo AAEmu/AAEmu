@@ -88,6 +88,9 @@ public partial class Character : Unit, ICharacter
     public AbilityType Ability1 { get; set; }
     public AbilityType Ability2 { get; set; }
     public AbilityType Ability3 { get; set; }
+    public AbilityType HighAbility1 { get; set; }
+    public AbilityType HighAbility2 { get; set; }
+    public AbilityType HighAbility3 { get; set; }
     public DateTime LastCast { get; set; }
     //public bool IsInCombat { get; set; } // there's already an isInBattle
     public bool IsInPostCast { get; set; }

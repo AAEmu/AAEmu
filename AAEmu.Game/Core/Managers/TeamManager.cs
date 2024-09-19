@@ -513,7 +513,7 @@ public class TeamManager : Singleton<TeamManager>
         if (index < 0) return;
 
         // TODO - MAYBE USE TASK FOR BETTER PERFORMANCE
-        activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(new[] { activeTeam.Members[index] }), id);
+        activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(activeTeam.Id, [activeTeam.Members[index]]), id);
     }
 
     public void UpdateAtLogin(Character unit)
