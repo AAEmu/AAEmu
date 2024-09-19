@@ -12,7 +12,7 @@ public class CSBindSlavePacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var tlId = stream.ReadUInt16();
+        var tlId = stream.ReadUInt16(); // target
 
         Logger.Debug("BindSlave, Tl: {0}", tlId);
         SlaveManager.Instance.BindSlave(Connection, tlId);

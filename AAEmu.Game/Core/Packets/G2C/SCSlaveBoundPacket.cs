@@ -16,8 +16,8 @@ public class SCSlaveBoundPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_masterId);
-        stream.WriteBc(_slaveId);
+        stream.Write(_masterId);  // master
+        stream.WriteBc(_slaveId); // slave
         return stream;
     }
 }
