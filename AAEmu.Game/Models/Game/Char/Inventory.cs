@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.C2G;
@@ -832,10 +833,12 @@ public class Inventory
         if (bag.Length != numItems)
             Logger.Warn($"SendFragmentedInventory: Inventory Size Mismatch; expected {numItems} got {bag.Length}");
 
-        for (byte chunk = 0; chunk < numItems / 10; chunk++)
+        byte numChunks = 0;
+        var dividedArrays = Helpers.SplitArray(bag, 50); // Divide the array into arrays of 50 values
+        foreach (var item in dividedArrays)
         {
-            Array.Copy(bag, chunk * 10, tempItem, 0, 10);
-            Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 1, chunk, tempItem));
+            var idx = numChunks++ * 5;
+            Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 5, (byte)idx, item));
         }
 
         SetInitialItemExpirationTimers(bag);
