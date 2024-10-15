@@ -39,7 +39,7 @@ public class SchedulesGameData : Singleton<SchedulesGameData>, IGameDataLoader
                 {
                     var template = new GameSchedules();
                     template.Id = reader.GetInt32("id");
-                    template.Name = reader.GetString("name");
+                    //template.Name = reader.GetString("name");
                     template.DayOfWeekId = (DayOfWeek)reader.GetInt32("day_of_week_id");
                     template.StartTime = reader.GetInt32("start_time");
                     template.EndTime = reader.GetInt32("end_time");

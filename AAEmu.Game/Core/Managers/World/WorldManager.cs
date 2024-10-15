@@ -305,7 +305,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     {
                         var idz = new IndunZone();
                         idz.ZoneGroupId = reader.GetUInt32("zone_group_id");
-                        idz.Name = reader.GetString("name");
+                        //idz.Name = reader.GetString("name");
                         //idz.Comment = reader.GetString("comment");
                         idz.LevelMin = reader.GetUInt32("level_min");
                         idz.LevelMax = reader.GetUInt32("level_max");

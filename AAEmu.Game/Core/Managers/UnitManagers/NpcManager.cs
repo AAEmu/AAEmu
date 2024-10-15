@@ -526,7 +526,7 @@ public class NpcManager : Singleton<NpcManager>
                         template.CharRaceId = reader.GetInt32("char_race_id");
                         template.NpcGradeId = (NpcGradeType)reader.GetByte("npc_grade_id");
                         template.NpcKindId = (NpcKindType)reader.GetByte("npc_kind_id");
-                        template.Level = reader.GetByte("level");
+                        //template.Level = reader.GetByte("level");
                         template.NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id");
                         template.ModelId = reader.GetUInt32("model_id");
                         template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id");
