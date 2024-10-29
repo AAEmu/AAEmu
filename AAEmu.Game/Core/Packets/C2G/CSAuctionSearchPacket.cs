@@ -1,7 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -15,26 +15,14 @@ public class CSAuctionSearchPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var _sTemplate = new AuctionSearchTemplate();
-        var objId = stream.ReadBytes(6);
-        _sTemplate.Player = Connection.ActiveChar;
-        _sTemplate.ItemName = stream.ReadString();
-        _sTemplate.ExactMatch = stream.ReadBoolean();
-        _sTemplate.Grade = stream.ReadByte();
-        _sTemplate.CategoryA = stream.ReadByte();
-        _sTemplate.CategoryB = stream.ReadByte();
-        _sTemplate.CategoryC = stream.ReadByte();
-        _sTemplate.Page = stream.ReadUInt32();
-        _sTemplate.PlayerId = stream.ReadUInt32();
-        _sTemplate.Filter = stream.ReadUInt32();
-        _sTemplate.WorldID = stream.ReadByte();
-        _sTemplate.MinItemLevel = stream.ReadByte();
-        _sTemplate.MaxItemLevel = stream.ReadByte();
-        _sTemplate.SortKind = stream.ReadByte();
-        _sTemplate.SortOrder = stream.ReadByte();
+        var auctioneerId = stream.ReadBc();
+        var auctioneerId2 = stream.ReadBc();
 
-        var foundItems = AuctionManager.Instance.GetAuctionItems(_sTemplate);
+        var auctionSearch = new AuctionSearch();
+        stream.Read(auctionSearch);
 
-        Connection.SendPacket(new SCAuctionSearchedPacket(foundItems, _sTemplate.Page));
+        Logger.Warn($"AuctionSearch, auctioneerId: {auctioneerId}, auctioneerId: {auctioneerId2}, Keyword: {auctionSearch.Keyword}");
+
+        AuctionManager.Instance.SearchAuctionLots(Connection.ActiveChar, auctionSearch);
     }
 }

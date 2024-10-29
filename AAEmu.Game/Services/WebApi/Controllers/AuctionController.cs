@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -9,6 +9,9 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using NLog;
 using System.Web;
+using AAEmu.Game.Models.Game.Items;
+using System.Numerics;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Services.WebApi.Controllers
 {
@@ -37,47 +40,25 @@ namespace AAEmu.Game.Services.WebApi.Controllers
             }
 
             var itemId = itemIdElement.GetUInt32();
-            var quantity = quantityElement.GetUInt32();
+            var quantity = quantityElement.GetInt32();
             var price = priceElement.GetInt32();
-            var duration = durationElement.GetInt32();
+            var duration = (AuctionDuration)durationElement.GetInt32();
             var clientId = clientIdElement.GetUInt32();
             var clientName = clientNameElement.GetString();
 
             try
             {
-                // Create a new auction item
-                var newAuctionItem = new AuctionItem
+                var player = WorldManager.Instance.GetCharacterById(clientId);
+                var item = ItemManager.Instance.GetItemByItemId(itemId);
+                if (player == null || item == null)
                 {
-                    ID = AuctionManager.Instance.GetNextId(),
-                    Duration = (byte)duration,
-                    ItemID = itemId,
-                    ObjectID = 0,
-                    Grade = 0,
-                    Flags = 0,
-                    StackSize = quantity,
-                    DetailType = 0,
-                    CreationTime = DateTime.UtcNow,
-                    EndTime = DateTime.UtcNow.AddSeconds(duration),
-                    LifespanMins = 0,
-                    Type1 = 0,
-                    WorldId = 0,
-                    UnpackDateTIme = DateTime.UtcNow,
-                    UnsecureDateTime = DateTime.UtcNow,
-                    WorldId2 = 0,
-                    ClientId = clientId,
-                    ClientName = clientName,
-                    StartMoney = 0,
-                    DirectMoney = price,
-                    BidWorldID = 0,
-                    BidderId = 0,
-                    BidderName = "",
-                    BidMoney = 0,
-                    Extra = 0,
-                    IsDirty = true
-                };
+                    return BadRequestJson(new { error = "Internal server error", details = "Item not found!" });
+                }
+                // Create a new auction item
+                var newAuctionItem = AuctionManager.Instance.CreateAuctionLot(player, item, price, price, duration, 1, quantity);
 
                 // Add the auction item to the auction house
-                AuctionManager.Instance.AddAuctionItem(newAuctionItem);
+                AuctionManager.Instance.AddAuctionLot(newAuctionItem);
                 Logger.Info($"Added auction item: {newAuctionItem}");
                 return OkJson(new { message = "Auction item added successfully", item = newAuctionItem });
             }
@@ -94,7 +75,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers
         {
             try
             {
-                var auctionItems = AuctionManager.Instance._auctionItems;
+                var auctionItems = AuctionManager.Instance.AuctionLots;
                 return OkJson(new { items = auctionItems });
             }
             catch (Exception ex)
@@ -111,7 +92,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers
         {
             try
             {
-                var query = AuctionManager.Instance._auctionItems.AsQueryable();
+                var query = AuctionManager.Instance.AuctionLots.AsQueryable();
 
                 // Extract query parameters from the URL
                 var queryParams = HttpUtility.ParseQueryString(request.Url.Split('?').Length > 1 ? request.Url.Split('?')[1] : "");
@@ -120,7 +101,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers
                 if (queryParams["itemId"] != null)
                 {
                     uint itemId = uint.Parse(queryParams["itemId"]);
-                    query = query.Where(item => item.ItemID == itemId);
+                    query = query.Where(item => item.Item.TemplateId == itemId);
                 }
                 if (queryParams["clientName"] != null)
                 {
@@ -130,7 +111,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers
                 if (queryParams["stackSize"] != null)
                 {
                     uint stackSize = uint.Parse(queryParams["stackSize"]);
-                    query = query.Where(item => item.StackSize == stackSize);
+                    query = query.Where(item => item.Item.Count == stackSize);
                 }
                 if (queryParams["directMoney"] != null)
                 {

@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -29,43 +30,26 @@ internal class TestAuctionHouse : ICommand
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var allItems = ItemManager.Instance.GetAllItems();
-        CommandManager.SendNormalText(this, messageOutput,
-            $"Trying to add {allItems.Count} items to the Auction House!");
+        CommandManager.SendNormalText(this, messageOutput, $"Trying to add {allItems.Count} items to the Auction House!");
 
         var amount = 0;
-        foreach (var item in allItems)
+        foreach (var itemTemplate in allItems)
         {
-            var newAuctionItem = new AuctionItem
+            if (itemTemplate == null)
             {
-                ID = AuctionManager.Instance.GetNextId(),
-                Duration = 5,
-                ItemID = item.Id,
-                ObjectID = 0,
-                Grade = 0,
-                Flags = 0,
-                StackSize = 1,
-                DetailType = 0,
-                CreationTime = DateTime.UtcNow,
-                EndTime = DateTime.UtcNow.AddSeconds(172800),
-                LifespanMins = 0,
-                Type1 = 0,
-                WorldId = 0,
-                UnpackDateTIme = DateTime.UtcNow,
-                UnsecureDateTime = DateTime.UtcNow,
-                WorldId2 = 0,
-                ClientId = 0,
-                ClientName = "",
-                StartMoney = 0,
-                DirectMoney = 1,
-                BidWorldID = 0,
-                BidderId = 0,
-                BidderName = "",
-                BidMoney = 0,
-                Extra = 0,
-                IsDirty = true
-            };
+                continue;
+            }
 
-            AuctionManager.Instance.AddAuctionItem(newAuctionItem);
+            var item = ItemManager.Instance.Create(itemTemplate.Id, 1, 0);
+            if (item == null)
+            {
+                continue;
+            }
+            // Create a new auction item
+            var newAuctionItem = AuctionManager.Instance.CreateAuctionLot(character, item, 0, 1, AuctionDuration.AuctionDuration6Hours);
+
+            // Add the auction item to the auction house
+            AuctionManager.Instance.AddAuctionLot(newAuctionItem);
             amount++;
         }
 

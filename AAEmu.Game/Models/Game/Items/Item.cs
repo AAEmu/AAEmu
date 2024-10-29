@@ -93,7 +93,7 @@ public class Item : PacketMarshaler, IComparable<Item>
     public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
     public int ChargeCount { get; set; }
 
-    public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+    public virtual ItemDetailType DetailType { get; set; } // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
     public byte[] Detail { get; set; }
 
     // Helper
@@ -165,14 +165,31 @@ public class Item : PacketMarshaler, IComparable<Item>
 
     public override void Read(PacketStream stream)
     {
+        TemplateId = stream.ReadUInt32();
+
+        if (TemplateId == 0)
+            return;
+
+        Id = stream.ReadUInt64();
+        Grade = stream.ReadByte();
+        ItemFlags = (ItemFlag)stream.ReadByte();
+        Count = stream.ReadInt32();
+        DetailType = (ItemDetailType)stream.ReadByte();
+        ReadDetails(stream);
+        CreateTime = stream.ReadDateTime();
+        LifespanMins = stream.ReadInt32();
+        MadeUnitId = stream.ReadUInt32();
+        WorldId = stream.ReadByte();
+        UnsecureTime = stream.ReadDateTime();
+        UnpackTime = stream.ReadDateTime();
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(TemplateId);
         // TODO ...
-        // if (TemplateId == 0)
-        //     return stream;
+        if (TemplateId == 0)
+            return stream;
         stream.Write(Id);
         stream.Write(Grade);
         stream.Write((byte)ItemFlags); //bounded

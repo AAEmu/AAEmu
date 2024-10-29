@@ -61,36 +61,27 @@ CREATE TABLE `appellations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Earned titles';
 
 
+-- ----------------------------------
+-- Table structure for auction_house
+-- ----------------------------------
 DROP TABLE IF EXISTS `auction_house`;
-CREATE TABLE `auction_house` (
-  `id` int NOT NULL AUTO_INCREMENT,
+CREATE TABLE `auction_house`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `duration` tinyint NOT NULL,
-  `item_id` int NOT NULL,
-  `object_id` int NOT NULL,
-  `grade` tinyint(1) NOT NULL,
-  `flags` tinyint(1) NOT NULL,
-  `stack_size` int NOT NULL,
-  `detail_type` tinyint(1) NOT NULL,
-  `creation_time` datetime NOT NULL,
+  `item_id` bigint NOT NULL,
   `end_time` datetime NOT NULL,
-  `lifespan_mins` int NOT NULL,
-  `type_1` int NOT NULL,
   `world_id` tinyint NOT NULL,
-  `unsecure_date_time` varchar(45) NOT NULL,
-  `unpack_date_time` varchar(45) NOT NULL,
-  `world_id_2` tinyint NOT NULL,
   `client_id` int NOT NULL,
-  `client_name` varchar(45) NOT NULL,
+  `client_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `start_money` int NOT NULL,
   `direct_money` int NOT NULL,
-  `bid_world_id` tinyint(1) NOT NULL,
+  `bid_world_id` int NOT NULL,
   `bidder_id` int NOT NULL,
-  `bidder_name` varchar(45) NOT NULL,
+  `bidder_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `bid_money` int NOT NULL,
   `extra` int NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Listed AH Items';
-
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Listed AH Items' ROW_FORMAT = DYNAMIC;
 
 DROP TABLE IF EXISTS `blocked`;
 CREATE TABLE `blocked` (
@@ -317,7 +308,7 @@ CREATE TABLE `items` (
   `type` varchar(100) NOT NULL,
   `template_id` int unsigned NOT NULL,
   `container_id` int unsigned NOT NULL DEFAULT '0',
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') NOT NULL,
+  `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
   `slot` int NOT NULL,
   `count` int NOT NULL,
   `details` blob,
@@ -480,7 +471,7 @@ DROP TABLE IF EXISTS `item_containers`;
 CREATE TABLE `item_containers` (
   `container_id` int unsigned NOT NULL,
   `container_type` varchar(64) COLLATE 'utf8mb4_general_ci' NOT NULL DEFAULT 'ItemContainer' COMMENT 'Partial Container Class Name',
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System','EquipmentMate') NOT NULL COMMENT 'Internal Container Type',
+  `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
   `container_size` int NOT NULL DEFAULT '50' COMMENT 'Maximum Container Size',
   `owner_id` int unsigned NOT NULL COMMENT 'Owning Character Id',
   `mate_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Owning Mate Id', 

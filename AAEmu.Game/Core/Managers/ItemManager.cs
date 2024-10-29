@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
@@ -473,13 +474,13 @@ public class ItemManager : Singleton<ItemManager>
         return res;
     }
 
-    public List<ItemTemplate> GetItemTemplatesForAuctionSearch(AuctionSearchTemplate searchTemplate)
+    public List<ItemTemplate> GetItemTemplatesForAuctionSearch(AuctionSearch searchTemplate)
     {
         var templateList = new List<ItemTemplate>();
         var itemIds = new List<uint>();
 
-        if (searchTemplate.ItemName != "")
-            itemIds = GetItemIdsBySearchName(searchTemplate.ItemName);
+        if (searchTemplate.Keyword != "")
+            itemIds = GetItemIdsBySearchName(searchTemplate.Keyword);
 
         if (itemIds.Count > 0)
         {
@@ -1221,6 +1222,14 @@ public class ItemManager : Singleton<ItemManager>
                         template.LivingPointPrice = reader.GetInt32("living_point_price");
                         template.CharGender = reader.GetByte("char_gender_id");
 
+                        template.AuctionSettings = new AuctionSettings(
+                            template.AuctionCategoryA,
+                            template.AuctionCategoryB,
+                            template.AuctionCategoryC
+                            //reader.GetUInt32("auction_charge"), // added in 3+
+                            //reader.GetBoolean("auction_charge_default") // added in 3+
+                        );
+
                         _templates.TryAdd(template.Id, template);
                     }
                 }
@@ -1681,7 +1690,7 @@ public class ItemManager : Singleton<ItemManager>
                     command.Parameters.Clear();
                     command.Parameters.AddWithValue("@container_id", c.ContainerId);
                     command.Parameters.AddWithValue("@container_type", c.ContainerTypeName());
-                    command.Parameters.AddWithValue("@slot_type", c.ContainerType.ToString());
+                    command.Parameters.AddWithValue("@slot_type", (int)c.ContainerType);
                     command.Parameters.AddWithValue("@container_size", c.ContainerSize);
                     command.Parameters.AddWithValue("@owner_id", c.OwnerId);
                     command.Parameters.AddWithValue("@mate_id", c.MateId);
@@ -1761,7 +1770,7 @@ public class ItemManager : Singleton<ItemManager>
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
                     command.Parameters.AddWithValue("@template_id", item.TemplateId);
                     command.Parameters.AddWithValue("@container_id", item._holdingContainer?.ContainerId ?? 0);
-                    command.Parameters.AddWithValue("@slot_type", item.SlotType.ToString());
+                    command.Parameters.AddWithValue("@slot_type", (int)item.SlotType);
                     command.Parameters.AddWithValue("@slot", item.Slot);
                     command.Parameters.AddWithValue("@count", item.Count);
                     command.Parameters.AddWithValue("@details", details.GetBytes());
@@ -1794,7 +1803,7 @@ public class ItemManager : Singleton<ItemManager>
                     catch (Exception ex)
                     {
                         // Create a manual SQL string with the data provided
-                        var sqlString = $"REPLACE INTO items (id, type, template_id, container_id, slot_type, slot, count, details, lifespan_mins, made_unit_id, unsecure_time, unpack_time, owner, created_at, grade, flags, ucc, expire_time, expire_online_minutes, charge_time, charge_count) VALUES ({item.Id}, {item.GetType()}, {item.TemplateId}, {item._holdingContainer?.ContainerId ?? 0}, {item.SlotType.ToString()}, {item.Slot}, {item.Count}, {details.GetBytes()}, {item.LifespanMins}, {item.MadeUnitId}, {item.UnsecureTime}, {item.UnpackTime}, {item.CreateTime}, {item.OwnerId}, {item.Grade}, {(byte)item.ItemFlags}, {item.UccId}, {item.ExpirationTime}, {item.ExpirationOnlineMinutesLeft}, {item.ChargeStartTime}, {item.ChargeCount})";
+                        var sqlString = $"REPLACE INTO items (id, type, template_id, container_id, slot_type, slot, count, details, lifespan_mins, made_unit_id, unsecure_time, unpack_time, owner, created_at, grade, flags, ucc, expire_time, expire_online_minutes, charge_time, charge_count) VALUES ({item.Id}, {item.GetType()}, {item.TemplateId}, {item._holdingContainer?.ContainerId ?? 0}, {item.SlotType}, {item.Slot}, {item.Count}, {details.GetBytes()}, {item.LifespanMins}, {item.MadeUnitId}, {item.UnsecureTime}, {item.UnpackTime}, {item.CreateTime}, {item.OwnerId}, {item.Grade}, {(byte)item.ItemFlags}, {item.UccId}, {item.ExpirationTime}, {item.ExpirationOnlineMinutesLeft}, {item.ChargeStartTime}, {item.ChargeCount})";
 
                         Logger.Error($"Error: {ex.Message}\nSQL Query: {sqlString}\n");
                     }
@@ -1806,7 +1815,7 @@ public class ItemManager : Singleton<ItemManager>
         return (updateCount, deleteCount, containerUpdateCount);
     }
 
-    private SlotType GetContainerSlotTypeByContainerId(ulong dbId)
+    internal SlotType GetContainerSlotTypeByContainerId(ulong dbId)
     {
         _allPersistentContainers.TryGetValue(dbId, out var container);
 
@@ -1930,7 +1939,7 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     var containerId = reader.GetUInt32("container_id");
                     var containerType = reader.GetString("container_type");
-                    var slotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
+                    var slotType = (SlotType)reader.GetInt32("slot_type");
                     var containerSize = reader.GetInt32("container_size");
                     var containerOwnerId = reader.GetUInt32("owner_id");
                     var containerMateId = reader.GetUInt32("mate_id");
@@ -1999,11 +2008,7 @@ public class ItemManager : Singleton<ItemManager>
                     item.TemplateId = itemTemplateId;
                     item.Template = GetTemplate(item.TemplateId);
                     var containerId = reader.GetUInt64("container_id");
-                    var slotTypeString = reader.GetString("slot_type");
-                    if (Enum.IsDefined(typeof(SlotType), slotTypeString))
-                        item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), slotTypeString, true);
-                    else
-                        item.SlotType = SlotType.System;
+                    item.SlotType = (SlotType)reader.GetInt32("slot_type");
                     var thisItemSlot = reader.GetInt32("slot");
                     item.Slot = thisItemSlot;
                     item.Count = reader.GetInt32("count");

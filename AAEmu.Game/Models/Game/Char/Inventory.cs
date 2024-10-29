@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Units;
+
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -28,6 +27,7 @@ public class Inventory
     public ItemContainer Warehouse { get; private set; }
     public ItemContainer MailAttachments { get; private set; }
     public ItemContainer SystemContainer { get; private set; }
+    public ItemContainer AuctionAttachments { get; private set; }
     public ulong PreviousBackPackItemId { get; set; } // used to re-equip glider when putting backpacks down
 
     public Inventory(ICharacter owner)
@@ -78,6 +78,9 @@ public class Inventory
                     break;
                 case SlotType.Mail:
                     MailAttachments = newContainer;
+                    break;
+                case SlotType.Auction:
+                    AuctionAttachments = newContainer;
                     break;
                 case SlotType.System:
                     SystemContainer = newContainer;

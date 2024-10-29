@@ -1,22 +1,65 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Auction.Templates;
 
-public class AuctionSearchTemplate
+public class AuctionSearch : PacketMarshaler
 {
-    public Character Player { get; set; }
-    public string ItemName { get; set; }
+    public string Keyword { get; set; }
     public bool ExactMatch { get; set; }
     public byte Grade { get; set; }
     public byte CategoryA { get; set; }
     public byte CategoryB { get; set; }
     public byte CategoryC { get; set; }
-    public uint Page { get; set; }
-    public uint PlayerId { get; set; }
-    public uint Filter { get; set; }
-    public uint WorldID { get; set; }
+    public uint ClientId { get; set; }
+    public int Page { get; set; }
+    public int Filter { get; set; }
+    public byte WorldId { get; set; }
     public byte MinItemLevel { get; set; }
     public byte MaxItemLevel { get; set; }
-    public byte SortKind { get; set; }
-    public byte SortOrder { get; set; }
+    //public uint MinMoneyAmount { get; set; } // added in 3+
+    //public uint MaxMoneyAmount { get; set; } // added in 3+
+    public AuctionSearchSortKind SortKind { get; set; }
+    public AuctionSearchSortOrder SortOrder { get; set; }
+
+
+    public override void Read(PacketStream stream)
+    {
+        Keyword = stream.ReadString();
+        ExactMatch = stream.ReadBoolean();
+        Grade = stream.ReadByte();
+        CategoryA = stream.ReadByte();
+        CategoryB = stream.ReadByte();
+        CategoryC = stream.ReadByte();
+        Page = stream.ReadInt32();
+        ClientId = stream.ReadUInt32();
+        Filter = stream.ReadInt32();
+        WorldId = stream.ReadByte();
+        MinItemLevel = stream.ReadByte();
+        MaxItemLevel = stream.ReadByte();
+        //MinMoneyAmount = stream.ReadUInt32(); // moneyAmount
+        //MaxMoneyAmount = stream.ReadUInt32(); // moneyAmount
+        SortKind = (AuctionSearchSortKind)stream.ReadByte();
+        SortOrder = (AuctionSearchSortOrder)stream.ReadByte();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.Write(Keyword);
+        stream.Write(ExactMatch);
+        stream.Write(Grade);
+        stream.Write(CategoryA);
+        stream.Write(CategoryB);
+        stream.Write(CategoryC);
+        stream.Write(Page);
+        stream.Write(ClientId);
+        stream.Write(Filter);
+        stream.Write(WorldId);
+        stream.Write(MinItemLevel);
+        stream.Write(MaxItemLevel);
+        //stream.Write(MinMoneyAmount); // moneyAmount
+        //stream.Write(MaxMoneyAmount); // moneyAmount
+        stream.Write((byte)SortKind);
+        stream.Write((byte)SortOrder);
+        return stream;
+    }
 }

@@ -108,6 +108,7 @@ public class ItemContainer
             SlotType.Mail => false,
             SlotType.System => false,
             SlotType.EquipmentMate => false,
+            SlotType.Auction => false,
             _ => throw new ArgumentOutOfRangeException()
         };
 

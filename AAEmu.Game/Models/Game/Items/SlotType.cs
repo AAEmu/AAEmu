@@ -8,6 +8,7 @@ public enum SlotType : byte
     Bank = 3,
     Trade = 4,
     Mail = 5,
+    Auction = 6,
     EquipmentMate = 252,
     System = 0xFF
 }
