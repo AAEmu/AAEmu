@@ -385,6 +385,7 @@ public class AuctionManager : Singleton<AuctionManager>
                                 Id = reader.GetUInt64("id"),
                                 Duration = (AuctionDuration)reader.GetByte("duration"), // 8 is 6 hours, 9 is 12 hours, 10 is 24 hours, 11 is 48 hours
                                 Item = ItemManager.Instance.GetItemByItemId(reader.GetUInt32("item_id")),
+                                PostDate = reader.GetDateTime("post_date"),
                                 EndTime = reader.GetDateTime("end_time"),
                                 WorldId = reader.GetByte("world_id"),
                                 ClientId = reader.GetUInt32("client_id"),
@@ -488,7 +489,7 @@ public class AuctionManager : Singleton<AuctionManager>
         sb.Append("REPLACE INTO auction_house(");
         sb.Append("`id`, `duration`,");
         sb.Append(" `item_id`,");
-        sb.Append("`end_time`,");
+        sb.Append("`post_date`, `end_time`,");
         sb.Append(" `world_id`, `client_id`, `client_name`,");
         sb.Append(" `start_money`, `direct_money`,");
         sb.Append(" `bid_world_id`, `bidder_id`, `bidder_name`,");
@@ -496,7 +497,7 @@ public class AuctionManager : Singleton<AuctionManager>
         sb.Append(") VALUES (");
         sb.Append("@id, @duration,");
         sb.Append(" @item_id,");
-        sb.Append("@end_time,");
+        sb.Append("@post_date, @end_time,");
         sb.Append(" @world_id, @client_id, @client_name,");
         sb.Append(" @start_money, @direct_money,");
         sb.Append(" @bid_world_id, @bidder_id, @bidder_name,");
@@ -510,6 +511,7 @@ public class AuctionManager : Singleton<AuctionManager>
         command.Parameters.AddWithValue("@id", lot.Id);
         command.Parameters.AddWithValue("@duration", (byte)lot.Duration);
         command.Parameters.AddWithValue("@item_id", lot.Item.Id);
+        command.Parameters.AddWithValue("@post_date", lot.PostDate);
         command.Parameters.AddWithValue("@end_time", lot.EndTime);
         command.Parameters.AddWithValue("@world_id", lot.WorldId);
         command.Parameters.AddWithValue("@client_id", lot.ClientId);
