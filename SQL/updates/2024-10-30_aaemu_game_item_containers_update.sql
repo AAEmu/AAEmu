@@ -29,5 +29,5 @@ SET `slot_type` = CASE
 END;
 
 -- 6. Delete the temporary field old_slot_type if it is no longer needed
--- ALTER TABLE `item_containers` 
--- DROP COLUMN `old_slot_type`;
+ALTER TABLE `item_containers` 
+DROP COLUMN `old_slot_type`;

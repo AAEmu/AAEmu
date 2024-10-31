@@ -829,19 +829,25 @@ public class Inventory
 
     private void SendFragmentedInventory(SlotType slotType, byte numItems, Item[] bag)
     {
-        var tempItem = new Item[10];
-
-        if (numItems % 10 != 0)
+        if (bag.Length % 10 != 0)
             Logger.Warn($"SendFragmentedInventory: Inventory Size not a multiple of 10 ({numItems})");
         if (bag.Length != numItems)
             Logger.Warn($"SendFragmentedInventory: Inventory Size Mismatch; expected {numItems} got {bag.Length}");
 
-        byte numChunks = 0;
-        var dividedArrays = Helpers.SplitArray(bag, 50); // Divide the array into arrays of 50 values
+        /*
+         * указывает, сколько предметов должно быть в пакете
+         * indicates how many items should be in the package
+         * numChunks = 1 -> 10 for 1.2
+         * numChunks = 5 -> 50 for 3+
+         */
+        const int NumChunks = 1;
+        var startChunkIdx = 0;
+        var dividedArrays = Helpers.SplitArray(bag, NumChunks * 10);
         foreach (var item in dividedArrays)
         {
-            var idx = numChunks++ * 5;
-            Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 5, (byte)idx, item));
+            startChunkIdx *= NumChunks;
+            Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, NumChunks, (byte)startChunkIdx, item));
+            startChunkIdx++;
         }
 
         SetInitialItemExpirationTimers(bag);
