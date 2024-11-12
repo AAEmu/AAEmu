@@ -37,6 +37,23 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
                 owner.OverridePhaseTime = DateTime.MinValue;
                 afterTimerDelay = owner.TimeLeft;
             }
+            
+            // Отменяем текущую задачу, если она существует
+            // Cancel the current task if it exists
+            if (owner.FuncTask != null)
+            {
+                try
+                {
+                    TaskManager.Instance.Cancel(owner.FuncTask);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to cancel existing FuncTask: {0}", ex.Message);
+                }
+            }
+
+            // Создаем и назначаем новую задачу
+            // Create and assign a new task
             owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(afterTimerDelay)); // After ms remove the object from visibility
         }
@@ -45,6 +62,22 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
             owner.Delete();
             if (!Respawn) { return false; }
 
+            // Отменяем текущую задачу, если она существует
+            // Cancel the current task if it exists
+            if (owner.FuncTask != null)
+            {
+                try
+                {
+                    TaskManager.Instance.Cancel(owner.FuncTask);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to cancel existing FuncTask: {0}", ex.Message);
+                }
+            }
+
+            // Создаем и назначаем новую задачу
+            // Create and assign a new task
             owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(delay));
         }

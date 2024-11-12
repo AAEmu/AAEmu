@@ -44,6 +44,22 @@ public class DoodadFuncTimer : DoodadPhaseFuncTemplate
 
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(timeLeft);
 
+            // Отменяем текущую задачу, если она существует
+            // Cancel the current task if it exists
+            if (owner.FuncTask != null)
+            {
+                try
+                {
+                    TaskManager.Instance.Cancel(owner.FuncTask);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to cancel existing FuncTask: {0}", ex.Message);
+                }
+            }
+
+            // Создаем и назначаем новую задачу
+            // Create and assign a new task
             owner.FuncTask = new DoodadFuncTimerTask(caster, owner, 0, NextPhase);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(timeLeft));
         }

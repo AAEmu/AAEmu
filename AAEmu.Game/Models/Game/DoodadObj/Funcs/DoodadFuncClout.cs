@@ -64,6 +64,22 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
         if (Duration > 0)
         {
             // TODO : Add a proper delay in here
+            // Отменяем текущую задачу, если она существует
+            // Cancel the current task if it exists
+            if (owner.FuncTask != null)
+            {
+                try
+                {
+                    TaskManager.Instance.Cancel(owner.FuncTask);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to cancel existing FuncTask: {0}", ex.Message);
+                }
+            }
+
+            // Создаем и назначаем новую задачу
+            // Create and assign a new task
             owner.FuncTask = new DoodadFuncCloutTask(caster, owner, 0, NextPhase, areaTrigger);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Duration));
         }

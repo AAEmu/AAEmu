@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
@@ -44,6 +45,22 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
         else
             Logger.Trace("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
 
+        // Отменяем текущую задачу, если она существует
+        // Cancel the current task if it exists
+        if (owner.FuncTask != null)
+        {
+            try
+            {
+                TaskManager.Instance.Cancel(owner.FuncTask);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to cancel existing FuncTask: {0}", ex.Message);
+            }
+        }
+
+        // Создаем и назначаем новую задачу
+        // Create and assign a new task
         owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, EndScale / 1000f);
         TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(timeLeft));
 
