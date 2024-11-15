@@ -286,10 +286,10 @@ public partial class Quest
                 }
             }
         }
-        
-        var res = Template.Selective ?
-        (QuestObjectiveStatus)Math.Max((byte)totalResultStatusMin, (byte)totalResultStatusMax) :
-        (QuestObjectiveStatus)Math.Min((byte)totalResultStatusMin, (byte)totalResultStatusMax);
+
+        var res = Template.Selective
+            ? (QuestObjectiveStatus)Math.Max((byte)totalResultStatusMin, (byte)totalResultStatusMax)
+            : (QuestObjectiveStatus)Math.Min((byte)totalResultStatusMin, (byte)totalResultStatusMax);
 
         return res;
     }

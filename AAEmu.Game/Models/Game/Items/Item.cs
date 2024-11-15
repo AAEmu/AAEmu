@@ -317,7 +317,7 @@ public class Item : PacketMarshaler, IComparable<Item>
     /// </summary>
     public virtual void OnManuallyDestroyingItem()
     {
-        
+        //
     }
 
     public virtual bool CanDestroy()

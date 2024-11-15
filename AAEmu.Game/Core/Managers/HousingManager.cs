@@ -145,8 +145,8 @@ public class HousingManager : Singleton<HousingManager>
                     {
                         var template = new HousingItemHousings
                         {
-                            Id = reader.GetUInt32("id"), 
-                            Item_Id = reader.GetUInt32("item_id"), 
+                            Id = reader.GetUInt32("id"),
+                            Item_Id = reader.GetUInt32("item_id"),
                             Design_Id = reader.GetUInt32("design_id")
                         };
                         _housingItemHousings.Add(template);
@@ -252,9 +252,9 @@ public class HousingManager : Singleton<HousingManager>
 
                         var template = new HousingBuildStep
                         {
-                            Id = reader.GetUInt32("id"), 
-                            HousingId = housingId, 
-                            Step = reader.GetInt16("step"), 
+                            Id = reader.GetUInt32("id"),
+                            HousingId = housingId,
+                            Step = reader.GetInt16("step"),
                             ModelId = reader.GetUInt32("model_id"),
                             SkillId = reader.GetUInt32("skill_id"),
                             NumActions = reader.GetInt32("num_actions")
@@ -540,7 +540,7 @@ public class HousingManager : Singleton<HousingManager>
         }
 
         // Logger.Debug($"SCHouseTaxInfoPacket; tlId:{house.TlId}, domTaxRate: 0, deposit: {depositTax}, taxDue:{totalTaxAmountDue}, protectEnd:{house.ProtectionEndDate}, isPaid:{requiresPayment}, weeksWithoutPay:{weeksWithoutPay}, isHeavy:{house.Template.HeavyTax}");
-        
+
         connection.SendPacket(
             new SCHouseTaxInfoPacket(
                 house.TlId,
@@ -693,7 +693,7 @@ public class HousingManager : Singleton<HousingManager>
 
         if (house.OwnerId != connection.ActiveChar.Id)
             return; // not the owner
-        
+
         house.Permission = permission;
         house.BroadcastPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission), false);
     }
@@ -962,10 +962,10 @@ public class HousingManager : Singleton<HousingManager>
     /// Returns furniture of a house that's being demolished or sold
     /// </summary>
     /// <param name="house"></param>
-    /// <param name="failedToPayTax">Set true if demilishing due to failed tax, this adds a delay to the mail</param>
+    /// <param name="failedToPayTax">Set true if demolishing due to failed tax, this adds a delay to the mail</param>
     /// <param name="forceRestoreAllDecor">For GM commands or server merges. Will try to send ALL placed furniture if set to true, even those that normally don't get returned.</param>
     /// <param name="newOwner">New owner Character if buying, otherwise leave null</param>
-    private void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor, ICharacter newOwner)
+    private void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor, Character newOwner)
     {
         if (house.OwnerId <= 0)
             return;
@@ -1170,13 +1170,13 @@ public class HousingManager : Singleton<HousingManager>
                     ReceiverName = NameManager.Instance.GetCharacterName(house.OwnerId), // Doesn't seem like this needs to be set
                     Header =
                     {
-                        ReceiverId = house.OwnerId, 
-                        SenderId = 0, 
-                        SenderName = ".houseDemolish", 
+                        ReceiverId = house.OwnerId,
+                        SenderId = 0,
+                        SenderName = ".houseDemolish",
                         Extra = house.Id
                     },
                     Title = "title",
-                    Body = { 
+                    Body = {
                         Text = "body", // Yes, that's indeed what it needs to be set to
                         SendDate = DateTime.UtcNow,
                         RecvDate = DateTime.UtcNow.AddHours(failedToPayTax ? HoursForFailedTaxToReturnHouse : 0)
@@ -1371,12 +1371,12 @@ public class HousingManager : Singleton<HousingManager>
                 // Mail container is set up to never update existing items, so we can discard that result
                 var mail = new BaseMail
                 {
-                    MailType = MailType.HousingSale, 
+                    MailType = MailType.HousingSale,
                     Header =
                     {
-                        ReceiverId = house.OwnerId, 
+                        ReceiverId = house.OwnerId,
                         SenderName = ".houseSellCancel"
-                    }, 
+                    },
                     ReceiverName = NameManager.Instance.GetCharacterName(house.OwnerId),
                     Title = "title(" + ZoneManager.Instance.GetZoneByKey(house.Transform.ZoneId)?.GroupId.ToString() + ",'" + house.Name + "')",
                     Body =
@@ -1487,12 +1487,12 @@ public class HousingManager : Singleton<HousingManager>
         // Mail confirmation mail to new owner
         var newOwnerMail = new BaseMail
         {
-            MailType = MailType.HousingSale, 
+            MailType = MailType.HousingSale,
             Header =
             {
-                ReceiverId = character.Id, 
+                ReceiverId = character.Id,
                 SenderName = ".houseBought"
-            }, 
+            },
             ReceiverName = character.Name,
             Title = "title(" + ZoneManager.Instance.GetZoneByKey(house.Transform.ZoneId)?.GroupId.ToString() + ",'" + house.Name + "')",
             Body =
@@ -1507,12 +1507,12 @@ public class HousingManager : Singleton<HousingManager>
         // Send sales money to previous owner
         var profitMail = new BaseMail
         {
-            MailType = MailType.HousingSale, 
+            MailType = MailType.HousingSale,
             Header =
             {
-                ReceiverId = previousOwner, 
+                ReceiverId = previousOwner,
                 SenderName = ".houseSold"
-            }, 
+            },
             ReceiverName = previousOwnerName,
             Title = "title('" + character.Name + "','" + house.Name + "')",
             Body =

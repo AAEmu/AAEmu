@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -34,7 +34,6 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
-using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -42,7 +41,7 @@ public partial class Character : Unit, ICharacter
 {
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
     public override BaseUnitType BaseUnitType => BaseUnitType.Character;
-    
+
     public static Dictionary<uint, uint> UsedCharacterObjIds { get; } = new();
 
     private Dictionary<ushort, string> _options;
@@ -109,7 +108,7 @@ public partial class Character : Unit, ICharacter
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
-    
+
     /// <summary>
     /// Cache value of AccountDetails.Loyalty
     /// </summary>
@@ -1550,7 +1549,7 @@ public partial class Character : Unit, ICharacter
         // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour!
         if (newZone != null)
             SendMessage(ChatType.System, $"You have entered a closed zone ({newZone.ZoneKey} - {newZone.Name})!\nPlease leave immediately!", Color.Red);
-        
+
         var characterAccessLevel = CharacterManager.Instance.GetEffectiveAccessLevel(this);
         if (characterAccessLevel < 100)
         {
@@ -1567,8 +1566,8 @@ public partial class Character : Unit, ICharacter
                 for (var i = 0; i < 5; i++)
                 {
                     // sendErrorMsg
-                    SendErrorMessage(ErrorMessageType.ClosedZone,0,false);
-                    await Task.Delay(2 * 1000,_unreleasedZoneTransportedOut.Token);
+                    SendErrorMessage(ErrorMessageType.ClosedZone, 0, false);
+                    await Task.Delay(2 * 1000, _unreleasedZoneTransportedOut.Token);
                 }
                 ForceDismount();
                 MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(this);
@@ -1585,7 +1584,7 @@ public partial class Character : Unit, ICharacter
                     ),
                     true
                 );
-            
+
             }, _unreleasedZoneTransportedOut.Token);
         }
     }
@@ -1651,7 +1650,7 @@ public partial class Character : Unit, ICharacter
         }
     }
 
-    
+
     public void SetAction(byte slot, ActionSlotType type, uint actionId)
     {
         Slots[slot].Type = type;
@@ -2090,7 +2089,7 @@ public partial class Character : Unit, ICharacter
                     character.AccountId = reader.GetUInt32("account_id");
 
                     var accountDetails = AccountManager.Instance.GetAccountDetails(character.AccountId);
-                    
+
                     character.Name = reader.GetString("name");
                     character.AccessLevel = reader.GetInt32("access_level");
                     character.Race = (Race)reader.GetByte("race");
@@ -2153,7 +2152,7 @@ public partial class Character : Unit, ICharacter
                     character.LoadActionSlots(slotsBlob);
 
                     character.BmPoint = AccountManager.Instance.GetAccountDetails(character.AccountId).Loyalty;
-                    
+
                     if (character.Hp > character.MaxHp)
                         character.Hp = character.MaxHp;
                     if (character.Mp > character.MaxMp)
