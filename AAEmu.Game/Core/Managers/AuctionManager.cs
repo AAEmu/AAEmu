@@ -27,7 +27,7 @@ public class AuctionManager : Singleton<AuctionManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public ConcurrentBag<AuctionLot> AuctionLots { get; } = [];
-    internal ConcurrentBag<long> _deletedAuctionItemIds { get; } = [];
+    public ConcurrentBag<long> _deletedAuctionItemIds { get; } = [];
 
     private static int MaxListingFee = 1000000; // 100g, 100 copper coins = 1 silver, 100 silver = 1 gold.
 
