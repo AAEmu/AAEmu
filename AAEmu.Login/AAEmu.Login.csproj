@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
     <UserSecretsId>68f0c4f8-94e8-45b8-b1a0-03a4ccf61ed2</UserSecretsId>
     <ApplicationIcon>Resources\icon_login.ico</ApplicationIcon>
   </PropertyGroup>
