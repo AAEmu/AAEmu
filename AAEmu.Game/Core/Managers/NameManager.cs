@@ -63,7 +63,7 @@ public partial class NameManager : Singleton<NameManager>
         {
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT id, name, account_id FROM characters";
+                command.CommandText = "SELECT id, name, account_id, deleted FROM characters";
                 command.Prepare();
                 using (var reader = command.ExecuteReader())
                 {
@@ -72,9 +72,11 @@ public partial class NameManager : Singleton<NameManager>
                         var id = reader.GetUInt32("id");
                         var name = reader.GetString("name").ToLower();
                         var account = reader.GetUInt32("account_id");
+                        var deleted = reader.GetInt32("deleted");
                         var normalizedName = name.NormalizeName();
                         _characterIds.Add(id, normalizedName);
-                        _characterNames.Add(normalizedName, id);
+                        if (deleted == 0)
+                            _characterNames.Add(normalizedName, id); // Ignore deleted names, but do add the IDs to the old account
                         _characterAccounts.Add(id, account);
                     }
                 }
