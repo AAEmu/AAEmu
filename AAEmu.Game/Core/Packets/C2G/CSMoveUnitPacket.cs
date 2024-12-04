@@ -172,6 +172,9 @@ public class CSMoveUnitPacket : GamePacket
                             Logger.Debug($"{targetUnit.Name} IsRiding, ignoring movement request");
                             return;
                         }
+
+                        // Player moved
+                        player.SetPlayerMoved();
                     }
 
                     var isStandingOnObject = ((MoveTypeFlags)dmt.Flags).HasFlag(MoveTypeFlags.StandingOnObject);

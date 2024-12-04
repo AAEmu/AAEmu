@@ -225,6 +225,9 @@ public partial class Character : Unit, ICharacter
     }
     public FishSchool FishSchool { get; set; }
 
+    // Set to true when character has finished loading for this instance
+    private bool FinishedLoading { get; set; } = false;
+
     #region Attributes
 
     [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
@@ -2587,6 +2590,18 @@ public partial class Character : Unit, ICharacter
         if (CrimeRecord < 0)
             CrimeRecord = 0;
         return CrimePoint;
+    }
+
+    /// <summary>
+    /// Called if the player moved, used to handle events that need to happen after the loading screen
+    /// </summary>
+    public void SetPlayerMoved()
+    {
+        // Check if it's the first time moving
+        if (FinishedLoading)
+            return;
+        FinishedLoading = true;
+        SendMessage(ChatType.System, AppConfiguration.Instance.World.MOTD);
     }
 
     public override string DebugName()
