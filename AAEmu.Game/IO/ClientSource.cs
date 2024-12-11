@@ -91,13 +91,13 @@ public class ClientSource
                     var wildCard = WildcardToRegex("*" + searchPattern.ToLower() + "*");// Hopefully this behaves the same as the Directory.GetFiles pattern
                     if (includeSubDirectories)
                     {
-                        foreach (var pfi in GamePak.files)
+                        foreach (var pfiName in GamePak.pakFiles.Keys)
                         {
-                            if (pfi.name.StartsWith(rootDir, System.StringComparison.CurrentCultureIgnoreCase))
+                            if (pfiName.StartsWith(rootDir, System.StringComparison.CurrentCultureIgnoreCase))
                             {
                                 if ((string.IsNullOrWhiteSpace(searchPattern) ||
-                                     (Regex.Match(pfi.name.ToLower(), wildCard).Success)))
-                                    list.Add(pfi.name);
+                                     (Regex.Match(pfiName.ToLower(), wildCard).Success)))
+                                    list.Add(pfiName);
                             }
                         }
                     }
