@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Units;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Loots;
@@ -12,25 +15,25 @@ namespace AAEmu.Game.Models.Game.Items.Loots;
 public class LootPack
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    public uint Id { get; set; }
+    public uint Id { get; init; }
     public uint GroupCount { get; set; }
-    public List<Loot> Loots { get; set; }
-    public Dictionary<uint, LootGroups> Groups { get; set; }
-    public Dictionary<uint, LootActabilityGroups> ActabilityGroups { get; set; }
-    public Dictionary<uint, List<Loot>> LootsByGroupNo { get; set; }
+    public List<Loot> Loots { get; init; }
+    public Dictionary<uint, LootGroups> Groups { get; init; }
+    public Dictionary<uint, LootActabilityGroups> ActabilityGroups { get; init; }
+    public Dictionary<uint, List<Loot>> LootsByGroupNo { get; init; }
 
     // unused private List<(uint itemId, int count, byte grade)> _generatedPack;
 
     /// <summary>
     /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
     /// </summary>
-    /// <param name="player">Player who's loot multipliers need to be used</param>
+    /// <param name="player">Player whose loot multipliers need to be used</param>
     /// <returns></returns>
     public List<(uint itemId, int count, byte grade)> GeneratePack(Character player)
     {
         var lootDropRate = (100f + player.DropRateMul) / 100f;
         var lootGoldRate = (100f + player.LootGoldMul) / 100f;
-        return GeneratePack(lootDropRate, lootGoldRate);
+        return GeneratePack(lootDropRate, lootGoldRate, player);
     }
 
     /// <summary>
@@ -38,8 +41,9 @@ public class LootPack
     /// </summary>
     /// <param name="lootDropRate">1.0f = 100%</param>
     /// <param name="lootGoldRate">1.0f = 100% applies to coins item only</param>
+    /// <param name="player">The player the loot is generated for, currently only used to handle exclusions</param>
     /// <returns></returns>
-    public List<(uint itemId, int count, byte grade)> GeneratePack(float lootDropRate, float lootGoldRate)
+    private List<(uint itemId, int count, byte grade)> GeneratePack(float lootDropRate, float lootGoldRate, Character player)
     {
         // Use 8000022 as an example
 
@@ -51,7 +55,7 @@ public class LootPack
         for (uint gIdx = 0; gIdx <= GroupCount; gIdx++)
         {
             var hasLootGroup = false;
-            var lootGradeDistribId = 0u;
+            var lootGradeDistributionId = 0u;
             var alwaysDropGroup = gIdx == 0;
 
             if (!LootsByGroupNo.ContainsKey(gIdx))
@@ -63,7 +67,7 @@ public class LootPack
             if (Groups.TryGetValue(gIdx, out var lootGroup))
             {
                 hasLootGroup = true;
-                lootGradeDistribId = lootGroup.ItemGradeDistributionId;
+                lootGradeDistributionId = lootGroup.ItemGradeDistributionId;
                 var dice = (long)Rand.Next(0, 10000000);
 
                 // Use generic loot multiplier for the groups ?
@@ -128,7 +132,7 @@ public class LootPack
                         continue;
                     }
 
-                    itemStackingRoll += loot.DropRate;
+                    // itemStackingRoll += loot.DropRate;
 
                     selected.Add(loot);
                     break;
@@ -137,11 +141,19 @@ public class LootPack
 
             foreach (var selectedPack in selected)
             {
+                // If it's a quest item, check if target player has the quest active, else skip it.
+                if (player != null)
+                {
+                    var itemTemplate = ItemManager.Instance.GetTemplate(selectedPack.ItemId);
+                    if (itemTemplate?.LootQuestId > 0 && !player.Quests.HasQuest(itemTemplate.LootQuestId))
+                        continue;
+                }
+
                 var lootCount = Rand.Next(selectedPack.MinAmount, selectedPack.MaxAmount + 1);
 
                 var grade = selectedPack.GradeId;
-                if (lootGradeDistribId > 0)
-                    grade = GetGradeFromDistribution(lootGradeDistribId);
+                if (lootGradeDistributionId > 0)
+                    grade = GetGradeFromDistribution(lootGradeDistributionId);
 
                 // Multiply gold as needed
                 if (selectedPack.ItemId == Item.Coins)
@@ -155,9 +167,46 @@ public class LootPack
         return items;
     }
 
-    public List<Item> GenerateNpcPackItems(ref ulong baseId, float lootDropRate = 1.0f, float lootGoldRate = 1.0f)
+    /// <summary>
+    /// Helper function to help find the owning player of a killing unit, either the player itself or the owners of the unit
+    /// </summary>
+    /// <param name="killer">Unit doing the killing blow</param>
+    /// <returns></returns>
+    private Character GetPlayerUsingKiller(BaseUnit killer)
     {
-        var packList = GeneratePack(lootDropRate, lootGoldRate);
+        if (killer is Character character)
+            return character;
+
+        if (killer is Units.Mate { OwnerObjId: > 0 } mate) 
+        {
+            var mateOwner = WorldManager.Instance.GetBaseUnit(mate.OwnerObjId);
+            if (mateOwner is Character mateOwnerCharacter)
+                return mateOwnerCharacter;
+        }
+        else
+        if (killer is Slave { OwnerType: BaseUnitType.Character } slave) 
+        {
+            var slaveOwner = WorldManager.Instance.GetBaseUnit(slave.OwnerObjId);
+            if (slaveOwner is Character slaveOwnerCharacter)
+                return slaveOwnerCharacter;
+        }
+        else
+        if (killer is Doodad { OwnerType: DoodadOwnerType.Character } doodad) 
+        {
+            var doodadOwner = WorldManager.Instance.GetBaseUnit(doodad.OwnerObjId);
+            if (doodadOwner is Character slaveOwnerCharacter)
+                return slaveOwnerCharacter;
+        }
+
+        return null;
+    }
+
+    public List<Item> GenerateNpcPackItems(ref ulong baseId, BaseUnit killer, float lootDropRate = 1.0f, float lootGoldRate = 1.0f)
+    {
+        var player = GetPlayerUsingKiller(killer);
+        // TODO: handle raid-wide checks and individual loot
+        
+        var packList = GeneratePack(lootDropRate, lootGoldRate, player);
         var itemList = packList
             .Select(tuple => ItemManager.Instance.Create(tuple.itemId, tuple.count, tuple.grade, false)).ToList();
         foreach (var item in itemList)
@@ -177,12 +226,11 @@ public class LootPack
     public bool GiveLootPack(Character character, ItemTaskType taskType, List<(uint itemId, int count, byte grade)> generatedList = null)
     {
         // If it is not generated yet, generate loot pack info now
-        if (generatedList == null)
-            generatedList = GeneratePack(character);
+        generatedList ??= GeneratePack(character);
 
         var canAdd = true;
         // First check for room
-        foreach (var (itemTemplateId, count, grade) in generatedList)
+        foreach (var (itemTemplateId, count, _) in generatedList)
         {
             if (itemTemplateId == Item.Coins)
                 continue;

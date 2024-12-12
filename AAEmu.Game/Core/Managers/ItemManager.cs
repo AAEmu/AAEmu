@@ -249,7 +249,7 @@ public class ItemManager : Singleton<ItemManager>
             var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
             if (lootPack == null)
                 continue;
-            items = lootPack.GenerateNpcPackItems(ref baseId, lootDropRate, lootGoldRate);
+            items = lootPack.GenerateNpcPackItems(ref baseId, killer, lootDropRate, lootGoldRate);
             if (!_lootDropItems.TryAdd(npcId, items))
                 _lootDropItems[npcId].AddRange(items);
         }
