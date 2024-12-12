@@ -64,7 +64,7 @@ public class DamageEffect : EffectTemplate
     public float TargetHealthMul { get; set; }
     public int TargetHealthAdd { get; set; }
     public bool FireProc { get; set; }
-    public List<BonusTemplate> Bonuses { get; set; } = new List<BonusTemplate>();
+    public List<BonusTemplate> Bonuses { get; set; } = [];
 
     public override bool OnActionTime => false;
 
@@ -365,7 +365,7 @@ public class DamageEffect : EffectTemplate
 
         if (Bonuses != null)
         {
-            ((Unit)caster).Bonuses[uint.MaxValue] = new List<Bonus>();
+            ((Unit)caster).Bonuses[uint.MaxValue] = [];
         }
 
         if (caster.GetRelationStateTo(trg) == RelationState.Friendly)

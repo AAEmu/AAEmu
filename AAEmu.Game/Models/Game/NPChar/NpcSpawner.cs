@@ -39,9 +39,9 @@ public class NpcSpawner : Spawner<Npc>
     public NpcSpawner()
     {
         _isScheduled = false; // Npc isn't on the schedule
-        _spawned = new List<Npc>();
+        _spawned = [];
         Count = 1;
-        NpcSpawnerIds = new List<uint>();
+        NpcSpawnerIds = [];
         Template = null;
         _lastSpawn = null;
     }
@@ -643,7 +643,7 @@ public class NpcSpawner : Spawner<Npc>
     public void ClearSpawnCount()
     {
         _spawnCount = 0;
-        _spawned = new List<Npc>();
+        _spawned = [];
         _lastSpawn = null;
     }
 

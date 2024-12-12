@@ -12,7 +12,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestHeight : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testheightvisualizer", "test_height_visualizer" };
+    public string[] CommandNames { get; set; } = ["testheightvisualizer", "test_height_visualizer"];
     private const float TargetX = 22500f;
     private const float TargetY = 18500f;
     private const float TargetZ = 10f;

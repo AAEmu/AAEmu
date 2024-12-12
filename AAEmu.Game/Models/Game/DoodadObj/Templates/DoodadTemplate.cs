@@ -43,7 +43,7 @@ public class DoodadTemplate
 
     public DoodadTemplate()
     {
-        FuncGroups = new List<DoodadFuncGroups>();
+        FuncGroups = [];
     }
 
     /// <summary>

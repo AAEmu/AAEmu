@@ -7,7 +7,6 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
-
 public class MailPlayerToPlayer : BaseMail
 {
     private ICharacter _sender;
@@ -87,7 +86,7 @@ public class MailPlayerToPlayer : BaseMail
             // Move Item to sender's Mail ItemContainer, technically speaking this can never fail
             if (_sender.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, tempItem))
             {
-                _sender.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, new List<ItemTask>() { new ItemRemove(tempItem) }, new List<ulong>()));
+                _sender.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, [new ItemRemove(tempItem)], []));
                 // Technically not needed, I just want to sync it up
                 tempItem.SlotType = SlotType.Mail;
                 tempItem.Slot = i;

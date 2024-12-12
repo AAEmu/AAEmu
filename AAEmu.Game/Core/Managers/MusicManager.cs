@@ -22,9 +22,9 @@ public class MusicManager : Singleton<MusicManager>
 
     public void Load()
     {
-        _uploadQueue = new Dictionary<uint, SongData>();
-        _allSongs = new Dictionary<uint, SongData>();
-        _midiCache = new Dictionary<uint, byte[]>();
+        _uploadQueue = [];
+        _allSongs = [];
+        _midiCache = [];
 
         using (var connection = MySQL.CreateConnection())
         {
@@ -142,7 +142,6 @@ public class MusicManager : Singleton<MusicManager>
 
         return true;
     }
-
 
     public SongData GetSongById(uint songId)
     {

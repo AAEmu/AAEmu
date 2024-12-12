@@ -24,7 +24,7 @@ public class DoodadChainSubCommandTests
             }
         });
 
-        command.PreExecute(fakeCharacter, "test", new[] { "sdf", "123" }, new CharacterMessageOutput(fakeCharacter));
+        command.PreExecute(fakeCharacter, "test", ["sdf", "123"], new CharacterMessageOutput(fakeCharacter));
 
         mockSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("sdf"), It.Is<string[]>(a => a.Length == 1 && a[0] == "123"), It.IsAny<IMessageOutput>()));
     }
@@ -50,7 +50,7 @@ public class DoodadChainSubCommandTests
             }
         });
 
-        command.PreExecute(fakeCharacter, "test", new[] { "first", "second", "parameter1second", "parameter2second" }, new CharacterMessageOutput(fakeCharacter));
+        command.PreExecute(fakeCharacter, "test", ["first", "second", "parameter1second", "parameter2second"], new CharacterMessageOutput(fakeCharacter));
 
         mockSubSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("second"), It.Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second"), It.IsAny<IMessageOutput>()));
     }
@@ -63,7 +63,7 @@ public class DoodadChainSubCommandTests
 
         var mockMessageOutput = new Mock<IMessageOutput>();
 
-        var testCommand = new TestCommand(new Dictionary<ICommandV2, string[]>());
+        var testCommand = new TestCommand([]);
         testCommand.PreExecute(fakeCharacter, "doodad", System.Array.Empty<string>(), mockMessageOutput.Object);
     }
 
@@ -81,13 +81,13 @@ public class DoodadChainSubCommandTests
             var mockSubCommand = new Mock<ICommandV2>();
             mockSubCommands.Add(mockSubCommand);
 
-            supportedCommands.Add(mockSubCommand.Object, new string[] { $"command{i}" });
+            supportedCommands.Add(mockSubCommand.Object, [$"command{i}"]);
             expectedCommands.Add($"command{i}");
         }
 
         var testCommand = new TestCommand(supportedCommands);
         // var testCommandPrefix = "Prefix";
-        testCommand.PreExecute(mockCharacter.Object, "test", new string[] { "help" }, new CharacterMessageOutput(mockCharacter.Object));
+        testCommand.PreExecute(mockCharacter.Object, "test", ["help"], new CharacterMessageOutput(mockCharacter.Object));
 
         // TODO: Fix these tests
         // mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsIn($"{testCommandPrefix} {testCommand.Description}"), It.IsIn(Color.LawnGreen)), Times.Once);

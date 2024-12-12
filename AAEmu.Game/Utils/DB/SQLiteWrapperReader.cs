@@ -12,7 +12,7 @@ public sealed class SQLiteWrapperReader : IDisposable
     public SQLiteWrapperReader(SqliteDataReader reader)
     {
         _reader = reader;
-        _ordinal = new Dictionary<string, int>();
+        _ordinal = [];
     }
 
     public bool Read() => _reader.Read();

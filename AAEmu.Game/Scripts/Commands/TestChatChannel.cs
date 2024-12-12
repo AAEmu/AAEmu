@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestChatChannel : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testchatchannel", "test_chat_channel", "testchat" };
+    public string[] CommandNames { get; set; } = ["testchatchannel", "test_chat_channel", "testchat"];
 
     public void OnLoad()
     {

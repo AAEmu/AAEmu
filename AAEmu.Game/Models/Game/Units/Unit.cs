@@ -85,7 +85,7 @@ public class Unit : BaseUnit, IUnit
     /// <summary>
     /// List of values in the range of 0 -> 100
     /// </summary>
-    protected List<int> HpTriggerPointsPercent { get; set; } = new();
+    protected List<int> HpTriggerPointsPercent { get; set; } = [];
 
     #region Attributes
 
@@ -272,7 +272,7 @@ public class Unit : BaseUnit, IUnit
     {
         Events = new UnitEvents();
         GcdLock = new object();
-        Bonuses = new Dictionary<uint, List<Bonus>>();
+        Bonuses = [];
         IsInBattle = false;
         Equipment = new EquipmentContainer(0, SlotType.Equipment, false, this);
         ChargeLock = new object();
@@ -535,8 +535,6 @@ public class Unit : BaseUnit, IUnit
 
         }
 
-
-
         if (CurrentTarget != null)
         {
             killer.SendPacketToPlayers([this, killer], new SCAiAggroPacket(killer.ObjId, 0));
@@ -729,7 +727,7 @@ public class Unit : BaseUnit, IUnit
 
     public override void AddBonus(uint bonusIndex, Bonus bonus)
     {
-        var bonuses = Bonuses.TryGetValue(bonusIndex, out var bonuse) ? bonuse : new List<Bonus>();
+        var bonuses = Bonuses.TryGetValue(bonusIndex, out var bonuse) ? bonuse : [];
         bonuses.Add(bonus);
         Bonuses[bonusIndex] = bonuses;
     }
@@ -1052,7 +1050,7 @@ public class Unit : BaseUnit, IUnit
     public void UpdateGearBonuses(Item itemAdded, Item itemRemoved)
     {
         // We use index 1 for gear bonuses. Will make this a constant later, or do it properly. Right now the expected behavior is to have key == buff id, which doesn't work when you have items.
-        Bonuses[1] = new List<Bonus>();
+        Bonuses[1] = [];
 
         foreach (var item in Equipment.Items)
         {
@@ -1201,7 +1199,7 @@ public class Unit : BaseUnit, IUnit
                 continue;
 
             if (!armorPieces.ContainsKey((ArmorType)armorTemplate.KindTemplate.TypeId))
-                armorPieces.Add((ArmorType)armorTemplate.KindTemplate.TypeId, new List<Armor>());
+                armorPieces.Add((ArmorType)armorTemplate.KindTemplate.TypeId, []);
             armorPieces[(ArmorType)armorTemplate.KindTemplate.TypeId].Add(armor);
         }
 

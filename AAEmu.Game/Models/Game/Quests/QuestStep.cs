@@ -23,7 +23,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
     /// <summary>
     /// List of components inside this step by ComponentId
     /// </summary>
-    public Dictionary<uint, QuestComponent> Components { get; set; } = new();
+    public Dictionary<uint, QuestComponent> Components { get; set; } = [];
 
     /// <summary>
     /// Initializes all Components and their Acts for this step

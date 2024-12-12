@@ -17,8 +17,8 @@ internal class IndunEventNoAliveChInRooms : IndunEvent
 
     public IndunEventNoAliveChInRooms()
     {
-        _playerRoomCount = new Dictionary<uint, uint>();
-        _doodads = new Dictionary<uint, Doodad>();
+        _playerRoomCount = [];
+        _doodads = [];
     }
 
     public override void Subscribe(InstanceWorld world)

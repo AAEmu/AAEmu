@@ -12,7 +12,7 @@ public class QuestComponent : IQuestComponent
     public QuestComponentTemplate Template { get; set; }
     public bool OverrideObjectiveCompleted { get; set; }
     public QuestStep Parent { get; set; }
-    public List<QuestAct> Acts { get; set; } = new();
+    public List<QuestAct> Acts { get; set; } = [];
 
     /// <summary>
     /// This is set internally to cache the enabled/disabled state for this component base of it's UnitReqs

@@ -14,7 +14,7 @@ public class CraftManager : Singleton<CraftManager>
 
     public void Load()
     {
-        _crafts = new Dictionary<uint, Craft>();
+        _crafts = [];
         Logger.Info("Loading crafts...");
 
         using (var connection = SQLite.CreateConnection())

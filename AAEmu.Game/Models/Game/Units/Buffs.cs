@@ -27,16 +27,16 @@ public class Buffs : IBuffs
     public Buffs()
     {
         _nextIndex = 1;
-        _effects = new List<Buff>();
-        _toleranceCounters = new Dictionary<uint, BuffToleranceCounter>();
+        _effects = [];
+        _toleranceCounters = [];
     }
 
     public Buffs(BaseUnit owner)
     {
         SetOwner(owner);
         _nextIndex = 1;
-        _effects = new List<Buff>();
-        _toleranceCounters = new Dictionary<uint, BuffToleranceCounter>();
+        _effects = [];
+        _toleranceCounters = [];
     }
 
     public bool CheckBuffImmune(uint buffId)

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
@@ -42,7 +41,7 @@ public class CSConvertItemLookPacket : GamePacket
 
         // Update item looks
         itemToImage.ImageItemTemplateId = imageItem.TemplateId;
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, new List<ItemTask>() { new ItemUpdate(toImage) }, new List<ulong>()));
+        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, [new ItemUpdate(toImage)], []));
 
         // Remove image item
         imageItem._holdingContainer.RemoveItem(ItemTaskType.ConvertItemLook, imageItem, true);

@@ -14,7 +14,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestAI : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testai", "ai" };
+    public string[] CommandNames { get; set; } = ["testai", "ai"];
 
     public void OnLoad()
     {

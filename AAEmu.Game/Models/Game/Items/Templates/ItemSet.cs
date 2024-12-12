@@ -7,7 +7,7 @@ public class ItemSet
     public uint Id { get; set; }
     public uint KindId { get; set; }
     public string Name { get; set; }
-    public Dictionary<uint, ItemSetItem> Items { get; set; } = new();
+    public Dictionary<uint, ItemSetItem> Items { get; set; } = [];
 }
 
 public class ItemSetItem

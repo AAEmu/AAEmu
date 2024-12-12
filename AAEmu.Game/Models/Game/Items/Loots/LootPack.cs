@@ -21,7 +21,6 @@ public class LootPack
 
     // unused private List<(uint itemId, int count, byte grade)> _generatedPack;
 
-
     /// <summary>
     /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
     /// </summary>
@@ -105,8 +104,7 @@ public class LootPack
 
             var itemStackingRoll = 0u;
 
-            List<Loot> selected = new List<Loot>();
-
+            List<Loot> selected = [];
 
             if ((alwaysDropGroup == false) && (uniqueItemDrop || hasLootGroup || (GroupCount <= 1)))
             {

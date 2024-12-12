@@ -19,7 +19,7 @@ public interface ISession
 
 public class Session : TcpSession, ISession
 {
-    private readonly Dictionary<string, object> _attributes = new();
+    private readonly Dictionary<string, object> _attributes = [];
 
     public BaseProtocolHandler ProtocolHandler { get; private set; }
     public IPEndPoint RemoteEndPoint { get; private set; }

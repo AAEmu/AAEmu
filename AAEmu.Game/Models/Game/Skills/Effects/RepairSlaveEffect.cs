@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -54,7 +53,7 @@ public class RepairSlaveEffect : EffectTemplate
             slaveItem.IsDestroyed = 0;
             slaveItem.RepairStartTime = DateTime.UtcNow;
             slaveItem.IsDirty = true;
-            targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.RepairSlaves, new ItemUpdate(item), new List<ulong>()));
+            targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.RepairSlaves, new ItemUpdate(item), []));
             Logger.Debug($"{targetPlayer.Name} repaired slave on item {item.Id}");
         }
         else

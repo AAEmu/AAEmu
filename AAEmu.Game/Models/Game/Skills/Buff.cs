@@ -58,7 +58,7 @@ public class Buff
         AbLevel = 1;
         Events = new BuffEvents();
         Triggers = new BuffTriggersHandler(this);
-        saveFactions = new();
+        saveFactions = [];
     }
 
     public void UpdateEffect()

@@ -29,7 +29,7 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
 
     public TimeManager()
     {
-        _observers = new List<IObserver<float>>();
+        _observers = [];
     }
 
     public IDisposable Subscribe(IObserver<float> observer)

@@ -45,7 +45,7 @@ public class AiSkillList
             GoReturn = Convert.ToBoolean(options["goReturn"]);
         }
 
-        StartAiSkills = new List<AiSkill>();
+        StartAiSkills = [];
         if (table["startAiSkill"] is LuaTable startAiSkill)
         {
             var aiSkill = new AiSkill();
@@ -56,7 +56,7 @@ public class AiSkillList
             StartAiSkills.Add(aiSkill);
         }
 
-        SkillLists = new List<SkillList>();
+        SkillLists = [];
         if (table["skillLists"] is LuaTable skillListsTable)
         {
             foreach (var skillListTable in skillListsTable.Values)
@@ -73,7 +73,7 @@ public class AiSkillList
         else if (table["skills"] is LuaTable skills)
         {
             var skillList = new SkillList();
-            skillList.Skills = new List<AiSkill>();
+            skillList.Skills = [];
             foreach (var skill in skills.Values)
             {
                 if (skill is not LuaTable skillTable)
@@ -96,8 +96,7 @@ public class AiSkillList
             aiSkill.Strafe = Convert.ToBoolean(table["strafe"]);
 
             var skillList = new SkillList();
-            skillList.Skills = new List<AiSkill>();
-            skillList.Skills.Add(aiSkill);
+            skillList.Skills = [aiSkill];
             SkillLists.Add(skillList);
         }
     }

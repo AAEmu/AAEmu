@@ -139,7 +139,7 @@ public sealed class House : Unit
     {
         Level = 1;
         ModelParams = new UnitCustomModelParams();
-        AttachedDoodads = new List<Doodad>();
+        AttachedDoodads = [];
         IsDirty = true;
         Events.OnDeath += OnDeath;
     }
@@ -221,7 +221,7 @@ public sealed class House : Unit
     {
         base.RemoveVisibleObject(character);
 
-        character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
+        character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
 
         // TODO: This should be handled in base.RemoveVisibleObject
         var doodadIds = new uint[AttachedDoodads.Count];

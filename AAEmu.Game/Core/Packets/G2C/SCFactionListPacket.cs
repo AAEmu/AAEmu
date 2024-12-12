@@ -20,7 +20,7 @@ public class SCFactionListPacket : GamePacket
 
     public SCFactionListPacket(SystemFaction faction) : base(SCOffsets.SCFactionListPacket, 1)
     {
-        _factions = new[] { faction };
+        _factions = [faction];
     }
 
     public override PacketStream Write(PacketStream stream)

@@ -30,7 +30,7 @@ public sealed class MailTests : IDisposable
 
         NameManager.Instance.AddCharacter(_character.Id, _character.Name, 1);
         MailIdManager.Instance.Initialize();
-        MailManager.Instance._allPlayerMails = new Dictionary<long, BaseMail>();
+        MailManager.Instance._allPlayerMails = [];
     }
 
     public void Dispose()

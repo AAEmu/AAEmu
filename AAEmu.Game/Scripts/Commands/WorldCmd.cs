@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class WorldCmd : SubCommandBase, ICommand, ICommandV2
 {
-    public string[] CommandNames { get; set; } = new string[] { "world" };
+    public string[] CommandNames { get; set; } = ["world"];
 
     public WorldCmd()
     {

@@ -33,7 +33,7 @@ public class AreaTrigger
 
     public AreaTrigger()
     {
-        Units = new List<Unit>();
+        Units = [];
     }
 
     private void UpdateUnits()

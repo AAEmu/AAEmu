@@ -16,7 +16,7 @@ public class TaxationsManager : Singleton<TaxationsManager>
 
     public void Load()
     {
-        taxations = new Dictionary<uint, Taxation>();
+        taxations = [];
 
         using (var connection = SQLite.CreateConnection())
         {

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class MoveTo : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "moveto" };
+    public string[] CommandNames { get; set; } = ["moveto"];
 
     public void OnLoad()
     {

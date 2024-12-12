@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestTracker : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testtracker", "track", "tt" };
+    public string[] CommandNames { get; set; } = ["testtracker", "track", "tt"];
 
     public void OnLoad()
     {

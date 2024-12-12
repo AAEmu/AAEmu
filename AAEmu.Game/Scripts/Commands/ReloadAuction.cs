@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 internal class ReloadAuction : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "reloadauction", "reload_auction", "reloadah", "reload_ah" };
+    public string[] CommandNames { get; set; } = ["reloadauction", "reload_auction", "reloadah", "reload_ah"];
 
     public void OnLoad()
     {

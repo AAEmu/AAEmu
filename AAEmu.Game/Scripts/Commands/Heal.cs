@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Heal : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "heal" };
+    public string[] CommandNames { get; set; } = ["heal"];
 
     public void OnLoad()
     {

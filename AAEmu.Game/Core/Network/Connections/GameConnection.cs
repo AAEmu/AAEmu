@@ -44,10 +44,10 @@ public class GameConnection
     public GameConnection(ISession session)
     {
         _session = session;
-        Subscribers = new List<IDisposable>();
+        Subscribers = [];
 
-        Characters = new Dictionary<uint, Character>();
-        Houses = new Dictionary<uint, House>();
+        Characters = [];
+        Houses = [];
         Payment = new AccountPayment(this);
         // AddAttribute("gmFlag", true);
     }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Kill : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "kill" };
+    public string[] CommandNames { get; set; } = ["kill"];
 
     public void OnLoad()
     {

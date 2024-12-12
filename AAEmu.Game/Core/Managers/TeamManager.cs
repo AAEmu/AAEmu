@@ -246,7 +246,6 @@ public class TeamManager : Singleton<TeamManager>
         return returnMember;
     }
 
-
     public void CreateNewTeam(InvitationTemplate activeInvitation)
     {
         if (GetActiveTeamByUnit(activeInvitation.Owner.Id) != null || GetActiveTeamByUnit(activeInvitation.Target.Id) != null)
@@ -323,7 +322,6 @@ public class TeamManager : Singleton<TeamManager>
         if (!activeTeam.IsParty)
             ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
         ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
-
 
         if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
         {
@@ -512,7 +510,7 @@ public class TeamManager : Singleton<TeamManager>
         if (index < 0) return;
 
         // TODO - MAYBE USE TASK FOR BETTER PERFORMANCE
-        activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(new[] { activeTeam.Members[index] }), id);
+        activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket([activeTeam.Members[index]]), id);
     }
 
     public void UpdateAtLogin(Character unit)
@@ -532,8 +530,8 @@ public class TeamManager : Singleton<TeamManager>
 
     public void Load()
     {
-        _activeTeams = new Dictionary<uint, Team>();
-        _activeInvitations = new Dictionary<uint, InvitationTemplate>();
+        _activeTeams = [];
+        _activeInvitations = [];
     }
 }
 

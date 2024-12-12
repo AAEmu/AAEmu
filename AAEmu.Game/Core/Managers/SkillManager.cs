@@ -103,7 +103,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
     public List<DefaultSkill> GetDefaultSkills()
     {
-        return new List<DefaultSkill>(_defaultSkills.Values);
+        return [.. _defaultSkills.Values];
     }
 
     public BuffTemplate GetBuffTemplate(uint id)
@@ -122,7 +122,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         {
             return triggers;
         }
-        return new List<BuffTriggerTemplate>();
+        return [];
     }
 
     public EffectTemplate GetEffectTemplate(uint id)
@@ -162,7 +162,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
     {
         if (_buffTags.TryGetValue(buffId, out var tags))
             return tags;
-        return new List<uint>();
+        return [];
     }
 
     public List<uint> GetBuffsByTagId(uint tagId)
@@ -176,14 +176,14 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
     {
         if (_skillTags.TryGetValue(skillId, out var tags))
             return tags;
-        return new List<uint>();
+        return [];
     }
 
     public List<uint> GetSkillsByTag(uint tagId)
     {
         if (_taggedSkills.TryGetValue(tagId, out var tag))
             return tag;
-        return new List<uint>();
+        return [];
     }
 
     public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
@@ -197,19 +197,19 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
     {
         if (_skillModifiers.TryGetValue(id, out var ownerId))
             return ownerId;
-        return new List<SkillModifier>();
+        return [];
     }
 
     public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
     {
         if (_combatBuffs.TryGetValue(reqBuffId, out var buffs))
             return buffs;
-        return new List<CombatBuffTemplate>();
+        return [];
     }
 
     public List<SkillReagent> GetSkillReagentsBySkillId(uint id)
     {
-        List<SkillReagent> reagents = new List<SkillReagent>();
+        List<SkillReagent> reagents = [];
 
         foreach (var reagent in _skillReagents)
         {
@@ -222,7 +222,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
     public List<SkillProduct> GetSkillProductsBySkillId(uint id)
     {
-        List<SkillProduct> products = new List<SkillProduct>();
+        List<SkillProduct> products = [];
 
         foreach (var product in _skillProducts)
         {
@@ -259,69 +259,70 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         if (_loaded)
             return;
 
-        _skills = new Dictionary<uint, SkillTemplate>();
-        _defaultSkills = new Dictionary<uint, DefaultSkill>();
-        _commonSkills = new List<uint>();
-        _startAbilitySkills = new Dictionary<AbilityType, List<SkillTemplate>>();
-        _passiveBuffs = new Dictionary<uint, PassiveBuffTemplate>();
-        _types = new Dictionary<uint, EffectType>();
-        _effects = new Dictionary<string, Dictionary<uint, EffectTemplate>>();
-        _effects.Add("Buff", new Dictionary<uint, EffectTemplate>()); // missing from the effect table
-        _effects.Add("AcceptQuestEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("AccountAttributeEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("AggroEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("BubbleEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("BuffEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("CinemaEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("CleanupUccEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("ConversionEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("CraftEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("DamageEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("DispelEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("FlyingStateChangeEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("GainLootPackItemEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("HealEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("ImprintUccEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("ImpulseEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("InteractionEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("KillNpcWithoutCorpseEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("ManaBurnEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("MoveToRezPointEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("NpcControlEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("NpcSpawnerDespawnEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("NpcSpawnerSpawnEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("OpenPortalEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("PhysicalExplosionEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("PutDownBackpackEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("RecoverExpEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("RepairSlaveEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("ReportCrimeEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("RestoreManaEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("ScopedFEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("SpawnEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("SpawnGimmickEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("SpecialEffect", new Dictionary<uint, EffectTemplate>());
-        _effects.Add("TrainCraftEffect", new Dictionary<uint, EffectTemplate>());
+        _skills = [];
+        _defaultSkills = [];
+        _commonSkills = [];
+        _startAbilitySkills = [];
+        _passiveBuffs = [];
+        _types = [];
+        _effects = new Dictionary<string, Dictionary<uint, EffectTemplate>>
+        {
+            { "Buff", [] }, // missing from the effect table
+            { "AcceptQuestEffect", [] },
+            { "AccountAttributeEffect", [] },
+            { "AggroEffect", [] },
+            { "BubbleEffect", [] },
+            { "BuffEffect", [] },
+            { "CinemaEffect", [] },
+            { "CleanupUccEffect", [] },
+            { "ConversionEffect", [] },
+            { "CraftEffect", [] },
+            { "DamageEffect", [] },
+            { "DispelEffect", [] },
+            { "FlyingStateChangeEffect", [] },
+            { "GainLootPackItemEffect", [] },
+            { "HealEffect", [] },
+            { "ImprintUccEffect", [] },
+            { "ImpulseEffect", [] },
+            { "InteractionEffect", [] },
+            { "KillNpcWithoutCorpseEffect", [] },
+            { "ManaBurnEffect", [] },
+            { "MoveToRezPointEffect", [] },
+            { "NpcControlEffect", [] },
+            { "NpcSpawnerDespawnEffect", [] },
+            { "NpcSpawnerSpawnEffect", [] },
+            { "OpenPortalEffect", [] },
+            { "PhysicalExplosionEffect", [] },
+            { "PutDownBackpackEffect", [] },
+            { "RecoverExpEffect", [] },
+            { "RepairSlaveEffect", [] },
+            { "ReportCrimeEffect", [] },
+            { "RestoreManaEffect", [] },
+            { "ScopedFEffect", [] },
+            { "SpawnEffect", [] },
+            { "SpawnGimmickEffect", [] },
+            { "SpecialEffect", [] },
+            { "TrainCraftEffect", [] },
+            { "TrainCraftRankEffect", [] }, // missing from the effect table
+            { "SkillController", [] }, // missing from the effect table
+            { "SpawnFishEffect", [] }, // missing from the effect table
+            { "ResetAoeDiminishingEffect", [] } // missing from the effect table
+        };
 
-        _effects.Add("TrainCraftRankEffect", new Dictionary<uint, EffectTemplate>()); // missing from the effect table
-        _effects.Add("SkillController", new Dictionary<uint, EffectTemplate>()); // missing from the effect table
-        _effects.Add("SpawnFishEffect", new Dictionary<uint, EffectTemplate>()); // missing from the effect table
-        _effects.Add("ResetAoeDiminishingEffect", new Dictionary<uint, EffectTemplate>()); // missing from the effect table
-
-        _buffs = new Dictionary<uint, BuffTemplate>();
+        _buffs = [];
         // TODO 
         /*
             _effects.Add("PlayLogEffect", new Dictionary<uint, EffectTemplate>()); // missing from the effect table
         */
 
-        _buffTags = new Dictionary<uint, List<uint>>();
-        _taggedBuffs = new Dictionary<uint, List<uint>>();
-        _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
-        _skillTags = new Dictionary<uint, List<uint>>();
-        _taggedSkills = new Dictionary<uint, List<uint>>();
-        _combatBuffs = new Dictionary<uint, List<CombatBuffTemplate>>();
-        _skillReagents = new Dictionary<uint, SkillReagent>();
-        _skillProducts = new Dictionary<uint, SkillProduct>();
+        _buffTags = [];
+        _taggedBuffs = [];
+        _skillModifiers = [];
+        _skillTags = [];
+        _taggedSkills = [];
+        _combatBuffs = [];
+        _skillReagents = [];
+        _skillProducts = [];
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -1610,11 +1611,11 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         var buffId = reader.GetUInt32("buff_id");
 
                         if (!_buffTags.ContainsKey(buffId))
-                            _buffTags.Add(buffId, new List<uint>());
+                            _buffTags.Add(buffId, []);
                         _buffTags[buffId].Add(tagId);
 
                         if (!_taggedBuffs.ContainsKey(tagId))
-                            _taggedBuffs.Add(tagId, new List<uint>());
+                            _taggedBuffs.Add(tagId, []);
                         _taggedBuffs[tagId].Add(buffId);
                     }
                 }
@@ -1643,7 +1644,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         };
 
                         if (!_skillModifiers.ContainsKey(template.OwnerId))
-                            _skillModifiers.Add(template.OwnerId, new List<SkillModifier>());
+                            _skillModifiers.Add(template.OwnerId, []);
                         _skillModifiers[template.OwnerId].Add(template);
                     }
                 }
@@ -1662,11 +1663,11 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
                         //I guess we need this
                         if (!_skillTags.ContainsKey(skillId))
-                            _skillTags.Add(skillId, new List<uint>());
+                            _skillTags.Add(skillId, []);
                         _skillTags[skillId].Add(tagId);
 
                         if (!_taggedSkills.ContainsKey(tagId))
-                            _taggedSkills.Add(tagId, new List<uint>());
+                            _taggedSkills.Add(tagId, []);
                         _taggedSkills[tagId].Add(skillId);
                     }
                 }
@@ -1694,7 +1695,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         };
 
                         if (!_combatBuffs.ContainsKey(combatBuffTemplate.ReqBuffId))
-                            _combatBuffs.Add(combatBuffTemplate.ReqBuffId, new List<CombatBuffTemplate>());
+                            _combatBuffs.Add(combatBuffTemplate.ReqBuffId, []);
                         _combatBuffs[combatBuffTemplate.ReqBuffId].Add(combatBuffTemplate);
                     }
                 }
@@ -1702,7 +1703,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
             Logger.Info("Skill effects loaded");
 
-            _buffTriggers = new Dictionary<uint, List<BuffTriggerTemplate>>();
+            _buffTriggers = [];
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM buff_triggers";
@@ -1715,7 +1716,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         var buffId = reader.GetUInt32("buff_id");
                         if (!_buffTriggers.TryGetValue(buffId, out var value))
                         {
-                            value = new List<BuffTriggerTemplate>();
+                            value = [];
                             _buffTriggers.Add(buffId, value);
                         }
                         trigger.Id = reader.GetUInt32("id");
@@ -1795,7 +1796,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 continue;
             var ability = (AbilityType)skillTemplate.AbilityId;
             if (!_startAbilitySkills.ContainsKey(ability))
-                _startAbilitySkills.Add(ability, new List<SkillTemplate>());
+                _startAbilitySkills.Add(ability, []);
             _startAbilitySkills[ability].Add(skillTemplate);
         }
 

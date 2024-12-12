@@ -47,7 +47,6 @@ public class GetPosition : ICommand
                 targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
             }
 
-
             var pos = targetPlayer.Transform.CloneAsSpawnPosition();
 
             var zonename = "???";

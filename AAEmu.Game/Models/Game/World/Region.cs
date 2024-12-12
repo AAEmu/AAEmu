@@ -172,7 +172,7 @@ public class Region
         // remove all visible objects in the region from the player
         if (obj is Character character1)
         {
-            var unitIds = GetListId<Unit>(new List<uint>(), character1.ObjId).ToArray();
+            var unitIds = GetListId<Unit>([], character1.ObjId).ToArray();
             var units = GetList(new List<Unit>(), character1.ObjId);
             foreach (var t in units)
             {
@@ -192,7 +192,7 @@ public class Region
                 character1.SendPacket(new SCUnitsRemovedPacket(temp));
             }
 
-            var doodadIds = GetListId<Doodad>(new List<uint>(), character1.ObjId).ToArray();
+            var doodadIds = GetListId<Doodad>([], character1.ObjId).ToArray();
             for (var offset = 0; offset < doodadIds.Length; offset += SCDoodadsRemovedPacket.MaxCountPerPacket)
             {
                 var length = doodadIds.Length - offset;

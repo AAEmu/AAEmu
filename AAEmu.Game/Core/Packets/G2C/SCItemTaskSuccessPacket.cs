@@ -21,7 +21,7 @@ public class SCItemTaskSuccessPacket : GamePacket
     public SCItemTaskSuccessPacket(ItemTaskType action, ItemTask task, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 1)
     {
         _action = action;
-        _tasks = new List<ItemTask>() { task };
+        _tasks = [task];
         _forceRemove = forceRemove;
     }
 

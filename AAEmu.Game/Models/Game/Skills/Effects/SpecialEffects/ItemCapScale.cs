@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -70,8 +69,8 @@ public class ItemCapScale : SpecialEffectAction
 
         // The item appears to be consumed as a skill reagent
         // temperItem._holdingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
-        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
-        // Note: According to various videos I have found, there is no information on the % reached by a temper ingame. This is sent to help indicate what was achieved.
+        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, [new ItemUpdate(equipItem)], []));
+        // Note: According to various videos I have found, there is no information on the % reached by a temper in-game. This is sent to help indicate what was achieved.
         owner.SendMessage(ChatType.System, $"Temper:\n |cFFFFFFFF{physicalScale}%|r Physical\n|cFFFFFFFF{magicalScale}%|r Magical");
     }
 }

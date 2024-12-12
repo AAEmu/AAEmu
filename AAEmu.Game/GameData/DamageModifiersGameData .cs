@@ -17,12 +17,12 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
 
     public List<BonusTemplate> GetModifiersForBuff(uint ownerId)
     {
-        return __damageModifiers.TryGetValue(ownerId, out var modifier) ? modifier : new List<BonusTemplate>();
+        return __damageModifiers.TryGetValue(ownerId, out var modifier) ? modifier : [];
     }
 
     public void Load(SqliteConnection connection)
     {
-        __damageModifiers = new Dictionary<uint, List<BonusTemplate>>();
+        __damageModifiers = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -43,7 +43,7 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
                     };
 
                     if (!__damageModifiers.ContainsKey(ownerId))
-                        __damageModifiers.Add(ownerId, new List<BonusTemplate>());
+                        __damageModifiers.Add(ownerId, []);
                     __damageModifiers[ownerId].Add(template);
                 }
             }

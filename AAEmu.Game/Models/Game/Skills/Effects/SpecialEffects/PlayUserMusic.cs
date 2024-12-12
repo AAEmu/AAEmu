@@ -36,7 +36,6 @@ public class PlayUserMusic : SpecialEffectAction
             // Send Midi data
             player.BroadcastPacket(new SCSendUserMusicPacket(player.ObjId, player.Name, MusicManager.Instance.GetMidiCache(player.Id)), true);
 
-
             var instrument = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
             if (instrument != null)
             {

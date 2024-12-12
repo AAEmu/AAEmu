@@ -20,7 +20,7 @@ public class VehicleSeat
 
     public VehicleSeat(BaseUnit parentVehicle)
     {
-        _seats = new Dictionary<uint, List<uint>>(); // objId, List<character.Id>
+        _seats = []; // objId, List<character.Id>
         _parent = parentVehicle;
     }
 

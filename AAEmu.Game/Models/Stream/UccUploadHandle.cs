@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace AAEmu.Game.Models.Stream;
 
@@ -6,7 +6,7 @@ public class UccUploadHandle
 {
     public int ExpectedSize { get; set; }
     public int UploadedSize { get; private set; }
-    public List<UccPart> Parts { get; private set; } = new List<UccPart>();
+    public List<UccPart> Parts { get; private set; } = [];
     public bool UploadComplete { get { return UploadedSize >= ExpectedSize; } }
 
     public CustomUcc UploadingUcc { get; set; }

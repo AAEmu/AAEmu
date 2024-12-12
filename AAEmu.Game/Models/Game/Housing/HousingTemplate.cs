@@ -39,6 +39,6 @@ public class HousingTemplate
 
     public HousingTemplate()
     {
-        BuildSteps = new Dictionary<int, HousingBuildStep>();
+        BuildSteps = [];
     }
 }

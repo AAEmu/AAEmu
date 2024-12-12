@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 internal class TestAuctionHouse : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testauctionhouse", "testah" };
+    public string[] CommandNames { get; set; } = ["testauctionhouse", "testah"];
 
     public void OnLoad()
     {

@@ -34,7 +34,7 @@ public class Inventory
     {
         Owner = owner;
         // Create all container types
-        _itemContainers = new Dictionary<SlotType, ItemContainer>();
+        _itemContainers = [];
 
         // Override Unit's created equipment container with a persistent one
         Owner.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.Equipment, (Character)owner, 0);
@@ -158,7 +158,7 @@ public class Inventory
         if ((containersToCheck != null) && (containersToCheck.Length > 0))
             containerList = containersToCheck;
         else
-            containerList = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
+            containerList = [SlotType.Inventory, SlotType.Equipment, SlotType.Bank];
         var res = 0;
         foreach (var cli in containerList)
         {
@@ -213,7 +213,7 @@ public class Inventory
     /// <returns></returns>
     public int GetItemsCount(SlotType slotType, uint templateId, int gradeToCount = -1)
     {
-        if (GetAllItemsByTemplate(new SlotType[1] { slotType }, templateId, gradeToCount, out var _, out var counted))
+        if (GetAllItemsByTemplate([slotType], templateId, gradeToCount, out var _, out var counted))
             return counted;
         else
             return 0;
@@ -231,11 +231,11 @@ public class Inventory
     public bool GetAllItemsByTemplate(SlotType[] inContainerTypes, uint templateId, int gradeToCheck, out List<Item> foundItems, out int unitsOfItemFound)
     {
         bool res = false;
-        foundItems = new List<Item>();
+        foundItems = [];
         unitsOfItemFound = 0;
         if (inContainerTypes == null || inContainerTypes.Length <= 0)
         {
-            inContainerTypes = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
+            inContainerTypes = [SlotType.Inventory, SlotType.Equipment, SlotType.Bank];
         }
         foreach (var ct in inContainerTypes)
         {
@@ -627,7 +627,7 @@ public class Inventory
 
         // Send Item manipulation packet 
         if (taskType != ItemTaskType.Invalid && itemTasks.Count > 0)
-            Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
 
         // Send ItemContainer events
         if (sourceContainer != targetContainer)

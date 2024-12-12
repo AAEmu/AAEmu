@@ -15,8 +15,8 @@ public class CharacterBlocked
     public CharacterBlocked(Character owner)
     {
         Owner = owner;
-        BlockedList = new Dictionary<uint, BlockedTemplate>();
-        _removedBlocked = new List<uint>();
+        BlockedList = [];
+        _removedBlocked = [];
     }
 
     public static List<Blocked> GetBlockedInfo(List<uint> ids)
@@ -65,12 +65,11 @@ public class CharacterBlocked
     {
 
         if (BlockedList.Count <= 0) return;
-        var allBlocked = GetBlockedInfo(new List<uint>(BlockedList.Keys));
+        var allBlocked = GetBlockedInfo([.. BlockedList.Keys]);
         var allBlockedArray = new Blocked[allBlocked.Count];
         allBlocked.CopyTo(allBlockedArray, 0);
         Owner.SendPacket(new SCBlockedUsersPacket(allBlockedArray.Length, allBlockedArray));
     }
-
 
     public void Load(MySqlConnection connection)
     {
@@ -126,7 +125,6 @@ public class CharacterBlocked
         }
     }
 
-
     public void AddBlockedUser(string name)
     {
         var blocked = WorldManager.Instance.GetCharacter(name);
@@ -140,7 +138,6 @@ public class CharacterBlocked
         BlockedList.Add(blocked.Id, template);
         Owner.SendPacket(new SCAddBlockedUserPacket(blocked.Id, blocked.Name, true, 0));
     }
-
 
     public void RemoveBlockedUser(string name)
     {

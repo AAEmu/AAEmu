@@ -9,7 +9,6 @@ using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Skills.Plots.UpdateTargetMethods;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -24,14 +23,14 @@ public class PlotTargetInfo
 
     public PlotTargetInfo(PlotState state)
     {
-        EffectedTargets = new List<BaseUnit>();
+        EffectedTargets = [];
         PreviousSource = state.Caster;
         PreviousTarget = state.Target;
     }
 
     public PlotTargetInfo(BaseUnit source, BaseUnit target)
     {
-        EffectedTargets = new List<BaseUnit>();
+        EffectedTargets = [];
         PreviousSource = source;
         PreviousTarget = target;
         Source = source;
@@ -133,7 +132,7 @@ public class PlotTargetInfo
         }
         else
         {
-            state.HitObjects.Add(plotEvent.Id, new List<GameObject>(unitsInRange));
+            state.HitObjects.Add(plotEvent.Id, [.. unitsInRange]);
         }
 
         return posUnit;
@@ -162,7 +161,7 @@ public class PlotTargetInfo
         }
         else
         {
-            state.HitObjects.Add(plotEvent.Id, new List<GameObject> { randomUnit });
+            state.HitObjects.Add(plotEvent.Id, [randomUnit]);
         }
 
         return randomUnit;
@@ -204,7 +203,7 @@ public class PlotTargetInfo
         }
         else
         {
-            state.HitObjects.Add(plotEvent.Id, new List<GameObject>(unitsInRange));
+            state.HitObjects.Add(plotEvent.Id, [.. unitsInRange]);
         }
 
         return posUnit;

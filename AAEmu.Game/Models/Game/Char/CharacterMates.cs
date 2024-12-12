@@ -32,8 +32,8 @@ public class CharacterMates
     public CharacterMates(Character owner)
     {
         Owner = owner;
-        _mates = new Dictionary<ulong, MateDb>();
-        _removedMates = new List<uint>();
+        _mates = [];
+        _removedMates = [];
     }
 
     public MateDb GetMateInfo(ulong itemId)

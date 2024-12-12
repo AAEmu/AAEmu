@@ -24,7 +24,7 @@ public class FeatureCmd : SubCommandBase, ICommand, ICommandV2
 
     public void OnLoad()
     {
-        string[] name = { "feature", "fset", "fs" };
+        string[] name = ["feature", "fset", "fs"];
         CommandManager.Instance.Register(name, this);
     }
 

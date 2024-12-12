@@ -15,8 +15,8 @@ public class CharacterFriends
     public CharacterFriends(Character owner)
     {
         Owner = owner;
-        FriendsIdList = new Dictionary<uint, FriendTemplate>();
-        _removedFriends = new List<uint>();
+        FriendsIdList = [];
+        _removedFriends = [];
     }
 
     public void AddFriend(string name)
@@ -58,7 +58,7 @@ public class CharacterFriends
     {
         if (FriendsIdList.Count <= 0) return;
 
-        var allFriends = FriendMananger.GetFriendInfo(new List<uint>(FriendsIdList.Keys));
+        var allFriends = FriendMananger.GetFriendInfo([.. FriendsIdList.Keys]);
         var allFriendsArray = new Friend[allFriends.Count];
         allFriends.CopyTo(allFriendsArray, 0);
         Owner.SendPacket(new SCFriendsPacket(allFriendsArray.Length, allFriendsArray));

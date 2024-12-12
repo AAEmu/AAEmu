@@ -10,7 +10,6 @@ using SBuffer = System.Buffer;
 
 namespace AAEmu.Commons.Network;
 
-
 /// <summary>
 /// Class to manage, merge, read and write packets. 
 /// Methods have equal names as BinaryReader and BinaryWriter.
@@ -523,7 +522,7 @@ public class PacketStream : ICloneable, IComparable
     public long[] ReadPisc(int count)
     {
         var result = new long[count];
-        var pish = new BitArray(new byte[] { ReadByte() });
+        var pish = new BitArray((byte[])[ReadByte()]);
         for (var index = 0; index < count * 2; index += 2)
         {
             if (pish[index] && pish[index + 1]) // uint
@@ -764,7 +763,6 @@ public class PacketStream : ICloneable, IComparable
         Write(res);
         return this;
     }
-
 
     public PacketStream WriteQuaternionShort(Quaternion values, bool scalar = false)
     {

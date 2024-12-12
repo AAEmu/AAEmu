@@ -17,7 +17,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddKit : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "kit", "addkit", "add_kit" };
+    public string[] CommandNames { get; set; } = ["kit", "addkit", "add_kit"];
 
     private readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -30,7 +30,7 @@ public class AddKit : ICommand
 
         public GMItemKitItem()
         {
-            kitnames = new List<string>();
+            kitnames = [];
             itemId = 0;
             itemGrade = 0;
             itemCount = 1;
@@ -48,9 +48,9 @@ public class AddKit : ICommand
 
     public class GMItemKitConfig
     {
-        [JsonProperty("itemkits")] public List<GMItemKitItem> itemkits = new();
+        [JsonProperty("itemkits")] public List<GMItemKitItem> itemkits = [];
 
-        public List<string> itemkitnames = new();
+        public List<string> itemkitnames = [];
 
         public void Clear()
         {
@@ -87,17 +87,17 @@ public class AddKit : ICommand
             return;
         }
 
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
 
-        var kitname = string.Empty;
+        var kitName = string.Empty;
         var itemsAdded = 0;
 
-        if (args.Length > firstarg + 0)
+        if (args.Length > firstArg + 0)
         {
-            kitname = args[firstarg + 0].ToLower();
+            kitName = args[firstArg + 0].ToLower();
         }
 
-        if (kitname == "?")
+        if (kitName == "?")
         {
             character.SendMessage("[Items] " + CommandManager.CommandPrefix + "kit has the following kits registered:");
             var s = string.Empty;
@@ -110,11 +110,11 @@ public class AddKit : ICommand
             return;
         }
 
-        //Logger.Debug("foreach kit in kitconfig.itemkits");
+        //Logger.Debug("foreach kit in kitconfig.itemKits");
         foreach (var kit in kitconfig.itemkits)
         {
-            //Logger.Debug("kit.kitname: " + kit.kitname);
-            if (!kit.kitnames.Contains(kitname))
+            //Logger.Debug("kit.kitName: " + kit.kitName);
+            if (!kit.kitnames.Contains(kitName))
             {
                 continue;
             }
@@ -158,7 +158,7 @@ public class AddKit : ICommand
         }
         else
         {
-            character.SendMessage($"[Items] No items in kit \"{kitname}\"");
+            character.SendMessage($"[Items] No items in kit \"{kitName}\"");
         }
     }
 

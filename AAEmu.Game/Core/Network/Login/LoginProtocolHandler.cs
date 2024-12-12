@@ -47,7 +47,6 @@ public class LoginProtocolHandler : BaseProtocolHandler
             _loadTask = null;
         }
 
-
         // TODO Hard Restart
         LoginNetwork.Instance.Stop();
         LoginNetwork.Instance.Start();

@@ -22,7 +22,7 @@ public class SlaveSpawner : Spawner<Slave>
 
     public SlaveSpawner()
     {
-        _spawned = new List<Slave>();
+        _spawned = [];
         Count = 1;
         _lastSpawn = new Slave();
     }

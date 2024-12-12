@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Invisible : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "invisible" };
+    public string[] CommandNames { get; set; } = ["invisible"];
 
     public void OnLoad()
     {

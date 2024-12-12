@@ -21,7 +21,6 @@ public class AuctionSearch : PacketMarshaler
     public AuctionSearchSortKind SortKind { get; set; }
     public AuctionSearchSortOrder SortOrder { get; set; }
 
-
     public override void Read(PacketStream stream)
     {
         Keyword = stream.ReadString();

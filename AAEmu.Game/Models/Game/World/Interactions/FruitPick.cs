@@ -5,7 +5,6 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World.Interactions;
 
-
 public class FruitPick : IWorldInteraction
 {
     public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,

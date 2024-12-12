@@ -12,7 +12,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Scripts : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "scripts" };
+    public string[] CommandNames { get; set; } = ["scripts"];
 
     public void OnLoad()
     {

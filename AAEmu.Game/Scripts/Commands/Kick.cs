@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Kick : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "kick_player", "kick" };
+    public string[] CommandNames { get; set; } = ["kick_player", "kick"];
 
     public void OnLoad()
     {

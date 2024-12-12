@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -33,10 +31,9 @@ public class MagicalEnchant : IWorldInteraction
 
         character.SendPacket(new SCItemSocketingLunastoneResultPacket(true, targetItem.Id, skillItem.ItemTemplateId));
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical,
-            new List<ItemTask>
-            {
+            [
                 new ItemUpdate(equipItem)
-            },
-            new List<ulong>()));
+            ],
+            []));
     }
 }

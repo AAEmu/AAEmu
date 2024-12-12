@@ -15,7 +15,6 @@ public class PlotTargetAreaParams : IPlotTargetParams
     public SkillTargetRelation UnitRelationType { get; set; }
     public byte UnitTypeFlag { get; set; }
 
-
     public PlotTargetAreaParams(PlotEventTemplate template)
     {
         Shape = WorldManager.Instance.GetAreaShapeById((uint)template.TargetUpdateMethodParam1);

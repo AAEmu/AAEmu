@@ -32,7 +32,7 @@ public class SCNpcInteractionSkillListPacket : GamePacket
         _pickId = pickId;
         _mouseButton = mouseButton;
         _modifierKeys = modifierKeys;
-        _skillList = new uint[] { skillId };
+        _skillList = [skillId];
     }
 
     public override PacketStream Write(PacketStream stream)

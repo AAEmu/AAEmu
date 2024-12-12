@@ -41,7 +41,7 @@ public class QuestTests
         var expectedIds = new List<uint>();
 
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>()))
-            .Returns<QuestComponentKind>(kind => new[] { new QuestComponentTemplate(null) { KindId = kind } })
+            .Returns<QuestComponentKind>(kind => [new QuestComponentTemplate(null) { KindId = kind }])
             .Callback<QuestComponentKind>(d => expectedIds.Add((uint)d));
 
         // Act
@@ -63,9 +63,9 @@ public class QuestTests
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _, out _);
         var expectedIds = new List<uint>();
 
-        mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
+        mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => [
             new QuestComponentTemplate(null) { Id = (uint)kind }
-        }).Callback<QuestComponentKind>(d => expectedIds.Add((uint)d));
+        ]).Callback<QuestComponentKind>(d => expectedIds.Add((uint)d));
 
         var mockQuestAct = new Mock<QuestActTemplate>();
         mockQuestAct.Setup(qa => qa.RunAct(It.IsAny<Quest>(), It.IsAny<QuestAct>(), It.IsAny<int>())).Returns(false);
@@ -98,9 +98,9 @@ public class QuestTests
             { 1, new QuestComponentTemplate(null) { Id = 1, KindId = QuestComponentKind.Drop } },
             { 2, new QuestComponentTemplate(null) { Id = 2, KindId = QuestComponentKind.Drop } }
         });
-        mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => new[] {
+        mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => [
             new QuestComponentTemplate(null) { Id = (uint)kind }
-        });
+        ]);
 
         var mockQuestAct = new Mock<QuestActTemplate>();
         mockQuestAct.Setup(qa => qa.RunAct(It.IsAny<Quest>(), It.IsAny<QuestAct>(), It.IsAny<int>())).Returns(true);

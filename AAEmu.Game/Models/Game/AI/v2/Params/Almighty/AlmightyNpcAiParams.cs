@@ -52,7 +52,7 @@ public class AlmightyNpcAiParams : AiParams
         IdleAi = (string)aiParams.GetObjectFromPath("data.idle_ai") ?? "";
 
         // aiPhase not seem to be used?
-        AiSkillLists = new List<AiSkillList>();
+        AiSkillLists = [];
         if (aiParams.GetTable("data.aiSkillLists") is LuaTable table)
         {
             foreach (var skillList in table.Values)
@@ -67,7 +67,7 @@ public class AlmightyNpcAiParams : AiParams
             }
         }
 
-        AiPathSkillLists = new List<AiSkillList>();
+        AiPathSkillLists = [];
         if (aiParams.GetTable("data.aiPathSkillLists") is LuaTable pathSkills)
         {
             foreach (var skillList in pathSkills.Values)
@@ -82,7 +82,7 @@ public class AlmightyNpcAiParams : AiParams
             }
         }
 
-        AiPathDamageSkillLists = new List<AiSkillList>();
+        AiPathDamageSkillLists = [];
         if (aiParams.GetTable("data.aiPathDamageSkillLists") is LuaTable pathDamageSkills)
         {
             foreach (var skillList in pathDamageSkills.Values)

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class MoveAll : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "moveall", "move_all" };
+    public string[] CommandNames { get; set; } = ["moveall", "move_all"];
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {

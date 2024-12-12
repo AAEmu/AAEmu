@@ -28,9 +28,9 @@ public class ShipyardManager : Singleton<ShipyardManager>
 
     public void Initialize()
     {
-        _shipyardsTemplate = new Dictionary<uint, ShipyardsTemplate>();
-        _shipyard = new Dictionary<uint, Shipyard>();
-        _removedShipyards = new List<uint>();
+        _shipyardsTemplate = [];
+        _shipyard = [];
+        _removedShipyards = [];
         Logger.Info("Initialising Shipyard Manager...");
         ShipyardTickStart();
     }

@@ -14,6 +14,6 @@ public class TransferRoads
 
     public TransferRoads()
     {
-        Pos = new List<WorldSpawnPosition>();
+        Pos = [];
     }
 }

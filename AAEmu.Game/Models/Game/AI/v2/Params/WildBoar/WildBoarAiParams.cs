@@ -46,7 +46,7 @@ public class WildBoarAiParams : AiParams
             RestorationOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.restorationOnReturn"));
 
         // individually
-        OnCombatStartSkills = new List<uint>();
+        OnCombatStartSkills = [];
         if (aiParams.GetTable("data.onCombatStartSkill") is LuaTable combatStartSkillsTable)
         {
             foreach (var value in combatStartSkillsTable.Values)
@@ -71,7 +71,7 @@ public class WildBoarAiParams : AiParams
         //    }
         //}
         // или данные об OnSpurtSkills можно парсить так
-        OnSpurtSkills = new List<WildBoarAiSpurtSkill>();
+        OnSpurtSkills = [];
         if (aiParams.GetTable("data.onSpurtSkill") is LuaTable spurtSkillTable)
         {
             foreach (var skillList in spurtSkillTable.Values)

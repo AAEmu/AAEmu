@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Rotate : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "rotate", "lookatme" };
+    public string[] CommandNames { get; set; } = ["rotate", "lookatme"];
 
     public void OnLoad()
     {

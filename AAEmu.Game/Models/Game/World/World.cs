@@ -26,7 +26,7 @@ public class World
     public WorldSpawnPosition SpawnPosition { get; set; } = new();
     public Region[,] Regions { get; set; } // TODO ... world - okay, instance - ....
     public ushort[,] HeightMaps { get; set; }
-    public List<uint> ZoneKeys { get; set; } = new();
+    public List<uint> ZoneKeys { get; set; } = [];
     public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
     public BoatPhysicsManager Physics { get; set; }
     public WaterBodies Water { get; set; }
@@ -37,8 +37,8 @@ public class World
     public World()
     {
         Events = new WorldEvents();
-        SubZones = new Dictionary<uint, List<Area>>();
-        HousingZones = new Dictionary<uint, List<Area>>();
+        SubZones = [];
+        HousingZones = [];
     }
 
     ~World()

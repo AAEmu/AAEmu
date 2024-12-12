@@ -17,7 +17,7 @@ public class CharacterActability
     public CharacterActability(Character owner)
     {
         Owner = owner;
-        Actabilities = new Dictionary<uint, Actability>();
+        Actabilities = [];
     }
 
     /// <summary>

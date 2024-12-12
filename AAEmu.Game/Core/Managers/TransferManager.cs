@@ -275,8 +275,8 @@ public class TransferManager : Singleton<TransferManager>
 
     public void Load()
     {
-        _templates = new Dictionary<uint, TransferTemplate>();
-        _activeTransfers = new Dictionary<uint, Transfer>();
+        _templates = [];
+        _activeTransfers = [];
 
         #region SQLLite
 
@@ -389,7 +389,7 @@ public class TransferManager : Singleton<TransferManager>
         Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
         //                              worldId           key  transfer_path
-        _transferRoads = new Dictionary<byte, Dictionary<uint, List<TransferRoads>>>();
+        _transferRoads = [];
         foreach (var world in worlds)
         {
             var transferPaths = new Dictionary<uint, List<TransferRoads>>();

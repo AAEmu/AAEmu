@@ -89,7 +89,7 @@ public sealed class Shipyard : Unit
     {
         base.RemoveVisibleObject(character);
 
-        character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
+        character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
     }
 
     #region Attributes

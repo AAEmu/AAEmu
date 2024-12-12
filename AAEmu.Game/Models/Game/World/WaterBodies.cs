@@ -19,7 +19,7 @@ public class WaterBodies
     public WaterBodies()
     {
         _lock = new object();
-        Areas = new List<WaterBodyArea>();
+        Areas = [];
     }
 
     public bool IsWater(Vector3 point)

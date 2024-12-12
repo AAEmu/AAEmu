@@ -521,7 +521,7 @@ public class SlaveManager : Singleton<SlaveManager>
             slaveSummonItem.SummonLocation = spawnPos.World.Position;
             slaveSummonItem.RepairStartTime = DateTime.MinValue; // reset timer here
             slaveSummonItem.IsDirty = true;
-            owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), new List<ulong>()));
+            owner?.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new ItemUpdate(item), []));
         }
 
         // Create the Slave (packet)
@@ -851,7 +851,7 @@ value.Yaw);
             }
         }
 
-        _attachPoints = new Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>>();
+        _attachPoints = [];
         foreach (var set in attachPoints)
         {
             _attachPoints[set.ModelId] = set.AttachPoints;
@@ -864,10 +864,10 @@ value.Yaw);
     public void Load()
     {
         _slaveListLock = new object();
-        _slaveTemplates = new Dictionary<uint, SlaveTemplate>();
-        _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
-        _slaveMountSkills = new Dictionary<uint, SlaveMountSkills>();
-        _repairableSlaves = new Dictionary<uint, uint>();
+        _slaveTemplates = [];
+        _slaveInitialItems = [];
+        _slaveMountSkills = [];
+        _repairableSlaves = [];
 
         #region SQLLite
 
@@ -1272,7 +1272,7 @@ value.Yaw);
         // Despawn effect
         mySlave.BroadcastPacket(new SCSlaveDespawnPacket(mySlave.ObjId), true);
         mySlave.BroadcastPacket(new SCSlaveRemovedPacket(mySlave.ObjId, mySlave.TlId), true);
-        mySlave.SendPacket(new SCUnitsRemovedPacket(new[] { mySlave.ObjId }));
+        mySlave.SendPacket(new SCUnitsRemovedPacket([mySlave.ObjId]));
 
         // Move location
         mySlave.SetPosition(skillCastPositionTarget.PosX, skillCastPositionTarget.PosY, skillCastPositionTarget.PosZ, 0f, 0f, skillCastPositionTarget.PosRot);

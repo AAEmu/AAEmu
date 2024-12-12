@@ -71,8 +71,8 @@ public abstract class NpcAi
 
     protected NpcAi()
     {
-        _behaviors = new Dictionary<BehaviorKind, Behavior>();
-        _transitions = new Dictionary<Behavior, List<Transition>>();
+        _behaviors = [];
+        _transitions = [];
         PathNode = new PathNode();
         PathHandler = new AiPathHandler(this);
     }
@@ -137,7 +137,7 @@ public abstract class NpcAi
     public Behavior AddTransition(Behavior source, Transition target)
     {
         if (!_transitions.ContainsKey(source))
-            _transitions.Add(source, new List<Transition>());
+            _transitions.Add(source, []);
         _transitions[source].Add(target);
         return source;
     }

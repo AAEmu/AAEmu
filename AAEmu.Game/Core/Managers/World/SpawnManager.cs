@@ -186,25 +186,25 @@ public class SpawnManager : Singleton<SpawnManager>
         if (_loaded)
             return;
 
-        _respawns = new HashSet<GameObject>();
-        _despawns = new HashSet<GameObject>();
-        _npcSpawners = new Dictionary<byte, Dictionary<uint, List<NpcSpawner>>>();
-        _npcEventSpawners = new Dictionary<byte, Dictionary<uint, List<NpcSpawner>>>();
-        _doodadSpawners = new Dictionary<byte, Dictionary<uint, DoodadSpawner>>();
-        _transferSpawners = new Dictionary<byte, Dictionary<uint, TransferSpawner>>();
-        _gimmickSpawners = new Dictionary<byte, Dictionary<uint, GimmickSpawner>>();
-        _slaveSpawners = new Dictionary<byte, Dictionary<uint, SlaveSpawner>>();
-        _playerDoodads = new List<Doodad>();
+        _respawns = [];
+        _despawns = [];
+        _npcSpawners = [];
+        _npcEventSpawners = [];
+        _doodadSpawners = [];
+        _transferSpawners = [];
+        _gimmickSpawners = [];
+        _slaveSpawners = [];
+        _playerDoodads = [];
 
         var worlds = WorldManager.Instance.GetWorlds();
         foreach (var world in worlds)
         {
-            _npcSpawners.Add((byte)world.Id, new Dictionary<uint, List<NpcSpawner>>());
-            _npcEventSpawners.Add((byte)world.Id, new Dictionary<uint, List<NpcSpawner>>());
-            _doodadSpawners.Add((byte)world.Id, new Dictionary<uint, DoodadSpawner>());
-            _transferSpawners.Add((byte)world.Id, new Dictionary<uint, TransferSpawner>());
-            _gimmickSpawners.Add((byte)world.Id, new Dictionary<uint, GimmickSpawner>());
-            _slaveSpawners.Add((byte)world.Id, new Dictionary<uint, SlaveSpawner>());
+            _npcSpawners.Add((byte)world.Id, []);
+            _npcEventSpawners.Add((byte)world.Id, []);
+            _doodadSpawners.Add((byte)world.Id, []);
+            _transferSpawners.Add((byte)world.Id, []);
+            _gimmickSpawners.Add((byte)world.Id, []);
+            _slaveSpawners.Add((byte)world.Id, []);
         }
 
         Logger.Info("Loading spawns...");
@@ -896,7 +896,7 @@ public class SpawnManager : Singleton<SpawnManager>
         HashSet<GameObject> temp;
         lock (_respawns)
         {
-            temp = new HashSet<GameObject>(_respawns);
+            temp = [.. _respawns];
         }
 
         var res = new HashSet<GameObject>();
@@ -911,7 +911,7 @@ public class SpawnManager : Singleton<SpawnManager>
         HashSet<GameObject> temp;
         lock (_despawns)
         {
-            temp = new HashSet<GameObject>(_despawns);
+            temp = [.. _despawns];
         }
 
         var res = new HashSet<GameObject>();
@@ -1010,7 +1010,7 @@ public class SpawnManager : Singleton<SpawnManager>
             {
                 spawner.UnitId = unitId;
                 spawner.Id = ObjectIdManager.Instance.GetNextId();
-                spawner.NpcSpawnerIds = new List<uint> { spawner.Id };
+                spawner.NpcSpawnerIds = [spawner.Id];
                 spawner.Template = new NpcSpawnerTemplate(spawner.Id);
                 spawner.Template.Npcs[0].MemberId = spawner.UnitId;
                 spawner.Template.Npcs[0].UnitId = spawner.UnitId;
@@ -1020,14 +1020,14 @@ public class SpawnManager : Singleton<SpawnManager>
             {
                 spawner.UnitId = unitId;
                 spawner.Id = npcSpawnersIds[0];
-                spawner.NpcSpawnerIds = new List<uint> { spawner.Id };
+                spawner.NpcSpawnerIds = [spawner.Id];
                 spawner.Template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawner.Id);
                 if (spawner.Template == null)
                 {
                     return null;
                 }
 
-                spawner.Template.Npcs = new List<NpcSpawnerNpc>();
+                spawner.Template.Npcs = [];
                 var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(spawner.Id);
                 if (nsn == null)
                 {

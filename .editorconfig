@@ -57,6 +57,7 @@ dotnet_style_predefined_type_for_member_access = true:suggestion
 # Suggest more modern language features when available
 dotnet_style_object_initializer = true:suggestion
 dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_collection_expression = true:suggestion
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_null_propagation = true:suggestion
 dotnet_style_explicit_tuple_names = true:suggestion
@@ -145,7 +146,8 @@ dotnet_diagnostic.CA2000.severity = warning # Call System.IDisposable.Dispose on
 dotnet_diagnostic.CA2201.severity = warning # Exception type System.Exception is not sufficiently specific
 dotnet_diagnostic.CA1822.severity = none # Member does not access instance and can be marked as static
 dotnet_diagnostic.CA2211.severity = none # Non-constant fields should not be visible
-
+dotnet_diagnostic.IDE0300.severity = warning # Use collection expression for array
+dotnet_diagnostic.IDE0028.severity = warning # Simplify collection initialization
 dotnet_diagnostic.IDE0001.severity = warning # Simplify name
 dotnet_diagnostic.IDE0005.severity = warning # Remove unnecessary using directives
 dotnet_diagnostic.IDE0018.severity = warning # Inline variable declaration
@@ -164,6 +166,7 @@ dotnet_diagnostic.IDE0082.severity = warning # Convert typeof to nameof
 dotnet_diagnostic.IDE0090.severity = warning # Simplify new expression
 dotnet_diagnostic.IDE0130.severity = warning # Namespace does not match folder structure
 dotnet_diagnostic.IDE0161.severity = warning # Use file-scoped namespace
+dotnet_diagnostic.IDE2000.severity = warning # Avoid multiple blank lines
 
 # Code quality rules
 dotnet_code_quality_unused_parameters = all:suggestion

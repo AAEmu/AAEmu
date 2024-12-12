@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestZoneState : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "zonestate", "zone_state" };
+    public string[] CommandNames { get; set; } = ["zonestate", "zone_state"];
 
     public void OnLoad()
     {

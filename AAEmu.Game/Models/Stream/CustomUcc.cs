@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Stream;
 public class CustomUcc : DefaultUcc
 {
     public override UccType Type => UccType.Complex;
-    public virtual List<byte> Data { get; set; } = new List<byte>();
+    public virtual List<byte> Data { get; set; } = [];
     public bool SaveDataInDB = true;
 
     public override void Save(MySqlCommand command)

@@ -28,23 +28,23 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
-    private readonly Dictionary<uint, QuestTemplate> _questTemplates = new();
-    private readonly Dictionary<byte, QuestSupplies> _supplies = new();
+    private readonly Dictionary<uint, QuestTemplate> _questTemplates = [];
+    private readonly Dictionary<byte, QuestSupplies> _supplies = [];
 
     /// <summary>
     /// ComponentId, Template
     /// </summary>
-    private readonly Dictionary<uint, List<QuestActTemplate>> _actsByComponent = new();
-    private readonly Dictionary<uint, QuestActTemplate> _actsBaseByActId = new();
+    private readonly Dictionary<uint, List<QuestActTemplate>> _actsByComponent = [];
+    private readonly Dictionary<uint, QuestActTemplate> _actsBaseByActId = [];
 
     /// <summary>
     /// DetailType, DetailId, Template
     /// </summary>
-    private readonly Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplatesByDetailType = new();
-    private readonly Dictionary<uint, List<uint>> _groupItems = new();
-    private readonly Dictionary<uint, List<uint>> _groupNpcs = new();
-    private readonly Dictionary<uint, QuestComponentTemplate> _componentTemplates = new();
-    public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask { get; } = new();
+    private readonly Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplatesByDetailType = [];
+    private readonly Dictionary<uint, List<uint>> _groupItems = [];
+    private readonly Dictionary<uint, List<uint>> _groupNpcs = [];
+    private readonly Dictionary<uint, QuestComponentTemplate> _componentTemplates = [];
+    public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask { get; } = [];
     private Queue<Quest> EvaluationQueue { get; } = new();
     private readonly object _evaluationQueueLock = new();
 
@@ -239,7 +239,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
 
         foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(typeof(QuestManager)), "AAEmu.Game.Models.Game.Quests.Acts"))
             if (type.BaseType == typeof(QuestActTemplate))
-                _actTemplatesByDetailType.Add(type.Name, new Dictionary<uint, QuestActTemplate>());
+                _actTemplatesByDetailType.Add(type.Name, []);
 
         Logger.Info("Loading quests...");
         using (var connection = SQLite.CreateConnection())
@@ -338,7 +338,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             List<uint> npcs;
             if (!_groupNpcs.TryGetValue(groupId, out var npcIdList))
             {
-                npcs = new List<uint>();
+                npcs = [];
                 _groupNpcs.Add(groupId, npcs);
             }
             else
@@ -364,7 +364,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             List<uint> items;
             if (!_groupItems.TryGetValue(groupId, out var itemList))
             {
-                items = new List<uint>();
+                items = [];
                 _groupItems.Add(groupId, items);
             }
             else
@@ -402,7 +402,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             // Populate _actsByComponent
             if (!_actsByComponent.TryGetValue(template.ParentComponent.Id, out var actInComponentList))
             {
-                actInComponentList = new List<QuestActTemplate>();
+                actInComponentList = [];
                 _actsByComponent.Add(template.ParentComponent.Id, actInComponentList);
             }
             actInComponentList.Add(template);
@@ -1979,7 +1979,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         // Grab or Create the TimeOutTask list for this player
         if (!QuestTimeoutTask.TryGetValue(owner.Id, out var playerTimerTasks))
         {
-            playerTimerTasks = new Dictionary<uint, QuestTimeoutTask>();
+            playerTimerTasks = [];
             QuestTimeoutTask.Add(owner.Id, playerTimerTasks);
         }
 

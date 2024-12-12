@@ -41,7 +41,7 @@ public class BigMonsterAiParams : AiParams
             RestorationOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.restorationOnReturn"));
 
         // individually
-        CombatSkills = new List<BigMonsterCombatSkill>();
+        CombatSkills = [];
         if (aiParams.GetTable("data.combatSkills") is LuaTable table)
         {
             foreach (var skillList in table.Values)

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace AAEmu.Game.Models.Game.Items;
 
@@ -10,6 +10,6 @@ public class AbilityItems
 
     public AbilityItems()
     {
-        Supplies = new List<AbilitySupplyItem>();
+        Supplies = [];
     }
 }

@@ -6,12 +6,11 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-
 public class LocalizationManager : Singleton<LocalizationManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly Dictionary<string, string> _translations = new();
+    private readonly Dictionary<string, string> _translations = [];
 
     private static string GetLookupKey(string tblName, string tblColumn, long index)
     {

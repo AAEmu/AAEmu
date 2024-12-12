@@ -140,7 +140,7 @@ public class GradeEnchant : SpecialEffectAction
         else
         {
             // No Poof
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, new List<ItemTask>() { new ItemGradeChange(item, item.Grade) }, new List<ulong>()));
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, [new ItemGradeChange(item, item.Grade)], []));
         }
 
         // Consume
@@ -249,10 +249,12 @@ public class GradeEnchant : SpecialEffectAction
         var itemLevel = item.Template.Level;
         var equipSlotEnchantCost = enchantingCost.Cost;
 
-        var parameters = new Dictionary<string, double>();
-        parameters.Add("item_grade", itemGrade);
-        parameters.Add("item_level", itemLevel);
-        parameters.Add("equip_slot_enchant_cost", equipSlotEnchantCost);
+        var parameters = new Dictionary<string, double>
+        {
+            { "item_grade", itemGrade },
+            { "item_level", itemLevel },
+            { "equip_slot_enchant_cost", equipSlotEnchantCost }
+        };
         var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.GradeEnchantCost);
 
         var cost = (int)formula.Evaluate(parameters);

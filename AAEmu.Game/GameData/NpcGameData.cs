@@ -24,11 +24,11 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
 
     public void Load(SqliteConnection connection)
     {
-        _skillsForNpc = new Dictionary<uint, List<NpcSkill>>();
-        _passivesForNpc = new Dictionary<uint, List<NpcPassiveBuff>>();
-        _npcSpawnerTemplateNpcs = new Dictionary<uint, NpcSpawnerNpc>();
-        _npcSpawnerTemplates = new Dictionary<uint, NpcSpawnerTemplate>();
-        _npcMemberAndSpawnerTemplateIds = new Dictionary<uint, List<uint>>();
+        _skillsForNpc = [];
+        _passivesForNpc = [];
+        _npcSpawnerTemplateNpcs = [];
+        _npcSpawnerTemplates = [];
+        _npcMemberAndSpawnerTemplateIds = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -50,7 +50,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
                 };
 
                 if (!_skillsForNpc.ContainsKey(template.OwnerId))
-                    _skillsForNpc.Add(template.OwnerId, new List<NpcSkill>());
+                    _skillsForNpc.Add(template.OwnerId, []);
 
                 _skillsForNpc[template.OwnerId].Add(template);
             }
@@ -73,7 +73,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
                 };
 
                 if (!_passivesForNpc.ContainsKey(template.OwnerId))
-                    _passivesForNpc.Add(template.OwnerId, new List<NpcPassiveBuff>());
+                    _passivesForNpc.Add(template.OwnerId, []);
 
                 _passivesForNpc[template.OwnerId].Add(template);
             }
@@ -104,7 +104,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
                 template.TestRadiusPc = reader.GetFloat("test_radius_pc");
                 template.SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count");
                 template.SpawnDelayMax = reader.GetFloat("spawn_delay_max");
-                template.Npcs = new List<NpcSpawnerNpc>();
+                template.Npcs = [];
                 _npcSpawnerTemplates.Add(template.Id, template);
             }
         }
@@ -153,14 +153,14 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
 
     public void LoadMemberAndSpawnerTemplateIds()
     {
-        _npcMemberAndSpawnerTemplateIds = new Dictionary<uint, List<uint>>();
+        _npcMemberAndSpawnerTemplateIds = [];
         var npcMemberAndSpawnerId = new Dictionary<uint, List<uint>>();
 
         foreach (var nsn in _npcSpawnerTemplateNpcs.Values)
         {
             if (!_npcMemberAndSpawnerTemplateIds.TryGetValue(nsn.MemberId, out var value))
             {
-                _npcMemberAndSpawnerTemplateIds.Add(nsn.MemberId, new List<uint> { nsn.NpcSpawnerTemplateId });
+                _npcMemberAndSpawnerTemplateIds.Add(nsn.MemberId, [nsn.NpcSpawnerTemplateId]);
             }
             else
             {

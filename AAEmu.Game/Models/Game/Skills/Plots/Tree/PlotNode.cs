@@ -25,7 +25,7 @@ public class PlotNode
 
     public PlotNode()
     {
-        Children = new List<PlotNode>();
+        Children = [];
     }
 
     private bool IsChannelStart()

@@ -34,8 +34,7 @@ public class WebApiSession : HttpSession
                 return;
             }
 
-
-            List<object> parameters = new();
+            List<object> parameters = [];
             foreach (var parameter in foundRoute.TargetMethod.GetParameters())
             {
                 if (parameter.ParameterType == typeof(HttpRequest))
@@ -49,7 +48,6 @@ public class WebApiSession : HttpSession
             }
 
             object[] args = parameters.ToArray();
-
 
             var activate = Activator.CreateInstance(foundRoute.TargetMethod.DeclaringType);
             response = (HttpResponse)foundRoute.TargetMethod.Invoke(activate, args);

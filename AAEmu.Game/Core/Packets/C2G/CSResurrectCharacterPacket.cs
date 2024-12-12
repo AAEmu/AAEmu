@@ -44,7 +44,6 @@ public class CSResurrectCharacterPacket : GamePacket
             portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
         }
 
-
         if (inPlace)
         {
             Connection.ActiveChar.Hp = (int)(Connection.ActiveChar.MaxHp * (Connection.ActiveChar.ResurrectHpPercent / 100.0f));

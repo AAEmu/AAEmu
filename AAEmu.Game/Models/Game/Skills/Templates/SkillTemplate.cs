@@ -116,6 +116,6 @@ public class SkillTemplate
 
     public SkillTemplate()
     {
-        Effects = new List<SkillEffect>();
+        Effects = [];
     }
 }

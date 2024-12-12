@@ -20,7 +20,7 @@ public class LoginController : Singleton<LoginController>
 
     protected LoginController()
     {
-        _tokens = new Dictionary<byte, Dictionary<uint, uint>>();
+        _tokens = [];
     }
 
     /// <summary>
@@ -176,7 +176,7 @@ public class LoginController : Singleton<LoginController>
     public void AddReconnectionToken(InternalConnection connection, byte gsId, uint accountId, uint token)
     {
         if (!_tokens.ContainsKey(gsId))
-            _tokens.Add(gsId, new Dictionary<uint, uint>());
+            _tokens.Add(gsId, []);
 
         _tokens[gsId].Add(token, accountId);
         connection.SendPacket(new LGPlayerReconnectPacket(token));

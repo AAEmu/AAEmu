@@ -105,7 +105,6 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
         return _queue.TryAdd(taskId, task);
     }
 
-
     /// <summary>
     /// Schedules a task to be executed in the future
     /// </summary>

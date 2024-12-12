@@ -34,8 +34,8 @@ public class FactionManager : Singleton<FactionManager>
         if (_loaded)
             return;
 
-        _systemFactions = new();
-        _relations = new();
+        _systemFactions = [];
+        _relations = [];
         using (var connection = SQLite.CreateConnection())
         {
             Logger.Info("Loading system factions...");

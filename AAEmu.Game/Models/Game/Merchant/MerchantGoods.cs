@@ -10,7 +10,7 @@ public class MerchantGoods
     public MerchantGoods(uint id)
     {
         Id = id;
-        Items = new List<MerchantGoodsItem>();
+        Items = [];
     }
 
     // NOTE: If there is ever a case where one itemTemplate is sold at multiple grades, then this code needs a rework

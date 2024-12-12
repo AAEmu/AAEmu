@@ -147,7 +147,7 @@ public class SlaveSaveSubCommand : SubCommandBase
             }
         };
 
-        Dictionary<uint, JsonSlaveSpawns> spawnersFromFile = new();
+        Dictionary<uint, JsonSlaveSpawns> spawnersFromFile = [];
         foreach (var spawnerFromFile in LoadSlavesFromFileByWorld(world))
         {
             spawnersFromFile.TryAdd(spawnerFromFile.Id, spawnerFromFile);
@@ -179,7 +179,7 @@ public class SlaveSaveSubCommand : SubCommandBase
 
         if (string.IsNullOrWhiteSpace(contents))
         {
-            return new List<JsonSlaveSpawns>();
+            return [];
         }
         else
         {

@@ -33,7 +33,7 @@ public class SkillList
             TimeRangeEnd = Convert.ToSingle(timeRange[2]);
         }
 
-        Skills = new List<AiSkill>();
+        Skills = [];
         if (table["skills"] is LuaTable skills)
         {
             foreach (var skill in skills.Values)

@@ -22,7 +22,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
 
     public List<BuffModifier> GetModifiersForBuff(uint ownerId)
     {
-        return _buffModifiers.TryGetValue(ownerId, out var modifier) ? modifier : new List<BuffModifier>();
+        return _buffModifiers.TryGetValue(ownerId, out var modifier) ? modifier : [];
     }
 
     public BuffTolerance GetBuffToleranceForBuffTag(uint buffTag)
@@ -32,9 +32,9 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
 
     public void Load(SqliteConnection connection)
     {
-        _buffModifiers = new Dictionary<uint, List<BuffModifier>>();
-        _buffTolerances = new Dictionary<uint, BuffTolerance>();
-        _buffTolerancesById = new Dictionary<uint, BuffTolerance>();
+        _buffModifiers = [];
+        _buffTolerances = [];
+        _buffTolerancesById = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -59,7 +59,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
                     };
 
                     if (!_buffModifiers.ContainsKey(template.OwnerId))
-                        _buffModifiers.Add(template.OwnerId, new List<BuffModifier>());
+                        _buffModifiers.Add(template.OwnerId, []);
                     _buffModifiers[template.OwnerId].Add(template);
                 }
             }
@@ -81,7 +81,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
                         StepDuration = reader.GetUInt32("step_duration"),
                         FinalStepBuffId = reader.GetUInt32("final_step_buff_id"),
                         CharacterTimeReduction = reader.GetUInt32("character_time_reduction"),
-                        Steps = new List<BuffToleranceStep>()
+                        Steps = []
                     };
 
                     _buffTolerances.Add(template.BuffTagId, template);

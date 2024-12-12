@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestTransfer : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testtransfer", "test_transfer" };
+    public string[] CommandNames { get; set; } = ["testtransfer", "test_transfer"];
 
     public void OnLoad()
     {

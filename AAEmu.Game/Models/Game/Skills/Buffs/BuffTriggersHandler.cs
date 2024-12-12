@@ -13,7 +13,7 @@ public class BuffTriggersHandler
 
     public BuffTriggersHandler(Buff buff)
     {
-        _triggers = new List<BuffTrigger>();
+        _triggers = [];
         _owner = buff;
     }
 

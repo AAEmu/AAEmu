@@ -74,7 +74,7 @@ public class TickManager : Singleton<TickManager>
 
         public TickEventHandler()
         {
-            _eventList = new List<TickEventEntity>();
+            _eventList = [];
             _eventsToAdd = new Queue<TickEventEntity>();
             _eventsToRemove = new Queue<OnTickEvent>();
             _sw = new Stopwatch();

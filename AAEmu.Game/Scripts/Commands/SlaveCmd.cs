@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
 {
-    public string[] CommandNames { get; set; } = new string[] { "slave" };
+    public string[] CommandNames { get; set; } = ["slave"];
 
     public SlaveCmd()
     {

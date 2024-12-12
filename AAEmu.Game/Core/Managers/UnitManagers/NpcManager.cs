@@ -330,11 +330,11 @@ public class NpcManager : Singleton<NpcManager>
         if (_loaded)
             return;
 
-        _templates = new Dictionary<uint, NpcTemplate>();
-        _goods = new Dictionary<uint, MerchantGoods>();
-        _tccLookup = new Dictionary<uint, List<uint>>();
-        _totalCharacterCustoms = new Dictionary<uint, TotalCharacterCustom>();
-        _itemBodyParts = new Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>>();
+        _templates = [];
+        _goods = [];
+        _tccLookup = [];
+        _totalCharacterCustoms = [];
+        _itemBodyParts = [];
 
         Logger.Info("Loading npc templates...");
         using (var connection = SQLite.CreateConnection())
@@ -394,7 +394,7 @@ public class NpcManager : Singleton<NpcManager>
                 foreach (var c in _totalCharacterCustoms)
                 {
                     if (!_tccLookup.ContainsKey(c.Value.ModelId))
-                        _tccLookup.Add(c.Value.ModelId, new List<uint>());
+                        _tccLookup.Add(c.Value.ModelId, []);
                     _tccLookup[c.Value.ModelId].Add(c.Value.Id);
                 }
 

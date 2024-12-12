@@ -24,8 +24,8 @@ public class FamilyManager : Singleton<FamilyManager>
     /// </summary>
     public void Load()
     {
-        _families = new Dictionary<uint, Family>();
-        _familyMembers = new Dictionary<uint, FamilyMember>();
+        _families = [];
+        _familyMembers = [];
 
         Logger.Info("Loading families...");
         using (var connection = MySQL.CreateConnection())

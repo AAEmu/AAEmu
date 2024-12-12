@@ -10,9 +10,9 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Teleport : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "teleport" };
+    public string[] CommandNames { get; set; } = ["teleport"];
 
-    private List<TPloc> Locations { get; init; } = new();
+    private List<TPloc> Locations { get; init; } = [];
     private bool AllowPingPos { get; set; } = true; // Enable or Disable /teleport . (dot) command functionality
 
     private static readonly string[] cinder = ["cinder"];

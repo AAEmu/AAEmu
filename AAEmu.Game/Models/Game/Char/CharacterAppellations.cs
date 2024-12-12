@@ -18,7 +18,7 @@ public class CharacterAppellations
     public CharacterAppellations(Character owner)
     {
         Owner = owner;
-        Appellations = new List<uint>();
+        Appellations = [];
         ActiveAppellation = 0;
     }
 

@@ -22,7 +22,7 @@ public class AIManager : Singleton<AIManager>
         if (_initialized)
             return;
 
-        _npcAis = new List<NpcAi>();
+        _npcAis = [];
         _aiLock = new object();
         TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100), true);
 

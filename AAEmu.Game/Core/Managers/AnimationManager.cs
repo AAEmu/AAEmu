@@ -14,8 +14,8 @@ public class AnimationManager : Singleton<AnimationManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<uint, Anim> _animations = new();
-    private Dictionary<string, Anim> _animationsByName = new();
+    private Dictionary<uint, Anim> _animations = [];
+    private Dictionary<string, Anim> _animationsByName = [];
 
     public Anim GetAnimation(uint id)
     {
@@ -107,8 +107,8 @@ public class AnimationManager : Singleton<AnimationManager>
 
     public void Load()
     {
-        _animations = new Dictionary<uint, Anim>();
-        _animationsByName = new Dictionary<string, Anim>();
+        _animations = [];
+        _animationsByName = [];
 
         Logger.Info("Loading animations...");
 

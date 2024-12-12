@@ -32,12 +32,12 @@ public class IndunManager : Singleton<IndunManager>
 
     public void Initialize()
     {
-        _teamDungeons = new Dictionary<Team, List<Dungeon>>();
-        _soloDungeons = new Dictionary<uint, Dungeon>();
-        _sysDungeons = new Dictionary<uint, Dungeon>();
+        _teamDungeons = [];
+        _soloDungeons = [];
+        _sysDungeons = [];
         TickManager.Instance.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(10), true);
-        _attempts ??= new Dictionary<uint, Dictionary<uint, int>>();
-        _waitingDungeonAccessAttemptsCleared ??= new Dictionary<uint, Dictionary<uint, bool>>();
+        _attempts ??= [];
+        _waitingDungeonAccessAttemptsCleared ??= [];
     }
 
     private void IndunInfoTick(TimeSpan delta)
@@ -241,11 +241,11 @@ public class IndunManager : Singleton<IndunManager>
 
         if (_teamDungeons.TryGetValue(team, out var dungeon))
         {
-            dungeon ??= new List<Dungeon>();
+            dungeon ??= [];
         }
         else
         {
-            dungeon = new List<Dungeon>();
+            dungeon = [];
             _teamDungeons.Add(team, dungeon);
         }
 
@@ -639,7 +639,7 @@ public class IndunManager : Singleton<IndunManager>
                 else
                 {
                     res = true;
-                    cd = new Dictionary<uint, int>();
+                    cd = [];
                     cd.TryAdd(zoneGroupId, 1);
                     _attempts.TryAdd(characterId, cd);
 
@@ -649,7 +649,7 @@ public class IndunManager : Singleton<IndunManager>
             else
             {
                 res = true;
-                cd = new Dictionary<uint, int>();
+                cd = [];
                 cd.TryAdd(zoneGroupId, 1);
                 _attempts.TryAdd(characterId, cd);
 

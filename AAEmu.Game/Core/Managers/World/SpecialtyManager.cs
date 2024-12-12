@@ -33,13 +33,13 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
 
     public void Load()
     {
-        _specialties = new Dictionary<uint, Specialty>();
-        _specialtyBundleItems = new Dictionary<uint, SpecialtyBundleItem>();
-        _specialtyNpc = new Dictionary<uint, SpecialtyNpc>();
-        _soldPackAmountInTick = new Dictionary<uint, Dictionary<uint, int>>();
+        _specialties = [];
+        _specialtyBundleItems = [];
+        _specialtyNpc = [];
+        _soldPackAmountInTick = [];
 
-        _specialtyBundleItemsMapped = new Dictionary<uint, Dictionary<uint, SpecialtyBundleItem>>();
-        _priceRatios = new Dictionary<uint, Dictionary<uint, double>>();
+        _specialtyBundleItemsMapped = [];
+        _priceRatios = [];
 
         Logger.Info("SpecialtyManager is loading...");
 
@@ -84,7 +84,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                         _specialtyBundleItems.Add(template.Id, template);
 
                         if (!_specialtyBundleItemsMapped.ContainsKey(template.ItemId))
-                            _specialtyBundleItemsMapped.Add(template.ItemId, new Dictionary<uint, SpecialtyBundleItem>());
+                            _specialtyBundleItemsMapped.Add(template.ItemId, []);
 
                         _specialtyBundleItemsMapped[template.ItemId].Add(template.SpecialtyBundleId, template);
                     }
@@ -169,7 +169,6 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
 
         return res;
     }
-
 
     public int GetBasePriceForSpecialty(Character player, uint npcId)
     {
@@ -322,7 +321,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         // Add one pack sold in this zone during this tick
         var zoneGroupId = ZoneManager.Instance.GetZoneByKey(player.Transform.ZoneId)?.GroupId ?? 0;
         if (!_soldPackAmountInTick.ContainsKey(backpack.TemplateId))
-            _soldPackAmountInTick.Add(backpack.TemplateId, new Dictionary<uint, int>());
+            _soldPackAmountInTick.Add(backpack.TemplateId, []);
 
         _soldPackAmountInTick[backpack.TemplateId].TryAdd(zoneGroupId, 0);
         _soldPackAmountInTick[backpack.TemplateId][zoneGroupId] += 1;
@@ -372,7 +371,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
     private void InitRatioInZoneForPack(uint itemId, uint zoneGroupId)
     {
         if (!_priceRatios.ContainsKey(itemId))
-            _priceRatios.Add(itemId, new Dictionary<uint, double>());
+            _priceRatios.Add(itemId, []);
 
         if (!_priceRatios[itemId].ContainsKey(zoneGroupId))
             _priceRatios[itemId].Add(zoneGroupId, AppConfiguration.Instance.Specialty.MaxSpecialtyRatio);

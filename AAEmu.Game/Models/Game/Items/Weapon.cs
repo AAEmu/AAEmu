@@ -134,9 +134,11 @@ public class Weapon : EquipItem
             var template = (WeaponTemplate)Template;
             var grade = ItemManager.Instance.GetGradeTemplate(Grade);
             var formula = template.HoldableTemplate.FormulaDps;
-            var parameters = new Dictionary<string, double>();
-            parameters["item_level"] = template.Level;
-            parameters["item_grade"] = grade.HoldableDps;
+            var parameters = new Dictionary<string, double>
+            {
+                ["item_level"] = template.Level,
+                ["item_grade"] = grade.HoldableDps
+            };
             var formulaRes = formula.Evaluate(parameters);
             if (TemperPhysical > 100)
                 formulaRes *= (TemperPhysical / 100.0f);
@@ -151,9 +153,11 @@ public class Weapon : EquipItem
             var template = (WeaponTemplate)Template;
             var grade = ItemManager.Instance.GetGradeTemplate(Grade);
             var formula = template.HoldableTemplate.FormulaMDps;
-            var parameters = new Dictionary<string, double>();
-            parameters["item_level"] = template.Level;
-            parameters["item_grade"] = grade.HoldableMagicDps;
+            var parameters = new Dictionary<string, double>
+            {
+                ["item_level"] = template.Level,
+                ["item_grade"] = grade.HoldableMagicDps
+            };
             var formulaRes = formula.Evaluate(parameters);
             if (TemperMagical > 100)
                 formulaRes *= (TemperMagical / 100.0f);
@@ -168,9 +172,11 @@ public class Weapon : EquipItem
             var template = (WeaponTemplate)Template;
             var grade = ItemManager.Instance.GetGradeTemplate(Grade);
             var formula = template.HoldableTemplate.FormulaHDps;
-            var parameters = new Dictionary<string, double>();
-            parameters["item_level"] = template.Level;
-            parameters["item_grade"] = grade.HoldableMagicDps;
+            var parameters = new Dictionary<string, double>
+            {
+                ["item_level"] = template.Level,
+                ["item_grade"] = grade.HoldableMagicDps
+            };
 
             var formulaRes = formula.Evaluate(parameters);
             if (TemperMagical > 100)
@@ -186,9 +192,11 @@ public class Weapon : EquipItem
             var template = (WeaponTemplate)Template;
             var grade = ItemManager.Instance.GetGradeTemplate(Grade);
             var formula = template.HoldableTemplate.FormulaArmor;
-            var parameters = new Dictionary<string, double>();
-            parameters["item_level"] = template.Level;
-            parameters["item_grade"] = grade.HoldableArmor;
+            var parameters = new Dictionary<string, double>
+            {
+                ["item_level"] = template.Level,
+                ["item_grade"] = grade.HoldableArmor
+            };
 
             var formulaResult = formula.Evaluate(parameters);
             if (TemperPhysical > 100)

@@ -636,8 +636,8 @@ public class Simulation : Patrol
         }
 
         TargetPosition = unit.ParentObj?.Transform?.World?.Position ?? Vector3.Zero;
-        RecordPath = new List<string>();
-        Paths = new Dictionary<string, List<Vector3>>();
+        RecordPath = [];
+        Paths = [];
     }
 
     private void ReadPath() // Called when the script is enabled
@@ -650,7 +650,7 @@ public class Simulation : Patrol
                 return;
             }
 
-            MovePath = new List<string>();
+            MovePath = [];
             var pathFileName = GetMoveFileName();
             if (File.Exists(pathFileName))
             {
@@ -675,7 +675,7 @@ public class Simulation : Patrol
         // Read RecordPath
         try
         {
-            RecordPath = new List<string>();
+            RecordPath = [];
             //RecordPath = File.ReadLines(GetMoveFileName()).ToList();
         }
         catch (Exception e)

@@ -23,7 +23,7 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public string DiscordToken { get; set; }
     public ExpeditionConfig Expedition { get; set; }
     public WorldConfig World { get; set; }
-    public Dictionary<string, int> AccessLevel { get; set; } = new Dictionary<string, int>();
+    public Dictionary<string, int> AccessLevel { get; set; } = [];
     public AccountConfig Account { get; set; }
     public CurrencyValuesConfig Labor { get; set; }
     public CurrencyValuesConfig LaborOffline { get; set; }
@@ -33,7 +33,6 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
     public ScriptsConfig Scripts { get; set; } = new ScriptsConfig();
     public string DefaultLanguage { get; set; } = "en_us";
-
 
     public class NetworkConfig
     {

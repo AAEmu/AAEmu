@@ -108,7 +108,7 @@ public abstract class BaseCombatBehavior : Behavior
                         if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
                         {
                             Ai.Owner.StopMovement();
-                            Ai.PathNode.findPath = new List<Point>();
+                            Ai.PathNode.findPath = [];
                             return;
                         }
 

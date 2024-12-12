@@ -20,6 +20,6 @@ public class ShipyardsTemplate
 
     public ShipyardsTemplate()
     {
-        ShipyardSteps = new Dictionary<int, ShipyardSteps>();
+        ShipyardSteps = [];
     }
 }

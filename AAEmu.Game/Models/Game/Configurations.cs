@@ -38,7 +38,7 @@ public class AccountConfig
     public bool DeleteReleaseName { get; set; } = false;
     // ReSharper disable once CollectionNeverUpdated.Global
     // Populated by JSON reader
-    public List<AccountDeleteDelayTiming> DeleteTimings { get; set; } = new List<AccountDeleteDelayTiming>();
+    public List<AccountDeleteDelayTiming> DeleteTimings { get; set; } = [];
     public int AccessLevelDefault { get; set; } = 0;
     public int AccessLevelFirstAccount { get; set; } = 100;
     public int AccessLevelFirstCharacter { get; set; } = 100;

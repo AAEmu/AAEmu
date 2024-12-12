@@ -87,7 +87,6 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         Logger.Info($"{QuestActTemplateName}.FinalizeQuest({questAct.Template.DetailId}) Owner {quest.Owner.Name} ({quest.Owner.Id})");
     }
 
-
     /// <summary>
     /// Execute and check an Act for its results, called after updating objective counts, descendents should never call base()
     /// </summary>

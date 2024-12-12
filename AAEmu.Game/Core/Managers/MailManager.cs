@@ -20,13 +20,12 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-
 public class MailManager : Singleton<MailManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Dictionary<long, BaseMail> _allPlayerMails;
-    private List<long> _deletedMailIds = new();
+    private List<long> _deletedMailIds = [];
     // Unused: private object _lock = new();
 
     public static int CostNormal { get; set; } = 50;
@@ -110,8 +109,8 @@ public class MailManager : Singleton<MailManager>
     public void Load()
     {
         Logger.Info("Loading player mails ...");
-        _allPlayerMails = new Dictionary<long, BaseMail>();
-        _deletedMailIds = new List<long>();
+        _allPlayerMails = [];
+        _deletedMailIds = [];
 
         using (var connection = MySQL.CreateConnection())
         {
@@ -454,7 +453,6 @@ public class MailManager : Singleton<MailManager>
         houseId = (uint)(extra & 0xFFFFFFFF); // Extract house DB Id from Extra
         zoneGroupId = (ushort)((extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
     }
-
 
     public void DeleteHouseMails(uint houseId)
     {

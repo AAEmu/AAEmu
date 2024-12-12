@@ -15,7 +15,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ShowInventory : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "inventory", "showinv", "show_inv", "showinventory", "show_inventory" };
+    public string[] CommandNames { get; set; } = ["inventory", "showinv", "show_inv", "showinventory", "show_inventory"];
 
     public void OnLoad()
     {

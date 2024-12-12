@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -23,6 +22,6 @@ public class CSRepairSingleEquipmentPacket : GamePacket
 
         var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
 
-        Connection.ActiveChar.DoRepair(new List<Item> { item });
+        Connection.ActiveChar.DoRepair([item]);
     }
 }

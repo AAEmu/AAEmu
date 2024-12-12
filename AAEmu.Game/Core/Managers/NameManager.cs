@@ -58,7 +58,6 @@ public partial class NameManager : Singleton<NameManager>
             _characterNameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
         }
 
-
         using (var connection = MySQL.CreateConnection())
         {
             using (var command = connection.CreateCommand())
@@ -118,7 +117,6 @@ public partial class NameManager : Singleton<NameManager>
 
             return CharacterCreateError.NameAlreadyExists;
         }
-
 
         if (string.IsNullOrWhiteSpace(name) || !ValidatesName(name.AsSpan()))
             return CharacterCreateError.InvalidCharacters;

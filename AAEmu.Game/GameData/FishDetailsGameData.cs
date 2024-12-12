@@ -19,7 +19,7 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
 
     public void Load(SqliteConnection connection)
     {
-        _fishDetails = new Dictionary<uint, FishDetails>();
+        _fishDetails = [];
 
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT * FROM fish_details";

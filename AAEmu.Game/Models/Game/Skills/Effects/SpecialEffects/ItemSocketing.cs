@@ -94,7 +94,7 @@ public class ItemSocketing : SpecialEffectAction
 
         tasksSocketing.Add(new ItemUpdate(equipItem));
 
-        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Socketing, tasksSocketing, new List<ulong>()));
+        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Socketing, tasksSocketing, []));
         owner.SendPacket(new SCItemSocketingLunagemResultPacket(result, equipItem.Id, gemItem.TemplateId, true));
         owner.BroadcastPacket(new SCSkillEndedPacket(skill.TlId), true);
     }

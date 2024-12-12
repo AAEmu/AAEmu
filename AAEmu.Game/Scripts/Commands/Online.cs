@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Online : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "online", "list_online" };
+    public string[] CommandNames { get; set; } = ["online", "list_online"];
 
     public void OnLoad()
     {

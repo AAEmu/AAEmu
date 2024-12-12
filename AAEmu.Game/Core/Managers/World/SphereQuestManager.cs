@@ -36,12 +36,12 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
 
     public SphereQuestManager()
     {
-        _sphereQuestTriggers = new List<SphereQuestTrigger>();
-        _addQueue = new List<SphereQuestTrigger>();
-        _removeQueue = new List<SphereQuestTrigger>();
-        _questStartingSpheres = new List<SphereQuestStarter>();
-        _questSpheresBasic = new List<SphereQuestStarter>();
-        _questStartingLastPositionChecks = new Dictionary<uint, Vector3>();
+        _sphereQuestTriggers = [];
+        _addQueue = [];
+        _removeQueue = [];
+        _questStartingSpheres = [];
+        _questSpheresBasic = [];
+        _questStartingLastPositionChecks = [];
     }
 
     public void Initialize()
@@ -161,7 +161,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                     }
                 }
                 // Erase the list again for next tick
-                _addQueue = new List<SphereQuestTrigger>();
+                _addQueue = [];
             }
 
             // Handle player specific Triggers
@@ -179,7 +179,7 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                     _sphereQuestTriggers.Remove(triggerToRemove);
                 }
 
-                _removeQueue = new List<SphereQuestTrigger>();
+                _removeQueue = [];
             }
 
             // Handle Global triggers for quest starters
@@ -312,8 +312,10 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
                             sphere.Xyz = ZoneManager.ConvertToWorldCoordinates(zoneId, sphere.Xyz);
                             if (!sphereQuests.TryGetValue(sphere.ComponentId, out var value))
                             {
-                                var sphereList = new List<SphereQuest>();
-                                sphereList.Add(sphere);
+                                var sphereList = new List<SphereQuest>
+                                {
+                                    sphere
+                                };
                                 sphereQuests.Add(sphere.ComponentId, sphereList);
                             }
                             else

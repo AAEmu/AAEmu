@@ -12,7 +12,7 @@ public class Server : TcpServer
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private BaseProtocolHandler _protocolHandler;
-    private readonly HashSet<Session> _sessions = new();
+    private readonly HashSet<Session> _sessions = [];
 
     public BaseProtocolHandler GetHandler() => _protocolHandler;
 

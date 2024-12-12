@@ -18,7 +18,7 @@ public class Hmap
     public float HeightmapZRatio { get; set; }
     public float OceanWaterLevel { get; set; }
 
-    public List<NodeCell> Nodes { get; set; } = new List<NodeCell>();
+    public List<NodeCell> Nodes { get; set; } = [];
 
     public int Read(BinaryReader br, bool disabledReCalc)
     {

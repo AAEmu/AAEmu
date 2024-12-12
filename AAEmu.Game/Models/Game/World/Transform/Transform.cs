@@ -92,12 +92,12 @@ public class Transform : IDisposable
         _owningObject = owningObject;
         _parentTransform = parentTransform;
         _stickyParentTransform = stickyParentTransform;
-        _children = new List<Transform>();
+        _children = [];
         _localPosRot = new PositionAndRotation();
         //_stickyParentTransform = null; // TODO why are we doing this?
-        _stickyChildren = new List<Transform>();
+        _stickyChildren = [];
         _lastFinalizePos = Vector3.Zero;
-        _debugTrackers = new List<Character>();
+        _debugTrackers = [];
     }
 
     public Transform(GameObject owningObject, Transform parentTransform = null, Transform stickyParentTransform = null)

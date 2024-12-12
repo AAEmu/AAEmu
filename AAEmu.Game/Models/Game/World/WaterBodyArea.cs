@@ -37,13 +37,13 @@ public class WaterBodyArea
 
     public WaterBodyArea()
     {
-        Points = new List<Vector3>();
+        Points = [];
     }
 
     public WaterBodyArea(string name)
     {
         Name = name;
-        Points = new List<Vector3>();
+        Points = [];
     }
 
     public bool IsWater(Vector3 point)

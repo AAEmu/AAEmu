@@ -33,7 +33,7 @@ public class GameConnectionTable : Singleton<GameConnectionTable>
 
     public List<GameConnection> GetConnections()
     {
-        return new List<GameConnection>(_connections.Values);
+        return [.. _connections.Values];
     }
 
     public GameConnection GetConnectionByAccount(uint accountId)

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Height : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "height" };
+    public string[] CommandNames { get; set; } = ["height"];
 
     public void OnLoad()
     {
@@ -30,7 +30,7 @@ public class Height : ICommand
         var targetPlayer = character;
         if (args.Length > 0)
         {
-            targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+            targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
         }
 
         var height = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId,

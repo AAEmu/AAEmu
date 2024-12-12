@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.TowerDefs;
@@ -15,8 +15,8 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 
     public void Load(SqliteConnection connection)
     {
-        _towerDefs = new Dictionary<uint, TowerDef>();
-        _towerDefProgs = new Dictionary<uint, TowerDefProg>();
+        _towerDefs = [];
+        _towerDefProgs = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -36,7 +36,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                         KillNpcCount = reader.GetUInt32("kill_npc_count", 0),
                         ForceEndTime = reader.GetFloat("force_end_time"),
                         TimeOfDayDayInterval = reader.GetUInt32("tod_day_interval"),
-                        Progs = new List<TowerDefProg>()
+                        Progs = []
                     };
 
                     _towerDefs.Add(template.Id, template);
@@ -62,8 +62,8 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                         TowerDef = towerDef,
                         CondToNextTime = reader.GetFloat("cond_to_next_time"),
                         CondCompByAnd = reader.GetBoolean("cond_comp_by_and", true),
-                        KillTargets = new List<TowerDefProgKillTarget>(),
-                        SpawnTargets = new List<TowerDefProgSpawnTarget>()
+                        KillTargets = [],
+                        SpawnTargets = []
                     };
 
                     towerDef.Progs.Add(template);

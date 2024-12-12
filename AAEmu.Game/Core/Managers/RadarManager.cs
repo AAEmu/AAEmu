@@ -24,7 +24,7 @@ public class RadarManager : Singleton<RadarManager>
 
     public void Initialize()
     {
-        Registrations = new Dictionary<uint, TelescopeRegistrationEntry>();
+        Registrations = [];
         TickManager.Instance.OnTick.Subscribe(RadarTick, TimeSpan.FromMilliseconds(RadarUpdateDelay), true);
     }
 
@@ -113,11 +113,11 @@ public class RadarManager : Singleton<RadarManager>
             var allTransfers = TransferManager.Instance.GetTransfers();
             var allFish = FishSchoolManager.Instance.GetAllFishSchools();
             // TODO: Add Shipyards
-            var allShips = SlaveManager.Instance.GetActiveSlavesByKinds(new SlaveKind[]
-            {
+            var allShips = SlaveManager.Instance.GetActiveSlavesByKinds(
+            [
                 SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.Speedboat, SlaveKind.MerchantShip,
                 SlaveKind.BigSailingShip, SlaveKind.SmallSailingShip
-            }).ToList();
+            ]).ToList();
 
             foreach (var (_, entry) in Registrations)
             {
@@ -210,7 +210,6 @@ public class RadarManager : Singleton<RadarManager>
                         }
                     }
                 }
-
 
             } // for each player
         } // lock

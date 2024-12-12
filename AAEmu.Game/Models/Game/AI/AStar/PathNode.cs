@@ -59,7 +59,7 @@ public class PathNode
     public List<Point> FindPath(Point start, Point goal)
     {
         // Step 0
-        findPath = new List<Point>();
+        findPath = [];
         // Find the nearest point from the start point in the list of geodata points and start the search from it.
         var (current, posStart) = AiGeoDataManager.Instance.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
         start = posStart; // replace it with the nearest point from the geodata
@@ -127,7 +127,7 @@ public class PathNode
             }
         }
         // Step 10.
-        return new List<Point>();
+        return [];
         ;
     }
 

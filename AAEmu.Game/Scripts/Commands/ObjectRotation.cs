@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ObjectRotation : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "setrot", "npcrot", "doodadrot" };
+    public string[] CommandNames { get; set; } = ["setrot", "npcrot", "doodadrot"];
 
     public void OnLoad()
     {

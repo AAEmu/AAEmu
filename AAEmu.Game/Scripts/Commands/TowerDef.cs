@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TowerDef : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "towerdef", "tower_def" };
+    public string[] CommandNames { get; set; } = ["towerdef", "tower_def"];
 
     public void OnLoad()
     {

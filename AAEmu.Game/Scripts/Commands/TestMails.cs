@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestMails : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testmail", "test_mail" };
+    public string[] CommandNames { get; set; } = ["testmail", "test_mail"];
 
     public void OnLoad()
     {
@@ -219,7 +219,6 @@ public class TestMails : ICommand
                     }
                 }
             }
-
 
             mail.Send();
         }

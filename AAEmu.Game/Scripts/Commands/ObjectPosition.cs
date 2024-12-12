@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ObjectPosition : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "setpos", "npcloc", "npcpos", "doodadloc", "doodadpos" };
+    public string[] CommandNames { get; set; } = ["setpos", "npcloc", "npcpos", "doodadloc", "doodadpos"];
 
     public void OnLoad()
     {

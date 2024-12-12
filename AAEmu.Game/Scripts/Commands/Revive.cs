@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Revive : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "revive" };
+    public string[] CommandNames { get; set; } = ["revive"];
 
     public void OnLoad()
     {

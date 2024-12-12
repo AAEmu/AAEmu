@@ -422,7 +422,7 @@ public class MersenneTwister : Random
     private readonly uint[] _mt = new uint[N]; /* the array for the state vector  */
     private short _mti;
 
-    private static readonly uint[] _mag01 = { 0x0, MatrixA };
+    private static readonly uint[] _mag01 = [0x0, MatrixA];
 
     private void init(uint seed)
     {
@@ -483,7 +483,6 @@ public class MersenneTwister : Random
         _mt[0] = 0x80000000U; // MSB is 1; assuring non-zero initial array
     }
 
-
     // 9007199254740991.0 is the maximum double value which the 53 significand
     // can hold when the exponent is 0.
     private const double FiftyThreeBitsOf1S = 9007199254740991.0;
@@ -505,7 +504,7 @@ public class MersenneTwister : Random
         return ((a * 67108864.0 + b) + translate) * scale;
 
         // What about the following instead of the above? Is the multiply better? 
-        // Why? (Is it the FMUL instruction? Does this count in .Net? Will the JITter notice?)
+        // Why? (Is it the FMUL instruction? Does this count in .Net? Will the Jitter notice?)
         //return BitConverter.Int64BitsToDouble((a << 26) + b));
     }
 }

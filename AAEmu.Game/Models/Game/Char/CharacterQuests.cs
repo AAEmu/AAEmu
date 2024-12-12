@@ -32,9 +32,9 @@ public class CharacterQuests
     public CharacterQuests(Character owner)
     {
         Owner = owner;
-        ActiveQuests = new Dictionary<uint, Quest>();
-        CompletedQuests = new Dictionary<ushort, CompletedQuest>();
-        _removed = new List<uint>();
+        ActiveQuests = [];
+        CompletedQuests = [];
+        _removed = [];
     }
 
     public bool HasQuest(uint questId)
@@ -617,11 +617,10 @@ public class CharacterQuests
     public void ResetDailyQuests(bool sendPacketsIfChanged)
     {
         ResetQuests(
-            new[]
-            {
+            [
                 QuestDetail.Daily, QuestDetail.DailyGroup, QuestDetail.DailyHunt,
                 QuestDetail.DailyLivelihood
-            }, sendPacketsIfChanged
+            ], sendPacketsIfChanged
         );
     }
 

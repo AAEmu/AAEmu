@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class PingPosition : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "pingpos", "ping_pos", "pingposition" };
+    public string[] CommandNames { get; set; } = ["pingpos", "ping_pos", "pingposition"];
 
     public void OnLoad()
     {

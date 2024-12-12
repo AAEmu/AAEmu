@@ -144,7 +144,7 @@ public class EquipmentContainer : ItemContainer
             slotTypeId = EquipmentItemSlotType.Backpack;
         else
         {
-            return new List<EquipmentItemSlot>(); // must be a equip-able item
+            return []; // must be a equip-able item
         }
 
         return GetAllowedGearSlots(slotTypeId);

@@ -11,13 +11,15 @@ public class SCSoldItemListPacket : GamePacket
 
     public SCSoldItemListPacket(List<Item> items) : base(SCOffsets.SCSoldItemListPacket, 1)
     {
-        _items = new List<Item>();
-        /*
+        _items =
+        [
+            /*
         var startPos = items.Count < 12 ? 0 : items.Count - 12;
         var size = items.Count - startPos;
         _items.AddRange(items.GetRange(startPos, size));
         */
-        _items.AddRange(items.GetRange(0, items.Count > 12 ? 12 : items.Count));
+            .. items.GetRange(0, items.Count > 12 ? 12 : items.Count),
+        ];
     }
 
     public override PacketStream Write(PacketStream stream)

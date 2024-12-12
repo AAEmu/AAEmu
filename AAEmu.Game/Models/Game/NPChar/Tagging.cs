@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 public class Tagging
 {
     private object _lock = new();
-    private Dictionary<Character, int> _taggers = new();
+    private Dictionary<Character, int> _taggers = [];
     private Character _tagger;
     private uint _tagTeam;
     // private int _totalDamage;
@@ -43,7 +43,7 @@ public class Tagging
     }
     public void ClearAllTaggers()
     {
-        _taggers = new Dictionary<Character, int>();
+        _taggers = [];
         _tagger = null;
         _tagTeam = 0;
         // _totalDamage = 0;
@@ -58,10 +58,6 @@ public class Tagging
             {
                 checkUnit = WorldManager.Instance.GetCharacterByObjId(pm.OwnerObjId) ?? checkUnit;
             }
-
-
-
-
 
             if (checkUnit is Character pl)
             {
@@ -112,7 +108,6 @@ public class Tagging
 
                         _tagTeam = checkTeam.Id;
 
-
                     }
                 }
                 else
@@ -125,7 +120,6 @@ public class Tagging
                 }
             }
             //TODO: packet to set red-but-not-aggro HP bar for taggers, "dull red" HP bar for not-taggers
-
 
         }
     }

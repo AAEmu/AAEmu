@@ -115,7 +115,7 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
                 if (doodad.FarmType == farmType)
                 {
                     if (!list.ContainsKey(farmType))
-                        list.Add(farmType, new List<Doodad>());
+                        list.Add(farmType, []);
                     list[farmType].Add(doodad);
                 }
             }
@@ -135,12 +135,14 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
     public void Load()
     {
         //common farm subzone ID's
-        _farmZones = new Dictionary<uint, FarmType>();
-        _farmZones.Add(998, FarmType.Farm);
-        _farmZones.Add(966, FarmType.Farm);
-        _farmZones.Add(968, FarmType.Nursery);
-        _farmZones.Add(967, FarmType.Ranch);
-        _farmZones.Add(974, FarmType.Stable);
+        _farmZones = new Dictionary<uint, FarmType>
+        {
+            { 998, FarmType.Farm },
+            { 966, FarmType.Farm },
+            { 968, FarmType.Nursery },
+            { 967, FarmType.Ranch },
+            { 974, FarmType.Stable }
+        };
     }
 
 }

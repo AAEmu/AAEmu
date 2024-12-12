@@ -19,7 +19,7 @@ public class ExpeditionMember : PacketMarshaler
     public byte Level { get; set; }
     public uint ZoneId { get; set; }
     public uint Id3 { get; set; } // TODO mb system faction.Id?
-    public byte[] Abilities { get; set; } = { 11, 11, 11 };
+    public byte[] Abilities { get; set; } = [11, 11, 11];
     public byte Role { get; set; }
     public Vector3 Position { get; set; } = Vector3.Zero;
     public string Memo { get; set; }
@@ -30,7 +30,7 @@ public class ExpeditionMember : PacketMarshaler
         IsOnline = true;
         Position = character.Transform.World.Position;
         ZoneId = character.Transform.ZoneId;
-        Abilities = new[] { (byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3 };
+        Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];
         Level = character.Level;
         Name = character.Name;
         LastWorldLeaveTime = DateTime.UtcNow;

@@ -62,10 +62,10 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
 
     public void Load(SqliteConnection connection)
     {
-        _reagents = new List<ItemConversionReagent>();
-        _products = new List<ItemConversionProduct>();
-        _conversions = new List<int>();
-        _conversionSets = new Dictionary<uint, int>();
+        _reagents = [];
+        _products = [];
+        _conversions = [];
+        _conversionSets = [];
 
         // reagents
         using (var command = connection.CreateCommand())

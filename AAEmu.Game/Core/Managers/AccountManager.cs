@@ -21,7 +21,7 @@ public class AccountManager : Singleton<AccountManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private ConcurrentDictionary<uint, GameConnection> _accounts;
-    private readonly Dictionary<uint, object> _locks = new();
+    private readonly Dictionary<uint, object> _locks = [];
 
     public AccountManager()
     {
@@ -417,6 +417,4 @@ public class AccountManager : Singleton<AccountManager>
 
         return (timeElapsed, timesTaken);
     }
-
-
 }

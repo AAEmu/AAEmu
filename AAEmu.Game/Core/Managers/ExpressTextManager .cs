@@ -21,7 +21,7 @@ public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextMan
 
     public void Load()
     {
-        _expressTexts = new Dictionary<uint, uint>();
+        _expressTexts = [];
 
         Logger.Info("Loading express text...");
 

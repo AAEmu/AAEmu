@@ -67,7 +67,7 @@ public class NpcTemplate
     public uint SpecialtyCoinId { get; set; }
     public bool UseRangeMod { get; set; }
     public int NpcPostureSetId { get; set; }
-    public List<NpcPosture> NpcPostureSets { get; set; } = new();
+    public List<NpcPosture> NpcPostureSets { get; set; } = [];
     public int MateEquipSlotPackId { get; set; }
     public int MateKindId { get; set; }
     public uint EngageCombatGiveQuestId { get; set; }
@@ -101,10 +101,10 @@ public class NpcTemplate
         Items = new EquipItemsTemplate();
         ModelParams = new UnitCustomModelParams();
         BodyItems = new (uint, bool)[7];
-        Buffs = new List<uint>();
-        Bonuses = new List<BonusTemplate>();
-        Skills = new Dictionary<SkillUseConditionKind, List<NpcSkill>>();
-        PassiveBuffs = new List<NpcPassiveBuff>();
+        Buffs = [];
+        Bonuses = [];
+        Skills = [];
+        PassiveBuffs = [];
     }
 
     public void BindSkills(List<NpcSkill> skills)
@@ -112,7 +112,7 @@ public class NpcTemplate
         foreach (var skill in skills)
         {
             if (!Skills.ContainsKey(skill.SkillUseCondition))
-                Skills.Add(skill.SkillUseCondition, new List<NpcSkill>());
+                Skills.Add(skill.SkillUseCondition, []);
 
             Skills[skill.SkillUseCondition].Add(skill);
         }

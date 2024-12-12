@@ -71,13 +71,13 @@ public class FormulaManager : Singleton<FormulaManager>
         CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
         CalculationEngine.AddFunction("if_zero", (a, b, c) => a == 0 ? b : c);
 
-        _unitFormulas = new Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>>();
+        _unitFormulas = [];
         foreach (var owner in Enum.GetValues(typeof(FormulaOwnerType)))
-            _unitFormulas.Add((FormulaOwnerType)owner, new Dictionary<UnitFormulaKind, UnitFormula>());
-        _wearableFormulas = new Dictionary<WearableFormulaType, WearableFormula>();
+            _unitFormulas.Add((FormulaOwnerType)owner, []);
+        _wearableFormulas = [];
         _unitVariables =
-            new Dictionary<uint, Dictionary<UnitFormulaVariableType, Dictionary<uint, UnitFormulaVariable>>>();
-        _formulas = new Dictionary<uint, Formula>();
+            [];
+        _formulas = [];
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -122,10 +122,10 @@ public class FormulaManager : Singleton<FormulaManager>
                         };
                         if (!_unitVariables.ContainsKey(variable.FormulaId))
                             _unitVariables.Add(variable.FormulaId,
-                                new Dictionary<UnitFormulaVariableType, Dictionary<uint, UnitFormulaVariable>>());
+                                []);
                         if (!_unitVariables[variable.FormulaId].ContainsKey(variable.Type))
                             _unitVariables[variable.FormulaId].Add(variable.Type,
-                                new Dictionary<uint, UnitFormulaVariable>());
+                                []);
                         _unitVariables[variable.FormulaId][variable.Type].Add(variable.Key, variable);
                     }
                 }

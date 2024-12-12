@@ -27,11 +27,10 @@ public class GameController : Singleton<GameController>
         return null;
     }
 
-
     protected GameController()
     {
-        _gameServers = new Dictionary<byte, GameServer>();
-        _mirrorsId = new Dictionary<byte, byte>();
+        _gameServers = [];
+        _mirrorsId = [];
     }
 
     private static async Task SendPacketWithDelay(InternalConnection connection, int delay, InternalPacket message)

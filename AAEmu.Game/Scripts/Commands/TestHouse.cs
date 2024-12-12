@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestHouse : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "house", "test_house", "testhouse" };
+    public string[] CommandNames { get; set; } = ["house", "test_house", "testhouse"];
 
     public void OnLoad()
     {

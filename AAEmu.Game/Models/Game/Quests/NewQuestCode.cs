@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 
 public partial class Quest
 {
-    public Dictionary<QuestComponentKind, QuestStep> QuestSteps { get; private set; } = new();
+    public Dictionary<QuestComponentKind, QuestStep> QuestSteps { get; private set; } = [];
 
     #region Framework
 

@@ -241,7 +241,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     private void LoadGameScheduleSpawnersData()
     {
         // Spawners
-        _gameScheduleSpawnerIds = new Dictionary<int, List<int>>();
+        _gameScheduleSpawnerIds = [];
         foreach (var gss in _gameScheduleSpawners.Values)
         {
             if (!_gameScheduleSpawnerIds.TryGetValue(gss.SpawnerId, out var gameScheduleIds))
@@ -255,7 +255,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         }
 
         // Doodads
-        _gameScheduleDoodadIds = new Dictionary<int, List<int>>();
+        _gameScheduleDoodadIds = [];
         foreach (var gsd in _gameScheduleDoodads.Values)
         {
             if (!_gameScheduleDoodadIds.TryGetValue(gsd.DoodadId, out var gameScheduleIds))
@@ -272,7 +272,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
     public bool GetGameScheduleDoodadsData(uint doodadId)
     {
-        GameScheduleId = new List<int>();
+        GameScheduleId = [];
         foreach (var gsd in _gameScheduleDoodads.Values)
         {
             if (gsd.DoodadId != doodadId) { continue; }
@@ -283,7 +283,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
     public bool GetGameScheduleQuestsData(uint questId)
     {
-        GameScheduleId = new List<int>();
+        GameScheduleId = [];
         foreach (var gsq in _gameScheduleQuests.Values)
         {
             if (gsq.QuestId != questId) { continue; }

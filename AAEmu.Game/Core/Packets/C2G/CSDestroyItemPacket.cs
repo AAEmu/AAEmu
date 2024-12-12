@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -33,7 +32,7 @@ public class CSDestroyItemPacket : GamePacket
         if (item.Count > count)
         {
             item.Count -= count;
-            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemCountUpdate(item, -count) }, new List<ulong>()));
+            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, [new ItemCountUpdate(item, -count)], []));
         }
         else
         {
@@ -41,7 +40,7 @@ public class CSDestroyItemPacket : GamePacket
             if (item._holdingContainer == null)
             {
                 ItemManager.Instance.ReleaseId(item.Id);
-                Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
+                Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, [new ItemRemove(item)], []));
             }
             else
             if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))

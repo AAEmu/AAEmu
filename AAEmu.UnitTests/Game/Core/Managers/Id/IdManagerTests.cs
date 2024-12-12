@@ -43,6 +43,6 @@ public class IdManagerTests
 
         var firstId = 0x00000100u;
         var ids = ObjectIdManager.Instance.GetNextId(10);
-        Assert.Equal(new uint[] { firstId, firstId + 1, firstId + 2, firstId + 3, firstId + 4, firstId + 5, firstId + 6, firstId + 7, firstId + 8, firstId + 9 }, ids);
+        Assert.Equal([firstId, firstId + 1, firstId + 2, firstId + 3, firstId + 4, firstId + 5, firstId + 6, firstId + 7, firstId + 8, firstId + 9], ids);
     }
 }

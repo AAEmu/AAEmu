@@ -71,27 +71,27 @@ public class DoodadManager : Singleton<DoodadManager>
             return;
         }
 
-        _templates = new Dictionary<uint, DoodadTemplate>();
-        _allFuncGroups = new Dictionary<uint, DoodadFuncGroups>();
-        _funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
-        _funcsById = new Dictionary<uint, DoodadFunc>();
-        _phaseFuncs = new Dictionary<uint, List<DoodadPhaseFunc>>();
-        _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
-        _phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>();
+        _templates = [];
+        _allFuncGroups = [];
+        _funcsByGroups = [];
+        _funcsById = [];
+        _phaseFuncs = [];
+        _funcTemplates = [];
+        _phaseFuncTemplates = [];
         foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()),
                      "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
         {
             if (type.BaseType == typeof(DoodadFuncTemplate))
             {
-                _funcTemplates.Add(type.Name, new Dictionary<uint, DoodadFuncTemplate>());
+                _funcTemplates.Add(type.Name, []);
             }
             else if (type.BaseType == typeof(DoodadPhaseFuncTemplate))
             {
-                _phaseFuncTemplates.Add(type.Name, new Dictionary<uint, DoodadPhaseFuncTemplate>());
+                _phaseFuncTemplates.Add(type.Name, []);
             }
         }
 
-        _doodadFuncConsumeChangerItem = new Dictionary<uint, DoodadFuncConsumeChangerItem>();
+        _doodadFuncConsumeChangerItem = [];
 
         using (var connection = SQLite.CreateConnection())
         {
@@ -155,7 +155,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         }
                         else
                         {
-                            tempListGroups = new List<DoodadFunc>();
+                            tempListGroups = [];
                             _funcsByGroups.Add(func.GroupId, tempListGroups);
                         }
 
@@ -188,7 +188,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         }
                         else
                         {
-                            list = new List<DoodadPhaseFunc>();
+                            list = [];
                             _phaseFuncs.Add(func.GroupId, list);
                         }
 
@@ -512,7 +512,7 @@ public class DoodadManager : Singleton<DoodadManager>
                             TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0),
                             TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0),
                             UseOriginSource = reader.GetBoolean("use_origin_source", true),
-                            Effects = new List<uint>()
+                            Effects = []
                         };
                         _phaseFuncTemplates["DoodadFuncClout"].Add(func.Id, func);
                     }
@@ -2888,12 +2888,12 @@ public class DoodadManager : Singleton<DoodadManager>
 
     public List<DoodadFunc> GetFuncsForGroup(uint funcGroupId)
     {
-        return _funcsByGroups.TryGetValue(funcGroupId, out var group) ? group : new List<DoodadFunc>();
+        return _funcsByGroups.TryGetValue(funcGroupId, out var group) ? group : [];
     }
 
     public List<DoodadPhaseFunc> GetPhaseFunc(uint funcGroupId)
     {
-        return _phaseFuncs.TryGetValue(funcGroupId, out var func) ? func : new List<DoodadPhaseFunc>();
+        return _phaseFuncs.TryGetValue(funcGroupId, out var func) ? func : [];
     }
 
     public DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType)
@@ -2960,7 +2960,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// <returns>List of DoodadFunc</returns>
     public List<DoodadFunc> GetDoodadFuncs(uint doodadFuncGroupId)
     {
-        return _funcsByGroups.TryGetValue(doodadFuncGroupId, out var funcs) ? funcs : new List<DoodadFunc>();
+        return _funcsByGroups.TryGetValue(doodadFuncGroupId, out var funcs) ? funcs : [];
     }
 
     /// <summary>
@@ -2970,7 +2970,7 @@ public class DoodadManager : Singleton<DoodadManager>
     /// <returns>DoodadFunc[]</returns>
     public List<DoodadPhaseFunc> GetDoodadPhaseFuncs(uint funcGroupId)
     {
-        return _phaseFuncs.TryGetValue(funcGroupId, out var funcs) ? funcs : new List<DoodadPhaseFunc>();
+        return _phaseFuncs.TryGetValue(funcGroupId, out var funcs) ? funcs : [];
     }
 
     /// <summary>
@@ -3035,7 +3035,7 @@ public class DoodadManager : Singleton<DoodadManager>
         foreach (var item in items)
         {
             character.ItemUse(preferredItem);
-            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1,
+            character.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.DoodadCreate, item, 1,
                 preferredItem);
         }
 

@@ -15,8 +15,8 @@ public class BuffModifiers
 
     public BuffModifiers()
     {
-        _modifiersByBuffId = new Dictionary<uint, List<BuffModifier>>();
-        _modifiersByTagId = new Dictionary<uint, List<BuffModifier>>();
+        _modifiersByBuffId = [];
+        _modifiersByTagId = [];
     }
 
     public double ApplyModifiers(BuffTemplate buff, BuffAttribute attribute, double baseValue)
@@ -49,14 +49,14 @@ public class BuffModifiers
     public List<BuffModifier> GetModifiersForBuffIdWithAttribute(uint skillId, BuffAttribute attribute)
     {
         var modifiers = GetModifiersForBuffId(skillId);
-        if (modifiers == null) return new List<BuffModifier>();
+        if (modifiers == null) return [];
         return modifiers.Where(mod => mod.BuffAttribute == attribute).ToList();
     }
 
     public List<BuffModifier> GetModifiersForTagIdWithAttribute(uint tagId, BuffAttribute attribute)
     {
         var modifiers = GetModifiersForTagId(tagId);
-        if (modifiers == null) return new List<BuffModifier>();
+        if (modifiers == null) return [];
         return modifiers.Where(mod => mod.BuffAttribute == attribute).ToList();
     }
 
@@ -100,14 +100,14 @@ public class BuffModifiers
         if (modifier.BuffId > 0)
         {
             if (!_modifiersByBuffId.ContainsKey(modifier.BuffId))
-                _modifiersByBuffId.Add(modifier.BuffId, new List<BuffModifier>());
+                _modifiersByBuffId.Add(modifier.BuffId, []);
             _modifiersByBuffId[modifier.BuffId].Add(modifier);
         }
 
         if (modifier.TagId > 0)
         {
             if (!_modifiersByTagId.ContainsKey(modifier.TagId))
-                _modifiersByTagId.Add(modifier.TagId, new List<BuffModifier>());
+                _modifiersByTagId.Add(modifier.TagId, []);
             _modifiersByTagId[modifier.TagId].Add(modifier);
         }
     }

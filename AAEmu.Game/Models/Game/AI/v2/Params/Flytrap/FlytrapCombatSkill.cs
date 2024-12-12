@@ -12,7 +12,7 @@ public class FlytrapCombatSkill
 
     public void ParseLua(LuaTable table)
     {
-        Melee = new List<uint>();
+        Melee = [];
         if (table["melee"] is LuaTable meleeSkills)
         {
             foreach (var value in meleeSkills.Values)
@@ -21,7 +21,7 @@ public class FlytrapCombatSkill
             }
         }
 
-        Ranged = new List<uint>();
+        Ranged = [];
         if (table["ranged"] is LuaTable rangedSkills)
         {
             foreach (var value in rangedSkills.Values)

@@ -17,7 +17,6 @@ public class LoginConnection
     public bool Block { get; set; }
     public PacketStream LastPacket { get; set; }
 
-
     public LoginConnection(ISession session)
     {
         _session = session;

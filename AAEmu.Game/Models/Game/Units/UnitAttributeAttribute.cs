@@ -11,6 +11,6 @@ public class UnitAttributeAttribute : Attribute
 
     public UnitAttributeAttribute(params UnitAttribute[] attributes)
     {
-        Attributes = new List<UnitAttribute>(attributes);
+        Attributes = [.. attributes];
     }
 }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TimeCmd : SubCommandBase, ICommand, ICommandV2
 {
-    public string[] CommandNames { get; set; } = new string[] { "time" };
+    public string[] CommandNames { get; set; } = ["time"];
 
     public TimeCmd()
     {
@@ -23,7 +23,7 @@ public class TimeCmd : SubCommandBase, ICommand, ICommandV2
 
     public void OnLoad()
     {
-        string[] name = { "time" };
+        string[] name = ["time"];
         CommandManager.Instance.Register(name, this);
     }
 

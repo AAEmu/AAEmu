@@ -43,7 +43,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         expedition.Created = DateTime.UtcNow;
         expedition.AggroLink = false;
         expedition.DiplomacyTarget = false;
-        expedition.Members = new List<ExpeditionMember>();
+        expedition.Members = [];
         expedition.Policies = GetDefaultPolicies(expedition.Id);
 
         var member = GetMemberFromCharacter(expedition, owner, true);
@@ -55,7 +55,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
     public void Load()
     {
-        _expeditions = new();
+        _expeditions = [];
         _nameRegex = new Regex(AppConfiguration.Instance.Expedition.NameRegex, RegexOptions.Compiled);
 
         using (var connection = MySQL.CreateConnection())
@@ -104,10 +104,10 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                             member.LastWorldLeaveTime = reader.GetDateTime("last_leave_time");
                             member.Name = reader.GetString("name");
                             member.Level = reader.GetByte("level");
-                            member.Abilities = new byte[]
-                            {
+                            member.Abilities =
+                            [
                                 reader.GetByte("ability1"), reader.GetByte("ability2"), reader.GetByte("ability3")
-                            };
+                            ];
                             member.IsOnline = false;
                             member.InParty = false;
                             expedition.Members.Add(member);
@@ -204,9 +204,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         }
 
         // Check the number of members in the party that meet the requirements
-        List<TeamMember> validMembers = new List<TeamMember>();
-        List<TeamMember> teamMembers = new List<TeamMember>();
-        teamMembers.AddRange(team.Members.ToList());
+        List<TeamMember> validMembers = [];
+        List<TeamMember> teamMembers = [.. team.Members.ToList()];
 
         foreach (var m in teamMembers)
         {
@@ -247,11 +246,10 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         owner.SendPacket(
             new SCItemTaskSuccessPacket(
                 ItemTaskType.ExpeditionCreation,
-                new List<ItemTask>
-                {
+                [
                     new MoneyChange(-AppConfiguration.Instance.Expedition.Create.Cost)
-                },
-                new List<ulong>())
+                ],
+                [])
         );
         // -----------------
 
@@ -261,7 +259,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         owner.Expedition = expedition;
 
         owner.SendPacket(
-            new SCFactionCreatedPacket(expedition, owner.ObjId, new[] { (owner.ObjId, owner.Id, owner.Name) })
+            new SCFactionCreatedPacket(expedition, owner.ObjId, [(owner.ObjId, owner.Id, owner.Name)])
         );
 
         WorldManager.Instance.BroadcastPacketToServer(new SCFactionListPacket(expedition));
@@ -532,8 +530,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         member.Memo = "";
         member.Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
         member.ZoneId = character.Transform.ZoneId;
-        member.Abilities = new[]
-            {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
+        member.Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];
         member.ExpeditionId = expedition.Id;
         member.CharacterId = character.Id;
         member.LastWorldLeaveTime = DateTime.UtcNow;
@@ -554,7 +551,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             }
         }
 
-        character.SendPacket(new SCExpeditionRolePolicyListPacket(new List<ExpeditionRolePolicy>()));
+        character.SendPacket(new SCExpeditionRolePolicyListPacket([]));
     }
 
     public FactionsEnum GetExpeditionOfCharacter(uint characterId)

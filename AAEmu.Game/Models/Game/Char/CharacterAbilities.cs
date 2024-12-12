@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -15,7 +15,7 @@ public class CharacterAbilities
     public CharacterAbilities(Character owner)
     {
         Owner = owner;
-        Abilities = new Dictionary<AbilityType, Ability>();
+        Abilities = [];
         for (var i = 1; i < 11; i++)
         {
             var id = (AbilityType)i;

@@ -50,12 +50,12 @@ public class UccManager : Singleton<UccManager>
 
     public void Load()
     {
-        _uploadQueue = new Dictionary<uint, Ucc>();
-        _complexUploadParts = new Dictionary<uint, UccUploadHandle>();
-        _uccs = new Dictionary<ulong, Ucc>();
+        _uploadQueue = [];
+        _complexUploadParts = [];
+        _uccs = [];
         lock (s_lockObject)
         {
-            _downloadQueue = new Dictionary<uint, ulong>();
+            _downloadQueue = [];
         }
 
         using (var connection = MySQL.CreateConnection())
@@ -284,7 +284,6 @@ public class UccManager : Singleton<UccManager>
         connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
 
     }
-
 
     public void DownloadStatus(StreamConnection connection, ulong id, byte status, int count)
     {

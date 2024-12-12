@@ -16,7 +16,7 @@ public class CombatBuffs
     public CombatBuffs(BaseUnit owner)
     {
         _owner = owner;
-        _cbuffsByHitType = new Dictionary<SkillHitType, List<CombatBuffTemplate>>();
+        _cbuffsByHitType = [];
     }
 
     public void AddCombatBuffs(uint buffId)
@@ -26,7 +26,7 @@ public class CombatBuffs
         foreach (var buffToAdd in buffsToAdd)
         {
             if (!_cbuffsByHitType.ContainsKey(buffToAdd.HitType))
-                _cbuffsByHitType.Add(buffToAdd.HitType, new List<CombatBuffTemplate>());
+                _cbuffsByHitType.Add(buffToAdd.HitType, []);
             _cbuffsByHitType[buffToAdd.HitType].Add(buffToAdd);
         }
     }

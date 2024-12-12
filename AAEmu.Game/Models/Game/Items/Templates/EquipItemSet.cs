@@ -8,6 +8,6 @@ public class EquipItemSet
 
     public EquipItemSet()
     {
-        Bonuses = new List<EquipItemSetBonus>();
+        Bonuses = [];
     }
 }

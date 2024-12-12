@@ -57,14 +57,14 @@ public class Skill
 
     public Skill()
     {
-        HitTypes = new Dictionary<uint, SkillHitType>();
+        HitTypes = [];
     }
 
     public Skill(SkillTemplate template, Unit owner = null)
     {
         if (template == null)
             return;
-        HitTypes = new Dictionary<uint, SkillHitType>();
+        HitTypes = [];
         Id = template.Id;
         Template = template;
         if (owner != null)

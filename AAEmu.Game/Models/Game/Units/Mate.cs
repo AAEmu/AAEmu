@@ -394,14 +394,16 @@ public sealed class Mate : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MeleeDpsInc);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
             {
@@ -421,14 +423,16 @@ public sealed class Mate : Unit
         {
             var formula =
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.SpellDpsInc);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
             {
@@ -447,14 +451,16 @@ public sealed class Mate : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.Armor);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Armor))
             {
@@ -473,14 +479,16 @@ public sealed class Mate : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MagicResist);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MagicResist))
             {
@@ -497,8 +505,8 @@ public sealed class Mate : Unit
     public Mate()
     {
         ModelParams = new UnitCustomModelParams();
-        Skills = new List<uint>();
-        Passengers = new Dictionary<AttachPointKind, MatePassengerInfo>();
+        Skills = [];
+        Passengers = [];
         Equipment = new MateEquipmentContainer(0, SlotType.EquipmentMate, false, this);
 
         // TODO: Spawn this with the correct amount of seats depending on the template
@@ -594,7 +602,7 @@ public sealed class Mate : Unit
     {
         base.RemoveVisibleObject(character);
 
-        character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
+        character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
     }
 
     public override int DoFallDamage(ushort fallVel)

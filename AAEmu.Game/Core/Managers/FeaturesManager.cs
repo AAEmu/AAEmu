@@ -65,7 +65,6 @@ public class FeaturesManager : Singleton<FeaturesManager>
         Fsets.Set(Feature.flag_6_1, false);
         */
 
-
         var featsOn = string.Empty;
         foreach (var fObj in Enum.GetValues(typeof(Feature)))
         {

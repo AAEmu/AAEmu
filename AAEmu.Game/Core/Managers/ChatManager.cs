@@ -50,8 +50,10 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns>List of all chat channels currently loaded</returns>
     public List<ChatChannel> ListAllChannels()
     {
-        var res = new List<ChatChannel>();
-        res.Add(nullChannel);
+        var res = new List<ChatChannel>
+        {
+            nullChannel
+        };
         res.AddRange(_factionChannels.Values);
         res.AddRange(_nationChannels.Values);
         res.AddRange(_zoneChannels.Values);

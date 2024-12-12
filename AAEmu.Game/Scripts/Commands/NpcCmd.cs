@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class NpcCmd : SubCommandBase, ICommand, ICommandV2
 {
-    public string[] CommandNames { get; set; } = new string[] { "npc" };
+    public string[] CommandNames { get; set; } = ["npc"];
 
     public NpcCmd()
     {

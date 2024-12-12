@@ -139,7 +139,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
                                     if (!world.SubZones.TryGetValue(zoneId, out var value))
                                     {
-                                        value = new List<Area>();
+                                        value = [];
                                         world.SubZones.Add(zoneId, value);
                                     }
 
@@ -233,8 +233,6 @@ public class SubZoneManager : Singleton<SubZoneManager>
                                     cellOffset.X = (worldOrigins.X + cellXOffset) * 1024f;
                                     cellOffset.Y = (worldOrigins.Y + cellYOffset) * 1024f;
 
-
-
                                     var pointsxml = areaNode.SelectNodes("Points/Point");
                                     for (var n = 0; n < pointsxml.Count; n++)
                                     {
@@ -266,7 +264,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
                                     if (!world.HousingZones.TryGetValue(zoneId, out var value))
                                     {
-                                        value = new List<Area>();
+                                        value = [];
                                         world.HousingZones.Add(zoneId, value);
                                     }
 
@@ -312,7 +310,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
         else
         {
             Logger.Debug("No housing zone found at this position!");
-            return new List<uint>();
+            return [];
         }
 
     }

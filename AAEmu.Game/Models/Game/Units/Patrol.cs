@@ -82,7 +82,6 @@ public abstract class Patrol
     public bool Abandon { get; set; } = false;
     public const float tolerance = 0.5f;
 
-
     /// <summary>
     /// 执行巡逻任务
     /// Perform patrol missions

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestSlave : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testslave", "test_slave" };
+    public string[] CommandNames { get; set; } = ["testslave", "test_slave"];
 
     public void OnLoad()
     {

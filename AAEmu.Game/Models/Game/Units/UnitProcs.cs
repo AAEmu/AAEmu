@@ -15,8 +15,8 @@ public class UnitProcs
     public UnitProcs(Unit owner)
     {
         Owner = owner;
-        _procsByChanceKind = new Dictionary<ProcChanceKind, List<ItemProc>>();
-        _procs = new List<ItemProc>();
+        _procsByChanceKind = [];
+        _procs = [];
     }
 
     public void AddProc(uint procId)
@@ -24,7 +24,7 @@ public class UnitProcs
         var proc = new ItemProc(procId);
         _procs.Add(proc);
         if (!_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
-            _procsByChanceKind.Add(proc.Template.ChanceKind, new List<ItemProc>());
+            _procsByChanceKind.Add(proc.Template.ChanceKind, []);
         _procsByChanceKind[proc.Template.ChanceKind].Add(proc);
     }
 

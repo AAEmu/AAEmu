@@ -42,7 +42,7 @@ public class AAPakFileHeader
     /// Default AES128 key used by XLGames for ArcheAge as encryption key for header and fileinfo data
     /// 32 1F 2A EE AA 58 4A B4 9A 6C 9E 09 D5 9E 9C 6F
     /// </summary>
-    private readonly byte[] XLGamesKey = new byte[] { 0x32, 0x1F, 0x2A, 0xEE, 0xAA, 0x58, 0x4A, 0xB4, 0x9A, 0x6C, 0x9E, 0x09, 0xD5, 0x9E, 0x9C, 0x6F };
+    private readonly byte[] XLGamesKey = [0x32, 0x1F, 0x2A, 0xEE, 0xAA, 0x58, 0x4A, 0xB4, 0x9A, 0x6C, 0x9E, 0x09, 0xD5, 0x9E, 0x9C, 0x6F];
     /// <summary>
     /// Current encryption key
     /// </summary>
@@ -624,7 +624,7 @@ public class AAPakFileHeader
             }
             else
             {
-                // Call the police, illegal Types are invading our safespace
+                // Call the police, illegal Types are invading our safe space
             }
 
             /*
@@ -645,7 +645,6 @@ public class AAPakFileHeader
 
         ms.Dispose();
     }
-
 
     /// <summary>
     /// Helper function for debugging, write byte array as a hex text file
@@ -695,7 +694,6 @@ public class AAPakFileHeader
 
         return s;
     }
-
 
     /// <summary>
     /// Decrypt the current header data to get the file counts
@@ -841,11 +839,11 @@ public class AAPak
     /// <summary>
     /// List of all unused files, normally these are all named "__unused__"
     /// </summary>
-    public List<AAPakFileInfo> extraFiles = new();
+    public List<AAPakFileInfo> extraFiles = [];
     /// <summary>
     /// Virtual list of all folder names, use GenerateFolderList() to populate this list (might take a while)
     /// </summary>
-    public List<string> folders = new();
+    public List<string> folders = [];
     /// <summary>
     /// Show if this Pak file is opened in read-only mode
     /// </summary>
@@ -1000,7 +998,6 @@ public class AAPak
             return false;
         }
     }
-
 
     public bool OpenVirtualCSVPak(string csvfilePath)
     {
@@ -1233,9 +1230,8 @@ public class AAPak
         return _header.isValid;
     }
 
-
     /// <summary>
-    /// Populate the folders string list with virual folder names derived from the files found inside the pak
+    /// Populate the folders string list with virtual folder names derived from the files found inside the pak
     /// </summary>
     /// <param name="sortTheList">Set to false if you don't want the resulting folders list to be sorted (not recommended)</param>
     public void GenerateFolderList(bool sortTheList = true)
@@ -1382,7 +1378,6 @@ public class AAPak
         return new MemoryStream();
     }
 
-
     /// <summary>
     /// Calculates and set the MD5 Hash of a given file
     /// </summary>
@@ -1418,7 +1413,6 @@ public class AAPak
         return true;
     }
 
-
     /// <summary>
     /// Try to find a file inside the Pak file base on a offset position inside the Pak file.
     /// Note: this only checks inside the used files and does not account for "deleted" files
@@ -1443,8 +1437,8 @@ public class AAPak
     /// <summary>
     /// Replaces a file's data with new data from a stream, can only be used if the current file location has enough space to hold the new data
     /// </summary>
-    /// <param name="pfi">Fileinfo of the file to replace</param>
-    /// <param name="sourceStream">Stream to replace the data with</param>
+    /// <param name="pfi"><see cref="FileInfo"/> of the file to replace</param>
+    /// <param name="sourceStream"><see cref="Stream"/> to replace the data with</param>
     /// <param name="modifyTime">Time to be used as a modified time stamp</param>
     /// <returns>Returns true on success</returns>
     public bool ReplaceFile(ref AAPakFileInfo pfi, Stream sourceStream, DateTime modifyTime)
@@ -1458,7 +1452,7 @@ public class AAPak
         if (sourceStream.Length > (pfi.size + pfi.paddingSize))
             return false;
 
-        // Save endpos for easy calculation later
+        // Save end position for easy calculation later
         long endPos = pfi.offset + pfi.size + pfi.paddingSize;
 
         try
@@ -1492,13 +1486,13 @@ public class AAPak
     }
 
     /// <summary>
-    /// Delete a file from pak. Behaves differenly depending on the paddingDeleteMode setting
+    /// Delete a file from pak. Behaves differently depending on the paddingDeleteMode setting
     /// </summary>
     /// <param name="pfi">AAPakFileInfo of the file that is to be deleted</param>
     /// <returns>Returns true on success</returns>
     public bool DeleteFile(AAPakFileInfo pfi)
     {
-        // When we detele a file from the pak, we remove the entry from the FileTable and expand the previous file's padding to take up the space
+        // When we delete a file from the pak, we remove the entry from the FileTable and expand the previous file's padding to take up the space
         if (readOnly)
             return false;
 
@@ -1562,7 +1556,7 @@ public class AAPak
     /// <param name="CreateTime">Time to use as initial file creation timestamp</param>
     /// <param name="ModifyTime">Time to use as last modified timestamp</param>
     /// <param name="autoSpareSpace">When set, tries to pre-allocate extra free space at the end of the file, this will be 25% of the filesize if used. If a "deleted file" is used, this parameter is ignored</param>
-    /// <param name="pfi">Returns the fileinfo of the newly created file</param>
+    /// <param name="pfi">Returns the file info of the newly created file</param>
     /// <returns>Returns true on success</returns>
     public bool AddAsNewFile(string filename, Stream sourceStream, DateTime CreateTime, DateTime ModifyTime, bool autoSpareSpace, out AAPakFileInfo pfi)
     {
@@ -1664,7 +1658,7 @@ public class AAPak
         {
             var reservedSizeMax = pfi.size + pfi.paddingSize;
             addAsNew = (sourceStream.Length > reservedSizeMax);
-            // Bugfix: If we have inssuficient space, make sure to delete the old file first as well
+            // Bugfix: If we have insufficient space, make sure to delete the old file first as well
             if (addAsNew)
             {
                 DeleteFile(pfi);
@@ -1704,7 +1698,7 @@ public class AAPak
     /// Convert a stream into a string
     /// </summary>
     /// <param name="stream">Source stream</param>
-    /// <returns>String value of the data isnide the stream</returns>
+    /// <returns>String value of the data inside the stream</returns>
     static public string StreamToString(Stream stream)
     {
         stream.Position = 0;

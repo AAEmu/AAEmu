@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using AAEmu.Commons.Network;
@@ -13,7 +13,7 @@ public class CompressedGamePackets : GamePacket
 
     public CompressedGamePackets() : base(0, 4)
     {
-        Packets = new List<GamePacket>();
+        Packets = [];
     }
 
     public void AddPacket(GamePacket packet)

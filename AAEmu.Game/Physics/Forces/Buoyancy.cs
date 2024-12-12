@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Jitter;
 using Jitter.Collision;
@@ -23,8 +23,8 @@ public class Buoyancy : ForceGenerator
     /// <returns>True if the given point is within the area.</returns>
     public delegate bool DefineFluidArea(ref JVector point);
 
-    private Dictionary<Shape, JVector[]> samples = new();
-    private List<RigidBody> bodies = new();
+    private Dictionary<Shape, JVector[]> samples = [];
+    private List<RigidBody> bodies = [];
 
     /// <summary>
     /// The axis aligned bounding box representing the fluid.
@@ -109,7 +109,7 @@ public class Buoyancy : ForceGenerator
     /// the results. Note that the total number of subdivisions is subdivisions³.</param>
     public void Add(RigidBody body, int subdivisions)
     {
-        List<JVector> massPoints = new List<JVector>();
+        List<JVector> massPoints = [];
         JVector testVector;
 
         JVector diff = body.Shape.BoundingBox.Max - body.Shape.BoundingBox.Min;
@@ -145,7 +145,6 @@ public class Buoyancy : ForceGenerator
                         for (int j = 0; j < values; j++)
                         {
                             ms.SetCurrentShape(j);
-
 
                             if (GJKCollide.Pointcast(body.Shape, ref ident,
                                 ref zero, ref testVector))

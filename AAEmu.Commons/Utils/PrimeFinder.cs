@@ -8,7 +8,7 @@ public static class PrimeFinder
     private static int largestPrime = int.MaxValue;
 
     private static int[] primeCapacities =
-    {
+    [
         //chunk #0
         largestPrime,
 
@@ -275,8 +275,7 @@ public static class PrimeFinder
         400038451,
         800076929,
         1600153859
-    };
-
+    ];
 
     public static void Init()
     {

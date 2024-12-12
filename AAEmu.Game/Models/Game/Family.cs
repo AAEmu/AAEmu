@@ -11,11 +11,11 @@ public class Family : PacketMarshaler
     private List<uint> _removedMembers;
 
     public uint Id { get; init; }
-    public List<FamilyMember> Members { get; } = new();
+    public List<FamilyMember> Members { get; } = [];
 
     public Family()
     {
-        _removedMembers = new List<uint>();
+        _removedMembers = [];
     }
 
     public override PacketStream Write(PacketStream stream)

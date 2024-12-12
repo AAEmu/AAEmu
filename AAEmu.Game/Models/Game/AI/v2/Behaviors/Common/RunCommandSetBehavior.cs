@@ -66,7 +66,6 @@ public class RunCommandSetBehavior : BaseCombatBehavior
             return;
         }
 
-
         // Check if we're still waiting
         if (Ai.AiCurrentCommandRunTime > TimeSpan.Zero)
         {

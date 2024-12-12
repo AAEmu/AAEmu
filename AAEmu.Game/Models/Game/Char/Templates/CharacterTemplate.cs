@@ -23,6 +23,6 @@ public class CharacterTemplate
     {
         SpawnPosition = new WorldSpawnPosition();
         Items = new uint[7];
-        Buffs = new List<uint>();
+        Buffs = [];
     }
 }

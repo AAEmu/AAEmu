@@ -21,7 +21,7 @@ public class SystemFaction : PacketMarshaler
     public byte AllowChangeName { get; set; }
     public DateTime Created { get; set; }
 
-    public Dictionary<FactionsEnum, FactionRelation> Relations { get; set; } = new();
+    public Dictionary<FactionsEnum, FactionRelation> Relations { get; set; } = [];
 
     public RelationState GetRelationState(SystemFaction otherFaction)
     {

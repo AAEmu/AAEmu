@@ -316,7 +316,7 @@ public static class MySqlDatabaseUpdater
             }
         }
 
-        res = new List<string>();
+        res = [];
         return string.Empty;
     }
 }

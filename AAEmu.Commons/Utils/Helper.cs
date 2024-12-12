@@ -50,7 +50,7 @@ namespace AAEmu.Commons.Utils;
 
 public static class Helper
 {
-    private static Dictionary<Tuple<object, int>, DateTime> intervals = new();
+    private static Dictionary<Tuple<object, int>, DateTime> intervals = [];
 
     /// <summary>
     /// Возвращает true если прошло не менее указанного интервала времени (после предыдущего срабатывания)

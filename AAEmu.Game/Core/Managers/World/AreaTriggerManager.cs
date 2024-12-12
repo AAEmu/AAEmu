@@ -19,9 +19,9 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>
 
     public AreaTriggerManager()
     {
-        _areaTriggers = new List<AreaTrigger>();
-        _addQueue = new List<AreaTrigger>();
-        _removeQueue = new List<AreaTrigger>();
+        _areaTriggers = [];
+        _addQueue = [];
+        _removeQueue = [];
     }
 
     public void Initialize()
@@ -55,7 +55,7 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>
             {
                 if (_addQueue?.Count > 0)
                     _areaTriggers.AddRange(_addQueue);
-                _addQueue = new List<AreaTrigger>();
+                _addQueue = [];
             }
 
             foreach (var trigger in _areaTriggers)
@@ -72,7 +72,7 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>
                     _areaTriggers.Remove(triggerToRemove);
                 }
 
-                _removeQueue = new List<AreaTrigger>();
+                _removeQueue = [];
             }
         }
         catch (Exception e)

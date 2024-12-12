@@ -32,17 +32,17 @@ public class CharacterMails
         {
             if (m.Value.Header.SenderId == Self.Id && m.Value.Header.ReceiverId == Self.Id)
             {
-                Self.SendPacket(new SCMailListPacket(false, new MailHeader[] { m.Value.Header }));
+                Self.SendPacket(new SCMailListPacket(false, [m.Value.Header]));
                 total++;
             }
             else if (m.Value.Header.SenderId == Self.Id)
             {
-                Self.SendPacket(new SCMailListPacket(true, new MailHeader[] { m.Value.Header }));
+                Self.SendPacket(new SCMailListPacket(true, [m.Value.Header]));
                 total++;
             }
             else if (m.Value.Header.ReceiverId == Self.Id)
             {
-                Self.SendPacket(new SCMailListPacket(false, new MailHeader[] { m.Value.Header }));
+                Self.SendPacket(new SCMailListPacket(false, [m.Value.Header]));
                 total++;
             }
         }
@@ -223,7 +223,7 @@ public class CharacterMails
             // Money
             if (tookMoney)
             {
-                Self.SendPacket(new SCAttachmentTakenPacket(mailId, true, false, takeAllSelected, new List<ItemIdAndLocation>()));
+                Self.SendPacket(new SCAttachmentTakenPacket(mailId, true, false, takeAllSelected, []));
             }
 
             // Items
@@ -238,8 +238,10 @@ public class CharacterMails
                 */
                 foreach (var iSlot in itemSlotList)
                 {
-                    var dummyItemSlotList = new List<ItemIdAndLocation>();
-                    dummyItemSlotList.Add(iSlot);
+                    var dummyItemSlotList = new List<ItemIdAndLocation>
+                    {
+                        iSlot
+                    };
                     Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, dummyItemSlotList));
                 }
             }

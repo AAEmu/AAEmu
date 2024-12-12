@@ -13,8 +13,8 @@ public class SkillModifiers
 
     public SkillModifiers()
     {
-        _modifiersBySkillId = new Dictionary<uint, List<SkillModifier>>();
-        _modifiersByTagId = new Dictionary<uint, List<SkillModifier>>();
+        _modifiersBySkillId = [];
+        _modifiersByTagId = [];
     }
 
     public double ApplyModifiers(Skill skill, SkillAttribute attribute, double baseValue)
@@ -47,14 +47,14 @@ public class SkillModifiers
     public List<SkillModifier> GetModifiersForSkillIdWithAttribute(uint skillId, SkillAttribute attribute)
     {
         var modifiers = GetModifiersForSkillId(skillId);
-        if (modifiers == null) return new List<SkillModifier>();
+        if (modifiers == null) return [];
         return modifiers.Where(mod => mod.SkillAttribute == attribute).ToList();
     }
 
     public List<SkillModifier> GetModifiersForTagIdWithAttribute(uint tagId, SkillAttribute attribute)
     {
         var modifiers = GetModifiersForTagId(tagId);
-        if (modifiers == null) return new List<SkillModifier>();
+        if (modifiers == null) return [];
         return modifiers.Where(mod => mod.SkillAttribute == attribute).ToList();
     }
 
@@ -98,14 +98,14 @@ public class SkillModifiers
         if (modifier.SkillId > 0)
         {
             if (!_modifiersBySkillId.ContainsKey(modifier.SkillId))
-                _modifiersBySkillId.Add(modifier.SkillId, new List<SkillModifier>());
+                _modifiersBySkillId.Add(modifier.SkillId, []);
             _modifiersBySkillId[modifier.SkillId].Add(modifier);
         }
 
         if (modifier.TagId > 0)
         {
             if (!_modifiersByTagId.ContainsKey(modifier.TagId))
-                _modifiersByTagId.Add(modifier.TagId, new List<SkillModifier>());
+                _modifiersByTagId.Add(modifier.TagId, []);
             _modifiersByTagId[modifier.TagId].Add(modifier);
         }
     }

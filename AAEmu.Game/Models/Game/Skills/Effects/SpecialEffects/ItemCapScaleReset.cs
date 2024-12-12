@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -66,8 +65,8 @@ public class ItemCapScaleReset : SpecialEffectAction
         equipItem.TemperPhysical = 0;
         equipItem.TemperMagical = 0;
 
-        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
-        // No indication ingame that the item's tempering has been successfully resetted 
+        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, [new ItemUpdate(equipItem)], []));
+        // No indication in-game that the item's tempering has been successfully reset 
         owner.SendMessage(ChatType.System, "Tempering reset");
     }
 }

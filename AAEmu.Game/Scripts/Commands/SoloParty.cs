@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SoloParty : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "soloparty", "solo_party" };
+    public string[] CommandNames { get; set; } = ["soloparty", "solo_party"];
 
     public void OnLoad()
     {

@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Help : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "help", "?" };
+    public string[] CommandNames { get; set; } = ["help", "?"];
 
     public void OnLoad()
     {

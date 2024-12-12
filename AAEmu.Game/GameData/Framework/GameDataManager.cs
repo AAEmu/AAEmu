@@ -16,7 +16,7 @@ public class GameDataManager : Singleton<GameDataManager>
     private bool _postLoadedGameData = false;
     public GameDataManager()
     {
-        _loaders = new List<IGameDataLoader>();
+        _loaders = [];
     }
 
     public void LoadGameData()

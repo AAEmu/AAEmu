@@ -20,7 +20,7 @@ public static class ScriptCompiler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static Assembly _assembly;
-    private static Dictionary<string, ScriptObject> _scriptsObjects = new();
+    private static Dictionary<string, ScriptObject> _scriptsObjects = [];
 
     public static bool Compile()
     {
@@ -157,7 +157,6 @@ public static class ScriptCompiler
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-
             using (var ms = new MemoryStream())
             {
                 var result = compilation.Emit(ms);
@@ -167,7 +166,7 @@ public static class ScriptCompiler
                     ms.Seek(0, SeekOrigin.Begin);
                 }
 
-                Display(result.Diagnostics, new() { syntaxTree });
+                Display(result.Diagnostics, [syntaxTree]);
             }
         }
     }

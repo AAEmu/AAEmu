@@ -36,7 +36,7 @@ public class LoginConnection
         remoteIp = remoteIp.Substring(0, remoteIp.IndexOf(':'));
         IsLocallyConnected = localIp == remoteIp;
 
-        Characters = new Dictionary<byte, List<LoginCharacterInfo>>();
+        Characters = [];
     }
 
     public void SendPacket(LoginPacket packet)

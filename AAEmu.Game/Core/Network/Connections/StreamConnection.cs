@@ -23,7 +23,7 @@ public class StreamConnection
     {
         _session = session;
         _requestId = -1;
-        _requests = new Dictionary<int, Doodad[]>();
+        _requests = [];
     }
 
     public int GetNextRequestId(Doodad[] doodads)

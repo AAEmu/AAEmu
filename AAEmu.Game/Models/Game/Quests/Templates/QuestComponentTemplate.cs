@@ -31,5 +31,5 @@ public class QuestComponentTemplate(QuestTemplate parentTemplate)
     public uint CinemaId { get; set; }
     public uint BuffId { get; set; }
     public QuestTemplate ParentQuestTemplate { get; set; } = parentTemplate;
-    public List<QuestActTemplate> ActTemplates { get; set; } = new();
+    public List<QuestActTemplate> ActTemplates { get; set; } = [];
 }

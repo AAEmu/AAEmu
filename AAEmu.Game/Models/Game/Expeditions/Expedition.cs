@@ -19,12 +19,11 @@ public class Expedition : SystemFaction
 
     public bool isDisbanded { get; set; }
 
-
     public Expedition()
     {
-        _removedMembers = new List<uint>();
-        Members = new List<ExpeditionMember>();
-        Policies = new List<ExpeditionRolePolicy>();
+        _removedMembers = [];
+        Members = [];
+        Policies = [];
         isDisbanded = false;
     }
 

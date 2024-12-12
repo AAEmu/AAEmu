@@ -105,7 +105,6 @@ public class SphereCommandUtil
         }
     }
 
-
     private static void GetQuestSpheres(Character character, uint questId)
     {
         var sphereIds = SphereGameData.GetQuestSphere(questId);

@@ -78,7 +78,7 @@ public class DeclareDominion : SpecialEffectAction
             SiegeTimers = new DominionSiegeTimers()
             {
                 Bdm = 0,
-                Durations = new int[] { 0, 0, 0, 0, 0 },
+                Durations = [0, 0, 0, 0, 0],
                 Fixed = DateTime.MinValue,
                 Started = DateTime.MinValue,
                 SiegePeriod = 1,

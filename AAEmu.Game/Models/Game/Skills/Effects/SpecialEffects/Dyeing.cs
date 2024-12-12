@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -46,6 +45,6 @@ public class Dyeing : SpecialEffectAction
 
         equipItem.DyeItemId = skillItem.ItemTemplateId;
 
-        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Dyeing, [new ItemUpdate(equipItem)], new List<ulong>()));
+        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Dyeing, [new ItemUpdate(equipItem)], []));
     }
 }

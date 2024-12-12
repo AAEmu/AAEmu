@@ -20,7 +20,7 @@ public class FriendMananger : Singleton<FriendMananger>
 
     public void Load()
     {
-        _allFriends = new Dictionary<uint, FriendTemplate>();
+        _allFriends = [];
 
         Logger.Info("Loading friends ...");
         using (var connection = MySQL.CreateConnection())
@@ -154,8 +154,8 @@ public class FriendMananger : Singleton<FriendMananger>
             }
         }
 
-        var friendInfo = GetFriendInfo(new List<uint> { friendId });
-        return friendInfo.Count > 0 ? GetFriendInfo(new List<uint> { friendId })[0] : null;
+        var friendInfo = GetFriendInfo([friendId]);
+        return friendInfo.Count > 0 ? GetFriendInfo([friendId])[0] : null;
     }
 
     private static Friend FormatFriend(Character friend)

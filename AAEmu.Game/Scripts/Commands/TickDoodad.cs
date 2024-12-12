@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TickDoodad : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "tickdoodad", "tick_doodad" };
+    public string[] CommandNames { get; set; } = ["tickdoodad", "tick_doodad"];
 
     public void OnLoad()
     {

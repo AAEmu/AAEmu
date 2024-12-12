@@ -139,18 +139,18 @@ public class PortalManager : Singleton<PortalManager>
 
     public void Load()
     {
-        _openPortalInlandReagents = new Dictionary<uint, OpenPortalReagents>();
-        _openPortalOutlandReagents = new Dictionary<uint, OpenPortalReagents>();
+        _openPortalInlandReagents = [];
+        _openPortalOutlandReagents = [];
         //_allDistrictPortals = new Dictionary<uint, Portal>();
         //_allDistrictPortalsKey = new Dictionary<uint, uint>();
-        _districtReturnPoints = new Dictionary<uint, DistrictReturnPoints>();
+        _districtReturnPoints = [];
 
-        _recalls = new Dictionary<uint, List<Portal>>();
-        _respawns = new Dictionary<uint, Portal>();
-        _worldgates = new Dictionary<uint, Portal>();
-        _recallsKey = new Dictionary<uint, uint>();
-        _respawnsKey = new Dictionary<uint, uint>();
-        _worldgatesKey = new Dictionary<uint, uint>();
+        _recalls = [];
+        _respawns = [];
+        _worldgates = [];
+        _recallsKey = [];
+        _respawnsKey = [];
+        _worldgatesKey = [];
 
         Logger.Info("Loading Portals ...");
 
@@ -426,7 +426,6 @@ public class PortalManager : Singleton<PortalManager>
         // TODO - Cooldown between portals
         var portalInfo = (Models.Game.Units.Portal)WorldManager.Instance.GetNpc(objId);
         if (portalInfo == null) return;
-
 
         //have Overburdened buff cannot UsePortal
         if (character.Buffs.CheckBuffTag((uint)BuffConstants.Overburdened))

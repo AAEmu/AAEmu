@@ -24,11 +24,11 @@ public class CharacterPortals
     public CharacterPortals(Character owner)
     {
         Owner = owner;
-        PrivatePortals = new Dictionary<uint, Portal>();
-        DistrictPortals = new Dictionary<uint, Portal>();
-        VisitedDistricts = new Dictionary<uint, VisitedDistrict>();
-        _removedVisitedDistricts = new List<uint>();
-        _removedPrivatePortals = new List<uint>();
+        PrivatePortals = [];
+        DistrictPortals = [];
+        VisitedDistricts = [];
+        _removedVisitedDistricts = [];
+        _removedPrivatePortals = [];
     }
 
     public Portal GetPortalInfo(uint id)
@@ -97,7 +97,7 @@ public class CharacterPortals
             Owner = Owner.Id
         };
         PrivatePortals.Add(newPortal.Id, newPortal);
-        Owner.SendPacket(new SCCharacterPortalsPacket(new[] { newPortal }));
+        Owner.SendPacket(new SCCharacterPortalsPacket([newPortal]));
     }
 
     public bool ChangePrivatePortalName(uint id, string name)

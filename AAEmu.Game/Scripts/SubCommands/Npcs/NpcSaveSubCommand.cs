@@ -145,7 +145,7 @@ public class NpcSaveSubCommand : SubCommandBase
             }
         };
 
-        Dictionary<uint, JsonNpcSpawns> spawnersFromFile = new();
+        Dictionary<uint, JsonNpcSpawns> spawnersFromFile = [];
         foreach (var spawnerFromFile in LoadNpcsFromFileByWorld(world))
         {
             spawnersFromFile.TryAdd(spawnerFromFile.Id, spawnerFromFile);
@@ -177,7 +177,7 @@ public class NpcSaveSubCommand : SubCommandBase
 
         if (string.IsNullOrWhiteSpace(contents))
         {
-            return new List<JsonNpcSpawns>();
+            return [];
         }
         else
         {

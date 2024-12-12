@@ -12,11 +12,11 @@ namespace AAEmu.Game.Core.Managers;
 public class FishSchoolManager : Singleton<FishSchoolManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<uint, List<Doodad>> FishSchools { get; set; } = new();
+    private Dictionary<uint, List<Doodad>> FishSchools { get; set; } = [];
 
     public void Initialize()
     {
-        FishSchools = new Dictionary<uint, List<Doodad>>();
+        FishSchools = [];
         Logger.Info("Initialising FishSchool Manager...");
     }
 
@@ -40,7 +40,7 @@ public class FishSchoolManager : Singleton<FishSchoolManager>
                 {
                     if (!FishSchools.TryGetValue(worldId, out var worldFishList))
                     {
-                        worldFishList = new List<Doodad>();
+                        worldFishList = [];
                         FishSchools.Add(worldId, worldFishList);
                     }
 

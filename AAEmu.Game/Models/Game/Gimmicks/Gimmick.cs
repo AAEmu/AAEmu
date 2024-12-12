@@ -37,7 +37,7 @@ public class Gimmick : Unit
 
     public override void AddVisibleObject(Character character)
     {
-        character.SendPacket(new SCGimmicksCreatedPacket(new[] { this }));
+        character.SendPacket(new SCGimmicksCreatedPacket([this]));
         var temp = Array.Empty<Gimmick>();
         character.SendPacket(new SCGimmickJointsBrokenPacket(temp));
         base.AddVisibleObject(character);

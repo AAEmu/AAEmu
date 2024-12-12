@@ -32,7 +32,7 @@ public class MailBody : PacketMarshaler
     public MailBody(BaseMail parent)
     {
         _baseMail = parent;
-        Attachments = new List<Item>();
+        Attachments = [];
     }
 
     public override PacketStream Write(PacketStream stream)

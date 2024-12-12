@@ -134,7 +134,7 @@ public class ItemContainer
         // Only relevant for inheritance
         Owner = null;
         ContainerType = SlotType.None;
-        Items = new List<Item>();
+        Items = [];
         ContainerSize = 0;
     }
 
@@ -150,7 +150,7 @@ public class ItemContainer
         OwnerId = ownerId;
         ContainerType = containerType;
         ParentUnit = parentUnit;
-        Items = new List<Item>();
+        Items = [];
         ContainerSize = -1; // Unlimited
         if (createWithNewId)
         {
@@ -414,13 +414,13 @@ public class ItemContainer
         {
             if (itemTasks.Count > 0)
             {
-                Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+                Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
             }
 
             if (sourceItemTasks.Count > 0)
             {
                 sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks,
-                    new List<ulong>()));
+                    []));
             }
         }
 
@@ -580,7 +580,7 @@ public class ItemContainer
         // We use Invalid when doing internals, don't send to client
         if (taskType != ItemTaskType.Invalid)
         {
-            Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
         }
 
         UpdateFreeSlotCount();
@@ -617,8 +617,8 @@ public class ItemContainer
     public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd,
         out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot = -1)
     {
-        newItemsList = new List<Item>();
-        updatedItemsList = new List<Item>();
+        newItemsList = [];
+        updatedItemsList = [];
         if (amountToAdd <= 0)
         {
             return true;
@@ -751,7 +751,7 @@ public class ItemContainer
 
         if (taskType != ItemTaskType.Invalid)
         {
-            Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
         }
 
         UpdateFreeSlotCount();
@@ -795,7 +795,7 @@ public class ItemContainer
     {
         if (itemToAdd == null)
         {
-            currentItems = new List<Item>();
+            currentItems = [];
             return 0;
         }
 
@@ -830,7 +830,7 @@ public class ItemContainer
     public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems,
         out int unitsOfItemFound)
     {
-        foundItems = new List<Item>();
+        foundItems = [];
         unitsOfItemFound = 0;
         foreach (var i in Items)
         {
@@ -874,7 +874,7 @@ public class ItemContainer
 
         if (itemTasks.Count > 0)
         {
-            Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
         }
     }
 

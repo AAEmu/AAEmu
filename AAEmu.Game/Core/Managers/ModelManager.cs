@@ -80,8 +80,8 @@ namespace AAEmu.Game.Core.Managers
                     {"ShipModel", new Dictionary<uint, Model>()}
                 };
 
-                _modelTypes = new Dictionary<uint, ModelType>();
-                _gameStances = new Dictionary<uint, GameStance>();
+                _modelTypes = [];
+                _gameStances = [];
 
                 using (var connection = SQLite.CreateConnection())
                 {

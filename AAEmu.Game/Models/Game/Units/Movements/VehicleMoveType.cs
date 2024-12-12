@@ -16,7 +16,7 @@ public class VehicleMoveType : MoveType
 
     public VehicleMoveType()
     {
-        WheelAngVel = new List<float>();
+        WheelAngVel = [];
     }
 
     public override void Read(PacketStream stream)

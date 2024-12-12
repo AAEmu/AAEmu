@@ -9,7 +9,6 @@ using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-
 namespace AAEmu.Game.Scripts.SubCommands.Npcs;
 
 public class NpcSpawnSubCommand : SubCommandBase
@@ -45,7 +44,6 @@ public class NpcSpawnSubCommand : SubCommandBase
 
         var angle = GetOptionalParameterValue(parameters, "yaw",
             (float)MathUtil.CalculateAngleFrom(charPos, selfCharacter.Transform)).DegToRad();
-
 
         if (!parameters.ContainsKey("yaw"))
         {

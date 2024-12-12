@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestEcho : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "echo" };
+    public string[] CommandNames { get; set; } = ["echo"];
 
     public void OnLoad()
     {

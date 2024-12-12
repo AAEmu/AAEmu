@@ -32,6 +32,6 @@ public class StreamConnectionTable : Singleton<StreamConnectionTable>
 
     public List<StreamConnection> GetConnections()
     {
-        return new List<StreamConnection>(_connections.Values);
+        return [.. _connections.Values];
     }
 }

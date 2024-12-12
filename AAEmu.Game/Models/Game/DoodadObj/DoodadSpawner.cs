@@ -37,7 +37,7 @@ public class DoodadSpawner : Spawner<Doodad>
     public DoodadSpawner()
     {
         _permanent = true; // Doodad not on the schedule.
-        _spawned = new List<Doodad>();
+        _spawned = [];
         Count = 1;
         Last = new Doodad();
         Scale = 1f;
@@ -60,7 +60,7 @@ public class DoodadSpawner : Spawner<Doodad>
     public override Doodad Spawn(uint objId, ulong itemId, uint charId) //Mostly used for player created spawns
     {
         _permanent = true; // Doodad not on the schedule.
-        _spawned = new List<Doodad>();
+        _spawned = [];
         Count = 1;
         Last = new Doodad();
         var character = WorldManager.Instance.GetCharacterByObjId(charId);
@@ -104,7 +104,7 @@ public class DoodadSpawner : Spawner<Doodad>
     public override Doodad Spawn(uint objId) // TODO: clean up each doodad uses the same call
     {
         _permanent = true; // Doodad not on the schedule.
-        _spawned = new List<Doodad>();
+        _spawned = [];
         Count = 1;
         Last = new Doodad();
 

@@ -7,13 +7,13 @@ public class SendMailRequest
 {
     public MailType Type { get; set; } = MailType.SysExpress;
     public string SenderName { get; set; } = "GM"; // Default value
-    public List<uint> Recipients { get; set; } = new List<uint>(); // Recipient Id 
+    public List<uint> Recipients { get; set; } = []; // Recipient Id 
     public RecipientType RecipientType { get; set; } = 0; // Game characters, game guilds, default game characters
     public string Title { get; set; }
     public string Body { get; set; }
     public int Money { get; set; } = 0; // Default 0
     public int Billing { get; set; } = 0; // Default 0
-    public List<AttachmentItem> AttachmentItems { get; set; } = new List<AttachmentItem>(); // Default empty
+    public List<AttachmentItem> AttachmentItems { get; set; } = []; // Default empty
 }
 
 public enum RecipientType

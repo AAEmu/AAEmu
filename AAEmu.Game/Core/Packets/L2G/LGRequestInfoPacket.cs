@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Models;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Packets.G2L;
@@ -20,7 +18,7 @@ public class LGRequestInfoPacket : LoginPacket
         var accountId = stream.ReadUInt32();
         var characters = accountId != 0
             ? CharacterManager.LoadCharacters(accountId)
-            : new List<LoginCharacterInfo>();
+            : [];
         Connection.SendPacket(new GLRequestInfoPacket(connectionId, requestId, characters));
     }
 }

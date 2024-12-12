@@ -91,7 +91,7 @@ public class IcsItem
     /// <summary>
     /// List of actual SKUs to use for this entry
     /// </summary>
-    public Dictionary<uint, IcsSku> Skus { get; set; } = new Dictionary<uint, IcsSku>();
+    public Dictionary<uint, IcsSku> Skus { get; set; } = [];
 
     public IcsSku FirstSku
     {

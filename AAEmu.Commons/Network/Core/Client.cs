@@ -7,7 +7,7 @@ namespace AAEmu.Commons.Network.Core;
 
 public class Client : TcpClient, ISession
 {
-    private readonly Dictionary<string, object> _attributes = new();
+    private readonly Dictionary<string, object> _attributes = [];
     private BaseProtocolHandler _handler;
     private uint _sessionId;
     private IPAddress _ip;

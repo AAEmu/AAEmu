@@ -20,10 +20,10 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
 
     public void Load(SqliteConnection connection)
     {
-        _charRecords = new Dictionary<uint, CharRecords>();
-        _achievements = new Dictionary<uint, Achievements>();
-        _achievementObjectives = new Dictionary<uint, List<AchievementObjectives>>();
-        _preCompletedAchievements = new Dictionary<uint, List<PreCompletedAchievements>>();
+        _charRecords = [];
+        _achievements = [];
+        _achievementObjectives = [];
+        _preCompletedAchievements = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -70,7 +70,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
 
                     if (!_achievementObjectives.TryGetValue(template.AchievementId, out var value))
                     {
-                        value = new List<AchievementObjectives>();
+                        value = [];
                         _achievementObjectives.Add(template.AchievementId, value);
                     }
 
@@ -95,7 +95,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
 
                     if (!_preCompletedAchievements.TryGetValue(template.CompletedAchievementId, out var value))
                     {
-                        value = new List<PreCompletedAchievements>();
+                        value = [];
                         _preCompletedAchievements.Add(template.CompletedAchievementId, value);
                     }
 

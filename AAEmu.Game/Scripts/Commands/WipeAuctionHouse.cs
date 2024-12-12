@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 internal class WipeAuctionHouse : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "wipeauctionhouse", "wipeah" };
+    public string[] CommandNames { get; set; } = ["wipeauctionhouse", "wipeah"];
 
     public void OnLoad()
     {

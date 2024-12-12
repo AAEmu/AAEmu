@@ -32,7 +32,7 @@ public class TradeManager : Singleton<TradeManager>
 
     public TradeManager()
     {
-        _trades = new Dictionary<uint, TradeTemplate>();
+        _trades = [];
     }
 
     private uint GetTradeId(uint objId)
@@ -94,8 +94,8 @@ public class TradeManager : Singleton<TradeManager>
             LockTarget = false,
             OkOwner = false,
             OkTarget = false,
-            OwnerItems = new List<Item>(),
-            TargetItems = new List<Item>(),
+            OwnerItems = [],
+            TargetItems = [],
             OwnerMoneyPutup = 0,
             TargetMoneyPutup = 0
 
@@ -388,8 +388,8 @@ public class TradeManager : Singleton<TradeManager>
 
         // Trade complete, remove ID and send item task packets
         _trades.Remove(tradeId);
-        owner.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksOwner, new List<ulong>()));
-        target.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksTarget, new List<ulong>()));
+        owner.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksOwner, []));
+        target.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksTarget, []));
         Logger.Info($"Trade Id:{tradeId} finished. Owner {owner.Name} ({owner.Id}) Items/Money: {tradeInfo.OwnerItems.Count}/{tradeInfo.OwnerMoneyPutup} <=> Target {target.Name} ({target.Id}) Items/Money: {tradeInfo.TargetItems.Count}/{tradeInfo.TargetMoneyPutup}");
         if (hasErrors > 0)
         {

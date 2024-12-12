@@ -167,9 +167,9 @@ public class BuffTemplate
 
     public BuffTemplate()
     {
-        TickEffects = new List<TickEffect>();
-        Bonuses = new List<BonusTemplate>();
-        DynamicBonuses = new List<DynamicBonusTemplate>();
+        TickEffects = [];
+        Bonuses = [];
+        DynamicBonuses = [];
     }
 
     public void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,

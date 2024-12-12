@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.NPChar;
@@ -26,13 +24,13 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
             //var npcSpawnersIds = new List<uint> { NpcSpawnerId };//NpcGameData.Instance.GetSpawnerIds(unitId);
             spawner[0].UnitId = unitId;
             spawner[0].Id = NpcSpawnerId;
-            spawner[0].NpcSpawnerIds = new List<uint> { NpcSpawnerId };
+            spawner[0].NpcSpawnerIds = [NpcSpawnerId];
             spawner[0].Template = NpcGameData.Instance.GetNpcSpawnerTemplate(NpcSpawnerId);
             if (spawner[0].Template == null) { return false; }
 
             if (spawner[0].Template.Npcs.Count == 0)
             {
-                spawner[0].Template.Npcs = new List<NpcSpawnerNpc>();
+                spawner[0].Template.Npcs = [];
                 var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(NpcSpawnerId);
                 if (nsn == null) { return false; }
                 spawner[0].Template.Npcs.Add(nsn);

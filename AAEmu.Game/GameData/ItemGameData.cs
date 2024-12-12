@@ -23,7 +23,7 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
 
     public void Load(SqliteConnection connection)
     {
-        _itemGradeBuffs = new Dictionary<uint, Dictionary<byte, uint>>();
+        _itemGradeBuffs = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -39,7 +39,7 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
                     var buffId = reader.GetUInt32("buff_id");
 
                     if (!_itemGradeBuffs.ContainsKey(itemId))
-                        _itemGradeBuffs.Add(itemId, new Dictionary<byte, uint>());
+                        _itemGradeBuffs.Add(itemId, []);
 
                     _itemGradeBuffs[itemId].Add(itemGrade, buffId);
                 }

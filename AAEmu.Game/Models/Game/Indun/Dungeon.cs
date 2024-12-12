@@ -49,9 +49,9 @@ public class Dungeon
     public Dungeon(IndunZone indunZone, Character character, Team.Team team = null)
     {
         _indunZone = indunZone;
-        _players = new List<uint>();
+        _players = [];
         _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
-        _rooms = new Dictionary<uint, bool>();
+        _rooms = [];
         _characterOwner = character;
 
         if (team == null)
@@ -114,9 +114,9 @@ public class Dungeon
     public Dungeon(IndunZone indunZone, Character character)
     {
         _indunZone = indunZone;
-        _players = new List<uint>();
+        _players = [];
         _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
-        _rooms = new Dictionary<uint, bool>();
+        _rooms = [];
         //_characterOwner = character;
 
         _isTeamOwned = false;
@@ -190,7 +190,6 @@ public class Dungeon
             MoveCharacterToWorld(character);
         }
     }
-
 
     /// <summary>
     /// Remove player from Dungeon

@@ -14,7 +14,6 @@ public class PlotTargetRandomAreaParams : IPlotTargetParams
     public SkillTargetRelation UnitRelationType { get; set; } // TODO: Change to enum
     public byte UnitTypeFlag { get; set; }
 
-
     public PlotTargetRandomAreaParams(PlotEventTemplate template)
     {
         Shape = WorldManager.Instance.GetAreaShapeById((uint)template.TargetUpdateMethodParam1);

@@ -120,13 +120,13 @@ public class HousingManager : Singleton<HousingManager>
     /// <exception cref="IOException"></exception>
     public void Load()
     {
-        _housingTemplates = new Dictionary<uint, HousingTemplate>();
-        _houses = new Dictionary<uint, House>();
-        _housesTl = new Dictionary<ushort, House>();
-        _removedHousings = new List<uint>();
-        _housingItemHousings = new List<HousingItemHousings>();
-        _housingDecorations = new Dictionary<uint, HousingDecoration>();
-        _housingItemHousingDecorations = new List<ItemHousingDecoration>();
+        _housingTemplates = [];
+        _houses = [];
+        _housesTl = [];
+        _removedHousings = [];
+        _housingItemHousings = [];
+        _housingDecorations = [];
+        _housingItemHousingDecorations = [];
 
         // var housingAreas = new Dictionary<uint, HousingAreas>();
         // var houseTaxes = new Dictionary<uint, HouseTax>();

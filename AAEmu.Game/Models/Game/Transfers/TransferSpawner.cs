@@ -25,7 +25,7 @@ public class TransferSpawner : Spawner<Transfer>
 
     public TransferSpawner()
     {
-        _spawned = new List<Transfer>();
+        _spawned = [];
         Count = 1;
     }
 
@@ -101,7 +101,6 @@ public class TransferSpawner : Spawner<Transfer>
                     //Logger.Warn("TransfersPath #" + transfer.TemplateId);
                     //Logger.Warn("New spawn Pos={0}", transfer.Transform.ToString());
                     //Logger.Warn("zoneId={0}", transfer.Transform.ZoneId);
-
 
                     transfer.GoToPath(transfer);
                     //TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);

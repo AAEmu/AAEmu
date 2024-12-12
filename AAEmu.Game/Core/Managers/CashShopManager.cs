@@ -20,9 +20,9 @@ public class CashShopManager : Singleton<CashShopManager>
 
     public bool Enabled { get; private set; }
 
-    public Dictionary<uint, IcsSku> SKUs { get; set; } = new();
-    public Dictionary<uint, IcsItem> ShopItems { get; set; } = new();
-    public List<IcsMenu> MenuItems { get; set; } = new();
+    public Dictionary<uint, IcsSku> SKUs { get; set; } = [];
+    public Dictionary<uint, IcsItem> ShopItems { get; set; } = [];
+    public List<IcsMenu> MenuItems { get; set; } = [];
 
     public void CreditDisperseTick(TimeSpan delta)
     {

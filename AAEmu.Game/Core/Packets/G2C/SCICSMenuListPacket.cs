@@ -17,10 +17,10 @@ public class SCICSMenuListPacket : GamePacket
         _enabled = enabled;
 
         // Initialize tabs
-        _tabsEnabled = new();
+        _tabsEnabled = [];
         for (byte mainTab = 1; mainTab <= MainTabCount; mainTab++)
         {
-            _tabsEnabled.Add(mainTab, new Dictionary<byte, bool>());
+            _tabsEnabled.Add(mainTab, []);
             for (byte subTab = 1; subTab <= SubTabCount; subTab++)
                 _tabsEnabled[mainTab].Add(subTab, false);
         }

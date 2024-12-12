@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -71,7 +70,7 @@ public class Skinize : SpecialEffectAction
         }
 
         itemToImage.SetFlag(ItemFlag.Skinized);
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Sknize, new List<ItemTask>() { new ItemUpdateBits(itemToImage) }, new List<ulong>()));
+        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Sknize, [new ItemUpdateBits(itemToImage)], []));
         powderItem._holdingContainer.ConsumeItem(ItemTaskType.Sknize, powderItem.TemplateId, 1, powderItem);
     }
 }

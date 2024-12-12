@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 
@@ -34,7 +34,7 @@ public class GameServer
         Name = name;
         Host = host;
         Port = port;
-        MirrorsId = new List<byte>();
+        MirrorsId = [];
     }
 
     public void SendPacket(InternalPacket packet)

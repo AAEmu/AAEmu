@@ -24,7 +24,7 @@ public class AiPathsManager : Singleton<AiPathsManager>
     /// <summary>
     /// Cache for loaded Path
     /// </summary>
-    private Dictionary<string, List<AiPathPoint>> PathsCache { get; set; } = new();
+    private Dictionary<string, List<AiPathPoint>> PathsCache { get; set; } = [];
 
     public List<AiPathPoint> LoadAiPathPoints(string aiPathFileName)
     {

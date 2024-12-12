@@ -61,13 +61,13 @@ public class CSStartInteractionPacket : GamePacket
                 option = SkillsEnum.ItemFusion; // Open Item Fuse dialog ?
 
             Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
-                pickId, mouseButton, modifierKeys, new uint[] { option }));
+                pickId, mouseButton, modifierKeys, [option]));
         }
 
         var slave = WorldManager.Instance.GetUnit(npcObjId);
         if (slave is Mate mate)
         {
-            Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys, new uint[] { SkillsEnum.SlaveMounting }));
+            Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys, [SkillsEnum.SlaveMounting]));
         }
     }
 }

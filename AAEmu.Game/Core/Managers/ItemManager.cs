@@ -127,7 +127,7 @@ public class ItemManager : Singleton<ItemManager>
 
     private List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
     {
-        return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : new List<LootPackDroppingNpc>();
+        return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : [];
     }
 
     /// <summary>
@@ -137,12 +137,12 @@ public class ItemManager : Singleton<ItemManager>
     /// <returns></returns>
     private List<LootPackConvertFish> GetLootPackIdByItemId(uint itemId)
     {
-        return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : new List<LootPackConvertFish>();
+        return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : [];
     }
 
     public List<Item> GetLootDropItems(uint npcId)
     {
-        return _lootDropItems.TryGetValue(npcId, out var item) ? item : new List<Item>();
+        return _lootDropItems.TryGetValue(npcId, out var item) ? item : [];
     }
 
     public List<ItemTemplate> GetAllItems()
@@ -227,14 +227,10 @@ public class ItemManager : Singleton<ItemManager>
                 if (aggroGoldMul > maxLootGoldMul)
                     maxLootGoldMul = aggroGoldMul;
 
-
-
             }
 
             lootDropRate = maxDropRateMul;
             lootGoldRate = maxLootGoldMul;
-
-
 
         }
         else if (killer is Character player)
@@ -259,7 +255,7 @@ public class ItemManager : Singleton<ItemManager>
         }
 
         if (!_lootDropItems.TryGetValue(npcId, out items))
-            items = new List<Item>();
+            items = [];
         return items;
     }
 
@@ -447,7 +443,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public List<uint> GetItemIdsFromDoodad(uint doodadId)
     {
-        return _itemDoodadTemplates.TryGetValue(doodadId, out var template) ? template.ItemIds : new List<uint>();
+        return _itemDoodadTemplates.TryGetValue(doodadId, out var template) ? template.ItemIds : [];
     }
 
     public ItemTemplate GetItemTemplateFromItemId(uint itemId)
@@ -543,7 +539,7 @@ public class ItemManager : Singleton<ItemManager>
     {
         if (_itemUnitModifiers.TryGetValue(itemId, out var modifiers))
             return modifiers;
-        return new List<BonusTemplate>();
+        return [];
     }
 
     public ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade)
@@ -610,36 +606,36 @@ public class ItemManager : Singleton<ItemManager>
         if (_loaded)
             return;
 
-        _grades = new Dictionary<int, GradeTemplate>();
-        _holdables = new Dictionary<uint, Holdable>();
-        _wearables = new Dictionary<uint, Wearable>();
-        _wearableKinds = new Dictionary<uint, WearableKind>();
-        _wearableSlots = new Dictionary<uint, WearableSlot>();
-        _modifiers = new Dictionary<uint, AttributeModifiers>();
-        _templates = new Dictionary<uint, ItemTemplate>();
-        _enchantingCosts = new Dictionary<uint, EquipSlotEnchantingCost>();
-        _gradesOrdered = new Dictionary<int, GradeTemplate>();
-        _enchantingSupports = new Dictionary<uint, ItemGradeEnchantingSupport>();
-        _socketChance = new Dictionary<uint, uint>();
-        _itemCapScales = new Dictionary<uint, ItemCapScale>();
-        _itemLookConverts = new Dictionary<uint, ItemLookConvert>();
-        _holdableItemLookConverts = new Dictionary<uint, uint>();
-        _wearableItemLookConverts = new Dictionary<uint, uint>();
-        _lootPackDroppingNpc = new Dictionary<uint, List<LootPackDroppingNpc>>();
-        _lootPackConvertFish = new Dictionary<uint, List<LootPackConvertFish>>();
-        _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
+        _grades = [];
+        _holdables = [];
+        _wearables = [];
+        _wearableKinds = [];
+        _wearableSlots = [];
+        _modifiers = [];
+        _templates = [];
+        _enchantingCosts = [];
+        _gradesOrdered = [];
+        _enchantingSupports = [];
+        _socketChance = [];
+        _itemCapScales = [];
+        _itemLookConverts = [];
+        _holdableItemLookConverts = [];
+        _wearableItemLookConverts = [];
+        _lootPackDroppingNpc = [];
+        _lootPackConvertFish = [];
+        _itemGradeDistributions = [];
         /*
         _lootPacks = new Dictionary<uint, List<Loot>>();
         _lootGroups = new Dictionary<uint, List<LootGroups>>();
         */
-        _lootDropItems = new Dictionary<uint, List<Item>>();
-        _itemDoodadTemplates = new Dictionary<uint, ItemDoodadTemplate>();
-        _itemProcTemplates = new Dictionary<uint, ItemProcTemplate>();
-        _armorGradeBuffs = new Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>>();
-        _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
-        _equipItemSets = new Dictionary<uint, EquipItemSet>();
-        _defaultDyeIds = new Dictionary<uint, uint>();
-        _itemSets = new Dictionary<uint, ItemSet>();
+        _lootDropItems = [];
+        _itemDoodadTemplates = [];
+        _itemProcTemplates = [];
+        _armorGradeBuffs = [];
+        _itemUnitModifiers = [];
+        _equipItemSets = [];
+        _defaultDyeIds = [];
+        _itemSets = [];
         _config = new ItemConfig();
         ItemTimerLock = new();
         LastTimerCheck = DateTime.UtcNow;
@@ -1436,7 +1432,7 @@ public class ItemManager : Singleton<ItemManager>
                             lootPackDroppingNpc = value;
                         else
                         {
-                            lootPackDroppingNpc = new List<LootPackDroppingNpc>();
+                            lootPackDroppingNpc = [];
                             _lootPackDroppingNpc.Add(template.NpcId, lootPackDroppingNpc);
                         }
 
@@ -1519,7 +1515,7 @@ public class ItemManager : Singleton<ItemManager>
                         };
 
                         if (!_itemUnitModifiers.ContainsKey(itemId))
-                            _itemUnitModifiers.Add(itemId, new List<BonusTemplate>());
+                            _itemUnitModifiers.Add(itemId, []);
                         _itemUnitModifiers[itemId].Add(template);
                     }
                 }
@@ -1542,7 +1538,7 @@ public class ItemManager : Singleton<ItemManager>
                         };
 
                         if (!_armorGradeBuffs.ContainsKey(armorGradeBuff.ArmorType))
-                            _armorGradeBuffs.Add(armorGradeBuff.ArmorType, new Dictionary<ItemGrade, ArmorGradeBuff>());
+                            _armorGradeBuffs.Add(armorGradeBuff.ArmorType, []);
 
                         _armorGradeBuffs[armorGradeBuff.ArmorType].TryAdd(armorGradeBuff.ItemGrade, armorGradeBuff);
                     }
@@ -1701,7 +1697,6 @@ public class ItemManager : Singleton<ItemManager>
                 }
             }
         }
-
 
         using (var command = connection.CreateCommand())
         {
@@ -1914,12 +1909,12 @@ public class ItemManager : Singleton<ItemManager>
             return;
 
         Logger.Info("Loading user items ...");
-        _allItems = new Dictionary<ulong, Item>();
-        _allPersistentContainers = new Dictionary<ulong, ItemContainer>();
+        _allItems = [];
+        _allPersistentContainers = [];
 
         // No lock needed here since this is the first and only time it gets assigned a new list
         // ReSharper disable once InconsistentlySynchronizedField
-        _removedItems = new List<ulong>();
+        _removedItems = [];
 
         using (var connection = MySQL.CreateConnection())
         using (var command = connection.CreateCommand())
@@ -2283,7 +2278,7 @@ public class ItemManager : Singleton<ItemManager>
         if (item.Template.BindType == ItemBindType.BindOnUnpack)
             item.SetFlag(ItemFlag.SoulBound);
         var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, new List<ulong>()));
+        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, []));
         if ((item.Template is EquipItemTemplate { ChargeLifetime: > 0 }))
             character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
         return true;

@@ -63,9 +63,9 @@ public class Slave : Unit
 
     public Slave()
     {
-        AttachedDoodads = new List<Doodad>();
-        AttachedSlaves = new List<Slave>();
-        AttachedCharacters = new Dictionary<AttachPointKind, Character>();
+        AttachedDoodads = [];
+        AttachedSlaves = [];
+        AttachedCharacters = [];
         HpTriggerPointsPercent.Add(0);
         HpTriggerPointsPercent.Add(25);
         HpTriggerPointsPercent.Add(50);
@@ -80,8 +80,10 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Str);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Str))
             {
@@ -101,8 +103,10 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Dex);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Dex))
             {
@@ -121,8 +125,10 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Sta);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Sta))
             {
@@ -141,8 +147,10 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Int);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Int))
             {
@@ -161,8 +169,10 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Spi);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Spi))
             {
@@ -181,8 +191,10 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Fai);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Fai))
             {
@@ -201,14 +213,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
             {
@@ -227,14 +241,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.HealthRegen);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             res += Spi / 10;
             foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
@@ -254,14 +270,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.PersistentHealthRegen);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
             {
@@ -280,14 +298,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxMana);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
             {
@@ -306,14 +326,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.ManaRegen);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             res += Spi / 10;
             foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
@@ -333,14 +355,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.PersistentManaRegen);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
             {
@@ -358,15 +382,17 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.LevelDps);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
-            parameters["ab_level"] = 0;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai,
+                ["ab_level"] = 0
+            };
             var res = formula.Evaluate(parameters);
             return (float)res;
         }
@@ -399,14 +425,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MeleeDpsInc);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
             {
@@ -467,14 +495,16 @@ public class Slave : Unit
         {
             var formula =
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.RangedDpsInc);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
             {
@@ -515,14 +545,16 @@ public class Slave : Unit
         {
             var formula =
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.SpellDpsInc);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
             {
@@ -542,14 +574,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Armor);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.Armor))
             {
@@ -568,14 +602,16 @@ public class Slave : Unit
         get
         {
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MagicResist);
-            var parameters = new Dictionary<string, double>();
-            parameters["level"] = Level;
-            parameters["str"] = Str;
-            parameters["dex"] = Dex;
-            parameters["sta"] = Sta;
-            parameters["int"] = Int;
-            parameters["spi"] = Spi;
-            parameters["fai"] = Fai;
+            var parameters = new Dictionary<string, double>
+            {
+                ["level"] = Level,
+                ["str"] = Str,
+                ["dex"] = Dex,
+                ["sta"] = Sta,
+                ["int"] = Int,
+                ["spi"] = Spi,
+                ["fai"] = Fai
+            };
             var res = (int)formula.Evaluate(parameters);
             foreach (var bonus in GetBonuses(UnitAttribute.MagicResist))
             {
@@ -616,7 +652,7 @@ public class Slave : Unit
     {
         base.RemoveVisibleObject(character);
 
-        character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
+        character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
     }
 
     /// <summary>
@@ -795,7 +831,7 @@ public class Slave : Unit
         item.RepairStartTime = DateTime.MinValue;
         item.SummonLocation = Vector3.Zero;
         item.IsDirty = true;
-        Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), new List<ulong>()));
+        Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), []));
     }
 
     /// <summary>

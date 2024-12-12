@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class TestCombat : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "testcombat", "test_combat" };
+    public string[] CommandNames { get; set; } = ["testcombat", "test_combat"];
 
     public void OnLoad()
     {

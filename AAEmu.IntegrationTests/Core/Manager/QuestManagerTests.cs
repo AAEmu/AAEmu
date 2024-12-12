@@ -46,7 +46,7 @@ public class QuestManagerTests
     [Fact]
     public Task GetQuestIdFromStarterItem_ShouldReturnSameResultAsOriginal()
     {
-        Dictionary<uint, uint> expectedResults = new();
+        Dictionary<uint, uint> expectedResults = [];
         var query = @"
 SELECT qc2.id as questId, qacai.item_id as itemId
 FROM 

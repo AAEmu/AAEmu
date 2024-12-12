@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SendPacket : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "packet" };
+    public string[] CommandNames { get; set; } = ["packet"];
 
     public void OnLoad()
     {

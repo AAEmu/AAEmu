@@ -77,7 +77,6 @@ public class BaseMail
         if ((originalSender != null) && (originalSender.IsOnline))
             MailManager.NotifyNewMailByNameIfOnline(this, originalSender.Name);
 
-
         // TODO
         return true;
     }

@@ -59,12 +59,12 @@ public class ZoneManager : Singleton<ZoneManager>
 
     public void Load()
     {
-        _zoneIdToKey = new Dictionary<uint, uint>();
-        _zones = new Dictionary<uint, Zone>();
-        _groups = new Dictionary<uint, ZoneGroup>();
-        _conflicts = new Dictionary<ushort, ZoneConflict>();
-        _groupBannedTags = new Dictionary<uint, ZoneGroupBannedTag>();
-        _climateElem = new Dictionary<uint, ZoneClimateElem>();
+        _zoneIdToKey = [];
+        _zones = [];
+        _groups = [];
+        _conflicts = [];
+        _groupBannedTags = [];
+        _climateElem = [];
         Logger.Info("Loading ZoneManager...");
         using (var connection = SQLite.CreateConnection())
         {
@@ -205,7 +205,6 @@ public class ZoneManager : Singleton<ZoneManager>
             Logger.Info("Loaded {0} climate elems", _climateElem.Count);
         }
     }
-
 
     public static Vector2 GetZoneOriginCell(uint zoneId)
     {

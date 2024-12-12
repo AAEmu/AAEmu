@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SetFaction : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "setfaction", "set_faction" };
+    public string[] CommandNames { get; set; } = ["setfaction", "set_faction"];
 
     public void OnLoad()
     {
@@ -43,7 +43,6 @@ public class SetFaction : ICommand
             // CommandManager.SendDefaultHelpText(this, messageOutput);
             return;
         }
-
 
         if (!Enum.TryParse<FactionsEnum>(args[0], true, out var faction))
         {

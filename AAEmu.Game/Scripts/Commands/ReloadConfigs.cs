@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 internal class ReloadConfigs : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "reloadconfig", "reload_configs", "reload_configurations" };
+    public string[] CommandNames { get; set; } = ["reloadconfig", "reload_configs", "reload_configurations"];
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public void OnLoad()

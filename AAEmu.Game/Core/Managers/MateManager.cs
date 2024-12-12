@@ -202,8 +202,8 @@ public class MateManager : Singleton<MateManager>
 
         _activeMates.Add(owner.ObjId, mate);
 
-        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new List<ItemTask> { new ItemUpdate(item) },
-            new List<ulong>())); // TODO - maybe update details
+        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, [new ItemUpdate(item)],
+            [])); // TODO - maybe update details
         owner.SendPacket(new SCMateSpawnedPacket(mate));
         mate.Spawn();
 
@@ -316,10 +316,10 @@ public class MateManager : Singleton<MateManager>
     public void Load()
     {
         _nameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
-        _npcMountSkills = new Dictionary<uint, NpcMountSkills>();
-        _mountSkills = new Dictionary<uint, MountSkills>();
-        _mountAttachedSkills = new Dictionary<uint, MountAttachedSkills>();
-        _activeMates = new Dictionary<uint, Mate>();
+        _npcMountSkills = [];
+        _mountSkills = [];
+        _mountAttachedSkills = [];
+        _activeMates = [];
 
         #region SQLite
 

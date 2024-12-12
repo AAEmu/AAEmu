@@ -135,9 +135,11 @@ public class Accessory : EquipItem
             var template = (AccessoryTemplate)Template;
             var grade = ItemManager.Instance.GetGradeTemplate(Grade);
             var formula = FormulaManager.Instance.GetWearableFormula(WearableFormulaType.MaxBaseArmor);
-            var parameters = new Dictionary<string, double>();
-            parameters["item_level"] = template.Level;
-            parameters["item_grade"] = grade.WearableArmor;
+            var parameters = new Dictionary<string, double>
+            {
+                ["item_level"] = template.Level,
+                ["item_grade"] = grade.WearableArmor
+            };
             var res = formula.Evaluate(parameters);
             res = res * template.KindTemplate.ArmorRatio * 0.0099999998f;
             return (int)(res * template.SlotTemplate.Coverage * 0.0099999998f);
@@ -151,9 +153,11 @@ public class Accessory : EquipItem
             var template = (AccessoryTemplate)Template;
             var grade = ItemManager.Instance.GetGradeTemplate(Grade);
             var formula = FormulaManager.Instance.GetWearableFormula(WearableFormulaType.MaxBaseMagicResistance);
-            var parameters = new Dictionary<string, double>();
-            parameters["item_level"] = template.Level;
-            parameters["item_grade"] = grade.WearableMagicResistance;
+            var parameters = new Dictionary<string, double>
+            {
+                ["item_level"] = template.Level,
+                ["item_grade"] = grade.WearableMagicResistance
+            };
             var res = formula.Evaluate(parameters);
             res = res * template.KindTemplate.MagicResistanceRatio * 0.0099999998f;
             return (int)(res * template.SlotTemplate.Coverage * 0.0099999998f);

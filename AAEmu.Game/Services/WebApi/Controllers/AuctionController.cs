@@ -81,7 +81,6 @@ internal class AuctionController : BaseController, IController
         }
     }
 
-
     /// Returns A JSON response with the filtered list of auction items.
     [WebApiGet("/api/auction/search")]
     public HttpResponse SearchAuctionItems(HttpRequest request, MatchCollection matches)

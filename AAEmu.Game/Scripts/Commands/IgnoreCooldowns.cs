@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class IgnoreCooldowns : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "ignoreskillcds", "disablecooldowns", "ignorecooldowns", "ignorecd" };
+    public string[] CommandNames { get; set; } = ["ignoreskillcds", "disablecooldowns", "ignorecooldowns", "ignorecd"];
 
     public void OnLoad()
     {

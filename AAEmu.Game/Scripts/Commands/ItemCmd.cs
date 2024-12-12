@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ItemCmd : SubCommandBase, ICommand, ICommandV2
 {
-    public string[] CommandNames { get; set; } = new string[] { "item" };
+    public string[] CommandNames { get; set; } = ["item"];
 
     public ItemCmd()
     {

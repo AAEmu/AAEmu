@@ -41,7 +41,7 @@ public class ArcherAiParams : AiParams
             RestorationOnReturn = Convert.ToBoolean(aiParams.GetObjectFromPath("data.restorationOnReturn"));
 
         // individually
-        CombatSkills = new List<ArcherCombatSkill>();
+        CombatSkills = [];
         if (aiParams.GetTable("data.combatSkills") is LuaTable table)
         {
             var combatSkill = new ArcherCombatSkill();

@@ -13,7 +13,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class UseSkill : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "useskill", "use_skill", "testskill", "test_skill" };
+    public string[] CommandNames { get; set; } = ["useskill", "use_skill", "testskill", "test_skill"];
 
     public void OnLoad()
     {

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class HouseBindingMove : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "house_binding_move", "housebindingmove" };
+    public string[] CommandNames { get; set; } = ["house_binding_move", "housebindingmove"];
 
     public void OnLoad()
     {

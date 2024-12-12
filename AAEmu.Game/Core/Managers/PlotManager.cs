@@ -37,9 +37,9 @@ public class PlotManager : Singleton<PlotManager>
         if (_loaded)
             return;
 
-        _plots = new Dictionary<uint, Plot>();
-        _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
-        _conditions = new Dictionary<uint, PlotCondition>();
+        _plots = [];
+        _eventTemplates = [];
+        _conditions = [];
         //_aoeConditions = new Dictionary<uint, PlotAoeCondition>();
         using (var connection = SQLite.CreateConnection())
         {

@@ -106,7 +106,7 @@ public class GameObject : IGameObject
     /// <param name="packet"></param>
     public virtual void SendPacketToPlayers(IBaseUnit[] targets, GamePacket packet)
     {
-        Dictionary<uint, Character> sendToObjects = new();
+        Dictionary<uint, Character> sendToObjects = [];
         foreach (var unit in targets)
         {
             if (unit is Character chr)

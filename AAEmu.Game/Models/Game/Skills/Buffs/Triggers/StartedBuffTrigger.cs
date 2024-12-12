@@ -40,7 +40,6 @@ internal class StartedBuffTrigger : BuffTrigger
                 return;
         }
 
-
         Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
             new EffectSource(), // TODO : EffectSource Type trigger 
             null, DateTime.UtcNow);

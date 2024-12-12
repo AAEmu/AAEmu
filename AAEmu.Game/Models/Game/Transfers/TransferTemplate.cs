@@ -17,9 +17,9 @@ public class TransferTemplate
 
     public TransferTemplate()
     {
-        TransferBindings = new List<TransferBindings>();
-        TransferAllPaths = new List<TransferPaths>();
-        TransferBindingDoodads = new List<TransferBindingDoodads>();
-        TransferRoads = new List<TransferRoads>();
+        TransferBindings = [];
+        TransferAllPaths = [];
+        TransferBindingDoodads = [];
+        TransferRoads = [];
     }
 }

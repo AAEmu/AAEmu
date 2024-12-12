@@ -13,7 +13,7 @@ public class StreamManager : Singleton<StreamManager>
 
     protected StreamManager()
     {
-        _accounts = new Dictionary<uint, uint>();
+        _accounts = [];
     }
 
     public static void Load()

@@ -35,13 +35,13 @@ public class SlaveTemplate
 
     public SlaveTemplate()
     {
-        InitialBuffs = new List<SlaveInitialBuffs>();
-        PassiveBuffs = new List<SlavePassiveBuffs>();
-        DoodadBindings = new List<SlaveDoodadBindings>();
-        HealingPointDoodads = new List<SlaveDoodadBindings>();
-        SlaveBindings = new List<SlaveBindings>();
-        SlaveDropDoodads = new List<SlaveDropDoodad>();
-        Bonuses = new List<BonusTemplate>();
+        InitialBuffs = [];
+        PassiveBuffs = [];
+        DoodadBindings = [];
+        HealingPointDoodads = [];
+        SlaveBindings = [];
+        SlaveDropDoodads = [];
+        Bonuses = [];
     }
 
     public bool IsABoat()

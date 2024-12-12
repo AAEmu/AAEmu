@@ -10,7 +10,7 @@ public static class ClientFileManager
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _initialized = false;
 
-    private static List<ClientSource> sources = new();
+    private static List<ClientSource> sources = [];
 
     public static IReadOnlyList<ClientSource> Sources => sources;
 

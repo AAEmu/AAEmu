@@ -20,13 +20,13 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class WaterEdit : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "wateredit", "water_edit", "wedit" };
+    public string[] CommandNames { get; set; } = ["wateredit", "water_edit", "wedit"];
 
     public static WaterBodyArea SelectedWater { get; set; }
     public static World SelectedWorld { get; set; }
     public static int NextPoint { get; set; }
-    public List<(WaterBodyArea, float)> NearbyList = new();
-    public List<BaseUnit> Markers = new();
+    public List<(WaterBodyArea, float)> NearbyList = [];
+    public List<BaseUnit> Markers = [];
 
     public void OnLoad()
     {

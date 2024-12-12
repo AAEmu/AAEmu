@@ -12,8 +12,8 @@ namespace AAEmu.Game.Utils.Scripts.SubCommands;
 public abstract class SubCommandBase : ICommandV2
 {
     protected Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly Dictionary<string, ICommandV2> _subCommands = new();
-    private List<SubCommandParameterBase> _parameters = new();
+    private readonly Dictionary<string, ICommandV2> _subCommands = [];
+    private List<SubCommandParameterBase> _parameters = [];
 
     protected void AddParameter(SubCommandParameterBase parameter)
     {
@@ -113,7 +113,7 @@ public abstract class SubCommandBase : ICommandV2
 
     protected IDictionary<string, ParameterResult> LoadParametersValues(string[] args)
     {
-        Dictionary<string, ParameterResult> parametersValue = new();
+        Dictionary<string, ParameterResult> parametersValue = [];
 
         var nonPrefixArguments = args.Where(a => !a.Contains('=')).ToArray();
         var parameterCount = 0;

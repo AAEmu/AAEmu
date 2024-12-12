@@ -170,7 +170,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", new[] { argumentValue }, new CharacterMessageOutput(mockCharacter.Object));
+        subCommand.PreExecute(mockCharacter.Object, "", [argumentValue], new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.False(subCommand.Executed);
@@ -189,7 +189,7 @@ public class SubCommandBaseTests
         var mockCharacter = new Mock<ICharacter>();
 
         // Act
-        subCommand.PreExecute(mockCharacter.Object, "", new[] { argumentValue }, new CharacterMessageOutput(mockCharacter.Object));
+        subCommand.PreExecute(mockCharacter.Object, "", [argumentValue], new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
         Assert.True(subCommand.Executed);

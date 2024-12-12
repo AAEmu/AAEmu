@@ -16,7 +16,6 @@ public class CSLootOpenBagPacket : GamePacket
         var obj2Id = stream.ReadBc();
         var lootAll = stream.ReadBoolean();
 
-
         ItemManager.Instance.TookLootDropItems(Connection.ActiveChar, objId, lootAll);
 
     }

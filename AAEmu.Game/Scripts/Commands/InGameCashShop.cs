@@ -7,7 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class InGameCashShop : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "ingamecashshop", "ics" };
+    public string[] CommandNames { get; set; } = ["ingamecashshop", "ics"];
 
     public void OnLoad()
     {

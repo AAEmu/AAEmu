@@ -53,10 +53,10 @@ public class Transfer : Unit
 
     public Transfer()
     {
-        AttachedDoodads = new List<Doodad>();
-        Routes = new Dictionary<int, List<WorldSpawnPosition>>();
-        TransferPath = new List<WorldSpawnPosition>();
-        AttachedCharacters = new List<Character>();
+        AttachedDoodads = [];
+        Routes = [];
+        TransferPath = [];
+        AttachedCharacters = [];
     }
 
     #region Attributes
@@ -417,7 +417,7 @@ public class Transfer : Unit
     {
         base.RemoveVisibleObject(character);
 
-        character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
+        character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
     }
 
     public PacketStream WriteTelescopeUnit(PacketStream stream)

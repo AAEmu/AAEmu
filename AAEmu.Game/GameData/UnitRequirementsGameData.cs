@@ -31,8 +31,8 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
 
     public void Load(SqliteConnection connection)
     {
-        _unitReqs = new();
-        _unitReqsByOwnerType = new();
+        _unitReqs = [];
+        _unitReqsByOwnerType = [];
 
         #region Tables
 
@@ -53,7 +53,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
 
             _unitReqs.TryAdd(t.Id, t);
             if (!_unitReqsByOwnerType.ContainsKey(t.OwnerType))
-                _unitReqsByOwnerType.TryAdd(t.OwnerType, new List<UnitReqs>());
+                _unitReqsByOwnerType.TryAdd(t.OwnerType, []);
             _unitReqsByOwnerType[t.OwnerType].Add(t);
         }
         #endregion

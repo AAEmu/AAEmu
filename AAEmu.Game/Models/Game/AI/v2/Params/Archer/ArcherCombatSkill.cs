@@ -14,7 +14,7 @@ public class ArcherCombatSkill
 
     public void ParseLua(LuaTable table)
     {
-        Melee = new List<uint>();
+        Melee = [];
         if (table["melee"] is LuaTable meleeSkills)
         {
             foreach (var value in meleeSkills.Values)
@@ -23,7 +23,7 @@ public class ArcherCombatSkill
             }
         }
 
-        MakeAGap = new List<uint>();
+        MakeAGap = [];
         if (table["makeAGap"] is LuaTable makeAGapSkills)
         {
             foreach (var value in makeAGapSkills.Values)
@@ -32,7 +32,7 @@ public class ArcherCombatSkill
             }
         }
 
-        RangedDef = new List<uint>();
+        RangedDef = [];
         if (table["rangedDef"] is LuaTable rangedDefSkills)
         {
             foreach (var value in rangedDefSkills.Values)
@@ -41,7 +41,7 @@ public class ArcherCombatSkill
             }
         }
 
-        RangedStrong = new List<uint>();
+        RangedStrong = [];
         if (table["rangedStrong"] is LuaTable rangedStrongSkills)
         {
             foreach (var value in rangedStrongSkills.Values)

@@ -13,7 +13,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class SpawnGrid : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "spawngrid", "spawngroup" };
+    public string[] CommandNames { get; set; } = ["spawngrid", "spawngroup"];
 
     public void OnLoad()
     {

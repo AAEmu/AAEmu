@@ -18,7 +18,7 @@ public class SCUnitEquipmentsChangedPacket : GamePacket
     public SCUnitEquipmentsChangedPacket(uint objectId, byte slot, Item item) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
     {
         _objectId = objectId;
-        _items = new[] { (slot, item) };
+        _items = [(slot, item)];
     }
 
     public override PacketStream Write(PacketStream stream)

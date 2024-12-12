@@ -437,20 +437,20 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
     {
         Logger.Info("Loading AI GeoData...");
 
-        _aiNavigation = new Dictionary<byte, Dictionary<uint, List<AiNavigation>>>();
-        _areasMission = new Dictionary<byte, Dictionary<uint, string>>();
-        _forbiddenArea = new Dictionary<byte, Dictionary<uint, List<Point>>>();
-        _aiPath = new Dictionary<byte, Dictionary<uint, List<Point>>>();
-        _aiNavigationModifier = new Dictionary<byte, Dictionary<uint, List<Point>>>();
+        _aiNavigation = [];
+        _areasMission = [];
+        _forbiddenArea = [];
+        _aiPath = [];
+        _aiNavigationModifier = [];
 
         var worlds = WorldManager.Instance.GetWorlds();
         foreach (var world in worlds)
         {
-            _aiNavigation = new Dictionary<byte, Dictionary<uint, List<AiNavigation>>>();
-            _areasMission = new Dictionary<byte, Dictionary<uint, string>>();
-            _forbiddenArea = new Dictionary<byte, Dictionary<uint, List<Point>>>();
-            _aiPath = new Dictionary<byte, Dictionary<uint, List<Point>>>();
-            _aiNavigationModifier = new Dictionary<byte, Dictionary<uint, List<Point>>>();
+            _aiNavigation = [];
+            _areasMission = [];
+            _forbiddenArea = [];
+            _aiPath = [];
+            _aiNavigationModifier = [];
         }
 
         foreach (var world in worlds)
@@ -506,7 +506,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                                 }
                                 else
                                 {
-                                    aiNavigation.Add(template.StartPoint, new List<AiNavigation> { template });
+                                    aiNavigation.Add(template.StartPoint, [template]);
                                 }
                             }
                         }
@@ -569,7 +569,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                                         }
                                         else
                                         {
-                                            forbiddenArea.Add(template.Id, new List<Point> { template.Position });
+                                            forbiddenArea.Add(template.Id, [template.Position]);
                                         }
                                         break;
                                     case "AINavigationModifier":
@@ -579,7 +579,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                                         }
                                         else
                                         {
-                                            aiNavigationModifier.Add(template.Id, new List<Point> { template.Position });
+                                            aiNavigationModifier.Add(template.Id, [template.Position]);
                                         }
                                         break;
                                     case "AIPath":
@@ -589,7 +589,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                                         }
                                         else
                                         {
-                                            aiPath.Add(template.Id, new List<Point> { template.Position });
+                                            aiPath.Add(template.Id, [template.Position]);
                                         }
                                         break;
                                 }

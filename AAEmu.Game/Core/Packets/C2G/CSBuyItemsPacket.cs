@@ -170,6 +170,6 @@ public class CSBuyItemsPacket : GamePacket
             Connection.ActiveChar.ChangeMoney(SlotType.Inventory, -money);
         }
 
-        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy, tasks, new List<ulong>()));
+        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy, tasks, []));
     }
 }

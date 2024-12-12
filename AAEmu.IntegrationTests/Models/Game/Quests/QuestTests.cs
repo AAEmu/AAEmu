@@ -557,7 +557,7 @@ public class QuestTests
 
     public static IEnumerable<uint> GetQuestIdsWithComponentKindContainingActDetailType(params QuestCondition[] detailTypes)
     {
-        List<uint> questIds = new();
+        List<uint> questIds = [];
 
         if (detailTypes.Length == 0)
         {
@@ -627,7 +627,7 @@ public class QuestTests
 
     public static IEnumerable<uint> GetAllQuests_Where_ComponentKindStart_HasAllActsAs_QuestActConAcceptNpc()
     {
-        List<uint> questIds = new();
+        List<uint> questIds = [];
 
         using (var connection = SQLite.CreateConnection())
         {

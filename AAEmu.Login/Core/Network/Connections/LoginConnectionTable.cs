@@ -32,6 +32,6 @@ public class LoginConnectionTable : Singleton<LoginConnectionTable>
 
     public List<LoginConnection> GetConnections()
     {
-        return new List<LoginConnection>(_connections.Values);
+        return [.. _connections.Values];
     }
 }

@@ -46,13 +46,13 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public CharacterManager()
     {
-        _templates = new Dictionary<byte, CharacterTemplate>();
-        _abilityItems = new Dictionary<byte, AbilityItems>();
-        _expands = new Dictionary<int, List<Expand>>();
-        _appellations = new Dictionary<uint, AppellationTemplate>();
-        _actabilities = new Dictionary<uint, ActabilityTemplate>();
-        _expertLimits = new Dictionary<int, ExpertLimit>();
-        _expandExpertLimits = new Dictionary<int, ExpandExpertLimit>();
+        _templates = [];
+        _abilityItems = [];
+        _expands = [];
+        _appellations = [];
+        _actabilities = [];
+        _expertLimits = [];
+        _expandExpertLimits = [];
     }
 
     public CharacterTemplate GetTemplate(Race race, Gender gender)
@@ -275,7 +275,7 @@ public class CharacterManager : Singleton<CharacterManager>
                         expand.CurrencyId = reader.GetInt32("currency_id");
 
                         if (!_expands.TryGetValue(expand.Step, out var value))
-                            _expands.Add(expand.Step, new List<Expand> { expand });
+                            _expands.Add(expand.Step, [expand]);
                         else
                             value.Add(expand);
                     }

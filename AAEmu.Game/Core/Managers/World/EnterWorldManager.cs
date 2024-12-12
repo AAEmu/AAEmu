@@ -26,7 +26,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
 
     protected EnterWorldManager()
     {
-        _accounts = new Dictionary<uint, uint>();
+        _accounts = [];
     }
 
     public void AddAccount(uint accountId, uint connectionId)

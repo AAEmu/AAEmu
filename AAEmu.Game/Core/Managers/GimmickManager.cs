@@ -118,8 +118,8 @@ public class GimmickManager : Singleton<GimmickManager>
         if (_loaded)
             return;
 
-        _templates = new Dictionary<uint, GimmickTemplate>();
-        _activeGimmicks = new Dictionary<uint, Gimmick>();
+        _templates = [];
+        _activeGimmicks = [];
 
         Logger.Info("Loading gimmick templates...");
 

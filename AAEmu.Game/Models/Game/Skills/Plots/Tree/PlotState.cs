@@ -34,9 +34,9 @@ public class PlotState
         SkillObject = skillObject;
         ActiveSkill = skill;
 
-        HitObjects = new Dictionary<uint, List<GameObject>>();
-        Tickets = new Dictionary<uint, int>();
-        ChanneledBuffs = new List<(BaseUnit, uint)>();
+        HitObjects = [];
+        Tickets = [];
+        ChanneledBuffs = [];
         Variables = new int[12];
     }
 

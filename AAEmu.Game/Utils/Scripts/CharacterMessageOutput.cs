@@ -8,8 +8,8 @@ namespace AAEmu.Game.Utils.Scripts;
 
 public class CharacterMessageOutput : IMessageOutput
 {
-    private List<string> _messages = new();
-    private List<string> _errorMessages = new();
+    private List<string> _messages = [];
+    private List<string> _errorMessages = [];
 
     private readonly ICharacter _character;
 

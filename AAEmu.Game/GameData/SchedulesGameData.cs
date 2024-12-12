@@ -22,10 +22,10 @@ public class SchedulesGameData : Singleton<SchedulesGameData>, IGameDataLoader
 
     public void Load(SqliteConnection connection)
     {
-        _gameSchedules = new Dictionary<int, GameSchedules>();
-        _gameScheduleSpawners = new Dictionary<int, GameScheduleSpawners>();
-        _gameScheduleDoodads = new Dictionary<int, GameScheduleDoodads>();
-        _gameScheduleQuests = new Dictionary<int, GameScheduleQuests>();
+        _gameSchedules = [];
+        _gameScheduleSpawners = [];
+        _gameScheduleDoodads = [];
+        _gameScheduleQuests = [];
 
         using (var command = connection.CreateCommand())
         {

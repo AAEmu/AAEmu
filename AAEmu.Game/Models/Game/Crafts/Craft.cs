@@ -39,7 +39,7 @@ public class Craft
 
     public Craft()
     {
-        CraftProducts = new List<CraftProduct>();
-        CraftMaterials = new List<CraftMaterial>();
+        CraftProducts = [];
+        CraftMaterials = [];
     }
 }

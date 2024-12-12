@@ -23,8 +23,8 @@ public partial class CommandManager : Singleton<CommandManager>
 
     private CommandManager()
     {
-        _commands = new Dictionary<string, ICommand>();
-        _commandAliases = new Dictionary<string, string>();
+        _commands = [];
+        _commandAliases = [];
     }
 
     public List<string> GetCommandKeys()

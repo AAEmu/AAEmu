@@ -14,7 +14,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class Spawn : ICommand
 {
-    public string[] CommandNames { get; set; } = new string[] { "spawn" };
+    public string[] CommandNames { get; set; } = ["spawn"];
     private const uint DUMMY_NPC_TEMPLATE_ID = 7512;
 
     // Unused protected static Logger Logger = LogManager.GetCurrentClassLogger();

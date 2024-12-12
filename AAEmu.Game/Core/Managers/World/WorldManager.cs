@@ -202,10 +202,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (_loaded)
             return;
 
-        _worlds = new Dictionary<uint, InstanceWorld>();
-        _worldIdByZoneId = new Dictionary<uint, uint>();
-        _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
-        _zonesByWorldId = new Dictionary<uint, List<uint>>();
+        _worlds = [];
+        _worldIdByZoneId = [];
+        _worldInteractionGroups = [];
+        _zonesByWorldId = [];
 
         Logger.Info("Loading world data...");
 
@@ -217,8 +217,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             throw new OperationCanceledException("No client worlds data has been found, please check the readme.txt file inside the ClientData folder for more info.");
         }
-        var worldNames = new List<string>();
-        worldNames.Add("main_world"); // Make sure main_world is the first even if it wouldn't exist
+        var worldNames = new List<string>
+        {
+            "main_world" // Make sure main_world is the first even if it wouldn't exist
+        };
 
         // Grab world_spawns.json info
         var spawnPositionFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", "world_spawns.json");
@@ -280,7 +282,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     _worldIdByZoneId.Add(zoneKey, id);
 
                     if (!_zonesByWorldId.ContainsKey(id))
-                        _zonesByWorldId.Add(world.Id, new List<uint>());
+                        _zonesByWorldId.Add(world.Id, []);
                     _zonesByWorldId[id].Add(zoneKey);
                 }
 
@@ -608,7 +610,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_zonesByWorldId.TryGetValue(worldId, out var value))
             return value;
-        return new List<uint>();
+        return [];
     }
 
     public uint GetZoneId(uint worldId, float x, float y)
