@@ -172,7 +172,7 @@ public class LootPack
     /// </summary>
     /// <param name="killer">Unit doing the killing blow</param>
     /// <returns></returns>
-    private Character GetPlayerUsingKiller(BaseUnit killer)
+    private ICharacter GetPlayerUsingKiller(BaseUnit killer)
     {
         if (killer is Character character)
             return character;
