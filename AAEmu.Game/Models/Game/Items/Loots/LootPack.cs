@@ -43,7 +43,7 @@ public class LootPack
     /// <param name="lootGoldRate">1.0f = 100% applies to coins item only</param>
     /// <param name="player">The player the loot is generated for, currently only used to handle exclusions</param>
     /// <returns></returns>
-    private List<(uint itemId, int count, byte grade)> GeneratePack(float lootDropRate, float lootGoldRate, Character player)
+    private List<(uint itemId, int count, byte grade)> GeneratePack(float lootDropRate, float lootGoldRate, ICharacter player)
     {
         // Use 8000022 as an example
 
@@ -172,7 +172,9 @@ public class LootPack
     /// </summary>
     /// <param name="killer">Unit doing the killing blow</param>
     /// <returns></returns>
+#pragma warning disable CA1859
     private ICharacter GetPlayerUsingKiller(BaseUnit killer)
+#pragma warning restore CA1859
     {
         if (killer is Character character)
             return character;
