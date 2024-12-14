@@ -140,9 +140,14 @@ public class ItemManager : Singleton<ItemManager>
         return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : [];
     }
 
-    public List<Item> GetLootDropItems(uint npcId)
+    /// <summary>
+    /// Gets all loot items for the specified BaseUnit
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public List<Item> GetLootDropItems(uint objId)
     {
-        return _lootDropItems.TryGetValue(npcId, out var item) ? item : [];
+        return _lootDropItems.TryGetValue(objId, out var item) ? item : [];
     }
 
     public List<ItemTemplate> GetAllItems()
@@ -310,10 +315,10 @@ public class ItemManager : Singleton<ItemManager>
     /// Initiate Loot item (loot all items / open loot selection window)
     /// </summary>
     /// <param name="character"></param>
-    /// <param name="id"></param>
+    /// <param name="lootOwnerObjId"></param>
     /// <param name="lootAll"></param>
     /// <returns>True if everything was looted, false if not all could be looted</returns>
-    public bool TookLootDropItems(Character character, uint id, bool lootAll)
+    public bool TookLootDropItems(Character character, uint lootOwnerObjId, bool lootAll)
     {
         // TODO: Bug fix for the following; 
         /*
@@ -325,12 +330,12 @@ public class ItemManager : Singleton<ItemManager>
          * Note: Re-opening the loot window lets you loot the remaining items
         */
         var isDone = true;
-        var lootDropItems = Instance.GetLootDropItems(id);
+        var lootDropItems = Instance.GetLootDropItems(lootOwnerObjId);
         if (lootAll)
         {
             for (var i = lootDropItems.Count - 1; i >= 0; --i)
             {
-                isDone &= TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
+                isDone &= TookLootDropItem(character, LootOwnerType.None, lootOwnerObjId, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
             }
             if (lootDropItems.Count > 0)
                 character.SendPacket(new SCLootBagDataPacket(lootDropItems, true));
@@ -347,13 +352,15 @@ public class ItemManager : Singleton<ItemManager>
     /// Takes lootDropItem from LootDropItems and adds them to character's Bag
     /// </summary>
     /// <param name="character"></param>
+    /// <param name="lootOwnerObjId"></param>
     /// <param name="lootDropItems"></param>
     /// <param name="lootDropItem"></param>
     /// <param name="count"></param>
+    /// <param name="lootOwnerType"></param>
     /// <returns>Returns false if the item could not be picked up.</returns>
-    public bool TookLootDropItem(Character character, List<Item> lootDropItems, Item lootDropItem, int count)
+    public bool TookLootDropItem(Character character, LootOwnerType lootOwnerType, uint lootOwnerObjId, List<Item> lootDropItems, Item lootDropItem, int count)
     {
-        var objId = (uint)(lootDropItem.Id >> 32);
+        // var objId = (uint)(lootDropItem.Id >> 32);
         if (lootDropItem.TemplateId == Item.Coins)
         {
             character.AddMoney(SlotType.Inventory, lootDropItem.Count);
@@ -364,18 +371,18 @@ public class ItemManager : Singleton<ItemManager>
                 count > lootDropItem.Count ? lootDropItem.Count : count, lootDropItem.Grade))
             {
                 // character.SendErrorMessage(ErrorMessageType.BagFull);
-                character.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, lootDropItem.Id, lootDropItem.TemplateId));
+                character.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, lootOwnerType, lootOwnerObjId, 0, lootDropItem.TemplateId));
                 return false;
             }
         }
 
         lootDropItems.Remove(lootDropItem);
-        character.SendPacket(new SCLootItemTookPacket(lootDropItem.TemplateId, lootDropItem.Id, lootDropItem.Count));
+        character.SendPacket(new SCLootItemTookPacket(lootDropItem.TemplateId, 0, lootOwnerType, lootOwnerObjId, lootDropItem.Id, lootDropItem.Count));
 
         if (lootDropItems.Count <= 0)
         {
-            RemoveLootDropItems(objId);
-            character.BroadcastPacket(new SCLootableStatePacket(objId, false), true);
+            RemoveLootDropItems(lootOwnerObjId);
+            character.BroadcastPacket(new SCLootableStatePacket(lootOwnerType, lootOwnerObjId, false), true);
         }
         return true;
     }

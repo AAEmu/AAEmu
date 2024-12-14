@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -469,7 +470,7 @@ public class Unit : BaseUnit, IUnit
                 // Defaulting to the original code if this isn't an NPC
                 // Logger.Info($"Not an NPC for {ObjId}");
 
-                killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
+                killer.BroadcastPacket(new SCLootableStatePacket(LootOwnerType.Npc, ObjId, true), true);
 
             }
             else
@@ -523,7 +524,7 @@ public class Unit : BaseUnit, IUnit
                     {
                         if (eligible != null)
                         {
-                            eligible.SendPacket(new SCLootableStatePacket(ObjId, true));
+                            eligible.SendPacket(new SCLootableStatePacket(LootOwnerType.Npc, ObjId, true));
                         }
                         else
                         {
