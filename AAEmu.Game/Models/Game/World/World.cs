@@ -16,16 +16,16 @@ public class World
     private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     public uint Id { get; set; } // iid - InstanceId
-    public string Name { get; set; }
+    public virtual string Name { get; set; }
     public float MaxHeight { get; set; }
-    public double HeightMaxCoefficient { get; set; }
+    public virtual double HeightMaxCoefficient { get; set; }
     public float OceanLevel { get; set; }
     public int CellX { get; set; }
     public int CellY { get; set; }
     public uint TemplateId { get; set; } // worldId
     public WorldSpawnPosition SpawnPosition { get; set; } = new();
     public Region[,] Regions { get; set; } // TODO ... world - okay, instance - ....
-    public ushort[,] HeightMaps { get; set; }
+    public virtual ushort[,] HeightMaps { get; set; }
     public List<uint> ZoneKeys { get; set; } = [];
     public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
     public BoatPhysicsManager Physics { get; set; }
@@ -46,7 +46,7 @@ public class World
         Logger.Info($"World {Id} removed");
     }
 
-    public bool IsWater(Vector3 point)
+    public virtual bool IsWater(Vector3 point)
     {
         if (Water != null)
             return Water.IsWater(point);

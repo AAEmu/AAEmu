@@ -56,7 +56,7 @@ public class Slave : Unit
     public float RotationDegrees { get; set; }
     public sbyte AttachPointId { get; set; } = -1;
     public uint OwnerObjId { get; set; }
-    public RigidBody RigidBody { get; set; }
+    public virtual RigidBody RigidBody { get; set; }
     public SlaveSpawner Spawner { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }

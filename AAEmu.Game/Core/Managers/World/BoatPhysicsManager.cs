@@ -27,13 +27,13 @@ namespace AAEmu.Game.Core.Managers.World
     public class BoatPhysicsManager
     {
         private float TargetPhysicsTps { get; set; } = 100f;
-        private Thread _thread;
+        internal Thread _thread;
         private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-        private CollisionSystem _collisionSystem;
-        private Jitter.World _physWorld;
-        private Buoyancy _buoyancy;
-        private bool ThreadRunning { get; set; }
+        internal CollisionSystem _collisionSystem;
+        internal Jitter.World _physWorld;
+        internal Buoyancy _buoyancy;
+        public bool ThreadRunning { get; set; }
         public InstanceWorld SimulationWorld { get; set; }
         private readonly object _slaveListLock = new();
         private Random _random = new();
@@ -70,7 +70,7 @@ namespace AAEmu.Game.Core.Managers.World
             Logger.Info("BoatPhysicsManager initialized.");
         }
 
-        private bool CustomWater(ref JVector area)
+        public bool CustomWater(ref JVector area)
         {
             return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y)) ?? area.Y <= _waterLevel;
         }
@@ -176,7 +176,7 @@ namespace AAEmu.Game.Core.Managers.World
             Logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Name}");
         }
 
-        private void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
+        public void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
         {
             var shipModel = ModelManager.Instance.GetShipModel(slave.Template.ModelId);
             if (shipModel == null) return;
@@ -260,7 +260,7 @@ namespace AAEmu.Game.Core.Managers.World
         public static float GetRollAngle(JMatrix orientation)
         {
             var yawPitchRoll = GetYawPitchRollFromJMatrix(orientation);
-            return yawPitchRoll.Item3; // Roll angle in radians
+            return yawPitchRoll.Item2; // Roll angle in radians
         }
 
         public static (float, float, float) GetYawPitchRollFromJMatrix(JMatrix mat)
@@ -290,7 +290,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var floor = WorldManager.Instance.GetHeight(slave.Transform);
             var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
-            var boatBottom = rigidBody.Position.Y/* - boxSize.Y / 2*/ - shipModel.MassBoxSizeZ/2 - shipModel.KeelHeight + shipModel.MassCenterZ;
+            var boatBottom = rigidBody.Position.Y/* - boxSize.Y / 2*/ - shipModel.MassBoxSizeZ / 2 - shipModel.KeelHeight + shipModel.MassCenterZ;
 
             if (boatBottom < floor)
             {

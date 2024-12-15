@@ -9,6 +9,7 @@ using System.Xml;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.XML;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -578,7 +579,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
-    public InstanceWorld GetWorld(uint worldId)
+    public virtual InstanceWorld GetWorld(uint worldId)
     {
         if (_worlds.TryGetValue(worldId, out var res))
             return res;
