@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Items.Loots;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -11,9 +12,16 @@ public class CSLootDicePacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var iid = stream.ReadUInt64();
+        var itemIndex = stream.ReadUInt16();
+        var lootOwnerType = (LootOwnerType)stream.ReadUInt16();
+        var lootOwnerObjId = stream.ReadBc();
+        var b = stream.ReadByte();
+        // var iid = stream.ReadUInt64();
         var roll = stream.ReadBoolean();
-
-        Logger.Warn("LootDice, IId: {0}, Roll: {1}", iid, roll);
+        
+        Logger.Warn($"LootDice, ItemIndex: {itemIndex}, LootOwner: {lootOwnerType}:{lootOwnerObjId}, b: {b}, Roll: {roll}");
+        
+        // TODO: Validate lootOwner
+        // TODO: Handle dice rolls
     }
 }

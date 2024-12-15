@@ -27,7 +27,8 @@ public class SCLootItemFailedPacket : GamePacket
         stream.Write(_errorMessage);
         stream.Write(_itemIndex);
         stream.Write((ushort)_lootOwnerType);
-        stream.Write(_lootOwnerObjId);
+        stream.WriteBc(_lootOwnerObjId);
+        stream.Write((byte)0);
         stream.Write(_itemTemplateId);
         return stream;
     }

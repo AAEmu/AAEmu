@@ -18,11 +18,12 @@ public class CSLootItemPacket : GamePacket
     {
         var itemIndex = stream.ReadUInt16();
         var ownerType = (LootOwnerType)stream.ReadUInt16();
-        var ownerObjId = stream.ReadUInt32();
+        var ownerObjId = stream.ReadBc();
+        var b = stream.ReadByte();
         // var iid = stream.ReadUInt64();
         var count = stream.ReadInt32();
         
-        Logger.Warn($"LootItem, itemIndex: {itemIndex}, LootOwner: {ownerType}:{ownerObjId}, Count: {count}");
+        Logger.Warn($"LootItem, itemIndex: {itemIndex}, LootOwner: {ownerType}:{ownerObjId}, b: {b}, Count: {count}");
 
         var owner = WorldManager.Instance.GetBaseUnit(ownerObjId);
         if (owner == null)

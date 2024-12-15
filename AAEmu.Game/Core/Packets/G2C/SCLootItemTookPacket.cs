@@ -26,7 +26,8 @@ public class SCLootItemTookPacket : GamePacket
         stream.Write(_itemTemplateId);
         stream.Write(_itemIndex);
         stream.Write((ushort)_lootOwnerType);
-        stream.Write(_lootOwnerId);
+        stream.WriteBc(_lootOwnerId);
+        stream.Write((byte)0);
         stream.Write(_count);
         return stream;
     }

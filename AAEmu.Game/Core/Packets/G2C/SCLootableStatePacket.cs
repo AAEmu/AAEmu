@@ -27,7 +27,8 @@ public class SCLootableStatePacket : GamePacket
     {
         stream.Write((ushort)0); // unused itemIndex?
         stream.Write((ushort)_lootOwnerType);
-        stream.Write(_lootOwnerObjId);
+        stream.WriteBc(_lootOwnerObjId);
+        stream.Write((byte)0);
         stream.Write(_hasLoot);
         return stream;
     }

@@ -5,17 +5,22 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitLootingStatePacket : GamePacket
 {
-    private readonly byte _bc;
+    private readonly uint _unitObjId;
     private readonly byte _looting;
 
-    public SCUnitLootingStatePacket(byte bc, byte looting) : base(SCOffsets.SCUnitLootingStatePacket, 1)
+    /// <summary>
+    /// Sets the state of a unit if they are busy looting or not
+    /// </summary>
+    /// <param name="unitObjId"></param>
+    /// <param name="looting">Looting state, 2 seems to be "done looting"</param>
+    public SCUnitLootingStatePacket(uint unitObjId, byte looting) : base(SCOffsets.SCUnitLootingStatePacket, 1)
     {
-        _bc = bc;
+        _unitObjId = unitObjId;
         _looting = looting;
     }
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_bc);
+        stream.WriteBc(_unitObjId);
         stream.Write(_looting);
         return stream;
     }
