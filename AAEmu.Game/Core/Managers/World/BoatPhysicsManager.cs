@@ -24,6 +24,7 @@ using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
 namespace AAEmu.Game.Core.Managers.World
 {
+    // ReSharper disable once HollowTypeName
     public class BoatPhysicsManager
     {
         private float TargetPhysicsTps { get; set; } = 100f;
@@ -94,7 +95,7 @@ namespace AAEmu.Game.Core.Managers.World
                     SlaveKind.MerchantShip, SlaveKind.Speedboat
                 };
 
-                while (ThreadRunning)
+                while (ThreadRunning && Thread.CurrentThread.IsAlive)
                 {
                     Thread.Sleep((int)Math.Floor(1000f / TargetPhysicsTps));
                     _physWorld.Step(1f / TargetPhysicsTps, false);
@@ -106,12 +107,20 @@ namespace AAEmu.Game.Core.Managers.World
 
                         foreach (var slave in slaveList)
                         {
-                            if (slave.Transform.WorldId != SimulationWorld.Id ||
-                                slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow ||
-                                slave.RigidBody == null)
+                            if (slave.Transform.WorldId != SimulationWorld.Id)
                             {
+                                Logger.Debug($"Skip {slave.Name}");
                                 continue;
                             }
+
+                            // Skip simulation if still summoning
+                            if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
+                                continue;
+
+                            // Skip simulation if no rigidbody applied to slave
+                            var slaveRigidBody = slave.RigidBody;
+                            if (slaveRigidBody == null)
+                                continue;
 
                             SyncTransformWithRigidBody(slave);
                             BoatPhysicsTick(slave, slave.RigidBody);
