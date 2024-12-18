@@ -4,12 +4,8 @@ using AAEmu.Game.Models.Game.Items.Loots;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSLootDicePacket : GamePacket
+public class CSLootDicePacket() : GamePacket(CSOffsets.CSLootDicePacket, 1)
 {
-    public CSLootDicePacket() : base(CSOffsets.CSLootDicePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var itemIndex = stream.ReadUInt16();

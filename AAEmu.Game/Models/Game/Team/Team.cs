@@ -21,6 +21,7 @@ public class Team : PacketMarshaler
         Members = new TeamMember[50];
         ResetMarks();
         PingPosition = new WorldSpawnPosition();
+        LootingRule = new LootingRule();
     }
 
     public void ResetMarks()

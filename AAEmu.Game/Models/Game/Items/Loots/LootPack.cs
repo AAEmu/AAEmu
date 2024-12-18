@@ -116,7 +116,6 @@ public class LootPack
             }
             else
             {
-
                 selected.AddRange(loots.Where(loot => loot.AlwaysDrop || loot.DropRate == 10000000 || alwaysDropGroup).ToList());
 
                 foreach (var loot in loots.Where(loot => !(loot.AlwaysDrop || loot.DropRate == 10000000 || alwaysDropGroup)))
@@ -132,7 +131,7 @@ public class LootPack
                         continue;
                     }
 
-                    // itemStackingRoll += loot.DropRate;
+                    itemStackingRoll += loot.DropRate;
 
                     selected.Add(loot);
                     break;
@@ -173,7 +172,7 @@ public class LootPack
     /// <param name="killer">Unit doing the killing blow</param>
     /// <returns></returns>
 #pragma warning disable CA1859
-    private ICharacter GetPlayerUsingKiller(BaseUnit killer)
+    private ICharacter GetPlayerUsingKiller(IBaseUnit killer)
 #pragma warning restore CA1859
     {
         if (killer is Character character)
@@ -203,7 +202,7 @@ public class LootPack
         return null;
     }
 
-    public List<Item> GenerateNpcPackItems(ref ulong baseId, BaseUnit killer, float lootDropRate = 1.0f, float lootGoldRate = 1.0f)
+    public List<Item> GenerateNpcPackItems(ref ulong baseId, IBaseUnit killer, float lootDropRate = 1.0f, float lootGoldRate = 1.0f)
     {
         var player = GetPlayerUsingKiller(killer);
         // TODO: handle raid-wide checks and individual loot

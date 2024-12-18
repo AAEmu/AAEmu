@@ -738,20 +738,17 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public GameObject GetGameObject(uint objId)
     {
-        _objects.TryGetValue(objId, out var ret);
-        return ret;
+        return _objects.GetValueOrDefault(objId);
     }
 
     public BaseUnit GetBaseUnit(uint objId)
     {
-        _baseUnits.TryGetValue(objId, out var ret);
-        return ret;
+        return _baseUnits.GetValueOrDefault(objId);
     }
 
     public Doodad GetDoodad(uint objId)
     {
-        _doodads.TryGetValue(objId, out var ret);
-        return ret;
+        return _doodads.GetValueOrDefault(objId);
     }
 
     public Doodad GetDoodadByDbId(uint dbId)

@@ -61,7 +61,6 @@ public class ItemManager : Singleton<ItemManager>
     private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
     private Dictionary<uint, List<LootPackConvertFish>> _lootPackConvertFish;
     private Dictionary<int, GradeDistributions> _itemGradeDistributions;
-    private Dictionary<uint, List<Item>> _lootDropItems;
 
     // ItemLookConvert
     private Dictionary<uint, ItemLookConvert> _itemLookConverts;
@@ -100,11 +99,6 @@ public class ItemManager : Singleton<ItemManager>
         return _grades.GetValueOrDefault(grade);
     }
 
-    public bool RemoveLootDropItems(uint objId)
-    {
-        return _lootDropItems.Remove(objId);
-    }
-
     public Holdable GetHoldable(uint id)
     {
         return _holdables.GetValueOrDefault(id);
@@ -125,7 +119,7 @@ public class ItemManager : Singleton<ItemManager>
         return _enchantingSupports.GetValueOrDefault(itemId);
     }
 
-    private List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
+    public List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
     {
         return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : [];
     }
@@ -140,128 +134,9 @@ public class ItemManager : Singleton<ItemManager>
         return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : [];
     }
 
-    /// <summary>
-    /// Gets all loot items for the specified BaseUnit
-    /// </summary>
-    /// <param name="objId"></param>
-    /// <returns></returns>
-    public List<Item> GetLootDropItems(uint objId)
-    {
-        return _lootDropItems.TryGetValue(objId, out var item) ? item : [];
-    }
-
     public List<ItemTemplate> GetAllItems()
     {
         return _templates.Values.ToList();
-    }
-
-    public List<Item> CreateLootDropItems(uint npcId, BaseUnit killer)
-    {
-        var items = GetLootDropItems(npcId);
-
-        // Already generated?
-        if (items.Count > 0)
-        {
-            return items;
-        }
-
-        // Check if NPC actually exists
-        var unit = WorldManager.Instance.GetNpc(npcId);
-        if (unit == null)
-        {
-            return items;
-        }
-
-        // Get drop lists
-        var lootPackDroppingNpcs = GetLootPackIdByNpcId(unit.TemplateId);
-        if (lootPackDroppingNpcs.Count <= 0)
-        {
-            return items;
-        }
-
-        // Calculate loot rates
-        var lootDropRate = 1f;
-        var lootGoldRate = 1f;
-
-        // Check all people with a claim on the NPC
-
-        var eligiblePlayers = new HashSet<Character>();
-        if (unit.CharacterTagging.TagTeam != 0)
-        {
-            //A team has tagging rights
-            var team = TeamManager.Instance.GetActiveTeam(unit.CharacterTagging.TagTeam);
-            if (team != null)
-            {
-                foreach (var member in team.Members)
-                {
-                    if (member == null || member.Character == null)
-                        continue;
-
-                    var distance = member.Character.Transform.World.Position - unit.Transform.World.Position;
-                    if (distance.Length() <= 200)
-                    {
-                        //This player is in range of the mob and in a group with tagging rights.
-                        eligiblePlayers.Add(member.Character);
-                    }
-                }
-            }
-            else if (unit.CharacterTagging.Tagger != null)
-            {
-                //A player has tag rights
-                eligiblePlayers.Add(unit.CharacterTagging.Tagger);
-            }
-
-        }
-        else if (unit.CharacterTagging.Tagger != null)
-        {
-            //A player has tag rights
-            eligiblePlayers.Add(unit.CharacterTagging.Tagger);
-        }
-        if (eligiblePlayers.Count > 0)
-        {
-            var maxDropRateMul = -100f;
-            var maxLootGoldMul = -100f;
-
-            foreach (var pl in eligiblePlayers)
-            {
-
-                var aggroDropMul = (100f + pl.DropRateMul) / 100f;
-                var aggroGoldMul = (100f + pl.LootGoldMul) / 100f;
-                if (aggroDropMul > maxDropRateMul)
-                    maxDropRateMul = aggroDropMul;
-                if (aggroGoldMul > maxLootGoldMul)
-                    maxLootGoldMul = aggroGoldMul;
-
-            }
-
-            lootDropRate = maxDropRateMul;
-            lootGoldRate = maxLootGoldMul;
-
-        }
-        else if (killer is Character player)
-        {
-            lootDropRate *= (100f + player.DropRateMul) / 100f;
-            lootGoldRate *= (100f + player.LootGoldMul) / 100f;
-            Logger.Info($"Unit killed without aggro: {unit.ObjId} ({unit.TemplateId}) by {player.Name}");
-        }
-
-        // Base ID used for identifying the loot
-        var baseId = ((ulong)unit.ObjId << 32) + 65536;
-
-        // Generate the actual loot
-        foreach (var lootPackDropping in lootPackDroppingNpcs)
-        {
-            var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
-            if (lootPack == null)
-                continue;
-            items = lootPack.GenerateNpcPackItems(ref baseId, killer, lootDropRate, lootGoldRate);
-            if (!_lootDropItems.TryAdd(npcId, items))
-                _lootDropItems[npcId].AddRange(items);
-        }
-
-        if (!_lootDropItems.TryGetValue(npcId, out items))
-            items = [];
-        return items;
     }
 
     public List<Item> GetLootConvertFish(uint templateId)
@@ -309,82 +184,6 @@ public class ItemManager : Singleton<ItemManager>
         }
 
         return items;
-    }
-
-    /// <summary>
-    /// Initiate Loot item (loot all items / open loot selection window)
-    /// </summary>
-    /// <param name="character"></param>
-    /// <param name="lootOwnerObjId"></param>
-    /// <param name="lootAll"></param>
-    /// <returns>True if everything was looted, false if not all could be looted</returns>
-    public bool TookLootDropItems(Character character, uint lootOwnerObjId, bool lootAll)
-    {
-        // TODO: Bug fix for the following; 
-        /*
-         * Have full inventory 
-         * -> Open Loot (G) 
-         * -> press (F) to loot all while open (fail, bag full) 
-         * -> free up bag space 
-         * -> click for manual loot doesn't trigger a new packet. so it won't loot
-         * Note: Re-opening the loot window lets you loot the remaining items
-        */
-        var isDone = true;
-        var lootDropItems = Instance.GetLootDropItems(lootOwnerObjId);
-        if (lootAll)
-        {
-            for (var i = lootDropItems.Count - 1; i >= 0; --i)
-            {
-                isDone &= TookLootDropItem(character, LootOwnerType.None, lootOwnerObjId, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
-            }
-            if (lootDropItems.Count > 0)
-                character.SendPacket(new SCLootBagDataPacket(lootDropItems, true));
-        }
-        else
-        {
-            isDone = lootDropItems.Count <= 0;
-            character.SendPacket(new SCLootBagDataPacket(lootDropItems, false));
-        }
-        return isDone;
-    }
-
-    /// <summary>
-    /// Takes lootDropItem from LootDropItems and adds them to character's Bag
-    /// </summary>
-    /// <param name="character"></param>
-    /// <param name="lootOwnerObjId"></param>
-    /// <param name="lootDropItems"></param>
-    /// <param name="lootDropItem"></param>
-    /// <param name="count"></param>
-    /// <param name="lootOwnerType"></param>
-    /// <returns>Returns false if the item could not be picked up.</returns>
-    public bool TookLootDropItem(Character character, LootOwnerType lootOwnerType, uint lootOwnerObjId, List<Item> lootDropItems, Item lootDropItem, int count)
-    {
-        // var objId = (uint)(lootDropItem.Id >> 32);
-        if (lootDropItem.TemplateId == Item.Coins)
-        {
-            character.AddMoney(SlotType.Inventory, lootDropItem.Count);
-        }
-        else
-        {
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, lootDropItem.TemplateId,
-                count > lootDropItem.Count ? lootDropItem.Count : count, lootDropItem.Grade))
-            {
-                // character.SendErrorMessage(ErrorMessageType.BagFull);
-                character.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, lootOwnerType, lootOwnerObjId, 0, lootDropItem.TemplateId));
-                return false;
-            }
-        }
-
-        lootDropItems.Remove(lootDropItem);
-        character.SendPacket(new SCLootItemTookPacket(lootDropItem.TemplateId, 0, lootOwnerType, lootOwnerObjId, lootDropItem.Id, lootDropItem.Count));
-
-        if (lootDropItems.Count <= 0)
-        {
-            RemoveLootDropItems(lootOwnerObjId);
-            character.BroadcastPacket(new SCLootableStatePacket(lootOwnerType, lootOwnerObjId, false), true);
-        }
-        return true;
     }
 
     public GradeDistributions GetGradeDistributions(byte id)
@@ -634,8 +433,8 @@ public class ItemManager : Singleton<ItemManager>
         /*
         _lootPacks = new Dictionary<uint, List<Loot>>();
         _lootGroups = new Dictionary<uint, List<LootGroups>>();
-        */
         _lootDropItems = [];
+        */
         _itemDoodadTemplates = [];
         _itemProcTemplates = [];
         _armorGradeBuffs = [];

@@ -20,8 +20,7 @@ public class CSChangeLootingRulePacket : GamePacket
 
         var changeFlags = stream.ReadByte();
 
-        // Logger.Warn("ChangeLootingRule, TeamId: {0}, Flag: {1}, Rule: {2}/{3}/{4}/{5}", teamId, changeFlags, lootingRule.LootMethod, lootingRule.Type,
-        //     lootingRule.Id, lootingRule.RollForBop);
-        TeamManager.Instance.ChangeLootingRule(Connection.ActiveChar, teamId, lootingRule, changeFlags);
+        Logger.Warn($"ChangeLootingRule, TeamId: {teamId}, Flag: {changeFlags}, Rule Method:{lootingRule.LootMethod}, Grade:{lootingRule.MinimumGrade}, LootMaster: {lootingRule.LootMaster}, RollForBoP: {lootingRule.RollForBindOnPickup}");
+        TeamManager.Instance.ChangeLootingRule(Connection.ActiveChar, teamId, changeFlags, lootingRule.LootMethod, lootingRule.MinimumGrade, lootingRule.LootMaster, lootingRule.RollForBindOnPickup);
     }
 }

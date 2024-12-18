@@ -258,8 +258,7 @@ public class TeamManager : Singleton<TeamManager>
         {
             Id = TeamIdManager.Instance.GetNextId(),
             OwnerId = activeInvitation.Owner.Id,
-            IsParty = activeInvitation.IsParty,
-            LootingRule = new LootingRule()
+            IsParty = activeInvitation.IsParty
         };
         if (newTeam.AddMember(activeInvitation.Owner).Item1 == null || newTeam.AddMember(activeInvitation.Target).Item1 == null) return;
 
@@ -291,8 +290,7 @@ public class TeamManager : Singleton<TeamManager>
         {
             Id = TeamIdManager.Instance.GetNextId(),
             OwnerId = character.Id,
-            IsParty = true,
-            LootingRule = new LootingRule()
+            IsParty = true
         };
         if (newTeam.AddMember(character).Item1 == null) return;
 
@@ -444,20 +442,43 @@ public class TeamManager : Singleton<TeamManager>
         activeTeam.BroadcastPacket(new SCOverHeadMarkerSetPacket(teamId, index, type == 2, targetId));
     }
 
-    public void ChangeLootingRule(Character owner, uint teamId, LootingRule newRules, byte flags)
+    public void ChangeLootingRule(Character owner, uint teamId, byte flags, LootingRuleMethod lootingRuleMethod, byte minimumGrade, uint lootMaster, bool rollForBindOnPickup)
     {
         var activeTeam = GetActiveTeam(teamId);
         if (activeTeam?.OwnerId != owner.Id) return;
 
-        // TODO - FLAGS??
-        activeTeam.LootingRule = newRules;
-        activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, newRules, flags));
+        // Flags:
+        // 1: Method
+        // 2: Grade
+        // 4: LootMaster
+        // 8: BindOnPickup
+        if ((flags & 0x08) != 0)
+        {
+            activeTeam.LootingRule.RollForBindOnPickup = rollForBindOnPickup;
+        }
+        if ((flags & 0x04) != 0)
+        {
+            activeTeam.LootingRule.LootMaster = lootMaster;
+        }
+        if ((flags & 0x02) != 0)
+        {
+            activeTeam.LootingRule.MinimumGrade = minimumGrade;
+        }
+        if ((flags & 0x01) != 0)
+        {
+            activeTeam.LootingRule.LootMethod = lootingRuleMethod;
+            if (activeTeam.LootingRule.LootMethod != LootingRuleMethod.LootMaster)
+                activeTeam.LootingRule.LootMaster = 0;
+        }
+
+        activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, activeTeam.LootingRule, flags));
     }
 
     public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
     {
         var activeTeam = GetActiveTeam(teamId);
-        if ((activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id))) return;
+        if ((activeTeam == null) || (activeTeam.OwnerId != unit.Id && !activeTeam.IsMarked(unit.Id)))
+            return;
 
         activeTeam.PingPosition = position;
         activeTeam.BroadcastPacket(new SCTeamPingPosPacket(hasPing, position, insId));
