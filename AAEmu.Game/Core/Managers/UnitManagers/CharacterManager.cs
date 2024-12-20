@@ -400,12 +400,10 @@ public class CharacterManager : Singleton<CharacterManager>
         Logger.Info("Loaded {0} character templates", _templates.Count);
     }
 
-    public static void PlayerRoll(Character Self, int max)
+    public static void PlayerRoll(Character player, int max)
     {
-
         var roll = Rand.Next(1, max);
-        Self.BroadcastPacket(new SCChatMessagePacket(ChatType.System, string.Format(Self.Name + " rolled " + roll.ToString() + ".")), true);
-
+        player.BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"{player.Name} rolled {roll}."), true);
     }
 
     public int GetEffectiveAccessLevel(Character character)

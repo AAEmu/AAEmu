@@ -17,6 +17,5 @@ public class CSLootOpenBagPacket() : GamePacket(CSOffsets.CSLootOpenBagPacket, 1
         var object2 = WorldManager.Instance.GetBaseUnit(obj2Id);
         
         lootOwner?.LootingContainer.OpenBag(Connection.ActiveChar, object2, lootAll);
-        // ItemManager.Instance.TookLootDropItems(Connection.ActiveChar, objId, lootAll);
     }
 }

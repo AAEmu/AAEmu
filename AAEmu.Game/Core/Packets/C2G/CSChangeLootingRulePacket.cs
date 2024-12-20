@@ -5,12 +5,11 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeLootingRulePacket : GamePacket
+/// <summary>
+/// Leader changed looting rules
+/// </summary>
+public class CSChangeLootingRulePacket() : GamePacket(CSOffsets.CSChangeLootingRulePacket, 1)
 {
-    public CSChangeLootingRulePacket() : base(CSOffsets.CSChangeLootingRulePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

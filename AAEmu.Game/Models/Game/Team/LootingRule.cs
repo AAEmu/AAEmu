@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Game.Team;
 
 public class LootingRule : PacketMarshaler
 {
-    // TODO: Make default party loot settings configurable or remember player's last settings 
+    // TODO: Make default party loot settings configurable or remember player's last settings?
     public LootingRuleMethod LootMethod { get; set; } = LootingRuleMethod.RotateWinner;
     public byte MinimumGrade { get; set; } = 2; // Grand+
     public uint LootMaster { get; set; }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Loots;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -11,9 +12,9 @@ public class SCLootDiceSummaryPacket : GamePacket
     private readonly LootOwnerType _lootOwnerType;
     private readonly uint _lootOwnerObjId;
     //private readonly ulong _iId;
-    private readonly Dictionary<uint, sbyte> _diceList;
+    private readonly Dictionary<Character, sbyte> _diceList;
 
-    public SCLootDiceSummaryPacket(LootOwnerType lootOwnerType, uint lootOwner, ushort itemIndex, Dictionary<uint,sbyte> diceList) : base(SCOffsets.SCLootDiceSummaryPacket, 1)
+    public SCLootDiceSummaryPacket(LootOwnerType lootOwnerType, uint lootOwner, ushort itemIndex, Dictionary<Character,sbyte> diceList) : base(SCOffsets.SCLootDiceSummaryPacket, 1)
     {
         _itemIndex = itemIndex;
         _lootOwnerType = lootOwnerType;
@@ -30,7 +31,7 @@ public class SCLootDiceSummaryPacket : GamePacket
         stream.Write(_diceList.Count);
         foreach (var (player, dice) in _diceList)
         {
-            stream.Write(player);
+            stream.Write(player.Id);
             stream.Write(dice);
         }
         return stream;

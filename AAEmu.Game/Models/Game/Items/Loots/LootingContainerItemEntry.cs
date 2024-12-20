@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
 
 namespace AAEmu.Game.Models.Game.Items.Loots;
@@ -17,9 +18,9 @@ public class LootingContainerItemEntry
     /// </summary>
     public ushort ItemIndex { get; set; }
     /// <summary>
-    /// List of the current roll results of all eligible player (PlayerId, RollResult) 
+    /// List of the current roll results of all eligible player (PlayerId, RollResult), roll results: 0=not rolled, -1=pass 
     /// </summary>
-    public Dictionary<uint, sbyte> PlayerRolls { get; set; } = new();
+    public Dictionary<Character, sbyte> PlayerRolls { get; set; } = new();
     /// <summary>
     /// PlayerId of the highest roller (or the person that claimed this loot entry)
     /// </summary>

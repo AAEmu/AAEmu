@@ -12,20 +12,13 @@ public class CSLootItemPacket() : GamePacket(CSOffsets.CSLootItemPacket, 1)
         var itemIndex = stream.ReadUInt16();
         var ownerType = (LootOwnerType)stream.ReadUInt16();
         var ownerObjId = stream.ReadBc();
-        var b = stream.ReadByte();
-        // var iid = stream.ReadUInt64();
-        var count = stream.ReadInt32();
+        var u1 = stream.ReadUInt16(); // also item index?
+        var u2 = stream.ReadUInt16();
         
-        Logger.Warn($"LootItem, itemIndex: {itemIndex}, LootOwner: {ownerType}:{ownerObjId}, b: {b}, Count: {count}");
+        Logger.Warn($"LootItem, itemIndex: {itemIndex}, LootOwner: {ownerType}:{ownerObjId}, u1: {u1}, u2: {u2}");
 
         var owner = WorldManager.Instance.GetBaseUnit(ownerObjId);
-        
-        // TODO: Validate arguments
 
-        if (owner?.LootingContainer.TryTakeLoot(Connection.ActiveChar, itemIndex, null, count) ?? false)
-        {
-            if (owner.LootingContainer.Items.Count <= 0)
-                owner.LootingContainer.UpdateLootState();
-        }
+        owner?.LootingContainer.TryTakeLoot(Connection.ActiveChar, itemIndex, null);
     }
 }

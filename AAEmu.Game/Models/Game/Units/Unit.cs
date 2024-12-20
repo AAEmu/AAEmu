@@ -445,23 +445,20 @@ public class Unit : BaseUnit, IUnit
         {
             switch (this)
             {
-                //case Npc:
-                //    break;
                 case Mate mate:
                     DespawnMate(WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId));
                     break;
                 case Character character:
                     DespawnMate(character);
                     break;
-                    //default:
-                    //    break;
             }
             return;
         }
 
-        // Generate the loot for this Npc 
+        // Generate the loot for this Npc
         LootingContainer.GenerateLoot(killer);
 
+        // Cleanup targeting and aggro packets
         if (CurrentTarget != null)
         {
             killer.SendPacketToPlayers([this, killer], new SCAiAggroPacket(killer.ObjId, 0));

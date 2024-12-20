@@ -1,7 +1,11 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Team;
@@ -191,6 +195,48 @@ public class Team : PacketMarshaler
 
         return result;
     }
+
+    /// <summary>
+    /// Gets the next "winner" for loot
+    /// </summary>
+    /// <param name="eligiblePlayer">Only Characters in this list allowed to be returned</param>
+    /// <param name="referenceLootOwner">BaseUnit used for location reference to check range</param>
+    /// <param name="maxRange">If greater than 0, this range will be used to check range</param>
+    /// <returns></returns>
+    public Character GetNextLootWinner(HashSet<Character> eligiblePlayer, IBaseUnit referenceLootOwner, float maxRange = 200f)
+    {
+        // Match the eligible player list with the team members list
+        var eligibleMembers = Members
+            .Where(member => member is { Character: not null } &&
+                             eligiblePlayer.Contains(member.Character))
+            .ToList();
+
+        // If every eligible player has got a winning roll, reset all of their win flags
+        if (eligibleMembers.All(x => x.HasGoneRoundRobin))
+        {
+            foreach (var teamMember in eligibleMembers)
+            {
+                teamMember.HasGoneRoundRobin = false;
+            }
+        }
+        
+        // Grab a list of all remaining characters using only those provided from the members list
+        var tempPlayerList = eligibleMembers.Where(member => member is { HasGoneRoundRobin: false }).ToList();
+
+        // Somehow no results?
+        if (tempPlayerList.Count <= 0)
+        {
+            // If somehow no results even after re-filling the list, return null
+            Logger.Warn($"Was unable to generate a new random looting order list for team {Id} with leader {OwnerId}, ReferenceLootOwner: {referenceLootOwner}, MaxRange: {maxRange}");
+            return null;
+        }
+
+        // Pick a random
+        var rngPos = Random.Shared.Next(tempPlayerList.Count);
+        tempPlayerList[rngPos].HasGoneRoundRobin = true;
+        return tempPlayerList[rngPos].Character;
+    }
+    
 
     public override PacketStream Write(PacketStream stream)
     {

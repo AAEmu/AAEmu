@@ -944,10 +944,10 @@ public class SpawnManager : Singleton<SpawnManager>
                 }
             }
 
-            var despawns = GetDespawnsReady();
-            if (despawns.Count > 0)
+            var deSpawns = GetDespawnsReady();
+            if (deSpawns.Count > 0)
             {
-                foreach (var obj in despawns)
+                foreach (var obj in deSpawns)
                 {
                     if (obj.Despawn >= DateTime.UtcNow)
                         continue;
