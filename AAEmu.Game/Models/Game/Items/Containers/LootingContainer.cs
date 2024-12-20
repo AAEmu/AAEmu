@@ -37,7 +37,7 @@ public class LootingContainer(IBaseUnit owner)
     /// <summary>
     /// Time before loot goes to public in seconds
     /// </summary>
-    public const float MakeLootPublicTime = 180f;
+    private const float MakeLootPublicTime = 180f;
 
     /// <summary>
     /// When loot has been generated, extend the despawn timer by this amount (in seconds)
@@ -71,7 +71,7 @@ public class LootingContainer(IBaseUnit owner)
     /// <summary>
     /// List of item entries (itemIndex, LootItemEntry)
     /// </summary>
-    public Dictionary<ushort, LootingContainerItemEntry> Items { get; init; } = new();
+    public Dictionary<ushort, LootingContainerItemEntry> Items { get; } = new();
     private bool AlreadyGenerated { get; set; }
     private HashSet<Character> EligiblePlayers { get; } = [];
     private HashSet<Character> OpenedBy { get; } = [];
@@ -305,7 +305,7 @@ public class LootingContainer(IBaseUnit owner)
             var lootedItems = new List<ushort>();
             foreach (var (itemIndex, itemEntry) in Items)
             {
-                if (TryTakeLoot(player, itemIndex, itemEntry))
+                if (TryTakeLoot(player, itemIndex, itemEntry, true))
                     lootedItems.Add(itemIndex);
             }
             // Remove actually looted items
@@ -337,8 +337,9 @@ public class LootingContainer(IBaseUnit owner)
     /// <param name="player"></param>
     /// <param name="itemIndex"></param>
     /// <param name="itemEntry"></param>
+    /// <param name="didLootAll"></param>
     /// <returns>Returns true if the item was granted to the player</returns>
-    public bool TryTakeLoot(Character player, ushort itemIndex, LootingContainerItemEntry itemEntry)
+    public bool TryTakeLoot(Character player, ushort itemIndex, LootingContainerItemEntry itemEntry, bool didLootAll)
     {
         var lootTarget = player;
         // If itemEntry not specified, grab it from its index
@@ -372,7 +373,7 @@ public class LootingContainer(IBaseUnit owner)
         // Check if we already have looting right, if so, try to loot again
         if (itemEntry.HighestRoller == player.Id)
         {
-            return TryDistributeLootToPlayer(player, itemEntry);
+            return TryDistributeLootToPlayer(player, itemEntry, didLootAll);
         }
 
         // Check if rolls in progress (for more than one player only)
@@ -405,7 +406,7 @@ public class LootingContainer(IBaseUnit owner)
 
                     if (itemEntry.HighestRoller > 0)
                     {
-                        var res = TryDistributeLootToPlayer(winner, itemEntry);
+                        var res = TryDistributeLootToPlayer(winner, itemEntry, didLootAll);
                         return winner == player && res;
                     }
                 }
@@ -456,7 +457,7 @@ public class LootingContainer(IBaseUnit owner)
 
         // TODO: Handle pickup limit, not sure if we should prevent looting/rolling in the first place, or just prevent adding to inventory
 
-        return TryDistributeLootToPlayer(lootTarget, itemEntry);
+        return TryDistributeLootToPlayer(lootTarget, itemEntry, didLootAll);
     }
 
     /// <summary>
@@ -497,10 +498,19 @@ public class LootingContainer(IBaseUnit owner)
         if (itemEntry.PlayerRolls.Any(m => m.Value == 0))
             return;
         
+        FinishRolling(itemEntry);
+    }
+
+    /// <summary>
+    /// Handle the distribution when all rolls are finished
+    /// </summary>
+    /// <param name="itemEntry"></param>
+    private void FinishRolling(LootingContainerItemEntry itemEntry)
+    {
         // All done? Send summary as well to all
         foreach (var (targetPlayer, _) in itemEntry.PlayerRolls)
         {
-            targetPlayer.SendPacket(new SCLootDiceSummaryPacket(LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.PlayerRolls));
+            targetPlayer?.SendPacket(new SCLootDiceSummaryPacket(LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.PlayerRolls));
         }
 
         // Find the highest rolled value
@@ -509,7 +519,7 @@ public class LootingContainer(IBaseUnit owner)
             .OrderBy(x => x.Value)
             .Select(x => x.Value)
             .FirstOrDefault();
-        
+
         // Find highest roller(s)
         var highestEntries = itemEntry.PlayerRolls
             .Where(x => x.Value >= highestResult)
@@ -523,16 +533,16 @@ public class LootingContainer(IBaseUnit owner)
             return;
         }
 
-        // Select random winner (if multiple people roll the same
+        // Select random winner (if multiple people roll the same)
         var pickIndex = Random.Shared.Next(highestEntries.Count);
         var highestEntry = highestEntries[pickIndex];
 
         // Mark winner
         itemEntry.HighestRoller = highestEntry.Key.Id;
-        TryDistributeLootToPlayer(highestEntry.Key, itemEntry);
+        TryDistributeLootToPlayer(highestEntry.Key, itemEntry, false);
     }
 
-    private bool TryDistributeLootToPlayer(Character player, LootingContainerItemEntry itemEntry)
+    private bool TryDistributeLootToPlayer(Character player, LootingContainerItemEntry itemEntry, bool didLootAll)
     {
         var freeSpace = player.Inventory.Bag.SpaceLeftForItem(itemEntry.Item, out _);
         if (freeSpace < itemEntry.Item.Count)
@@ -554,7 +564,7 @@ public class LootingContainer(IBaseUnit owner)
             // On a loot attempt, it's probably safe to try and assign it a real itemId
             itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
             // Try to add the new item
-            if (!player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade))
+            if (!player.Inventory.Bag.AcquireDefaultItem(didLootAll ? ItemTaskType.LootAll : ItemTaskType.Loot, itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade))
             {
                 // Free the Id again if failed
                 ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
@@ -573,5 +583,56 @@ public class LootingContainer(IBaseUnit owner)
         if (Items.Count <= 0)
             UpdateLootState();
         return true;
+    }
+
+    /// <summary>
+    /// Forces any ongoing loot rolls to end by making the remaining players auto-pass
+    /// </summary>
+    private void ForceLootRollToFinish()
+    {
+        foreach (var (_, itemEntry) in Items)
+        {
+            if (itemEntry.PlayerRolls.All(m => m.Value != 0))
+                continue;
+
+            foreach (var (player, roll) in itemEntry.PlayerRolls)
+            {
+                if (roll == 0)
+                {
+                    itemEntry.PlayerRolls[player] = -1;
+                    // Notify the others of this roll result (not sure if we should add this)
+                    // foreach (var targetPlayer in itemEntry.PlayerRolls.Keys)
+                    // {
+                    //     targetPlayer.SendPacket(new SCLootDiceNotifyPacket(player.Name, itemEntry.Item, -1));
+                    // }
+                }
+            }
+            
+            FinishRolling(itemEntry);
+        }
+    }
+
+    public void MakeLootPublic()
+    {
+        ForceLootRollToFinish();
+        if (Items.Count <= 0)
+            return;
+
+        // Force full public looting for all non-claimed items
+        TeamLootingRule.LootMethod = LootingRuleMethod.Public;
+        TeamLootingRule.MinimumGrade = 0;
+        TeamLootingRule.RollForBindOnPickup = false;
+
+        // Broadcast the new state it to everybody nearby
+        LootOwner?.BroadcastPacket(new SCLootableStatePacket(LootOwnerType, LootOwner.ObjId, true), false);
+    }
+
+    public bool CanMakePublic()
+    {
+        return ((TeamLootingRule != null) &&
+            (TeamLootingRule.LootMethod != LootingRuleMethod.Public) &&
+            (Items.Count > 0) &&
+            (CreationTime > DateTime.MinValue) &&
+            (CreationTime.AddSeconds(MakeLootPublicTime) <= DateTime.UtcNow));
     }
 }

@@ -19,6 +19,6 @@ public class CSLootItemPacket() : GamePacket(CSOffsets.CSLootItemPacket, 1)
 
         var owner = WorldManager.Instance.GetBaseUnit(ownerObjId);
 
-        owner?.LootingContainer.TryTakeLoot(Connection.ActiveChar, itemIndex, null);
+        owner?.LootingContainer.TryTakeLoot(Connection.ActiveChar, itemIndex, null, false);
     }
 }
