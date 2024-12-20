@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -25,6 +24,8 @@ namespace AAEmu.Game.Models.Game.Items.Containers;
 /// </summary>
 public class LootingContainer(IBaseUnit owner)
 {
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    // ReSharper disable once InconsistentNaming
     private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     // TODO: Make loot range and timing settings configurable
@@ -46,7 +47,7 @@ public class LootingContainer(IBaseUnit owner)
     /// <summary>
     /// Minimum time that a corpse should remain after it has been looted for all items (if it had items)
     /// </summary>
-    public const float PostLootMinimumDespawnTime = 2f;
+    private const float PostLootMinimumDespawnTime = 2f;
 
     /// <summary>
     /// Unit this looting container is attached to
@@ -57,9 +58,10 @@ public class LootingContainer(IBaseUnit owner)
     /// <summary>
     /// Unit that dealt the killing blow
     /// </summary>
-    public IBaseUnit Killer { get; private set; }
-    public Team.Team KillerTeam { get; private set; }
-    public LootingRule TeamLootingRule { get; private set; }
+    private IBaseUnit Killer { get; set; }
+
+    private Team.Team KillerTeam { get; set; }
+    private LootingRule TeamLootingRule { get; set; }
 
     /// <summary>
     /// Time this loot was generated
@@ -151,7 +153,7 @@ public class LootingContainer(IBaseUnit owner)
                 {
                     LootMethod = LootingRuleMethod.FreeForAll,
                     MinimumGrade = 0,
-                    LootMaster = (killer as Character)?.Id ?? 0
+                    LootMaster = (Killer as Character)?.Id ?? 0
                 };
                 // A player has tag rights
                 EligiblePlayers.Add(npc.CharacterTagging.Tagger);
@@ -260,7 +262,7 @@ public class LootingContainer(IBaseUnit owner)
     /// <summary>
     /// Sends the SCLootableStatePacket to all involved players and updates despawn times if needed
     /// </summary>
-    public void UpdateLootState()
+    private void UpdateLootState()
     {
         SendPacketToPlayers(EligiblePlayers, new SCLootableStatePacket(LootOwnerType, LootOwner.ObjId, Items.Count > 0));
         // If no items left, then reduce the despawn timer if needed
@@ -398,8 +400,7 @@ public class LootingContainer(IBaseUnit owner)
                 else if (KillerTeam != null)
                 {
                     // Kill credits go to a team, pick a winner at random
-                    var winner = KillerTeam.GetNextLootWinner(EligiblePlayers, itemEntry.Owner.LootOwner,
-                        MaxLootingRange);
+                    var winner = KillerTeam.GetNextLootWinner(EligiblePlayers, itemEntry.Owner.LootOwner);
                     itemEntry.HighestRoller = winner?.Id ?? 0;
 
                     if (itemEntry.HighestRoller > 0)
@@ -497,12 +498,12 @@ public class LootingContainer(IBaseUnit owner)
             return;
         
         // All done? Send summary as well to all
-        foreach (var (targetPlayer, roll) in itemEntry.PlayerRolls)
+        foreach (var (targetPlayer, _) in itemEntry.PlayerRolls)
         {
             targetPlayer.SendPacket(new SCLootDiceSummaryPacket(LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.PlayerRolls));
         }
 
-        // Find highest rolled value
+        // Find the highest rolled value
         var highestResult = itemEntry.PlayerRolls
             .Where(x => x.Value > 0)
             .OrderBy(x => x.Value)
@@ -566,7 +567,7 @@ public class LootingContainer(IBaseUnit owner)
             }
         }
         // TODO: check what packet this sends to others
-        player.SendPacket(new SCLootItemTookPacket(itemEntry.Item.TemplateId, itemEntry.ItemIndex, LootOwnerType, LootOwner.ObjId, fullOldItemId, itemEntry.Item.Count));
+        player.SendPacket(new SCLootItemTookPacket(itemEntry.Item.TemplateId, itemEntry.ItemIndex, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Count));
         Items.Remove(itemEntry.ItemIndex);
 
         if (Items.Count <= 0)

@@ -4,24 +4,13 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeamLootingRuleChangedPacket : GamePacket
+public class SCTeamLootingRuleChangedPacket(uint teamId, LootingRule lootingRule, byte changeFlags) : GamePacket(SCOffsets.SCTeamLootingRuleChangedPacket, 1)
 {
-    private readonly uint _teamId;
-    private readonly LootingRule _lootingRule;
-    private readonly byte _changeFlags;
-
-    public SCTeamLootingRuleChangedPacket(uint teamId, LootingRule lootingRule, byte changeFlags) : base(SCOffsets.SCTeamLootingRuleChangedPacket, 1)
-    {
-        _teamId = teamId;
-        _lootingRule = lootingRule;
-        _changeFlags = changeFlags;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_teamId);
-        stream.Write(_lootingRule);
-        stream.Write(_changeFlags);
+        stream.Write(teamId);
+        stream.Write(lootingRule);
+        stream.Write(changeFlags);
         return stream;
     }
 }

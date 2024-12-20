@@ -5,25 +5,16 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLootBagDataPacket : GamePacket
+public class SCLootBagDataPacket(List<Item> items, bool lootAll) : GamePacket(SCOffsets.SCLootBagDataPacket, 1)
 {
-    private readonly List<Item> _items;
-    private readonly bool _lootAll;
-
-    public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket, 1)
-    {
-        _items = items;
-        _lootAll = lootAll;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_items.Count);
+        stream.Write((byte)items.Count);
 
-        foreach (var item in _items)
+        foreach (var item in items)
             item.Write(stream);
 
-        stream.Write(_lootAll);
+        stream.Write(lootAll);
         return stream;
     }
 }

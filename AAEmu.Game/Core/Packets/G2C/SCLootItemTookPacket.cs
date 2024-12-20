@@ -4,31 +4,16 @@ using AAEmu.Game.Models.Game.Items.Loots;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLootItemTookPacket : GamePacket
+public class SCLootItemTookPacket(uint itemTemplateId, ushort itemIndex, LootOwnerType lootOwnerType, uint lootOwnerId, int count) : GamePacket(SCOffsets.SCLootItemTookPacket, 1)
 {
-    private readonly uint _itemTemplateId;
-    private readonly ushort _itemIndex;
-    private readonly LootOwnerType _lootOwnerType;
-    private readonly uint _lootOwnerId;
-    private readonly int _count;
-
-    public SCLootItemTookPacket(uint itemTemplateId, ushort itemIndex, LootOwnerType lootOwnerType, uint lootOwnerId, ulong iId, int count) : base(SCOffsets.SCLootItemTookPacket, 1)
-    {
-        _itemTemplateId = itemTemplateId;
-        _itemIndex = itemIndex;
-        _lootOwnerType = lootOwnerType;
-        _lootOwnerId = lootOwnerId;
-        _count = count;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_itemTemplateId);
-        stream.Write(_itemIndex);
-        stream.Write((ushort)_lootOwnerType);
-        stream.WriteBc(_lootOwnerId);
+        stream.Write(itemTemplateId);
+        stream.Write(itemIndex);
+        stream.Write((ushort)lootOwnerType);
+        stream.WriteBc(lootOwnerId);
         stream.Write((byte)0);
-        stream.Write(_count);
+        stream.Write(count);
         return stream;
     }
 }

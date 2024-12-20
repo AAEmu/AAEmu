@@ -6,30 +6,16 @@ using AAEmu.Game.Models.Game.Items.Loots;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLootDiceSummaryPacket : GamePacket
+public class SCLootDiceSummaryPacket(LootOwnerType lootOwnerType, uint lootOwner, ushort itemIndex, Dictionary<Character, sbyte> diceList) : GamePacket(SCOffsets.SCLootDiceSummaryPacket, 1)
 {
-    private readonly ushort _itemIndex;
-    private readonly LootOwnerType _lootOwnerType;
-    private readonly uint _lootOwnerObjId;
-    //private readonly ulong _iId;
-    private readonly Dictionary<Character, sbyte> _diceList;
-
-    public SCLootDiceSummaryPacket(LootOwnerType lootOwnerType, uint lootOwner, ushort itemIndex, Dictionary<Character,sbyte> diceList) : base(SCOffsets.SCLootDiceSummaryPacket, 1)
-    {
-        _itemIndex = itemIndex;
-        _lootOwnerType = lootOwnerType;
-        _lootOwnerObjId = lootOwner;
-        _diceList = diceList;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_itemIndex);
-        stream.Write((ushort)_lootOwnerType);
-        stream.WriteBc(_lootOwnerObjId);
+        stream.Write(itemIndex);
+        stream.Write((ushort)lootOwnerType);
+        stream.WriteBc(lootOwner);
         stream.Write((byte)0);
-        stream.Write(_diceList.Count);
-        foreach (var (player, dice) in _diceList)
+        stream.Write(diceList.Count);
+        foreach (var (player, dice) in diceList)
         {
             stream.Write(player.Id);
             stream.Write(dice);

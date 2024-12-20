@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 public class SCLootDiceNotifyPacket : GamePacket
 {
     private readonly string _charName;
-    private Item _item;
+    private readonly Item _item;
     private readonly sbyte _dice;
 
     /// <summary>

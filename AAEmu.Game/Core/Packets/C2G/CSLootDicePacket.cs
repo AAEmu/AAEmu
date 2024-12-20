@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Player does a dice roll response
+/// Player does a die roll response
 /// </summary>
 public class CSLootDicePacket() : GamePacket(CSOffsets.CSLootDicePacket, 1)
 {

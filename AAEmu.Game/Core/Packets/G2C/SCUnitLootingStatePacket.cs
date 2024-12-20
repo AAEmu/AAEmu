@@ -18,6 +18,7 @@ public class SCUnitLootingStatePacket : GamePacket
         _unitObjId = unitObjId;
         _looting = looting;
     }
+
     public override PacketStream Write(PacketStream stream)
     {
         stream.WriteBc(_unitObjId);
