@@ -96,7 +96,7 @@ public class Skill
         var character = caster as Character;
 
         unit.ConditionChance = true;
-
+        
         var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster, casterCaster);
         if (requirementResult.ResultKey != SkillResultKeys.ok)
         {

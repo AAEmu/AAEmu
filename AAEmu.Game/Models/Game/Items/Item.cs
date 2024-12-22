@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -107,6 +107,7 @@ public class Item : PacketMarshaler, IComparable<Item>
     public static uint CrestInk { get; } = 17663;
     public static uint SheetMusic { get; } = 28051;
     public static uint SalonCertificate { get; } = 30811;
+    public static uint TreasureMapWithCoordinates { get; } = 24581;
 
     /// <summary>
     /// Sort will use itemSlot numbers
@@ -272,6 +273,12 @@ public class Item : PacketMarshaler, IComparable<Item>
             case ItemDetailType.Treasure:
             case ItemDetailType.Location: // нет в 1.2
                 mDetailLength = 25;
+                // Debug Hack
+                stream.Write(10810f);
+                stream.Write(10820f);
+                stream.Write(10830f);
+                stream.Write(10840f);
+                stream.Write(new byte[mDetailLength-16]);
                 break;
             case ItemDetailType.BigFish: // есть расшифровка в items/BigFish
             case ItemDetailType.Decoration:

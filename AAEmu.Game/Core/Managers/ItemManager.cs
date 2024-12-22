@@ -375,7 +375,9 @@ public class ItemManager : Singleton<ItemManager>
         if (item == null)
             return null;
 
-        item.Grade = grade;
+        // If item already has a default generated grade, then do not override it (used for graded loot like TreasureMaps)
+        if (item.Grade <= 0)
+            item.Grade = grade;
 
         if (item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
             item.SetFlag(ItemFlag.SoulBound);
@@ -976,6 +978,9 @@ public class ItemManager : Singleton<ItemManager>
 
             var sheetMusicItemTemplate = new MusicSheetTemplate { Id = Item.SheetMusic };
             _templates.Add(sheetMusicItemTemplate.Id, sheetMusicItemTemplate);
+
+            var treasureMapItemTemplate = new TreasureMapTemplate { Id = Item.TreasureMapWithCoordinates };
+            _templates.Add(treasureMapItemTemplate.Id, treasureMapItemTemplate);
 
             using (var command = connection.CreateCommand())
             {
