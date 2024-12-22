@@ -694,13 +694,25 @@ public class Unit : BaseUnit, IUnit
 
     public double CalculateWithBonuses(double value, UnitAttribute attr)
     {
-        foreach (var bonus in GetBonuses(attr))
+        // Calculate flat values first, then percent values after that
+        var bonuses = GetBonuses(attr);
+
+        // Flat values
+        foreach (var bonus in bonuses)
         {
-            if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                value += (value * bonus.Value / 100f);
-            else
-                value += bonus.Value;
+            if (bonus.Template.ModifierType != UnitModifierType.Value)
+                continue;
+            value += bonus.Value;
         }
+        
+        // Percent Values
+        foreach (var bonus in bonuses)
+        {
+            if (bonus.Template.ModifierType != UnitModifierType.Percent)
+                continue;
+            value += (value * bonus.Value / 100f);
+        }
+
         return value;
     }
 
