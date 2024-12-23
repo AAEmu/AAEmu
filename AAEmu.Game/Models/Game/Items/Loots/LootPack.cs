@@ -33,7 +33,7 @@ public class LootPack
     {
         var lootDropRate = (100f + player.DropRateMul) / 100f;
         var lootGoldRate = (100f + player.LootGoldMul) / 100f;
-        return GeneratePack(lootDropRate, lootGoldRate, player);
+        return GeneratePackNew(lootDropRate, lootGoldRate, player);
     }
 
     /// <summary>
@@ -167,6 +167,87 @@ public class LootPack
     }
 
     /// <summary>
+    /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
+    /// New experimental version
+    /// </summary>
+    /// <param name="lootDropRate">1.0f = 100%</param>
+    /// <param name="lootGoldRate">1.0f = 100% applies to coins item only</param>
+    /// <param name="player">The player the loot is generated for, currently only used to handle exclusions</param>
+    /// <returns></returns>
+    private List<(uint itemId, int count, byte grade)> GeneratePackNew(float lootDropRate, float lootGoldRate, ICharacter player)
+    {
+        var items = new List<(uint itemId, int count, byte grade)>();
+
+        foreach (var (groupNo, groupLootList) in LootsByGroupNo)
+        {
+            var group = Groups.Values.FirstOrDefault(g => g.GroupNo == groupNo);
+            // Invalid group?
+            if (group == null)
+                continue;
+
+            var selectedItemsByGroup = new Dictionary<uint, List<Loot>>();
+
+            var groupRate = group.DropRate > 1 ? group.DropRate / 100_000f : 1f;
+            foreach (var loot in groupLootList)
+            {
+                // Group 0 items will always need to be included
+                if (loot.Group <= 0)
+                {
+                    if (!selectedItemsByGroup.ContainsKey(loot.Group))
+                        selectedItemsByGroup.Add(loot.Group, []);
+                    selectedItemsByGroup[loot.Group].Add(loot);
+                    continue;
+                }
+                var itemRate = loot.DropRate > 1 ? loot.DropRate / 10_000_000f : 1f;
+                var requiresDice = (long)Math.Floor(10_000_000f * groupRate * itemRate * lootDropRate);
+                var dice = (long)Rand.Next(0, 10000000);
+                if (dice < requiresDice)
+                {
+                    if (!selectedItemsByGroup.ContainsKey(loot.Group))
+                        selectedItemsByGroup.Add(loot.Group, []);
+                    selectedItemsByGroup[loot.Group].Add(loot);
+                }
+            }
+            
+            // No matches found
+            if (selectedItemsByGroup.Count <= 0)
+                continue;
+
+            foreach (var (groupId, loots) in selectedItemsByGroup)
+            {
+                if (loots.Count <= 0)
+                    continue;
+
+                // Always include all selected items if it's group 0 or 1
+                if (groupId <= 1)
+                {
+                    foreach (var loot in loots)
+                    {
+                        // Roll amount
+                        var countToAddNow = Random.Shared.Next(loot.MinAmount, loot.MaxAmount + 1);
+                        // Check for gold multiplier
+                        if (loot.ItemId == Item.Coins)
+                            countToAddNow = (int)Math.Round(countToAddNow * lootGoldRate);
+                        items.Add((loot.ItemId, countToAddNow, loot.GradeId));
+                    }
+                    continue;
+                }
+                
+                // If it's from a group higher than 1, pick one at random
+                var rngItem = Random.Shared.Next(loots.Count);
+                // Roll amount
+                var countToAdd = Random.Shared.Next(loots[rngItem].MinAmount, loots[rngItem].MaxAmount + 1);
+                // Check for gold multiplier
+                if (loots[rngItem].ItemId == Item.Coins)
+                    countToAdd = (int)Math.Round(countToAdd * lootGoldRate);
+                items.Add((loots[rngItem].ItemId, countToAdd, loots[rngItem].GradeId));
+            }
+        }
+
+        return items;
+    }
+    
+    /// <summary>
     /// Helper function to help find the owning player of a killing unit, either the player itself or the owners of the unit
     /// </summary>
     /// <param name="killer">Unit doing the killing blow</param>
@@ -207,7 +288,7 @@ public class LootPack
         var player = GetPlayerUsingKiller(killer);
         // TODO: handle raid-wide checks and individual loot
         
-        var packList = GeneratePack(lootDropRate, lootGoldRate, player);
+        var packList = GeneratePackNew(lootDropRate, lootGoldRate, player);
         var itemList = packList
             .Select(tuple => ItemManager.Instance.Create(tuple.itemId, tuple.count, tuple.grade, false)).ToList();
         foreach (var item in itemList)
