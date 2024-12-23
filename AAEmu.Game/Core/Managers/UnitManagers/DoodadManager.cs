@@ -3202,4 +3202,9 @@ public class DoodadManager : Singleton<DoodadManager>
                 ItemManager.Instance.DeleteItemContainer(container);
         }
     }
+
+    public List<uint> GetTreasureChestTemplateIds()
+    {
+        return _templates?.Values.Where(t => t.GroupId is >= 55 and <= 59).Select(t => t.Id).ToList();
+    }
 }

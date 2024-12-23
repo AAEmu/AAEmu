@@ -1075,4 +1075,18 @@ public class SpawnManager : Singleton<SpawnManager>
     {
         return _npcEventSpawners.Remove(from, out _);
     }
+    
+    /// <summary>
+    /// Gets a list of all Treasure Chests in the world that can be dug up
+    /// </summary>
+    /// <returns></returns>
+    public List<DoodadSpawner> GetTreasureChestDoodadSpawners()
+    {
+        var chestTemplateIds = DoodadManager.Instance.GetTreasureChestTemplateIds();
+        if (chestTemplateIds == null)
+            return [];
+        var spawnerList = _doodadSpawners.GetValueOrDefault((byte)WorldManager.DefaultWorldId).ToDictionary();
+        return spawnerList.Values.Where(ds => chestTemplateIds.Contains(ds.RespawnDoodadTemplateId) || chestTemplateIds.Contains(ds.UnitId)).ToList();;
+    }
+
 }

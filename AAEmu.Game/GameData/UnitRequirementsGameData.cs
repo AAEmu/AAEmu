@@ -4,7 +4,6 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills;
@@ -109,7 +108,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         return GetRequirement("Sphere", sphereId).ToList();
     }
 
-    private TreasureMap GetTreasureMapWithCoordinatesNearbyItem(Character character, double maxRange)
+    public TreasureMap GetTreasureMapWithCoordinatesNearbyItem(Character character, double maxRange)
     {
         if (character == null)
             return null;

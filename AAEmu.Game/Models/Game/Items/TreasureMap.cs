@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -34,22 +34,26 @@ public class TreasureMap : Item
     {
         // Pick a random target
         // TODO: Update this to use the spawners rather than the Doodads
-        var possibleChests = WorldManager.Instance.GetTreasureChestDoodads();
+        var possibleChests = SpawnManager.Instance.GetTreasureChestDoodadSpawners();
         if (possibleChests.Count <= 0)
         {
             // No valid location found
-            Grade = (byte)ItemGrade.Mythic; // Let's mark it Mythic for fun as it'll be at 0, 0 very much out of bounds
+            // Let's mark it Mythic for fun as it'll be at 0, 0 very much out of bounds if it isn't from loading items
+            Grade = (byte)ItemGrade.Mythic;
             return;
         }
         var rngPos = Random.Shared.Next(possibleChests.Count);
         var chest = possibleChests[rngPos];
         // Setup coordinates
-        MapPositionX = chest.Transform.World.Position.X;
-        MapPositionY = chest.Transform.World.Position.Y;
+        MapPositionX = chest.Position.X;
+        MapPositionY = chest.Position.Y;
+        
+        var chestTemplate = DoodadManager.Instance.GetTemplate(chest.UnitId) ?? DoodadManager.Instance.GetTemplate(chest.RespawnDoodadTemplateId);
+        var chestGradeId = chestTemplate?.GroupId ?? 0; 
         // Give it a corresponding grade
-        switch (chest.Template.GroupId)
+        switch (chestGradeId)
         {
-            case 55: Grade = (byte)ItemGrade.Basic;
+            case 55: Grade = 0;
                 break;
             case 56: Grade = (byte)ItemGrade.Grand;
                 break;
@@ -60,14 +64,16 @@ public class TreasureMap : Item
             case 59: Grade = (byte)ItemGrade.Heroic;
                 break;
             default:
-                Grade = (byte)ItemGrade.Crude;
+                // Invalid category
+                Grade = (byte)ItemGrade.Legendary;
+                Logger.Error($"Generated treasure map data for chest {chestTemplate?.Id} did not have a valid category for chests ({chestTemplate?.GroupId})");
                 break;
         }
     }
 
     public TreasureMap()
     {
-        GenerateTreasureMapData();
+        // GenerateTreasureMapData();
     }
 
     public TreasureMap(ulong id, ItemTemplate template, int count) : base(id, template, count)

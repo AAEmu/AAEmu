@@ -1415,13 +1415,4 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             res.Add(item);
         return res;
     }
-
-    /// <summary>
-    /// Gets a list of all Treasure Chests in the world that can be dug up
-    /// </summary>
-    /// <returns></returns>
-    public List<Doodad> GetTreasureChestDoodads()
-    {
-        return _doodads.Values.Where(d => d.Template.GroupId is >= 55 and <= 59).ToList();
-    }
 }
