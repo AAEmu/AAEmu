@@ -192,7 +192,7 @@ public class LootingContainer(IBaseUnit owner)
             // var baseId = ((ulong)LootOwner.ObjId << 32) + ((ulong)LootOwnerType << 16) + 1;
 
             // Generate the actual loot
-            List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> lootPackResults = new();
+            List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> lootPackResults = [];
             foreach (var lootPackDropping in lootPackDroppingNpcs)
             {
                 var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);

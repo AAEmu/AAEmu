@@ -132,7 +132,7 @@ public class LootPack
                         continue;
                     }
 
-                    itemStackingRoll += loot.DropRate;
+                    // itemStackingRoll += loot.DropRate;
 
                     selected.Add(loot);
                     break;

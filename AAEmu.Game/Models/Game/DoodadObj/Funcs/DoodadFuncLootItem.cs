@@ -13,12 +13,12 @@ public class DoodadFuncLootItem : DoodadFuncTemplate
 {
     // doodad_funcs
     public WorldInteractionType WorldInteractionId { get; set; }
-    public uint ItemId { get; set; }
-    public int CountMin { get; set; }
-    public int CountMax { get; set; }
-    public int Percent { get; set; }
-    public int RemainTime { get; set; }
-    public uint GroupId { get; set; }
+    public uint ItemId { get; init; }
+    public int CountMin { get; init; }
+    public int CountMax { get; init; }
+    public int Percent { get; init; }
+    public int RemainTime { get; init; }
+    public uint GroupId { get; init; }
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
@@ -51,7 +51,7 @@ public class DoodadFuncLootItem : DoodadFuncTemplate
                 if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
                 {
                     res = character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item,
-                        (int)Items.EquipmentItemSlot.Backpack);
+                        (int)EquipmentItemSlot.Backpack);
                 }
             }
             else
