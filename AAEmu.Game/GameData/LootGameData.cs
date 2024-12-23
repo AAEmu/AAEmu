@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Utils.DB;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;
@@ -128,27 +129,33 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
 
         // Generate packs
 
-        foreach (var lootPackId in _lootsByPackId.Keys)
+        foreach (var (lootPackId, loots) in _lootsByPackId)
         {
             var pack = new LootPack()
             {
                 Id = lootPackId,
-                Loots = _lootsByPackId[lootPackId],
+                Loots = loots,
                 Groups = [],
                 ActabilityGroups = [],
                 LootsByGroupNo = [],
                 GroupCount = 0
             };
 
+            // Get actual DB data for groups
             if (_lootGroupsByPackId.TryGetValue(lootPackId, out var lootGroupsList))
+            {
                 foreach (var lootGroup in lootGroupsList)
                     pack.Groups.Add(lootGroup.GroupNo, lootGroup);
+            }
 
+            // Skill related rolls
             if (_lootActabilityGroupsByPackId.TryGetValue(lootPackId, out var lootActAbilityGroups))
+            {
                 foreach (var lag in lootActAbilityGroups)
                     pack.ActabilityGroups.Add(lag.GroupId, lag);
+            }
 
-            foreach (var loot in _lootsByPackId[lootPackId])
+            foreach (var loot in loots)
             {
                 if (!pack.LootsByGroupNo.ContainsKey(loot.Group))
                     pack.LootsByGroupNo.Add(loot.Group, []);

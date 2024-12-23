@@ -271,8 +271,9 @@ public class Doodad : BaseUnit
         _data = data;
     }
 
-    public void Use(BaseUnit caster, uint skillId = 0, int funcGroupId = 0)
+    public void Use(BaseUnit caster, uint startedSkillId = 0, int funcGroupId = 0)
     {
+        var skillId = startedSkillId;
         if (caster == null)
         {
             return;
@@ -313,7 +314,7 @@ public class Doodad : BaseUnit
                 foreach (var funcWithoutSkill in allFuncsForGroup.Where(f =>
                              f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack" or "DoodadFuncCutdowning"))
                 {
-                    if (DoFunc(caster, 0, funcWithoutSkill))
+                    if (DoFunc(caster, startedSkillId, funcWithoutSkill))
                     {
                         ListGroupId.Clear();
                         return;
@@ -322,7 +323,7 @@ public class Doodad : BaseUnit
             }
             else
             {
-                if (DoFunc(caster, skillId, funcWithSkill))
+                if (DoFunc(caster, startedSkillId, funcWithSkill))
                 {
                     // FuncGroupId будет равен либо текущая фаза, либо func.NextPhase, либо OverridePhase
                     DoChangePhase(caster, (int)FuncGroupId);

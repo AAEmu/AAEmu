@@ -4,6 +4,7 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Enums;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -1819,5 +1820,17 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
         var coolDownTime = includeCooldown ? skillTemplate.CooldownTime * (caster.GlobalCooldownMul / 100.0) : 0.0;
         var additionalTime = additionalDelay * (caster.GlobalCooldownMul / 100.0);
         return castTime + coolDownTime + additionalTime;
+    }
+
+    /// <summary>
+    /// Gets the related ActAbility to a skill
+    /// </summary>
+    /// <param name="skillId"></param>
+    /// <returns></returns>
+    public ActabilityType GetSkillActAbility(uint skillId)
+    {
+        if (!_skills.TryGetValue(skillId, out var value))
+            return ActabilityType.None;
+        return (ActabilityType)value.ActabilityGroupId;
     }
 }

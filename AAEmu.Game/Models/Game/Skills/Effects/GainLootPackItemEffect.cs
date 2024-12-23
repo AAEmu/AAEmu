@@ -37,11 +37,14 @@ public class GainLootPackItemEffect : EffectTemplate
         if (pack == null || pack.Loots.Count <= 0)
             return;
 
+        // TODO: Find the related ActAbility
+        var actAbility = ActabilityType.None;
+
         if (!ConsumeSourceItem && ConsumeCount == 0)
         {
             // the tractor collects water
             character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
-            pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
+            pack.GiveLootPack(character, actAbility, ItemTaskType.SkillEffectGainItem);
             Logger.Debug($"GainLootPackItemEffect {LootPackId}");
             return;
         }
@@ -66,7 +69,7 @@ public class GainLootPackItemEffect : EffectTemplate
         }
 
         // Give the results
-        pack.GiveLootPack(character, ItemTaskType.SkillEffectGainItem);
+        pack.GiveLootPack(character, actAbility, ItemTaskType.SkillEffectGainItem);
 
         Logger.Debug($"GainLootPackItemEffect {LootPackId}");
     }

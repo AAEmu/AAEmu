@@ -189,17 +189,49 @@ public class LootingContainer(IBaseUnit owner)
             }
 
             // Base ID used for identifying the loot
-            var baseId = ((ulong)LootOwner.ObjId << 32) + ((ulong)LootOwnerType << 16) + 1;
+            // var baseId = ((ulong)LootOwner.ObjId << 32) + ((ulong)LootOwnerType << 16) + 1;
 
             // Generate the actual loot
+            List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> lootPackResults = new();
             foreach (var lootPackDropping in lootPackDroppingNpcs)
             {
                 var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
                 if (lootPack == null)
                     continue;
-                var items = lootPack.GenerateNpcPackItems(ref baseId, killer, lootDropRate, lootGoldRate);
+                lootPackResults.AddRange(lootPack.GeneratePackNew(lootDropRate, lootGoldRate, killer as Character, ActabilityType.None, true)); 
+                // var items = lootPack.GenerateNpcPackItems(ref baseId, killer, lootDropRate, lootGoldRate);
+                // RegisterItems(items);
+            }
+            
+            // Make Group list to enumerate with
+            var groups = lootPackResults.GroupBy(x => x.lootGroupOrigin).Select(x => x.Key).ToList();
 
-                RegisterItems(items);
+            // Pick results by groups total of all packs
+            foreach (var group in groups)
+            {
+                var selectByGroup = lootPackResults.Where(x => x.lootGroupOrigin == group).ToList();
+                if (selectByGroup.Count <= 0)
+                    continue;
+
+                var resultsToAdd = new List<Item>();
+
+                // If it's group is larger than 1, pick one at random
+                if (group > 1)
+                {
+                    var rngPos = Random.Shared.Next(selectByGroup.Count);
+                    var item = ItemManager.Instance.Create(selectByGroup[rngPos].itemId, selectByGroup[rngPos].count, selectByGroup[rngPos].grade, false);
+                    resultsToAdd.Add(item);
+                }
+                else
+                {
+                    foreach (var singleItemInGroup in selectByGroup)
+                    {
+                        var item = ItemManager.Instance.Create(singleItemInGroup.itemId, singleItemInGroup.count, singleItemInGroup.grade, false);
+                        resultsToAdd.Add(item);
+                    }
+                }
+                
+                RegisterItems(resultsToAdd);
             }
 
             if (Items.Count <= 0)

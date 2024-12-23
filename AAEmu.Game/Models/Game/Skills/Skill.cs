@@ -1225,10 +1225,21 @@ public class Skill
 
         if (caster is Character character)
         {
-            if (Template.ConsumeLaborPower > 0 && !Cancelled && character.LaborPower >= Template.ConsumeLaborPower)
+            var laborCost = Template.ConsumeLaborPower;
+            // Adjust labor cost if needed
+            if (character.Actability.Actabilities.TryGetValue((byte)Template.ActabilityGroupId, out var actAbility))
+            {
+                laborCost = (int)Math.Round(laborCost * actAbility.GetLaborCostMultiplier());
+            }
+
+            // Lower cap at 1
+            if ((Template.ConsumeLaborPower > 0) && (laborCost < 1))
+                laborCost = 1;
+            
+            if (laborCost > 0 && !Cancelled && character.LaborPower >= laborCost)
             {
                 // Consume labor only if there is enough of it
-                character.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
+                character.ChangeLabor((short)-laborCost, Template.ActabilityGroupId);
             }
 
             // Add vocation where needed
