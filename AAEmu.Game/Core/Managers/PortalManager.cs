@@ -471,7 +471,7 @@ public class PortalManager : Singleton<PortalManager>
 
     public Portal GetClosestReturnPortal(Character character)
     {
-        var cxyz = character.Transform.World.Position;
+        var currentPosition = character.Transform.World.Position;
         var distance = 999999f;
         var portal = new Portal();
 
@@ -486,8 +486,8 @@ public class PortalManager : Singleton<PortalManager>
                 }
             }
             //if (!value.Name.ToLower().Contains("respawn")) { continue; }
-            var pxyz = new Vector3(value.X, value.Y, value.Z);
-            var dist = MathUtil.CalculateDistance(cxyz, pxyz);
+            var portalXyz = new Vector3(value.X, value.Y, value.Z);
+            var dist = MathUtil.CalculateDistance(currentPosition, portalXyz);
             if (!(dist < distance)) { continue; }
             distance = dist;
             portal = value;
