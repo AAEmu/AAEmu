@@ -260,7 +260,12 @@ public class LootPack
                         // Check for gold multiplier
                         if (loot.ItemId == Item.Coins)
                             countToAddNow = (int)Math.Round(countToAddNow * lootGoldRate);
-                        items.Add((loot.ItemId, countToAddNow, loot.GradeId, loot.Group));
+                        var generatedGrade = loot.GradeId;
+                        if (group?.ItemGradeDistributionId > 0)
+                        {
+                            generatedGrade = GetGradeFromDistribution(group.ItemGradeDistributionId);
+                        }
+                        items.Add((loot.ItemId, countToAddNow, generatedGrade, loot.Group));
                     }
                     continue;
                 }
@@ -274,7 +279,13 @@ public class LootPack
                     // Check for gold multiplier
                     if (loots[rngItem].ItemId == Item.Coins)
                         countToAdd = (int)Math.Round(countToAdd * lootGoldRate);
-                    items.Add((loots[rngItem].ItemId, countToAdd, loots[rngItem].GradeId, loots[rngItem].Group));
+                    var generatedGrade = loots[rngItem].GradeId;
+                    if (group?.ItemGradeDistributionId > 0)
+                    {
+                        generatedGrade = GetGradeFromDistribution(group.ItemGradeDistributionId);
+                    }
+
+                    items.Add((loots[rngItem].ItemId, countToAdd, generatedGrade, loots[rngItem].Group));
                 }
                 else
                 {
@@ -287,7 +298,12 @@ public class LootPack
                         // Check for gold multiplier
                         if (loot.ItemId == Item.Coins)
                             countToAddNow = (int)Math.Round(countToAddNow * lootGoldRate);
-                        items.Add((loot.ItemId, countToAddNow, loot.GradeId, loot.Group));
+                        var generatedGrade = loot.GradeId;
+                        if (group?.ItemGradeDistributionId > 0)
+                        {
+                            generatedGrade = GetGradeFromDistribution(group.ItemGradeDistributionId);
+                        }
+                        items.Add((loot.ItemId, countToAddNow, generatedGrade, loot.Group));
                     }
                 }
             }
