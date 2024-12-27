@@ -469,14 +469,36 @@ public class PortalManager : Singleton<PortalManager>
         owner.Portals.RemoveFromBookPortal(portalInfo, isPrivate);
     }
 
+    /// <summary>
+    /// Gets the closest valid return portal (respawn) location for a given player
+    /// </summary>
+    /// <param name="character"></param>
+    /// <returns></returns>
     public Portal GetClosestReturnPortal(Character character)
     {
         var currentPosition = character.Transform.World.Position;
         var distance = 999999f;
         var portal = new Portal();
+        // Fail-safe coordinates
+        portal.X = currentPosition.X;
+        portal.Y = currentPosition.Y;
+        portal.Z = currentPosition.Z;
+        portal.ZoneId = character.Transform.ZoneId;
 
         foreach (var (_, value) in _respawns)
         {
+            // Check against district specific faction respawns
+            var districts = _districtReturnPoints.Values.Where(d => d.ReturnPointId == value.Id).ToList();
+            if (districts.Count > 0)
+            {
+                var factions = districts.Select(d => d.FactionId).Distinct().ToList();
+                if ((factions.Count > 0) && !factions.Contains(character.Faction.MotherId) && !factions.Contains(character.Faction.Id))
+                {
+                    continue;
+                }
+            }
+
+            // Check if it's a closed zone (for non-admins)
             if (character is { AccessLevel: < 100 })
             {
                 var zone = ZoneManager.Instance.GetZoneByKey(value.ZoneId);
@@ -485,10 +507,14 @@ public class PortalManager : Singleton<PortalManager>
                     continue;
                 }
             }
-            //if (!value.Name.ToLower().Contains("respawn")) { continue; }
+
+            // Calculate distance to player
             var portalXyz = new Vector3(value.X, value.Y, value.Z);
             var dist = MathUtil.CalculateDistance(currentPosition, portalXyz);
-            if (!(dist < distance)) { continue; }
+            if (dist >= distance)
+            {
+                continue;
+            }
             distance = dist;
             portal = value;
         }
