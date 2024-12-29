@@ -13,7 +13,7 @@ public class GimmickMovementFloatToSurface(Gimmick owner) : GimmickMovementHandl
         base.Tick(delta);
 
         // Expected Upwards distance
-        var movement = 2.5f * (float)delta.TotalSeconds; // maximum movement needed to do the 100m in 60 seconds
+        var movement = 2.5f * (float)delta.TotalSeconds; // maximum movement needed to do the 100m in 40 seconds
         var checkPos = owner.Transform.World.Position + new Vector3(0f, 0f, movement + 1f);
         // Check if the new location is still inside water and apply if it is
         if (WorldManager.Instance.GetWorld(owner.Transform.WorldId)?.Water?.IsWater(checkPos) ?? false)

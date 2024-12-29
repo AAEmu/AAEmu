@@ -848,6 +848,11 @@ public class Skill
         }
         // Filter out duplicate entries and non-existing
         possibleTargets = possibleTargets.Distinct().ToList();
+        // Add origin in case of no targets and using a target position cast
+        if ((possibleTargets.Count <= 0) && (targetCaster is SkillCastPositionTarget))
+        {
+            possibleTargets.Add(caster);
+        }
         
         foreach (var target in possibleTargets)
         {

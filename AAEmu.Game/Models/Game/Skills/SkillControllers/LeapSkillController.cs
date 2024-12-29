@@ -32,8 +32,8 @@ public class LeapSkillController : SkillController
     public LeapSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
     {
         Template = template;
-        Owner = (Unit)owner;
-        Target = (Unit)target;
+        Owner = owner as Unit;
+        Target = target as Unit;
 
         Angle = template.Value[0];
         Speed = template.Value[1];
@@ -43,11 +43,10 @@ public class LeapSkillController : SkillController
 
         var angle = (float)MathUtil.CalculateAngleFrom(owner.Transform.World.Position, target.Transform.World.Position);
         (_endPosition.X, _endPosition.Y) = MathUtil.AddDistanceToFront(DistanceOffset / 1000f, target.Transform.World.Position.X, target.Transform.World.Position.Y, angle);
-        _endPosition.Z = Target.Transform.World.Position.Z;
+        _endPosition.Z = target.Transform.World.Position.Z;
 
-        var distance = MathUtil.CalculateDistance(Owner.Transform.World.Position, _endPosition, true);
+        var distance = MathUtil.CalculateDistance(owner.Transform.World.Position, _endPosition, true);
         _calculatedSpeed = distance / (Duration / 1000f);
-
     }
 
     public void Tick(TimeSpan delta)

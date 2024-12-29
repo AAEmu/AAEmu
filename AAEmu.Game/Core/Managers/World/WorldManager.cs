@@ -1241,6 +1241,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return _doodads.Values.ToList();
     }
 
+    public List<Gimmick> GetAllGimmicks()
+    {
+        return _gimmicks.Values.ToList();
+    }
+
     public List<Slave> GetAllSlavesFromWorld(uint worldId)
     {
         return _slaves.Values.Where(n => n.Transform.WorldId == worldId).ToList();

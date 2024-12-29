@@ -250,8 +250,8 @@ public class LootPack
                 if (loots.Count <= 0)
                     continue;
 
-                // Always include all selected items if it's group 0 or 1
-                if (groupId <= 1)
+                // Always include all selected items if it's group 0
+                if (groupId < 1)
                 {
                     foreach (var loot in loots)
                     {
