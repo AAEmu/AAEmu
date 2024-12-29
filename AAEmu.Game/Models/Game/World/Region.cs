@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
@@ -138,6 +139,9 @@ public class Region
                 // Ignore doodads here, as we have a special packet for those
                 if (go is Doodad)
                     continue;
+                
+                if (go is Gimmick)
+                    continue;
 
                 // turn on the motion of the visible NPC
                 if (go is Npc npc && npc.Ai != null)
@@ -157,6 +161,21 @@ public class Region
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 objectAsCharacter.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
+
+            // Handle Gimmicks separately with sets of SCGimmicksCreatedPacket
+            var gimmicks = GetList(new List<Gimmick>(), obj.ObjId).ToArray();
+            for (var i = 0; i < gimmicks.Length; i += SCGimmicksCreatedPacket.MaxCountPerPacket)
+            {
+                var count = gimmicks.Length - i;
+                var temp = new Gimmick[count <= SCGimmicksCreatedPacket.MaxCountPerPacket
+                    ? count
+                    : SCGimmicksCreatedPacket.MaxCountPerPacket];
+                Array.Copy(gimmicks, i, temp, 0, temp.Length);
+                objectAsCharacter.SendPacket(new SCGimmicksCreatedPacket(temp));
+            }
+            // Not sure why or if this is needed, but it's always sent after the creation packets with no reference to any of them
+            if (gimmicks.Length > 0)
+                objectAsCharacter.SendPacket(new SCGimmickJointsBrokenPacket([]));
         }
 
         // show the object to all players in the region
@@ -200,6 +219,16 @@ public class Region
                 var temp = new uint[last ? length : SCDoodadsRemovedPacket.MaxCountPerPacket];
                 Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                 character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));
+            }
+            
+            var gimmickIds = GetList<Gimmick>([], character1.ObjId).Select(g => g.ObjId).ToArray();
+            for (var offset = 0; offset < gimmickIds.Length; offset += SCGimmicksRemovedPacket.MaxCountPerPacket)
+            {
+                var length = gimmickIds.Length - offset;
+                var last = length <= SCGimmicksRemovedPacket.MaxCountPerPacket;
+                var temp = new uint[last ? length : SCGimmicksRemovedPacket.MaxCountPerPacket];
+                Array.Copy(gimmickIds, offset, temp, 0, temp.Length);
+                character1.SendPacket(new SCGimmicksRemovedPacket(temp));
             }
 
             if ((character1.CurrentTarget != null) && (unitIds.Contains(character1.CurrentTarget.ObjId)))

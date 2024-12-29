@@ -55,15 +55,15 @@ public class GimmickSpawner : Spawner<Gimmick>
     public Gimmick Last { get; set; }
     public uint Count { get; set; }
     public bool OffsetFromSource { get; set; }
-    public OffsetCoordinateType OffsetCoordiateId { get; set; }
+    public OffsetCoordinateType OffsetCoordinateId { get; set; }
     public float OffsetX { get; set; }
     public float OffsetY { get; set; }
     public float OffsetZ { get; set; }
-    public VelocityCoordinateType VelocityCoordiateId { get; set; }
+    public VelocityCoordinateType VelocityCoordinateId { get; set; }
     public float VelocityX { get; set; }
     public float VelocityY { get; set; }
     public float VelocityZ { get; set; }
-    public AngVelCoordinateType AngVelCoordiateId { get; set; }
+    public AngVelCoordinateType AngVelCoordinateId { get; set; }
     public float AngVelX { get; set; }
     public float AngVelY { get; set; }
     public float AngVelZ { get; set; }
@@ -72,16 +72,16 @@ public class GimmickSpawner : Spawner<Gimmick>
     {
         GimmickId = sgEffect.GimmickId;
         OffsetFromSource = sgEffect.OffsetFromSource;
-        OffsetCoordiateId = (OffsetCoordinateType)sgEffect.OffsetCoordiateId;
+        OffsetCoordinateId = (OffsetCoordinateType)sgEffect.OffsetCoordiateId;
         OffsetX = sgEffect.OffsetX;
         OffsetY = sgEffect.OffsetY;
         OffsetZ = sgEffect.OffsetZ;
         Scale = sgEffect.Scale;
-        VelocityCoordiateId = (VelocityCoordinateType)sgEffect.VelocityCoordiateId;
+        VelocityCoordinateId = (VelocityCoordinateType)sgEffect.VelocityCoordiateId;
         VelocityX = sgEffect.VelocityX;
         VelocityY = sgEffect.VelocityY;
         VelocityZ = sgEffect.VelocityZ;
-        AngVelCoordiateId = (AngVelCoordinateType)sgEffect.AngVelCoordiateId;
+        AngVelCoordinateId = (AngVelCoordinateType)sgEffect.AngVelCoordiateId;
         AngVelX = sgEffect.AngVelX;
         AngVelY = sgEffect.AngVelY;
         AngVelZ = sgEffect.AngVelZ;
@@ -91,8 +91,8 @@ public class GimmickSpawner : Spawner<Gimmick>
 
         gimmick.Spawner = this;
         gimmick.Spawner.RespawnTime = 0; // don't respawn
-        gimmick.Transform.ApplyWorldSpawnPosition(caster.Transform.CloneAsSpawnPosition());
-        switch (OffsetCoordiateId)
+        gimmick.Transform = caster.Transform.CloneDetached(gimmick);
+        switch (OffsetCoordinateId)
         {
             case OffsetCoordinateType.Unk0:
                 var (newX0, newY0, newZ0) = PositionAndRotation.AddDistanceToFront(1, 1, gimmick.Transform.World.Position, gimmick.Transform.World.Position);
@@ -101,14 +101,9 @@ public class GimmickSpawner : Spawner<Gimmick>
             case OffsetCoordinateType.Unk1:
                 break;
             case OffsetCoordinateType.Unk2:
-                //gimmick.Transform.World.Position = new Vector3(
-                //    gimmick.Transform.World.Position.X - OffsetX,
-                //    gimmick.Transform.World.Position.Y - OffsetY,
-                //    gimmick.Transform.World.Position.Z + OffsetZ
-                //);
-
-                var (newX, newY, newZ) = PositionAndRotation.AddDistanceToFront(1, 1, gimmick.Transform.World.Position, gimmick.Transform.World.Position);
-                gimmick.Transform.World.Position = new Vector3(newX, newY, newZ + OffsetZ);
+                gimmick.Transform.Local.AddDistance(OffsetX, OffsetY, OffsetZ);
+                //var (newX, newY, newZ) = PositionAndRotation.AddDistanceToFront(1, 1, gimmick.Transform.World.Position, gimmick.Transform.World.Position);
+                //gimmick.Transform.World.Position = new Vector3(newX, newY, newZ + OffsetZ);
                 break;
             case OffsetCoordinateType.Unk3:
                 break;
@@ -124,6 +119,7 @@ public class GimmickSpawner : Spawner<Gimmick>
 
         gimmick.SetScale(Scale);
         gimmick.Spawn(); // добавляем в мир
+        GimmickManager.Instance.AddActiveGimmick(gimmick);
 
         if (caster is Npc npc)
         {
@@ -151,10 +147,14 @@ public class GimmickSpawner : Spawner<Gimmick>
 
     public override void Despawn(Gimmick gimmick)
     {
+        GimmickManager.Instance.RemoveActiveGimmick(gimmick);
         gimmick.Delete();
         if (gimmick.Respawn == DateTime.MinValue)
         {
-            ObjectIdManager.Instance.ReleaseId(gimmick.ObjId);
+            if (gimmick.ObjId > 0)
+                ObjectIdManager.Instance.ReleaseId(gimmick.ObjId);
+            if (gimmick.GimmickId > 0)
+                GimmickIdManager.Instance.ReleaseId(gimmick.GimmickId);
         }
 
         Last = null;

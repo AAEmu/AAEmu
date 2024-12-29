@@ -846,7 +846,9 @@ public class Skill
         {
             possibleTargets.Add(targetSelf);
         }
-
+        // Filter out duplicate entries and non-existing
+        possibleTargets = possibleTargets.Distinct().ToList();
+        
         foreach (var target in possibleTargets)
         {
             if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
@@ -993,6 +995,13 @@ public class Skill
                 effectsToApply.Add((target, effect));
                 lastAppliedEffect = effect;
                 //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+
+                // TODO: Fix this HACK, only use the first target if it's a position.
+                // Hack added to fix SummonDoodad issues from Skill 15343, spawns Recovered Treasure Chest ( 3483 )
+                if (targetCaster is SkillCastPositionTarget)
+                {
+                    break;
+                }
             }
         }
 
@@ -1134,7 +1143,7 @@ public class Skill
 
                     if (player is { SkillCancelled: true }) { Cancelled = true; }
                 }
-
+                
                 // Implement consumption of item sets
                 if (effect.ItemSetId > 0)
                 {

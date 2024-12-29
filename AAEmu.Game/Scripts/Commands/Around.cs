@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -42,10 +43,14 @@ public class Around : ICommand
 
         indexStr += (index + 1).ToString();
 
+        if (go is Gimmick gGimmick)
+        {
+            messageOutput.SendMessage($"#{indexStr} -> BcId: {gGimmick.ObjId}, GimmickId: {gGimmick.GimmickId}, TemplateId: {gGimmick.TemplateId} - Model: {gGimmick.Template?.ModelPath}");
+        }
+        else
         if (go is Doodad gDoodad)
         {
-            messageOutput.SendMessage(
-                $"#{indexStr} -> BcId: {gDoodad.ObjId} DoodadTemplateId: {gDoodad.TemplateId} - @DOODAD_NAME({gDoodad.TemplateId}) FuncGroupId {gDoodad.FuncGroupId}");
+            messageOutput.SendMessage($"#{indexStr} -> BcId: {gDoodad.ObjId} DoodadTemplateId: {gDoodad.TemplateId} - @DOODAD_NAME({gDoodad.TemplateId}) FuncGroupId {gDoodad.FuncGroupId}");
         }
         else if (go is Character gChar)
         {

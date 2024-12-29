@@ -34,30 +34,33 @@ public class SpawnGimmickEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        var npc = (Npc)caster;
+        var casterUnit = (Unit)caster;
 
-        if (npc?.CurrentTarget == null)
+        if (casterUnit == null)
+        // if (casterUnit?.CurrentTarget == null)
             return;
 
         //if (npc.Gimmick != null)
         //    return; // don't spawn another Gimmick until the current one disappears
 
-        Logger.Info($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}");
+        Logger.Info($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}, skill={(castObj as CastSkill)?.SkillId}");
 
         var spawner = new GimmickSpawner(this, caster);
 
-        if (npc.Gimmick == null)
+        // casterUnit.Gimmick = spawner.Spawn(0);
+
+        if (casterUnit.Gimmick == null)
             return;
 
-        if (npc is { CurrentTarget: Character character })
+        if (casterUnit is { CurrentTarget: Character character })
         {
-            npc.Gimmick.CurrentTarget = character;
+            casterUnit.Gimmick.CurrentTarget = character;
             return;
         }
 
-        foreach (var character2 in WorldManager.GetAround<Character>(npc))
+        foreach (var character2 in WorldManager.GetAround<Character>(casterUnit))
         {
-            npc.Gimmick.CurrentTarget = character2;
+            casterUnit.Gimmick.CurrentTarget = character2;
             break;
         }
     }

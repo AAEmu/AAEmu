@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Loots;
@@ -807,6 +808,7 @@ public class Unit : BaseUnit, IUnit
     // TODO: Implement this to grab actual loot info
     public virtual bool HasLootLeft { get; set; } = false;
     public virtual ModelPostureType ModelPostureType { get => ModelPostureType.None; }
+    public Gimmick Gimmick { get; set; }
 
     public virtual void OnSkillEnd(Skill skill)
     {

@@ -5,7 +5,6 @@ using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Units;
@@ -28,6 +27,7 @@ public class GimmickManager : Singleton<GimmickManager>
     private const double Delay = 50;
     //private const double DelayInit = 1;
     private Task GimmickTickTask { get; set; }
+    private DateTime LastCheck { get; set; } = DateTime.MinValue;
 
     public bool Exist(uint templateId)
     {
@@ -70,12 +70,15 @@ public class GimmickManager : Singleton<GimmickManager>
         }
 
         gimmick.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
+        gimmick.GimmickId = (ushort)GimmickIdManager.Instance.GetNextId();
         gimmick.Spawner = spawner;
         gimmick.TemplateId = templateId;
         gimmick.Faction = new SystemFaction();
         gimmick.Transform.ApplyWorldSpawnPosition(spawner.Position);
         gimmick.Vel = new Vector3(0f, 0f, 0f);
-        gimmick.Rot = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
+        var spawnRotation = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
+        // Apply Gimmick setting's rotation to the GameObject.Transform
+        gimmick.Transform.Local.ApplyFromQuaternion(spawnRotation);
         gimmick.ModelParams = new UnitCustomModelParams();
         gimmick.SetScale(spawner.Scale);
 
@@ -86,9 +89,34 @@ public class GimmickManager : Singleton<GimmickManager>
         }
 
         gimmick.Spawn(); // adding to the world
-        _activeGimmicks.Add(gimmick.ObjId, gimmick);
+        AddActiveGimmick(gimmick);
 
         return gimmick;
+    }
+
+    public void AddActiveGimmick(Gimmick gimmick)
+    {
+        // Attach movement handlers based on settings
+        if ((gimmick.TemplateId == 0) && (gimmick.EntityGuid > 0))
+        {
+            // Elevators defined in gimmick_spawns.json
+            gimmick.MovementHandler = new GimmickMovementElevator(gimmick);
+        }
+        else
+            // TODO: Add decent Physics system to handle movement
+        if (gimmick.TemplateId == 37)
+        {
+            // Recovered Treasure Chest
+            gimmick.MovementHandler = new GimmickMovementFloatToSurface(gimmick);
+        }
+
+        gimmick.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
+        _activeGimmicks.TryAdd(gimmick.ObjId, gimmick);
+    }
+
+    public void RemoveActiveGimmick(Gimmick gimmick)
+    {
+        _activeGimmicks.Remove(gimmick.ObjId);
     }
 
     /// <summary>
@@ -103,6 +131,7 @@ public class GimmickManager : Singleton<GimmickManager>
 
         var gimmick = new Gimmick();
         gimmick.ObjId = ObjectIdManager.Instance.GetNextId();
+        gimmick.GimmickId = (ushort)GimmickIdManager.Instance.GetNextId();
         gimmick.Spawner = new GimmickSpawner();
         gimmick.Template = template;
         gimmick.TemplateId = template.Id;
@@ -181,31 +210,20 @@ public class GimmickManager : Singleton<GimmickManager>
     public void Initialize()
     {
         Logger.Warn("GimmickTickTask: Started");
-
-        //GimmickTickTask = new GimmickTickStartTask();
-        //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
         TickManager.Instance.OnTick.Subscribe(GimmickTick, TimeSpan.FromMilliseconds(Delay), true);
     }
 
+    /// <summary>
+    /// Callback function for global gimmick ticks
+    /// </summary>
+    /// <param name="delta"></param>
     private void GimmickTick(TimeSpan delta)
     {
         var activeGimmicks = GetActiveGimmicks();
         foreach (var gimmick in activeGimmicks)
         {
-            GimmickTick(gimmick);
+            gimmick.GimmickTick(delta);
         }
-
-        //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
-    }
-    internal void GimmickTick()
-    {
-        var activeGimmicks = GetActiveGimmicks();
-        foreach (var gimmick in activeGimmicks)
-        {
-            GimmickTick(gimmick);
-        }
-
-        TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
     }
 
     private Gimmick[] GetActiveGimmicks()
@@ -213,75 +231,6 @@ public class GimmickManager : Singleton<GimmickManager>
         lock (_activeGimmicks)
         {
             return _activeGimmicks.Values.ToArray();
-        }
-    }
-
-    private static void GimmickTick(Gimmick gimmick)
-    {
-        if (gimmick.TimeLeft > 0)
-            return;
-
-        const float maxVelocity = 4.5f;
-        const float deltaTime = 0.05f;
-        const float movingDistance = 0.27f;
-
-        var position = gimmick.Transform.World.Position;
-        var velocityZ = gimmick.Vel.Z;
-
-        var middleTarget = position with { Z = gimmick.Spawner.MiddleZ };
-        var topTarget = position with { Z = gimmick.Spawner.TopZ };
-        var bottomTarget = position with { Z = gimmick.Spawner.BottomZ };
-
-        var isMovingDown = gimmick.moveDown;
-        var isInMiddleZ = gimmick.Spawner.MiddleZ > 0;
-
-        if (isInMiddleZ)
-        {
-            if (position.Z < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !isMovingDown)
-                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
-            else if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0 && !isMovingDown)
-                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
-            else if (position.Z > gimmick.Spawner.MiddleZ && gimmick.Vel.Z <= 0 && isMovingDown)
-                MoveAlongZAxis(gimmick, ref position, middleTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
-            else
-                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
-        }
-        else
-        {
-            if (position.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0)
-                MoveAlongZAxis(gimmick, ref position, topTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
-            else
-                MoveAlongZAxis(gimmick, ref position, bottomTarget, maxVelocity, deltaTime, movingDistance, ref velocityZ, ref isMovingDown);
-        }
-
-        gimmick.Transform.Local.SetHeight(position.Z);
-
-        var isMoving = Math.Abs(gimmick.Vel.Z) > 0;
-        gimmick.Time += 50;
-        gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
-
-        if (isMoving)
-            return;
-
-        gimmick.WaitTime = DateTime.UtcNow.AddSeconds(gimmick.Spawner.WaitTime);
-        gimmick.moveDown = !gimmick.moveDown;
-    }
-
-    private static void MoveAlongZAxis(Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, float movingDistance, ref float velocityZ, ref bool isMovingDown)
-    {
-        var distance = target - position;
-        velocityZ = maxVelocity * Math.Sign(distance.Z);
-        movingDistance = velocityZ * deltaTime;
-
-        if (Math.Abs(distance.Z) >= Math.Abs(movingDistance))
-        {
-            position.Z += movingDistance;
-            gimmick.Vel = gimmick.Vel with { Z = velocityZ };
-        }
-        else
-        {
-            position.Z = target.Z;
-            gimmick.Vel = Vector3.Zero;
         }
     }
 }

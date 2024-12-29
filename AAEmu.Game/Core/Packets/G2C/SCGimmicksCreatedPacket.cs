@@ -4,19 +4,14 @@ using AAEmu.Game.Models.Game.Gimmicks;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGimmicksCreatedPacket : GamePacket
+public class SCGimmicksCreatedPacket(Gimmick[] gimmicks) : GamePacket(SCOffsets.SCGimmicksCreatedPacket, 1)
 {
-    private readonly Gimmick[] _gimmick;
-
-    public SCGimmicksCreatedPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmicksCreatedPacket, 1)
-    {
-        _gimmick = gimmick;
-    }
+    public const int MaxCountPerPacket = 30;
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_gimmick.Length); // TODO max length 30
-        foreach (var gimmick in _gimmick)
+        stream.Write((byte)gimmicks.Length); // TODO max length 30
+        foreach (var gimmick in gimmicks)
         {
             gimmick.Write(stream);
         }

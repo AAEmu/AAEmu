@@ -4,27 +4,19 @@ using AAEmu.Game.Models.Game.Gimmicks;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGimmickJointsBrokenPacket : GamePacket
+public class SCGimmickJointsBrokenPacket(Gimmick[] gimmicks) : GamePacket(SCOffsets.SCGimmickJointsBrokenPacket, 1)
 {
-    private readonly Gimmick[] _gimmick;
-    private readonly int _jointId;
-    private readonly int _epicentr;
-
-    public SCGimmickJointsBrokenPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmickJointsBrokenPacket, 1)
-    {
-        _gimmick = gimmick;
-        _jointId = 0;
-        _epicentr = 0;
-    }
+    private const int JointId = 0;
+    private const int Epicenter = 0;
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_gimmick.Length); // TODO max length 200
-        foreach (var gimmick in _gimmick)
+        stream.Write((byte)gimmicks.Length); // TODO max length 200
+        foreach (var gimmick in gimmicks)
         {
             stream.Write(gimmick.ObjId); // gimmickId
-            stream.Write(_jointId);      // jointId
-            stream.Write(_epicentr);     // epicentr
+            stream.Write(JointId);      // jointId
+            stream.Write(Epicenter);     // epicenter
         }
 
         return stream;

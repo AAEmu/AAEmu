@@ -844,6 +844,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return null;
     }
 
+    /// <summary>
+    /// Adds a GameObject to the list of existing objects on the server
+    /// </summary>
+    /// <param name="obj"></param>
     public void AddObject(GameObject obj)
     {
         if (obj == null)
@@ -871,6 +875,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             _mates.TryAdd(mate.ObjId, mate);
     }
 
+    /// <summary>
+    /// Removes a GameObject from the list of "existing" objects on the server
+    /// </summary>
+    /// <param name="ObjId"></param>
+    /// <returns></returns>
     public bool RemoveObject(uint ObjId)
     {
         if (ObjId == 0)
@@ -911,6 +920,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         return res;
     }
+
+    /// <summary>
+    /// Removes a GameObject from the list of "existing" objects on the server
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
     public void RemoveObject(GameObject obj)
     {
         if (obj == null)
@@ -938,6 +953,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             _mates.TryRemove(mate.ObjId, out _);
     }
 
+    /// <summary>
+    /// Adds or updates a GameObject of its region object list
+    /// </summary>
+    /// <param name="obj"></param>
     public void AddVisibleObject(GameObject obj)
     {
         if (obj == null)
@@ -976,7 +995,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
             // Add this obj to the new region
             region.AddObject(obj);
-            // Update it's region
+            // Update its region
             obj.Region = region;
 
             // remove the obj from the old region
@@ -992,6 +1011,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         //Logger.Warn($" objects={_objects.Count}, doodads={_doodads.Count}, npcs={_npcs.Count}, characters={_characters.Count}");
     }
 
+    /// <summary>
+    /// Removes a GameObject from its region object list
+    /// </summary>
+    /// <param name="obj"></param>
     public static void RemoveVisibleObject(GameObject obj)
     {
         if (obj?.Region == null)
