@@ -988,6 +988,10 @@ public class HousingManager : Singleton<HousingManager>
                 designItem.SlotType = SlotType.Mail;
                 returnedItems.Add(designItem);
             }
+            else
+            {
+                Logger.Error($"Was unable to find design items for demolishing {house.Name} ({house.Id}). HouseTemplateId: {house.Template.Id}, DesignItemId: {designItemId}");
+            }
 
             // Return taxes
             if (!failedToPayTax)
@@ -1037,7 +1041,7 @@ public class HousingManager : Singleton<HousingManager>
                 f.ParentObjId = 0;
                 f.ParentObj = null;
                 f.OwnerDbId = 0;
-                Logger.Warn($"ReturnHouseItemsToOwner - Furniture doesn't have design info for Doodad Id:{f.ObjId} Template:{f.TemplateId}");
+                Logger.Warn($"ReturnHouseItemsToOwner - Furniture has a design, but couldn't find a item for it, DoodadObjId:{f.ObjId} Template:{f.TemplateId}, DesignId: {decoDesign.Id}");
                 continue;
             }
 
@@ -1229,8 +1233,13 @@ public class HousingManager : Singleton<HousingManager>
     /// <returns></returns>
     private uint GetItemIdByDesign(uint designId)
     {
-        var design = _housingItemHousings.FirstOrDefault(h => h.Design_Id == designId);
-        return design?.Item_Id ?? 0;
+        var designs = _housingItemHousings.Where(h => h.Design_Id == designId);
+        foreach (var design in designs)
+        {
+            if (ItemManager.Instance.GetTemplate(design.Item_Id) != null)
+                return design.Item_Id;
+        }
+        return 0;
     }
 
     /// <summary>
