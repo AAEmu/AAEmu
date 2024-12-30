@@ -558,6 +558,10 @@ public class Transfer : Unit
         return steering;
     }
 
+    /// <summary>
+    /// Moves the Transfer to it's next position
+    /// </summary>
+    /// <param name="transfer"></param>
     public void MoveTo(Transfer transfer)
     {
         if (transfer.TimeLeft > 0) { return; } // Пауза в начале/конце пути и на остановках
@@ -636,9 +640,11 @@ public class Transfer : Unit
         var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
         moveTypeTr.UseTransferBase(transfer);
 
-        // Only send movement of the main vehicle motor, client will drag carriage on it's own
+        // Only send movement of the main vehicle motor, client will drag carriage on its own
         if (transfer.Bounded is not null || transfer.ParentObj is null)
+        {
             transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
+        }
 
         // Added so whatever riding this, doesn't clip out of existence when moving
         transfer.Transform.FinalizeTransform();

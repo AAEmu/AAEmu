@@ -44,7 +44,7 @@ public class TransferData : MoveType
         PathPointIndex = transfer.PathPointIndex;
         Speed = transfer.Speed;
         Reverse = transfer.Reverse;
-        Time = (uint)(DateTime.UtcNow - transfer.SpawnTime).TotalMilliseconds;
+        Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
     }
 
     public override void Read(PacketStream stream)
