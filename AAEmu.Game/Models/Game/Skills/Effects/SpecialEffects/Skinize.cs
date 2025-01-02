@@ -25,52 +25,60 @@ public class Skinize : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
         if (caster is Character)
         {
             Logger.Debug("Special effects: Skinize value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
         }
 
-        if (caster is not Character character || character is null)
+        if (caster is not Character character)
         {
+            skill.Cancelled = true;
             return;
         }
 
-        if (targetObj is not SkillCastItemTarget itemTarget || itemTarget is null)
+        if (targetObj is not SkillCastItemTarget itemTarget)
         {
+            skill.Cancelled = true;
             return;
         }
 
         var itemToImage = character.Inventory.GetItemById(itemTarget.Id);
         if (itemToImage == null)
         {
+            skill.Cancelled = true;
             return;
         }
 
         if (itemToImage.HasFlag(ItemFlag.Skinized))
         {
-            // Already a image item
+            // Already an image item
+            skill.Cancelled = true;
+            // TODO: Get the correct error as this is likely not correct
+            character.SendErrorMessage(ErrorMessageType.ItemLookConvertAsNotUseAsSkin);
             return;
         }
 
-        if (casterObj is not SkillItem powderSkillItem || powderSkillItem is null)
+        if (casterObj is not SkillItem powderSkillItem)
         {
+            skill.Cancelled = true;
             return;
         }
 
-        Item powderItem = character.Inventory.GetItemById(powderSkillItem.ItemId);
+        var powderItem = character.Inventory.GetItemById(powderSkillItem.ItemId);
         if (powderItem == null)
         {
+            skill.Cancelled = true;
             return;
         }
 
         if (powderItem.Count < 1)
         {
+            skill.Cancelled = true;
             return;
         }
 
         itemToImage.SetFlag(ItemFlag.Skinized);
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Sknize, [new ItemUpdateBits(itemToImage)], []));
-        powderItem._holdingContainer.ConsumeItem(ItemTaskType.Sknize, powderItem.TemplateId, 1, powderItem);
+        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Skinize, [new ItemUpdateBits(itemToImage)], []));
+        powderItem._holdingContainer.ConsumeItem(ItemTaskType.Skinize, powderItem.TemplateId, 1, powderItem);
     }
 }

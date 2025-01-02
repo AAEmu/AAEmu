@@ -116,7 +116,7 @@ public enum ItemTaskType : byte
     ChangeAutoUseAaPoint = 110,
     ConvertItemLook = 111,
     ChangeExpertLimit = 112,
-    Sknize = 113,
+    Skinize = 113,
     ItemTaskThistimeUnpack = 114,
     BuyPremiumService = 115,
     BuyAaPoint = 116
