@@ -188,265 +188,44 @@ public class SpawnManager : Singleton<SpawnManager>
 
         _respawns = [];
         _despawns = [];
-        _npcSpawners = [];
-        _npcEventSpawners = [];
-        _doodadSpawners = [];
-        _transferSpawners = [];
-        _gimmickSpawners = [];
-        _slaveSpawners = [];
+        _npcSpawners = new Dictionary<byte, Dictionary<uint, List<NpcSpawner>>>();
+        _npcEventSpawners = new Dictionary<byte, Dictionary<uint, List<NpcSpawner>>>();
+        _doodadSpawners = new Dictionary<byte, Dictionary<uint, DoodadSpawner>>();
+        _transferSpawners = new Dictionary<byte, Dictionary<uint, TransferSpawner>>();
+        _gimmickSpawners = new Dictionary<byte, Dictionary<uint, GimmickSpawner>>();
+        _slaveSpawners = new Dictionary<byte, Dictionary<uint, SlaveSpawner>>();
         _playerDoodads = [];
 
         var worlds = WorldManager.Instance.GetWorlds();
         foreach (var world in worlds)
         {
-            _npcSpawners.Add((byte)world.Id, []);
-            _npcEventSpawners.Add((byte)world.Id, []);
-            _doodadSpawners.Add((byte)world.Id, []);
-            _transferSpawners.Add((byte)world.Id, []);
-            _gimmickSpawners.Add((byte)world.Id, []);
-            _slaveSpawners.Add((byte)world.Id, []);
+            _npcSpawners.Add((byte)world.Id, new Dictionary<uint, List<NpcSpawner>>());
+            _npcEventSpawners.Add((byte)world.Id, new Dictionary<uint, List<NpcSpawner>>());
+            _doodadSpawners.Add((byte)world.Id, new Dictionary<uint, DoodadSpawner>());
+            _transferSpawners.Add((byte)world.Id, new Dictionary<uint, TransferSpawner>());
+            _gimmickSpawners.Add((byte)world.Id, new Dictionary<uint, GimmickSpawner>());
+            _slaveSpawners.Add((byte)world.Id, new Dictionary<uint, SlaveSpawner>());
         }
 
         Logger.Info("Loading spawns...");
         foreach (var world in worlds)
         {
-            var doodadSpawners = new Dictionary<uint, DoodadSpawner>();
-            var transferSpawners = new Dictionary<uint, TransferSpawner>();
-            var gimmickSpawners = new Dictionary<uint, GimmickSpawner>();
-            var slaveSpawners = new Dictionary<uint, SlaveSpawner>();
             var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
 
             // Load NPC Spawns
-            var jsonFileName = Path.Combine(worldPath, "npc_spawns.json");
-
-            if (!File.Exists(jsonFileName))
-            {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
-            }
-            else
-            {
-                var contents = FileManager.GetFileContents(jsonFileName);
-
-                if (string.IsNullOrWhiteSpace(contents))
-                    Logger.Warn($"File {jsonFileName} is empty.");
-                else
-                {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> npcSpawnersFromFile, out _))
-                    {
-                        var entry = 0;
-                        foreach (var npcSpawnerFromFile in npcSpawnersFromFile)
-                        {
-                            entry++;
-                            if (!NpcManager.Instance.Exist(npcSpawnerFromFile.UnitId))
-                            {
-                                Logger.Warn($"Npc Template {npcSpawnerFromFile.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
-                                continue; // TODO ... so mb warn here?
-                            }
-
-                            npcSpawnerFromFile.Position.WorldId = world.Id;
-                            npcSpawnerFromFile.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, npcSpawnerFromFile.Position.X, npcSpawnerFromFile.Position.Y);
-                            // Convert degrees from the file to radians for use
-                            npcSpawnerFromFile.Position.Yaw = npcSpawnerFromFile.Position.Yaw.DegToRad();
-                            npcSpawnerFromFile.Position.Pitch = npcSpawnerFromFile.Position.Pitch.DegToRad();
-                            npcSpawnerFromFile.Position.Roll = npcSpawnerFromFile.Position.Roll.DegToRad();
-                            // проверка наличия введенного вручную идентификатора NpcSpawnerId
-
-                            AddNpcSpawner(npcSpawnerFromFile);
-                        }
-                    }
-                    else
-                        throw new GameException($"SpawnManager: Parse {jsonFileName} file");
-                }
-            }
+            LoadNpcSpawns(world, worldPath);
 
             // Load Doodad spawns
-            jsonFileName = Path.Combine(worldPath, "doodad_spawns.json");
-
-            if (!File.Exists(jsonFileName))
-            {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
-            }
-            else
-            {
-                var contents = FileManager.GetFileContents(jsonFileName);
-
-                if (string.IsNullOrWhiteSpace(contents))
-                    Logger.Warn($"File {jsonFileName} is empty.");
-                else
-                {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
-                    {
-                        var entry = 0;
-                        foreach (var spawner in spawners)
-                        {
-                            entry++;
-                            if (!DoodadManager.Instance.Exist(spawner.UnitId))
-                            {
-                                Logger.Warn($"Doodad Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
-                                continue; // TODO ... so mb warn here?
-                            }
-                            spawner.Id = _nextId;
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            // Convert degrees from the file to radians for use
-                            spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
-                            spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
-                            spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                            if (doodadSpawners.TryAdd(_nextId, spawner))
-                            {
-                                _nextId++;
-                            }
-                        }
-                    }
-                    else
-                        throw new GameException($"SpawnManager: Parse {jsonFileName} file");
-                }
-            }
+            _doodadSpawners[(byte)world.Id] = LoadDoodadSpawns(world, worldPath);
 
             // Load Transfers
-            jsonFileName = Path.Combine(worldPath, "transfer_spawns.json");
-
-            if (!File.Exists(jsonFileName))
-            {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
-            }
-            else
-            {
-                var contents = FileManager.GetFileContents(jsonFileName);
-
-                if (string.IsNullOrWhiteSpace(contents))
-                {
-                    Logger.Warn($"File {jsonFileName} doesn't exists or is empty.");
-                }
-                else
-                {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<TransferSpawner> spawners, out _))
-                    {
-                        var entry = 0;
-                        foreach (var spawner in spawners)
-                        {
-                            entry++;
-                            if (!TransferManager.Instance.Exist(spawner.UnitId))
-                            {
-                                Logger.Warn($"Transfer Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
-                                continue; // TODO ... so mb warn here?
-                            }
-                            spawner.Id = _nextId;
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            // Convert degrees from the file to radians for use
-                            spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
-                            spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
-                            spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                            if (transferSpawners.TryAdd(_nextId, spawner))
-                            {
-                                _nextId++;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw new GameException($"SpawnManager: Parse {jsonFileName} file");
-                    }
-                }
-            }
+            _transferSpawners[(byte)world.Id] = LoadTransferSpawns(world, worldPath);
 
             // Load Gimmicks
-            jsonFileName = Path.Combine(worldPath, "gimmick_spawns.json");
-
-            if (!File.Exists(jsonFileName))
-            {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
-            }
-            else
-            {
-                var contents = FileManager.GetFileContents(jsonFileName);
-
-                if (string.IsNullOrWhiteSpace(contents))
-                {
-                    Logger.Warn($"File {jsonFileName} doesn't exists or is empty.");
-                }
-                else
-                {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<GimmickSpawner> spawners, out _))
-                    {
-                        var entry = 0;
-                        foreach (var spawner in spawners)
-                        {
-                            entry++;
-                            if (spawner.UnitId != 0 && !GimmickManager.Instance.Exist(spawner.UnitId))
-                            {
-                                Logger.Error($"Gimmick Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
-                                continue;
-                            }
-                            spawner.Id = _nextId;
-                            // spawner.EntityGuid = 0; // EntityGuid is used for elevators
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            if (gimmickSpawners.TryAdd(_nextId, spawner))
-                            {
-                                _nextId++;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw new GameException($"SpawnManager: Parse {jsonFileName} file");
-                    }
-                }
-            }
+            _gimmickSpawners[(byte)world.Id] = LoadGimmickSpawns(world, worldPath);
 
             // Load Slaves
-            jsonFileName = Path.Combine(worldPath, "slave_spawns.json");
-
-            if (!File.Exists(jsonFileName))
-            {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
-            }
-            else
-            {
-                var contents = FileManager.GetFileContents(jsonFileName);
-
-                if (string.IsNullOrWhiteSpace(contents))
-                {
-                    Logger.Warn($"File {jsonFileName} doesn't exists or is empty.");
-                }
-                else
-                {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<SlaveSpawner> spawners, out _))
-                    {
-                        var entry = 0;
-                        foreach (var spawner in spawners)
-                        {
-                            entry++;
-                            if (!SlaveManager.Instance.Exist(spawner.UnitId))
-                            {
-                                Logger.Warn($"Slave Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
-                                continue; // TODO ... so mb warn here?
-                            }
-                            spawner.Id = _nextId;
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            // Convert degrees from the file to radians for use
-                            spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
-                            spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
-                            spawner.Position.Roll = spawner.Position.Roll.DegToRad();
-                            if (slaveSpawners.TryAdd(_nextId, spawner))
-                            {
-                                _nextId++;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw new GameException($"SpawnManager: Parse {jsonFileName} file");
-                    }
-                }
-            }
-            _doodadSpawners[(byte)world.Id] = doodadSpawners;
-            _transferSpawners[(byte)world.Id] = transferSpawners;
-            _gimmickSpawners[(byte)world.Id] = gimmickSpawners;
-            _slaveSpawners[(byte)world.Id] = slaveSpawners;
+            _slaveSpawners[(byte)world.Id] = LoadSlaveSpawns(world, worldPath);
         }
 
         Logger.Info("Loading persistent doodads...");
@@ -463,6 +242,334 @@ public class SpawnManager : Singleton<SpawnManager>
         respawnThread.Start();
 
         _loaded = true;
+    }
+
+    private void LoadNpcSpawns(Models.Game.World.World world, string worldPath)
+    {
+        string[] npcFiles;
+        try
+        {
+            npcFiles = Directory.GetFiles(worldPath, "npc_spawns*.json");
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        npcFiles = ReverseSpawnFiles(npcFiles);
+        foreach (var jsonFileName in npcFiles)
+        {
+            if (!File.Exists(jsonFileName))
+            {
+                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                continue;
+            }
+            var contents = FileManager.GetFileContents(jsonFileName);
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"File {jsonFileName} is empty.");
+                continue;
+            }
+            if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> npcSpawnersFromFile, out _))
+            {
+                var entry = 0;
+                foreach (var npcSpawnerFromFile in npcSpawnersFromFile)
+                {
+                    entry++;
+
+                    // Check for duplication by UnitId and Position
+                    if (_npcSpawners[(byte)world.Id].Values
+                        .SelectMany(spawners => spawners)
+                        .Any(spawner => spawner.UnitId == npcSpawnerFromFile.UnitId &&
+                                        Math.Abs(spawner.Position.X - npcSpawnerFromFile.Position.X) < 2f &&
+                                        Math.Abs(spawner.Position.Y - npcSpawnerFromFile.Position.Y) < 2f
+                                        ))
+                    {
+                        Logger.Trace($"Duplicate NPC spawner found in {jsonFileName} (UnitId: {npcSpawnerFromFile.UnitId}, Position: {npcSpawnerFromFile.Position})");
+                        continue;
+                    }
+                    if (!NpcManager.Instance.Exist(npcSpawnerFromFile.UnitId))
+                    {
+                        Logger.Trace($"Npc Template {npcSpawnerFromFile.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                        continue;
+                    }
+                    npcSpawnerFromFile.Position.WorldId = world.Id;
+                    npcSpawnerFromFile.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, npcSpawnerFromFile.Position.X, npcSpawnerFromFile.Position.Y);
+                    npcSpawnerFromFile.Position.Yaw = npcSpawnerFromFile.Position.Yaw.DegToRad();
+                    npcSpawnerFromFile.Position.Pitch = npcSpawnerFromFile.Position.Pitch.DegToRad();
+                    npcSpawnerFromFile.Position.Roll = npcSpawnerFromFile.Position.Roll.DegToRad();
+                    AddNpcSpawner(npcSpawnerFromFile);
+                }
+            }
+            else
+            {
+                throw new GameException($"SpawnManager: Parse {jsonFileName} file");
+            }
+        }
+    }
+
+    private static string[] ReverseSpawnFiles(string[] spawnFiles)
+    {
+        if (spawnFiles is not { Length: not 0 })
+        {
+            return [];
+        }
+
+        var reversedFiles = new string[spawnFiles.Length];
+
+        for (var i = 0; i < spawnFiles.Length; i++)
+        {
+            reversedFiles[i] = spawnFiles[spawnFiles.Length - 1 - i];
+        }
+
+        return reversedFiles;
+    }
+
+    private Dictionary<uint, DoodadSpawner> LoadDoodadSpawns(Models.Game.World.World world, string worldPath)
+    {
+        var doodadSpawners = new Dictionary<uint, DoodadSpawner>();
+        string[] doodadFiles;
+        try
+        {
+            doodadFiles = Directory.GetFiles(worldPath, "doodad_spawns*.json");
+        }
+        catch (Exception)
+        {
+            return doodadSpawners;
+        }
+        doodadFiles = ReverseSpawnFiles(doodadFiles);
+        foreach (var jsonFileName in doodadFiles)
+        {
+            if (!File.Exists(jsonFileName))
+            {
+                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                continue;
+            }
+            var contents = FileManager.GetFileContents(jsonFileName);
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"File {jsonFileName} is empty.");
+                continue;
+            }
+            if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
+            {
+                var entry = 0;
+                foreach (var spawner in spawners)
+                {
+                    entry++;
+
+                    // Check for duplication by UnitId and Position
+                    if (_doodadSpawners[(byte)world.Id].Values
+                        .Any(existingSpawner => existingSpawner.UnitId == spawner.UnitId &&
+                                                Math.Abs(existingSpawner.Position.X - spawner.Position.X) < 1f &&
+                                                Math.Abs(existingSpawner.Position.Y - spawner.Position.Y) < 1f
+                                                ))
+                    {
+                        Logger.Trace($"Duplicate Doodad spawner found in {jsonFileName} (UnitId: {spawner.UnitId}, Position: {spawner.Position})");
+                        continue;
+                    }
+                    if (!DoodadManager.Instance.Exist(spawner.UnitId))
+                    {
+                        Logger.Trace($"Doodad Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                        continue;
+                    }
+                    spawner.Id = _nextId;
+                    spawner.Position.WorldId = world.Id;
+                    spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                    spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
+                    spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
+                    spawner.Position.Roll = spawner.Position.Roll.DegToRad();
+                    if (doodadSpawners.TryAdd(_nextId, spawner))
+                    {
+                        _nextId++;
+                    }
+                }
+            }
+            else
+            {
+                throw new GameException($"SpawnManager: Parse {jsonFileName} file");
+            }
+        }
+
+        return doodadSpawners;
+    }
+
+    private Dictionary<uint, TransferSpawner> LoadTransferSpawns(Models.Game.World.World world, string worldPath)
+    {
+        var transferSpawners = new Dictionary<uint, TransferSpawner>();
+        string[] transferFiles;
+        try
+        {
+            transferFiles = Directory.GetFiles(worldPath, "transfer_spawns*.json");
+        }
+        catch (Exception)
+        {
+            return transferSpawners;
+        }
+        foreach (var jsonFileName in transferFiles)
+        {
+            if (!File.Exists(jsonFileName))
+            {
+                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                continue;
+            }
+
+            var contents = FileManager.GetFileContents(jsonFileName);
+
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"File {jsonFileName} doesn't exists or is empty.");
+                continue;
+            }
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<TransferSpawner> spawners, out _))
+            {
+                var entry = 0;
+                foreach (var spawner in spawners)
+                {
+                    entry++;
+                    if (!TransferManager.Instance.Exist(spawner.UnitId))
+                    {
+                        Logger.Warn($"Transfer Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                        continue;
+                    }
+
+                    spawner.Id = _nextId;
+                    spawner.Position.WorldId = world.Id;
+                    spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                    spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
+                    spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
+                    spawner.Position.Roll = spawner.Position.Roll.DegToRad();
+                    if (transferSpawners.TryAdd(_nextId, spawner))
+                    {
+                        _nextId++;
+                    }
+                }
+            }
+            else
+            {
+                throw new GameException($"SpawnManager: Parse {jsonFileName} file");
+            }
+        }
+        return transferSpawners;
+    }
+
+    private Dictionary<uint, GimmickSpawner> LoadGimmickSpawns(Models.Game.World.World world, string worldPath)
+    {
+        var gimmickSpawners = new Dictionary<uint, GimmickSpawner>();
+        string[] gimmickFiles;
+        try
+        {
+            gimmickFiles = Directory.GetFiles(worldPath, "gimmick_spawns*.json");
+        }
+        catch (Exception)
+        {
+            return gimmickSpawners;
+        }
+        foreach (var jsonFileName in gimmickFiles)
+        {
+            if (!File.Exists(jsonFileName))
+            {
+                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                continue;
+            }
+
+            var contents = FileManager.GetFileContents(jsonFileName);
+
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"File {jsonFileName} doesn't exists or is empty.");
+                continue;
+            }
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<GimmickSpawner> spawners, out _))
+            {
+                var entry = 0;
+                foreach (var spawner in spawners)
+                {
+                    entry++;
+                    if (spawner.UnitId != 0 && !GimmickManager.Instance.Exist(spawner.UnitId))
+                    {
+                        Logger.Error($"Gimmick Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                        continue;
+                    }
+
+                    spawner.Id = _nextId;
+                    spawner.Position.WorldId = world.Id;
+                    spawner.Position.ZoneId =
+                        WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                    if (gimmickSpawners.TryAdd(_nextId, spawner))
+                    {
+                        _nextId++;
+                    }
+                }
+            }
+            else
+            {
+                throw new GameException($"SpawnManager: Parse {jsonFileName} file");
+            }
+        }
+        return gimmickSpawners;
+    }
+
+    private Dictionary<uint, SlaveSpawner> LoadSlaveSpawns(Models.Game.World.World world, string worldPath)
+    {
+        var slaveSpawners = new Dictionary<uint, SlaveSpawner>();
+        string[] slaveFiles;
+        try
+        {
+            slaveFiles = Directory.GetFiles(worldPath, "slave_spawns*.json");
+        }
+        catch (Exception)
+        {
+            return slaveSpawners;
+        }
+        foreach (var jsonFileName in slaveFiles)
+        {
+            if (!File.Exists(jsonFileName))
+            {
+                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                continue;
+            }
+
+            var contents = FileManager.GetFileContents(jsonFileName);
+
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"File {jsonFileName} doesn't exists or is empty.");
+                continue;
+            }
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<SlaveSpawner> spawners, out _))
+            {
+                var entry = 0;
+                foreach (var spawner in spawners)
+                {
+                    entry++;
+                    if (!SlaveManager.Instance.Exist(spawner.UnitId))
+                    {
+                        Logger.Warn($"Slave Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
+                        continue;
+                    }
+
+                    spawner.Id = _nextId;
+                    spawner.Position.WorldId = world.Id;
+                    spawner.Position.ZoneId =
+                        WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                    spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
+                    spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
+                    spawner.Position.Roll = spawner.Position.Roll.DegToRad();
+                    if (slaveSpawners.TryAdd(_nextId, spawner))
+                    {
+                        _nextId++;
+                    }
+                }
+            }
+            else
+            {
+                throw new GameException($"SpawnManager: Parse {jsonFileName} file");
+            }
+        }
+        return slaveSpawners;
     }
 
     public List<Doodad> GetPlayerDoodads(uint charId)
@@ -1075,7 +1182,7 @@ public class SpawnManager : Singleton<SpawnManager>
     {
         return _npcEventSpawners.Remove(from, out _);
     }
-    
+
     /// <summary>
     /// Gets a list of all Treasure Chests in the world that can be dug up
     /// </summary>
@@ -1086,7 +1193,7 @@ public class SpawnManager : Singleton<SpawnManager>
         if (chestTemplateIds == null)
             return [];
         var spawnerList = _doodadSpawners.GetValueOrDefault((byte)WorldManager.DefaultWorldId).ToDictionary();
-        return spawnerList.Values.Where(ds => chestTemplateIds.Contains(ds.RespawnDoodadTemplateId) || chestTemplateIds.Contains(ds.UnitId)).ToList();;
+        return spawnerList.Values.Where(ds => chestTemplateIds.Contains(ds.RespawnDoodadTemplateId) || chestTemplateIds.Contains(ds.UnitId)).ToList(); ;
     }
 
 }

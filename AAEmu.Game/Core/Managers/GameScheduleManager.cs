@@ -5,9 +5,13 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Schedules;
+
 using NCrontab;
+
 using NLog;
+
 using static System.String;
+
 using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
 
 namespace AAEmu.Game.Core.Managers;
@@ -75,11 +79,6 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return _gameScheduleDoodadIds.ContainsKey(spawnerId);
     }
 
-    //public bool CheckDoodadInScheduleSpawners(int spawnerId)
-    //{
-    //    return _gameScheduleDoodads.ContainsKey(spawnerId);
-    //}
-
     public bool CheckSpawnerInGameSchedules(int spawnerId)
     {
         var res = CheckSpawnerScheduler(spawnerId);
@@ -90,13 +89,6 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     {
         var res = CheckDoodadScheduler((int)doodadId);
         return res;
-    }
-
-    public bool CheckQuestInGameSchedules(uint questId)
-    {
-        if (!GetGameScheduleQuestsData(questId)) { return false; }
-        var res = CheckScheduler();
-        return res.Contains(true);
     }
 
     private bool CheckSpawnerScheduler(int spawnerId)
@@ -127,46 +119,98 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return res;
     }
 
-    public bool PeriodHasAlreadyBegunDoodad(int doodadId)
+    /// <summary>
+    /// Returns a tuple that shows the overall period status for all GameSchedules associated with spawnerId.
+    /// </summary>
+    /// <param name="spawnerId">Npc ID</param>
+    /// <returns>Tuple (bool, bool, bool), where:
+    /// - The first element indicates that the period has not yet begun (no period has begun).
+    /// - The second element indicates that the period is already in progress (at least one period has begun, but has not yet ended).
+    /// - The third element indicates that the period has ended (at least one period has ended).
+    /// Possible return values.
+    /// - (true, false, false) No period has started.
+    /// - (false, true, false) At least one period has begun, but has not yet ended.
+    /// - (false, false, true) At least one period has ended.
+    /// - (true, true, true) If spawnerId is not found.
+    /// </returns>
+    public (bool NotStarted, bool InProgress, bool Ended) GetPeriodStatusNpc(int spawnerId)
     {
-        var res = new List<bool>();
-        foreach (var gameScheduleId in _gameScheduleDoodadIds[doodadId])
+        var hasNotStarted = true; // Assume that no period has started
+        var hasInProgress = false; // Assume that no period is in progress
+        var hasEnded = false; // Assume that no period has ended
+
+        if (!_gameScheduleSpawnerIds.TryGetValue(spawnerId, out var ids))
+        {
+            return (true, true, true); // Если doodadId не найден
+        }
+
+        foreach (var gameScheduleId in ids)
         {
             if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
             {
-                res.Add(CheckData(gs));
+                var (started, ended) = CheckData(gs);
+
+                if (started && !ended)
+                {
+                    hasInProgress = true; // The period has started, but has not yet ended
+                    hasNotStarted = false; // At least one period has started, so "has not started" = false
+                }
+                else if (ended)
+                {
+                    hasEnded = true; // At least one period has ended
+                    hasNotStarted = false; // At least one period has ended, therefore "has not started" = false
+                }
             }
         }
 
-        return res.Contains(true);
+        return (hasNotStarted, hasInProgress, hasEnded);
     }
 
-    public bool PeriodHasAlreadyBegunNpc(int spawnerId)
+    /// <summary>
+    /// Returns a tuple that shows the overall period status for all GameSchedules associated with doodadId.
+    /// </summary>
+    /// <param name="doodadId">Doodad ID</param>
+    /// <returns>Tuple (bool, bool, bool), where:
+    /// - The first element indicates that the period has not yet begun (no period has begun).
+    /// - The second element indicates that the period is already in progress (at least one period has begun, but has not yet ended).
+    /// - The third element indicates that the period has ended (at least one period has ended).
+    /// Possible return values.
+    /// - (true, false, false) No period has started.
+    /// - (false, true, false) At least one period has begun, but has not yet ended.
+    /// - (false, false, true) At least one period has ended.
+    /// - (true, true, true) If doodadId is not found.
+    /// </returns>
+    public (bool NotStarted, bool InProgress, bool Ended) GetPeriodStatus(int doodadId)
     {
-        var res = new List<bool>();
-        foreach (var gameScheduleId in _gameScheduleSpawnerIds[spawnerId])
+        var hasNotStarted = true; // Assume that no period has started
+        var hasInProgress = false; // Assume that no period is in progress
+        var hasEnded = false; // Assume that no period has ended
+
+        if (!_gameScheduleDoodadIds.TryGetValue(doodadId, out var ids))
+        {
+            return (true, true, true); // Если doodadId не найден
+        }
+
+        foreach (var gameScheduleId in ids)
         {
             if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
             {
-                res.Add(CheckData(gs));
+                var (started, ended) = CheckData(gs);
+
+                if (started && !ended)
+                {
+                    hasInProgress = true; // The period has started, but has not yet ended
+                    hasNotStarted = false; // At least one period has started, so "has not started" = false
+                }
+                else if (ended)
+                {
+                    hasEnded = true; // At least one period has ended
+                    hasNotStarted = false; // At least one period has ended, therefore "has not started" = false
+                }
             }
         }
 
-        return res.Contains(true);
-    }
-
-    private List<bool> CheckScheduler()
-    {
-        var res = new List<bool>();
-        foreach (var gameScheduleId in GameScheduleId)
-        {
-            if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
-            {
-                res.Add(CheckData(gs));
-            }
-        }
-
-        return res;
+        return (hasNotStarted, hasInProgress, hasEnded);
     }
 
     public string GetCronRemainingTime(int spawnerId, bool start = true)
@@ -183,7 +227,15 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
             var gameSchedules = _gameSchedules[gameScheduleId];
 
-            cronExpression = start ? GetCronExpression(gameSchedules, true) : GetCronExpression(gameSchedules, false);
+            try
+            {
+                cronExpression = start ? GetCronExpression(gameSchedules, true) : GetCronExpression(gameSchedules, false);
+            }
+            catch (Exception e)
+            {
+                Logger.Info($"Error Spawning Npc {e}");
+                throw;
+            }
         }
 
         return cronExpression;
@@ -292,57 +344,77 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return GameScheduleId.Count != 0;
     }
 
-    private static bool CheckData(GameSchedules value)
+    private static (bool hasStarted, bool hasEnded) CheckData(GameSchedules value)
     {
-        var curHours = DateTime.UtcNow.TimeOfDay.Hours;
-        var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
-        var curDay = DateTime.UtcNow.Day;
-        var curMonth = DateTime.UtcNow.Month;
-        var curYear = DateTime.UtcNow.Year;
-        var curDayOfWeek = (DayOfWeek)DateTime.UtcNow.DayOfWeek + 1;
+        var now = DateTime.UtcNow;
+        var currentTime = now.TimeOfDay;
+        var currentDate = now.Date;
 
-        if (value.DayOfWeekId == DayOfWeek.Invalid)
+        // Преобразуем стандартный DayOfWeek в ваш кастомный DayOfWeek
+        var currentDayOfWeek = (DayOfWeek)((int)now.DayOfWeek + 1);
+
+        // Проверка на нулевые дату и месяц
+        var startDate = value is { StYear: > 0, StMonth: > 0, StDay: > 0 }
+            ? new DateTime(value.StYear, value.StMonth, value.StDay)
+            : DateTime.MinValue;
+
+        var endDate = value is { EdYear: > 0, EdMonth: > 0, EdDay: > 0 }
+            ? new DateTime(value.EdYear, value.EdMonth, value.EdDay)
+            : DateTime.MaxValue;
+
+        var startTime = new TimeSpan(value.StartTime, value.StartTimeMin, 0);
+        var endTime = new TimeSpan(value.EndTime, value.EndTimeMin, 0);
+
+        var hasStarted = false;
+        var hasEnded = false;
+
+        // Проверка на попадание в период по дате и времени
+        if ((startDate == DateTime.MinValue || currentDate > startDate || (currentDate == startDate && currentTime >= startTime)) &&
+            (endDate == DateTime.MaxValue || currentDate < endDate || (currentDate == endDate && currentTime <= endTime)))
         {
-            if (value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
+            // Проверка на попадание в период по дню недели
+            if (currentDayOfWeek == value.DayOfWeekId || value.DayOfWeekId == DayOfWeek.Invalid)
             {
-                return true;
-            }
-            if (value.EndTime == 0 && curMonth >= value.StMonth && curDay >= value.StDay && curHours >= value.StHour && curMonth <= value.EdMonth && curDay <= value.EdDay && curHours <= value.EdHour)
-            {
-                return true;
-            }
-            if (curHours >= value.StartTime && curHours <= value.EndTime && curMinutes <= value.EndTimeMin && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
-            {
-                return true;
-            }
-            if (curHours >= value.StartTime && curHours <= value.EndTime && curMinutes <= value.EndTimeMin && curMonth >= value.StMonth && curDay >= value.StDay && curMonth <= value.EdMonth && curDay <= value.EdDay)
-            {
-                return true;
+                hasStarted = true;
             }
         }
-        else
+
+        // Проверка на окончание периода
+        if (endDate != DateTime.MaxValue && (currentDate > endDate || (currentDate == endDate && currentTime >= endTime)))
         {
-            if (curDayOfWeek == value.DayOfWeekId)
-            {
-                if (value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
-                {
-                    return true;
-                }
-                if (value.EndTime == 0 && curMonth >= value.StMonth && curDay >= value.StDay && curHours >= value.StHour && curMonth <= value.EdMonth && curDay <= value.EdDay && curHours <= value.EdHour)
-                {
-                    return true;
-                }
-                if (curHours >= value.StartTime && curHours <= value.EndTime && curMinutes <= value.EndTimeMin && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
-                {
-                    return true;
-                }
-                if (curHours >= value.StartTime && curHours <= value.EndTime && curMinutes <= value.EndTimeMin && curMonth >= value.StMonth && curDay >= value.StDay && curMonth <= value.EdMonth && curDay <= value.EdDay)
-                {
-                    return true;
-                }
-            }
+            hasEnded = true;
         }
-        return false;
+
+        return (hasStarted, hasEnded);
+    }
+
+    private static (bool hasStarted, bool hasEnded) CheckData0(GameSchedules value)
+    {
+        var now = DateTime.UtcNow;
+        var currentTime = now.TimeOfDay;
+        var currentDate = now.Date;
+
+        var startDate = new DateTime(value.StYear, value.StMonth, value.StDay);
+        var endDate = new DateTime(value.EdYear, value.EdMonth, value.EdDay);
+        var startTime = new TimeSpan(value.StartTime, value.StartTimeMin, 0);
+        var endTime = new TimeSpan(value.EndTime, value.EndTimeMin, 0);
+
+        var hasStarted = false;
+        var hasEnded = false;
+
+        // Check if the period has started
+        if (currentDate > startDate || (currentDate == startDate && currentTime >= startTime))
+        {
+            hasStarted = true;
+        }
+
+        // Check if the period has ended
+        if (currentDate > endDate || (currentDate == endDate && currentTime >= endTime))
+        {
+            hasEnded = true;
+        }
+
+        return (hasStarted, hasEnded);
     }
 
     private static TimeSpan GetRemainingTimeStart(GameSchedules value)
@@ -362,15 +434,17 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     private static string GetCronExpression(GameSchedules value, bool start = true)
     {
         /*
-           1. Seconds / Секунды
-           2. Minutes / Минуты
-           3. Hours / Часы
-           4. Day of the month / День месяца
-           5. Month / Месяц
-           6. Day of the week / День недели
-           7. Year (optional field) / Год (необязательное поле) // Not supported by Crontab
+            Cron-выражение состоит из 6 или 7 полей:
+            1. Секунды (0-59)
+            2. Минуты (0-59)
+            3. Часы (0-23)
+            4. День месяца (1-31)
+            5. Месяц (1-12)
+            6. День недели (0-7, где 0 и 7 — воскресенье)
+            7. Год (опционально, не поддерживается в стандартных cron)
         */
 
+        // Convert DayOfWeek to cron format (0-7, where 0 and 7 are Sunday)
         var dayOfWeek = value.DayOfWeekId switch
         {
             DayOfWeek.Sunday => 0,
@@ -380,134 +454,172 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
             DayOfWeek.Thursday => 4,
             DayOfWeek.Friday => 5,
             DayOfWeek.Saturday => 6,
-            _ => 8
+            _ => (int)DayOfWeek.Invalid // Use Invalid to mean "not specified".
         };
 
-        //var stYear = value.StYear;
+        // Get time and date values
         var stMonth = value.StMonth;
         var stDay = value.StDay;
-        var stHour = value.StHour;
-        var stMinute = value.StMin;
-        var startTime = value.StartTime;
-        var startTimeMin = value.StartTimeMin;
+        var stHour = start ? value.StHour : value.EdHour;
+        var stMinute = start ? value.StMin : value.EdMin;
 
-        //var edYear = value.EdYear;
         var edMonth = value.EdMonth;
         var edDay = value.EdDay;
         var edHour = value.EdHour;
         var edMinute = value.EdMin;
+
+        var startTime = value.StartTime;
+        var startTimeMin = value.StartTimeMin;
         var endTime = value.EndTime;
         var endTimeMin = value.EndTimeMin;
 
-        var cronExpression = Empty;
+        string cronExpression;
 
-        if (start)
+        if (value.DayOfWeekId == DayOfWeek.Invalid)
         {
-            if (value.DayOfWeekId == DayOfWeek.Invalid)
+            switch (start)
             {
-                if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
-                {
-                    cronExpression = "0 0 0 ? * *";  // *"; // verified
-                }
-                if (value.EndTime > 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
-                {
-                    cronExpression = $"0 {startTimeMin} {startTime} ? * *"; // *"; // not verified
-                }
-                if (value.EndTime > 0 && value.StMonth > 0 && value.StDay > 0)
-                {
-                    cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} ?"; // *"; // not verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0)
-                {
-                    cronExpression = $"0 {stMinute} {stHour} ? * *"; // *"; // verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
-                {
-                    cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ?"; // *"; // verified
-                }
-                //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} ?"; // *";
-            }
-            else
-            {
-                if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
-                {
-                    cronExpression = $"0 0 0 ? * {dayOfWeek}"; // *"; // not verified
-                }
-                if (value.EndTime > 0 && value.StMonth == 0 && value.StDay == 0 && value.StHour == 0)
-                {
-                    cronExpression = $"0 {startTimeMin} {startTime} ? * {dayOfWeek}"; // *"; // verified
-                }
-                if (value.EndTime > 0 && value.StMonth > 0 && value.StDay > 0)
-                {
-                    cronExpression = $"0 {startTimeMin} {startTime} {stDay} {stMonth} {dayOfWeek}"; // *"; // not verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth == 0 && value.StDay == 0)
-                {
-                    cronExpression = $"0 {stMinute} {stHour} ? * {dayOfWeek}"; // *"; // not verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.StMonth > 0 && value.StDay > 0)
-                {
-                    cronExpression = $"0 {stMinute} {stHour} {edDay} {edMonth} {dayOfWeek}"; // *"; // not verified
-                }
-                //cronExpression = $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}";
+                case true:
+                    {
+                        switch (value)
+                        {
+                            case { StartTime: 0, EndTime: 0, StMonth: 0, StDay: 0, StHour: 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, 0, 0, stDay, stMonth, (int)DayOfWeek.Invalid);
+                                    break;
+                                }
+                            case { EndTime: > 0, StMonth: 0, StDay: 0, StHour: 0 }:
+                            case { EndTime: > 0, StMonth: > 0, StDay: > 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, startTimeMin, startTime, stDay, stMonth, (int)DayOfWeek.Invalid);
+                                    break;
+                                }
+                            //case { StartTime: 0, EndTime: 0, StMonth: 0, StDay: 0 }:
+                            //case { StartTime: 0, EndTime: 0, StMonth: > 0, StDay: > 0 }:
+                            //    {
+                            //        cronExpression = BuildCronExpression(0, stMinute, stHour, stDay, stMonth, (int)DayOfWeek.Invalid);
+                            //        break;
+                            //    }
+                            default:
+                                {
+                                    cronExpression = BuildCronExpression(0, stMinute, stHour, stDay, stMonth, (int)DayOfWeek.Invalid);
+                                    break;
+                                }
+                        }
+
+                        break;
+                    }
+                default:
+                    {
+                        switch (value)
+                        {
+                            case { StartTime: 0, EndTime: 0, EdMonth: 0, EdDay: 0, EdHour: 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, 0, 0, edDay, edMonth, (int)DayOfWeek.Invalid);
+                                    break;
+                                }
+                            case { EndTime: > 0, EdMonth: 0, EdDay: 0, EdHour: 0 }:
+                            case { EndTime: > 0, EdMonth: > 0, EdDay: > 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, endTimeMin, endTime, edDay, edMonth, (int)DayOfWeek.Invalid);
+                                    break;
+                                }
+                            //case { StartTime: 0, EndTime: 0, EdMonth: 0, EdDay: 0 }:
+                            //case { StartTime: 0, EndTime: 0, EdMonth: > 0, EdDay: > 0 }:
+                            //    {
+                            //        cronExpression = BuildCronExpression(0, edMinute, edHour, edDay, edMonth, (int)DayOfWeek.Invalid);
+                            //        break;
+                            //    }
+                            default:
+                                {
+                                    cronExpression = BuildCronExpression(0, edMinute, edHour, edDay, edMonth, (int)DayOfWeek.Invalid);
+                                    break;
+                                }
+                        }
+
+                        break;
+                    }
             }
         }
         else
         {
-            if (value.DayOfWeekId == DayOfWeek.Invalid)
+            switch (start)
             {
-                if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
-                {
-                    cronExpression = "0 0 0 ? * *"; // *"; // not verified
-                }
-                if (value.EndTime > 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
-                {
-                    cronExpression = $"0 {endTimeMin} {endTime} ? * *"; // *"; // not verified
-                }
-                if (value.EndTime > 0 && value.EdMonth > 0 && value.EdDay > 0)
-                {
-                    cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ?"; // *"; // not verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0)
-                {
-                    cronExpression = $"0 {edMinute} {edHour} ? * *"; // *"; // not verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
-                {
-                    cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} ?"; // *"; // not verified
-                }
+                case true:
+                    {
+                        switch (value)
+                        {
+                            case { StartTime: 0, EndTime: 0, StMonth: 0, StDay: 0, StHour: 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, 0, 0, stDay, stMonth, dayOfWeek);
+                                    break;
+                                }
+                            case { EndTime: > 0, StMonth: 0, StDay: 0, StHour: 0 }:
+                            case { EndTime: > 0, StMonth: > 0, StDay: > 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, startTimeMin, startTime, stDay, stMonth, dayOfWeek);
+                                    break;
+                                }
+                            //case { StartTime: 0, EndTime: 0, StMonth: 0, StDay: 0 }:
+                            //case { StartTime: 0, EndTime: 0, StMonth: > 0, StDay: > 0 }:
+                            //    {
+                            //        cronExpression = BuildCronExpression(stMinute, stHour, stDay, stMonth, dayOfWeek);
+                            //        break;
+                            //    }
+                            default:
+                                {
+                                    cronExpression = BuildCronExpression(0, stMinute, stHour, stDay, stMonth, dayOfWeek);
+                                    break;
+                                }
+                        }
+
+                        break;
+                    }
+                default:
+                    {
+                        switch (value)
+                        {
+                            case { StartTime: 0, EndTime: 0, EdMonth: 0, EdDay: 0, EdHour: 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, 0, 0, edDay, edMonth, dayOfWeek);
+                                    break;
+                                }
+                            case { EndTime: > 0, EdMonth: 0, EdDay: 0, EdHour: 0 }:
+                            case { EndTime: > 0, EdMonth: > 0, EdDay: > 0 }:
+                                {
+                                    cronExpression = BuildCronExpression(0, endTimeMin, endTime, edDay, edMonth, dayOfWeek);
+                                    break;
+                                }
+                            //case { StartTime: 0, EndTime: 0, EdMonth: 0, EdDay: 0 }:
+                            //case { StartTime: 0, EndTime: 0, EdMonth: > 0, EdDay: > 0 }:
+                            //    {
+                            //        cronExpression = BuildCronExpression(edMinute, edHour, edDay, edMonth, dayOfWeek);
+                            //        break;
+                            //    }
+                            default:
+                                {
+                                    cronExpression = BuildCronExpression(0, edMinute, edHour, edDay, edMonth, dayOfWeek);
+                                    break;
+                                }
+                        }
+
+                        break;
+                    }
             }
-            else
-            {
-                if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
-                {
-                    cronExpression = $"0 0 0 ? * {dayOfWeek}"; // *"; // not verified
-                }
-                if (value.EndTime > 0 && value.EdMonth == 0 && value.EdDay == 0 && value.EdHour == 0)
-                {
-                    cronExpression = $"0 {endTimeMin} {endTime} ? * {dayOfWeek}"; // *"; // not verified
-                }
-                if (value.EndTime > 0 && value.EdMonth > 0 && value.EdDay > 0)
-                {
-                    cronExpression = $"0 {endTimeMin} {endTime} {edDay} {edMonth} ?"; // *"; // not verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth == 0 && value.EdDay == 0)
-                {
-                    cronExpression = $"0 {edMinute} {edHour} ? * {dayOfWeek}"; // *"; // not verified
-                }
-                if (value.StartTime == 0 && value.EndTime == 0 && value.EdMonth > 0 && value.EdDay > 0)
-                {
-                    cronExpression = $"0 {edMinute} {edHour} {edDay} {edMonth} {dayOfWeek}"; // *"; // not verified
-                }
-            }
-            //cronExpression = start ?
-            //    $"0 {stMinute} {stHour} {stDay} {stMonth} {dayOfWeek}"
-            //    :
-            //    $"0 {edMinute} {edHour} {edDay} {edMonth} ?";
         }
 
-        cronExpression = cronExpression.Replace("?", "*/1"); // Crontab doesn't support ?, so we replace it with */1 instead
+        cronExpression = cronExpression.Replace("?", "*"); // Crontab doesn't support ?, so we replace it with */1 instead
 
         return cronExpression;
+
+        // Local function for forming cron-expression
+        string BuildCronExpression(int seconds, int minute, int hour, int day, int month, int dayOfWeekCron)
+        {
+            return dayOfWeek switch
+            {
+                8 => $"{seconds} {minute} {hour} {day} {month} *",
+                _ => $"{seconds} {minute} {hour} {day} {month} {dayOfWeekCron}"
+            };
+        }
     }
 }
