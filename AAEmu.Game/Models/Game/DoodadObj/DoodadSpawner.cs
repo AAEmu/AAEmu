@@ -184,7 +184,7 @@ public class DoodadSpawner : Spawner<Doodad>
                 // проверим, есть ли в расписании такой spawner и есть ли расписание для спавна
                 // check if there is such a spawner in the schedule and if there is a schedule for spawning
                 var status = GameScheduleManager.Instance.GetPeriodStatus((int)doodad.TemplateId);
-                if (status is { NotStarted: true, InProgress: true, Ended: true })
+                if (status == GameScheduleManager.PeriodStatus.NotFound)
                 {
                     // couldn't find it on the schedule, but it should have been!
                     // no entries found for this unit in Game_Schedule table
@@ -193,11 +193,11 @@ public class DoodadSpawner : Spawner<Doodad>
                     notFoundInScheduler = true;
                     Logger.Trace($"DoSpawnSchedule: Doodad was not found in the schedule, we will despawn it templateId={doodad.TemplateId} objId={doodad.ObjId}");
                 }
-                else if (status.NotStarted)
+                else if (status == GameScheduleManager.PeriodStatus.NotStarted)
                 {
                     Logger.Trace($"DoDespawn: The period has not yet begun. Can despawn Doodad templateId={doodad.TemplateId} objId={doodad.ObjId}");
                 }
-                else if (status.InProgress)
+                else if (status == GameScheduleManager.PeriodStatus.InProgress)
                 {
                     // Период уже идет, надо запланировать деспавн
                     // The period is already running, we need to schedule despawn
@@ -223,7 +223,7 @@ public class DoodadSpawner : Spawner<Doodad>
                         return;
                     }
                 }
-                else if (status.Ended)
+                else if (status == GameScheduleManager.PeriodStatus.Ended)
                 {
                     // период уже закончился, нужно деспавнить
                     // period has already ended, no need to despawn
@@ -280,7 +280,7 @@ public class DoodadSpawner : Spawner<Doodad>
                 // есть в расписании такой spawner и есть время спавна
                 // there is such a spawner in the schedule and there is a spawn time
                 var status = GameScheduleManager.Instance.GetPeriodStatus((int)UnitId);
-                if (status is { NotStarted: true, InProgress: true, Ended: true })
+                if (status == GameScheduleManager.PeriodStatus.NotFound)
                 {
                     // couldn't find it on the schedule, but it should have been!
                     // no entries found for this unit in Game_Schedule table
@@ -289,7 +289,7 @@ public class DoodadSpawner : Spawner<Doodad>
                     notFoundInScheduler = true;
                     Logger.Trace($"DoSpawnSchedule: Doodad was not found in the schedule, we will spawn it templateId={UnitId} objId={Last.ObjId}");
                 }
-                else if (status.NotStarted)
+                else if (status == GameScheduleManager.PeriodStatus.NotStarted)
                 {
                     Logger.Trace("Период еще не начался.");
                     // есть в расписании, надо запланировать спавн
@@ -318,13 +318,13 @@ public class DoodadSpawner : Spawner<Doodad>
                         return;
                     }
                 }
-                else if (status.InProgress)
+                else if (status == GameScheduleManager.PeriodStatus.InProgress)
                 {
                     // период уже начался, нужно спавнить
                     // period has already started
                     Logger.Trace($"DoSpawnSchedule: Can spawn. The period is already underway. Doodad templateId={UnitId} objId={Last.ObjId}");
                 }
-                else if (status.Ended)
+                else if (status == GameScheduleManager.PeriodStatus.Ended)
                 {
                     // период уже закончился, не нужно спавнить
                     // period has already ended, no need to spawn

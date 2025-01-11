@@ -188,23 +188,23 @@ public class SpawnManager : Singleton<SpawnManager>
 
         _respawns = [];
         _despawns = [];
-        _npcSpawners = new Dictionary<byte, Dictionary<uint, List<NpcSpawner>>>();
-        _npcEventSpawners = new Dictionary<byte, Dictionary<uint, List<NpcSpawner>>>();
-        _doodadSpawners = new Dictionary<byte, Dictionary<uint, DoodadSpawner>>();
-        _transferSpawners = new Dictionary<byte, Dictionary<uint, TransferSpawner>>();
-        _gimmickSpawners = new Dictionary<byte, Dictionary<uint, GimmickSpawner>>();
-        _slaveSpawners = new Dictionary<byte, Dictionary<uint, SlaveSpawner>>();
+        _npcSpawners = [];
+        _npcEventSpawners = [];
+        _doodadSpawners = [];
+        _transferSpawners = [];
+        _gimmickSpawners = [];
+        _slaveSpawners = [];
         _playerDoodads = [];
 
         var worlds = WorldManager.Instance.GetWorlds();
         foreach (var world in worlds)
         {
-            _npcSpawners.Add((byte)world.Id, new Dictionary<uint, List<NpcSpawner>>());
-            _npcEventSpawners.Add((byte)world.Id, new Dictionary<uint, List<NpcSpawner>>());
-            _doodadSpawners.Add((byte)world.Id, new Dictionary<uint, DoodadSpawner>());
-            _transferSpawners.Add((byte)world.Id, new Dictionary<uint, TransferSpawner>());
-            _gimmickSpawners.Add((byte)world.Id, new Dictionary<uint, GimmickSpawner>());
-            _slaveSpawners.Add((byte)world.Id, new Dictionary<uint, SlaveSpawner>());
+            _npcSpawners.Add((byte)world.Id, []);
+            _npcEventSpawners.Add((byte)world.Id, []);
+            _doodadSpawners.Add((byte)world.Id, []);
+            _transferSpawners.Add((byte)world.Id, []);
+            _gimmickSpawners.Add((byte)world.Id, []);
+            _slaveSpawners.Add((byte)world.Id, []);
         }
 
         Logger.Info("Loading spawns...");

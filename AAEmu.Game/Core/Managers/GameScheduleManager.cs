@@ -119,77 +119,51 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         return res;
     }
 
-    /// <summary>
-    /// Returns a tuple that shows the overall period status for all GameSchedules associated with spawnerId.
-    /// </summary>
-    /// <param name="spawnerId">Npc ID</param>
-    /// <returns>Tuple (bool, bool, bool), where:
-    /// - The first element indicates that the period has not yet begun (no period has begun).
-    /// - The second element indicates that the period is already in progress (at least one period has begun, but has not yet ended).
-    /// - The third element indicates that the period has ended (at least one period has ended).
-    /// Possible return values.
-    /// - (true, false, false) No period has started.
-    /// - (false, true, false) At least one period has begun, but has not yet ended.
-    /// - (false, false, true) At least one period has ended.
-    /// - (true, true, true) If spawnerId is not found.
-    /// </returns>
-    public (bool NotStarted, bool InProgress, bool Ended) GetPeriodStatusNpc(int spawnerId)
+    public enum PeriodStatus
     {
-        var hasNotStarted = true; // Assume that no period has started
-        var hasInProgress = false; // Assume that no period is in progress
-        var hasEnded = false; // Assume that no period has ended
-
-        if (!_gameScheduleSpawnerIds.TryGetValue(spawnerId, out var ids))
-        {
-            return (true, true, true); // Если doodadId не найден
-        }
-
-        foreach (var gameScheduleId in ids)
-        {
-            if (_gameSchedules.TryGetValue(gameScheduleId, out var gs))
-            {
-                var (started, ended) = CheckData(gs);
-
-                if (started && !ended)
-                {
-                    hasInProgress = true; // The period has started, but has not yet ended
-                    hasNotStarted = false; // At least one period has started, so "has not started" = false
-                }
-                else if (ended)
-                {
-                    hasEnded = true; // At least one period has ended
-                    hasNotStarted = false; // At least one period has ended, therefore "has not started" = false
-                }
-            }
-        }
-
-        return (hasNotStarted, hasInProgress, hasEnded);
+        NotFound,   // If doodadId or spawnerId not found
+        NotStarted, // The period has not started
+        InProgress, // Period in progress
+        Ended       // The period has ended
     }
 
     /// <summary>
-    /// Returns a tuple that shows the overall period status for all GameSchedules associated with doodadId.
+    /// Returns enum that shows the overall period status for all GameSchedules associated with spawnerId.
     /// </summary>
-    /// <param name="doodadId">Doodad ID</param>
-    /// <returns>Tuple (bool, bool, bool), where:
-    /// - The first element indicates that the period has not yet begun (no period has begun).
-    /// - The second element indicates that the period is already in progress (at least one period has begun, but has not yet ended).
-    /// - The third element indicates that the period has ended (at least one period has ended).
-    /// Possible return values.
-    /// - (true, false, false) No period has started.
-    /// - (false, true, false) At least one period has begun, but has not yet ended.
-    /// - (false, false, true) At least one period has ended.
-    /// - (true, true, true) If doodadId is not found.
-    /// </returns>
-    public (bool NotStarted, bool InProgress, bool Ended) GetPeriodStatus(int doodadId)
+    /// <param name="doodadId"></param>
+    /// <returns></returns>
+    public PeriodStatus GetPeriodStatusNpc(int spawnerId)
+    {
+        if (!_gameScheduleSpawnerIds.TryGetValue(spawnerId, out var ids))
+            return PeriodStatus.NotFound; // If spawnerId is not found
+
+        return CheckPeriodStatus(ids);
+    }
+
+    /// <summary>
+    /// Returns an enum that shows the overall period status for all GameSchedules associated with the specified doodadId.
+    /// If the doodadId is not found, returns <see cref="PeriodStatus.NotFound"/>.
+    /// </summary>
+    /// <param name="doodadId">The ID of the doodad to check.</param>
+    /// <returns>The overall period status.</returns>
+    public PeriodStatus GetPeriodStatus(int doodadId)
+    {
+        if (!_gameScheduleDoodadIds.TryGetValue(doodadId, out var ids))
+            return PeriodStatus.NotFound; // If Id is not found
+
+        return CheckPeriodStatus(ids);
+    }
+
+    /// <summary>
+    /// Checks the period status for a list of game schedule IDs.
+    /// </summary>
+    /// <param name="ids">The list of game schedule IDs to check.</param>
+    /// <returns>The overall period status.</returns>
+    private PeriodStatus CheckPeriodStatus(List<int> ids)
     {
         var hasNotStarted = true; // Assume that no period has started
         var hasInProgress = false; // Assume that no period is in progress
         var hasEnded = false; // Assume that no period has ended
-
-        if (!_gameScheduleDoodadIds.TryGetValue(doodadId, out var ids))
-        {
-            return (true, true, true); // Если doodadId не найден
-        }
 
         foreach (var gameScheduleId in ids)
         {
@@ -199,18 +173,23 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
                 if (started && !ended)
                 {
-                    hasInProgress = true; // The period has started, but has not yet ended
-                    hasNotStarted = false; // At least one period has started, so "has not started" = false
+                    hasInProgress = true;  // The period has started, but has not yet ended
+                    hasNotStarted = false; // At least one period has started, so "hasn't started" = false
                 }
                 else if (ended)
                 {
-                    hasEnded = true; // At least one period has ended
-                    hasNotStarted = false; // At least one period has ended, therefore "has not started" = false
+                    hasEnded = true;       // At least one period has ended
+                    hasNotStarted = false; // At least one period has ended, so "hasn't started" = false
                 }
             }
         }
 
-        return (hasNotStarted, hasInProgress, hasEnded);
+        // Determine the final status
+        if (hasInProgress)
+            return PeriodStatus.InProgress;
+        if (hasEnded)
+            return PeriodStatus.Ended;
+        return PeriodStatus.NotStarted;
     }
 
     public string GetCronRemainingTime(int spawnerId, bool start = true)

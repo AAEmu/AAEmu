@@ -374,7 +374,7 @@ public class NpcSpawner : Spawner<Npc>
                     // there is such a spawner in the schedule and there is a spawn time
                     _isScheduled = true; // Npc is on the schedule
                     var status = GameScheduleManager.Instance.GetPeriodStatus((int)Template.Id);
-                    if (status is { NotStarted: true, InProgress: true, Ended: true })
+                    if (status == GameScheduleManager.PeriodStatus.NotFound)
                     {
                         // couldn't find it on the schedule, but it should have been!
                         // no entries found for this unit in Game_Schedule table
@@ -382,7 +382,7 @@ public class NpcSpawner : Spawner<Npc>
                         notFoundInScheduler = true;
                         Logger.Trace($"DoSpawnSchedule: Npc was not found in the schedule, we will spawn it templateId={UnitId} from spawnerId={Template.Id}");
                     }
-                    else if (status.NotStarted)
+                    else if (status == GameScheduleManager.PeriodStatus.NotStarted)
                     {
                         Logger.Trace("Период еще не начался.");
                         // есть в расписании, надо запланировать спавн
@@ -411,13 +411,13 @@ public class NpcSpawner : Spawner<Npc>
                             return false;
                         }
                     }
-                    else if (status.InProgress)
+                    else if (status == GameScheduleManager.PeriodStatus.InProgress)
                     {
                         // период уже начался, нужно спавнить
                         // period has already started
                         Logger.Trace($"DoSpawnSchedule: Can spawn. The period is already underway. Npc templateId={UnitId} from spawnerId={Template.Id}");
                     }
-                    else if (status.Ended)
+                    else if (status == GameScheduleManager.PeriodStatus.Ended)
                     {
                         // период уже закончился, не нужно спавнить
                         // period has already ended, no need to spawn
@@ -488,7 +488,7 @@ public class NpcSpawner : Spawner<Npc>
                     // проверим, есть ли в расписании такой spawner и есть ли расписание для спавна
                     // check if there is such a spawner in the schedule and if there is a schedule for spawning
                     var status = GameScheduleManager.Instance.GetPeriodStatusNpc((int)Template.Id);
-                    if (status is { NotStarted: true, InProgress: true, Ended: true })
+                    if (status == GameScheduleManager.PeriodStatus.NotFound)
                     {
                         // couldn't find it on the schedule, but it should have been!
                         // no entries found for this unit in Game_Schedule table
@@ -497,11 +497,11 @@ public class NpcSpawner : Spawner<Npc>
                         notFoundInScheduler = true;
                         Logger.Trace($"DoDespawnSchedule: Npc was not found in the schedule, we will despawn it templateId={UnitId} from spawnerId {Template.Id}");
                     }
-                    else if (status.NotStarted)
+                    else if (status == GameScheduleManager.PeriodStatus.NotStarted)
                     {
                         Logger.Trace($"DoDespawnSchedule: The period has not yet begun. Can despawn Npc templateId={UnitId} from spawnerId {Template.Id}");
                     }
-                    else if (status.InProgress)
+                    else if (status == GameScheduleManager.PeriodStatus.InProgress)
                     {
                         // Период уже идет, надо запланировать деспавн
                         // The period is already running, we need to schedule despawn
@@ -526,7 +526,7 @@ public class NpcSpawner : Spawner<Npc>
                             return;
                         }
                     }
-                    else if (status.Ended)
+                    else if (status == GameScheduleManager.PeriodStatus.Ended)
                     {
                         // период уже закончился, нужно деспавнить
                         // period has already ended, no need to despawn
