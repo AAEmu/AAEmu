@@ -130,7 +130,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     /// <summary>
     /// Returns enum that shows the overall period status for all GameSchedules associated with spawnerId.
     /// </summary>
-    /// <param name="doodadId"></param>
+    /// <param name="spawnerId"></param>
     /// <returns></returns>
     public PeriodStatus GetPeriodStatusNpc(int spawnerId)
     {
@@ -146,10 +146,10 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     /// </summary>
     /// <param name="doodadId">The ID of the doodad to check.</param>
     /// <returns>The overall period status.</returns>
-    public PeriodStatus GetPeriodStatus(int doodadId)
+    public PeriodStatus GetPeriodStatusDoodad(int doodadId)
     {
         if (!_gameScheduleDoodadIds.TryGetValue(doodadId, out var ids))
-            return PeriodStatus.NotFound; // If Id is not found
+            return PeriodStatus.NotFound; // If doodadId is not found
 
         return CheckPeriodStatus(ids);
     }
@@ -161,9 +161,9 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     /// <returns>The overall period status.</returns>
     private PeriodStatus CheckPeriodStatus(List<int> ids)
     {
-        var hasNotStarted = true; // Assume that no period has started
+        var hasNotStarted = true;  // Assume that no period has started
         var hasInProgress = false; // Assume that no period is in progress
-        var hasEnded = false; // Assume that no period has ended
+        var hasEnded = false;      // Assume that no period has ended
 
         foreach (var gameScheduleId in ids)
         {

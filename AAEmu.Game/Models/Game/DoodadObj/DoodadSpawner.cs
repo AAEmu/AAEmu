@@ -183,7 +183,7 @@ public class DoodadSpawner : Spawner<Doodad>
             {
                 // проверим, есть ли в расписании такой spawner и есть ли расписание для спавна
                 // check if there is such a spawner in the schedule and if there is a schedule for spawning
-                var status = GameScheduleManager.Instance.GetPeriodStatus((int)doodad.TemplateId);
+                var status = GameScheduleManager.Instance.GetPeriodStatusDoodad((int)doodad.TemplateId);
                 if (status == GameScheduleManager.PeriodStatus.NotFound)
                 {
                     // couldn't find it on the schedule, but it should have been!
@@ -279,7 +279,7 @@ public class DoodadSpawner : Spawner<Doodad>
                 _permanent = false; // Doodad on the schedule.
                 // есть в расписании такой spawner и есть время спавна
                 // there is such a spawner in the schedule and there is a spawn time
-                var status = GameScheduleManager.Instance.GetPeriodStatus((int)UnitId);
+                var status = GameScheduleManager.Instance.GetPeriodStatusDoodad((int)UnitId);
                 if (status == GameScheduleManager.PeriodStatus.NotFound)
                 {
                     // couldn't find it on the schedule, but it should have been!

@@ -373,7 +373,7 @@ public class NpcSpawner : Spawner<Npc>
                     // есть в расписании такой spawner и есть время спавна
                     // there is such a spawner in the schedule and there is a spawn time
                     _isScheduled = true; // Npc is on the schedule
-                    var status = GameScheduleManager.Instance.GetPeriodStatus((int)Template.Id);
+                    var status = GameScheduleManager.Instance.GetPeriodStatusNpc((int)Template.Id);
                     if (status == GameScheduleManager.PeriodStatus.NotFound)
                     {
                         // couldn't find it on the schedule, but it should have been!
