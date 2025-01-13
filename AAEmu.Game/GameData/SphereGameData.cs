@@ -337,6 +337,8 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     /// </summary>
     /// <param name="sphereId">Sphere Id as defined in a Quest Act</param>
     /// <param name="value2">Unknown, always one except for skill 13305 (plant unidentified tree)</param>
+    /// <param name="worldPosition"></param>
+    /// <param name="requiredComponentId"></param>
     /// <returns>SphereQuest that was hit, null if none found</returns>
     public SphereQuest IsInsideAreaSphere(uint sphereId, uint value2, Vector3 worldPosition, uint requiredComponentId = 0)
     {

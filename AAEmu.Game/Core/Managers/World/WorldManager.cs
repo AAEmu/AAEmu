@@ -1093,7 +1093,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public static List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
     {
         if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
-            Logger.Warn("AreaShape with no size values was used");
+            Logger.Trace("AreaShape with no size values was used");
         if (shape.Type == AreaShapeType.Sphere)
         {
             var radius = shape.Value1;
