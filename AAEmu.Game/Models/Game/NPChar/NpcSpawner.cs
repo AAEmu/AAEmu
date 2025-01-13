@@ -59,7 +59,8 @@ public class NpcSpawner : Spawner<Npc>
         {
             return null; // if npcs are delayed to show later
         }
-        DoSpawn(true, beginning); // show all Npc, first start server
+
+       DoSpawn(true, beginning); // show all Npc, first start server
 
         return _spawned;
     }
@@ -78,7 +79,6 @@ public class NpcSpawner : Spawner<Npc>
         DoSpawn(); // show one Npc
         return _lastSpawn;
     }
-
     public override void Despawn(Npc npc)
     {
         npc.UnregisterNpcEvents();
@@ -387,13 +387,13 @@ public class NpcSpawner : Spawner<Npc>
                         Logger.Trace("Период еще не начался.");
                         // есть в расписании, надо запланировать спавн
                         // is on the schedule, needs to be scheduled
-                        var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)UnitId, true);
+                        var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
                         if (cronExpression is "" or "0 0 0 0 0 ?")
                         {
                             Logger.Trace($"DoSpawnSchedule: Can't schedule spawn Npc templateId={UnitId} from spawnerId={Template.Id}");
                             Logger.Trace($"DoSpawnSchedule: cronExpression {cronExpression}");
                             _isScheduled = false;
-                            return false;
+                            return true;//It's scheduled, but we can't spawn it.
                         }
 
                         try
@@ -405,10 +405,10 @@ public class NpcSpawner : Spawner<Npc>
                         }
                         catch (Exception)
                         {
-                            Logger.Trace($"DoSpawnSchedule: Can't schedule spawn Npc templateId={UnitId} from spawnerId={Template.Id}");
+                            Logger.Trace($"DoSpawnSchedule: Can't schedule spawn Npc templateId={UnitId} from spawnerId={Template.Id} on exception.");
                             Logger.Trace($"DoSpawnSchedule: cronExpression {cronExpression}");
                             _isScheduled = false;
-                            return false;
+                            return true;//Cannot schedule
                         }
                     }
                     else if (status == GameScheduleManager.PeriodStatus.InProgress)
@@ -424,7 +424,7 @@ public class NpcSpawner : Spawner<Npc>
                         //Logger.Warn("Период завершился.");
                         Logger.Trace($"DoSpawnSchedule: Can't spawn. The period has ended. Npc templateId={UnitId} from spawnerId={Template.Id}");
                         _isScheduled = false;
-                        return false;
+                        return true;//It's scheduled, but we can't spawn it.
                     }
                 }
             }

@@ -45,8 +45,7 @@ public class DoodadFuncFishSchool : DoodadPhaseFuncTemplate
         //spawnPos.World.AddDistanceToFront(3f);
         //spawnPos.World.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
         spawner[0].Position = spawnPos.CloneAsSpawnPosition();
-        var npc = spawner[0].Spawn(0);
-        npc.Spawner.RespawnTime = 0; // запретим респавн
+        //No initial spawn, fish spawn are triggered by fishing.
 
         return false;
     }
