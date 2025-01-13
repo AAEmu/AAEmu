@@ -832,10 +832,17 @@ public class Skill
         var player = caster as Character;
         var possibleTargets = new List<BaseUnit>(); // TODO crutches
         // Get a list of all possible targets
+        if (Template.TargetSiege && Template.TargetSelection == SkillTargetSelection.Source && caster is Slave)
+        {
+            // Hack for ship skills, only TargetSiege or possibly CombatDice seem to be different from other AoE skills
+            possibleTargets.Add(targetSelf);
+        }
+        else
         if (Template.TargetAreaRadius > 0)
         {
             var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
-            units.Add(targetSelf); // Add main target as well
+            if (Template.TargetSelection == SkillTargetSelection.Source)
+                units.Add(targetSelf); // Add main target as well
             units = FilterAoeUnits(caster, units).ToList();
 
             possibleTargets.AddRange(units);

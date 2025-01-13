@@ -81,7 +81,7 @@ public class CSStartSkillPacket : GamePacket
 
             if ((mate != null) || (slave != null))
             {
-                // check if it's a mate or slave skill and return it's rider/operator related skill
+                // check if it's a mate or slave skill and return its rider/operator related skill
                 mountAttachedSkill = MateManager.Instance.GetMountAttachedSkills(skillId, Connection.ActiveChar.AttachedPoint);
             }
 
