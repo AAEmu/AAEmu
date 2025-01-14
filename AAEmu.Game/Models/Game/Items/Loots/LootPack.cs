@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -76,7 +76,7 @@ public class LootPack
 
                 // Logger.Debug($"Rolling loot with pack {Id}, GroupNo {gIdx} rolled {dice}/{lootGroup.DropRate}");
 
-                if ((lootGroup.DropRate > 1) && (dice > lootGroup.DropRate))
+                if ((lootGroup.DropRate > 0) && (dice > lootGroup.DropRate))
                     continue;
             }
 
@@ -185,7 +185,7 @@ public class LootPack
         {
             var group = Groups.Values.FirstOrDefault(g => g.GroupNo == groupNo);
             // If group is defined, use it's DropRate for calculations 
-            var groupRate = group is { DropRate: > 1 } ? group.DropRate / 100_000f : 1f;
+            var groupRate = group is { DropRate: > 0 } ? group.DropRate / 100_000f : 1f;
 
             var selectedItemsByGroup = new Dictionary<uint, List<Loot>>();
 
@@ -204,7 +204,7 @@ public class LootPack
                     {
                         actLevelMultiplier *= actAbility.GetLootMultiplier();
                     }
-                    
+
                     // TODO: Use MinDice for something as well?
                     // TODO: Make ActAbility skill level of the player matter
                     if (actDice * actLevelMultiplier > actGroup.MaxDice)
@@ -212,7 +212,7 @@ public class LootPack
                         continue;
                     }
                 }
-                
+
                 // Check for Quest loot drops
                 var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
                 if (itemTemplate?.LootQuestId > 0)
@@ -220,7 +220,7 @@ public class LootPack
                     if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
                         continue;
                 }
-                
+
                 // Group 0 items will always need to be included
                 if (loot.Group <= 0)
                 {
@@ -230,7 +230,7 @@ public class LootPack
                     continue;
                 }
 
-                var itemRate = loot.DropRate > 1 ? loot.DropRate / 10_000_000f : 1f;
+                var itemRate = loot.DropRate > 0 ? loot.DropRate / 10_000_000f : 1f;
                 var requiresDice = (long)Math.Floor(10_000_000f * groupRate * itemRate * lootDropRate);
                 var dice = (long)Rand.Next(0, 10000000);
                 if (dice < requiresDice)
@@ -240,7 +240,7 @@ public class LootPack
                     selectedItemsByGroup[loot.Group].Add(loot);
                 }
             }
-            
+
             // No matches found
             if (selectedItemsByGroup.Count <= 0)
                 continue;
@@ -311,7 +311,7 @@ public class LootPack
 
         return items;
     }
-    
+
     /// <summary>
     /// Helper function to help find the owning player of a killing unit, either the player itself or the owners of the unit
     /// </summary>
@@ -324,21 +324,21 @@ public class LootPack
         if (killer is Character character)
             return character;
 
-        if (killer is Units.Mate { OwnerObjId: > 0 } mate) 
+        if (killer is Units.Mate { OwnerObjId: > 0 } mate)
         {
             var mateOwner = WorldManager.Instance.GetBaseUnit(mate.OwnerObjId);
             if (mateOwner is Character mateOwnerCharacter)
                 return mateOwnerCharacter;
         }
         else
-        if (killer is Slave { OwnerType: BaseUnitType.Character } slave) 
+        if (killer is Slave { OwnerType: BaseUnitType.Character } slave)
         {
             var slaveOwner = WorldManager.Instance.GetBaseUnit(slave.OwnerObjId);
             if (slaveOwner is Character slaveOwnerCharacter)
                 return slaveOwnerCharacter;
         }
         else
-        if (killer is Doodad { OwnerType: DoodadOwnerType.Character } doodad) 
+        if (killer is Doodad { OwnerType: DoodadOwnerType.Character } doodad)
         {
             var doodadOwner = WorldManager.Instance.GetBaseUnit(doodad.OwnerObjId);
             if (doodadOwner is Character slaveOwnerCharacter)
@@ -378,14 +378,14 @@ public class LootPack
         // Not enough room to give the items, give none
         if (!canAdd)
             return false;
-
+        var coinCount = 0;
         // Distribute the items (and coins)
         foreach (var (itemTemplateId, count, grade, _) in generatedList)
         {
             if (itemTemplateId == Item.Coins)
             {
-                // Logger.Debug("{Category} - {Character} got {Amount} from lootpack {Lootpack}");
-                character.AddMoney(SlotType.Inventory, count, taskType);
+                coinCount += count;
+                //Coins can drop from multiple groups on the same item, collating.
                 continue;
             }
 
@@ -398,6 +398,13 @@ public class LootPack
                 Logger.Error($"Unable to give loot to {character.Name} - ItemId: {itemTemplate} x {count} at grade {gradeToAdd} (loot grade {grade})");
                 return false;
             }
+        }
+
+        if (coinCount > 0)
+        {
+            //We have coins to give out.
+            // Logger.Debug("{Category} - {Character} got {Amount} from lootpack {Lootpack}");
+            character.AddMoney(SlotType.Inventory, coinCount, taskType);
         }
 
         return true;
