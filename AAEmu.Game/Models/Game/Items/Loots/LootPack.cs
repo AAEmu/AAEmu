@@ -230,7 +230,7 @@ public class LootPack
                     continue;
                 }
 
-                var itemRate = loot.DropRate > 0 ? loot.DropRate / 10_000_000f : 1f;
+                var itemRate = loot.DropRate > 1 ? loot.DropRate / 10_000_000f : 1f;
                 var requiresDice = (long)Math.Floor(10_000_000f * groupRate * itemRate * lootDropRate);
                 var dice = (long)Rand.Next(0, 10000000);
                 if (dice < requiresDice)
