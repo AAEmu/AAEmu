@@ -15,6 +15,6 @@ public class NpcSpawnerDoSpawnTask : Task
 
     public override void Execute()
     {
-        _npcSpawner?.DoSpawn(_all);
+        _npcSpawner?.DoSpawn();
     }
 }

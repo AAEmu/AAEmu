@@ -97,8 +97,8 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
                 template.EndTime = reader.GetFloat("endTime");
                 template.DestroyTime = reader.GetFloat("destroyTime");
                 template.SpawnDelayMin = reader.GetFloat("spawn_delay_min");
-                template.ActivationState = reader.GetBoolean("activation_state");
-                template.SaveIndun = reader.GetBoolean("save_indun");
+                template.ActivationState = reader.GetBoolean("activation_state", true);
+                template.SaveIndun = reader.GetBoolean("save_indun", true);
                 template.MinPopulation = reader.GetUInt32("min_population");
                 template.TestRadiusNpc = reader.GetFloat("test_radius_npc");
                 template.TestRadiusPc = reader.GetFloat("test_radius_pc");
@@ -199,5 +199,21 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
         }
 
         return null;
+    }
+
+    public void AddNpcSpawner(NpcSpawnerTemplate template)
+    {
+        _npcSpawnerTemplates.Add(template.Id, template);
+    }
+    public void AddNpcSpawnerNpc(NpcSpawnerNpc nsn)
+    {
+        _npcSpawnerTemplateNpcs.Add(nsn.Id, nsn);
+    }
+    public void AddMemberAndSpawnerTemplateIds(NpcSpawnerNpc nsn)
+    {
+        if (!_npcMemberAndSpawnerTemplateIds.ContainsKey(nsn.MemberId))
+            _npcMemberAndSpawnerTemplateIds.Add(nsn.MemberId, [nsn.NpcSpawnerTemplateId]);
+        else
+            _npcMemberAndSpawnerTemplateIds[nsn.MemberId].Add(nsn.NpcSpawnerTemplateId);
     }
 }

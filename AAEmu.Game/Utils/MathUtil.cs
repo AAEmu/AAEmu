@@ -346,6 +346,20 @@ public class MathUtil
 
         return (float)Math.Sqrt(dx * dx + dy * dy);
     }
+    
+    public static float CalculateDistance(WorldSpawnPosition loc, WorldSpawnPosition loc2, bool includeZAxis = false)
+    {
+        double dx = loc.X - loc2.X;
+        double dy = loc.Y - loc2.Y;
+
+        if (includeZAxis)
+        {
+            double dz = loc.Z - loc2.Z;
+            return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
+
+        return (float)Math.Sqrt(dx * dx + dy * dy);
+    }
 
     public static float CalculateDistance(GameObject loc, GameObject loc2, bool includeZAxis = false)
     {

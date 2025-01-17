@@ -5,7 +5,8 @@ namespace AAEmu.Game.Models.Game.World;
 public class Spawner<T> where T : GameObject
 {
     public uint Id { get; set; }     // index
-    public uint UnitId { get; set; } // MemberId | TemplateId
+    public uint SpawnerId { get; set; } // spawner template id
+    public uint UnitId { get; set; }    // npc template id
     public string FollowPath { get; set; } = string.Empty;
     public uint FollowNpc { get; set; } = 0; // nearest Npc TemplateId to follow
     public WorldSpawnPosition Position { get; set; }

@@ -1,19 +1,24 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Numerics;
+using System.Threading;
 
 using AAEmu.Commons.Utils;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.World;
+using AAEmu.Game.Utils;
 
 using Newtonsoft.Json;
 
@@ -23,568 +28,733 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawner : Spawner<Npc>
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private List<Npc> _spawned; // the list of Npc's that have been shown
-    private Npc _lastSpawn;      // the last of the displayed Npc
-    private int _scheduledCount; // already scheduled to show Npc
-    private int _spawnCount;     // have already shown so many Npc
+    private int _scheduledCount;
+    private int _spawnCount;
+    private bool IsSpawnScheduled;
+    private bool IsNotFoundInScheduler;
+    private readonly object _spawnLock = new(); // Lock for thread safety
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     [DefaultValue(1f)]
-    public uint Count { get; set; }
-    public List<uint> NpcSpawnerIds { get; set; }
-    private bool _isScheduled { get; set; }
-    private bool notFoundInScheduler { get; set; } = false;
+    public uint Count { get; set; } = 1;
 
-    public NpcSpawnerTemplate Template { get; set; } // npcSpawnerId(NpcSpawnerTemplateId), template
+    public List<uint> NpcSpawnerIds { get; set; } = [];
+    public NpcSpawnerTemplate Template { get; set; }
+    public List<NpcSpawnerNpc> SpawnableNpcs { get; set; } = []; // List of NPCs that can be spawned
+    public ConcurrentDictionary<uint, List<Npc>> SpawnedNpcs { get; set; } = new(); // <SpawnerId, List of spawned NPCs>
+    private DateTime _lastSpawnTime = DateTime.MinValue;
 
     public NpcSpawner()
     {
-        _isScheduled = false; // Npc isn't on the schedule
-        _spawned = [];
-        Count = 1;
-        NpcSpawnerIds = [];
-        Template = null;
-        _lastSpawn = null;
+        IsSpawnScheduled = false;
     }
 
     /// <summary>
-    /// Show all Npcs
+    /// Initializes the list of SpawnableNpcs based on Template.Npcs.
     /// </summary>
-    /// <returns></returns>
-    public List<Npc> SpawnAll(bool beginning = false)
+    internal void InitializeSpawnableNpcs(NpcSpawnerTemplate template)
     {
-        if (DoSpawnSchedule(true))
+        if (template?.Npcs == null)
         {
-            return null; // if npcs are delayed to show later
-        }
-
-       DoSpawn(true, beginning); // show all Npc, first start server
-
-        return _spawned;
-    }
-
-    /// <summary>
-    /// Show one Npc
-    /// </summary>
-    /// <param name="objId"></param>
-    /// <returns></returns>
-    public override Npc Spawn(uint objId)
-    {
-        if (DoSpawnSchedule())
-        {
-            return null; // if npcs are delayed to show later
-        }
-        DoSpawn(); // show one Npc
-        return _lastSpawn;
-    }
-    public override void Despawn(Npc npc)
-    {
-        npc.UnregisterNpcEvents();
-        npc.Delete();
-
-        /*
-        if (npc.Transform.WorldId > 0)
-        {
-            // Temporary range for instanced worlds
-            var dungeon = IndunManager.Instance.GetDungeonByWorldId(npc.Transform.WorldId);
-
-            if (dungeon is not null)
-            {
-                dungeon.UnregisterNpcEvents(npc);
-            }
-        }
-        */
-
-        if (npc.Respawn == DateTime.MinValue)
-        {
-            npc.Spawner._spawned.Remove(npc);
-            ObjectIdManager.Instance.ReleaseId(npc.ObjId);
-            npc.Spawner._spawnCount--;
-        }
-
-        if (npc.Spawner._lastSpawn == null || npc.Spawner._lastSpawn.ObjId == npc.ObjId)
-        {
-            npc.Spawner._lastSpawn = npc.Spawner._spawned.Count != 0 ? npc.Spawner._spawned[^1] : null;
-        }
-    }
-
-    public void ClearLastSpawnCount()
-    {
-        _spawnCount = 0;
-    }
-
-    public void DecreaseCount(Npc npc)
-    {
-        npc.Spawner._spawnCount--;
-        npc.Spawner._spawned.Remove(npc);
-        if (npc.Spawner.RespawnTime > 0 && npc.Spawner._spawnCount + npc.Spawner._scheduledCount < npc.Spawner.Count)
-        {
-            npc.Respawn = DateTime.UtcNow.AddSeconds(npc.Spawner.RespawnTime);
-            SpawnManager.Instance.AddRespawn(npc);
-            npc.Spawner._scheduledCount++;
-        }
-
-        npc.Despawn = DateTime.UtcNow.AddSeconds(npc.Spawner.DespawnTime);
-        // If it has loot, extend the time
-        if (npc.LootingContainer?.Items.Count > 0)
-        {
-            npc.Despawn += TimeSpan.FromSeconds(LootingContainer.LootDespawnExtensionTime);
-        }
-        SpawnManager.Instance.AddDespawn(npc);
-    }
-
-    public void DespawnWithRespawn(Npc npc)
-    {
-        npc.Delete();
-        npc.Spawner._spawnCount--;
-        npc.Spawner._spawned.Remove(npc);
-        if (npc.Spawner.RespawnTime > 0 && npc.Spawner._spawnCount + npc.Spawner._scheduledCount < npc.Spawner.Count)
-        {
-            npc.Respawn = DateTime.UtcNow.AddSeconds(npc.Spawner.RespawnTime);
-            SpawnManager.Instance.AddRespawn(npc);
-            npc.Spawner._scheduledCount++;
-        }
-    }
-
-    /// <summary>
-    /// Do despawn
-    /// </summary>
-    /// <param name="npc"></param>
-    /// <param name="all">to show everyone or not</param>
-    public void DoDespawn(Npc npc, bool all = false)
-    {
-        if (npc == null) { return; }
-
-        if (npc.IsInBattle)
-        {
+            Logger.Warn("Template or template.Npcs is null. SpawnableNpcs will not be initialized.");
             return;
         }
-        if (all)
-        {
-            for (var i = 0; i < _spawnCount; i++)
-            {
-                Despawn(npc.Spawner._lastSpawn);
-            }
-        }
-        else
-        {
-            Despawn(npc);
-        }
+
+        SpawnableNpcs = [.. template.Npcs];
     }
 
     /// <summary>
-    /// Do spawn Npc
+    /// Updates the state of the spawner.
     /// </summary>
-    /// <param name="all">to show everyone or not</param>
-    /// <param name="beginning">if this is the first start of the server</param>
-    public void DoSpawn(bool all = false, bool beginning = false)
+    public void Update()
     {
-        // проверим, что взяли все спавнеры
-        // check what all spawners took
-        var spawnerIds = NpcGameData.Instance.GetSpawnerIds(UnitId);
-        var npcSpawnerIds = spawnerIds.Count > NpcSpawnerIds.Count ? spawnerIds : NpcSpawnerIds;
-
-        // Select an NPC to spawn based on the spawnerId in npc_spawner_npcs
-        var npcs = new List<Npc>();
-        var delnpcs = new List<Npc>();
-
-        foreach (var spawnerId in npcSpawnerIds)
+        if (CanDespawn())
         {
-            var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
-            if (template == null)
+            if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
             {
-                // Select an NPC to spawn based on the spawnerId in npc_spawner_npcs
-                foreach (var nsn in Template.Npcs.Where(nsn => nsn.MemberId == UnitId))
-                {
-                    npcs = nsn.Spawn(this, all ? Template.MaxPopulation : 1);
-                    if (npcs == null) { return; }
-                    break;
-                }
-            }
-            else
-            {
-                // cпавним всегда по возможности NpcSpawnerCategory.Autocreated
-                // если это обычный спавн Npc, то пропускаем NpcSpawnerCategory.Normal
-                // if it's a normal Npc spawn then skip NpcSpawnerCategory.Normal
-                if (template.NpcSpawnerCategoryId == NpcSpawnerCategory.Normal && npcSpawnerIds.Count > 1)
-                {
-                    continue;
-                }
-
-                var suspendSpawnCount = template.SuspendSpawnCount > 0 ? template.SuspendSpawnCount : 1;
-                var maxPopulation = template.MaxPopulation;
-                var testRadiusPc = template.TestRadiusPc;
-                var quantity = suspendSpawnCount;
-                //var playerCount = 0u;
-
-                // проверим есть ли рядом игроки
-                // see if there are any players around
-                //if (_lastSpawn != null)
-                //{
-                //    playerCount = (uint)WorldManager.GetAround<Character>(_lastSpawn, testRadiusPc).Count;
-                //}
-
-                // если рядом игроки, то увеличим количество Npc
-                // if there are players around, we'll increase the number of Npc
-                //if (playerCount > 1) { quantity = suspendSpawnCount * playerCount; }
-
-                // проверим, что бы количество было не более максимальной популяции
-                // check that the number is not more than the maximum population
-                if (quantity > maxPopulation) { quantity = maxPopulation; }
-
-                // если не хотим спавнить всех
-                // if we don't want to spawn everyone
-                if (!all) { quantity = 1; }
-
-                // Check if we did not go over MaxPopulation Spawn Count
-                if (_spawnCount > maxPopulation)
-                {
-                    Logger.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation {maxPopulation}");
-                    return;
-                }
-
-                foreach (var nsn in template.Npcs.Where(nsn => nsn.MemberId == UnitId))
-                {
-                    npcs = nsn.Spawn(this, quantity, maxPopulation);
-                    break;
-                }
-                if (npcs == null) { continue; }
-            }
-
-            if (npcs.Count == 0)
-            {
-                Logger.Error($"Can't spawn npc {UnitId} from spawnerId {Template.Id}");
-                continue;
-            }
-
-            delnpcs.AddRange(npcs);
-
-            _spawned.AddRange(npcs);
-
-            if (_scheduledCount > 0)
-            {
-                _scheduledCount -= npcs.Count;
-            }
-
-            _spawnCount += npcs.Count;
-
-            if (_spawnCount < 0)
-            {
-                _spawnCount = 0;
-            }
-
-            _lastSpawn = _spawned[^1];
-            //_lastSpawn.Spawner = this;
-        }
-
-        if (_isScheduled)
-        {
-            DoDespawnSchedule(_lastSpawn, all);
-        }
-
-        // удалим чуть позже всех лишних Npc, оставим только одного
-        var deleteCount = delnpcs.Count - 1;
-        if (deleteCount > 1)
-        {
-            for (var i = 0; i < deleteCount; i++)
-            {
-                Logger.Trace($"Let's schedule npc removal {UnitId} from spawnerId {Template.Id}");
-                DoDespawnSchedule(delnpcs[i], false, 60); // через 1 минуту
+                DoDespawn(npcs);
+                return;
             }
         }
 
-        /*
-        if (IsNullOrEmpty(FollowPath)) { return; }
+        if (!CanSpawn())
+            return;
 
-        foreach (var npc in npcs)
-        {
-            if (npc.IsInPatrol) { return; }
-            npc.IsInPatrol = true;
-            npc.Simulation.RunningMode = false;
-            npc.Simulation.Cycle = true;
-            npc.Simulation.MoveToPathEnabled = false;
-            npc.Simulation.MoveFileName = FollowPath;
-            npc.Simulation.GoToPath(npc, true);
-        }
-        */
+        if (_lastSpawnTime != DateTime.MinValue && (DateTime.UtcNow - _lastSpawnTime).TotalSeconds < Template.SpawnDelayMin)
+            return;
+
+        DoSpawn();
     }
 
     /// <summary>
-    /// Do schedule spawn Npc
+    /// Checks if NPCs can be spawned.
     /// </summary>
-    /// <param name="all">to show everyone or not</param>
-    private bool DoSpawnSchedule(bool all = false)
+    private bool CanSpawn()
     {
-        // TODO Check if delay is OK
         if (Template == null)
         {
-            // no spawner for TemplateId
-            Logger.Warn($"Can't spawn npc {UnitId} from spawnerId {Id}");
-            return true;
+            Logger.Warn("Template is null. Cannot determine if NPC can be spawned.");
+            return false;
         }
 
-        // Check if population is within bounds
+        //if (Template.NpcSpawnerCategoryId != NpcSpawnerCategory.Autocreated)
+        {
+            // Checks if this spawner is suitable based on the number of mobs in the spawn and the number of nearby players
+            var spawnerId = GetOptimalSpawnerForPlayers();
+            if (spawnerId != 0 && spawnerId is not null && SpawnerId != spawnerId)
+                return false;
+        }
+
+        // Checks if the spawner is in an active state
+        if (!Template.ActivationState)
+            return false;
+
+        // Checks if spawning is allowed by the schedule
+        if (!IsSpawningScheduleEnabled())
+            return false;
+
+        // Checks if a player is within the spawn radius
+        if (!IsPlayerInSpawnRadius())
+            return false;
+
+        if (Template.NpcSpawnerCategoryId != NpcSpawnerCategory.Autocreated)
+        {
+            // Checks if a player is within the spawn radius
+            if (AreOtherNpcsInSpawnZone())
+                return false;
+        }
+
+        // Checks if SuspendSpawnCount is exceeded
+        if (Template.SuspendSpawnCount > 0 && _spawnCount >= Template.SuspendSpawnCount)
+            return false;
+
+        // Checks if the maximum number of NPCs has been reached
         if (_spawnCount >= Template.MaxPopulation)
-        {
-            Logger.Trace($"Let's not spawn Npc templateId {UnitId} from spawnerId {Template.Id} since exceeded MaxPopulation");
+            return false;
+
+        // Checks if the minimum number of NPCs has been reached
+        if (_spawnCount > Template.MinPopulation)
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks if NPCs can be despawned.
+    /// </summary>
+    private bool CanDespawn()
+    {
+        if (IsDespawningScheduleEnabled(SpawnerId))
             return true;
+
+        return !IsPlayerInSpawnRadius();
+    }
+
+    /// <summary>
+    /// Chooses an NPC to spawn based on SpawnableNpcs.
+    /// </summary>
+    private Npc ChooseNpcToSpawn()
+    {
+        if (SpawnableNpcs == null || SpawnableNpcs.Count == 0)
+        {
+            Logger.Warn("No spawnable NPCs available.");
+            return null;
         }
 
-        #region Schedule
-        _isScheduled = false;
-        // Check if Time Of Day matches Template.StartTime or Template.EndTime
-        if (Template.StartTime > 0.0f | Template.EndTime > 0.0f)
+        var totalWeight = SpawnableNpcs.Sum(n => n.Weight);
+        var randomValue = Rand.Next(0, (int)totalWeight);
+
+        foreach (var npcTemplate in SpawnableNpcs)
         {
-            var curTime = TimeManager.Instance.GetTime;
-            if (!TimeSpan.FromHours(curTime).IsBetween(TimeSpan.FromHours(Template.StartTime), TimeSpan.FromHours(Template.EndTime)))
+            if (randomValue < npcTemplate.Weight)
             {
-                var start = (int)Math.Round(Template.StartTime);
-                if (start == 0) { start = 24; }
-                var delay = start - curTime;
-                if (delay < 0f)
+                var npc = NpcManager.Instance.Create(0, npcTemplate.MemberId);
+                if (npc != null)
                 {
-                    delay = curTime + delay;
+                    return npc;
                 }
-                delay = delay * 60f * 10f;
-                if (delay < 1f)
-                {
-                    delay = 5f;
-                }
-                _isScheduled = true; // Npc is on the schedule
-                TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(delay));
-                // Reschedule when OK
+                Logger.Error($"Failed to create NPC from template {npcTemplate.MemberId}.");
+            }
+            randomValue -= (int)npcTemplate.Weight;
+        }
+
+        Logger.Warn("No NPC was chosen to spawn.");
+        return null;
+    }
+
+    /// <summary>
+    /// Checks if an NPC is within the spawn radius.
+    /// </summary>
+    private bool IsNpcInSpawnRadius(Npc npc)
+    {
+        if (npc == null)
+            return false;
+
+        if (Template.TestRadiusNpc == 0)
+            return true;
+
+        var distance = MathUtil.CalculateDistance(npc.Transform.World.Position, new Vector3(Position.X, Position.Y, Position.Z));
+        return distance <= Template.TestRadiusNpc * 3;
+    }
+
+    /// <summary>
+    /// Checks if a player is within the spawn radius.
+    /// </summary>
+    private bool IsPlayerInSpawnRadius()
+    {
+        if (Template.TestRadiusPc == 0)
+            return true;
+
+        var players = WorldManager.Instance.GetAllCharacters();
+        foreach (var player in players)
+        {
+            var distance = MathUtil.CalculateDistance(player.Transform.World.Position, new Vector3(Position.X, Position.Y, Position.Z));
+            if (distance <= Template.TestRadiusPc * 3)
                 return true;
-            }
         }
-        else
-        {
-            // спавнер присутствует в расписании `game_schedule_doodads`
-            // First, let's check if the schedule has such an spawnerId
-            var scheduleSpawner = GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id);
-            if (scheduleSpawner)
-            {
-                // спавнер присутствует в расписании `game_schedules`
-                // if there is, we'll check the time for the spawning
-                var inGameSchedule = GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)Template.Id);
-                if (inGameSchedule)
-                {
-                    // есть в расписании такой spawner и есть время спавна
-                    // there is such a spawner in the schedule and there is a spawn time
-                    _isScheduled = true; // Npc is on the schedule
-                    var status = GameScheduleManager.Instance.GetPeriodStatusNpc((int)Template.Id);
-                    if (status == GameScheduleManager.PeriodStatus.NotFound)
-                    {
-                        // couldn't find it on the schedule, but it should have been!
-                        // no entries found for this unit in Game_Schedule table
-                        // Тем не менее, мы будем спавнить Npc, так как в планировщике не было никаких записей
-                        notFoundInScheduler = true;
-                        Logger.Trace($"DoSpawnSchedule: Npc was not found in the schedule, we will spawn it templateId={UnitId} from spawnerId={Template.Id}");
-                    }
-                    else if (status == GameScheduleManager.PeriodStatus.NotStarted)
-                    {
-                        Logger.Trace("Период еще не начался.");
-                        // есть в расписании, надо запланировать спавн
-                        // is on the schedule, needs to be scheduled
-                        var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, true);
-                        if (cronExpression is "" or "0 0 0 0 0 ?")
-                        {
-                            Logger.Trace($"DoSpawnSchedule: Can't schedule spawn Npc templateId={UnitId} from spawnerId={Template.Id}");
-                            Logger.Trace($"DoSpawnSchedule: cronExpression {cronExpression}");
-                            _isScheduled = false;
-                            return true;//It's scheduled, but we can't spawn it.
-                        }
-
-                        try
-                        {
-                            TaskManager.Instance.CronSchedule(new NpcSpawnerDoSpawnTask(this), cronExpression);
-                            Logger.Trace($"DoSpawnSchedule: Schedule the spawn of Npc templateId={UnitId} from spawnerId={Template.Id}");
-                            Logger.Trace($"DoSpawnSchedule: cronExpression {cronExpression}");
-                            return true; // Reschedule when OK
-                        }
-                        catch (Exception)
-                        {
-                            Logger.Trace($"DoSpawnSchedule: Can't schedule spawn Npc templateId={UnitId} from spawnerId={Template.Id} on exception.");
-                            Logger.Trace($"DoSpawnSchedule: cronExpression {cronExpression}");
-                            _isScheduled = false;
-                            return true;//Cannot schedule
-                        }
-                    }
-                    else if (status == GameScheduleManager.PeriodStatus.InProgress)
-                    {
-                        // период уже начался, нужно спавнить
-                        // period has already started
-                        Logger.Trace($"DoSpawnSchedule: Can spawn. The period is already underway. Npc templateId={UnitId} from spawnerId={Template.Id}");
-                    }
-                    else if (status == GameScheduleManager.PeriodStatus.Ended)
-                    {
-                        // период уже закончился, не нужно спавнить
-                        // period has already ended, no need to spawn
-                        //Logger.Warn("Период завершился.");
-                        Logger.Trace($"DoSpawnSchedule: Can't spawn. The period has ended. Npc templateId={UnitId} from spawnerId={Template.Id}");
-                        _isScheduled = false;
-                        return true;//It's scheduled, but we can't spawn it.
-                    }
-                }
-            }
-        }
-        #endregion Schedule
 
         return false;
     }
 
     /// <summary>
-    /// Do schedule despawn Npc
+    /// Returns the number of players within the spawn radius.
     /// </summary>
-    /// <param name="npc"></param>
-    /// <param name="all">to show everyone or not</param>
-    /// <param name="timeToDespawn"></param>
-    private void DoDespawnSchedule(Npc npc, bool all = false, float timeToDespawn = 0)
+    /// <param name="template">The spawner template containing the check radius.</param>
+    /// <returns>The number of players within the radius.</returns>
+    private int GetNumberOfPlayerInSpawnRadius(NpcSpawnerTemplate template)
     {
-        #region Schedule
-        // удалим по запросу
-        if (timeToDespawn > 0)
+        // Checks if the template and radius are valid
+        if (template == null || template.TestRadiusNpc <= 0)
+            return 0;
+        var playerCount = 0;
+        // Gets the spawn position (e.g., the position of the first NPC or the center point)
+        if (SpawnedNpcs is { Count: > 0 })
         {
-            TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(timeToDespawn));
-            return; // Reschedule when OK
-        }
-
-        // Check if Time Of Day matches Template.StartTime or Template.EndTime
-        if (Template.StartTime > 0.0f | Template.EndTime > 0.0f)
-        {
-            var curTime = TimeManager.Instance.GetTime;
-            if (TimeSpan.FromHours(curTime).IsBetween(TimeSpan.FromHours(Template.StartTime), TimeSpan.FromHours(Template.EndTime)))
+            var npcs = SpawnedNpcs.Values.FirstOrDefault();
+            if (npcs?.Count > 0)
             {
-                var end = (int)Math.Round(Template.EndTime);
-                if (end == 0) { end = 24; }
-                var delay = end - curTime;
-                if (delay < 0f)
-                {
-                    delay = curTime + delay;
-                }
-                delay = delay * 60f * 10f;
-                if (delay < 1f)
-                {
-                    delay = 5f;
-                }
-                TaskManager.Instance.Schedule(new NpcSpawnerDoDespawnTask(npc), TimeSpan.FromSeconds(delay));
-
-                return; // Reschedule when OK
+                // Returns the number of players
+                var tmpPlayerCount = WorldManager.GetAround<Character>(npcs[0], template.TestRadiusNpc * 3).Count;
+                if (playerCount < tmpPlayerCount)
+                    playerCount = tmpPlayerCount;
             }
         }
-        else
+
+        return playerCount;
+    }
+
+    /// <summary>
+    /// Returns the optimal spawner for spawning NPCs based on the number of players and MinPopulation/MaxPopulation parameters.
+    /// </summary>
+    /// <returns>
+    /// The ID of the selected spawner or <c>null</c> if no suitable spawner is found.
+    /// </returns>
+    private uint? GetOptimalSpawnerForPlayers()
+    {
+        // If the list of spawners is empty, return null
+        if (NpcSpawnerIds == null || NpcSpawnerIds.Count == 0)
+            return null;
+
+        // Gets the number of players within the spawn radius
+        var playerCount = GetNumberOfPlayerInSpawnRadius(Template);
+        if (playerCount == 0)
         {
-            // спавнер присутствует в расписании `game_schedule_doodads`
-            // First, let's check if the schedule has such an spawnerId
-            var scheduleSpawner = GameScheduleManager.Instance.CheckSpawnerInScheduleSpawners((int)Template.Id);
-            if (scheduleSpawner)
+            return SpawnerId;
+        }
+        // Iterates through all spawners and selects a suitable one
+        foreach (var spawnerId in NpcSpawnerIds)
+        {
+            // Gets the template for the current spawner
+            var spawnerTemplate = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
+
+            // Checks if the number of players is suitable for this spawner
+            if (playerCount >= spawnerTemplate.MinPopulation && playerCount <= spawnerTemplate.MaxPopulation)
             {
-                // спавнер присутствует в расписании `game_schedules`
-                // if there is, we'll check the time for the spawning
-                var inGameSchedule = GameScheduleManager.Instance.CheckSpawnerInGameSchedules((int)Template.Id);
-                if (inGameSchedule)
-                {
-                    // проверим, есть ли в расписании такой spawner и есть ли расписание для спавна
-                    // check if there is such a spawner in the schedule and if there is a schedule for spawning
-                    var status = GameScheduleManager.Instance.GetPeriodStatusNpc((int)Template.Id);
-                    if (status == GameScheduleManager.PeriodStatus.NotFound)
-                    {
-                        // couldn't find it on the schedule, but it should have been!
-                        // no entries found for this unit in Game_Schedule table
-                        // All the same, we will be despawn Npc, since there was no record in Scheduler
-                        // Тем не менее, мы будем деспавнить Npc, так как в планировщике не было никаких записей
-                        notFoundInScheduler = true;
-                        Logger.Trace($"DoDespawnSchedule: Npc was not found in the schedule, we will despawn it templateId={UnitId} from spawnerId {Template.Id}");
-                    }
-                    else if (status == GameScheduleManager.PeriodStatus.NotStarted)
-                    {
-                        Logger.Trace($"DoDespawnSchedule: The period has not yet begun. Can despawn Npc templateId={UnitId} from spawnerId {Template.Id}");
-                    }
-                    else if (status == GameScheduleManager.PeriodStatus.InProgress)
-                    {
-                        // Период уже идет, надо запланировать деспавн
-                        // The period is already running, we need to schedule despawn
-                        var cronExpression = GameScheduleManager.Instance.GetCronRemainingTime((int)Template.Id, false);
-                        if (cronExpression is "" or "0 0 0 0 0 ?")
-                        {
-                            Logger.Trace($"DoDespawnSchedule: Can't schedule despawn Npc templateId={UnitId} from spawnerId {Template.Id}");
-                            Logger.Trace($"DoDespawnSchedule: cronExpression {cronExpression}");
-                            return;
-                        }
-                        try
-                        {
-                            TaskManager.Instance.CronSchedule(new NpcSpawnerDoDespawnTask(npc), cronExpression);
-                            Logger.Trace($"DoDespawnSchedule: Schedule the despawn of Npc templateId={UnitId} from spawnerId {Template.Id}");
-                            Logger.Trace($"DoDespawnSchedule: cronExpression {cronExpression}");
-                            return; // Reschedule when OK
-                        }
-                        catch (Exception)
-                        {
-                            Logger.Trace($"DoDespawnSchedule: Can't schedule despawn Npc templateId={UnitId} from spawnerId {Template.Id}");
-                            Logger.Trace($"DoDespawnSchedule: cronExpression {cronExpression}");
-                            return;
-                        }
-                    }
-                    else if (status == GameScheduleManager.PeriodStatus.Ended)
-                    {
-                        // период уже закончился, нужно деспавнить
-                        // period has already ended, no need to despawn
-                        Logger.Trace($"DoDespawnSchedule: The period has ended. Can despawn Npc templateId={UnitId} from spawnerId {Template.Id}");
-                    }
-                }
+                // If the conditions are met, returns this spawner
+                return spawnerId;
             }
         }
-        #endregion Schedule
 
-        DoDespawn(npc, all);
+        // If no suitable spawner is found, returns null
+        return null;
+    }
 
-        if (notFoundInScheduler)
+    /// <summary>
+    /// Checks if there are NPCs in other spawners.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> if there are NPCs in other spawners; 
+    /// <c>false</c> if other spawners are empty.
+    /// </returns>
+    private bool AreOtherNpcsInSpawnZone()
+    {
+        // Iterates through all spawners
+        foreach (var spawnerId in SpawnedNpcs.Keys)
         {
+            // Excludes the current spawner
+            if (spawnerId == SpawnerId)
+                continue;
+
+            // Checks if there are NPCs in this spawner
+            if (SpawnedNpcs.TryGetValue(spawnerId, out var npcs) && npcs?.Count > 0)
+            {
+                return true; // There are NPCs in another spawner
+            }
+        }
+
+        // If there are no NPCs in any other spawner, returns false
+        return false;
+    }
+
+    /// <summary>
+    /// Spawns all NPCs associated with this spawner.
+    /// </summary>
+    public List<Npc> SpawnAll(bool beginning = false)
+    {
+        if (IsSpawningScheduleEnabled())
+            return null;
+
+        DoSpawn();
+
+        if (IsSpawnScheduled)
+            IsDespawningScheduleEnabled(SpawnerId);
+
+        return SpawnedNpcs[SpawnerId];
+    }
+
+    /// <summary>
+    /// Spawns a single NPC with the specified object ID.
+    /// </summary>
+    public override Npc Spawn(uint objId)
+    {
+        if (IsSpawningScheduleEnabled())
+            return null;
+
+        DoSpawn();
+
+        if (IsSpawnScheduled)
+            IsDespawningScheduleEnabled(SpawnerId);
+
+        return SpawnedNpcs[SpawnerId][0];
+    }
+
+    /// <summary>
+    /// Despawns the specified NPC.
+    /// </summary>
+    public override void Despawn(Npc npc)
+    {
+        if (npc == null)
+        {
+            Logger.Warn("Attempted to despawn a null NPC.");
             return;
         }
 
-        DoSpawnSchedule(all);
+        try
+        {
+            lock (_spawnLock)
+            {
+                // Unregisters NPC events and deletes it
+                npc.UnregisterNpcEvents();
+                npc.Delete();
+
+                // Releases ObjId if the NPC will not respawn
+                if (npc.Respawn == DateTime.MinValue)
+                    ObjectIdManager.Instance.ReleaseId(npc.ObjId);
+
+                // Removes the NPC from the SpawnedNpcs list
+                if (npc.Spawner != null)
+                {
+                    var id = npc.Spawner.SpawnerId;
+                    if (SpawnedNpcs.TryGetValue(id, out var npcList))
+                    {
+                        var removed = npcList.Remove(npc);
+                        if (!removed)
+                        {
+                            Logger.Warn($"NPC {npc.TemplateId} not found in SpawnedNpcs for SpawnerId={id}.");
+                        }
+
+                        // If the NPC list is empty, removes the entry from the dictionary
+                        if (npcList.Count == 0)
+                        {
+                            var removedEntry = SpawnedNpcs.TryRemove(id, out _);
+                            if (!removedEntry)
+                            {
+                                Logger.Warn($"Failed to remove empty SpawnerId={id} from SpawnedNpcs.");
+                            }
+                            else
+                            {
+                                Logger.Debug($"Removed empty SpawnerId={id} from SpawnedNpcs.");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Logger.Warn($"SpawnerId={id} not found in SpawnedNpcs.");
+                    }
+                }
+                else
+                {
+                    Logger.Warn($"NPC {npc.TemplateId} has no associated Spawner.");
+                }
+
+                // Decreases the NPC count
+                DecreaseCount(npc);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Failed to despawn NPC {npc.TemplateId}.");
+        }
     }
 
-    public void DoEventSpawn()
+    public void RemoveNpc(uint spawnerId, Npc npc)
     {
-        // TODO Check if delay is OK
+        if (SpawnedNpcs.TryGetValue(spawnerId, out var npcList))
+        {
+            lock (_spawnLock)
+            {
+                npcList.Remove(npc);
+
+                // If the NPC list is empty, removes the entry from the dictionary
+                if (npcList.Count == 0)
+                {
+                    SpawnedNpcs.TryRemove(spawnerId, out _);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clears the last spawn count.
+    /// </summary>
+    public void ClearLastSpawnCount()
+    {
+        Interlocked.Exchange(ref _spawnCount, 0);
+    }
+
+    /// <summary>
+    /// Decreases the spawn count and handles respawn logic for the specified NPC.
+    /// </summary>
+    public void DecreaseCount(Npc npc)
+    {
+        if (npc == null)
+        {
+            Logger.Warn("Attempted to decrease count for a null NPC.");
+            return;
+        }
+
+        try
+        {
+            // Decreases the spawn count
+            var newSpawnCount = Interlocked.Decrement(ref _spawnCount);
+            Logger.Trace($"Decreased spawn count for NPC {npc.ObjId}. New count: {newSpawnCount}.");
+
+            // Schedules respawn if necessary
+            if (RespawnTime > 0 && newSpawnCount + _scheduledCount < Count)
+            {
+                npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
+                SpawnManager.Instance.AddRespawn(npc);
+                var newScheduledCount = Interlocked.Increment(ref _scheduledCount);
+                Logger.Trace($"Scheduled respawn for NPC {npc.ObjId} in {RespawnTime} seconds. New scheduled count: {newScheduledCount}.");
+            }
+
+            // Sets the despawn time
+            npc.Despawn = DateTime.UtcNow.AddSeconds(DespawnTime);
+
+            // Extends the despawn time if there are items in the container
+            if (npc.LootingContainer != null && npc.LootingContainer.Items.Count > 0)
+            {
+                npc.Despawn += TimeSpan.FromSeconds(LootingContainer.LootDespawnExtensionTime);
+                Logger.Trace($"Extended despawn time for NPC {npc.ObjId} due to items in looting container.");
+            }
+
+            // Adds the NPC to the despawn list
+            SpawnManager.Instance.AddDespawn(npc);
+            Logger.Trace($"Added NPC {npc.ObjId} to despawn list.");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Failed to decrease count for NPC {npc.ObjId}.");
+        }
+    }
+
+    /// <summary>
+    /// Despawns the specified NPC and schedules respawn if necessary.
+    /// </summary>
+    public void DespawnWithRespawn(Npc npc)
+    {
+        if (npc == null) return;
+
+        npc.Delete();
+        Interlocked.Decrement(ref _spawnCount);
+
+        if (RespawnTime <= 0 || _spawnCount + _scheduledCount >= Count)
+            return;
+
+        npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
+        SpawnManager.Instance.AddRespawn(npc);
+        Interlocked.Increment(ref _scheduledCount);
+    }
+
+    /// <summary>
+    /// Despawns all NPCs, excluding those in combat.
+    /// </summary>
+    /// <param name="npcs">The list of NPCs to despawn.</param>
+    public void DoDespawn(List<Npc> npcs)
+    {
+        if (npcs == null)
+        {
+            Logger.Warn("Attempted to despawn a null list of NPCs.");
+            return;
+        }
+
+        // Creates a copy of the list for safe iteration
+        var npcsToDespawn = npcs.ToList();
+
+        foreach (var npc in npcsToDespawn)
+        {
+            try
+            {
+                if (npc == null)
+                {
+                    Logger.Warn("Attempted to despawn a null NPC.");
+                    continue;
+                }
+
+                // Despawns the NPC if it is not in combat
+                if (!npc.IsInBattle)
+                {
+                    Despawn(npc);
+                    Logger.Trace($"Despawned NPC {npc.ObjId}.");
+                }
+                else
+                {
+                    Logger.Trace($"Skipped despawn for NPC {npc.ObjId} because it is in battle.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Failed to despawn NPC {npc?.ObjId}.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Spawns NPCs.
+    /// </summary>
+    public void DoSpawn()
+    {
+        // Checks if there are NPCs to spawn
+        if (SpawnableNpcs == null || SpawnableNpcs.Count == 0)
+        {
+            Logger.Warn("No spawnable NPCs available.");
+            return;
+        }
+
+        // List to store spawned NPCs
+        var spawnedNpcs = new List<Npc>();
+
+        // Iterates through all NPC templates
+        foreach (var npcTemplate in SpawnableNpcs)
+        {
+            try
+            {
+                if (npcTemplate == null)
+                {
+                    Logger.Warn("NPC template is null.");
+                    continue;
+                }
+
+                // Creates the NPC
+                var npc = NpcManager.Instance.Create(0, npcTemplate.MemberId);
+                if (npc == null)
+                {
+                    Logger.Warn($"Failed to create NPC from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
+                    continue;
+                }
+
+                // Spawns the NPC
+                var spawned = npcTemplate.Spawn(this);
+                if (spawned == null || spawned.Count == 0)
+                {
+                    Logger.Warn($"No NPCs spawned from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
+                    continue;
+                }
+
+                // Adds the spawned NPCs to the list
+                lock (_spawnLock) // Synchronizes access to the list
+                {
+                    spawnedNpcs.AddRange(spawned);
+                    foreach (var n in spawned)
+                    {
+                        AddNpcToSpawned(n.Spawner.SpawnerId, n);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Failed to spawn NPC from template {npcTemplate?.SpawnerId}:{npcTemplate?.MemberId}");
+            }
+        }
+
+        // Checks if any NPCs were spawned
+        if (spawnedNpcs.Count == 0)
+        {
+            Logger.Error($"Can't spawn NPC {SpawnerId}:{UnitId} from index={Template.Id}");
+            return;
+        }
+
+        // Increases the count of spawned NPCs
+        IncrementCount(spawnedNpcs);
+
+        Logger.Info($"Mobs were spawned from SpawnerId={SpawnerId} in the amount of {spawnedNpcs.Count}");
+    }
+
+    /// <summary>
+    /// Schedules NPC spawning.
+    /// </summary>
+    private bool IsSpawningScheduleEnabled()
+    {
         if (Template == null)
         {
-            // no spawner for TemplateId
+            Logger.Warn($"Can't spawn npc {SpawnerId}:{UnitId} from index={Id}");
+            return false;
+        }
+
+        IsSpawnScheduled = false;
+
+        // Checks the spawn time
+        if (Template.StartTime > 0.0f || Template.EndTime > 0.0f)
+        {
+            var curTime = TimeManager.Instance.GetTime;
+            var startTime = TimeSpan.FromHours(Template.StartTime);
+            var endTime = TimeSpan.FromHours(Template.EndTime);
+            var currentTime = TimeSpan.FromHours(curTime);
+
+            if (!IsTimeBetween(currentTime, startTime, endTime))
+                return false;
+
+            IsSpawnScheduled = true; // Spawning is allowed by time
+            return true;
+        }
+
+        // Checks the status in GameScheduleManager
+        var status = GameScheduleManager.Instance.GetPeriodStatusNpc((int)Template.Id);
+        switch (status)
+        {
+            case GameScheduleManager.PeriodStatus.NotFound:
+                IsNotFoundInScheduler = true;
+                IsSpawnScheduled = false;
+                return true; // NPC not found in the schedule, allows spawning
+            case GameScheduleManager.PeriodStatus.NotStarted:
+                IsNotFoundInScheduler = false;
+                IsSpawnScheduled = false;
+                return false;
+            case GameScheduleManager.PeriodStatus.InProgress:
+                IsNotFoundInScheduler = false;
+                IsSpawnScheduled = true;
+                return true;
+            case GameScheduleManager.PeriodStatus.Ended:
+                IsNotFoundInScheduler = false;
+                IsSpawnScheduled = false;
+                return false;
+            default:
+                IsNotFoundInScheduler = false;
+                IsSpawnScheduled = false;
+                return false;
+        }
+    }
+
+    private static bool IsTimeBetween(TimeSpan currentTime, TimeSpan startTime, TimeSpan endTime)
+    {
+        if (startTime <= endTime)
+            return currentTime >= startTime && currentTime <= endTime;
+
+        return currentTime >= startTime || currentTime <= endTime;
+    }
+
+    /// <summary>
+    /// Schedules NPC despawning.
+    /// </summary>
+    private bool IsDespawningScheduleEnabled(uint spawnerId)
+    {
+        // If there are no NPCs for the specified spawnerId, despawning is allowed (nothing to despawn)
+        if (!SpawnedNpcs.TryGetValue(spawnerId, out var npcs))
+            return true;
+
+        // Checks each NPC
+        foreach (var npc in npcs)
+        {
+            IsNotFoundInScheduler = false;
+
+            // Checks the spawn time (if specified)
+            if (npc.Spawner.Template.StartTime > 0.0f || npc.Spawner.Template.EndTime > 0.0f)
+            {
+                var curTime = TimeManager.Instance.GetTime;
+                var startTime = TimeSpan.FromHours(npc.Spawner.Template.StartTime);
+                var endTime = TimeSpan.FromHours(npc.Spawner.Template.EndTime);
+                var currentTime = TimeSpan.FromHours(curTime);
+
+                // If the current time is NOT within the allowed interval, despawning is prohibited
+                if (!IsTimeBetween(currentTime, startTime, endTime))
+                    return false;
+
+                IsSpawnScheduled = false; // Spawning is allowed by time
+            }
+
+            // Checks the status in GameScheduleManager
+            var status = GameScheduleManager.Instance.GetPeriodStatusNpc((int)npc.Spawner.Template.Id);
+            switch (status)
+            {
+                case GameScheduleManager.PeriodStatus.NotFound:
+                    IsNotFoundInScheduler = true;
+                    return false; // Despawning is prohibited because the NPC is not found in the schedule
+                case GameScheduleManager.PeriodStatus.NotStarted:
+                case GameScheduleManager.PeriodStatus.Ended:
+                    return true; // Despawning is allowed
+                case GameScheduleManager.PeriodStatus.InProgress:
+                    // Despawning is prohibited because the NPC is in progress
+                    return false;
+                default:
+                    return false; // Unknown status, despawning is prohibited
+            }
+        }
+
+        // If all checks pass, despawning is allowed
+        return true;
+    }
+
+    /// <summary>
+    /// Spawns NPCs for an event.
+    /// </summary>
+    public void DoEventSpawn()
+    {
+        if (Template == null)
+        {
             Logger.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Id);
             return;
         }
 
-        // Check if population is within bounds
         if (_spawnCount >= Template.MaxPopulation)
-        {
             return;
-        }
 
-        // Check if we did not go over Suspend Spawn Count
         if (Template.SuspendSpawnCount > 0 && _spawnCount > Template.SuspendSpawnCount)
-        {
-            //Logger.Debug("DoSpawn: Npc TemplateId {0}, spawnerId {1} reschedule next time...", UnitId, Id);
-            //TaskManager.Instance.Schedule(new NpcSpawnerDoSpawnTask(this), TimeSpan.FromSeconds(60));
             return;
-        }
 
-        // Select an NPC to spawn based on the Template.Id in npc_spawner_npcs
         var n = new List<Npc>();
-        foreach (var nsn in Template.Npcs)
+        var nsnTask = Template.Npcs.FirstOrDefault(nsn => nsn.MemberId == UnitId);
+        if (nsnTask != null)
         {
-            if (nsn.MemberId != UnitId) { continue; }
-            n = nsn.Spawn(this);
-            break;
+            n = nsnTask.Spawn(this);
         }
 
         try
         {
             foreach (var npc in n)
             {
-                _spawned.Add(npc);
+                AddNpcToSpawned(SpawnerId, npc);
             }
         }
         catch (Exception)
@@ -597,45 +767,55 @@ public class NpcSpawner : Spawner<Npc>
             Logger.Error("Can't spawn npc {0} from spawnerId {1}", UnitId, Template.Id);
             return;
         }
-        _lastSpawn = n[^1];
-        if (_scheduledCount > 0)
+
+        IncrementCount(n);
+    }
+
+    private void IncrementCount(List<Npc> n)
+    {
+        lock (_spawnLock)
         {
-            _scheduledCount -= n.Count;
-        }
-        _spawnCount = _spawned.Count;
-        if (_spawnCount < 0)
-        {
-            _spawnCount = 0;
+            if (_scheduledCount > 0)
+                Interlocked.Add(ref _scheduledCount, -n.Count);
+
+            if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcList))
+            {
+                lock (npcList)
+                    Interlocked.Exchange(ref _spawnCount, npcList.Count);
+            }
+            else
+                Interlocked.Exchange(ref _spawnCount, 0);
+
+            if (_spawnCount < 0)
+                Interlocked.Exchange(ref _spawnCount, 0);
         }
     }
 
+    /// <summary>
+    /// Spawns NPCs with an effect.
+    /// </summary>
     public void DoSpawnEffect(uint spawnerId, SpawnEffect effect, BaseUnit caster, BaseUnit target)
     {
         var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
-        if (template.Npcs == null)
-        {
+        if (template?.Npcs == null)
             return;
-        }
 
         var n = new List<Npc>();
-        foreach (var nsn in template.Npcs)
+        var templateNsnTask2 = template.Npcs.FirstOrDefault(nsn => nsn != null && nsn.MemberId == UnitId);
+        if (templateNsnTask2 != null)
         {
-            if (nsn == null || nsn.MemberId != UnitId)
-                continue;
-
-            n = nsn.Spawn(this, template.MaxPopulation);
-            break;
+            n = templateNsnTask2.Spawn(this);
         }
 
         try
         {
-            if (n == null) { return; }
+            if (n == null) return;
 
             foreach (var npc in n)
             {
                 if (npc.Spawner != null)
                 {
-                    npc.Spawner.RespawnTime = 0; // don't respawn
+                    npc.Spawner.RespawnTime = 0;
                 }
 
                 if (effect.UseSummonerFaction)
@@ -645,9 +825,6 @@ public class NpcSpawner : Spawner<Npc>
 
                 if (effect.UseSummonerAggroTarget && !effect.UseSummonerFaction)
                 {
-                    // TODO : Pick random target off of Aggro table ?
-
-                    // Npc attacks the character
                     if (target is Npc)
                     {
                         npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)target, 1);
@@ -658,7 +835,6 @@ public class NpcSpawner : Spawner<Npc>
                     }
 
                     npc.Ai.OnAggroTargetChanged();
-                    //npc.Ai.GoToCombat();
                 }
 
                 if (effect.LifeTime > 0)
@@ -672,39 +848,87 @@ public class NpcSpawner : Spawner<Npc>
             Logger.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
             return;
         }
+
         if (n.Count == 0)
         {
             Logger.Error("Can't spawn npc {0} from spawner {1}", UnitId, template.Id);
             return;
         }
-        _spawned.AddRange(n);
+
+        foreach (var npc in n)
+        {
+            AddNpcToSpawned(SpawnerId, npc);
+        }
+
         if (_scheduledCount > 0)
         {
-            _scheduledCount -= n.Count;
+            Interlocked.Add(ref _scheduledCount, -n.Count);
         }
-        _spawnCount = _spawned.Count;
+
+        if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcList))
+        {
+            lock (npcList)
+            {
+                Interlocked.Exchange(ref _spawnCount, npcList.Count);
+            }
+        }
+        else
+        {
+            Interlocked.Exchange(ref _spawnCount, 0);
+        }
+
         if (_spawnCount < 0)
         {
-            _spawnCount = 0;
+            Interlocked.Exchange(ref _spawnCount, 0);
         }
-        _lastSpawn = n[^1];
-        _lastSpawn.Spawner = this;
     }
 
+    /// <summary>
+    /// Clears the spawn count and all spawned NPCs.
+    /// </summary>
     public void ClearSpawnCount()
     {
-        _spawnCount = 0;
-        _spawned = [];
-        _lastSpawn = null;
+        lock (_spawnLock)
+        {
+            SpawnedNpcs[SpawnerId].Clear();
+            Interlocked.Exchange(ref _spawnCount, 0);
+        }
+
+        Logger.Trace("Spawn count cleared.");
     }
 
-    public bool CanSpawn()
+    private void AddNpcToSpawned(uint key, Npc newNpc)
     {
-        return _spawnCount < Template.MaxPopulation;
+        if (newNpc == null)
+        {
+            Logger.Warn("Attempted to add a null NPC to SpawnedNpcs.");
+            return;
+        }
+
+        SpawnedNpcs.AddOrUpdate(
+            key,
+            k =>
+            {
+                var newNpcList = new List<Npc> { newNpc };
+                Logger.Trace($"Created new NPC list for key {k} and added NPC {newNpc.ObjId}.");
+                return newNpcList;
+            },
+            (k, existingNpcList) =>
+            {
+                lock (existingNpcList)
+                {
+                    existingNpcList.Add(newNpc);
+                    Logger.Trace($"Added NPC {newNpc.ObjId} to existing list for key {k}.");
+                    return existingNpcList;
+                }
+            }
+        );
     }
 
-    public Unit GetLastSpawn()
+    public static T Clone<T>(T obj)
     {
-        return _lastSpawn;
+        var inst = obj.GetType().GetMethod("MemberwiseClone", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        return (T)inst?.Invoke(obj, null);
     }
 }
