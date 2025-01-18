@@ -92,7 +92,7 @@ public class SpawnManager : Singleton<SpawnManager>
             }
 
             // Если время выполнения превысило допустимый порог, прерываем цикл
-            if (stopwatch.Elapsed > TimeSpan.FromMilliseconds(500)) // Порог 100 мс
+            if (stopwatch.Elapsed > TimeSpan.FromMilliseconds(50)) // Порог 50 мс
             {
                 Logger.Warn($"idx={_currentSpawnerIndex}. Update loop interrupted due to time limit. Elapsed time: {stopwatch.ElapsedMilliseconds} ms.");
                 break;
