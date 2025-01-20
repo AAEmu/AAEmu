@@ -169,6 +169,12 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         }
         // TODO: check if there are any other skill types that required to be used in a specific area of multiple quest spheres
 
+        // Needed to fix skills that can only target self (i.e. that don't apply to the target, for example glider skills),
+        // even though they use UnitReqsKindType.TargetBuffTag
+        var target = skillTemplate.TargetType == SkillTargetType.Self
+            ? ownerUnit
+            : (ownerUnit as Unit)?.CurrentTarget ?? ownerUnit;
+        
         var res = !skillTemplate.OrUnitReqs;
         var lastFailedCheckResult = new UnitReqsValidationResult(SkillResultKeys.skill_failure, 0, 0);
         foreach (var unitReq in reqs)
@@ -190,7 +196,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             }
             else
             {
-                var lastCheckResult = unitReq.Validate(ownerUnit);
+                var lastCheckResult = unitReq.Validate(ownerUnit, target);
                 reqRes = lastCheckResult.ResultKey == SkillResultKeys.ok;
                 if (lastCheckResult.ResultKey != SkillResultKeys.ok)
                     lastFailedCheckResult = lastCheckResult;
@@ -214,10 +220,13 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         var reqs = GetSphereRequirements(sphere.Id);
         if (reqs.Count == 0)
             return true; // No requirements, we're good
+        
+        var target = (ownerUnit as Unit)?.CurrentTarget ?? ownerUnit;
+        
         var res = !sphere.OrUnitReqs;
         foreach (var unitReq in reqs)
         {
-            var validateRes = unitReq.Validate(ownerUnit);
+            var validateRes = unitReq.Validate(ownerUnit, target);
             var reqRes = validateRes.ResultKey == SkillResultKeys.ok;
 
             if (sphere.OrUnitReqs)
@@ -237,10 +246,11 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         var reqs = GetQuestComponentRequirements(questComponent.Id);
         if (reqs.Count == 0)
             return true; // No requirements, we're good
+        var target = (ownerUnit as Unit)?.CurrentTarget ?? ownerUnit;
         var res = !questComponent.OrUnitReqs;
         foreach (var unitReq in reqs)
         {
-            var validateRes = unitReq.Validate(ownerUnit);
+            var validateRes = unitReq.Validate(ownerUnit, target);
             var reqRes = validateRes.ResultKey == SkillResultKeys.ok;
 
             if (questComponent.OrUnitReqs)

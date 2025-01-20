@@ -29,7 +29,7 @@ public class UnitReqs
     public uint Value1 { get; set; }
     public uint Value2 { get; set; }
 
-    public UnitReqsValidationResult Validate(BaseUnit owner)
+    public UnitReqsValidationResult Validate(BaseUnit owner, BaseUnit target)
     {
         UnitReqsValidationResult Ret(SkillResultKeys errorKey, bool success)
         {
@@ -46,7 +46,7 @@ public class UnitReqs
         }
 
         var unit = owner as Unit;
-        var targetUnit = unit?.CurrentTarget as Unit;
+        var targetUnit = target as Unit;
         var player = owner as Character;
         switch (KindType)
         {
