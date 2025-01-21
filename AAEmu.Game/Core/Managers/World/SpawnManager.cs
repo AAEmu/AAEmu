@@ -441,7 +441,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     entry++;
 
                     // Check for duplication by UnitId and Position
-                    if (_doodadSpawners[(byte)world.Id].Values
+                    if (doodadSpawners.Values
                         .Any(existingSpawner => existingSpawner.UnitId == spawner.UnitId &&
                                                 Math.Abs(existingSpawner.Position.X - spawner.Position.X) < 1f &&
                                                 Math.Abs(existingSpawner.Position.Y - spawner.Position.Y) < 1f
