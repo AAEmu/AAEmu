@@ -76,8 +76,13 @@ public class PlotNode
 
         if (castTime > 0)
             state.IsCasting = true;
-        if ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Casting ?? false))
+        if (ParentNextEvent?.Casting ?? false)
             state.IsCasting = false;
+
+        if (ParentNextEvent?.Channeling ?? false)
+            state.IsChanneling = false;
+        else
+            state.IsChanneling = true;
 
         if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
         {

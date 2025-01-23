@@ -60,7 +60,7 @@ public class SCPlotEventPacket : GamePacket
         stream.Write(_flag);
         if (((_flag >> 3) & 1) != 1)
         {
-            return stream;           // flag = 2 | 6
+            return stream;           // We had a note here that flag = 2 | 6, but it can also be 0. It defaults to 2, it seems.
         }
         for (var i = 0; i < 13; i++) // flag = 8
         {

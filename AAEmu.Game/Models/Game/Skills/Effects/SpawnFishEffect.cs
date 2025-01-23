@@ -17,6 +17,7 @@ public class SpawnFishEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("SpawnFishEffect");
+        Logger.Info($"SpawnFishEffect:");
+        //Process: Spawn the fish, add it to the world at the correct location, then: combat engaged, target, aggro target before starting fish AI.
     }
 }
