@@ -161,7 +161,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     /// <returns>The overall period status.</returns>
     private PeriodStatus CheckPeriodStatus(List<int> ids)
     {
-        var hasNotStarted = true;  // Assume that no period has started
+        // var hasNotStarted = true;  // Assume that no period has started
         var hasInProgress = false; // Assume that no period is in progress
         var hasEnded = false;      // Assume that no period has ended
 
@@ -174,12 +174,12 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
                 if (started && !ended)
                 {
                     hasInProgress = true;  // The period has started, but has not yet ended
-                    hasNotStarted = false; // At least one period has started, so "hasn't started" = false
+                    // hasNotStarted = false; // At least one period has started, so "hasn't started" = false
                 }
                 else if (ended)
                 {
                     hasEnded = true;       // At least one period has ended
-                    hasNotStarted = false; // At least one period has ended, so "hasn't started" = false
+                    // hasNotStarted = false; // At least one period has ended, so "hasn't started" = false
                 }
             }
         }

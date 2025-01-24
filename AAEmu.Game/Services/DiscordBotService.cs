@@ -43,7 +43,7 @@ public class DiscordBotService : IHostedService
     {
         while (true)
         {
-            playerCount = WorldManager.Instance.GetAllCharacters().Count;
+            playerCount = WorldManager.Instance.GetAllCharacters().Count();
             await _client.SetActivityAsync(new Discord.Game("with " + playerCount + " other players"));
             await Task.Delay(interval, cancellationToken);
         }
