@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageReference Include="NLog" Version="5.3.4" />
+    <PackageReference Include="OSVersionExt.NetStd" Version="3.0.1" />
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
   </ItemGroup>

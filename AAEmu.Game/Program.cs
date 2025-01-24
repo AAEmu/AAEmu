@@ -20,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 
 using NLog;
 using NLog.Config;
+using OSVersionExtension;
 
 namespace AAEmu.Game;
 
@@ -124,9 +125,14 @@ public static class Program
 
     private static void Initialization()
     {
-        Logger.Info($"{Name} version {Version}");
         _thread.Name = "AA.Game Base Thread";
         _startTime = DateTime.UtcNow;
+        Logger.Info($"{Name} version {Version}");
+        Logger.Info($"Running as {(Environment.Is64BitProcess ? "64" : "32")}-bits on {(Environment.Is64BitOperatingSystem ? "64" : "32")}-bits {OSVersion.GetOperatingSystem()} ({Environment.OSVersion})");
+        if (!Environment.Is64BitProcess)
+        {
+            Logger.Warn($"Running in 32-bits mode is not recommended to do memory constraints");
+        }
     }
 
     public static bool LoadConfiguration()

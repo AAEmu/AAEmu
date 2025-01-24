@@ -5,6 +5,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UserSecretsId>426ad5c3-9a72-44e9-88f5-4b5940b98c28</UserSecretsId>
     <ApplicationIcon>Resources\icon_game.ico</ApplicationIcon>
+    <Copyright>Copyright (c) 2019 - 2025 the AAEmu contributors</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
@@ -91,6 +92,7 @@
     <PackageReference Include="NCrontab" Version="3.3.3" />
     <PackageReference Include="NLog" Version="5.3.4" />
     <PackageReference Include="NLua" Version="1.7.3" />
+    <PackageReference Include="OSVersionExt.NetStd" Version="3.0.1" />
     <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.6.0" />
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />

@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
+using OSVersionExtension;
 
 namespace AAEmu.Login;
 
@@ -30,8 +31,6 @@ public static class Program
         Initialization();
 
         LoadConfiguration(args);
-
-        Logger.Info($"{Name} version {Version}");
 
         // Apply MySQL Configuration
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
@@ -95,6 +94,12 @@ public static class Program
     {
         _thread.Name = "AA.LoginServer Base Thread";
         _startTime = DateTime.UtcNow;
+        Logger.Info($"{Name} version {Version}");
+        Logger.Info($"Running as {(Environment.Is64BitProcess ? "64" : "32")}-bits on {(Environment.Is64BitOperatingSystem ? "64" : "32")}-bits {OSVersion.GetOperatingSystem()} ({Environment.OSVersion})");
+        if (!Environment.Is64BitProcess)
+        {
+            Logger.Warn($"Running in 32-bits mode is not recommended to do memory constraints");
+        }
     }
 
     private static void Configuration(string[] args, string mainConfigJson)
