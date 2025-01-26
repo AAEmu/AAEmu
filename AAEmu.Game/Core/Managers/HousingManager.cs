@@ -14,6 +14,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -41,7 +42,6 @@ public class HousingManager : Singleton<HousingManager>
     private const int MaxHeavyTaxCounted = 10; // Maximum number of heavy tax buildings to take into account for tax calculation
     private const int HoursForFailedTaxToReturnHouse = 22;
     private const double CopperPerCertificate = 1000000.0; // For older versions of AA, 1 sale certificate / 100g
-    private const int TaxPaysForDays = 7; // Number of days 1 week worth of tax pays for
     private Dictionary<uint, House> _houses;
     private Dictionary<ushort, House> _housesTl; // TODO or so mb tlId is id in the active zone? or type of house
     private Dictionary<uint, HousingDecoration> _housingDecorations;
@@ -672,7 +672,7 @@ public class HousingManager : Singleton<HousingManager>
         house.Permission = HousingPermission.Private;
         house.AllowRecover = true;
         house.PlaceDate = DateTime.UtcNow;
-        house.ProtectionEndDate = DateTime.UtcNow.AddDays(TaxPaysForDays);
+        house.ProtectionEndDate = DateTime.UtcNow.AddDays(AppConfiguration.Instance.World.DaysForTaxPayment);
         _houses.Add(house.Id, house);
         _housesTl.Add(house.TlId, house);
         connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
@@ -908,7 +908,7 @@ public class HousingManager : Singleton<HousingManager>
     /// <returns></returns>
     public static bool PayWeeklyTax(House house)
     {
-        house.ProtectionEndDate = house.ProtectionEndDate.AddDays(TaxPaysForDays);
+        house.ProtectionEndDate = house.ProtectionEndDate.AddDays(AppConfiguration.Instance.World.DaysForTaxPayment);
         return true;
     }
 
