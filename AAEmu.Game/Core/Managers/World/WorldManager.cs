@@ -1211,44 +1211,44 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
-    public IEnumerable<Character> GetAllCharacters()
+    public List<Character> GetAllCharacters()
     {
-        return _characters.Values;
+        return _characters.Values.ToList();
     }
 
-    public IEnumerable<Npc> GetAllNpcs()
+    public List<Npc> GetAllNpcs()
     {
-        return _npcs.Values;
+        return _npcs.Values.ToList();
     }
 
-    public IEnumerable<Npc> GetAllNpcsFromWorld(uint worldId)
+    public List<Npc> GetAllNpcsFromWorld(uint worldId)
     {
-        return _npcs.Values.Where(n => n.Transform.WorldId == worldId);
+        return _npcs.Values.Where(n => n.Transform.WorldId == worldId).ToList();
     }
 
-    public IEnumerable<Slave> GetAllSlaves()
+    public List<Slave> GetAllSlaves()
     {
-        return _slaves.Values;
+        return _slaves.Values.ToList();
     }
 
-    public IEnumerable<Mate> GetAllMates()
+    public List<Mate> GetAllMates()
     {
-        return _mates.Values;
+        return _mates.Values.ToList();
     }
 
-    public IEnumerable<Doodad> GetAllDoodads()
+    public List<Doodad> GetAllDoodads()
     {
-        return _doodads.Values;
+        return _doodads.Values.ToList();
     }
 
-    public IEnumerable<Gimmick> GetAllGimmicks()
+    public List<Gimmick> GetAllGimmicks()
     {
-        return _gimmicks.Values;
+        return _gimmicks.Values.ToList();
     }
 
-    public IEnumerable<Slave> GetAllSlavesFromWorld(uint worldId)
+    public List<Slave> GetAllSlavesFromWorld(uint worldId)
     {
-        return _slaves.Values.Where(n => n.Transform.WorldId == worldId);
+        return _slaves.Values.Where(n => n.Transform.WorldId == worldId).ToList();
     }
 
     public AreaShape GetAreaShapeById(uint id)

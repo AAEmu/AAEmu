@@ -134,9 +134,9 @@ public class ItemManager : Singleton<ItemManager>
         return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : [];
     }
 
-    public IEnumerable<ItemTemplate> GetAllItems()
+    public List<ItemTemplate> GetAllItems()
     {
-        return _templates.Values;
+        return _templates.Values.ToList();
     }
 
     public List<Item> GetLootConvertFish(uint templateId)
