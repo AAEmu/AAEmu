@@ -3,9 +3,11 @@ using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
+using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.Items;
 
+[JsonObject(MemberSerialization.OptIn)]
 public class Item : PacketMarshaler, IComparable<Item>
 {
     private byte _worldId;
@@ -28,28 +30,64 @@ public class Item : PacketMarshaler, IComparable<Item>
     private DateTime _expirationTime;
     private double _expirationOnlineMinutesLeft;
 
+    [JsonIgnore]
     public bool IsDirty { get => _isDirty; set => _isDirty = value; }
+
+    [JsonProperty]
     public byte WorldId { get => _worldId; set { _worldId = value; _isDirty = true; } }
+
+    [JsonProperty]
     public ulong OwnerId { get => _ownerId; set { _ownerId = value; _isDirty = true; } }
+
+    [JsonProperty]
     public ulong Id { get => _id; set { _id = value; _isDirty = true; } }
+
+    [JsonProperty]
     public uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
+
+    [JsonIgnore]
     public ItemTemplate Template { get; set; }
+
+    [JsonProperty]
     public virtual uint DetailBytesLength { get; } = 0;
+
+    [JsonProperty]
     public SlotType SlotType { get => _slotType; set { _slotType = value; _isDirty = true; } }
+
+    [JsonProperty]
     public int Slot { get => _slot; set { _slot = value; _isDirty = true; } }
+
+    [JsonProperty]
     public byte Grade { get => _grade; set { _grade = value; _isDirty = true; } }
+
+    [JsonProperty]
     public ItemFlag ItemFlags { get => _itemFlags; set { _itemFlags = value; _isDirty = true; } }
+
+    [JsonProperty]
     public int Count { get => _count; set { _count = value; _isDirty = true; } }
+
+    [JsonProperty]
     public int LifespanMins { get => _lifespanMins; set { _lifespanMins = value; _isDirty = true; } }
+
+    [JsonProperty]
     public uint MadeUnitId { get => _madeUnitId; set { _madeUnitId = value; _isDirty = true; } }
+
+    [JsonProperty]
     public DateTime CreateTime { get => _createTime; set { _createTime = value; _isDirty = true; } }
+
+    [JsonProperty]
     public DateTime UnsecureTime { get => _unsecureTime; set { _unsecureTime = value; _isDirty = true; } }
+
+    [JsonProperty]
     public DateTime UnpackTime { get => _unpackTime; set { _unpackTime = value; _isDirty = true; } }
+
+    [JsonProperty]
     public uint ImageItemTemplateId { get => _imageItemTemplateId; set { _imageItemTemplateId = value; _isDirty = true; } }
 
     /// <summary>
     /// Internal representation of the exact time a item will expire (UTC)
     /// </summary>
+    [JsonProperty]
     public DateTime ExpirationTime
     {
         get => _expirationTime;
@@ -66,6 +104,7 @@ public class Item : PacketMarshaler, IComparable<Item>
     /// <summary>
     /// Internal representation of the time this item has left before expiring, only counting down if the owning character is online
     /// </summary>
+    [JsonProperty]
     public double ExpirationOnlineMinutesLeft
     {
         get => _expirationOnlineMinutesLeft;
@@ -76,6 +115,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         }
     }
 
+    [JsonProperty]
     public ulong UccId
     {
         get => _uccId;
@@ -90,13 +130,20 @@ public class Item : PacketMarshaler, IComparable<Item>
         }
     }
 
+    [JsonProperty]
     public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
+
+    [JsonProperty]
     public int ChargeCount { get; set; }
 
+    [JsonProperty]
     public virtual ItemDetailType DetailType { get; set; } // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+
+    [JsonProperty]
     public byte[] Detail { get; set; }
 
     // Helper
+    [JsonIgnore]
     public ItemContainer _holdingContainer { get; set; }
 
     public static uint Coins { get; } = 500;

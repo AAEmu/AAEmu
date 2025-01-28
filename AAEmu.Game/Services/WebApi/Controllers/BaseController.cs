@@ -1,8 +1,8 @@
 ﻿using System.Collections.Specialized;
 using System.Net;
-using System.Text.Json;
 using System.Web;
 using NetCoreServer;
+using Newtonsoft.Json;
 
 namespace AAEmu.Game.Services.WebApi.Controllers;
 
@@ -34,7 +34,7 @@ internal class BaseController : IController
         var response = new HttpResponse((int)status);
         response.SetHeader("Content-Type", "application/json");
 
-        var jsonResult = JsonSerializer.Serialize(responseModel);
+        var jsonResult = JsonConvert.SerializeObject(responseModel);
         response.SetBody(jsonResult);
 
         return response;

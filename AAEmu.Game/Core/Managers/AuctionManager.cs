@@ -490,21 +490,14 @@ public class AuctionManager : Singleton<AuctionManager>
     {
         var sb = new StringBuilder();
         sb.Append("REPLACE INTO auction_house(");
-        sb.Append("`id`, `duration`,");
-        sb.Append(" `item_id`,");
-        sb.Append("`post_date`, `end_time`,");
-        sb.Append(" `world_id`, `client_id`, `client_name`,");
-        sb.Append(" `start_money`, `direct_money`,");
-        sb.Append(" `bid_world_id`, `bidder_id`, `bidder_name`,");
-        sb.Append(" `bid_money`, `extra`");
+        sb.Append("`id`, `duration`, `item_id`, `post_date`, `stack_size`, `end_time`, ");
+        sb.Append("`world_id`, `client_id`, `client_name`, `start_money`, `direct_money`, ");
+        sb.Append("`bid_world_id`, `bidder_id`, `bidder_name`, `bid_money`, `extra`");
         sb.Append(") VALUES (");
-        sb.Append("@id, @duration,");
-        sb.Append(" @item_id,");
-        sb.Append("@post_date, @end_time,");
-        sb.Append(" @world_id, @client_id, @client_name,");
-        sb.Append(" @start_money, @direct_money,");
-        sb.Append(" @bid_world_id, @bidder_id, @bidder_name,");
-        sb.Append(" @bid_money, @extra)");
+        sb.Append("@id, @duration, @item_id, @post_date, @stack_size, @end_time, ");
+        sb.Append("@world_id, @client_id, @client_name, @start_money, @direct_money, ");
+        sb.Append("@bid_world_id, @bidder_id, @bidder_name, @bid_money, @extra");
+        sb.Append(" )");
 
         return sb.ToString();
     }
@@ -515,6 +508,7 @@ public class AuctionManager : Singleton<AuctionManager>
         command.Parameters.AddWithValue("@duration", (byte)lot.Duration);
         command.Parameters.AddWithValue("@item_id", lot.Item.Id);
         command.Parameters.AddWithValue("@post_date", lot.PostDate);
+        command.Parameters.AddWithValue("@stack_size", lot.Item.Count);
         command.Parameters.AddWithValue("@end_time", lot.EndTime);
         command.Parameters.AddWithValue("@world_id", lot.WorldId);
         command.Parameters.AddWithValue("@client_id", lot.ClientId);

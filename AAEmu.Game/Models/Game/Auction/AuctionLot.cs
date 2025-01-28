@@ -1,31 +1,74 @@
 ﻿using System;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
+using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.Auction;
 
+[JsonObject(MemberSerialization.OptIn)]
 public class AuctionLot : PacketMarshaler
 {
+    [JsonProperty]
     public ulong Id { get; set; }
+
+    [JsonProperty]
     public AuctionDuration Duration { get; set; } // 0 is 6 hours, 1 is 12 hours, 2 is 24 hours, 3 is 48 hours
+
+    [JsonProperty]
     public Item Item { get; set; }
+
+    [JsonProperty]
     public DateTime EndTime { get; set; }
-    public ulong TimeLeft { get => (ulong)EndTime.Subtract(DateTime.UtcNow).TotalSeconds; } // seconds left
+
+    /// <summary>
+    /// Seconds left
+    /// </summary>
+    [JsonProperty]
+    public ulong TimeLeft { get => (ulong)EndTime.Subtract(DateTime.UtcNow).TotalSeconds; }
+
+    [JsonProperty]
     public byte WorldId { get; set; }
+
+    [JsonProperty]
     public uint ClientId { get; set; }
+
+    [JsonProperty]
     public string ClientName { get; set; }
+
+    [JsonProperty]
     public int StartMoney { get; set; }
+
+    [JsonProperty]
     public int DirectMoney { get; set; }
+
+    [JsonProperty]
     public DateTime PostDate { get; set; }
-    //public int ChargePercent { get; set; } // added in 3+
+
+    // [JsonProperty]
+    // public int ChargePercent { get; set; } // added in 3+
+
+    [JsonProperty]
     public byte BidWorldId { get; set; }
+
+    [JsonProperty]
     public uint BidderId { get; set; }
+
+    [JsonProperty]
     public string BidderName { get; set; }
+
+    [JsonProperty]
     public int BidMoney { get; set; }
+
+    [JsonProperty]
     public int Extra { get; set; }
-    //public int MinStack { get; set; } // added in 3+
-    //public int MaxStack { get; set; } // added in 3+
+
+    // [JsonProperty]
+    // public int MinStack { get; set; } // added in 3+
+
+    // [JsonProperty]
+    // public int MaxStack { get; set; } // added in 3+
+
+    [JsonIgnore]
     public bool IsDirty { get; set; }
 
     public override void Read(PacketStream stream)
