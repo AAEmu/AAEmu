@@ -1078,6 +1078,18 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return result;
     }
 
+    private static List<T> GetNeighborRegionsObjs<T>(GameObject obj) where T : class
+    {
+        var result = new List<T>();
+
+        if (obj?.Region == null) return result;
+
+        foreach (var neighbor in obj.Region.GetNeighbors())
+            neighbor?.GetList(result, obj.ObjId);
+
+        return result;
+    }
+
     private static bool RadiusFitsCurrentRegion(GameObject obj, float radius)
     {
         var xMod = obj?.Transform?.World?.Position.X % REGION_SIZE;
@@ -1193,7 +1205,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public static void ResendVisibleObjectsToCharacter(Character character)
     {
         // Re-send visible flags to character getting out of cinema
-        var stuffs = GetAround<GameObject>(character, REGION_NEIGHBORHOOD_SIZE * REGION_SIZE);
+        var stuffs = GetNeighborRegionsObjs<GameObject>(character);
         var doodads = new List<Doodad>();
         foreach (var stuff in stuffs)
         {
