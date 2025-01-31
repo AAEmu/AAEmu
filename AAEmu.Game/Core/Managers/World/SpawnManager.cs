@@ -448,8 +448,9 @@ public class SpawnManager : Singleton<SpawnManager>
                     // Check for duplication by UnitId and Position
                     if (doodadSpawners.Values
                         .Any(existingSpawner => existingSpawner.UnitId == spawner.UnitId &&
-                                                Math.Abs(existingSpawner.Position.X - spawner.Position.X) < 1f &&
-                                                Math.Abs(existingSpawner.Position.Y - spawner.Position.Y) < 1f
+                                                Math.Abs(existingSpawner.Position.X - spawner.Position.X) < 0.01f &&
+                                                Math.Abs(existingSpawner.Position.Y - spawner.Position.Y) < 0.01f &&
+                                                Math.Abs(existingSpawner.Position.Z - spawner.Position.Z) < 0.01f
                                                 ))
                     {
                         Logger.Trace($"Duplicate Doodad spawner found in {jsonFileName} (UnitId: {spawner.UnitId}, Position: {spawner.Position})");
