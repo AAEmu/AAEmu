@@ -163,7 +163,7 @@ public class NpcSpawner : Spawner<Npc>
 
     private bool IsCorpse(List<Npc> npcs)
     {
-        return npcs.Any(npc => npc.Ai?.GetCurrentBehavior().GetType() == typeof(DeadBehavior));
+        return npcs.Any(npc => npc.IsDead);
     }
 
     /// <summary>
