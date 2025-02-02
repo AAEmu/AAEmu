@@ -12,6 +12,8 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
+using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -72,11 +74,16 @@ public class NpcSpawner : Spawner<Npc>
     /// </summary>
     public void Update()
     {
-        if (CanDespawn())
+        if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
         {
-            if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
+            if (CanDespawn())
             {
                 DoDespawn(npcs);
+                return;
+            }
+
+            if (IsCorpse())
+            {
                 return;
             }
         }
@@ -152,6 +159,11 @@ public class NpcSpawner : Spawner<Npc>
             return true;
 
         return !IsPlayerInSpawnRadius();
+    }
+
+    private bool IsCorpse(List<Npc> npcs)
+    {
+        return npcs.Any(npc => npc.Ai?.GetCurrentBehavior().GetType() == typeof(DeadBehavior));
     }
 
     /// <summary>
