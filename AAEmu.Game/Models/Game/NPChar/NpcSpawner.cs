@@ -82,7 +82,7 @@ public class NpcSpawner : Spawner<Npc>
                 return;
             }
 
-            if (IsCorpse())
+            if (IsCorpse(npcs))
             {
                 return;
             }
