@@ -74,15 +74,14 @@ public class NpcSpawner : Spawner<Npc>
     /// </summary>
     public void Update()
     {
-        if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
+        if (CanDespawn())
         {
-            if (CanDespawn())
+            if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
             {
                 DoDespawn(npcs);
                 return;
             }
         }
-
         if (!CanSpawn())
             return;
 
