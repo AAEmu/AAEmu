@@ -81,11 +81,6 @@ public class NpcSpawner : Spawner<Npc>
                 DoDespawn(npcs);
                 return;
             }
-
-            if (IsCorpse(npcs))
-            {
-                return;
-            }
         }
 
         if (!CanSpawn())
@@ -106,6 +101,15 @@ public class NpcSpawner : Spawner<Npc>
         {
             Logger.Warn("Template is null. Cannot determine if NPC can be spawned.");
             return false;
+        }
+
+        // Checks if there is a NPC that is a corpse so it doesn`t respawn immediatly after being killed
+        if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
+        {
+            if (IsCorpse(npcs))
+            {
+                return false;
+            }
         }
 
         //if (Template.NpcSpawnerCategoryId != NpcSpawnerCategory.Autocreated)
@@ -161,6 +165,9 @@ public class NpcSpawner : Spawner<Npc>
         return !IsPlayerInSpawnRadius();
     }
 
+    /// <summary>
+    /// Checks if there is a NPC that is a corpse
+    /// </summary>
     private bool IsCorpse(List<Npc> npcs)
     {
         return npcs.Any(npc => npc.IsDead);
