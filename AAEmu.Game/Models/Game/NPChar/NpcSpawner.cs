@@ -35,7 +35,7 @@ public class NpcSpawner : Spawner<Npc>
     private int _scheduledCount;
     private int _spawnCount;
     private bool IsSpawnScheduled;
-    private bool IsNotFoundInScheduler;
+    //private bool IsNotFoundInScheduler;
     private readonly object _spawnLock = new(); // Lock for thread safety
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
@@ -74,20 +74,14 @@ public class NpcSpawner : Spawner<Npc>
     /// </summary>
     public void Update()
     {
-        if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
+        if (CanDespawn())
         {
-            if (CanDespawn())
+            if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
             {
                 DoDespawn(npcs);
                 return;
             }
-
-            if (IsCorpse(npcs))
-            {
-                return;
-            }
         }
-
         if (!CanSpawn())
             return;
 
@@ -106,6 +100,15 @@ public class NpcSpawner : Spawner<Npc>
         {
             Logger.Warn("Template is null. Cannot determine if NPC can be spawned.");
             return false;
+        }
+
+        // Checks if there is a NPC that is a corpse so it doesn`t respawn immediatly after being killed
+        if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcs))
+        {
+            if (IsCorpse(npcs))
+            {
+                return false;
+            }
         }
 
         //if (Template.NpcSpawnerCategoryId != NpcSpawnerCategory.Autocreated)
@@ -161,6 +164,9 @@ public class NpcSpawner : Spawner<Npc>
         return !IsPlayerInSpawnRadius();
     }
 
+    /// <summary>
+    /// Checks if there is a NPC that is a corpse
+    /// </summary>
     private bool IsCorpse(List<Npc> npcs)
     {
         return npcs.Any(npc => npc.IsDead);
@@ -407,7 +413,8 @@ public class NpcSpawner : Spawner<Npc>
 
         DoSpawn();
 
-        IsDespawningScheduleEnabled(SpawnerId);
+        if (IsSpawnScheduled)
+            IsDespawningScheduleEnabled(SpawnerId);
 
         return SpawnedNpcs[SpawnerId][0];
     }
@@ -738,23 +745,23 @@ public class NpcSpawner : Spawner<Npc>
         switch (status)
         {
             case GameScheduleManager.PeriodStatus.NotFound:
-                IsNotFoundInScheduler = true;
+                //IsNotFoundInScheduler = true;
                 IsSpawnScheduled = false;
                 return true; // NPC not found in the schedule, allows spawning
             case GameScheduleManager.PeriodStatus.NotStarted:
-                IsNotFoundInScheduler = false;
+                //IsNotFoundInScheduler = false;
                 IsSpawnScheduled = false;
                 return false;
             case GameScheduleManager.PeriodStatus.InProgress:
-                IsNotFoundInScheduler = false;
+                //IsNotFoundInScheduler = false;
                 IsSpawnScheduled = true;
                 return true;
             case GameScheduleManager.PeriodStatus.Ended:
-                IsNotFoundInScheduler = false;
+                //IsNotFoundInScheduler = false;
                 IsSpawnScheduled = false;
                 return false;
             default:
-                IsNotFoundInScheduler = false;
+                //IsNotFoundInScheduler = false;
                 IsSpawnScheduled = false;
                 return false;
         }
@@ -780,7 +787,7 @@ public class NpcSpawner : Spawner<Npc>
         // Checks each NPC
         foreach (var npc in npcs)
         {
-            IsNotFoundInScheduler = false;
+            //IsNotFoundInScheduler = false;
 
             // Checks the spawn time (if specified)
             if (npc.Spawner.Template.StartTime > 0.0f || npc.Spawner.Template.EndTime > 0.0f)
@@ -802,7 +809,7 @@ public class NpcSpawner : Spawner<Npc>
             switch (status)
             {
                 case GameScheduleManager.PeriodStatus.NotFound:
-                    IsNotFoundInScheduler = true;
+                    //IsNotFoundInScheduler = true;
                     return false; // Despawning is prohibited because the NPC is not found in the schedule
                 case GameScheduleManager.PeriodStatus.NotStarted:
                 case GameScheduleManager.PeriodStatus.Ended:
