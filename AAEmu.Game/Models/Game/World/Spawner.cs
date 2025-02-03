@@ -18,6 +18,11 @@ public class Spawner<T> where T : GameObject
         return null;
     }
 
+    public virtual T Spawn(uint objId, bool force)
+    {
+        return null;
+    }
+
     public virtual T Spawn(uint objId, ulong itemId, uint charId)
     {
         return null;
