@@ -100,8 +100,23 @@ public class MailManager : Singleton<MailManager>
         return _allPlayerMails.Remove(id);
     }
 
-    public bool DeleteMail(BaseMail mail)
+    public bool DeleteMail(BaseMail mail, bool trashItems = false)
     {
+        if (trashItems)
+        {
+            for (var i = mail.Body.Attachments.Count - 1; i >= 0; i--)
+            {
+                try
+                {
+                    var item = mail.Body.Attachments[i];
+                    item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Failed to remove mail attachment [{i}] from {mail.Id}: {ex}");
+                }
+            }
+        }
         return DeleteMail(mail.Id);
     }
 
@@ -277,19 +292,27 @@ public class MailManager : Singleton<MailManager>
 
     #endregion
 
-    public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
+    
+    public Dictionary<long, BaseMail> GetCurrentMailList(uint characterId)
     {
-        var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
-        character.Mails.unreadMailCount.ResetReceived();
+        // Try to grab the actual online Character object to send live updates
+        var character = WorldManager.Instance.GetCharacterById(characterId);
+        var tempMails = _allPlayerMails.Where(
+            x => x.Value.Body.RecvDate <= DateTime.UtcNow &&
+                 (x.Value.Header.ReceiverId == characterId || 
+                  x.Value.Header.SenderId == characterId)
+                 ).
+            ToDictionary(x => x.Key, x => x.Value);
+        character?.Mails.unreadMailCount.ResetReceived();
         foreach (var mail in tempMails)
         {
             //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
             if (mail.Value.Header.Status != MailStatus.Read)
             {
-                character.Mails.unreadMailCount.UpdateReceived(mail.Value.MailType, 1);
+                character?.Mails.unreadMailCount.UpdateReceived(mail.Value.MailType, 1);
                 var addBody = (mail.Value.MailType == MailType.Charged);
 
-                character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, addBody ? mail.Value.Body : null));
+                character?.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, addBody ? mail.Value.Body : null));
                 mail.Value.IsDelivered = true;
             }
         }

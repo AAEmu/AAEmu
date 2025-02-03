@@ -26,24 +26,28 @@ public class AuctionManager : Singleton<AuctionManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public ConcurrentBag<AuctionLot> AuctionLots { get; } = [];
+    public ConcurrentDictionary<ulong, AuctionLot> AuctionLots { get; } = [];
     public ConcurrentBag<long> _deletedAuctionItemIds { get; } = [];
 
     private static int MaxListingFee = 1000000; // 100g, 100 copper coins = 1 silver, 100 silver = 1 gold.
 
     private void RemoveAuctionLotSold(AuctionLot itemToRemove, string buyer, int soldAmount)
     {
-        if (AuctionLots.Contains(itemToRemove))
+        if (AuctionLots.ContainsKey(itemToRemove.Id))
         {
             var newItem = ItemManager.Instance.GetItemByItemId(itemToRemove.Item.Id);
             if (newItem != null)
             {
+                /*
                 var itemList = new Item[10].ToList();
                 itemList[0] = newItem;
+                */
 
                 var moneyAfterFee = soldAmount * .9;
+                /*
                 var moneyToSend = new int[3];
                 moneyToSend[0] = (int)moneyAfterFee;
+                */
 
                 var recalculatedFee = itemToRemove.DirectMoney * .01 * ((int)itemToRemove.Duration + 1);
                 if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
@@ -67,7 +71,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
     private void RemoveAuctionLotFail(AuctionLot itemToRemove)
     {
-        if (!AuctionLots.Contains(itemToRemove))
+        if (!AuctionLots.ContainsKey(itemToRemove.Id))
             return;
 
         if (itemToRemove.BidderName != "") // Player won the bid
@@ -80,8 +84,8 @@ public class AuctionManager : Singleton<AuctionManager>
         var newItem = ItemManager.Instance.GetItemByItemId(itemToRemove.Item.Id);
         if (newItem != null)
         {
-            var itemList = new Item[10].ToList();
-            itemList[0] = newItem;
+            // var itemList = new Item[10].ToList();
+            // itemList[0] = newItem;
 
             // TODO: Read this from saved data
             var recalculatedFee = itemToRemove.DirectMoney * .01 * ((int)itemToRemove.Duration + 1);
@@ -115,11 +119,11 @@ public class AuctionManager : Singleton<AuctionManager>
         }
 
         var moneyToSubtract = auctionLot.DirectMoney * .1f;
-        var itemList = new Item[10].ToList();
+        // var itemList = new Item[10].ToList();
         var newItem = ItemManager.Instance.Create(auctionLot.Item.TemplateId, auctionLot.Item.Count, auctionLot.Item.Grade);
         if (newItem != null)
         {
-            itemList[0] = newItem;
+            // itemList[0] = newItem;
 
             // TODO: Read this from saved data
             var recalculatedFee = auctionLot.DirectMoney * .01 * ((int)auctionLot.Duration + 1);
@@ -139,7 +143,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
     private AuctionLot GetAuctionLotFromId(ulong auctionId)
     {
-        return AuctionLots.SingleOrDefault(lot => lot.Id == auctionId);
+        return AuctionLots.GetValueOrDefault(auctionId);
     }
 
     public void BidOnAuctionLot(Character player, uint auctioneerId, uint auctioneerId2, AuctionLot lot, AuctionBid bid)
@@ -213,7 +217,7 @@ public class AuctionManager : Singleton<AuctionManager>
             return;
         }
 
-        var existingLot = AuctionLots.FirstOrDefault(lot => lot.Id == auctionLot.Id);
+        var existingLot = AuctionLots.GetValueOrDefault(auctionLot.Id);
         if (existingLot != null)
         {
             // Update lot data
@@ -232,7 +236,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
     public void GetBidAuctionLots(Character player, int page)
     {
-        var searchedArticles = AuctionLots.Where(lot => lot.BidderId == player.Id).ToList();
+        var searchedArticles = AuctionLots.Values.Where(lot => lot.BidderId == player.Id).ToList();
         if (searchedArticles.Count <= 0)
         {
             player.SendPacket(new SCAuctionSearchedPacket(0, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
@@ -246,7 +250,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
     private AuctionLot GetCheapestAuctionLot(uint templateId)
     {
-        var tempList = AuctionLots.Where(lot => lot.Item.TemplateId == templateId).ToList();
+        var tempList = AuctionLots.Values.Where(lot => lot.Item.TemplateId == templateId).ToList();
         if (tempList.Count <= 0)
         {
             return null;
@@ -291,25 +295,32 @@ public class AuctionManager : Singleton<AuctionManager>
 
     private void RemoveAuctionLot(AuctionLot itemToRemove)
     {
-        if (!AuctionLots.Contains(itemToRemove))
+        var copyOfLots = AuctionLots.ToList();
+        if (!AuctionLots.ContainsKey(itemToRemove.Id))
         {
             return;
         }
 
         AuctionIdManager.Instance.ReleaseId((uint)itemToRemove.Id);
         _deletedAuctionItemIds.Add((long)itemToRemove.Id);
-        AuctionLots.TryTake(out itemToRemove);
+        if (!AuctionLots.TryRemove(itemToRemove.Id, out _))
+        {
+            Logger.Warn($"Unable to remove Auction Lot with Id {itemToRemove?.Id}");
+        }
     }
 
     public void AddAuctionLot(AuctionLot lot)
     {
-        AuctionLots.Add(lot);
+        if (!AuctionLots.TryAdd(lot.Id, lot))
+        {
+            Logger.Warn($"Unable to add Auction Lot with Id {lot.Id}, possible duplicate Id");
+        }
     }
 
     public void UpdateAuctionHouse()
     {
         Logger.Trace("Updating Auction House!");
-        var itemsToRemove = AuctionLots.Where(c => DateTime.UtcNow > c.EndTime).ToList();
+        var itemsToRemove = AuctionLots.Values.Where(c => DateTime.UtcNow > c.EndTime).ToList();
 
         foreach (var item in itemsToRemove)
         {
@@ -320,7 +331,7 @@ public class AuctionManager : Singleton<AuctionManager>
         }
     }
 
-    public AuctionLot CreateAuctionLot(Character player, Item itemToList, int startPrice, int buyoutPrice, AuctionDuration duration, int minStack = 1, int maxStack = 1)
+    public AuctionLot CreateAuctionLot(uint playerId, string playerName, Item itemToList, int startPrice, int buyoutPrice, AuctionDuration duration, int minStack = 1, int maxStack = 1)
     {
         ulong timeLeft;
         switch (duration)
@@ -348,8 +359,8 @@ public class AuctionManager : Singleton<AuctionManager>
         newAuctionLot.Item = itemToList;
         newAuctionLot.EndTime = DateTime.UtcNow.AddHours(timeLeft);
         newAuctionLot.WorldId = 1;
-        newAuctionLot.ClientId = player.Id;
-        newAuctionLot.ClientName = player.Name;
+        newAuctionLot.ClientId = playerId;
+        newAuctionLot.ClientName = playerName;
         newAuctionLot.StartMoney = startPrice;
         newAuctionLot.DirectMoney = buyoutPrice;
         newAuctionLot.PostDate = DateTime.UtcNow;
@@ -437,7 +448,7 @@ public class AuctionManager : Singleton<AuctionManager>
             _deletedAuctionItemIds.Clear();
         }
 
-        var dirtyItems = AuctionLots.Where(c => c.IsDirty == true);
+        var dirtyItems = AuctionLots.Values.Where(c => c.IsDirty == true);
         foreach (var lot in dirtyItems)
         {
             if (lot.Item == null)
@@ -563,7 +574,7 @@ public class AuctionManager : Singleton<AuctionManager>
         var detectedLanguage = LanguageDetector.DetectLanguage(search.Keyword);
         Logger.Info($"Detected language for keyword '{search.Keyword}': {detectedLanguage}");
 
-        foreach (var lot in AuctionLots)
+        foreach (var (lotId, lot) in AuctionLots)
         {
             var template = lot.Item.Template;
             var settings = template.AuctionSettings;
@@ -653,7 +664,7 @@ public class AuctionManager : Singleton<AuctionManager>
             return;
         }
 
-        var lot = CreateAuctionLot(player, item, startPrice, buyoutPrice, duration);
+        var lot = CreateAuctionLot(player.Id, player.Name, item, startPrice, buyoutPrice, duration);
         if (lot == null)
         {
             return;
@@ -666,16 +677,17 @@ public class AuctionManager : Singleton<AuctionManager>
             auctionFee = MaxListingFee;
         }
 
-        if (!player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
+        // Deduct AH fee (but only if it's actually generated from an in-game player)
+        if (player != null && !player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
         {
             player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
             return;
         }
 
-        player.Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, item);
+        player?.Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, item);
 
         AddAuctionLot(lot);
-        player.SendPacket(new SCAuctionPostedPacket(lot));
+        player?.SendPacket(new SCAuctionPostedPacket(lot));
     }
 
     private class LanguageDetector

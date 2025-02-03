@@ -7,7 +7,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 internal class ExpeditionController : BaseController
 {
-    [WebApiGet("/expedition/list")]
+    [WebApiGet("/api/expedition/list")]
     public HttpResponse List()
     {
         var list = ExpeditionManager.Instance.Expeditions.Select(x => new ExpeditionModel(

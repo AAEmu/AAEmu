@@ -10,7 +10,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 /// </summary>6
 internal class WorldController : BaseController
 {
-    [WebApiGet("/world/logged-characters")]
+    [WebApiGet("/api/world/logged-characters")]
     public HttpResponse GetCharacter(HttpRequest request)
     {
         var loggedCharacters = WorldManager.Instance.GetAllCharacters()

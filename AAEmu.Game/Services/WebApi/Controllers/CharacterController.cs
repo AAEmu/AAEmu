@@ -9,7 +9,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 internal class CharacterController : BaseController
 {
-    [WebApiGet("/character/list")]
+    [WebApiGet("/api/character/list")]
     public HttpResponse List(HttpRequest request)
     {
         var queryParams = ParseQueryString(request.Url);

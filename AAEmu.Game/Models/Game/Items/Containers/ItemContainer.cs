@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -659,8 +659,8 @@ public class ItemContainer
         // First try to add to existing item counts
         var itemTasks = new List<ItemTask>();
 
-        // Never update in mail containers
-        if (ContainerType != SlotType.Mail)
+        // Never update in mail or auction containers
+        if ((ContainerType != SlotType.Mail) && (ContainerType != SlotType.Auction))
         {
             foreach (var i in currentItems)
             {

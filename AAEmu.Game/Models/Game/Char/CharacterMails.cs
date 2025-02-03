@@ -28,7 +28,7 @@ public class CharacterMails
     public void OpenMailbox()
     {
         var total = 0;
-        foreach (var m in MailManager.Instance.GetCurrentMailList(Self))
+        foreach (var m in MailManager.Instance.GetCurrentMailList(Self.Id))
         {
             if (m.Value.Header.SenderId == Self.Id && m.Value.Header.ReceiverId == Self.Id)
             {

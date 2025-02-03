@@ -2380,7 +2380,7 @@ public partial class Character : Unit, ICharacter
         }
 
         Mails = new CharacterMails(this);
-        MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
+        MailManager.Instance.GetCurrentMailList(Id); //Doesn't need a connection, but does need to load after the inventory
         // Update sync housing factions on login
         HousingManager.Instance.UpdateOwnedHousingFaction(Id, Faction.Id);
     }

@@ -59,7 +59,7 @@ public class TestMails : ICommand
             {
                 case "list":
                     CommandManager.SendNormalText(this, messageOutput, $"List of Mails");
-                    foreach (var m in MailManager.Instance.GetCurrentMailList(character))
+                    foreach (var m in MailManager.Instance.GetCurrentMailList(character.Id))
                     {
                         CommandManager.SendNormalText(this, messageOutput,
                             $"{m.Value.Id} - {m.Value.MailType} - ({m.Value.Header.Status}) {m.Value.Title}");
@@ -69,7 +69,7 @@ public class TestMails : ICommand
                     return;
                 case "clear":
                     CommandManager.SendNormalText(this, messageOutput, $"Clear List of Mails");
-                    foreach (var m in MailManager.Instance.GetCurrentMailList(character))
+                    foreach (var m in MailManager.Instance.GetCurrentMailList(character.Id))
                     {
                         character.Mails.DeleteMail(m.Value.Id, false);
                     }
