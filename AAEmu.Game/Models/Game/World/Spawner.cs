@@ -18,7 +18,7 @@ public class Spawner<T> where T : GameObject
         return null;
     }
 
-    public virtual T Spawn(uint objId, bool force)
+    public virtual T ForceSpawn(uint objId)
     {
         return null;
     }

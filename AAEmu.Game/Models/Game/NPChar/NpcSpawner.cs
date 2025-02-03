@@ -422,11 +422,8 @@ public class NpcSpawner : Spawner<Npc>
     /// <summary>
     /// Force spawns a single NPC with the specified object ID.
     /// </summary>
-    public override Npc Spawn(uint objId, bool force)
+    public override Npc ForceSpawn(uint objId)
     {
-        if (!force)
-            return Spawn(objId);
-
         if (SpawnedNpcs.Count == 0)
         {
             InitializeSpawnableNpcs(Template);
