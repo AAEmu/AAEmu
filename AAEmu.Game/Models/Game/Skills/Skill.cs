@@ -96,7 +96,7 @@ public class Skill
         var character = caster as Character;
 
         unit.ConditionChance = true;
-        
+
         var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster, casterCaster);
         if (requirementResult.ResultKey != SkillResultKeys.ok)
         {
@@ -860,7 +860,7 @@ public class Skill
         {
             possibleTargets.Add(caster);
         }
-        
+
         foreach (var target in possibleTargets)
         {
             if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
@@ -905,6 +905,7 @@ public class Skill
 
         var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(possibleTargets.Count * Template.Effects.Count);
         SkillEffect lastAppliedEffect = null;
+        BaseUnit lastTarget = null;
 
         // Loop Skill Effects
         foreach (var effect in Template.Effects)
@@ -1003,9 +1004,19 @@ public class Skill
                     continue;
                 }
 
+                // prevents an NPC Spawn Skill to be duplicated 
+                if (lastAppliedEffect != null &&
+                    effect.Template is NpcSpawnerSpawnEffect &&
+                    effect.EffectId == lastAppliedEffect.EffectId &&
+                    ((effect.Template as NpcSpawnerSpawnEffect).SpawnerId == (lastAppliedEffect.Template as NpcSpawnerSpawnEffect).SpawnerId))
+                {
+                    continue;
+                }
+
                 // Apply the effect
                 effectsToApply.Add((target, effect));
                 lastAppliedEffect = effect;
+                lastTarget = target;
                 //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
 
                 // TODO: Fix this HACK, only use the first target if it's a position.
@@ -1155,7 +1166,7 @@ public class Skill
 
                     if (player is { SkillCancelled: true }) { Cancelled = true; }
                 }
-                
+
                 // Implement consumption of item sets
                 if (effect.ItemSetId > 0)
                 {
@@ -1256,7 +1267,7 @@ public class Skill
             // Lower cap at 1
             if ((Template.ConsumeLaborPower > 0) && (laborCost < 1))
                 laborCost = 1;
-            
+
             if (laborCost > 0 && !Cancelled && character.LaborPower >= laborCost)
             {
                 // Consume labor only if there is enough of it
@@ -1364,7 +1375,7 @@ public class Skill
             }
         }
 
-AlwaysHit:
+    AlwaysHit:
         switch (damageType)
         {
             case DamageType.Melee:
