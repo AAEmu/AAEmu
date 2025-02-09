@@ -240,7 +240,8 @@ public class SpawnManager : Singleton<SpawnManager>
             if (npc.Spawner != null)
             {
                 npc.Spawner.RespawnTime = 9999999;
-                npc.Spawner.Despawn(npc);
+                //npc.Spawner.Despawn(npc);
+                npc.Spawner.DecreaseCount(npc);
             }
             else
             {
