@@ -222,11 +222,11 @@ public class LootPack
                 }
 
                 // Group 0 items will always need to be included
-                if (loot.Group <= 0)
+                if (loot.Group <= 0 || loot.AlwaysDrop || loot.DropRate == 10000000)
                 {
-                    if (!selectedItemsByGroup.ContainsKey(loot.Group))
-                        selectedItemsByGroup.Add(loot.Group, []);
-                    selectedItemsByGroup[loot.Group].Add(loot);
+                    if (!selectedItemsByGroup.ContainsKey(0))// replaced loot.Group==0 with 0 to make it easier to see.
+                        selectedItemsByGroup.Add(0, []);
+                    selectedItemsByGroup[0].Add(loot);
                     continue;
                 }
 
