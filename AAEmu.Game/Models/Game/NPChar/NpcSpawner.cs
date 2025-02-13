@@ -889,7 +889,7 @@ public class NpcSpawner : Spawner<Npc>
     /// <summary>
     /// Spawns a random NPC, with optional ownerId (used with target_my_npc flag)
     /// </summary>
-    public Npc DoRandomSpawn(uint spawnerId, uint owner = 0)
+    public Npc DoRandomSpawn(uint spawnerId, uint ownerId = 0)
     {
         // Get the NPC spawner template
         var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
@@ -900,8 +900,12 @@ public class NpcSpawner : Spawner<Npc>
         }
 
         // Select a random NPC template from the template.Npcs
-        var random = new Random();
-        var npcTemplate = template.Npcs[random.Next(template.Npcs.Count)];
+        var npcTemplate = template.Npcs.RandomElementByWeight(x => x.Weight);
+        if (npcTemplate == null)
+        {
+            Logger.Warn($"Random template returned null on the NPC selection for spawner {spawnerId}.");
+            return null;
+        }
 
         try
         {
@@ -912,9 +916,8 @@ public class NpcSpawner : Spawner<Npc>
                 Logger.Warn($"Failed to create NPC from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
                 return null;
             }
-            npcTemplate.OwnerId = owner;
             // Spawns the NPC
-            var spawned = npcTemplate.Spawn(this);
+            var spawned = npcTemplate.Spawn(this, ownerId);
             if (spawned == null || spawned.Count == 0)
             {
                 Logger.Warn($"No NPCs spawned from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
@@ -937,7 +940,7 @@ public class NpcSpawner : Spawner<Npc>
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Failed to spawn NPC from template {npcTemplate?.SpawnerId}:{npcTemplate?.MemberId}");
+            Logger.Error(ex, $"Failed to spawn NPC from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
             return null;
         }
     }
