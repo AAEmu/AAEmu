@@ -886,7 +886,61 @@ public class NpcSpawner : Spawner<Npc>
                 Interlocked.Exchange(ref _spawnCount, 0);
         }
     }
+    /// <summary>
+    /// Spawns a random NPC, with optional ownerId (used with target_my_npc flag)
+    /// </summary>
+    public Npc DoRandomSpawn(uint spawnerId, uint owner = 0)
+    {
+        // Get the NPC spawner template
+        var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerId);
+        if (template?.Npcs == null || template.Npcs.Count == 0)
+        {
+            Logger.Warn($"No NPC templates available for spawner {spawnerId}.");
+            return null;
+        }
 
+        // Select a random NPC template from the template.Npcs
+        var random = new Random();
+        var npcTemplate = template.Npcs[random.Next(template.Npcs.Count)];
+
+        try
+        {
+            // Creates the NPC
+            var npc = NpcManager.Instance.Create(0, npcTemplate.MemberId);
+            if (npc == null)
+            {
+                Logger.Warn($"Failed to create NPC from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
+                return null;
+            }
+            npcTemplate.OwnerId = owner;
+            // Spawns the NPC
+            var spawned = npcTemplate.Spawn(this);
+            if (spawned == null || spawned.Count == 0)
+            {
+                Logger.Warn($"No NPCs spawned from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
+                return null;
+            }
+
+            // Adds the spawned NPC to the list
+            if (spawned.Count > 0)
+            {
+                var spawnedNpc = spawned.First();
+                lock (_spawnLock) // Synchronizes access to the list
+                {
+                    AddNpcToSpawned(spawnedNpc.Spawner.SpawnerId, spawnedNpc);
+                }
+                return spawnedNpc;
+            }
+
+            Logger.Warn($"Failed to retrieve spawned NPC from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Failed to spawn NPC from template {npcTemplate?.SpawnerId}:{npcTemplate?.MemberId}");
+            return null;
+        }
+    }
     /// <summary>
     /// Spawns NPCs with an effect.
     /// </summary>

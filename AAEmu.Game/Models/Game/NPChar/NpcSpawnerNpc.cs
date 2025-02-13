@@ -19,6 +19,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
     public uint MemberId { get; set; } // npc template id
     public string MemberType { get; set; } // 'Npc'
     public float Weight { get; set; }
+    public uint OwnerId { get; set; } // npc owner id, added for target_my_npc calls
 
     public NpcSpawnerNpc()
     {
@@ -62,6 +63,9 @@ public class NpcSpawnerNpc : Spawner<Npc>
             Logger.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db. Spawner Position: {npcSpawner.Position}");
             return null;
         }
+        if (npc.OwnerId != 0)
+            Logger.Trace($"Npc {MemberId}, from spawner Id {npcSpawner.Id}, needs an OwnerId. We're setting it here to {OwnerId} ");
+        npc.OwnerId = OwnerId;
 
         npc.RegisterNpcEvents();
 

@@ -92,7 +92,7 @@ public class SCUnitStatePacket : GamePacket
                 var npc = (Npc)_unit;
                 stream.WriteBc(npc.ObjId);    // objId
                 stream.Write(npc.TemplateId); // npc templateId
-                stream.Write(0);              // type(id) (ownerId?)
+                stream.Write(npc.OwnerId);    // ownerId (primarily used for target_my_npc flag)
                 stream.Write((byte)0);        // clientDriven
                 break;
             case BaseUnitType.Slave:
