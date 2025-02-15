@@ -20,9 +20,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers
 
         private void ResetAppConfiguration()
         {
-            var config = AppConfiguration.Instance;
-            var accessLevelProperty = config.GetType().GetProperty("AccessLevel");
-            accessLevelProperty.SetValue(config, new Dictionary<string, int>());
+            AppConfiguration.Instance.AccessLevel?.Clear();
         }
 
         [Fact]
