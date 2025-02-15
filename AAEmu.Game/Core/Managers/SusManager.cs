@@ -148,11 +148,11 @@ public class SusManager : Singleton<SusManager>
                 LogActivity(CategoryCheating,
                     petOwner,
                     $"Pet {pet.Name} from {petOwner?.Name} seems to be moving a bit fast {observedSpeed:F1} m/s (max {playerCheckSpeed:F1})");
-                petOwner?.SendMessage($"Pet Speed {observedSpeed:F1} m/s (max {playerCheckSpeed:F1}) !!!");
+                // petOwner?.SendMessage($"Pet Speed {observedSpeed:F1} m/s (max {playerCheckSpeed:F1}) !!!");
             }
             else
             {
-                petOwner?.SendMessage($"Pet Speed {observedSpeed:F1} m/s (max {playerCheckSpeed:F1})");    
+                // petOwner?.SendMessage($"Pet Speed {observedSpeed:F1} m/s (max {playerCheckSpeed:F1})");    
             }
         }
 
