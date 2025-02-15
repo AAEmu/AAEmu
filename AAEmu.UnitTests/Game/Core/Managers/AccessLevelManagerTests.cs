@@ -14,16 +14,8 @@ namespace AAEmu.UnitTests.Game.Core.Managers
 
         public AccessLevelManagerTests()
         {
-            _manager = AccessLevelManager.Instance;
-            ResetManagerState();
+            _manager = new AccessLevelManager();
             ResetAppConfiguration();
-        }
-
-        private void ResetManagerState()
-        {
-            var cmdField = typeof(AccessLevelManager).GetField("CMD",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            cmdField.SetValue(_manager, new List<Command>());
         }
 
         private void ResetAppConfiguration()
