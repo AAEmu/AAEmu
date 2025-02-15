@@ -107,6 +107,7 @@ public class CharacterMates
         };
 
         mount.Transform = Owner.Transform.CloneDetached(mount);
+        SusManager.Instance.ResetAnalyzeMountDeltaMovement(mount.Id);
 
         foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
             mount.Skills.Add(skill);
