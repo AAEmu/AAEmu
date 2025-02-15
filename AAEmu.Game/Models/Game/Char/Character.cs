@@ -229,8 +229,8 @@ public partial class Character : Unit, ICharacter
 
     // Set to true when character has finished loading for this instance
     private bool FinishedLoading { get; set; } = false;
-    private int _savedHp;
-    private int _savedMp;
+    private int _savedHp = 99999999;
+    private int _savedMp = 99999999;
 
     #region Attributes
 
