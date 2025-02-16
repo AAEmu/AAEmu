@@ -77,7 +77,27 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
         }
         else if (owner?.ItemTemplateId > 0)
         {
-            addedItem = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
+            // Check if the item qualifies as an auto-equip trade pack.
+            if (ItemManager.Instance.IsAutoEquipTradePack(owner.ItemTemplateId))
+            {
+                // Create a new instance of the trade pack item.
+                var packItem = ItemManager.Instance.Create(owner.ItemTemplateId, 1, 0);
+
+                // Attempt to remove any existing instance of the trade pack from the backpack.
+                if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
+                {
+                    // Add the new trade pack item to the Equipment's backpack slot.
+                    if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, packItem, (int)EquipmentItemSlot.Backpack))
+                    {
+                        addedItem = true;
+                    }
+                }
+            }
+            else
+            {
+                // For non-trade pack items, attempt to acquire the default item into the bag.
+                addedItem = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
+            }
         }
         else
         {
