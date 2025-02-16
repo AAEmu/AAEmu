@@ -302,8 +302,8 @@ public class TradeManager : Singleton<TradeManager>
             if (_trades[tradeId].OkOwner && _trades[tradeId].OkTarget)
             {
                 // Check inventory space
-                if (owner.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].TargetItems.Count) CancelTrade(owner.ObjId, 0, tradeId);
-                if (target.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].OwnerItems.Count) CancelTrade(target.ObjId, 0, tradeId);
+                if (owner.Inventory.FreeSlotCount(SlotType.Bag) < _trades[tradeId].TargetItems.Count) CancelTrade(owner.ObjId, 0, tradeId);
+                if (target.Inventory.FreeSlotCount(SlotType.Bag) < _trades[tradeId].OwnerItems.Count) CancelTrade(target.ObjId, 0, tradeId);
 
                 // Finish trade
                 FinishTrade(owner, target, tradeId);

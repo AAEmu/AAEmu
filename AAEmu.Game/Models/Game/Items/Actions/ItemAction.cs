@@ -21,5 +21,5 @@ public enum ItemAction
     ChangeAaPoint = 16,
     ChangeBankAaPoint = 17,
     ChangeAutoUseAaPoint = 18,
-    UpdateChargeUseSkillTime = 19,
+    UpdateChargeUseSkillTime = 19
 }

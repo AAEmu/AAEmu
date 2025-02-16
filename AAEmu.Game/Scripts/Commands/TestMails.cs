@@ -203,7 +203,7 @@ public class TestMails : ICommand
 
                             var newItem = ItemManager.Instance.Create(itemId, itemCount, (byte)itemGrade, true);
                             newItem.OwnerId = character.Id;
-                            newItem.SlotType = SlotType.Mail;
+                            newItem.SlotType = SlotType.MailAttachment;
                             mail.Body.Attachments.Add(newItem);
 
                             CommandManager.SendNormalText(this, messageOutput,

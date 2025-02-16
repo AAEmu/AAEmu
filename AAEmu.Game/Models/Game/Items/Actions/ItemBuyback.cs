@@ -10,14 +10,18 @@ public class ItemBuyback : ItemTask
     {
         _type = ItemAction.Take; // 6
         _item = item;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write((byte)_item.SlotType); // type
-        stream.Write((byte)_item.Slot);     // index
-        _item.Write(stream);
+
+        stream.Write((byte)_item.SlotType);
+        stream.Write((byte)_item.Slot);
+
+        stream.Write(_item);
+
         return stream;
     }
 }

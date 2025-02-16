@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Новый профиль",
+    "Projects": [
+      {
+        "Path": "AAEmu.Login\\AAEmu.Login.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "AAEmu.Game\\AAEmu.Game.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

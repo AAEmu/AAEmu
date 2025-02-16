@@ -42,7 +42,7 @@ public class PutDownBackpackEffect : EffectTemplate
 
         var previousGlider = character.Inventory.Bag.GetItemByItemId(character.Inventory.PreviousBackPackItemId);
         // If no longer valid, reset the value here
-        if ((previousGlider == null) || (previousGlider.SlotType != SlotType.Inventory))
+        if ((previousGlider == null) || (previousGlider.SlotType != SlotType.Bag))
             character.Inventory.PreviousBackPackItemId = 0;
 
         using var pos = character.Transform.CloneDetached();

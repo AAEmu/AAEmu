@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Tasks.Characters;
 
@@ -13,6 +14,7 @@ public class CharacterOnlineTrackingTask : Task
     private DateTime LastCheck { get; set; }
     private readonly object _lock = new();
     private bool Busy { get; set; }
+    private Dictionary<ulong, DateTime> last60SecondCheck = new();
 
     public CharacterOnlineTrackingTask()
     {
@@ -29,6 +31,7 @@ public class CharacterOnlineTrackingTask : Task
                 return;
             Busy = true;
         }
+
         var delta = DateTime.UtcNow - LastCheck;
         LastCheck = DateTime.UtcNow;
 
@@ -40,27 +43,32 @@ public class CharacterOnlineTrackingTask : Task
             character.OnlineTime += delta;
             var newSeconds = Math.Floor(character.OnlineTime.TotalSeconds);
             var deltaSeconds = (uint)(newSeconds - lastSeconds);
-
-            // Update Account Divine Clock time
-            var (time, taken) = AccountManager.Instance.GetDivineClock(character.AccountId);
-            time += deltaSeconds;
-            AccountManager.Instance.UpdateDivineClock(character.AccountId, time, taken);
-
             // TODO: Use lastSeconds and newSeconds as a comparison for triggering time played achievements
             // TODO: Add divine clock feedback packets
-
-            if (time % 60 == 0)
+            // Check if 60 seconds have passed since the last 60-second check
+            if (last60SecondCheck.TryGetValue(character.AccountId, out var lastCheckTime))
             {
-                var si = new ScheduleItem
+                var elapsedTime = DateTime.UtcNow - lastCheckTime;
+                if (elapsedTime.TotalSeconds >= 60)
                 {
-                    ItemTemplateId = 9000003,
-                    Gave = (byte)taken,
-                    Acumulated = time,
-                    Updated = DateTime.UtcNow
-                };
-                character.SendPacket(new SCScheduleItemUpdatePacket([si]));
-                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Unk136, [], []));
+                    //// Check if 1 hour has passed
+                    //if (character.OnlineTime.TotalHours >= 1)
+                    //{
+                    //    // Perform additional work when 1 hour is reached
+                    //    PerformHourlyCalculations(character);
+                    //}
 
+                    // Perform 60-second calculations
+                    Perform60SecondCalculations(character, deltaSeconds);
+
+                    // Update the last 60-second check time
+                    last60SecondCheck[character.AccountId] = DateTime.UtcNow;
+                }
+            }
+            else
+            {
+                // Initialize the last 60-second check time
+                last60SecondCheck[character.AccountId] = DateTime.UtcNow;
             }
         }
 
@@ -68,5 +76,39 @@ public class CharacterOnlineTrackingTask : Task
         {
             Busy = false;
         }
+    }
+
+    private void Perform60SecondCalculations(Character character, uint deltaSeconds)
+    {
+        // You can add any other 60-second calculations you need here
+        for (var index = 0; index < character.ScheduleItems.Count; index++)
+        {
+            var scheduleItem = AccountManager.Instance.GetDivineClock(character.AccountId, character.ScheduleItems[index].ScheduleItemId);
+            if (scheduleItem is not null)
+            {
+                character.ScheduleItems[index] = scheduleItem; // updated
+            }
+
+            var si = GameScheduleManager.Instance.GetScheduleItem(character.ScheduleItems[index].ScheduleItemId);
+            if (character.ScheduleItems[index].Gave == si.GiveMax)
+            {
+                character.ScheduleItems[index].Cumulated = 0;
+            }
+            else
+            {
+                character.ScheduleItems[index].Cumulated += 60;
+            }
+
+            character.ScheduleItems[index].Updated = DateTime.UtcNow;
+
+            // Update Account Divine Clock time
+            AccountManager.Instance.UpdateDivineClock(character.AccountId, character.ScheduleItems[index].ScheduleItemId, character.ScheduleItems[index].Cumulated, character.ScheduleItems[index].Gave);
+            character.SendPacket(new SCScheduleItemUpdatePacket(character.ScheduleItems));
+        }
+    }
+
+    private void PerformHourlyCalculations(Character character)
+    {
+        // You can add any other hourly calculations you need here
     }
 }

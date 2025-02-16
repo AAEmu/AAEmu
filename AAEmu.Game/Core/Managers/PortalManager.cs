@@ -15,7 +15,6 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
@@ -341,8 +340,8 @@ public class PortalManager : Singleton<PortalManager>
 
     public static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
     {
-        if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
-        owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount, null);
+        if (!owner.Inventory.CheckItems(SlotType.Bag, itemId, amount)) return false;
+        owner.Inventory.Bag.ConsumeItem(ItemTaskType.RecoverDoodadItem, itemId, amount, null);
         return true;
         /*
         var items = owner.Inventory.RemoveItem(itemId, amount);

@@ -54,28 +54,32 @@ public class SpawnDoodad : SpecialEffectAction
         }
 
         var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster, true);
-
-        doodad.Transform = caster.Transform.CloneDetached(doodad);
-        var rpy = target.Transform.World.ToRollPitchYawDegrees();
-        switch (skill?.Template.TargetSelection ?? 0)
+        if (doodad != null)
         {
-            case SkillTargetSelection.Source:
-                doodad.Transform = caster.Transform.CloneDetached(doodad);
-                break;
-            case SkillTargetSelection.Target :
-                doodad.Transform = target.Transform.CloneDetached(doodad);
-                break;
-            case SkillTargetSelection.Line:
-            case SkillTargetSelection.Location:
-            default:
-                doodad.Transform = caster.Transform.CloneDetached(doodad);
-                break;
+            doodad.Transform = caster.Transform.CloneDetached(doodad);
+            var rpy = target.Transform.World.ToRollPitchYawDegrees();
+            switch (skill?.Template.TargetSelection ?? 0)
+            {
+                case SkillTargetSelection.Source:
+                    doodad.Transform = caster.Transform.CloneDetached(doodad);
+                    break;
+                case SkillTargetSelection.Target:
+                    doodad.Transform = target.Transform.CloneDetached(doodad);
+                    break;
+                case SkillTargetSelection.Line:
+                case SkillTargetSelection.Location:
+                default:
+                    doodad.Transform = caster.Transform.CloneDetached(doodad);
+                    break;
+            }
+
+            var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X,
+                doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
+            doodad.SetPosition(xx, yy, WorldManager.Instance.GetHeight(doodad.Transform), rpy.X, rpy.Y, rpy.Z);
+            doodad.InitDoodad();
+            if (delay > 0)
+                Thread.Sleep(delay);
+            doodad.Spawn();
         }
-        var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
-        doodad.SetPosition(xx, yy, WorldManager.Instance.GetHeight(doodad.Transform), rpy.X, rpy.Y, rpy.Z);
-        doodad.InitDoodad();
-        if (delay > 0)
-            Thread.Sleep(delay);
-        doodad.Spawn();
     }
 }

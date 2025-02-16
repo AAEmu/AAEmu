@@ -602,7 +602,6 @@ public class PacketStream : ICloneable, IComparable
 
         return values;
     }
-
     public (float x, float y, float z) ReadPosition()
     {
         var position = ReadBytes(9);

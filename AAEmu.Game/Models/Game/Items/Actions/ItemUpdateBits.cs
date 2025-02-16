@@ -19,6 +19,7 @@ public class ItemUpdateBits : ItemTask
         // 10 image
         // 20 unwrapp
         //_oldBits = oldBits;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)

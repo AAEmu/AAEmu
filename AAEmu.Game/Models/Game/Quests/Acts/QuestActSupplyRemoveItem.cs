@@ -23,7 +23,7 @@ public class QuestActSupplyRemoveItem(QuestComponentTemplate parentComponent) : 
         
         if (quest.Owner is Character player)
         {
-            _ = player.Inventory.GetAllItemsByTemplate(new[] { SlotType.Inventory }, ItemId, -1, out _, out var unitsCount);
+            _ = player.Inventory.GetAllItemsByTemplate(new[] { SlotType.Bag }, ItemId, -1, out _, out var unitsCount);
 
             var toRemove = Math.Min(unitsCount, Count);
             var removed = player.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, ItemId, toRemove, null);

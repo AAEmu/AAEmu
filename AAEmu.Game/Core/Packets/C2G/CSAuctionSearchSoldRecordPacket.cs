@@ -9,16 +9,15 @@ public class CSAuctionSearchSoldRecordPacket : GamePacket
 {
     public CSAuctionSearchSoldRecordPacket() : base(CSOffsets.CSAuctionSearchSoldRecordPacket, 5)
     {
-        }
+    }
 
     public override void Read(PacketStream stream)
     {
-            var itemTemplateId = stream.ReadUInt32();
-            var itemGrade = stream.ReadByte();
+        var itemTemplateId = stream.ReadUInt32();
+        var itemGrade = stream.ReadByte();
 
-            var cheapestItem = AuctionManager.Instance.GetCheapestAuctionItem(itemTemplateId);
+        var solds = AuctionManager.Instance.GetSoldAuctionLots(itemTemplateId, itemGrade);
 
-            Connection.ActiveChar.SendPacket(new SCAuctionSoldRecordPacket(cheapestItem));
-
-        }
+        Connection.ActiveChar.SendPacket(new SCAuctionSoldRecordPacket(itemTemplateId, itemGrade, solds));
+    }
 }

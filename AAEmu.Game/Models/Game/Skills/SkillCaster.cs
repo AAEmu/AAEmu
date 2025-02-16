@@ -8,10 +8,10 @@ namespace AAEmu.Game.Models.Game.Skills;
 public enum SkillCasterType : byte
 {
     Unit = 0,
-    Unk1 = 1, // Doodad
+    Doodad = 1, // Doodad
     Item = 2,
     Mount = 3, // TODO mountSkillType
-    Doodad = 4 // Gimmick
+    Gimmick = 4 // Gimmick
 }
 
 public abstract class SkillCaster : PacketMarshaler
@@ -39,8 +39,8 @@ public abstract class SkillCaster : PacketMarshaler
             case SkillCasterType.Unit:
                 obj = new SkillCasterUnit();
                 break;
-            case SkillCasterType.Unk1:
-                obj = new SkillCasterUnk1();
+            case SkillCasterType.Doodad:
+                obj = new SkillCasterDoodad();
                 break;
             case SkillCasterType.Item:
                 obj = new SkillItem();
@@ -48,8 +48,8 @@ public abstract class SkillCaster : PacketMarshaler
             case SkillCasterType.Mount:
                 obj = new SkillCasterMount();
                 break;
-            case SkillCasterType.Doodad:
-                obj = new SkillDoodad();
+            case SkillCasterType.Gimmick:
+                obj = new SkillCasterGimmik();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
@@ -73,15 +73,15 @@ public class SkillCasterUnit : SkillCaster
     }
 }
 
-public class SkillCasterUnk1 : SkillCaster
+public class SkillCasterDoodad : SkillCaster
 {
-    public SkillCasterUnk1()
+    public SkillCasterDoodad()
     {
     }
 
-    public SkillCasterUnk1(uint objId)
+    public SkillCasterDoodad(uint objId)
     {
-        Type = SkillCasterType.Unk1;
+        Type = SkillCasterType.Doodad;
         ObjId = objId;
     }
 }
@@ -170,15 +170,15 @@ public class SkillCasterMount : SkillCaster
     }
 }
 
-public class SkillDoodad : SkillCaster
+public class SkillCasterGimmik : SkillCaster
 {
-    public SkillDoodad()
+    public SkillCasterGimmik()
     {
     }
 
-    public SkillDoodad(uint objId)
+    public SkillCasterGimmik(uint objId)
     {
-        Type = SkillCasterType.Doodad;
+        Type = SkillCasterType.Gimmick;
         ObjId = objId;
     }
 }

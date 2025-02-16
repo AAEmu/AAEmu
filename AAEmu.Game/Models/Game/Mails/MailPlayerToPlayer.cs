@@ -62,7 +62,7 @@ public class MailPlayerToPlayer : BaseMail
             if (mailSlots.Item1 != 0)
             {
                 var tempItem = _sender.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
-                if ((tempItem == null) || (tempItem.SlotType != SlotType.Inventory))
+                if ((tempItem == null) || (tempItem.SlotType != SlotType.Bag))
                 {
                     // Attchment Items do not match player inventory, abort
                     return false;
@@ -88,7 +88,7 @@ public class MailPlayerToPlayer : BaseMail
             {
                 _sender.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, new List<ItemTask>() { new ItemRemove(tempItem) }, new List<ulong>()));
                 // Technically not needed, I just want to sync it up
-                tempItem.SlotType = SlotType.Mail;
+                tempItem.SlotType = SlotType.MailAttachment;
                 tempItem.Slot = i;
                 // tempItem.OwnerId = mailTemplate.Header.ReceiverId;
             }

@@ -17,6 +17,7 @@ public class UpdateChargeUseSkillTime : ItemTask
         _type = ItemAction.UpdateChargeUseSkillTime; // 19
         _item = item;
         _count = count;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -24,7 +25,7 @@ public class UpdateChargeUseSkillTime : ItemTask
         base.Write(stream);
         stream.Write((byte)_item.SlotType); // type
         stream.Write((byte)_item.Slot);     // index
-        stream.Write(_item.Id);             // id
+        stream.Write(_item.Id);             // itemId
         stream.Write(_item.ChargeUseSkillTime); // chargeUseSkillTime
         return stream;
     }

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Numerics;
 
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -27,6 +29,14 @@ public class ImpulseEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("ImpulseEffect");
+        Logger.Debug("ImpulseEffect");
+
+        var vel = new Vector3(VelImpulseX, VelImpulseY, VelImpulseZ);
+        var angVel = new Vector3(AngvelImpulseX, AngvelImpulseY, AngvelImpulseZ);
+        var impulse = new Vector3(ImpulseX, ImpulseY, ImpulseZ);
+        var angImpulse = new Vector3(AngImpulseX, AngImpulseY, AngImpulseZ);
+
+        caster.BroadcastPacket(new SCImpulseUnitPacket(caster.ObjId, casterObj, vel, angVel, impulse, angImpulse), true);
+
     }
 }

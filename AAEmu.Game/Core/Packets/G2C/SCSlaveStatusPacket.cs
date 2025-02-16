@@ -19,6 +19,7 @@ public class SCSlaveStatusPacket : GamePacket
         _slave = slave;
     }
 
+
     public override PacketStream Write(PacketStream stream)
     {
         stream.WriteBc(_slave.ObjId); // bc
@@ -27,19 +28,17 @@ public class SCSlaveStatusPacket : GamePacket
 
         #region skill&tag
         stream.Write(_skillCount); // skillCount
-
+        
         // TODO я считаю, что в итоге требуется выводить все скиллы, тэги и чарджи
         for (var i = 0; i < _skillCount; i++)
         {
             stream.Write(_slave.Skills[i]);     // type
         }
-
         stream.Write(_tagCount); // tagCount
         for (var i = 0; i < _tagCount; i++)
         {
             stream.Write(0u); // type
         }
-
         stream.Write(_chargeCount); // chargeCount
         for (var i = 0; i < _skillCount; i++)
         {

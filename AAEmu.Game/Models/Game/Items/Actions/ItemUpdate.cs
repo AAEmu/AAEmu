@@ -10,6 +10,7 @@ public class ItemUpdate : ItemTask
     {
         _type = ItemAction.UpdateDetail; // 9
         _item = item;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -22,7 +23,6 @@ public class ItemUpdate : ItemTask
 
         var details = new PacketStream();
         details.Write((byte)_item.DetailType);
-        //details.Write(0u); // добавил для нормальной работы починки предметов
 
         _item.WriteDetails(details);
 

@@ -304,20 +304,24 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     while (reader.Read())
                     {
                         var idz = new IndunZone();
-                        idz.ZoneGroupId = reader.GetUInt32("zone_group_id");
-                        //idz.Name = reader.GetString("name");
-                        //idz.Comment = reader.GetString("comment");
-                        idz.LevelMin = reader.GetUInt32("level_min");
-                        idz.LevelMax = reader.GetUInt32("level_max");
-                        idz.MaxPlayers = reader.GetUInt32("max_players");
-                        idz.PvP = reader.GetBoolean("pvp");
+                        idz.ZoneGroupId = reader.GetUInt16("zone_group_id");
+                        idz.ClientDriven = reader.GetBoolean("client_driven");
+                        idz.Duel = reader.GetBoolean("duel");
+                        idz.EnterCount = reader.GetUInt32("enter_count");
+                        idz.ExpPanelty = reader.GetBoolean("exp_panelty");
                         idz.HasGraveyard = reader.GetBoolean("has_graveyard");
                         idz.ItemId = reader.IsDBNull("item_id") ? 0 : reader.GetUInt32("item_id");
-                        idz.RestoreItemTime = reader.GetUInt32("restore_item_time");
+                        //idz.Name = reader.GetString("name");
+                        //idz.Comment = reader.GetString("comment");
+                        idz.LevelMax = reader.GetUInt32("level_max");
+                        idz.LevelMin = reader.GetUInt32("level_min");
+                        idz.MaxPlayers = reader.GetUInt32("max_players");
+                        //idz.Option = reader.GetString("option");
                         idz.PartyOnly = reader.GetBoolean("party_only");
-                        idz.ClientDriven = reader.GetBoolean("client_driven");
+                        idz.PvP = reader.GetBoolean("pvp");
+                        idz.RestoreItemTime = reader.GetUInt32("restore_item_time");
                         idz.SelectChannel = reader.GetBoolean("select_channel");
-                        idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
+                        //idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
 
                         if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
                             Logger.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");

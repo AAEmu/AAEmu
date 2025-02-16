@@ -134,7 +134,7 @@ public class CharacterMates
             buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.UtcNow);
         }
 
-        mount.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.EquipmentMate, mount, mount.Id);
+        mount.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.PetRideEquipment, mount, mount.Id);
         mount.UpdateGearBonuses(null, null);
 
         // Cap stats to their max

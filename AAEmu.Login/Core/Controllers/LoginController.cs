@@ -56,7 +56,7 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastLogin = DateTime.UtcNow;
                         connection.LastIp = connection.Ip;
 
-                        connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x0B0202, 0));
+                        connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x220101, 0));
                         connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
 
                         reader.Close();
@@ -125,7 +125,7 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastIp = connection.Ip;
 
                         Logger.Info("{0} connected.", connection.AccountName);
-                        connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x0B0202, 0));
+                        connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x360404, 0));
                         connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
 
                         reader.Close();
@@ -213,7 +213,7 @@ namespace AAEmu.Login.Core.Controllers
             if (_tokens[gsId][token] == accountId)
             {
                 connection.AccountId = accountId;
-                connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x0B0202, 0));
+                connection.SendPacket(new ACJoinResponsePacket(0, 0, 0x360404, 0));
                 connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
             }
             else

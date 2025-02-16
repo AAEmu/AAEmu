@@ -206,7 +206,7 @@ public class LootPack
             if (itemTemplateId == Item.Coins)
             {
                 // Logger.Debug("{Category} - {Character} got {Amount} from lootpack {Lootpack}");
-                character.AddMoney(SlotType.Inventory, count, taskType);
+                character.AddMoney(SlotType.Bag, count, taskType);
                 continue;
             }
 

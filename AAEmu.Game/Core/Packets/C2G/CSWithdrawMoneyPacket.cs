@@ -17,6 +17,6 @@ public class CSWithdrawMoneyPacket : GamePacket
 
         Logger.Debug("WithdrawMoney: amount -> {0}, aa_point -> {1}", amount, aapoint);
 
-        Connection.ActiveChar.ChangeMoney(SlotType.Bank, SlotType.Inventory, amount);
+        Connection.ActiveChar.ChangeMoney(SlotType.Bank, SlotType.Bag, amount);
     }
 }

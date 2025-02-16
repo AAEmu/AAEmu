@@ -10,6 +10,7 @@ public class ChangeBankAAPoint : ItemTask
     {
         _type = ItemAction.ChangeBankAaPoint; // 17
         _amount = amount;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)

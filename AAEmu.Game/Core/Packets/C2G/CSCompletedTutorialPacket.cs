@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -21,5 +22,6 @@ public class CSCompletedTutorialPacket : GamePacket
         completedQuestBlock.Body.CopyTo(body, 0);
 
         Connection.SendPacket(new SCTutorialCompletedPacket(id, body));
+        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestComplete, [], []));
     }
 }

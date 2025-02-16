@@ -15,6 +15,8 @@ namespace AAEmu.Commons.Cryptography
         public byte[] AesKey { get; set; }
         public byte[] IV { get; set; }
         public uint XorKey { get; set; }
+        public uint XorKeyConstant1 { get; set; }
+        public uint XorKeyConstant2 { get; set; }
         public byte SCMessageCount { get; set; }
         public byte CSMessageCount { get; set; }
         public byte CSOffsetSequence { get; set; }
@@ -27,6 +29,8 @@ namespace AAEmu.Commons.Cryptography
             AesKey = new byte[16];
             IV = new byte[16];
             XorKey = 0;
+            XorKeyConstant1 = 0;
+            XorKeyConstant2 = 0;
         }
     }
 }

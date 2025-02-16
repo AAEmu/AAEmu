@@ -531,6 +531,14 @@ public class Skill
             case SkillTargetType.CursorPos:
                 break;
             case SkillTargetType.Parent:
+                if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    if (target != null)
+                    {
+                        targetCaster.ObjId = target.ObjId;
+                    }
+                }
                 break;
             case SkillTargetType.ChildSlave:
                 break;
@@ -541,6 +549,14 @@ public class Skill
             case SkillTargetType.PetOwner:
                 break;
             case SkillTargetType.IgnoreProtected:
+                if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    if (target != null)
+                    {
+                        targetCaster.ObjId = target.ObjId;
+                    }
+                }
                 break;
             default:
                 throw new NotSupportedException($"SkillTargetType not supported {Template.TargetType}");
@@ -591,13 +607,13 @@ public class Skill
     {
         if (caster is not Unit unit) { return; }
 
-        var delay = 300;
-        // Will delay for 300 Milliseconds to eliminate the hanging of the skill
-        if (!caster.CheckInterval(delay))
-        {
-            //Logger.Trace($"Skill: CooldownTime [{delay}]!");
-            return;
-        }
+        //var delay = 300;
+        //// Will delay for 300 Milliseconds to eliminate the hanging of the skill
+        //if (!caster.CheckInterval(delay))
+        //{
+        //    //Logger.Trace($"Skill: CooldownTime [{delay}]!");
+        //    return;
+        //}
 
         if (!_bypassGcd)
         {
@@ -1047,7 +1063,7 @@ public class Skill
                 }
                 else
                 {
-                    var inventory = player.Inventory.CheckItems(SlotType.Inventory, lastAppliedEffect.ConsumeItemId,
+                    var inventory = player.Inventory.CheckItems(SlotType.Bag, lastAppliedEffect.ConsumeItemId,
                         lastAppliedEffect.ConsumeItemCount);
                     var equipment = player.Inventory.CheckItems(SlotType.Equipment, lastAppliedEffect.ConsumeItemId,
                         lastAppliedEffect.ConsumeItemCount);
@@ -1219,8 +1235,8 @@ public class Skill
 
                 // Doesn't matter, but by Template
                 foreach (var (templateId, amount) in consumedItemTemplates)
-                    player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId,
-                        amount, null);
+                    player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectGainItem, templateId, amount, null);
+                    //player.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
             }
         }
     }

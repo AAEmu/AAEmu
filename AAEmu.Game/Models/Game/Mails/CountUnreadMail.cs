@@ -42,17 +42,30 @@ public class CountUnreadMail : PacketMarshaler
         if (mailType is MailType.Charged or MailType.Promotion)
         {
             TotalCommercialReceived += amount;
-            UnreadCommercialReceived += amount;
         }
         else
         if (mailType == MailType.MiaRecv)
         {
             TotalMiaReceived += amount;
-            UnreadMiaReceived += amount;
         }
         else
         {
             TotalReceived += amount;
+        }
+    }
+    public void UpdateUnreadReceived(MailType mailType, int amount)
+    {
+        if (mailType is MailType.Charged or MailType.Promotion)
+        {
+            UnreadCommercialReceived += amount;
+        }
+        else
+        if (mailType == MailType.MiaRecv)
+        {
+            UnreadMiaReceived += amount;
+        }
+        else
+        {
             UnreadReceived += amount;
         }
     }

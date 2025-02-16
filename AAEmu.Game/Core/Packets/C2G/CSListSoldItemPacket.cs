@@ -14,6 +14,8 @@ public class CSListSoldItemPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();
+        var doodadObjId = stream.ReadBc();
+
         var npc = WorldManager.Instance.GetNpc(npcObjId);
         if (npc == null || !npc.Template.Merchant)
             return;

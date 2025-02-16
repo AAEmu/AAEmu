@@ -6,7 +6,7 @@
         public const ushort X2EnterWorldPacket = 0x000;
         // double _01_&_05_
         public const ushort CSResturnAddrsPacket = 0x074;     // level = 1
-        public const ushort CSResturnAddrs_05_Packet = 0xfff; // level = 5
+        public const ushort CSResturnAddrs_05_Packet = 0x074; // level = 5
         public const ushort CSHgResponsePacket = 0x13E;       // level = 1+
         public const ushort CSHgResponse_05_Packet = 0x13E;   // level = 5+
         public const ushort CSAesXorKeyPacket = 0x1A2;        // level = 1+
@@ -55,7 +55,7 @@
         public const ushort CSRequestGameEventInfoPacket = 0x05B;
         public const ushort off_39E822E0 = 0x18A;
         public const ushort off_39E822F0 = 0x168;
-        public const ushort CSChangeMateNamePacket = 0xfff;
+        public const ushort CSChangeMateNamePacket = 0x03E;
         public const ushort CSSendNationMemberCountListPacket = 0x09F;
         public const ushort CSNationSendExpeditionImmigrationAcceptRejectPacket = 0x1E6;
         public const ushort CSSendExpeditionImmigrationListPacket = 0x0F8;
@@ -95,7 +95,7 @@
         public const ushort CSJuryEndTestimonyPacket = 0x12F;
         public const ushort CSCancelTrialPacket = 0x0ED;
         public const ushort CSJurySentencePacket = 0x0D3;
-        public const ushort CSReportCrimePacket = 0xfff;
+        public const ushort CSReportCrimePacket = 0x1BE;
         public const ushort CSRequestJuryWaitingNumberPacket = 0x1CC;
         public const ushort CSRequestSetBountyPacket = 0x1B8;
         public const ushort CSUpdateBountyPacket = 0x15C;
@@ -116,7 +116,7 @@
         public const ushort CSIdleStatusPacket = 0x1A9;
         public const ushort CSChangeClientNpcTargetPacket = 0x10D;
         public const ushort CSCompletedCinemaPacket = 0x0E6;
-        public const ushort off_39E97AFC = 0x122;
+        public const ushort CSCheckDemoModePacket = 0x122; // off_39E97AFC
         public const ushort CSDemoCharResetPacket = 0x174;
         public const ushort CSConsoleCmdUsedPacket = 0x07A;
         public const ushort CSEditorGameModePacket = 0x0E5;
@@ -164,7 +164,7 @@
         public const ushort CSEnprotectStubCallResponsePacket = 0x0B4;
         public const ushort CSRepresentCharacterPacket = 0x187;
         public const ushort off_39E9A31C = 0x087;
-        public const ushort CSCheckDemoModePacket = 0x114;
+        public const ushort CSStoppedCinemaPacket = 0x114; // off_39E9A32C
         public const ushort CSCreateCharacterPacket = 0x0F2;
         public const ushort CSEditCharacterPacket = 0x064;
         public const ushort CSBroadcastVisualOption_0_Packet = 0x126; //0x126;
@@ -234,8 +234,8 @@
         public const ushort CSSetTeamMemberRolePacket = 0x1B0;
         public const ushort CSSetOverHeadMarkerPacket = 0x12E;
         public const ushort CSAskRiskyTeamActionPacket = 0x0D5;
-        public const ushort CSTeamAcceptHandOverOwnerPacket = 0xFFF;
-        public const ushort CSTeamAcceptOwnerOfferPacket = 0xFFF;
+        public const ushort CSTeamAcceptHandOverOwnerPacket = 0x009;
+        public const ushort CSTeamAcceptOwnerOfferPacket = 0x09C;
         public const ushort off_39EBBCE8 = 0x191;
         public const ushort off_39EBBCF8 = 0x0F5;
         public const ushort off_39EBBD08 = 0x0E0;
@@ -253,10 +253,10 @@
         public const ushort CSCreateHousePacket = 0x062;
         public const ushort CSLeaveBeautyShopPacket = 0x15B;
         public const ushort CSConstructHouseTaxPacket = 0x0B1;
-        public const ushort CSChangeHouseNamePacket = 0xfff;
+        public const ushort CSChangeHouseNamePacket = 0x081;
         public const ushort CSChangeHousePermissionPacket = 0x08A;
         public const ushort CSRequestHouseTaxPacket = 0x177;
-        public const ushort CSPerpayHouseTaxPacket = 0x17C;
+        public const ushort CSPrepayHouseTaxPacket = 0x17C;
         public const ushort CSAllowRecoverPacket = 0x097;
         public const ushort CSSellHouseCancelPacket = 0x0A7;
         public const ushort CSDecorateHousePacket = 0x1D0;
@@ -316,7 +316,7 @@
         public const ushort CSCleanupLogicLinkPacket = 0x1E3;
         public const ushort CSSelectInteractionExPacket = 0x0A6;
         public const ushort CSChangeDoodadDataPacket = 0x143;
-        public const ushort CSBuyItemsPacket = 0x180;
+        public const ushort off_39EC35CC = 0x180;
         public const ushort off_39EC35DC = 0x1CB;
         public const ushort off_39EC35EC = 0x0D7;
         public const ushort CSUnitAttachedPacket = 0x1AC; //off_39EC3600
@@ -367,10 +367,10 @@
         public const ushort off_39ED1948 = 0x11D;
         public const ushort CSRefreshBotCheckInfoPacket = 0x041;
         public const ushort CSAnswerBotCheckPacket = 0x1BF;
-        public const ushort CSChangeSlaveNamePacket = 0xfff;
+        public const ushort CSChangeSlaveNamePacket = 0x19E;
         public const ushort off_39ED8054 = 0x163;
         public const ushort off_39ED8064 = 0x10C;
-        public const ushort off_39ED8074 = 0x158;
+        public const ushort CSSearchListPacket = 0x158; // off_39ED8074
         public const ushort off_39ED8084 = 0x17B;
         public const ushort off_39ED8094 = 0x1BC;
         public const ushort off_39ED80A4 = 0x142;
@@ -424,7 +424,7 @@
         public const ushort off_39EDCAF0 = 0x1E8;
         public const ushort CSSellItemsPacket = 0x04A;
         public const ushort CSListSoldItemPacket = 0x055;
-        public const ushort off_39EDCB20 = 0x03C;
+        public const ushort CSBuyItemsPacket = 0x03C; // off_39EDCB20
         public const ushort CSSpecialtyCurrentLoadPacket = 0x08F;
         public const ushort CSStartTradePacket = 0x1D2;
         public const ushort CSCanStartTradePacket = 0x018;
@@ -474,7 +474,7 @@
         public const ushort CSRequestSecondPasswordKeyTablesPacket = 0xFFF;
         public const ushort CSResetQuestContextPacket = 0xFFF;
         public const ushort CSSaveDoodadUccStringPacket = 0xFFF;
-        public const ushort CSSearchListPacket = 0xFFF;
+        //public const ushort CSSearchListPacket = 0xFFF;
         public const ushort CSSetTeamOfficerPacket = 0xFFF;
         public const ushort CSSetupSecondPasswordPacket = 0xFFF;
         public const ushort CSSpecialtyRecordLoadPacket = 0xFFF;

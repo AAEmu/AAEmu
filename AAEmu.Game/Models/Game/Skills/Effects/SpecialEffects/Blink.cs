@@ -46,9 +46,9 @@ public class Blink : SpecialEffectAction
                     }
                 }
             }
-            character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, newPos.Local.Position.X, newPos.Local.Position.Y, newPos.Local.Position.Z));
+            character.SendPacket(new SCUnitBlinkPacket(caster.ObjId, value1, value2, newPos.Local.Position.X, newPos.Local.Position.Y, newPos.Local.Position.Z));
             //character.SendMessage("To: " + newPos.ToString());
-            //character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, endX, endY, endZ));
+            //character.SendPacket(new SCUnitBlinkPacket(caster.ObjId, value1, value2, endX, endY, endZ));
         }
     }
 }

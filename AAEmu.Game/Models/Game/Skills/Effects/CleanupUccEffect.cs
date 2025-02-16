@@ -38,7 +38,7 @@ public class CleanupUccEffect : EffectTemplate
             // Send Item Ucc changed packet
             player.SendPacket(new SCItemUccDataChangedPacket(0, player.Id, targetItem.Id));
             // Send ItemTask to change flags on client
-            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GainItemWithUcc, new ItemUpdateBits(targetItem), null));
+            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.CreateOriginUcc, new ItemUpdateBits(targetItem), null));
             // Consume the Bleach
             //bleachItem._holdingContainer.ConsumeItem(ItemTaskType.ImprintUcc, bleachItem.TemplateId,1, bleachItem);
         }

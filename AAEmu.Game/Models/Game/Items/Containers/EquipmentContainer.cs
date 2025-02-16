@@ -159,7 +159,7 @@ public class EquipmentContainer : ItemContainer
         if (Owner == null)
             return true; // Not applicable to NPCs, they can hold whatever they want anywhere
 
-        if (item.SlotType == SlotType.EquipmentSlave)
+        if (item.SlotType == SlotType.SlaveEquipment)
             return true; // they can hold whatever they want anywhere
 
         if (item.Template.ImplId == ItemImplEnum.SlaveEquipment)

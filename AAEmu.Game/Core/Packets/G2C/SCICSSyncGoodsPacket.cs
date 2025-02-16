@@ -8,7 +8,7 @@ public class SCICSSyncGoodsPacket : GamePacket
     private readonly int _cashShopId;
     private readonly int _remainCount;
 
-    public SCICSSyncGoodsPacket(int cashShopId, int remainCount) : base(SCOffsets.SCICSSyncGoodPacket, 5)
+    public SCICSSyncGoodsPacket(int cashShopId, int remainCount) : base(SCOffsets.SCICSSyncGoodsPacket, 5)
     {
         _cashShopId = cashShopId;
         _remainCount = remainCount;

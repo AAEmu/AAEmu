@@ -3,9 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSPerpayHouseTaxPacket : GamePacket
+    public class CSPrepayHouseTaxPacket : GamePacket
     {
-        public CSPerpayHouseTaxPacket() : base(CSOffsets.CSPerpayHouseTaxPacket, 5)
+        public CSPrepayHouseTaxPacket() : base(CSOffsets.CSPrepayHouseTaxPacket, 5)
         {
         }
 
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var tl = stream.ReadUInt16();
             var ausp = stream.ReadBoolean();
 
-            Logger.Debug("CSPerpayHouseTaxPacket, Tl: {0}, ausp: {1}", tl, ausp);
+            Logger.Debug("CSPrepayHouseTaxPacket, Tl: {0}, ausp: {1}", tl, ausp);
 
             //TODO HousingManager.Instance.HouseTaxInfo(Connection, tl, ausp);
         }

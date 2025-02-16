@@ -667,14 +667,32 @@ public class Doodad : BaseUnit
         base.RemoveVisibleObject(character);
         character.SendPacket(new SCDoodadRemovedPacket(ObjId));
     }
+    
+    /// <summary>
+    /// GetItemTemplateIdByDoodadTemplateId - если doodad это backpack, то вернуть TemplateId предмета, который заменит этот doodad у персонажа.
+    /// </summary>
+    /// <param name="doodadTemplateId"></param>
+    /// <returns></returns>
+    private uint GetItemTemplateIdByDoodadTemplateId(uint doodadTemplateId)
+    {
+
+       return 0;
+    }
 
     public PacketStream Write(PacketStream stream)
     {
         stream.WriteBc(ObjId); //The object # in the list
         // TemplateId - The template id needed for that object, the client then uses the template configurations, not the server
         // CurrentPhaseId / FuncGroupId - doodad_func_group_id
+        // Здесь должны вставить: doodadTemplateId -> itemTemplateId
+        // можно найти: backpack_doodad_id->PutdownBackPackEffect->effect->skill_effect->skill->templateId
+        // ItemTemplateId от BackPack, который лежит на земле: Item->skill->PutdownBackPackEffect->backpack_doodad_id
+        // Doodad ID=7794 Solzreed Dried Food [Interaction - Backpack] -> ID=31857 Solzreed Dried Food -> Skill ID=24870 Drop Specialty
+        // PutdownBackPackEffect : backpack_doodad_id->effect_id, 
         // QuestGlow - When this is higher than 0 it shows a blue orb over the doodad
-        stream.WritePisc(TemplateId, FuncGroupId, 0, QuestGlow);
+        var backpack = GetItemTemplateIdByDoodadTemplateId(TemplateId);
+
+        stream.WritePisc(TemplateId, FuncGroupId, backpack, QuestGlow);
 
         stream.Write(Flag);
         stream.WriteBc(OwnerObjId); //The creator of the object
@@ -708,7 +726,7 @@ public class Doodad : BaseUnit
         stream.Write((byte)OwnerType); // ownerType
         stream.Write(OwnerDbId); // dbHouseId
         stream.Write(Data); // data - attachPointId для хранения в базе данных
-        if (Flag == 3 || Flag == 8)
+        if (backpack != 0)
         {
             stream.Write(FreshnessTime); // freshnessTime
             stream.Write((uint)0);       // type crafter?
@@ -735,8 +753,8 @@ public class Doodad : BaseUnit
         {
             var item = ItemManager.Instance.GetItemByItemId(ItemId);
             if (item != null && item._holdingContainer != null &&
-                (item._holdingContainer.ContainerType == SlotType.None ||
-                 item._holdingContainer.ContainerType == SlotType.System))
+                (item._holdingContainer.ContainerType == SlotType.Invalid ||
+                 item._holdingContainer.ContainerType == SlotType.Money))
             {
                 item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
             }

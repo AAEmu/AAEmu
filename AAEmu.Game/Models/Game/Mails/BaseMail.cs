@@ -112,7 +112,7 @@ public class BaseMail
     {
         for (var i = 0; i < Body.Attachments.Count; i++)
         {
-            Body.Attachments[i].SlotType = SlotType.Mail;
+            Body.Attachments[i].SlotType = SlotType.MailAttachment;
             Body.Attachments[i].Slot = i;
         }
     }

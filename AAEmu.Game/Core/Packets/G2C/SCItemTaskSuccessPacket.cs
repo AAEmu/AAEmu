@@ -11,20 +11,23 @@ public class SCItemTaskSuccessPacket : GamePacket
     private readonly ItemTaskType _action;
     private readonly List<ItemTask> _tasks;
     private readonly List<ulong> _forceRemove;
+    private readonly uint _type;
 
-    public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove)
+    public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove, uint type = 0)
         : base(SCOffsets.SCItemTaskSuccessPacket, 5)
     {
         _action = action;
         _tasks = tasks;
         _forceRemove = forceRemove;
+        _type = type;
     }
 
-    public SCItemTaskSuccessPacket(ItemTaskType action, ItemTask task, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 5)
+    public SCItemTaskSuccessPacket(ItemTaskType action, ItemTask task, List<ulong> forceRemove, uint type = 0) : base(SCOffsets.SCItemTaskSuccessPacket, 5)
     {
         _action = action;
         _tasks = [task];
         _forceRemove = forceRemove;
+        _type = type;
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -39,8 +42,9 @@ public class SCItemTaskSuccessPacket : GamePacket
         foreach (var remove in _forceRemove)
             stream.Write(remove);
 
-        stream.Write(0u); // type(id)
+        stream.Write(_type); // type(id)
         stream.Write(0u); // lockItemSlotKey
+
         stream.Write(0u); // flags
 
         return stream;

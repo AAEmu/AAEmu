@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Quests;
 
@@ -15,9 +16,17 @@ public class SCQuestsPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_quests.Length); // count // TODO max 20
+        const int MaxQuests = 20;
+        if (_quests.Length > MaxQuests)
+        {
+            throw new InvalidOperationException($"Number of quests exceeds the maximum allowed ({MaxQuests}).");
+        }
+
+        stream.Write(_quests.Length); // count
         foreach (var quest in _quests)
-            stream.Write(quest);
+        {
+            quest.Write(stream);
+        }
         return stream;
     }
 }

@@ -17,7 +17,7 @@ public class SCSoldItemListPacket : GamePacket
         var size = items.Count - startPos;
         _items.AddRange(items.GetRange(startPos, size));
         */
-        _items.AddRange(items.GetRange(0, items.Count > 12 ? 12 : items.Count));
+        _items.AddRange(items.GetRange(0, items.Count > 16 ? 16 : items.Count));
     }
 
     public override PacketStream Write(PacketStream stream)

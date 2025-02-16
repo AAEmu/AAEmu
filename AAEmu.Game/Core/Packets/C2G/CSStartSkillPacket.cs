@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -151,6 +152,16 @@ public class CSStartSkillPacket : GamePacket
             // If it's a valid skill cast it. This fixes interactions with quest items/doodads.
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
+        }
+
+        // HACKFIX: dismount from slave
+        if (skillId == (uint)SkillConstants.Dismount)
+        {
+            var slave = (Slave)WorldManager.Instance.GetBaseUnit(skillCastTarget.ObjId);
+            if (slave != null)
+            {
+                SlaveManager.Instance.UnbindSlave(Connection.ActiveChar, slave.TlId, AttachUnitReason.SlaveUnbinding);
+            }
         }
 
         if (skillResult != SkillResult.Success)

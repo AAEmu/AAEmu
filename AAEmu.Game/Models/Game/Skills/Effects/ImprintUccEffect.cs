@@ -40,7 +40,7 @@ public class ImprintUccEffect : EffectTemplate
             // Send Item Ucc changed packet
             player.SendPacket(new SCItemUccDataChangedPacket(stampItem.UccId, player.Id, targetItem.Id));
             // Send ItemTask to change flags on client
-            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GainItemWithUcc, new ItemUpdateBits(targetItem), null));
+            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.CreateOriginUcc, new ItemUpdateBits(targetItem), null));
             // Consume the stamp
             // Retail seems to use QuestRemoveSupplies (39) for this instead of ImprintUcc
             //stampItem._holdingContainer.ConsumeItem(ItemTaskType.ImprintUcc, stampItem.TemplateId,1, stampItem);

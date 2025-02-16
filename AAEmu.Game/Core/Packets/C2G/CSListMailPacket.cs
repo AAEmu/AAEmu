@@ -19,6 +19,6 @@ public class CSListMailPacket : GamePacket
 
         Logger.Debug($"CSListMailPacket: mailBoxListKind={mailBoxListKind}, startIdx={startIdx}, sentCnt={sentCnt}, isRecover={isRecover}, isTest={isTest}");
 
-        Connection.ActiveChar.Mails.OpenMailbox(mailBoxListKind);
+        Connection.ActiveChar.Mails.SendMailList(mailBoxListKind, startIdx, sentCnt, isRecover, isTest);
     }
 }

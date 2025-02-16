@@ -20,6 +20,9 @@ public class ItemMove : ItemTask
         _toSlotType = toSlotType;
         _toSlot = toSlot;
         _toItemId = toItemId;
+        _tLogt = SetTlogT(_type, fromSlotType == toSlotType ?
+            SlotType.Bag : // установим tLogt по значению ItemAction, предмет в одном месте
+            SlotType.Bank); // установим tLogt по значению ItemAction, предмет в разных местах
     }
 
     public override PacketStream Write(PacketStream stream)

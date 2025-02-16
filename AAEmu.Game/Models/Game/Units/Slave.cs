@@ -65,7 +65,7 @@ public class Slave : Unit
     public List<uint> Tags { get; set; }
     public List<uint> Charges { get; set; }
     public bool IsLoadedPlayerSlave { get; set; }
-
+    
     public Slave()
     {
         AttachedDoodads = new List<Doodad>();
@@ -761,6 +761,31 @@ public class Slave : Unit
         }
     }
 
+    public Doodad GetDoodadByItemTemplateId(uint templateId)
+    {
+        foreach (var doodad in AttachedDoodads)
+        {
+            if (doodad.TemplateId == templateId)
+            {
+                return doodad;
+            }
+        }
+
+        return null;
+    }
+    public Slave GetSlaveByItemTemplateId(uint templateId)
+    {
+        foreach (var slave in AttachedSlaves)
+        {
+            if (slave.TemplateId == templateId)
+            {
+                return slave;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Creates the random debris created by destroying some of the vehicles (mostly ships)
     /// </summary>
@@ -803,7 +828,7 @@ public class Slave : Unit
         item.RepairStartTime = DateTime.MinValue;
         item.SummonLocation = Vector3.Zero;
         item.IsDirty = true;
-        Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.MateDeath, new ItemUpdate(item), new List<ulong>()));
+        Summoner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SlaveDeath, new ItemUpdate(item), new List<ulong>()));
     }
 
     /// <summary>

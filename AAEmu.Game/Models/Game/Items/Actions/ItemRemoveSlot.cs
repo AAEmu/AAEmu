@@ -15,6 +15,7 @@ public class ItemRemoveSlot : ItemTask
         _itemId = item.Id;
         _slotType = item.SlotType;
         _slot = (byte)item.Slot;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public ItemRemoveSlot(ulong itemId, SlotType slotType, byte slot)
@@ -24,6 +25,7 @@ public class ItemRemoveSlot : ItemTask
         _itemId = itemId;
         _slotType = slotType;
         _slot = slot;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)

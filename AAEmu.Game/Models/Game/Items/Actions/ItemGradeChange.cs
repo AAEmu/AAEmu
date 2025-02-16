@@ -9,9 +9,10 @@ public class ItemGradeChange : ItemTask
 
     public ItemGradeChange(Item item, byte newGrade)
     {
+        _type = ItemAction.ChangeGrade; // 14
         _item = item;
         _grade = newGrade;
-        _type = ItemAction.ChangeGrade; // 14
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)

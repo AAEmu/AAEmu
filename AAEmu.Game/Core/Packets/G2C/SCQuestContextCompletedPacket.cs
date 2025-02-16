@@ -19,7 +19,7 @@ public class SCQuestContextCompletedPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_questId);
-        stream.Write(_body); // ulong -> byte[8]
+        //stream.Write(_body); // ulong -> byte[8] // not in version 5070
         stream.Write(_componentId);
         return stream;
     }

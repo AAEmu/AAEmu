@@ -38,7 +38,6 @@ public class SCMateStatusPacket : GamePacket
         {
             stream.Write(0u); // type
         }
-
         stream.Write(_skillCount); // chargeCount
         for (var i = 0; i < _skillCount; i++)
         {

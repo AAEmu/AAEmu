@@ -14,5 +14,7 @@ public class CSListMailContinuePacket : GamePacket
         var mailBoxListKind = stream.ReadByte();
 
         Logger.Debug($"ListMailContinue: mailBoxListKind {mailBoxListKind}");
+
+        Connection.ActiveChar.Mails.SendMailListContinue(mailBoxListKind);
     }
 }

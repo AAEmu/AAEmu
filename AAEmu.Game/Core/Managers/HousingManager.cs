@@ -589,8 +589,8 @@ public class HousingManager : Singleton<HousingManager>
         {
             // Pay in Tax Certificate
 
-            var userTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
-            var userBoundTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
+            var userTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Bag, Item.TaxCertificate);
+            var userBoundTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Bag, Item.BoundTaxCertificate);
             var totalUserTaxCount = userTaxCount + userBoundTaxCount;
             var totalCertsCost = (int)Math.Ceiling(totalTaxAmountDue / 10000f);
 
@@ -634,7 +634,7 @@ public class HousingManager : Singleton<HousingManager>
                 connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
                 return;
             }
-            connection.ActiveChar.SubtractMoney(SlotType.Inventory, totalTaxAmountDue, ItemTaskType.HouseCreation);
+            connection.ActiveChar.SubtractMoney(SlotType.Bag, totalTaxAmountDue, ItemTaskType.HouseCreation);
         }
 
         if (connection.ActiveChar.Inventory.Bag.ConsumeItem(ItemTaskType.HouseBuilding, sourceDesignItem.TemplateId, 1, sourceDesignItem) <= 0)
@@ -673,7 +673,7 @@ public class HousingManager : Singleton<HousingManager>
         house.ProtectionEndDate = DateTime.UtcNow.AddDays(TaxPaysForDays);
         _houses.Add(house.Id, house);
         _housesTl.Add(house.TlId, house);
-        connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
+        connection.ActiveChar.SendPacket(new SCHouseStatePacket(house));
         house.Spawn();
         UpdateTaxInfo(house);
         ResidentManager.Instance.AddResidenMemberInfo(connection.ActiveChar);
@@ -711,7 +711,7 @@ public class HousingManager : Singleton<HousingManager>
         if (house.OwnerId != connection.ActiveChar.Id)
             return;
 
-        house.Name = string.Concat(name.Substring(0, 1).ToUpper(), name.AsSpan(1));
+        house.Name = name.NormalizeName();
         house.IsDirty = true; // Manually set the IsDirty on House level
         connection.SendPacket(new SCUnitNameChangedPacket(house.ObjId, house.Name));
     }
@@ -988,7 +988,7 @@ public class HousingManager : Singleton<HousingManager>
             {
                 designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0;
                 designItem.OwnerId = house.OwnerId;
-                designItem.SlotType = SlotType.Mail;
+                designItem.SlotType = SlotType.MailAttachment;
                 returnedItems.Add(designItem);
             }
 
@@ -999,7 +999,7 @@ public class HousingManager : Singleton<HousingManager>
                 {
                     var taxItem = ItemManager.Instance.Create(Item.BoundTaxCertificate, (int)(house.Template.Taxation.Tax / 5000), 0);
                     taxItem.OwnerId = house.OwnerId;
-                    taxItem.SlotType = SlotType.Mail;
+                    taxItem.SlotType = SlotType.MailAttachment;
                     returnedItems.Add(taxItem);
                 }
                 else
@@ -1062,7 +1062,7 @@ public class HousingManager : Singleton<HousingManager>
             {
                 // TODO: Check if items should stay in the coffer when house is sold.
                 // Move it to new owner's SystemContainer first so they don't get destroyed
-                var ownerSystemContainer = ItemManager.Instance.GetItemContainerForCharacter(house.OwnerId, SlotType.System, null, 0);
+                var ownerSystemContainer = ItemManager.Instance.GetItemContainerForCharacter(house.OwnerId, SlotType.Money, null, 0);
                 for (var i = coffer.ItemContainer.Items.Count - 1; i >= 0; i--)
                 {
                     var cofferItem = coffer.ItemContainer.Items[i];
@@ -1111,7 +1111,7 @@ public class HousingManager : Singleton<HousingManager>
             if (f.ItemId > 0)
             {
                 // Ignore if it's not in a System container for whatever reason
-                if (thisDoodadsItem is { SlotType: SlotType.System })
+                if (thisDoodadsItem is { SlotType: SlotType.Money })
                 {
                     returnedItems.Add(thisDoodadsItem);
                     returnedThisItem = true;
@@ -1135,7 +1135,7 @@ public class HousingManager : Singleton<HousingManager>
                     var furnitureTemplate = ItemManager.Instance.GetTemplate(f.ItemTemplateId);
                     furnitureItem.Grade = (furnitureTemplate.FixedGrade >= 0) ? (byte)furnitureTemplate.FixedGrade : (byte)0;
                     furnitureItem.OwnerId = house.OwnerId;
-                    furnitureItem.SlotType = SlotType.Mail;
+                    furnitureItem.SlotType = SlotType.MailAttachment;
                     returnedItems.Add(furnitureItem);
                 }
                 returnedThisItem = true;
@@ -1196,7 +1196,7 @@ public class HousingManager : Singleton<HousingManager>
             if (onlineOwner != null)
                 onlineOwner.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, returnedItems[i]);
             else
-                returnedItems[i].SlotType = SlotType.Mail;
+                returnedItems[i].SlotType = SlotType.MailAttachment;
 
             // Attach item
             newMail.Body.Attachments.Add(returnedItems[i]);
@@ -1477,7 +1477,7 @@ public class HousingManager : Singleton<HousingManager>
 
         // NOTE: check tax due maybe ?
 
-        if (!character.SubtractMoney(SlotType.Inventory, (int)house.SellPrice, ItemTaskType.BuyHouse))
+        if (!character.SubtractMoney(SlotType.Bag, (int)house.SellPrice, ItemTaskType.BuyHouse))
         {
             // Not enough money
             character.SendErrorMessage(ErrorMessageType.HouseCannotBuyAsNotEnoughMoney);
@@ -1547,7 +1547,7 @@ public class HousingManager : Singleton<HousingManager>
 
         SetForSaleMarkers(house, false);
 
-        character.SendPacket(new SCMyHousePacket(house));
+        character.SendPacket(new SCHouseStatePacket(house));
         var oldOwner = WorldManager.Instance.GetCharacterById(previousOwner);
         if ((oldOwner != null) && (oldOwner.IsOnline))
             oldOwner.SendPacket(new SCHouseRemovedPacket(house.TlId));

@@ -35,12 +35,12 @@ internal class WipeAuctionHouse : ICommand
 
         AuctionManager.Instance.Load();
 
-        foreach (var item in AuctionManager.Instance._auctionItems)
+        foreach (var item in AuctionManager.Instance.AuctionLots)
         {
             AuctionManager.Instance._deletedAuctionItemIds.Add((long)item.Id);
         }
 
-        AuctionManager.Instance._auctionItems.Clear();
+        AuctionManager.Instance.AuctionLots.Clear();
         SaveManager.Instance.DoSave();
         AuctionManager.Instance.Load();
     }

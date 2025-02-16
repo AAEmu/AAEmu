@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -129,7 +130,16 @@ public class ZoneManager : Singleton<ZoneManager>
                 {
                     while (reader.Read())
                     {
-                        var zoneGroupId = reader.GetUInt16("zone_group_id");
+                        ushort zoneGroupId; // AAFree добавили остров zoneGroupId = 9000001;
+                        try
+                        {
+                            zoneGroupId = reader.GetUInt16("zone_group_id");
+                        }
+                        catch (Exception)
+                        {
+                            continue;
+                        }
+
                         if (_groups.ContainsKey(zoneGroupId))
                         {
                             var template = new ZoneConflict(_groups[zoneGroupId]);

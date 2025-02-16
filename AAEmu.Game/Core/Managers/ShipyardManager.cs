@@ -107,7 +107,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
         var designId = shipyard.Template.OriginItemId;
         var moneyOwed = TaxationsManager.Instance.taxations[(uint)shipyard.Template.TaxationId].Tax;
 
-        if (!character.Inventory.CheckItems(SlotType.Inventory, designId, 1))
+        if (!character.Inventory.CheckItems(SlotType.Bag, designId, 1))
         {
             character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
             Logger.Error("Not enough item Id={0}", designId);
@@ -135,7 +135,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
                 var enough = true;
                 foreach (var reagent in reagents)
                 {
-                    if (character.Inventory.CheckItems(SlotType.Inventory, reagent.ItemId, reagent.Amount))
+                    if (character.Inventory.CheckItems(SlotType.Bag, reagent.ItemId, reagent.Amount))
                     {
                         continue;
                     }
@@ -168,7 +168,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
         }
 
         character.Inventory.Bag.ConsumeItem(ItemTaskType.Shipyard, designId, 1, null);
-        character.SubtractMoney(SlotType.Inventory, (int)moneyOwed, ItemTaskType.Shipyard);
+        character.SubtractMoney(SlotType.Bag, (int)moneyOwed, ItemTaskType.Shipyard);
 
         return true;
     }

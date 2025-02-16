@@ -9,9 +9,10 @@ public class ChangeGamePoint : ItemTask
 
     public ChangeGamePoint(byte kind, int amount)
     {
+        _type = ItemAction.ChangeGamePoint; // 3
         _amount = amount;
         _kind = kind;
-        _type = ItemAction.ChangeGamePoint; // 3
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)

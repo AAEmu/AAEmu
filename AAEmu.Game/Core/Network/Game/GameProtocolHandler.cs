@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Text;
+
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Network.Game;
@@ -28,6 +28,8 @@ public class GameProtocolHandler : BaseProtocolHandler
         _packets.TryAdd(4, new ConcurrentDictionary<uint, Type>()); // deflate
         _packets.TryAdd(5, new ConcurrentDictionary<uint, Type>()); // encrypt
         _packets.TryAdd(6, new ConcurrentDictionary<uint, Type>()); // encrypt
+        EncryptionManager.needNewkey1 = false;
+        EncryptionManager.needNewkey2 = false;
     }
 
     public override void OnConnect(ISession session)
@@ -121,6 +123,7 @@ public class GameProtocolHandler : BaseProtocolHandler
                     stream.Rollback();
                     connection.LastPacket = stream;
                     stream = null;
+                    EncryptionManager.needNewkey1 = true;
                     continue;
                 }
                 var packetLen = len + stream.Pos;
@@ -214,5 +217,9 @@ public class GameProtocolHandler : BaseProtocolHandler
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
         Logger.Error("Unknown packet 0x{0:x2}({3}) from {1}:\n{2}", type, connection.Ip, dump, level);
+        if (type > 0x3ff)
+        {
+            EncryptionManager.needNewkey1 = true;
+        }
     }
 }
