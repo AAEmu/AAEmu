@@ -9,6 +9,7 @@ public enum SlotType : byte
     Trade = 4,
     Mail = 5,
     Auction = 6,
+    SlaveEquipment = 242,
     EquipmentMate = 252,
     System = 0xFF
 }

@@ -27,6 +27,7 @@ public class Inventory
     public ItemContainer Warehouse { get; private set; }
     public ItemContainer MailAttachments { get; private set; }
     public ItemContainer SystemContainer { get; private set; }
+    public ItemContainer SlaveContainer { get; private set; }
     public ItemContainer AuctionAttachments { get; private set; }
     public ulong PreviousBackPackItemId { get; set; } // used to re-equip glider when putting backpacks down
 
@@ -79,6 +80,9 @@ public class Inventory
                     break;
                 case SlotType.Auction:
                     AuctionAttachments = newContainer;
+                    break;
+                case SlotType.SlaveEquipment:
+                    SlaveContainer = newContainer;
                     break;
                 case SlotType.System:
                     SystemContainer = newContainer;
@@ -312,7 +316,7 @@ public class Inventory
 
         var action = SwapAction.doNothing;
 
-        // Try to grab the target item by it's itemId
+        // Try to grab the target item by its itemId
         var itemInTargetSlot = ItemManager.Instance.GetItemByItemId(toItemId);
         // If no count provided, and we have a source item, use that item's total count instead
         if (count <= 0 && fromItem != null)
@@ -788,6 +792,9 @@ public class Inventory
                 break;
             case SlotType.Bank:
                 item = Warehouse.GetItemBySlot(slot);
+                break;
+            case SlotType.SlaveEquipment:
+                item = Bag.GetItemBySlot(slot);
                 break;
             case SlotType.Trade:
                 // TODO ...

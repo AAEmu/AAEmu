@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
@@ -109,6 +110,7 @@ public class ItemContainer
             SlotType.System => false,
             SlotType.EquipmentMate => false,
             SlotType.Auction => false,
+            SlotType.SlaveEquipment => false,
             _ => throw new ArgumentOutOfRangeException()
         };
 
@@ -419,8 +421,7 @@ public class ItemContainer
 
             if (sourceItemTasks.Count > 0)
             {
-                sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks,
-                    []));
+                sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks, []));
             }
         }
 
@@ -467,8 +468,7 @@ public class ItemContainer
 
         // Handle items that can expire
         GamePacket sync = null;
-        if (item.ExpirationOnlineMinutesLeft > 0.0 || item.ExpirationTime > DateTime.UtcNow ||
-            item.UnpackTime > DateTime.UtcNow)
+        if (item.ExpirationOnlineMinutesLeft > 0.0 || item.ExpirationTime > DateTime.UtcNow || item.UnpackTime > DateTime.UtcNow)
         {
             sync = ItemManager.ExpireItemPacket(item);
         }
@@ -481,8 +481,7 @@ public class ItemContainer
         var res = item._holdingContainer.Items.Remove(item);
         if (res && task != ItemTaskType.Invalid)
         {
-            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)],
-                []));
+            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], []));
         }
 
         if (res && releaseIdAsWell)
