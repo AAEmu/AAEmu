@@ -14,6 +14,8 @@ using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
+
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
@@ -52,6 +54,71 @@ public abstract class BaseCombatBehavior : Behavior
         if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return;
 
+        var speed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
+        var moveFlags = Ai.GetRealMovementFlags(speed);
+        speed *= (delta.Milliseconds / 1000.0);
+
+        if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Fish)))
+        {
+            // Sports fish movement logic
+            // Halve the speed for the sports fish movement logic
+            speed *= 0.5;
+
+            // Buff 1021: Move left (i.e. as far left as possible)
+            if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Left)))
+            {
+                var currentPosition = Ai.Owner.Transform.World.Position;
+                // Define a target far to the left 
+                var leftTarget = new Vector3(currentPosition.X - 10000, currentPosition.Y, currentPosition.Z);
+                Ai.Owner.LookTowards(leftTarget);
+                Ai.Owner.MoveTowards(leftTarget, (float)speed, moveFlags);
+                return;
+            }
+
+            // Buff 1020: Move right
+            if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Right)))
+            {
+                var currentPosition = Ai.Owner.Transform.World.Position;
+                var rightTarget = new Vector3(currentPosition.X + 10000, currentPosition.Y, currentPosition.Z);
+                Ai.Owner.LookTowards(rightTarget);
+                Ai.Owner.MoveTowards(rightTarget, (float)speed, moveFlags);
+                return;
+            }
+
+            // Buff 1023: Run away from the player's location (i.e. the target)
+            if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Back)))
+            {
+                var currentPosition = Ai.Owner.Transform.World.Position;
+                var playerPosition = target.Transform.World.Position;
+                // Calculate the opposite direction from the player
+                var runDirection = currentPosition - playerPosition;
+                if (runDirection.Length() == 0)
+                {
+                    // Fallback in case we're exactly on top of the player: default to right
+                    runDirection = new Vector3(1, 0, 0);
+                }
+                runDirection = Vector3.Normalize(runDirection);
+                // Create a target far away in that direction
+                var runTarget = currentPosition + runDirection * 10000;
+                Ai.Owner.LookTowards(runTarget);
+                Ai.Owner.MoveTowards(runTarget, (float)speed, moveFlags);
+                return;
+            }
+
+            // Buff 1022: Descend (move downward)
+            if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Descend)))
+            {
+                var currentPosition = Ai.Owner.Transform.World.Position;
+                var descendTarget = new Vector3(currentPosition.X, currentPosition.Y - 10000, currentPosition.Z);
+                Ai.Owner.LookTowards(descendTarget);
+                Ai.Owner.MoveTowards(descendTarget, (float)speed, moveFlags);
+                return;
+            }
+
+            // If no specific fish buff is active, remain still.
+            Ai.Owner.StopMovement();
+            return;
+        }
         //Ai.Owner.Template.AttackStartRangeScale * 4,
         //var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
         var range = Ai.Owner.Template.AttackStartRangeScale;
@@ -65,9 +132,7 @@ public abstract class BaseCombatBehavior : Behavior
         {
             range -= 1f; // Fix that ID=7927, Plateau Earth Elemental can hit with a melee attack
         }
-        var speed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
-        var moveFlags = Ai.GetRealMovementFlags(speed);
-        speed *= (delta.Milliseconds / 1000.0);
+
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
         if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)

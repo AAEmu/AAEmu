@@ -1,16 +1,15 @@
 ﻿using System;
-
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Skills.Templates;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -85,7 +84,7 @@ public class SpawnFishEffect : EffectTemplate
     }
     public uint GetFishSpawnerId(Character player)
     {
-        var doodads = WorldManager.GetAround<Doodad>(player, 20);
+        var doodads = WorldManager.GetAround<Doodad>(player, 100);
         for (var i = 0; i < doodads.Count; i++)
         {
             if (doodads[i].Template.GroupId == 65)

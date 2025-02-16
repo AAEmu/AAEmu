@@ -71,7 +71,7 @@ public class LootingContainer(IBaseUnit owner)
     /// <summary>
     /// List of item entries (itemIndex, LootItemEntry)
     /// </summary>
-    public Dictionary<ushort, LootingContainerItemEntry> Items { get; } = new();
+    public Dictionary<ushort, LootingContainerItemEntry> Items { get; } = [];
     private bool AlreadyGenerated { get; set; }
     private HashSet<Character> EligiblePlayers { get; } = [];
     private HashSet<Character> OpenedBy { get; } = [];
@@ -86,7 +86,7 @@ public class LootingContainer(IBaseUnit owner)
         if (AlreadyGenerated)
             return;
         AlreadyGenerated = true;
-        
+
         // Initialize some things
         LootOwnerType = LootOwner switch
         {
@@ -119,7 +119,7 @@ public class LootingContainer(IBaseUnit owner)
             {
                 LootMethod = LootingRuleMethod.FreeForAll,
             };
-            
+
             if (npc.CharacterTagging.TagTeam != 0)
             {
                 // A team has tagging rights
@@ -129,7 +129,7 @@ public class LootingContainer(IBaseUnit owner)
                     {
                         if (member == null || member.Character == null)
                             continue;
-                        
+
                         //if (member.HasGoneRoundRobin)
                         //    continue;
 
@@ -198,11 +198,11 @@ public class LootingContainer(IBaseUnit owner)
                 var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
                 if (lootPack == null)
                     continue;
-                lootPackResults.AddRange(lootPack.GeneratePackNew(lootDropRate, lootGoldRate, killer as Character, ActabilityType.None, true)); 
+                lootPackResults.AddRange(lootPack.GeneratePackNew(lootDropRate, lootGoldRate, killer as Character, ActabilityType.None, true));
                 // var items = lootPack.GenerateNpcPackItems(ref baseId, killer, lootDropRate, lootGoldRate);
                 // RegisterItems(items);
             }
-            
+
             // Make Group list to enumerate with
             var groups = lootPackResults.GroupBy(x => x.lootGroupOrigin).Select(x => x.Key).ToList();
 
@@ -230,7 +230,7 @@ public class LootingContainer(IBaseUnit owner)
                         resultsToAdd.Add(item);
                     }
                 }
-                
+
                 RegisterItems(resultsToAdd);
             }
 
@@ -341,7 +341,7 @@ public class LootingContainer(IBaseUnit owner)
                     lootedItems.Add(itemIndex);
             }
             // Remove actually looted items
-            foreach(var lootedItemIndex in lootedItems)
+            foreach (var lootedItemIndex in lootedItems)
                 Items.Remove(lootedItemIndex);
         }
 
@@ -391,7 +391,7 @@ public class LootingContainer(IBaseUnit owner)
             player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.NoPermissionToLoot, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
             return false;
         }
-        
+
         // Check for quest items eligibility
         if (itemEntry.Item.Template.LootQuestId > 0)
         {
@@ -529,7 +529,7 @@ public class LootingContainer(IBaseUnit owner)
         // Check if everybody has rolled
         if (itemEntry.PlayerRolls.Any(m => m.Value == 0))
             return;
-        
+
         FinishRolling(itemEntry);
     }
 
@@ -591,6 +591,36 @@ public class LootingContainer(IBaseUnit owner)
         {
             player.AddMoney(SlotType.Inventory, itemEntry.Item.Count);
         }
+        else if (ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId))
+        {
+            // Auto-equip tradepack item branch.
+            // Create a new item instance (non-binding on creation).
+            var item = ItemManager.Instance.Create(itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade, false);
+
+            // Attempt to remove the current backpack item to free up the slot.
+            if (player.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
+            {
+                // Try to add the new item to the Equipment container's Backpack slot.
+                if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item, (int)EquipmentItemSlot.Backpack))
+                {
+                    // If adding fails, release the item ID and restore original.
+                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    itemEntry.Item.Id = fullOldItemId;
+                    player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                    return false;
+                }
+                else
+                {
+                    Logger.Trace("AutoEquipTradePack: Tradepack item added to Equipment container successfully.");
+                }
+            }
+            else
+            {
+                Logger.Warn("AutoEquipTradePack: Failed to take off backpack for auto-equip tradepack item TemplateId={0}.", itemEntry.Item.TemplateId);
+                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                return false;
+            }
+        }
         else
         {
             // On a loot attempt, it's probably safe to try and assign it a real itemId
@@ -639,7 +669,7 @@ public class LootingContainer(IBaseUnit owner)
                     // }
                 }
             }
-            
+
             FinishRolling(itemEntry);
         }
     }

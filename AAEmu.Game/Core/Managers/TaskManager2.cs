@@ -151,7 +151,18 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
 
         return res;
     }
-
+    public void RemoveTasks(Func<Task, bool> predicate)
+    {
+        // Take a snapshot of the current tasks to avoid modifying the collection while iterating.
+        foreach (var kvp in _queue.ToArray())
+        {
+            if (predicate(kvp.Value))
+            {
+                if (_queue.TryRemove(kvp))
+                    ReleaseId(kvp.Key);
+            }
+        }
+    }
     private uint NextId()
     {
         lock (_taskIdLock)

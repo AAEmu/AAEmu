@@ -398,53 +398,57 @@ public class Buffs : IBuffs
                                     last = e;
                     break;
             }
-            last?.Exit(index > 0 && last.Template.Id == buff.Template.Id);
-
-            _effects.Add(buff);
-            buff.Triggers.SubscribeEvents();
-            buff.Events.OnBuffStarted(buff, new OnBuffStartedArgs());
-
-            if (buff.Template.BuffId > 0)
+            if (last != null)
             {
-                var bufft = SkillManager.Instance.GetBuffTemplate(buff.Template.BuffId);
-                owner.SkillModifiersCache.AddModifiers(buff.Template.BuffId);
-                owner.BuffModifiersCache.AddModifiers(buff.Template.BuffId);
-                owner.CombatBuffs.AddCombatBuffs(buff.Template.BuffId);
-
-                if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
-                {
-                    var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-                    MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
-                }
-
-                if (bufft.Stun || bufft.Silence || bufft.Sleep)
-                    owner.InterruptSkills();
+                last.OverwriteWith(buff);
             }
-
-            //if (buff.Duration > 0)
-            if (buff.Duration > 0 || buff.Template.TickEffects.Count > 0)
-                buff.SetInUse(true, false);
             else
             {
-                buff.InUse = true;
-                buff.State = EffectState.Acting;
-                buff.Template.Start(buff.Caster, owner, buff); // TODO поменять на target
-            }
+                _effects.Add(buff);
+                buff.Triggers.SubscribeEvents();
+                buff.Events.OnBuffStarted(buff, new OnBuffStartedArgs());
 
-            // If Owner has buffs that prevent it from doing combat, then remove the aggro for it
-            if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
-            {
-                // Unit entered a "safe zone"
-                if ((owner is Npc npc) && (npc.Ai != null))
+                if (buff.Template.BuffId > 0)
                 {
-                    npc.ClearAllAggro();
+                    var bufft = SkillManager.Instance.GetBuffTemplate(buff.Template.BuffId);
+                    owner.SkillModifiersCache.AddModifiers(buff.Template.BuffId);
+                    owner.BuffModifiersCache.AddModifiers(buff.Template.BuffId);
+                    owner.CombatBuffs.AddCombatBuffs(buff.Template.BuffId);
+
+                    if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
+                    {
+                        var mate = MateManager.Instance.GetActiveMate(character.ObjId);
+                        MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                    }
+
+                    if (bufft.Stun || bufft.Silence || bufft.Sleep)
+                        owner.InterruptSkills();
                 }
 
-                if (owner is Unit unit)
-                    unit.IsInBattle = false;
+                //if (buff.Duration > 0)
+                if (buff.Duration > 0 || buff.Template.TickEffects.Count > 0)
+                    buff.SetInUse(true, false);
+                else
+                {
+                    buff.InUse = true;
+                    buff.State = EffectState.Acting;
+                    buff.Template.Start(buff.Caster, owner, buff); // TODO поменять на target
+                }
+
+                // If Owner has buffs that prevent it from doing combat, then remove the aggro for it
+                if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
+                {
+                    // Unit entered a "safe zone"
+                    if ((owner is Npc npc) && (npc.Ai != null))
+                    {
+                        npc.ClearAllAggro();
+                    }
+
+                    if (owner is Unit unit)
+                        unit.IsInBattle = false;
+                }
             }
         }
-
         if (finalToleranceBuffId > 0)
         {
             AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.UtcNow));

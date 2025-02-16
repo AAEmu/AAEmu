@@ -1156,7 +1156,18 @@ public class Skill
                     // для квеста 3478, требуется чтобы caster был Npc
                     // для квеста 3993 должен выполняться эффект, а он прерывался из-за неправильного сравнения!
                     var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
-                    effect.Template.Apply(npc ?? caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    var effectiveNpc = npc ?? (target as Npc);
+
+                    // If we have an effective NPC and it is dead, skip the effect - KillNPCWithoutCorpse happens before death
+                    if (effectiveNpc != null && effectiveNpc.IsDead)
+                    {
+                        // Logger.Warn("Effective NPC is dead, skipping KillNpcWithoutCorpseEffect.");
+                    }
+                    else
+                    {
+                        effect.Template.Apply(npc ?? caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId),
+                            new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    }
                 }
                 else
                 {
@@ -1373,7 +1384,7 @@ public class Skill
             }
         }
 
-    AlwaysHit:
+AlwaysHit:
         switch (damageType)
         {
             case DamageType.Melee:
