@@ -85,7 +85,7 @@ public class SpawnFishEffect : EffectTemplate
     }
     public uint GetFishSpawnerId(Character player)
     {
-        var doodads = WorldManager.GetAround<Doodad>(player, 20);
+        var doodads = WorldManager.GetAround<Doodad>(player, 100);
         for (var i = 0; i < doodads.Count; i++)
         {
             if (doodads[i].Template.GroupId == 65)
