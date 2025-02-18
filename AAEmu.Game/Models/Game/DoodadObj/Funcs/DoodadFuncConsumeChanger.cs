@@ -41,8 +41,8 @@ public class DoodadFuncConsumeChanger : DoodadFuncTemplate
         if (Count > 1)
             Logger.Warn($"DoodadFuncConsumeChanger, expected source count is higher than one ({Count}) for slot {SlotId} on doodad type {owner.TemplateId} ({owner.OwnerId}) from player {player.Name}");
 
-        // Move the actual item to the owner's SlaveContainer
-        player.Inventory.SlaveContainer.AddOrMoveExistingItem(ItemTaskType.DoodadItemChanger, sourceItem);
+        // Move the actual item to the owner's SystemContainer
+        player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadItemChanger, sourceItem);
         owner.ToNextPhase = true;
     }
 }

@@ -25,7 +25,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
             {
                 // Recoverable doodads, should be referencing a item in a System container, if this is not the case,
                 // that means that it was already picked up by somebody else
-                if (item._holdingContainer?.ContainerType == SlotType.System)
+                if (item._holdingContainer?.ContainerType != SlotType.System)
                 {
                     owner.ToNextPhase = false;
                     character.SendErrorMessage(ErrorMessageType.InteractionRecoverParent); // TODO: Not sure what error I need to put here
@@ -77,7 +77,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
         }
         else if (owner?.ItemTemplateId > 0)
         {
-            addedItem = character.Inventory.SlaveContainer.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
+            addedItem = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
         }
         else
         {
