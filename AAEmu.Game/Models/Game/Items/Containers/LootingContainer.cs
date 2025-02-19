@@ -594,17 +594,15 @@ public class LootingContainer(IBaseUnit owner)
         else if (ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId))
         {
             // Auto-equip tradepack item branch.
-            // Create a new item instance (non-binding on creation).
-            var item = ItemManager.Instance.Create(itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade, false);
-
+            itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
             // Attempt to remove the current backpack item to free up the slot.
             if (player.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
             {
                 // Try to add the new item to the Equipment container's Backpack slot.
-                if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item, (int)EquipmentItemSlot.Backpack))
+                if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, itemEntry.Item, (int)EquipmentItemSlot.Backpack))
                 {
                     // If adding fails, release the item ID and restore original.
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
                     itemEntry.Item.Id = fullOldItemId;
                     player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
                     return false;
@@ -623,7 +621,6 @@ public class LootingContainer(IBaseUnit owner)
         }
         else
         {
-            // On a loot attempt, it's probably safe to try and assign it a real itemId
             itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
             // Try to add the new item
             if (!player.Inventory.Bag.AcquireDefaultItem(didLootAll ? ItemTaskType.LootAll : ItemTaskType.Loot, itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade))
