@@ -65,24 +65,31 @@ CREATE TABLE `appellations` (
 -- Table structure for auction_house
 -- ----------------------------------
 DROP TABLE IF EXISTS `auction_house`;
-CREATE TABLE `auction_house`  (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `duration` tinyint NOT NULL,
-  `item_id` bigint NOT NULL,
-  `post_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time when the auction item was put up for sale (in UTC)',
-  `end_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time when the sale period ends (in UTC)',
-  `world_id` tinyint NOT NULL,
-  `client_id` int NOT NULL,
-  `client_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `start_money` int NOT NULL,
-  `direct_money` int NOT NULL,
-  `bid_world_id` int NOT NULL,
-  `bidder_id` int NOT NULL,
-  `bidder_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `bid_money` int NOT NULL,
-  `extra` int NOT NULL,
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Listed AH Items' ROW_FORMAT = DYNAMIC;
+CREATE TABLE `auction_house` (
+	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+	`duration` TINYINT(4) NOT NULL,
+	`item_id` BIGINT(20) NOT NULL,
+	`post_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time when the auction item was put up for sale (in UTC)',
+	`stack_size` INT(11) NOT NULL,
+	`end_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time when the sale period ends (in UTC)',
+	`world_id` TINYINT(4) NOT NULL,
+	`client_id` INT(11) NOT NULL,
+	`client_name` VARCHAR(45) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`start_money` INT(11) NOT NULL,
+	`direct_money` INT(11) NOT NULL,
+	`bid_world_id` INT(11) NOT NULL,
+	`bidder_id` INT(11) NOT NULL,
+	`bidder_name` VARCHAR(45) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`bid_money` INT(11) NOT NULL,
+	`extra` INT(11) NOT NULL,
+	PRIMARY KEY (`id`) USING BTREE
+)
+COMMENT='Listed AH Items'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+ROW_FORMAT=DYNAMIC
+;
+
 
 DROP TABLE IF EXISTS `blocked`;
 CREATE TABLE `blocked` (
