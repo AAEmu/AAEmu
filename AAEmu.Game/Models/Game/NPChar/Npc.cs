@@ -891,6 +891,7 @@ public partial class Npc : Unit
             if (mate != null)
             {
                 mate.AddExp(KillExp);
+                // TODO: Proper message?
                 characterKiller.SendMessage($"Pet gained {KillExp} XP");
             }
         }
@@ -987,6 +988,7 @@ public partial class Npc : Unit
                     if (mate != null)
                     {
                         mate.AddExp(mateKillXP);
+                        // TODO: Proper message?
                         pl.SendMessage($"Pet gained {mateKillXP} XP");
                     }
                 }

@@ -1773,11 +1773,34 @@ public partial class Character : Unit, ICharacter
 
     public void SendMessage(string message) => SendMessage(ChatType.System, message, null);
 
+    /// <summary>
+    /// Sends a debug message to player chat, but only if DebugInfo is enabled in the configuration
+    /// </summary>
+    /// <param name="message"></param>
+    public void SendDebugMessage(string message)
+    {
+        if (AppConfiguration.Instance.DebugInfo && CharacterManager.Instance.GetEffectiveAccessLevel(this) >= AppConfiguration.Instance.DebugInfoLevel)
+            SendMessage(ChatType.System, message, null);
+    }
+    
+    /// <summary>
+    /// Sends an error message to the player
+    /// </summary>
+    /// <param name="errorMsgType">Error Id</param>
+    /// <param name="type">Addition argument for error if needed</param>
+    /// <param name="isNotify">If true, will also give a popup-text</param>
     public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
     {
         SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
     }
 
+    /// <summary>
+    /// Sends an error message to the player that also has a sub-type
+    /// </summary>
+    /// <param name="errorMsgType1"></param>
+    /// <param name="errorMsgType2"></param>
+    /// <param name="type"></param>
+    /// <param name="isNotify"></param>
     public void SendErrorMessage(ErrorMessageType errorMsgType1, ErrorMessageType errorMsgType2, uint type = 0, bool isNotify = true)
     {
         SendPacket(new SCErrorMsgPacket(errorMsgType1, errorMsgType2, type, isNotify));

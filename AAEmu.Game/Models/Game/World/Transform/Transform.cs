@@ -308,7 +308,7 @@ public class Transform : IDisposable
                 _parentTransform?.InternalAttachChild(this);
 
                 if ((_owningObject is Character aPlayer))
-                    aPlayer.SendMessage($"NewPos: {ToFullString(true, true)}");
+                    aPlayer.SendDebugMessage($"NewPos: {ToFullString(true, true)}");
             }
         }
     }

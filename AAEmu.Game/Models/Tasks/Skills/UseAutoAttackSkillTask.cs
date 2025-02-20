@@ -50,13 +50,13 @@ public class UseAutoAttackSkillTask : SkillTask
             var newDelay = TimeSpan.FromMilliseconds(SkillManager.GetAttackDelay(_skill.Template, _caster));
             if (newDelay != RepeatInterval)
             {
-                _caster.SendMessage($"[AutoAttack] Delay changed {RepeatInterval.TotalMilliseconds} -> {newDelay.TotalMilliseconds}");
+                _caster.SendDebugMessage($"[AutoAttack] Delay changed {RepeatInterval.TotalMilliseconds} -> {newDelay.TotalMilliseconds}");
                 RepeatInterval = newDelay;
             }
         }
         else
         {
-            _caster.SendMessage($"[UseAutoAttackSkillTask] Cannot attack with {_skill.Template.Id} on {target.ObjId}");
+            _caster.SendDebugMessage($"[UseAutoAttackSkillTask] Cannot attack with {_skill.Template.Id} on {target.ObjId}");
         }
     }
 }

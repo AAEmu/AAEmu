@@ -92,7 +92,7 @@ public class CharacterCraft
                     throw new ArgumentOutOfRangeException(Convert.ToString(doodad.FuncPermission));
             }
 
-            Owner.SendMessage($"Crafting using @DOODAD_NAME({doodad.TemplateId}) - {doodad.TemplateId} (objId: {doodad.ObjId}) with current permission {doodad.FuncPermission} = {hasPermission}");
+            Owner.SendDebugMessage($"Crafting using @DOODAD_NAME({doodad.TemplateId}) - {doodad.TemplateId} (objId: {doodad.ObjId}) with current permission {doodad.FuncPermission} = {hasPermission}");
         }
 
         if (!hasPermission)
@@ -132,7 +132,7 @@ public class CharacterCraft
 
         if (Owner.LaborPower < _consumeLaborPower)
         {
-            Owner.SendMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
+            Owner.SendDebugMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
             // TODO not verified
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughLaborPower, 0, false);
             CraftOrCancel();

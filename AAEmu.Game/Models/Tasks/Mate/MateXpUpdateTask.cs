@@ -22,6 +22,7 @@ public class MateXpUpdateTask : Task
         _mate.MateXpUpdateTask?.Cancel();
         _mate.MateXpUpdateTask = null;
         _mate?.AddExp(Exp);
+        // TODO: Proper message?
         _owner.SendMessage($"pet received {Exp} experience points");
         Logger.Debug($"[MateXpUpdateTask] Id {_mate?.Id}, ObjId {_mate?.ObjId}, DbInfo.Xp {_mate?.DbInfo.Xp}, AddExp {Exp}");
     }

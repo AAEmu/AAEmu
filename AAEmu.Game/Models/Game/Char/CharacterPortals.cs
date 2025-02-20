@@ -77,8 +77,8 @@ public class CharacterPortals
             }
             PopulateDistrictPortals();
             Send();
-            Logger.Info($"{portal.Name}:{subZoneId} added to return district list");
-            Owner.SendMessage($"{portal.Name}:{subZoneId} added to visited district list in the portal book");
+            Logger.Debug($"{Owner.Name} - {portal.Name}:{subZoneId} added to return district list");
+            Owner.SendDebugMessage($"{portal.Name}:{subZoneId} added to visited district list in the portal book");
         }
     }
 

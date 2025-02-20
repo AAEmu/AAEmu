@@ -22,7 +22,7 @@ public class DoodadFuncBinding : DoodadFuncTemplate
         var returnPointId = PortalManager.Instance.GetDistrictReturnPoint(DistrictId, character.Faction.Id);
 
         Logger.Trace($"DoodadFuncBinding: DistrictId {DistrictId} ==> ReturnPointId {returnPointId}, SubZonesId {character.SubZoneId}");
-        character.SendMessage($"DoodadFuncBinding: DistrictId {DistrictId} ==> ReturnPointId {returnPointId}, SubZonesId {character.SubZoneId}");
+        character.SendDebugMessage($"DoodadFuncBinding: DistrictId {DistrictId} ==> ReturnPointId {returnPointId}, SubZonesId {character.SubZoneId}");
 
         if (returnPointId == 0) { return; }
 
@@ -34,12 +34,12 @@ public class DoodadFuncBinding : DoodadFuncTemplate
             var portals = character.Portals.DistrictPortals.Values.ToArray();
             character.SendPacket(new SCCharacterReturnDistrictsPacket(portals, portal.Id));
             Logger.Trace($"DoodadFuncBinding: ReturnPointId {returnPointId} ==> Portal.Id {portal.Id}");
-            character.SendMessage($"DoodadFuncBinding: ReturnPointId {returnPointId} ==> Portal.Id {portal.Id}");
+            character.SendDebugMessage($"DoodadFuncBinding: ReturnPointId {returnPointId} ==> Portal.Id {portal.Id}");
         }
         else
         {
             Logger.Warn($"DoodadFuncBinding: Recall point {DistrictId} not found!");
-            character.SendMessage($"DoodadFuncBinding: Recall point {DistrictId} not found!");
+            character.SendDebugMessage($"DoodadFuncBinding: Recall point {DistrictId} not found!");
         }
         owner.ToNextPhase = true;
     }

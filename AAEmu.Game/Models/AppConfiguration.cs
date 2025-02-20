@@ -33,6 +33,8 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
     public ScriptsConfig Scripts { get; set; } = new ScriptsConfig();
     public string DefaultLanguage { get; set; } = "en_us";
+    public bool DebugInfo { get; set; } = true;
+    public uint DebugInfoLevel { get; set; } = 100;
 
     public class NetworkConfig
     {

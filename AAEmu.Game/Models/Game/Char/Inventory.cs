@@ -614,7 +614,7 @@ public class Inventory
             case SwapAction.doNothing:
             default:
                 // Should be impossible to get here
-                Owner.SendMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action + "|r");
+                Owner.SendDebugMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action + "|r");
                 Logger.Error("SplitOrMoveItem swap action not implemented " + action);
                 break;
         }
