@@ -50,7 +50,7 @@ public class BuffEffect : EffectTemplate
         uint abLevel = 1;
         if (caster is Character character)
         {
-            Logger.Debug("BuffEffect");
+            Logger.Warn($"BuffEffect {Buff.Id}");
             if (source.Skill != null)
             {
                 var template = source.Skill.Template;
