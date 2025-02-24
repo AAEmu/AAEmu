@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -20,8 +21,7 @@ public class DoodadPhaseListSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "Object Id", true));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument,
-        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint doodadObjId = parameters["ObjId"];
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
@@ -37,9 +37,7 @@ public class DoodadPhaseListSubCommand : SubCommandBase
 
         var availablePhases = string.Join(", ", DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId));
 
-        SendMessage(messageOutput,
-            $"TemplateId {doodad.TemplateId}: ObjId{doodad.ObjId}, Available phase ids (func groups): {availablePhases}");
-        Logger.Warn(
-            $"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId},  Available phase ids (func groups): {availablePhases}");
+        SendMessage(messageOutput, $"TemplateId {doodad.TemplateId}: ObjId{doodad.ObjId}, Available phase ids (func groups): {availablePhases}");
+        Logger.Warn($"{Title} Chain: TemplateId {doodad.TemplateId}, doodadObjId {doodad.ObjId},  Available phase ids (func groups): {availablePhases}");
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -22,8 +23,7 @@ public class NpcSpawnSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<facing degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument,
-        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint npcTemplateId = parameters["NpcTemplateId"];
 
@@ -42,8 +42,7 @@ public class NpcSpawnSubCommand : SubCommandBase
         charPos.Local.AddDistanceToFront(3f);
         npcSpawner.Position = charPos.CloneAsSpawnPosition();
 
-        var angle = GetOptionalParameterValue(parameters, "yaw",
-            (float)MathUtil.CalculateAngleFrom(charPos, selfCharacter.Transform)).DegToRad();
+        var angle = GetOptionalParameterValue(parameters, "yaw", (float)MathUtil.CalculateAngleFrom(charPos, selfCharacter.Transform)).DegToRad();
 
         if (!parameters.ContainsKey("yaw"))
         {
@@ -60,6 +59,6 @@ public class NpcSpawnSubCommand : SubCommandBase
 
         SpawnManager.Instance.AddNpcSpawner(npcSpawner);
 
-        npcSpawner.SpawnAll();
+        npcSpawner.Update();
     }
 }

@@ -1238,6 +1238,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return _npcs.Values.Where(n => n.Transform.WorldId == worldId).ToList();
     }
 
+    public List<Doodad> GetAllDoodadsFromWorld(uint worldId)
+    {
+        return _doodads.Values.Where(d => d.Transform.WorldId == worldId).ToList();
+    }
+
     public List<Slave> GetAllSlaves()
     {
         return _slaves.Values.ToList();

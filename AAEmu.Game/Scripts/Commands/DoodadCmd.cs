@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -24,6 +25,8 @@ public class DoodadCmd : SubCommandBase, ICommand
         Register(new DoodadSaveSubCommand(), "save");
         Register(new DoodadPositionSubCommand(), "position", "pos");
         Register(new DoodadSpawnSubCommand(), "spawn");
+        Register(new DoodadRemoveSubCommand(), "remove");
+        Register(new DoodadRemovesSubCommand(), "removes");
     }
 
     public void OnLoad()
@@ -47,7 +50,6 @@ public class DoodadCmd : SubCommandBase, ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        throw new InvalidOperationException(
-            $"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
+        throw new InvalidOperationException($"A {nameof(ICommandV2)} implementation should not be used as ICommand interface");
     }
 }
