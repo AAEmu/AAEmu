@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.Creatures;
 //using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -25,7 +26,7 @@ namespace AAEmu.Game.Scripts.SubCommands.Npcs;
 
 public class NpcSaveSubCommand : SubCommandBase
 {
-    //private static Dictionary<uint, Creature> _creatures;
+    private static Dictionary<uint, Creature> _creatures;
     private bool _isSavingInProgress;
     private readonly object _saveLock = new();
 
@@ -87,11 +88,20 @@ public class NpcSaveSubCommand : SubCommandBase
 
         try
         {
-            //_creatures = Creature.GetAllCreatures();
+            _creatures = Creature.GetAllCreatures();
             var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.WorldId);
             var npcsInWorld = WorldManager.Instance.GetAllNpcsFromWorld(currentWorld.Id);
             var npcSpawnersFromFile = LoadNpcsFromFileByWorld(currentWorld);
             var npcSpawnersToFile = npcSpawnersFromFile.ToList();
+
+            for (var i = 0; i < npcSpawnersToFile.Count; i++)
+            {
+                npcSpawnersToFile[i].Title = GetSpawnName(npcSpawnersToFile[i].UnitId); // обновим Title
+                if (npcSpawnersToFile[i].Scale == 0f)
+                    npcSpawnersToFile[i].Scale = 1f; // обновим Scale
+
+                npcSpawnersToFile[i].FollowPath ??= "";
+            }
 
             var addNpcs = npcsInWorld.Where(n => n.Spawner?.Id == 0).ToList();
             var removeNpcs = npcsInWorld.Where(n => n.Spawner?.Id == 0xffffffff).ToList();
@@ -127,6 +137,8 @@ public class NpcSaveSubCommand : SubCommandBase
                 npcSpawnersDict.Add(key, spawns);
             }
 
+            npcSpawnersToFile = npcSpawnersDict.Values.ToList(); // Перезаписываем список уникальными значениями
+
             // Удаляем элементы из npcSpawnersToFile, которые соответствуют removeNpcs
             Parallel.For(0, removeNpcs.Count, i =>
             {
@@ -149,7 +161,7 @@ public class NpcSaveSubCommand : SubCommandBase
                 {
                     Id = lastObjId++,
                     UnitId = npc.TemplateId,
-                    //Title = GetSpawnName(npc.TemplateId), // обновим Title
+                    Title = GetSpawnName(npc.TemplateId), // обновим Title
                     Position = new JsonPosition
                     {
                         X = pos.Position.X,
@@ -158,8 +170,8 @@ public class NpcSaveSubCommand : SubCommandBase
                         Roll = pos.Rotation.X.RadToDeg(),
                         Pitch = pos.Rotation.Y.RadToDeg(),
                         Yaw = pos.Rotation.Z.RadToDeg()
-                    } //,
-                    //Scale = npc.Scale,
+                    },
+                    Scale = npc.Scale,
                 };
 
                 lock (npcSpawnersToFile)
@@ -205,7 +217,7 @@ public class NpcSaveSubCommand : SubCommandBase
 
     private void SaveById(ICharacter character, uint npcObjId, IMessageOutput messageOutput)
     {
-        //_creatures = Creature.GetAllCreatures();
+        _creatures = Creature.GetAllCreatures();
         //var spawners = new List<JsonNpcSpawns>();
         var npc = WorldManager.Instance.GetNpc(npcObjId);
         if (npc is null)
@@ -227,7 +239,7 @@ public class NpcSaveSubCommand : SubCommandBase
         {
             Id = npc.ObjId,
             UnitId = npc.TemplateId,
-            //Title = GetSpawnName(npc.TemplateId), // обновим Title
+            Title = GetSpawnName(npc.TemplateId), // обновим Title
             Position = new JsonPosition
             {
                 X = npc.Transform.Local.Position.X,
@@ -236,8 +248,8 @@ public class NpcSaveSubCommand : SubCommandBase
                 Roll = npc.Transform.Local.Rotation.X.RadToDeg(),
                 Pitch = npc.Transform.Local.Rotation.Y.RadToDeg(),
                 Yaw = npc.Transform.Local.Rotation.Z.RadToDeg()
-            } //,
-            //Scale = npc.Scale
+            },
+            Scale = npc.Scale
         };
 
         Dictionary<uint, JsonNpcSpawns> spawnersFromFile = new();
@@ -248,7 +260,7 @@ public class NpcSaveSubCommand : SubCommandBase
 
         spawnersFromFile[spawn.Id] = spawn;
 
-        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
+        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, $"npc_spawns_add_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
         var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
         SendMessage(messageOutput, $"All npcs have been saved with added npc ObjId:{npc.ObjId}, TemplateId:{npc.TemplateId}");
@@ -293,8 +305,8 @@ public class NpcSaveSubCommand : SubCommandBase
         return allNpcs;
     }
 
-    //private static string GetSpawnName(uint id)
-    //{
-    //    return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
-    //}
+    private static string GetSpawnName(uint id)
+    {
+        return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
+    }
 }
