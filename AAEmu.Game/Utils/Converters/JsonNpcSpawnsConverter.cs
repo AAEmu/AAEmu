@@ -19,10 +19,14 @@ public class JsonNpcSpawnsConverter : BaseJsonConverter<JsonNpcSpawns>
         writer.WriteValue(value.Id);
         writer.WritePropertyName(nameof(value.UnitId));
         writer.WriteValue(value.UnitId);
+        writer.WritePropertyName(nameof(value.Title));
+        writer.WriteValue(value.Title);
         writer.WritePropertyName(nameof(value.FollowPath));
         writer.WriteValue(value.FollowPath);
         writer.WritePropertyName(nameof(value.Position));
         serializer.Serialize(writer, value.Position);
+        writer.WritePropertyName(nameof(value.Scale));
+        writer.WriteValue(value.Scale);
         writer.WriteEndObject();
     }
 }

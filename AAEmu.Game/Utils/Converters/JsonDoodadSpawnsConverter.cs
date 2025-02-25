@@ -19,8 +19,16 @@ public class JsonDoodadSpawnsConverter : BaseJsonConverter<JsonDoodadSpawns>
         writer.WriteValue(value.Id);
         writer.WritePropertyName(nameof(value.UnitId));
         writer.WriteValue(value.UnitId);
+        writer.WritePropertyName(nameof(value.Title));
+        writer.WriteValue(value.Title);
+        //writer.WritePropertyName(nameof(value.RelatedIds));
+        //writer.WriteValue(value.RelatedIds);
         writer.WritePropertyName(nameof(value.Position));
         serializer.Serialize(writer, value.Position);
+        writer.WritePropertyName(nameof(value.FuncGroupId));
+        writer.WriteValue(value.FuncGroupId);
+        writer.WritePropertyName(nameof(value.Scale));
+        writer.WriteValue(value.Scale);
         writer.WriteEndObject();
     }
 }

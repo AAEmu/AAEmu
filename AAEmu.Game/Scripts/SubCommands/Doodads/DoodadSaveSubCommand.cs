@@ -4,13 +4,18 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils;
@@ -24,7 +29,7 @@ namespace AAEmu.Game.Scripts.SubCommands.Doodads;
 
 public class DoodadSaveSubCommand : SubCommandBase
 {
-    //private static Dictionary<uint, Creature> _creatures;
+    private static Dictionary<uint, Creature> _creatures;
     private bool _isSavingInProgress;
     private readonly object _saveLock = new();
     public DoodadSaveSubCommand()
@@ -56,6 +61,148 @@ public class DoodadSaveSubCommand : SubCommandBase
         });
     }
 
+    private void SaveAll00(ICharacter character, IMessageOutput messageOutput)
+    {
+        if (_isSavingInProgress)
+        {
+            SendMessage(messageOutput, "Save operation is already in progress.");
+            return;
+        }
+
+        lock (_saveLock)
+        {
+            if (_isSavingInProgress)
+            {
+                SendMessage(messageOutput, "Save operation is already in progress.");
+                return;
+            }
+            _isSavingInProgress = true;
+        }
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        try
+        {
+            _creatures = Creature.GetAllDoodads();
+            var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.WorldId);
+            var doodadsInWorld = WorldManager.Instance.GetAllDoodadsFromWorld(currentWorld.Id);
+            var doodadSpawnersFromFile = LoadDoodadsFromFileByWorld(currentWorld);
+            var doodadSpawnersToFile = new List<JsonDoodadSpawns>(doodadSpawnersFromFile);
+
+            for (var i = 0; i < doodadSpawnersToFile.Count; i++)
+            {
+                doodadSpawnersToFile[i].Title = GetSpawnName(doodadSpawnersToFile[i].UnitId);
+                if (doodadSpawnersToFile[i].Scale == 0f)
+                    doodadSpawnersToFile[i].Scale = 1f;
+            }
+
+            var addDoodads = doodadsInWorld.Where(n => n.Spawner?.Id == 0).ToList();
+            var removeDoodads = doodadsInWorld.Where(n => n.Spawner?.Id == 0xffffffff).ToList();
+
+            var allDoodads = WorldManager.Instance.GetAllDoodads();
+            var lastObjId = allDoodads.Last().ObjId + 1;
+
+            doodadsInWorld = null;
+            allDoodads = null;
+            GC.Collect();
+
+            // Удаление дубликатов из начальных данных
+            var doodadSpawnersDict = new Dictionary<(uint UnitId, float X, float Y, float Z), JsonDoodadSpawns>();
+            var uniqueKeys = new HashSet<(uint, float, float, float)>();
+            foreach (var spawns in doodadSpawnersToFile)
+            {
+                var key = (spawns.UnitId, spawns.Position.X, spawns.Position.Y, spawns.Position.Z);
+                if (!uniqueKeys.Add(key))
+                {
+                    Logger.Warn($"Дубликат объекта с UnitId {spawns.UnitId} на позиции ({spawns.Position.X}, {spawns.Position.Y}, {spawns.Position.Z})");
+                    continue;
+                }
+                doodadSpawnersDict.Add(key, spawns);
+            }
+            doodadSpawnersToFile = doodadSpawnersDict.Values.ToList(); // Перезаписываем список уникальными значениями
+
+            // Удаление элементов
+            Parallel.For(0, removeDoodads.Count, i =>
+            {
+                var doodad = removeDoodads[i];
+                var key = (doodad.TemplateId, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z);
+                lock (doodadSpawnersToFile)
+                {
+                    if (doodadSpawnersDict.TryGetValue(key, out var value))
+                    {
+                        doodadSpawnersToFile.Remove(value);
+                        doodadSpawnersDict.Remove(key);
+                    }
+                }
+            });
+
+            // Добавление новых элементов с проверкой дубликатов
+            Parallel.For(0, addDoodads.Count, i =>
+            {
+                var doodad = addDoodads[i];
+                var pos = doodad.Transform.World;
+                var key = (doodad.TemplateId, pos.Position.X, pos.Position.Y, pos.Position.Z);
+
+                lock (doodadSpawnersToFile)
+                {
+                    if (doodadSpawnersDict.ContainsKey(key))
+                        return;
+
+                    var newDoodadSpawn = new JsonDoodadSpawns
+                    {
+                        Id = Interlocked.Increment(ref lastObjId) - 1, // Потокобезопасное увеличение
+                        UnitId = doodad.TemplateId,
+                        Title = GetSpawnName(doodad.TemplateId),
+                        Position = new JsonPosition
+                        {
+                            X = pos.Position.X,
+                            Y = pos.Position.Y,
+                            Z = pos.Position.Z,
+                            Roll = pos.Rotation.X.RadToDeg(),
+                            Pitch = pos.Rotation.Y.RadToDeg(),
+                            Yaw = pos.Rotation.Z.RadToDeg()
+                        },
+                        Scale = doodad.Scale,
+                        FuncGroupId = doodad.FuncGroupId
+                    };
+
+                    doodadSpawnersToFile.Add(newDoodadSpawn);
+                    doodadSpawnersDict.Add(key, newDoodadSpawn);
+                }
+            });
+
+            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, $"doodad_spawns_all_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
+            var json = JsonConvert.SerializeObject(doodadSpawnersToFile, Formatting.Indented, new JsonModelsConverter());
+            File.WriteAllText(jsonPathOut, json);
+
+            stopwatch.Stop();
+            var initialCount = doodadSpawnersFromFile.Count;
+            var removedCount = removeDoodads.Count;
+            var addedCount = addDoodads.Count;
+            var finalCount = doodadSpawnersToFile.Count;
+
+            SendMessage(messageOutput, $"All doodads have been saved! Time taken: {stopwatch.ElapsedMilliseconds} ms\n" +
+                                       $"Initial count: {initialCount}\n" +
+                                       $"Removed count: {removedCount}\n" +
+                                       $"Added count: {addedCount}\n" +
+                                       $"Final count: {finalCount}");
+
+            Logger.Warn($"All doodads have been saved! Time taken: {stopwatch.ElapsedMilliseconds} ms\n" +
+                        $"Initial count: {initialCount}\n" +
+                        $"Removed count: {removedCount}\n" +
+                        $"Added count: {addedCount}\n" +
+                        $"Final count: {finalCount}");
+        }
+        finally
+        {
+            lock (_saveLock)
+            {
+                _isSavingInProgress = false;
+            }
+        }
+    }
+
     private void SaveAll(ICharacter character, IMessageOutput messageOutput)
     {
         // Проверка на выполнение записи
@@ -81,11 +228,18 @@ public class DoodadSaveSubCommand : SubCommandBase
 
         try
         {
-            //_creatures = Creature.GetAllDoodads();
+            _creatures = Creature.GetAllDoodads();
             var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.WorldId);
             var doodadsInWorld = WorldManager.Instance.GetAllDoodadsFromWorld(currentWorld.Id);
             var doodadSpawnersFromFile = LoadDoodadsFromFileByWorld(currentWorld);
             var doodadSpawnersToFile = new List<JsonDoodadSpawns>(doodadSpawnersFromFile);
+
+            for (var i = 0; i < doodadSpawnersToFile.Count; i++)
+            {
+                doodadSpawnersToFile[i].Title = GetSpawnName(doodadSpawnersToFile[i].UnitId); // обновим Title
+                if (doodadSpawnersToFile[i].Scale == 0f)
+                    doodadSpawnersToFile[i].Scale = 1f; // обновим Scale
+            }
 
             var addDoodads = doodadsInWorld.Where(n => n.Spawner?.Id == 0).ToList();
             var removeDoodads = doodadsInWorld.Where(n => n.Spawner?.Id == 0xffffffff).ToList();
@@ -122,6 +276,8 @@ public class DoodadSaveSubCommand : SubCommandBase
                 doodadSpawnersDict.Add(key, spawns);
             }
 
+            doodadSpawnersToFile = doodadSpawnersDict.Values.ToList(); // Перезаписываем список уникальными значениями
+            
             // Удаляем элементы из doodadSpawnersToFile, которые соответствуют removeDoodads
             Parallel.For(0, removeDoodads.Count, i =>
             {
@@ -144,7 +300,7 @@ public class DoodadSaveSubCommand : SubCommandBase
                 {
                     Id = lastObjId++,
                     UnitId = doodad.TemplateId,
-                    //Title = GetSpawnName(doodad.TemplateId), // обновим Title
+                    Title = GetSpawnName(doodad.TemplateId), // обновим Title
                     Position = new JsonPosition
                     {
                         X = pos.Position.X,
@@ -153,9 +309,9 @@ public class DoodadSaveSubCommand : SubCommandBase
                         Roll = pos.Rotation.X.RadToDeg(),
                         Pitch = pos.Rotation.Y.RadToDeg(),
                         Yaw = pos.Rotation.Z.RadToDeg()
-                    } //,
-                    //Scale = doodad.Scale,
-                    //FuncGroupId = doodad.FuncGroupId
+                    },
+                    Scale = doodad.Scale,
+                    FuncGroupId = doodad.FuncGroupId
                 };
 
                 lock (doodadSpawnersToFile)
@@ -201,7 +357,7 @@ public class DoodadSaveSubCommand : SubCommandBase
 
     private void SaveById(ICharacter character, uint doodadObjId, IMessageOutput messageOutput)
     {
-        //_creatures = Creature.GetAllDoodads();
+        _creatures = Creature.GetAllDoodads();
         var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
         if (doodad is null)
         {
@@ -222,7 +378,7 @@ public class DoodadSaveSubCommand : SubCommandBase
         {
             Id = doodad.Id,
             UnitId = doodad.TemplateId,
-            //Title = GetSpawnName(doodad.TemplateId), // обновим Title
+            Title = GetSpawnName(doodad.TemplateId), // обновим Title
             Position = new JsonPosition
             {
                 X = doodad.Transform.Local.Position.X,
@@ -231,9 +387,9 @@ public class DoodadSaveSubCommand : SubCommandBase
                 Roll = doodad.Transform.Local.Rotation.X.RadToDeg(),
                 Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg(),
                 Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg()
-            } //,
-            //Scale = doodad.Scale,
-            //FuncGroupId = doodad.FuncGroupId
+            },
+            Scale = doodad.Scale,
+            FuncGroupId = doodad.FuncGroupId
         };
 
         Dictionary<uint, JsonDoodadSpawns> spawnersFromFile = new();
@@ -244,7 +400,7 @@ public class DoodadSaveSubCommand : SubCommandBase
 
         spawnersFromFile[spawn.Id] = spawn;
 
-        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, $"doodad_spawns_add_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, $"doodad_spawns_add_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
         var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
         //SendDebugMessage(messageOutput, $"Doodad ObjId: {doodad.ObjId} has been saved!");
@@ -290,8 +446,8 @@ public class DoodadSaveSubCommand : SubCommandBase
         return allDoodads;
     }
 
-    //private static string GetSpawnName(uint id)
-    //{
-    //    return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
-    //}
+    private static string GetSpawnName(uint id)
+    {
+        return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
+    }
 }
