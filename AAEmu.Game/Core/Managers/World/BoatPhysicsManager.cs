@@ -24,7 +24,7 @@ using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
 namespace AAEmu.Game.Core.Managers.World
 {
-    // ReSharper disable once HollowTypeName
+    // ReSharper disable HollowTypeName
     public class BoatPhysicsManager
     {
         private float TargetPhysicsTps { get; set; } = 100f;
@@ -95,7 +95,7 @@ namespace AAEmu.Game.Core.Managers.World
                     SlaveKind.MerchantShip, SlaveKind.Speedboat
                 };
 
-                while (ThreadRunning && Thread.CurrentThread.IsAlive)
+                while (ThreadRunning)
                 {
                     Thread.Sleep((int)Math.Floor(1000f / TargetPhysicsTps));
                     _physWorld.Step(1f / TargetPhysicsTps, false);
@@ -120,7 +120,10 @@ namespace AAEmu.Game.Core.Managers.World
                             // Skip simulation if no rigidbody applied to slave
                             var slaveRigidBody = slave.RigidBody;
                             if (slaveRigidBody == null)
+                            {
+                                Logger.Debug($"Skip {slave.Name}");
                                 continue;
+                            }
 
                             SyncTransformWithRigidBody(slave);
                             BoatPhysicsTick(slave, slave.RigidBody);
@@ -342,11 +345,10 @@ namespace AAEmu.Game.Core.Managers.World
             slave.RotSpeed = Math.Max(slave.RotSpeed, -shipModel.SteerVel);
 
             // Slow down turning if no steering active
+            const float AngularDamping = 0.9f; // Damping of angular velocity
             if (slave.Steering == 0)
             {
-                slave.RotSpeed -= slave.RotSpeed / (TargetPhysicsTps * 5);
-                if (Math.Abs(slave.RotSpeed) <= 0.01)
-                    slave.RotSpeed = 0;
+                slave.RotSpeed *= AngularDamping;
             }
             slave.RotSpeed = Math.Clamp(slave.RotSpeed, -1f, 1f);
 
