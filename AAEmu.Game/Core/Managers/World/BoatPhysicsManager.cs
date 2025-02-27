@@ -95,11 +95,34 @@ namespace AAEmu.Game.Core.Managers.World
                     SlaveKind.MerchantShip, SlaveKind.Speedboat
                 };
 
+                var lastTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                var fixedStep = TimeSpan.FromSeconds(1f / TargetPhysicsTps);
+                const int MaxSteps = 4;
+                var accumulatedTime = TimeSpan.Zero;
+
                 while (ThreadRunning)
                 {
-                    Thread.Sleep((int)Math.Floor(1000f / TargetPhysicsTps));
-                    _physWorld.Step(1f / TargetPhysicsTps, false);
+                    Thread.Sleep(fixedStep);
+                    
+                    var currentTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                    var timeSinceLastTick = currentTick - lastTick;
+                    accumulatedTime += timeSinceLastTick;
+                    var steps = 0;
 
+                    // Potentially step multiple times to catch up if we were running behind.
+                    while (accumulatedTime > fixedStep)
+                    {
+                        _physWorld.Step((float)fixedStep.TotalSeconds, false);
+                        accumulatedTime -= fixedStep;
+
+                        if (++steps >= MaxSteps)
+                        {
+                            break;
+                        }
+                    }
+                    
+                    lastTick = currentTick;
+                    
                     lock (_slaveListLock)
                     {
                         var slaveList = SlaveManager.Instance.GetActiveSlavesByKinds(simulatedSlaveTypeList, SimulationWorld.Id);
