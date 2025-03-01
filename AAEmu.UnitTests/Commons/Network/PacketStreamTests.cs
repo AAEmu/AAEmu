@@ -59,7 +59,7 @@ namespace AAEmu.UnitTests.Commons.Network
             var original = new PacketStream();
             byte value = 100;
             original.PushBack(value);
-            
+
             var newStream = new PacketStream();
             newStream.Replace(original);
             newStream.Rollback();
@@ -74,8 +74,8 @@ namespace AAEmu.UnitTests.Commons.Network
             stream.Write((byte)'A');
             stream.Write((byte)'C');
             // Вставим 'B' на позицию 1
-            stream.Insert(1, new byte[] { (byte)'B' });
-            
+            stream.Insert(1, [(byte)'B']);
+
             stream.Rollback();
             var result = stream.ReadBytes(3);
             var expected = new byte[] { (byte)'A', (byte)'B', (byte)'C' };
@@ -91,7 +91,7 @@ namespace AAEmu.UnitTests.Commons.Network
             stream2.Write((byte)2);
 
             stream1.Swap(stream2);
-            
+
             stream1.Rollback();
             stream2.Rollback();
             Assert.Equal(2, stream1.ReadByte());

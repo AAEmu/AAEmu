@@ -487,7 +487,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + count > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
-            return new byte[0]; // Возвращаем пустой массив
+            return []; // Возвращаем пустой массив
         }
 
         var result = new byte[count];
@@ -507,7 +507,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + count > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
-            return new byte[0]; // Возвращаем пустой массив
+            return []; // Возвращаем пустой массив
         }
 
         var result = new byte[count];
@@ -544,7 +544,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 2 * count > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
-            return new char[0]; // Возвращаем пустой массив
+            return []; // Возвращаем пустой массив
         }
 
         var result = new char[count];
@@ -837,12 +837,12 @@ public class PacketStream : ICloneable, IComparable
     /// </summary>
     /// <param name="count">The number of values to read.</param>
     /// <returns>An array of long values read from the stream.</returns>
-    public long[] ReadPisc(int count)
+    private long[] ReadPisc(int count)
     {
         var result = new long[count];
         try
         {
-            var pish = new BitArray(new byte[] { ReadByte() });
+            var pish = new BitArray(new[] { ReadByte() });
             for (var index = 0; index < count * 2; index += 2)
             {
                 if (pish[index] && pish[index + 1]) // uint
@@ -871,7 +871,7 @@ public class PacketStream : ICloneable, IComparable
     {
         if (hcount <= 0)
         {
-            return new long[0];
+            return [];
         }
 
         var values = new long[hcount];
