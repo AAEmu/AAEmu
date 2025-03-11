@@ -59,7 +59,7 @@ public class CSChangeMateEquipmentPacket : GamePacket
             mateItem.SlotNumber = stream.ReadByte();
 
             var expireTime = stream.ReadDateTime(); // add in 5+
-            
+
             var isEquip = playerItem.Item.TemplateId != 0;
 
             // Override the Read data with the actual Item data

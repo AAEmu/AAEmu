@@ -236,6 +236,7 @@ public partial class Character : Unit, ICharacter
         }
     }
     public FishSchool FishSchool { get; set; }
+    public List<ScheduleItem> ScheduleItems { get; set; }
 
     #region Attributes
 
@@ -1206,11 +1207,12 @@ public partial class Character : Unit, ICharacter
         _hostilePlayers = new ConcurrentDictionary<uint, DateTime>();
         Breath = LungCapacity;
         ModelParams = modelParams;
-        Subscribers = new List<IDisposable>();
+        Subscribers = [];
         ChargeLock = new object();
         FishSchool = new FishSchool(this);
         //Events.OnDisconnect += OnDisconnect;
         //Events.OnCombatStarted += OnEnterCombat;
+        ScheduleItems = [];
     }
 
     public void SetHostileActivity(Character attacker)
@@ -1290,14 +1292,14 @@ public partial class Character : Unit, ICharacter
         }
     }
 
-    public bool ChangeMoney(SlotType moneylocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney) => ChangeMoney(SlotType.None, moneylocation, amount, itemTaskType);
+    public bool ChangeMoney(SlotType moneylocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney) => ChangeMoney(SlotType.Invalid, moneylocation, amount, itemTaskType);
 
     public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
     {
         var itemTasks = new List<ItemTask>();
         switch (typeFrom)
         {
-            case SlotType.Inventory:
+            case SlotType.Bag:
                 if (amount > Money)
                 {
                     SendErrorMessage(ErrorMessageType.NotEnoughMoney);
@@ -1318,7 +1320,7 @@ public partial class Character : Unit, ICharacter
         }
         switch (typeTo)
         {
-            case SlotType.Inventory:
+            case SlotType.Bag:
                 Money += amount;
                 itemTasks.Add(new MoneyChange(amount));
                 break;
@@ -1335,14 +1337,14 @@ public partial class Character : Unit, ICharacter
     {
         if (amount < 0)
             return false;
-        return ChangeMoney(SlotType.None, moneyLocation, amount, itemTaskType);
+        return ChangeMoney(SlotType.Invalid, moneyLocation, amount, itemTaskType);
     }
 
     public bool SubtractMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
     {
         if (amount < 0)
             return false;
-        return ChangeMoney(SlotType.None, moneyLocation, -amount, itemTaskType);
+        return ChangeMoney(SlotType.Invalid, moneyLocation, -amount, itemTaskType);
     }
 
     public void ChangeLabor(short change, int actabilityId)
@@ -2217,7 +2219,7 @@ public partial class Character : Unit, ICharacter
     {
         var template = CharacterManager.Instance.GetTemplate(Race, Gender);
         ModelId = template.ModelId;
-        BuyBackItems = new ItemContainer(Id, SlotType.None, false, this);
+        BuyBackItems = new ItemContainer(Id, SlotType.StoreGood, false, this);
         Slots = new ActionSlot[MaxActionSlots];
         for (var i = 0; i < Slots.Length; i++)
             Slots[i] = new ActionSlot();

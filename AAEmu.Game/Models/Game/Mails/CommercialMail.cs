@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -39,7 +40,7 @@ public class CommercialMail : BaseMail
         _purchasedItemTitle = purchasedItemTitle;
 
         MailType = MailType.Charged;
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.IngameShop;
         Header.SenderName = InGameCashShopSenderName; // Name changes depending on type of mail
         ReceiverName = receiverName;
         Header.ReceiverId = _receiverId;

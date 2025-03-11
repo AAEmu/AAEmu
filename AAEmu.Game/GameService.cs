@@ -194,6 +194,7 @@ public sealed class GameService : IHostedService, IDisposable
         GameDataManager.Instance.PostLoadGameData();
         FishSchoolManager.Instance.Initialize();
         RadarManager.Instance.Initialize();
+        ManaRegenManager.Instance.Initialize();
         PublicFarmManager.Instance.Initialize();
 
         if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))

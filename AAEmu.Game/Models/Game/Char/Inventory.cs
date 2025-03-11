@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -31,6 +33,7 @@ public class Inventory
     public ItemContainer Warehouse { get; private set; }
     public ItemContainer MailAttachments { get; private set; }
     public ItemContainer SystemContainer { get; private set; }
+    public ItemContainer AuctionAttachments { get; private set; }
     public ulong PreviousBackPackItemId { get; set; } // used to re-equip glider when putting backpacks down
 
     public Inventory(ICharacter owner)
@@ -47,7 +50,7 @@ public class Inventory
         {
             var st = (SlotType)stv;
 
-            if (st == SlotType.EquipmentMate || st == SlotType.EquipmentSlave)
+            if (st == SlotType.PetRideEquipment || st == SlotType.SlaveEquipment)
                 continue;
 
             // Take Equipment Container from Parent Unit's Equipment
@@ -71,7 +74,7 @@ public class Inventory
                     Equipment = newContainer;
                     break;
                 */
-                case SlotType.Inventory:
+                case SlotType.Bag:
                     newContainer.ContainerSize = Owner.NumInventorySlots;
                     Bag = newContainer;
                     break;
@@ -79,10 +82,13 @@ public class Inventory
                     newContainer.ContainerSize = Owner.NumBankSlots;
                     Warehouse = newContainer;
                     break;
-                case SlotType.Mail:
+                case SlotType.MailAttachment:
                     MailAttachments = newContainer;
                     break;
-                case SlotType.System:
+                case SlotType.Auction:
+                    AuctionAttachments = newContainer;
+                    break;
+                case SlotType.Money:
                     SystemContainer = newContainer;
                     break;
             }
@@ -112,7 +118,7 @@ public class Inventory
         // Place loaded items list in correct containers
         foreach (var item in playeritems)
         {
-            if (item.SlotType != SlotType.None && _itemContainers.TryGetValue(item.SlotType, out var container))
+            if (item.SlotType != SlotType.Invalid && _itemContainers.TryGetValue(item.SlotType, out var container))
             {
                 if (!container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                 {
@@ -120,6 +126,7 @@ public class Inventory
                     Logger.Error("LoadInventory found unused item type for item, Id {0} ({1}) at {2}:{3} for {4}",
                         item.Id, item.TemplateId, item.SlotType, item.Slot,
                         Owner?.Name ?? "Id:" + item.OwnerId);
+                    EncryptionManager.needNewkey1 = true;
                 }
             }
             else
@@ -138,7 +145,7 @@ public class Inventory
     public void Send()
     {
         Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint)Owner.NumBankSlots));
-        SendFragmentedInventory(SlotType.Inventory, Owner.NumInventorySlots, Bag.GetSlottedItemsList().ToArray());
+        SendFragmentedInventory(SlotType.Bag, Owner.NumInventorySlots, Bag.GetSlottedItemsList().ToArray());
         SendFragmentedInventory(SlotType.Bank, (byte)Owner.NumBankSlots, Warehouse.GetSlottedItemsList().ToArray());
         SetInitialItemExpirationTimers(Owner.Equipment.Items.ToArray());
     }
@@ -160,7 +167,7 @@ public class Inventory
         if ((containersToCheck != null) && (containersToCheck.Length > 0))
             containerList = containersToCheck;
         else
-            containerList = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
+            containerList = new SlotType[3] { SlotType.Bag, SlotType.Equipment, SlotType.Bank };
         var res = 0;
         foreach (var cli in containerList)
         {
@@ -237,7 +244,7 @@ public class Inventory
         unitsOfItemFound = 0;
         if (inContainerTypes == null || inContainerTypes.Length <= 0)
         {
-            inContainerTypes = new SlotType[3] { SlotType.Inventory, SlotType.Equipment, SlotType.Bank };
+            inContainerTypes = new SlotType[3] { SlotType.Bag, SlotType.Equipment, SlotType.Bank };
         }
         foreach (var ct in inContainerTypes)
         {
@@ -282,6 +289,7 @@ public class Inventory
         if (fromItem == null && fromItemId != 0)
         {
             Logger.Error($"SplitOrMoveItem - ItemId {fromItemId} no longer exists, possibly a phantom item.");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -289,6 +297,7 @@ public class Inventory
         if (toItem == null && toItemId != 0)
         {
             Logger.Error($"SplitOrMoveItem - ItemId {toItemId} no longer exists, possibly a phantom item.");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -308,6 +317,7 @@ public class Inventory
         if (fromItem == null && fromItemId != 0)
         {
             Logger.Error($"SplitOrMoveItem - ItemId {fromItemId} no longer exists, possibly a phantom item.");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -327,11 +337,13 @@ public class Inventory
         if (targetContainer is not null && !targetContainer.CanAccept(fromItem, toSlot))
         {
             Logger.Error($"SplitOrMoveItem - fromItemId {fromItemId} is not welcome in this container {targetContainer.ContainerType} ({targetContainer.ContainerId}).");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
         if (sourceContainer is not null && !sourceContainer.CanAccept(itemInTargetSlot, fromSlot))
         {
             Logger.Error($"SplitOrMoveItem - toItemId {toItemId} is not welcome in this container {sourceContainer.ContainerType} ({sourceContainer.ContainerId}).");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -343,7 +355,7 @@ public class Inventory
         }
 
         // Are we equipping it into an empty mount gear slot?
-        if (fromItemId == 0 && fromType == SlotType.EquipmentMate && toType != SlotType.EquipmentMate && itemInTargetSlot != null)
+        if (fromItemId == 0 && fromType == SlotType.PetRideEquipment && toType != SlotType.PetRideEquipment && itemInTargetSlot != null)
         {
             action = SwapAction.doEquipInEmptySlot;
             // In case of MateEquipment the source container is always sent as the pet's container,
@@ -355,6 +367,7 @@ public class Inventory
         if (action != SwapAction.doEquipInEmptySlot && fromItem == null)
         {
             Logger.Error("SplitOrMoveItem didn't provide a source itemId");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -362,6 +375,7 @@ public class Inventory
         if (action != SwapAction.doEquipInEmptySlot && sourceContainer?.ContainerType != fromType)
         {
             Logger.Error("SplitOrMoveItem Source Item Container did not match what the client asked");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -369,6 +383,7 @@ public class Inventory
         if (action != SwapAction.doEquipInEmptySlot && fromItem?.Slot != fromSlot)
         {
             Logger.Error("SplitOrMoveItem Source Item slot did not match what the client asked");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -376,6 +391,7 @@ public class Inventory
         if (action != SwapAction.doEquipInEmptySlot && count > fromItem?.Count)
         {
             Logger.Error("SplitOrMoveItem Source Item has less item count than is requested to be moved");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
@@ -386,6 +402,7 @@ public class Inventory
             if (itemInTargetSlot.SlotType != toType)
             {
                 Logger.Error("SplitOrMoveItem Target Item Type does not match");
+                EncryptionManager.needNewkey1 = true;
                 return false;
             }
 
@@ -393,6 +410,7 @@ public class Inventory
             if (itemInTargetSlot.Slot != toSlot)
             {
                 Logger.Error("SplitOrMoveItem Target Item Slot does not match");
+                EncryptionManager.needNewkey1 = true;
                 return false;
             }
 
@@ -400,6 +418,7 @@ public class Inventory
             if (action != SwapAction.doEquipInEmptySlot && itemInTargetSlot.TemplateId == fromItem?.TemplateId && itemInTargetSlot.Count + count > fromItem.Template.MaxCount && fromItem.Template.MaxCount > 1)
             {
                 Logger.Error("SplitOrMoveItem Target Item stack does not have enough room to take source");
+                EncryptionManager.needNewkey1 = true;
                 return false;
             }
         }
@@ -550,6 +569,7 @@ public class Inventory
                 var ni = ItemManager.Instance.Create(fromItem.TemplateId, count, fromItem.Grade, true);
                 ni.SlotType = toType;
                 ni.Slot = toSlot;
+                ni.OwnerId = targetContainer?.OwnerId ?? 0;
                 ni._holdingContainer = targetContainer;
                 targetContainer.Items.Add(ni);
                 itemTasks.Add(new ItemAdd(ni));
@@ -617,6 +637,7 @@ public class Inventory
                 // Should be impossible to get here
                 Owner.SendMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action + "|r");
                 Logger.Error("SplitOrMoveItem swap action not implemented " + action);
+                EncryptionManager.needNewkey1 = true;
                 break;
         }
 
@@ -690,7 +711,7 @@ public class Inventory
         if (Bag.FreeSlotCount <= 0)
             return false;
 
-        if (!SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Inventory, (byte)Bag.GetUnusedSlot(-1)))
+        if (!SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Bag, (byte)Bag.GetUnusedSlot(-1)))
             return false;
 
         if (glidersOnly)
@@ -745,7 +766,7 @@ public class Inventory
     {
         foreach (var c in _itemContainers)
         {
-            if (c.Key == SlotType.Equipment || c.Key == SlotType.Inventory || c.Key == SlotType.Bank)
+            if (c.Key == SlotType.Equipment || c.Key == SlotType.Bag || c.Key == SlotType.Bank)
             {
                 foreach (var i in c.Value.Items)
                 {
@@ -778,22 +799,22 @@ public class Inventory
         Item item = null;
         switch (type)
         {
-            case SlotType.None:
+            case SlotType.Invalid:
                 // TODO ...
                 break;
             case SlotType.Equipment:
                 item = Equipment.GetItemBySlot(slot);
                 break;
-            case SlotType.Inventory:
+            case SlotType.Bag:
                 item = Bag.GetItemBySlot(slot);
                 break;
             case SlotType.Bank:
                 item = Warehouse.GetItemBySlot(slot);
                 break;
-            case SlotType.Trade:
+            case SlotType.Coffer:
                 // TODO ...
                 break;
-            case SlotType.Mail:
+            case SlotType.MailAttachment:
                 // TODO ...
                 break;
         }
@@ -828,17 +849,17 @@ public class Inventory
 
     private void SendFragmentedInventory(SlotType slotType, byte numItems, Item[] bag)
     {
-        var tempItem = new Item[50];
-
         if (numItems % 50 != 0)
             Logger.Warn($"SendFragmentedInventory: Inventory Size not a multiple of 50 ({numItems})");
         if (bag.Length != numItems)
             Logger.Warn($"SendFragmentedInventory: Inventory Size Mismatch; expected {numItems} got {bag.Length}");
 
-        for (byte chunk = 0; chunk < numItems / 50; chunk++)
+        byte numChunks = 0;
+        var dividedArrays = Helpers.SplitArray(bag, 50); // Разделяем массив на массивы по 50 значений
+        foreach (var item in dividedArrays)
         {
-            Array.Copy(bag, chunk * 50, tempItem, 0, 50);
-            Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 1, chunk, tempItem));
+            var idx = numChunks++ * 5;
+            Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 5, (byte)idx, item));
         }
 
         SetInitialItemExpirationTimers(bag);
@@ -865,9 +886,9 @@ public class Inventory
             return;
         }
 
-        if (expand.ItemId != 0 && expand.ItemCount != 0 && !CheckItems(SlotType.Inventory, expand.ItemId, expand.ItemCount))
+        if (expand.ItemId != 0 && expand.ItemCount != 0 && !CheckItems(SlotType.Bag, expand.ItemId, expand.ItemCount))
         {
-            Logger.Warn("Item or Count not fount.");
+            Logger.Warn("Item or Count not found.");
             return;
         }
 
@@ -896,7 +917,7 @@ public class Inventory
 
         Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney, tasks, new List<ulong>()));
         Owner.SendPacket(new SCInvenExpandedPacket(
-                isBank ? SlotType.Bank : SlotType.Inventory,
+                isBank ? SlotType.Bank : SlotType.Bag,
                 isBank ? (byte)Owner.NumBankSlots : Owner.NumInventorySlots));
     }
 
@@ -951,12 +972,12 @@ public class Inventory
         ItemContainer sourceContainer = null;
         ItemContainer targetContainer = null;
 
-        if (fromSlotType == SlotType.Trade)
+        if (fromSlotType == SlotType.Coffer)
             sourceContainer = relatedCoffer;
         else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
             sourceContainer = sC;
 
-        if (toSlotType == SlotType.Trade)
+        if (toSlotType == SlotType.Coffer)
             targetContainer = relatedCoffer;
         else if (_itemContainers.TryGetValue(toSlotType, out var tC))
             targetContainer = tC;
@@ -964,11 +985,11 @@ public class Inventory
         if (sourceContainer == null || targetContainer == null)
         {
             Logger.Error("SwapCofferItems, not all of the targetted containers exist");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
-        return SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
-            toItemId, toSlotType, toSlot);
+        return SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot);
     }
 
     public bool SplitCofferItems(int count, ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
@@ -980,12 +1001,12 @@ public class Inventory
         ItemContainer sourceContainer = null;
         ItemContainer targetContainer = null;
 
-        if (fromSlotType == SlotType.Trade)
+        if (fromSlotType == SlotType.Coffer)
             sourceContainer = relatedCoffer;
         else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
             sourceContainer = sC;
 
-        if (toSlotType == SlotType.Trade)
+        if (toSlotType == SlotType.Coffer)
             targetContainer = relatedCoffer;
         else if (_itemContainers.TryGetValue(toSlotType, out var tC))
             targetContainer = tC;
@@ -993,11 +1014,11 @@ public class Inventory
         if (sourceContainer == null || targetContainer == null)
         {
             Logger.Error("SwapCofferItems, not all of the targetted containers exist");
+            EncryptionManager.needNewkey1 = true;
             return false;
         }
 
-        return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
-            toItemId, toSlotType, toSlot, count);
+        return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
     }
 
     #region CharacterInfo_3EB0

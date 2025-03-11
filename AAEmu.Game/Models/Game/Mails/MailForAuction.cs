@@ -1,6 +1,8 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -38,9 +40,10 @@ public class MailForAuction : BaseMail
 
         // Correct types and name will be set in finalize functions
         MailType = MailType.InvalidMailType;
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = AuctionName; // Name changes depending on type of mail
 
+        Body.SendDate = DateTime.UtcNow;
         Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
     }
 
@@ -64,9 +67,10 @@ public class MailForAuction : BaseMail
 
         // Correct types and name will be set in finalize functions
         MailType = MailType.InvalidMailType;
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = AuctionName; // Name changes depending on type of mail
 
+        Body.SendDate = DateTime.UtcNow;
         Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
     }
 
@@ -92,7 +96,7 @@ public class MailForAuction : BaseMail
 
         Body.Text = string.Format("body('{0}', {1}, {2})", _itemName, _item.Count, _itemBuyoutPrice);
         _item.OwnerId = _buyerId;
-        _item.SlotType = SlotType.Mail;
+        _item.SlotType = SlotType.MailAttachment;
         Body.Attachments.Add(_item);
 
         return true;
@@ -148,7 +152,7 @@ public class MailForAuction : BaseMail
 
         Body.Text = string.Format("body('{0}', {1})", _itemName, _item.Count);
         _item.OwnerId = _sellerId;
-        _item.SlotType = SlotType.Mail;
+        _item.SlotType = SlotType.MailAttachment;
         Body.Attachments.Add(_item);
 
         return true;
@@ -175,7 +179,7 @@ public class MailForAuction : BaseMail
 
         Body.Text = string.Format("body('{0}', {1})", _itemName, _item.Count);
         _item.OwnerId = _sellerId;
-        _item.SlotType = SlotType.Mail;
+        _item.SlotType = SlotType.MailAttachment;
         Body.Attachments.Add(_item);
 
         return true;

@@ -22,6 +22,8 @@ public class SCCharacterLaborPowerChangedPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_amount);
+        stream.Write(0); // localAmount
+        stream.Write(0); // rechargedAmount
         stream.WritePisc(_action, _point);
         stream.Write(_step);
         return stream;

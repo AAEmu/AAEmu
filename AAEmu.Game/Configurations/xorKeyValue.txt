@@ -1,0 +1,4 @@
+XorKeyConstant1:
+75A0247F
+XorKeyConstant2:
+E7A3AF60

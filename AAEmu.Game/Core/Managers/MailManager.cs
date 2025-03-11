@@ -8,12 +8,12 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Mails.Static;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks.Mails;
 
@@ -86,8 +86,7 @@ public class MailManager : Singleton<MailManager>
     }
 
     [Obsolete("SendMail() is deprecated. Use Send() of a BaseMail descendant instead.")]
-    public void SendMail(MailType type, string receiverName, string senderName, string title, string text,
-        byte attachments, int[] moneyAmounts, long extra, List<Item> items)
+    public void SendMail(MailType type, string receiverName, string senderName, string title, string text, byte attachments, int[] moneyAmounts, long extra, List<Item> items)
     {
         throw new GameException("SendMail is deprecated, use BaseMail.Send() instead");
     }
@@ -286,13 +285,13 @@ public class MailManager : Singleton<MailManager>
         character.Mails.UnreadMailCount.ResetReceived();
         foreach (var mail in tempMails)
         {
-            //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
+            character.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
             if (mail.Value.Header.Status != MailStatus.Read)
             {
-                character.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
+                character.Mails.UnreadMailCount.UpdateUnreadReceived(mail.Value.MailType, 1);
                 var addBody = (mail.Value.MailType == MailType.Charged);
 
-                character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
+                //character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
                 mail.Value.IsDelivered = true;
             }
         }
@@ -311,6 +310,7 @@ public class MailManager : Singleton<MailManager>
                 // TODO: Mia mail stuff
                 var addBody = (m.MailType == MailType.Charged);
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
+                player.Mails.UnreadMailCount.UpdateUnreadReceived(m.MailType, 1);
 
                 player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, false, addBody ? m.Body : null));
                 m.IsDelivered = true;
@@ -326,8 +326,9 @@ public class MailManager : Singleton<MailManager>
         var player = WorldManager.Instance.GetCharacter(receiverName);
         if (player != null)
         {
+            player.Mails.UnreadMailCount.UpdateReceived(m.MailType, -1);
             if (m.Header.Status != MailStatus.Read)
-                player.Mails.UnreadMailCount.UpdateReceived(m.MailType, -1);
+                player.Mails.UnreadMailCount.UpdateUnreadReceived(m.MailType, -1);
             player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.UnreadMailCount));
             return true;
         }
@@ -379,8 +380,8 @@ public class MailManager : Singleton<MailManager>
         {
             // use Tax Certificates as payment
             // TODO: grab these values from DB somewhere ?
-            var userTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
-            var userBoundTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
+            var userTaxCount = character.Inventory.GetItemsCount(SlotType.Bag, Item.TaxCertificate);
+            var userBoundTaxCount = character.Inventory.GetItemsCount(SlotType.Bag, Item.BoundTaxCertificate);
             var totatUserTaxCount = userTaxCount + userBoundTaxCount;
             var consumedCerts = (int)Math.Ceiling(mail.Body.BillingAmount / 10000f);
 
@@ -428,7 +429,7 @@ public class MailManager : Singleton<MailManager>
             }
             else
             {
-                character.SubtractMoney(SlotType.Inventory, mail.Body.BillingAmount);
+                character.SubtractMoney(SlotType.Bag, mail.Body.BillingAmount);
             }
         }
 
@@ -532,7 +533,7 @@ public class MailManager : Singleton<MailManager>
             if ((mail == null) || (mail.Body.Attachments.Count >= 10))
             {
                 mail = new MailPlayerToPlayer(character, character.Name);
-                mail.Header.SenderId = 0;
+                mail.Header.SenderId = (uint)SystemMailSenderKind.None;
                 mail.Header.SenderName = ".questReward";
                 mail.MailType = MailType.SysExpress;
                 // NOTE: On newer versions, this uses the .title / .body format, but this doesn't seem to work on 1.2

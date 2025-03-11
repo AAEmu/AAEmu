@@ -18,6 +18,7 @@ public enum BuffConstants : uint
     Retribution = 2167,
     RemovalDebuff = 2250, // for houses
     LoggedOn = 2423, // player is logging in
+    Dash = 2675,
     Deterioration = 3553, // Deterioration
     TaxProtection = 3554, // Tax Protection
     EquipDualwield = 4899,
@@ -31,5 +32,5 @@ public enum BuffConstants : uint
     SearchSchoolOfFish = 5736,
     Overburdened = 831, // SustainBuff - Carrying heavy objects reduces movement speed and prevents teleporting or gliding.
     MasterOwnership = 4867  // Vehicle ownership buff, prevents non-owners from attaching to the vehicle.
-    // Overburdened = 7221
+   // Overburdened = 7221
 }

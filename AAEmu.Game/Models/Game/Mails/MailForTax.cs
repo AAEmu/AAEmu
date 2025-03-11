@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -91,7 +92,7 @@ public class MailForTax : BaseMail
     /// <returns></returns>
     public bool FinalizeMail()
     {
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = TaxSenderName;
 
         if (!UpdateTaxInfo(this, _house))

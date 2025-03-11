@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Mails.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Services.WebApi.Models;
@@ -180,7 +181,7 @@ internal class MailController : BaseController
             mail.Title = mailRequest.Title;
             mail.ReceiverName = character.Name;
 
-            mail.Header.SenderId = 0;
+            mail.Header.SenderId = (uint)SystemMailSenderKind.None;
             mail.Header.SenderName = mailRequest.SenderName;
             mail.Header.ReceiverId = character.Id;
 
@@ -214,7 +215,7 @@ internal class MailController : BaseController
 
                 var newItem = ItemManager.Instance.Create(itemTemplate.Id, attachmentItem.Count, (byte)itemGrade);
                 newItem.OwnerId = character.Id;
-                newItem.SlotType = SlotType.Mail;
+                newItem.SlotType = SlotType.MailAttachment;
                 mail.Body.Attachments.Add(newItem);
             }
 

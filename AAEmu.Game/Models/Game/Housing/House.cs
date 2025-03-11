@@ -325,6 +325,20 @@ public sealed class House : Unit
         stream.Write(ExpandedDecoLimit);      // expandedDecoLimit
         stream.Write(Template.MainModelId);   // model_id (type) не точно!
         stream.Write(IsPublic);               // isPublic
+        // add in 5+
+        for (var i = 0; i < 5; i++)
+        {
+            stream.Write(0u);               // houseId
+            stream.Write(0L);               // type
+            stream.Write(0);               // ucc_kind
+            stream.Write(0);               // ucc_positon
+        }
+        stream.Write(Helpers.ConvertLongX(Transform.World.Position.X - 10));
+        stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y - 10));
+        stream.Write(Transform.World.Position.Z);
+        stream.Write(Helpers.ConvertLongX(Transform.World.Position.X + 10));
+        stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y + 10));
+        stream.Write(Transform.World.Position.Z);
         return stream;
     }
 

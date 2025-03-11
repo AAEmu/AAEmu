@@ -35,42 +35,24 @@ public class SCAttachmentTakenPacket : GamePacket
         stream.Write(_aaPoint);
         stream.Write(_takeSequentially);
         stream.Write((byte)_itemsList.Count);
+        foreach (var item in _itemsList)
+        {
+            stream.Write(item.Id);
+        }
         for (var i = 0; i < 10; i++)
         {
             if (i < _itemsList.Count)
             {
                 var item = _itemsList[i];
-                stream.Write(item.Id);
                 stream.Write((byte)item.SlotType);
                 stream.Write(item.Slot);
             }
             else
             {
-                stream.Write((ulong)0);
                 stream.Write((byte)0);
                 stream.Write((byte)0);
             }
         }
-        /*
-        stream.Write((byte)_itemId.Length);
-        for (int i = 0; i < 10; i++)
-        {
-            if (_itemId.Length != 0 && i < _itemId.Length)
-                stream.Write(_itemId[i]);
-
-            if (i < _itemSlots.Length)
-            {
-                stream.Write((byte)_itemSlots[i].slotType);
-                stream.Write(_itemSlots[i].slot);
-            }
-            else
-            {
-                stream.Write((byte)SlotType.None);
-                stream.Write(0);
-            }
-        }
-        */
-
         return stream;
     }
 }

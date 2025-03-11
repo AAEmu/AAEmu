@@ -5,16 +5,16 @@ namespace AAEmu.Game.Models.Game;
 
 public class ScheduleItem : PacketMarshaler
 {
-    public uint ItemTemplateId { get; set; }
+    public uint ScheduleItemId { get; set; }
     public byte Gave { get; set; }
-    public uint Acumulated { get; set; }
+    public uint Cumulated { get; set; }
     public DateTime Updated { get; set; }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(ItemTemplateId);
+        stream.Write(ScheduleItemId);
         stream.Write(Gave);
-        stream.Write(Acumulated);
+        stream.Write(Cumulated);
         stream.Write(Updated);
         return stream;
     }

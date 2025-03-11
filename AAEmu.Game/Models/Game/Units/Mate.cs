@@ -504,7 +504,7 @@ public sealed class Mate : Unit
         Tags = new List<uint>();
         Charges = new List<uint>();
         Passengers = new Dictionary<AttachPointKind, MatePassengerInfo>();
-        Equipment = new MateEquipmentContainer(0, SlotType.EquipmentMate, false, this);
+        Equipment = new MateEquipmentContainer(0, SlotType.PetRideEquipment, false, this);
 
         // TODO: Spawn this with the correct amount of seats depending on the template
         // 2 seats by default

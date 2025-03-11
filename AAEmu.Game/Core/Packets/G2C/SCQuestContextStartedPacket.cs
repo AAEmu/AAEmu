@@ -17,7 +17,7 @@ public class SCQuestContextStartedPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_quest);
+        _quest.Write(stream);
         stream.Write(_componentId);
         return stream;
     }

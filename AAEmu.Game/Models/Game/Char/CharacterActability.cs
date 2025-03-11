@@ -83,7 +83,7 @@ public class CharacterActability
             return; // TODO ... send msg error?
         }
 
-        if (expand.ItemId != 0 && expand.ItemCount != 0 && !Owner.Inventory.CheckItems(Items.SlotType.Inventory, expand.ItemId, expand.ItemCount))
+        if (expand.ItemId != 0 && expand.ItemCount != 0 && !Owner.Inventory.CheckItems(Items.SlotType.Bag, expand.ItemId, expand.ItemCount))
         {
             Owner.SendErrorMessage(ErrorMessageType.NotEnoughExpandItem);
             return; // TODO ... send msg error?

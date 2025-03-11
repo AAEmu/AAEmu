@@ -344,19 +344,19 @@ public class UccManager : Singleton<UccManager>
 
         var character = connection.GameConnection.ActiveChar;
 
-        connection.GameConnection.ActiveChar.ChangeMoney(SlotType.Inventory, -50000);
+        connection.GameConnection.ActiveChar.ChangeMoney(SlotType.Bag, -50000);
 
         var newItem = (UccItem)ItemManager.Instance.Create(Item.CrestInk, 1, 0, true); // Crest Ink
         newItem.UccId = id;
         Save(ucc);
-        character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, newItem);
+        character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.CreateOriginUcc, newItem);
     }
 
     public static void CreateStamp(Character player, Item sourceInk)
     {
         var newItem = ItemManager.Instance.Create(Item.CrestStamp, 1, 0, true); // Crest Stamp
         newItem.UccId = sourceInk.UccId;
-        player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, newItem);
+        player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.CreateOriginUcc, newItem);
     }
 
     public static void ApplyStamp(Item stamp, Item targetItem)

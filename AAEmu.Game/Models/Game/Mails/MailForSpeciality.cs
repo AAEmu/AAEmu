@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -108,7 +109,7 @@ public class MailForSpeciality : BaseMail
         if (itemTemplate == null)
             return false;
 
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = TradeDeliveryName;
 
         Header.ReceiverId = _sender.Id;
@@ -145,7 +146,7 @@ public class MailForSpeciality : BaseMail
                 itemGrade = 0;
             var newItem = ItemManager.Instance.Create(_itemToSend, _itemCountSeller, (byte)itemGrade, true);
             newItem.OwnerId = _sender.Id;
-            newItem.SlotType = SlotType.Mail;
+            newItem.SlotType = SlotType.MailAttachment;
             Body.Attachments.Add(newItem);
 
             // Body.Text = "Placeholder resource delivery text body";
@@ -182,7 +183,7 @@ public class MailForSpeciality : BaseMail
         if (itemTemplate == null)
             return false;
 
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = TradeDeliveryName;
 
         Header.ReceiverId = _crafterId;
@@ -221,7 +222,7 @@ public class MailForSpeciality : BaseMail
                 itemGrade = 0;
             var newItem = ItemManager.Instance.Create(_itemToSend, _itemCountCrafter, (byte)itemGrade, true);
             newItem.OwnerId = _sender.Id;
-            newItem.SlotType = SlotType.Mail;
+            newItem.SlotType = SlotType.MailAttachment;
             Body.Attachments.Add(newItem);
 
             Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})",

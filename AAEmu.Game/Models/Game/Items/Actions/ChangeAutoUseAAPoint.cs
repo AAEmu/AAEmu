@@ -8,8 +8,9 @@ public class ChangeAutoUseAAPoint : ItemTask
 
     public ChangeAutoUseAAPoint(byte change)
     {
-        _change = change;
         _type = ItemAction.ChangeAutoUseAaPoint; // 18
+        _change = change;
+        _tLogt = SetTlogT(_type, SlotType.Bag); // установим tLogt по значению ItemAction
     }
 
     public override PacketStream Write(PacketStream stream)

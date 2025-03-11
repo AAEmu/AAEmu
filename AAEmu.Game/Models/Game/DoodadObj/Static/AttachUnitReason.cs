@@ -14,5 +14,7 @@ public enum AttachUnitReason : byte
     InitFromNub = 9,
     PrefabChanged = 10,
     TransferBinding = 11,
-    HousingSlaveBinding = 12
+    HousingSlaveBinding = 12,
+    unk14 = 14,
+    SlaveUnbinding = 15
 }

@@ -692,6 +692,7 @@ public class DoodadManager : Singleton<DoodadManager>
 
             // doodad_func_consume_changer_items
             // This is not actually a phase, but rather a collection of items that is available for doodad_func_consume_changers
+            // TODO there is no such table in 5070 AAFree
             //using (var command = connection.CreateCommand())
             //{
             //    command.CommandText = "SELECT * FROM doodad_func_consume_changer_items";
@@ -712,6 +713,7 @@ public class DoodadManager : Singleton<DoodadManager>
             //}
 
             //// doodad_func_consume_changer_model_items
+            // TODO there is no such table in 5070 AAFree
             //using (var command = connection.CreateCommand())
             //{
             //    command.CommandText = "SELECT * FROM doodad_func_consume_changer_model_items";
@@ -3127,7 +3129,7 @@ public class DoodadManager : Singleton<DoodadManager>
         foreach (var item in items)
         {
             character.ItemUse(preferredItem);
-            character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1,
+            character.Inventory.ConsumeItem(new[] { SlotType.Bag }, ItemTaskType.DoodadCreate, item, 1,
                 preferredItem);
         }
 

@@ -10,7 +10,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
-using AAEmu.Game.Models.Game.Auction.Templates;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -361,7 +361,7 @@ public class ItemManager : Singleton<ItemManager>
         var objId = (uint)(lootDropItem.Id >> 32);
         if (lootDropItem.TemplateId == Item.Coins)
         {
-            character.AddMoney(SlotType.Inventory, lootDropItem.Count);
+            character.AddMoney(SlotType.Bag, lootDropItem.Count);
         }
         else
         {
@@ -474,13 +474,13 @@ public class ItemManager : Singleton<ItemManager>
         return res;
     }
 
-    public List<ItemTemplate> GetItemTemplatesForAuctionSearch(AuctionSearchTemplate searchTemplate)
+    public List<ItemTemplate> GetItemTemplatesForAuctionSearch(AuctionSearch searchTemplate)
     {
         var templateList = new List<ItemTemplate>();
         var itemIds = new List<uint>();
 
-        if (searchTemplate.ItemName != "")
-            itemIds = GetItemIdsBySearchName(searchTemplate.ItemName);
+        if (searchTemplate.Keyword != "")
+            itemIds = GetItemIdsBySearchName(searchTemplate.Keyword);
 
         if (itemIds.Count > 0)
         {
@@ -1225,6 +1225,14 @@ public class ItemManager : Singleton<ItemManager>
                         template.LivingPointPrice = reader.GetInt32("living_point_price");
                         template.CharGender = reader.GetByte("char_gender_id");
 
+                        template.AuctionSettings = new AuctionSettings(
+                            template.AuctionCategoryA,
+                            template.AuctionCategoryB,
+                            template.AuctionCategoryC,
+                            reader.GetUInt32("auction_charge"),
+                            reader.GetBoolean("auction_charge_default")
+                        );
+
                         _templates.TryAdd(template.Id, template);
                     }
                 }
@@ -1703,7 +1711,7 @@ public class ItemManager : Singleton<ItemManager>
             {
                 foreach (var (_, c) in _allPersistentContainers)
                 {
-                    if (c.ContainerType == SlotType.None)
+                    if (c.ContainerType == SlotType.Invalid)
                         continue; // Skip the BuyBack container
 
                     if (c.ContainerId <= 0)
@@ -1721,7 +1729,7 @@ public class ItemManager : Singleton<ItemManager>
                     command.Parameters.Clear();
                     command.Parameters.AddWithValue("@container_id", c.ContainerId);
                     command.Parameters.AddWithValue("@container_type", c.ContainerTypeName());
-                    command.Parameters.AddWithValue("@slot_type", c.ContainerType.ToString());
+                    command.Parameters.AddWithValue("@slot_type", (int)c.ContainerType);
                     command.Parameters.AddWithValue("@container_size", c.ContainerSize);
                     command.Parameters.AddWithValue("@owner_id", c.OwnerId);
                     command.Parameters.AddWithValue("@mate_id", c.MateId);
@@ -1753,7 +1761,7 @@ public class ItemManager : Singleton<ItemManager>
                     if (item == null)
                         continue;
 
-                    if (item.SlotType == SlotType.None)
+                    if (item.SlotType == SlotType.Invalid)
                     {
                         // Only give an error if it has no owner, otherwise it's likely a BuyBack item
                         if (item.OwnerId <= 0)
@@ -1766,7 +1774,7 @@ public class ItemManager : Singleton<ItemManager>
                         }
 
                         // If the slot type changed, give a warning, otherwise skip this save
-                        if (item.SlotType != SlotType.None)
+                        if (item.SlotType != SlotType.Invalid)
                         {
                             Logger.Warn($"Slot type for {item.Id} was None, changing to {item.SlotType}");
                         }
@@ -1801,7 +1809,7 @@ public class ItemManager : Singleton<ItemManager>
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
                     command.Parameters.AddWithValue("@template_id", item.TemplateId);
                     command.Parameters.AddWithValue("@container_id", item._holdingContainer?.ContainerId ?? 0);
-                    command.Parameters.AddWithValue("@slot_type", item.SlotType.ToString());
+                    command.Parameters.AddWithValue("@slot_type", (int)item.SlotType);
                     command.Parameters.AddWithValue("@slot", item.Slot);
                     command.Parameters.AddWithValue("@count", item.Count);
                     command.Parameters.AddWithValue("@details", details.GetBytes());
@@ -1846,7 +1854,7 @@ public class ItemManager : Singleton<ItemManager>
         return (updateCount, deleteCount, containerUpdateCount);
     }
 
-    private SlotType GetContainerSlotTypeByContainerId(ulong dbId)
+    public SlotType GetContainerSlotTypeByContainerId(ulong dbId)
     {
         _allPersistentContainers.TryGetValue(dbId, out var container);
 
@@ -1855,7 +1863,7 @@ public class ItemManager : Singleton<ItemManager>
             return container.ContainerType;
         }
 
-        return SlotType.None;
+        return SlotType.Invalid;
     }
 
     /// <summary>
@@ -1881,14 +1889,15 @@ public class ItemManager : Singleton<ItemManager>
         var newContainerType = slotType switch
         {
             SlotType.Equipment => "EquipmentContainer",
-            SlotType.EquipmentMate => "MateEquipmentContainer",
-            SlotType.EquipmentSlave => "SlaveEquipmentContainer",
+            SlotType.PetRideEquipment => "MateEquipmentContainer",
+            SlotType.SlaveEquipment => "SlaveEquipmentContainer",
+            SlotType.Auction => "AuctionContainer",
             _ => "ItemContainer"
         };
 
-        var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.None, parentUnit);
+        var newContainer = ItemContainer.CreateByTypeName(newContainerType, characterId, slotType, slotType != SlotType.Invalid, parentUnit);
 
-        if (slotType != SlotType.None)
+        if (slotType != SlotType.Invalid)
             _allPersistentContainers.Add(newContainer.ContainerId, newContainer);
 
         if (mateId > 0)
@@ -1976,7 +1985,7 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     var containerId = reader.GetUInt32("container_id");
                     var containerType = reader.GetString("container_type");
-                    var slotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
+                    var slotType = (SlotType)reader.GetInt32("slot_type");
                     var containerSize = reader.GetInt32("container_size");
                     var containerOwnerId = reader.GetUInt32("owner_id");
                     var containerMateId = reader.GetUInt32("mate_id");
@@ -2045,11 +2054,7 @@ public class ItemManager : Singleton<ItemManager>
                     item.TemplateId = itemTemplateId;
                     item.Template = GetTemplate(item.TemplateId);
                     var containerId = reader.GetUInt64("container_id");
-                    var slotTypeString = reader.GetString("slot_type");
-                    if (Enum.IsDefined(typeof(SlotType), slotTypeString))
-                        item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), slotTypeString, true);
-                    else
-                        item.SlotType = SlotType.System;
+                    item.SlotType = (SlotType)reader.GetInt32("slot_type");
                     var thisItemSlot = reader.GetInt32("slot");
                     item.Slot = thisItemSlot;
                     item.Count = reader.GetInt32("count");

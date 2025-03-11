@@ -255,7 +255,7 @@ public class CashShopBuyTask : Task
                     AccountManager.Instance.AddLoyalty(_buyer.AccountId, (int)(sku.Price * -1));
                     break;
                 case CashShopCurrencyType.Coins:
-                    if (!_buyer.SubtractMoney(SlotType.Inventory, (int)sku.Price, ItemTaskType.StoreBuy))
+                    if (!_buyer.SubtractMoney(SlotType.Bag, (int)sku.Price, ItemTaskType.StoreBuy))
                         Logger.Error($"Sale validation failed for {_buyer.Name}, {sku.Currency} x {sku.Price}");
                     break;
                 default:

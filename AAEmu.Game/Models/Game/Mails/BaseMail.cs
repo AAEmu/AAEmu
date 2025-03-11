@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -112,7 +113,7 @@ public class BaseMail
     {
         for (var i = 0; i < Body.Attachments.Count; i++)
         {
-            Body.Attachments[i].SlotType = SlotType.Mail;
+            Body.Attachments[i].SlotType = SlotType.MailAttachment;
             Body.Attachments[i].Slot = i;
         }
     }

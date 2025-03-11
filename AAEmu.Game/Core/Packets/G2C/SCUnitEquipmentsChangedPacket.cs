@@ -37,9 +37,9 @@ public class SCUnitEquipmentsChangedPacket : GamePacket
             else
             {
                 stream.Write(item);
-                var v15 = (int)item.ItemFlags << index;
-                ++index;
-                ItemFlags |= v15;
+                //var v15 = (int)item.ItemFlags << index;
+                //++index;
+                //ItemFlags |= v15;
             }
         }
 

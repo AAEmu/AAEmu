@@ -31,7 +31,7 @@ public class DoodadFuncBuyFish : DoodadFuncTemplate
             character.Money += total;
 
             character.Equipment.RemoveItem(ItemTaskType.SkillEffectConsumption, backpack, true);
-            character.AddMoney(SlotType.Inventory, total);
+            character.AddMoney(SlotType.Bag, total);
         }
     }
 }

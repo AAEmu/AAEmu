@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text.RegularExpressions;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
@@ -13,6 +14,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -41,6 +43,8 @@ namespace AAEmu.Game.Core.Managers;
 public class SlaveManager : Singleton<SlaveManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private Regex _nameRegex;
+
     private Dictionary<uint, SlaveTemplate> _slaveTemplates;
     //private Dictionary<uint, Slave> _activeSlaves; // смотри _slaves в WorldManager
     //private List<Slave> _testSlaves; // смотри _slaves в WorldManager
@@ -397,7 +401,6 @@ public class SlaveManager : Singleton<SlaveManager>
         // Check if the target spot is already taken
         var slave = GetSlaveByObjId(objId);
 
-        //var slave = GetActiveSlaveByObjId(objId);
         if (slave == null || slave.AttachedCharacters.ContainsKey(attachPoint))
             return;
 
@@ -720,10 +723,10 @@ public class SlaveManager : Singleton<SlaveManager>
         summonedSlave.TlId = tlId;
         summonedSlave.ObjId = objId;
         summonedSlave.TemplateId = slaveTemplate.Id;
-        summonedSlave.Name = string.IsNullOrWhiteSpace(slaveName) ? slaveTemplate.Name : slaveName;
+        var name = LocalizationManager.Instance.Get("slaves", "name", slaveTemplate.Id, slaveTemplate.Name);
+        summonedSlave.Name = string.IsNullOrWhiteSpace(slaveName) ? name : slaveName;
         summonedSlave.Level = (byte)slaveTemplate.Level;
         summonedSlave.ModelId = slaveTemplate.ModelId;
-        summonedSlave.Name = LocalizationManager.Instance.Get("slaves", "name", slaveTemplate.Id, slaveTemplate.Name);
         summonedSlave.Template = slaveTemplate;
         summonedSlave.Hp = slaveHp;
         summonedSlave.Mp = slaveMp;
@@ -750,7 +753,7 @@ public class SlaveManager : Singleton<SlaveManager>
         // TODO: Load Gear
         if (owner != null)
         {
-            summonedSlave.Equipment = ItemManager.Instance.GetItemContainerForCharacter(owner.Id, SlotType.EquipmentSlave, summonedSlave, summonedSlave.Id);
+            summonedSlave.Equipment = ItemManager.Instance.GetItemContainerForCharacter(owner.Id, SlotType.SlaveEquipment, summonedSlave, summonedSlave.Id);
         }
 
         // Equip it's default items
@@ -762,7 +765,7 @@ public class SlaveManager : Singleton<SlaveManager>
             foreach (var initialItem in itemPack)
             {
                 var newItem = ItemManager.Instance.Create(initialItem.ItemId, 1, 0);
-                newItem.SlotType = SlotType.EquipmentSlave;
+                newItem.SlotType = SlotType.SlaveEquipment;
                 newItem.Slot = initialItem.EquipSlotId;
                 newItem.ItemFlags = ItemFlag.SoulBound; // связанный
                 newItem.ChargeUseSkillTime = DateTime.UtcNow;
@@ -1421,7 +1424,7 @@ public class SlaveManager : Singleton<SlaveManager>
     }
 
     // Spawn Slave's slaves
-    private void SpawnSlaveSlaves(Character owner, SlaveBindings slaveBinding, Slave summonedSlave)
+    public void SpawnSlaveSlaves(Character owner, SlaveBindings slaveBinding, Slave summonedSlave)
     {
         if (slaveBinding.OwnerType != "Slave")
             return;
@@ -1534,7 +1537,12 @@ public class SlaveManager : Singleton<SlaveManager>
         doodad.ParentObj = summonedSlave;
         doodad.Faction = summonedSlave.Faction;
         doodad.Type2 = 1u; // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
-        doodad.Spawner = null;
+        //doodad.Spawner = null;
+        doodad.Spawner = new DoodadSpawner();
+        doodad.Spawner.Id = 0;
+        doodad.Spawner.UnitId = doodad.TemplateId;
+        doodad.Spawner.Position = doodad.Transform.CloneAsSpawnPosition();
+
 
         doodad.SetScale(doodadBinding.Scale);
 
@@ -1689,6 +1697,7 @@ public class SlaveManager : Singleton<SlaveManager>
     /// </summary>
     public void Load()
     {
+        _nameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
         _slaveListLock = new object();
         _slaveTemplates = new Dictionary<uint, SlaveTemplate>();
         _slaveInitialItems = new Dictionary<uint, List<SlaveInitialItems>>();
@@ -2360,5 +2369,29 @@ public class SlaveManager : Singleton<SlaveManager>
         CharacterIdManager.Instance.ReleaseId(dbId);
 
         return true;
+    }
+
+    public Slave RenameSlave(GameConnection connection, uint tlId, string newName)
+    {
+        var owner = connection.ActiveChar;
+
+        var mySlave = GetSlaveByTlId(tlId);
+
+        if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName))
+        {
+            Logger.Warn($"{owner.Name} The slave's name must not be the same as the character's name!");
+            return null;
+        }
+
+        if (mySlave == null || mySlave.TlId != tlId)
+        {
+            Logger.Warn($"{owner.Name} no slave active!");
+            return null;
+        }
+
+        mySlave.Name = newName.NormalizeName();
+        owner.BroadcastPacket(new SCUnitNameChangedPacket(mySlave.ObjId, newName), true);
+
+        return mySlave;
     }
 }

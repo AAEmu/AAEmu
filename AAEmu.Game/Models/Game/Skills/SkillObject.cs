@@ -16,16 +16,24 @@ public enum SkillObjectType
     // added in 3+
     Unk8 = 8,
     Unk9 = 9,
-    Unk10 = 0x0A,
-    Unk11 = 0x0B,
-    Unk12 = 0x0C,
-    Unk13 = 0x0D,
-    Unk14 = 0x0E,
-    Unk15 = 0x0F,
-    Unk16 = 0x10,
-    Unk17 = 0x11,
-    Unk18 = 0x12,
-    Unk19 = 0x13
+    Unk10 = 10,
+    Unk11 = 11,
+    Unk12 = 12,
+    Unk13 = 13,
+    Unk14 = 14,
+    Unk15 = 15,
+    Unk16 = 16,
+    Unk17 = 17,
+    Unk18 = 18,
+    Unk19 = 19,
+    // added in 5+
+    Unk20 = 20,
+    Unk21 = 21,
+    Unk22 = 22,
+    Unk23 = 23,
+    Unk24 = 24,
+    Unk25 = 25,
+    Unk26 = 26
 }
 
 public class SkillObject : PacketMarshaler
@@ -100,6 +108,28 @@ public class SkillObject : PacketMarshaler
             case SkillObjectType.Unk19:
                 obj = new SkillObjectUnk19(); // added in 3.5.0.3 NA
                 break;
+            case SkillObjectType.Unk20:
+                obj = new SkillObjectUnk20(); // added in 5+
+                break;
+            case SkillObjectType.Unk21:
+                obj = new SkillObjectUnk21(); // added in 5+
+                break;
+            case SkillObjectType.Unk22:
+                obj = new SkillObjectUnk22(); // added in 5+
+                break;
+            case SkillObjectType.Unk23:
+                obj = new SkillObjectUnk23(); // added in 5+
+                break;
+            case SkillObjectType.Unk24:
+                obj = new SkillObjectUnk24(); // added in 5+
+                break;
+            case SkillObjectType.Unk25:
+                obj = new SkillObjectUnk25(); // added in 5+
+                break;
+            case SkillObjectType.Unk26:
+                obj = new SkillObjectUnk26(); // added in 5+
+                break;
+            case SkillObjectType.None:
             default:
                 obj = new SkillObject();
                 break;
@@ -262,7 +292,7 @@ public class SkillObjectItemGradeEnchantingSupport : SkillObject
 // all bottom added in 3+
 public class SkillObjectUnk8 : SkillObject
 {
-    public byte Type { get; set; }
+    public uint Type { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
     public float Z { get; set; }
@@ -270,7 +300,7 @@ public class SkillObjectUnk8 : SkillObject
 
     public override void Read(PacketStream stream)
     {
-        Type = stream.ReadByte();
+        Type = stream.ReadUInt32();
         X = Helpers.ConvertLongX(stream.ReadInt64());
         Y = Helpers.ConvertLongX(stream.ReadInt64());
         Z = stream.ReadSingle();
@@ -453,11 +483,11 @@ public class SkillObjectUnk15 : SkillObject
 
 public class SkillObjectUnk16 : SkillObject
 {
-    public byte Package { get; set; }
+    public bool Package { get; set; }
 
     public override void Read(PacketStream stream)
     {
-        Package = stream.ReadByte();
+        Package = stream.ReadBoolean();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -472,11 +502,11 @@ public class SkillObjectUnk16 : SkillObject
 
 public class SkillObjectUnk17 : SkillObject
 {
-    public byte ByProc { get; set; }
+    public bool ByProc { get; set; }
 
     public override void Read(PacketStream stream)
     {
-        ByProc = stream.ReadByte();
+        ByProc = stream.ReadBoolean();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -511,12 +541,12 @@ public class SkillObjectUnk18 : SkillObject
 public class SkillObjectUnk19 : SkillObject
 {
     public bool AutoUseAAPoint { get; set; }
-    public int SmeltingDescId { get; set; }
+    public uint SmeltingDescId { get; set; }
 
     public override void Read(PacketStream stream)
     {
         AutoUseAAPoint = stream.ReadBoolean();
-        SmeltingDescId = stream.ReadInt32();
+        SmeltingDescId = stream.ReadUInt32();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -526,6 +556,130 @@ public class SkillObjectUnk19 : SkillObject
         stream.Write(AutoUseAAPoint);
         stream.Write(SmeltingDescId);
 
+        return stream;
+    }
+}
+public class SkillObjectUnk20 : SkillObject
+{
+    public uint CraftType { get; set; }
+    public int CraftCount { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        CraftType = stream.ReadUInt32();
+        CraftCount = stream.ReadInt32();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(CraftType);
+        stream.Write(CraftCount);
+        return stream;
+    }
+}
+public class SkillObjectUnk21 : SkillObject
+{
+    public byte EquipSlot { get; set; }
+    public uint Type { get; set; }
+    public bool AutoUseAAPoint { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        EquipSlot = stream.ReadByte();
+        Type = stream.ReadUInt32();
+        AutoUseAAPoint = stream.ReadBoolean();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(EquipSlot);
+        stream.Write(Type);
+        stream.Write(AutoUseAAPoint);
+        return stream;
+    }
+}
+public class SkillObjectUnk22 : SkillObject
+{
+    public byte EquipSlot { get; set; }
+    public sbyte Level { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        EquipSlot = stream.ReadByte();
+        Level = stream.ReadSByte();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(EquipSlot);
+        stream.Write(Level);
+        return stream;
+    }
+}
+public class SkillObjectUnk23 : SkillObject
+{
+    public long Type { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        Type = stream.ReadInt64();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(Type);
+        return stream;
+    }
+}
+public class SkillObjectUnk24 : SkillObject
+{
+    public byte PageIndex { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        PageIndex = stream.ReadByte();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(PageIndex);
+        return stream;
+    }
+}
+public class SkillObjectUnk25 : SkillObject
+{
+    public uint MappingId { get; set; }
+    
+    public override void Read(PacketStream stream)
+    {
+        MappingId = stream.ReadUInt32();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(MappingId);
+        return stream;
+    }
+}
+public class SkillObjectUnk26 : SkillObject
+{
+    public uint Color { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        Color = stream.ReadUInt32();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(Color);
         return stream;
     }
 }

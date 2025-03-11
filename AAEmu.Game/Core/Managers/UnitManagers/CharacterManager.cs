@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Attendance;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
@@ -336,7 +337,7 @@ public class CharacterManager : Singleton<CharacterManager>
                     {
                         var template = new ActabilityTemplate();
                         template.Id = reader.GetUInt32("id");
-                        template.IconId = reader.GetUInt32("icon_id", 0);
+                        //template.IconId = reader.GetUInt32("icon_id", 0);
                         template.Name = reader.GetString("name");
                         template.SkillPageVisible = reader.GetBoolean("skill_page_visible");
                         template.UnitAttributeId = reader.GetInt32("unit_attr_id");
@@ -902,7 +903,7 @@ public class CharacterManager : Singleton<CharacterManager>
     {
         // TODO: Add support for future X-day Salon Certificate items
 
-        if (character.Inventory.GetItemsCount(SlotType.Inventory, Item.SalonCertificate) <= 0)
+        if (character.Inventory.GetItemsCount(SlotType.Bag, Item.SalonCertificate) <= 0)
             return;
 
         var oldHair = character.Equipment.GetItemBySlot((byte)EquipmentItemSlot.Hair);

@@ -70,7 +70,8 @@ public class AddPortals : ICommand
             zRot = 0;
         }
 
-        targetPlayer.Portals.AddPrivatePortal(x, y, z, zRot, zoneId, portalName);
+        //targetPlayer.Portals.AddPrivatePortal(x, y, z, zRot, zoneId, portalName);
+        targetPlayer.Portals.AddOrUpdatePrivatePortal(x, y, z, zRot, zoneId, portalName);
         if (character.Id != targetPlayer.Id)
         {
             CommandManager.SendNormalText(this, messageOutput,

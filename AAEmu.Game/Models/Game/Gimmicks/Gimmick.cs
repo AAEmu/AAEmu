@@ -125,7 +125,7 @@ public class Gimmick : Unit
             return;
         var caster = WorldManager.Instance.GetNpc(SpawnerUnitId);
 
-        var skillCaster = SkillCaster.GetByType(SkillCasterType.Doodad);
+        var skillCaster = SkillCaster.GetByType(SkillCasterType.Gimmick);
         skillCaster.ObjId = this.ObjId;
 
         var skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Position);

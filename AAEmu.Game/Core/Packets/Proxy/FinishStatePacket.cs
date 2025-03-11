@@ -35,7 +35,7 @@ public class FinishStatePacket : GamePacket
                 Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                 Connection.SendPacket(new SCInitialConfigPacket());
                 // added in 5.0.7.0
-                Connection.SendPacket(new SCTowerConfigPacket());
+                //Connection.SendPacket(new SCTowerConfigPacket());
 
                 // Test URLs                                          // Original Trion values
                 // Client treats these as folders and will add a trailing slash (/) with whatever it needs

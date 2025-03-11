@@ -68,12 +68,12 @@ public class CharacterAttendances
         var (itemId, itemCount) = AttendanceGameData.Instance.GetReward(year, month, dayCount);
         if (itemCount > 0 && itemId > 0)
         {
-            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, itemId, itemCount);
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.TakeScheduleItem, itemId, itemCount);
         }
         var (additionalItemId, additionalItemCount) = AttendanceGameData.Instance.GetAdditionalReward(year, month, dayCount);
         if (additionalItemCount > 0 && additionalItemId > 0)
         {
-            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, additionalItemId, additionalItemCount);
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.TakeScheduleItem, additionalItemId, additionalItemCount);
         }
         character.SendPacket(new SCDbAttendanceTimePacket(true, currentDate));
 

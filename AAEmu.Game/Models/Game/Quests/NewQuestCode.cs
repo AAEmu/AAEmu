@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 
@@ -54,6 +55,7 @@ public partial class Quest
         // Send the first components, or the one that's used to start this ?
         ComponentId = stepStart.Components.Values.FirstOrDefault()?.Template.Id ?? 0;
         Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
+        Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestStart, [], []));
         Logger.Debug($"StartQuest, Quest:{TemplateId}, Player {Owner.Name} ({Owner.Id})");
         return true;
     }

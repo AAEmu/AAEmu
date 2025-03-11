@@ -26,7 +26,7 @@ public class SCQuestContextUpdatedPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_quest);
+        _quest.Write(stream);
         stream.WritePiscW(5, [_componentId, _para1, _para2, _para3, _para4]);
 
         return stream;

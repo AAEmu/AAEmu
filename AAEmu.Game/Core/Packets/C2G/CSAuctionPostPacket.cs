@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -12,13 +13,17 @@ public class CSAuctionPostPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var npcObjId = stream.ReadBc();
-        var npcObjId2 = stream.ReadBc();
+        var auctioneerId = stream.ReadBc();
+        var auctioneerId2 = stream.ReadBc();
         var itemId = stream.ReadUInt64();
         var startPrice = stream.ReadInt32();
         var buyoutPrice = stream.ReadInt32();
-        var duration = stream.ReadByte();
+        var duration = (AuctionDuration)stream.ReadByte();
+        var minStack = stream.ReadInt32();
+        var maxStack = stream.ReadInt32();
 
-        AuctionManager.Instance.ListAuctionItem(Connection.ActiveChar, itemId, startPrice, buyoutPrice, duration);
+        Logger.Warn($"AuctionMyBidList, auctioneerId: {auctioneerId}, auctioneerId2: {auctioneerId2}, itemId: {itemId}, startPrice: {startPrice}, buyoutPrice: {buyoutPrice}, duration: {duration}, minStack: {minStack}, maxStack: {maxStack}");
+
+        AuctionManager.Instance.PostLotOnAuction(Connection.ActiveChar, auctioneerId, auctioneerId2, itemId, startPrice, buyoutPrice, duration, minStack, maxStack);
     }
 }

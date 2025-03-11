@@ -72,11 +72,11 @@ public class ShowInventory : ICommand
                 targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out firstarg);
             }
 
-            var containerId = SlotType.Inventory;
+            var containerId = SlotType.Bag;
 
             if (args.Length > firstarg + 0 && uint.TryParse(args[firstarg + 0], out var argcontainerId))
             {
-                if (argcontainerId <= (byte)SlotType.Mail || argcontainerId == (byte)SlotType.System)
+                if (argcontainerId <= (byte)SlotType.MailAttachment || argcontainerId == (byte)SlotType.Money)
                 {
                     containerId = (SlotType)argcontainerId;
                 }
@@ -93,7 +93,7 @@ public class ShowInventory : ICommand
             if (targetPlayer.Inventory._itemContainers.TryGetValue(containerId, out var targetContainer))
             {
                 var showWarnings = targetContainer.ContainerType == SlotType.Equipment ||
-                                   targetContainer.ContainerType == SlotType.Inventory ||
+                                   targetContainer.ContainerType == SlotType.Bag ||
                                    targetContainer.ContainerType == SlotType.Bank;
                 var lastSlotNumber = -1;
                 var hasSlotErrors = 0;

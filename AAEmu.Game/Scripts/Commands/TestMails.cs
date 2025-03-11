@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Mails.Static;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -203,7 +204,7 @@ public class TestMails : ICommand
 
                             var newItem = ItemManager.Instance.Create(itemId, itemCount, (byte)itemGrade, true);
                             newItem.OwnerId = character.Id;
-                            newItem.SlotType = SlotType.Mail;
+                            newItem.SlotType = SlotType.MailAttachment;
                             mail.Body.Attachments.Add(newItem);
 
                             CommandManager.SendNormalText(this, messageOutput,

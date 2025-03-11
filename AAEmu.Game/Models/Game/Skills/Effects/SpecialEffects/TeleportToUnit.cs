@@ -48,7 +48,7 @@ public class TeleportToUnit : SpecialEffectAction
         switch (caster)
         {
             case Character character:
-                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, targetPosition.Z));
+                character.SendPacket(new SCUnitBlinkPacket(caster.ObjId, 0f, 0f, endX, endY, targetPosition.Z));
                 break;
             case Npc npc:
                 npc.MoveTowards(targetPosition, 10000);

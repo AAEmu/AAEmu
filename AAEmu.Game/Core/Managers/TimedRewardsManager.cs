@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Tasks.TimedRewards;
 
 namespace AAEmu.Game.Core.Managers;
@@ -98,7 +99,30 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
         if (AppConfiguration.Instance.Loyalty.DailyLogin > 0)
             AccountManager.Instance.AddLoyalty(accountId, AppConfiguration.Instance.Loyalty.DailyLogin);
 
-        AccountManager.Instance.UpdateDivineClock(accountId, 0, 0);
+        DoDailyAccountDivineClockLogin(accountId);
+    }
+
+    public void DoDailyAccountDivineClockLogin(ulong accountId)
+    {
+        // TODO add initialization of ScheduleItem items for Divine Clock
+        // delete existing entries
+        AccountManager.Instance.DeleteDivineClockEntries(accountId);
+        // create new entries
+        var li = GameScheduleManager.Instance.GetMatchingPeriods();
+        if (li == null) { return; }
+
+        foreach (var scheduleItemId in li)
+        {
+            var si = new ScheduleItem
+            {
+                ScheduleItemId = scheduleItemId,
+                Gave = 0,
+                Cumulated = 0,
+                Updated = DateTime.UtcNow
+            };
+            // Update Account Divine Clock time
+            AccountManager.Instance.UpdateDivineClock(accountId, si.ScheduleItemId, si.Cumulated, si.Gave);
+        }
     }
 
     public void AddOfflineLabor(GameConnection connection, DateTime lastLoginTime, short currentLabor)

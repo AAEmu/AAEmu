@@ -363,7 +363,7 @@ public class SCUnitStatePacket : GamePacket
         {
             stream.WritePisc(0, 0, 0, 0); // TODO второе число больше нуля, что это за число?
             stream.WritePisc((uint)(_unit.Faction?.Id ?? 0), (uint)(_unit.Expedition?.Id ?? 0), 0, 0); // pisc
-            stream.WritePisc(0, 0, 0, 0); // pisc
+            stream.WritePisc(0, 255, 0, 0); // pisc
         }
 
         switch (_unit)
@@ -386,14 +386,14 @@ public class SCUnitStatePacket : GamePacket
                      * 0x0004 - 6bit - невидимость?
                      * 0x0008 - 5bit - дуэль
                      * 0x0010 - 4bit - 
+                     * 0x0020 
                      * 0x0040 - 2bit - gmmode, дополнительно 7 байт
                      * 0x0080 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
-                     * 0x0020
-                     * 0x0200
                      * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
+                     * 0x0200
                      * 0x0400 - 14bit - надпись "Отсутсвует" под именем
-                     * 0x1000
                      * 0x0800
+                     * 0x1000
                     */
                     break;
                 }
@@ -484,7 +484,7 @@ public class SCUnitStatePacket : GamePacket
 
             #region Stats
             var size = 1u;
-            stream.Write(size); // size
+            //stream.Write(size); // size
             for (var i = 0; i < size; i++)
             {
                 for (var j = 0; j < 5; j++)

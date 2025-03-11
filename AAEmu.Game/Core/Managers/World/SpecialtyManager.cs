@@ -91,7 +91,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                         }
                         else
                         {
-                            Logger.Warn($"Дубликат обнаружен в _specialtyBundleItems: id={template.Id}");
+                            Logger.Warn($"Duplicate found in _specialtyBundleItems: id={template.Id}");
                         }
 
                         // Проверка на дубликат в _specialtyBundleItemsMapped
@@ -104,7 +104,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                         }
                         else
                         {
-                            Logger.Warn($"Дубликат обнаружен в _specialtyBundleItemsMapped: itemId={template.ItemId}, specialtyBundleId={template.SpecialtyBundleId}");
+                            Logger.Warn($"Duplicate found in _specialtyBundleItemsMapped: itemId={template.ItemId}, specialtyBundleId={template.SpecialtyBundleId}");
                         }
                     }
                 }

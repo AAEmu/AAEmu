@@ -8,6 +8,7 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Account;
+using AAEmu.Game.Models.Game;
 
 using NLog;
 
@@ -36,6 +37,13 @@ public class AccountManager : Singleton<AccountManager>
         _accounts.TryAdd(connection.AccountId, connection);
         var lastLogin = UpdateLoginTime(connection.AccountId, DateTime.UtcNow);
         var accountDetails = GetAccountDetails(connection.AccountId);
+
+        var lsi = GetDivineClock(connection.AccountId);
+        if (lsi?.Count == 0)
+        {
+            TimedRewardsManager.Instance.DoDailyAccountDivineClockLogin(connection.AccountId);
+        }
+
         if (lastLogin < DateTime.UtcNow.Date)
         {
             // Logged in for a new day
@@ -360,12 +368,54 @@ public class AccountManager : Singleton<AccountManager>
             {
                 using var connection = MySQL.CreateConnection();
                 using var command = connection.CreateCommand();
-                command.CommandText = "UPDATE accounts SET divine_clock_time = @divine_clock_time , divine_clock_taken = @divine_clock_taken WHERE account_id = @account_id";
+                command.CommandText = "UPDATE accounts SET cumulated = @cumulated , gave = @gave" +
+                                      " WHERE account_id = @account_id";
                 command.Parameters.AddWithValue("@account_id", accountId);
-                command.Parameters.AddWithValue("@divine_clock_time", timeElapsed);
-                command.Parameters.AddWithValue("@divine_clock_taken", timesTaken);
+                command.Parameters.AddWithValue("@cumulated", timeElapsed);
+                command.Parameters.AddWithValue("@gave", timesTaken);
                 command.Prepare();
                 command.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+            }
+        }
+    }
+
+    public void UpdateDivineClock(ulong accountId, uint scheduleItemId, uint timeElapsed, uint timesTaken)
+    {
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "UPDATE divine_clock SET cumulated = @cumulated, gave = @gave" +
+                                      " WHERE account_id = @account_id AND schedule_item_id = @schedule_item_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Parameters.AddWithValue("@schedule_item_id", scheduleItemId);
+                command.Parameters.AddWithValue("@cumulated", timeElapsed);
+                command.Parameters.AddWithValue("@gave", timesTaken);
+                command.Prepare();
+                var rowsAffected = command.ExecuteNonQuery();
+
+                // If no rows were updated, insert a new record
+                if (rowsAffected == 0)
+                {
+                    command.CommandText = "INSERT INTO divine_clock (account_id, schedule_item_id, cumulated, gave)" +
+                                          "VALUES (@account_id, @schedule_item_id, @cumulated, @gave)";
+                    command.ExecuteNonQuery();
+                }
             }
             catch (Exception e)
             {
@@ -379,7 +429,7 @@ public class AccountManager : Singleton<AccountManager>
     /// </summary>
     /// <param name="accountId"></param>
     /// <returns></returns>
-    public (uint, uint) GetDivineClock(ulong accountId)
+    public (uint, uint) GetDivineClock2(ulong accountId)
     {
         var timeElapsed = 0u;
         var timesTaken = 0u;
@@ -416,5 +466,161 @@ public class AccountManager : Singleton<AccountManager>
         }
 
         return (timeElapsed, timesTaken);
+    }
+
+    public (uint TimeElapsed, uint TimesTaken) GetDivineClock2(ulong accountId, uint scheduleItemId)
+    {
+        var timeElapsed = 0u;
+        var timesTaken = 0u;
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT cumulated, gave FROM divine_clock WHERE account_id = @account_id AND schedule_item_id = @schedule_item_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Parameters.AddWithValue("@schedule_item_id", scheduleItemId);
+                command.Prepare();
+                using var reader = command.ExecuteReader();
+                if (reader.Read())
+                {
+                    timeElapsed = reader.GetUInt32("cumulated");
+                    timesTaken = reader.GetUInt32("gave");
+                }
+                reader.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+            }
+        }
+
+        return (timeElapsed, timesTaken);
+    }
+
+    public ScheduleItem GetDivineClock(ulong accountId, uint scheduleItemId)
+    {
+        var scheduleItem = new ScheduleItem();
+        scheduleItem.ScheduleItemId = scheduleItemId;
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT cumulated, gave FROM divine_clock WHERE account_id = @account_id AND schedule_item_id = @schedule_item_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Parameters.AddWithValue("@schedule_item_id", scheduleItemId);
+                command.Prepare();
+                using var reader = command.ExecuteReader();
+                if (reader.Read())
+                {
+                    scheduleItem.Cumulated = reader.GetUInt32("cumulated");
+                    scheduleItem.Gave = reader.GetByte("gave");
+                }
+                reader.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+                return null; // Возвращаем null в случае ошибки
+            }
+        }
+
+        return scheduleItem;
+    }
+    public List<ScheduleItem> GetDivineClock(ulong accountId)
+    {
+        var scheduleItems = new List<ScheduleItem>();
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT * FROM divine_clock WHERE account_id = @account_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Prepare();
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var scheduleItem = new ScheduleItem
+                    {
+                        ScheduleItemId = reader.GetUInt32("schedule_item_id"),
+                        Cumulated = reader.GetUInt32("cumulated"),
+                        Gave = reader.GetByte("gave")
+                    };
+                    scheduleItems.Add(scheduleItem);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+                return null; // Возвращаем null в случае ошибки
+            }
+        }
+
+        return scheduleItems;
+    }
+
+    public bool DeleteDivineClockEntries(ulong accountId)
+    {
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "DELETE FROM divine_clock WHERE account_id = @account_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Prepare();
+
+                int rowsAffected = command.ExecuteNonQuery();
+                return rowsAffected > 0; // Возвращаем true, если были удалены записи
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+                return false; // Возвращаем false в случае ошибки
+            }
+        }
     }
 }

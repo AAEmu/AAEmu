@@ -13,13 +13,13 @@ public class CSAuctionLowestPricePacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var npcObjId = stream.ReadBc();
+        var auctioneerId = stream.ReadBc();
+        var auctioneerId2 = stream.ReadBc();
         var itemTemplateId = stream.ReadUInt32();
         var itemGrade = stream.ReadByte();
 
-        var cheapestItem = AuctionManager.Instance.GetCheapestAuctionItem(itemTemplateId);
+        Logger.Warn($"AuctionLowestPrice, auctioneerId: {auctioneerId}, auctioneerId2: {auctioneerId2}, TemplateId: {itemTemplateId}, Grade: {itemGrade}");
 
-        Connection.ActiveChar.SendPacket(new SCAuctionLowestPricePacket(cheapestItem));
-
+        AuctionManager.Instance.CheapestAuctionLot(Connection.ActiveChar, itemTemplateId, itemGrade);
     }
 }

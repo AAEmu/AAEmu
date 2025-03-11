@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -13,6 +15,7 @@ public class CharacterMails
 {
     public Character Self { get; set; }
     public CountUnreadMail UnreadMailCount { get; set; }
+    private int SendMailIndex { get; set; }
 
     public CharacterMails(Character self)
     {
@@ -20,34 +23,60 @@ public class CharacterMails
 
         UnreadMailCount = new CountUnreadMail
         {
-            TotalSent = 0,
-            TotalReceived = 0,
-            TotalMiaReceived = 0,
-            TotalCommercialReceived = 0
+            TotalSent = 0
         };
         UnreadMailCount.ResetReceived();
     }
 
-    public void OpenMailbox(byte mailBoxListKind)
+    public void SendMailList(byte mailBoxListKind, int startIdx, int sentCnt, bool isRecover, bool isTest)
     {
-        var mailList = MailManager.Instance.GetCurrentMailList(Self);
+        SendMailIndex = 0;
+
+        var mailList = MailManager.Instance.GetCurrentMailList(Self).Values.ToList();
         var total = mailList.Count;
-        foreach (var m in mailList)
+
+        SendMailList(mailBoxListKind, mailList[SendMailIndex].Header, total);
+
+        SendMailIndex++;
+
+        if (SendMailIndex < total - 1)
         {
-            if (m.Value.Header.SenderId == Self.Id && m.Value.Header.ReceiverId == Self.Id)
-            {
-                Self.SendPacket(new SCMailListPacket(false, total, m.Value.Header, mailBoxListKind));
-            }
-            else if (m.Value.Header.SenderId == Self.Id)
-            {
-                Self.SendPacket(new SCMailListPacket(false, total, m.Value.Header, mailBoxListKind));
-            }
-            else if (m.Value.Header.ReceiverId == Self.Id)
-            {
-                Self.SendPacket(new SCMailListPacket(false, total, m.Value.Header, mailBoxListKind));
-            }
+            return;
         }
+
         Self.SendPacket(new SCMailListEndPacket((byte)total, UnreadMailCount));
+        SendMailIndex = 0;
+    }
+
+    public void SendMailListContinue(byte mailBoxListKind)
+    {
+        var mailList = MailManager.Instance.GetCurrentMailList(Self).Values.ToList();
+        var total = mailList.Count;
+
+        if (SendMailIndex < total)
+        {
+            SendMailList(mailBoxListKind, mailList[SendMailIndex].Header, total);
+            SendMailIndex++;
+            return;
+        }
+
+        Self.SendPacket(new SCMailListEndPacket(mailBoxListKind, UnreadMailCount));
+    }
+
+    private void SendMailList(byte mailBoxListKind, MailHeader mailHeader, int total)
+    {
+        if (mailHeader.SenderId == Self.Id && mailHeader.ReceiverId == Self.Id)
+        {
+            Self.SendPacket(new SCMailListPacket(false, total, mailHeader, mailBoxListKind));
+        }
+        else if (mailHeader.SenderId == Self.Id)
+        {
+            Self.SendPacket(new SCMailListPacket(false, total, mailHeader, mailBoxListKind));
+        }
+        else if (mailHeader.ReceiverId == Self.Id)
+        {
+            Self.SendPacket(new SCMailListPacket(false, total, mailHeader, mailBoxListKind));
+        }
     }
 
     public void ReadMail(bool isSent, long id)
@@ -56,14 +85,14 @@ public class CharacterMails
         {
             if (mail.Header.Status == MailStatus.Unread && !isSent)
             {
-                UnreadMailCount.UpdateReceived(mail.MailType, -1);
+                UnreadMailCount.UpdateUnreadReceived(mail.MailType, -1);
                 mail.OpenDate = DateTime.UtcNow;
                 mail.Header.Status = MailStatus.Read;
                 mail.IsDelivered = true;
             }
             Self.SendPacket(new SCMailBodyPacket(false, isSent, mail.Body, true, UnreadMailCount));
-            Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, mail.Header.Status));
-            SendUnreadMailCount();
+            //Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, mail.Header.Status));
+            //SendUnreadMailCount();
         }
     }
 
@@ -74,12 +103,12 @@ public class CharacterMails
 
     public MailResult SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(SlotType, byte)> itemSlots)
     {
-        
+
         if (string.IsNullOrWhiteSpace(receiverName) || NameManager.Instance.GetCharacterId(receiverName) == 0)
         {
             return MailResult.UnableToFindRecipient;
         }
-        
+
         var mail = new MailPlayerToPlayer(Self, receiverName);
 
         mail.MailType = mailType;
@@ -123,7 +152,7 @@ public class CharacterMails
         {
             Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray(), UnreadMailCount));
             // Take the fee
-            Self.SubtractMoney(SlotType.Inventory, mailFee + money0);
+            Self.SubtractMoney(SlotType.Bag, mailFee + money0);
             return MailResult.Success;
         }
         else
@@ -152,11 +181,14 @@ public class CharacterMails
             }
             if (thisMail.Body.CopperCoins > 0 && takeMoney)
             {
-                Self.ChangeMoney(SlotType.Inventory, thisMail.Body.CopperCoins);
+                Self.ChangeMoney(SlotType.Bag, thisMail.Body.CopperCoins);
                 thisMail.Body.CopperCoins = 0;
                 thisMail.Header.Attachments -= 1;
                 tookMoney = true;
             }
+
+            if (thisMail.Body.CopperCoins == 0 && takeMoney)
+                takeMoney = false;
 
             var itemSlotList = new List<ItemIdAndLocation>();
             // Check if items need to be taken, and add them to a list
@@ -277,10 +309,12 @@ public class CharacterMails
                 if (MailManager.Instance._allPlayerMails[id].Header.Status != MailStatus.Read)
                 {
                     UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
+                    UnreadMailCount.UpdateUnreadReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
                     Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, UnreadMailCount));
                 }
                 else
                 {
+                    UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
                     Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, UnreadMailCount));
                 }
 
@@ -298,7 +332,7 @@ public class CharacterMails
             for (var i = 0; i < MailBody.MaxMailAttachments; i++)
             {
                 var item = ItemManager.Instance.GetItemByItemId(thisMail.Body.Attachments[i].Id);
-                if (item.SlotType == SlotType.None)
+                if (item.SlotType == SlotType.Invalid)
                 {
                     itemSlots.Add(((byte)0, (byte)0));
                 }

@@ -144,7 +144,7 @@ public class CharacterCraft
             return;
         }
 
-        if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
+        if (Owner.Inventory.FreeSlotCount(SlotType.Bag) < _craft.CraftProducts.Count)
         {
             // TODO not verified
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughSpace, 0, false);

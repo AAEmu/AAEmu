@@ -97,7 +97,7 @@ public class GradeEnchant : SpecialEffectAction
             return;
         }
 
-        if (!character.Inventory.CheckItems(SlotType.Inventory, scroll.ItemTemplateId, 1))
+        if (!character.Inventory.CheckItems(SlotType.Bag, scroll.ItemTemplateId, 1))
         {
             // No scroll
             character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
@@ -144,7 +144,7 @@ public class GradeEnchant : SpecialEffectAction
         }
 
         // Consume
-        character.SubtractMoney(SlotType.Inventory, cost);
+        character.SubtractMoney(SlotType.Bag, cost);
         // TODO: Handled by skill already, do more tests
         // character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, scroll.ItemTemplateId, 1, character.Inventory.GetItemById(scroll.ItemId));
         if (useCharm)

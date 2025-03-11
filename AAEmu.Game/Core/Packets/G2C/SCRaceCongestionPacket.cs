@@ -21,6 +21,8 @@ public class SCRaceCongestionPacket : GamePacket
             PRE_SELECT_RACE_FULL = 9,
             CHECK = 10
         }*/
+        stream.Write(false); // forbidCharCreating
+
         return stream;
     }
 }

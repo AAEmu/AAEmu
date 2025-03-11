@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Quests;
 
@@ -15,9 +16,20 @@ public class SCCompletedQuestsPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_quests.Length); // TODO max 200
+        const int MaxQuests = 200;
+        if (_quests.Length > MaxQuests)
+        {
+            throw new InvalidOperationException($"Number of quests exceeds the maximum allowed ({MaxQuests}).");
+        }
+
+        stream.Write(_quests.Length);
         foreach (var quest in _quests)
         {
+            if (quest.Body.Length != 64) // 64 / 8 = 8 байт
+            {
+                throw new InvalidOperationException("Quest body must be exactly 8 bytes.");
+            }
+
             var body = new byte[8];
             quest.Body.CopyTo(body, 0);
 

@@ -5,9 +5,13 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Schedules;
+
 using NCrontab;
+
 using NLog;
+
 using static System.String;
+
 using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
 
 namespace AAEmu.Game.Core.Managers;
@@ -22,6 +26,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     private Dictionary<int, GameScheduleDoodads> _gameScheduleDoodads;
     private Dictionary<int, List<int>> _gameScheduleDoodadIds;
     private Dictionary<int, GameScheduleQuests> _gameScheduleQuests;
+    private Dictionary<uint, ScheduleItems> _scheduleItems;
     private List<int> GameScheduleId { get; set; }
 
     public void Load()
@@ -63,6 +68,11 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
     public void LoadGameScheduleQuests(Dictionary<int, GameScheduleQuests> gameScheduleQuests)
     {
         _gameScheduleQuests = gameScheduleQuests;
+    }
+
+    public void LoadScheduleItems(Dictionary<uint, ScheduleItems> scheduleItems)
+    {
+        _scheduleItems = scheduleItems;
     }
 
     public bool CheckSpawnerInScheduleSpawners(int spawnerId)
@@ -186,6 +196,12 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         }
 
         return res;
+    }
+
+    public ScheduleItems GetScheduleItem(uint id)
+    {
+        _scheduleItems.TryGetValue(id, out var value);
+        return value;
     }
 
     public string GetCronRemainingTime(int spawnerId, bool start = true)
@@ -528,5 +544,58 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
         cronExpression = cronExpression.Replace("?", "*/1"); // Crontab doesn't support ?, so we replace it with */1 instead
 
         return cronExpression;
+    }
+
+    public List<uint> GetMatchingPeriods2()
+    {
+        var matchingPeriods = new List<uint>();
+        var now = DateTime.Now;
+
+        foreach (var period in _scheduleItems.Values)
+        {
+            var startDate = new DateTime((int)period.StYear, (int)period.StMonth, (int)period.StDay, (int)period.StHour, (int)period.StMin, 0);
+            var endDate = new DateTime((int)period.EdYear, (int)period.EdMonth, (int)period.EdDay, (int)period.EdHour, (int)period.EdMin, 59);
+
+            if (now >= startDate && now <= endDate)
+            {
+                matchingPeriods.Add(period.Id);
+            }
+        }
+
+        return matchingPeriods;
+    }
+
+    public List<uint> GetMatchingPeriods()
+    {
+        var matchingPeriods = new List<uint>();
+        var now = DateTime.UtcNow;
+
+        foreach (var period in _scheduleItems.Values)
+        {
+            var startDate = new DateTime(
+                period.StYear == 0 ? now.Year : (int)period.StYear,
+                period.StMonth == 0 ? now.Month : (int)period.StMonth,
+                period.StDay == 0 ? now.Day : (int)period.StDay,
+                (int)period.StHour,
+                (int)period.StMin,
+                0
+            );
+
+            var endDate = new DateTime(
+                period.EdYear == 0 ? now.Year : (int)period.EdYear,
+                period.EdMonth == 0 ? now.Month : (int)period.EdMonth,
+                period.EdDay == 0 ? now.Day : (int)period.EdDay,
+                (int)period.EdHour,
+                (int)period.EdMin,
+                59
+            );
+
+            if (now >= startDate && now <= endDate && period.ActiveTake)
+            {
+                matchingPeriods.Add(period.Id);
+            }
+        }
+
+        return matchingPeriods;
     }
 }

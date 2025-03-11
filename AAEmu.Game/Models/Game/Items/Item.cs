@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -118,14 +117,14 @@ public class Item : PacketMarshaler, IComparable<Item>
     // Helper
     public ItemContainer _holdingContainer { get; set; }
 
-    public static uint Coins { get; } = 500;
-    public static uint TaxCertificate { get; } = 31891;
-    public static uint BoundTaxCertificate { get; } = 31892;
-    public static uint AppraisalCertificate { get; } = 28085;
-    public static uint CrestStamp { get; } = 17662;
-    public static uint CrestInk { get; } = 17663;
-    public static uint SheetMusic { get; } = 28051;
-    public static uint SalonCertificate { get; } = 30811;
+    public static uint Coins => 500;
+    public static uint TaxCertificate => 31891;
+    public static uint BoundTaxCertificate => 31892;
+    public static uint AppraisalCertificate => 28085;
+    public static uint CrestStamp => 17662;
+    public static uint CrestInk => 17663;
+    public static uint SheetMusic => 28051;
+    public static uint SalonCertificate => 30811;
 
     /// <summary>
     /// Sort will use itemSlot numbers
@@ -336,7 +335,7 @@ public class Item : PacketMarshaler, IComparable<Item>
                 stream.Write(TemperMagical);  // scaledB
                 stream.Write(ChargeProcTime);   // chargeProcTime
                 stream.Write(MappingFailBonus); // mappingFailBonus - нет в 4.5.2.6, есть в 4.5.1.0 и 5.7
-
+                
                 var gemIds = GemIds.Select(id => (long)id).ToArray();
                 stream.WritePiscW(gemIds.Length, gemIds);
                 //stream.WritePisc(GemIds[0], GemIds[1], GemIds[2], GemIds[3]);
