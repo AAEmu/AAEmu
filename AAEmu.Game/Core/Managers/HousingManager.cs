@@ -22,6 +22,7 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Mails.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;

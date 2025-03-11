@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Mails;
+﻿namespace AAEmu.Game.Models.Game.Mails.Static;
 
 public enum MiaMailTypes
 {

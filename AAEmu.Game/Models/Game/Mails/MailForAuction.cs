@@ -1,6 +1,8 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -38,7 +40,7 @@ public class MailForAuction : BaseMail
 
         // Correct types and name will be set in finalize functions
         MailType = MailType.InvalidMailType;
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = AuctionName; // Name changes depending on type of mail
 
         Body.SendDate = DateTime.UtcNow;
@@ -65,7 +67,7 @@ public class MailForAuction : BaseMail
 
         // Correct types and name will be set in finalize functions
         MailType = MailType.InvalidMailType;
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = AuctionName; // Name changes depending on type of mail
 
         Body.SendDate = DateTime.UtcNow;

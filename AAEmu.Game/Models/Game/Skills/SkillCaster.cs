@@ -26,7 +26,7 @@ public abstract class SkillCaster : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)Type);
+        stream.Write((byte)Type); // skillCasterType
         stream.WriteBc(ObjId);
         return stream;
     }

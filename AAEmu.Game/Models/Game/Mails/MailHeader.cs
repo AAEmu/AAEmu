@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 

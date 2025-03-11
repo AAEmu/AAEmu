@@ -2,12 +2,12 @@
 
 public enum SlotType : byte
 {
-    Invalid = 0,
-    Equipment = 1,
-    Bag = 2,
-    Bank = 3,
-    Coffer = 4,
-    Seized = 5, // связан с почтой
+    Invalid = 0,            // None = 0
+    Equipment = 1,          // Equipment = 1,
+    Bag = 2,                // Inventory = 2,
+    Bank = 3,               // Bank = 3,
+    Coffer = 4,             // Trade = 4,
+    Seized = 5,
     Auction = 6,
     Mountable = 64,
     Mountable1Bag = 65,
@@ -29,8 +29,8 @@ public enum SlotType : byte
     Constant = 249,
     HonorPoint = 250,
     StoreGood = 251,
-    PetRideEquipment = 252,
-    MailAttachment = 253,
+    PetRideEquipment = 252, // EquipmentMate = 252,
+    MailAttachment = 253,   // Mail = 5,
     Action = 254,
-    Money = 0xFF
+    Money = 0xFF            // System = 0xFF
 }

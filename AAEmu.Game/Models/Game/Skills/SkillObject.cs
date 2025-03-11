@@ -292,7 +292,7 @@ public class SkillObjectItemGradeEnchantingSupport : SkillObject
 // all bottom added in 3+
 public class SkillObjectUnk8 : SkillObject
 {
-    public byte Type { get; set; }
+    public uint Type { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
     public float Z { get; set; }
@@ -300,7 +300,7 @@ public class SkillObjectUnk8 : SkillObject
 
     public override void Read(PacketStream stream)
     {
-        Type = stream.ReadByte();
+        Type = stream.ReadUInt32();
         X = Helpers.ConvertLongX(stream.ReadInt64());
         Y = Helpers.ConvertLongX(stream.ReadInt64());
         Z = stream.ReadSingle();
@@ -483,11 +483,11 @@ public class SkillObjectUnk15 : SkillObject
 
 public class SkillObjectUnk16 : SkillObject
 {
-    public byte Package { get; set; }
+    public bool Package { get; set; }
 
     public override void Read(PacketStream stream)
     {
-        Package = stream.ReadByte();
+        Package = stream.ReadBoolean();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -502,11 +502,11 @@ public class SkillObjectUnk16 : SkillObject
 
 public class SkillObjectUnk17 : SkillObject
 {
-    public byte ByProc { get; set; }
+    public bool ByProc { get; set; }
 
     public override void Read(PacketStream stream)
     {
-        ByProc = stream.ReadByte();
+        ByProc = stream.ReadBoolean();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -541,12 +541,12 @@ public class SkillObjectUnk18 : SkillObject
 public class SkillObjectUnk19 : SkillObject
 {
     public bool AutoUseAAPoint { get; set; }
-    public int SmeltingDescId { get; set; }
+    public uint SmeltingDescId { get; set; }
 
     public override void Read(PacketStream stream)
     {
         AutoUseAAPoint = stream.ReadBoolean();
-        SmeltingDescId = stream.ReadInt32();
+        SmeltingDescId = stream.ReadUInt32();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -561,16 +561,19 @@ public class SkillObjectUnk19 : SkillObject
 }
 public class SkillObjectUnk20 : SkillObject
 {
+    public uint CraftType { get; set; }
     public int CraftCount { get; set; }
 
     public override void Read(PacketStream stream)
     {
+        CraftType = stream.ReadUInt32();
         CraftCount = stream.ReadInt32();
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
+        stream.Write(CraftType);
         stream.Write(CraftCount);
         return stream;
     }
@@ -578,11 +581,13 @@ public class SkillObjectUnk20 : SkillObject
 public class SkillObjectUnk21 : SkillObject
 {
     public byte EquipSlot { get; set; }
+    public uint Type { get; set; }
     public bool AutoUseAAPoint { get; set; }
 
     public override void Read(PacketStream stream)
     {
         EquipSlot = stream.ReadByte();
+        Type = stream.ReadUInt32();
         AutoUseAAPoint = stream.ReadBoolean();
     }
 
@@ -590,6 +595,7 @@ public class SkillObjectUnk21 : SkillObject
     {
         base.Write(stream);
         stream.Write(EquipSlot);
+        stream.Write(Type);
         stream.Write(AutoUseAAPoint);
         return stream;
     }
@@ -597,16 +603,19 @@ public class SkillObjectUnk21 : SkillObject
 public class SkillObjectUnk22 : SkillObject
 {
     public byte EquipSlot { get; set; }
+    public sbyte Level { get; set; }
 
     public override void Read(PacketStream stream)
     {
         EquipSlot = stream.ReadByte();
+        Level = stream.ReadSByte();
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
         stream.Write(EquipSlot);
+        stream.Write(Level);
         return stream;
     }
 }
@@ -644,13 +653,17 @@ public class SkillObjectUnk24 : SkillObject
 }
 public class SkillObjectUnk25 : SkillObject
 {
+    public uint MappingId { get; set; }
+    
     public override void Read(PacketStream stream)
     {
+        MappingId = stream.ReadUInt32();
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
+        stream.Write(MappingId);
         return stream;
     }
 }

@@ -95,35 +95,22 @@ CREATE TABLE `attendances`  (
   PRIMARY KEY (`id`, `owner`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = Dynamic;
 
--- ----------------------------
+-- ----------------------------------
 -- Table structure for auction_house
--- ----------------------------
+-- ----------------------------------
 DROP TABLE IF EXISTS `auction_house`;
 CREATE TABLE `auction_house`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `duration` tinyint NOT NULL,
-  `item_id` int NOT NULL,
-  `object_id` bigint NOT NULL,
-  `grade` tinyint(1) NOT NULL,
-  `flags` tinyint(1) NOT NULL,
-  `stack_size` int NOT NULL,
-  `detail_type` tinyint(1) NOT NULL,
-  `details` blob NULL,
-  `creation_time` datetime NOT NULL,
+  `item_id` bigint NOT NULL,
   `end_time` datetime NOT NULL,
-  `lifespan_mins` int NOT NULL,
-  `made_unit_id` int NOT NULL,
   `world_id` tinyint NOT NULL,
-  `unsecure_date_time` datetime NOT NULL,
-  `unpack_date_time` datetime NOT NULL,
-  `charge_use_skill_time` datetime NOT NULL,
-  `world_id_2` tinyint NOT NULL,
   `client_id` int NOT NULL,
   `client_name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
   `start_money` int NOT NULL,
   `direct_money` int NOT NULL,
   `charge_percent` int NOT NULL,
-  `bid_world_id` tinyint(1) NOT NULL,
+  `bid_world_id` int NOT NULL,
   `bidder_id` int NOT NULL,
   `bidder_name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
   `bid_money` int NOT NULL,
@@ -132,6 +119,22 @@ CREATE TABLE `auction_house`  (
   `max_stack` int NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Listed AH Items' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Table structure for auction_solds_data
+-- ----------------------------
+DROP TABLE IF EXISTS `auction_solds_data`;
+CREATE TABLE auction_solds_data (
+    item_id INT UNSIGNED NOT NULL,
+    item_grade TINYINT NOT NULL,
+    date datetime NOT NULL,
+    min_copper BIGINT NOT NULL,
+    max_copper BIGINT NOT NULL,
+    avg_copper BIGINT NOT NULL,
+    volume INT NOT NULL,
+    weekly_avg_copper BIGINT NOT NULL,
+    PRIMARY KEY (item_id, item_grade, date)
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for audit_ics_sales
@@ -735,8 +738,6 @@ CREATE TABLE `uccs`  (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'User Created Content (crests)' ROW_FORMAT = Dynamic;
 
-SET FOREIGN_KEY_CHECKS = 1;
-
 -- ----------------------------
 -- Table structure for divine_clock
 -- ----------------------------
@@ -749,3 +750,5 @@ CREATE TABLE `divine_clock`  (
   `cumulated` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Time that has been passed already',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;

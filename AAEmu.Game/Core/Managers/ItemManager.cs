@@ -1891,6 +1891,7 @@ public class ItemManager : Singleton<ItemManager>
             SlotType.Equipment => "EquipmentContainer",
             SlotType.PetRideEquipment => "MateEquipmentContainer",
             SlotType.SlaveEquipment => "SlaveEquipmentContainer",
+            SlotType.Auction => "AuctionContainer",
             _ => "ItemContainer"
         };
 

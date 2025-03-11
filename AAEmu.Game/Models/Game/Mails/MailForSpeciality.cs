@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -108,7 +109,7 @@ public class MailForSpeciality : BaseMail
         if (itemTemplate == null)
             return false;
 
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = TradeDeliveryName;
 
         Header.ReceiverId = _sender.Id;
@@ -182,7 +183,7 @@ public class MailForSpeciality : BaseMail
         if (itemTemplate == null)
             return false;
 
-        Header.SenderId = 0;
+        Header.SenderId = (uint)SystemMailSenderKind.None;
         Header.SenderName = TradeDeliveryName;
 
         Header.ReceiverId = _crafterId;

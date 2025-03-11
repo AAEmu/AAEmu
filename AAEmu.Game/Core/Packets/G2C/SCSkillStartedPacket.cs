@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
@@ -13,6 +13,7 @@ public enum ExtraDataFlags
     HasByte = 1,
     HasUShort = 2,
     HasUInt = 4,
+    HasBool = 8
 }
 
 public class SCSkillStartedPacket : GamePacket
@@ -33,6 +34,7 @@ public class SCSkillStartedPacket : GamePacket
     private byte ExtraDataByte { get; set; }
     private ushort ExtraDataUShort { get; set; }
     private uint ExtraDataUInt { get; set; }
+    private bool ExtraDataBool { get; set; }
 
     public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject)
         : base(SCOffsets.SCSkillStartedPacket, 5)
@@ -47,23 +49,32 @@ public class SCSkillStartedPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);
-        stream.Write(_tl);
+        stream.Write(_id); // st
+        stream.Write(_tl); // sid
         stream.Write(_caster);
         stream.Write(_target);
         stream.Write(_skillObject);
 
         stream.Write(RealCastTimeDiv10);
         stream.Write(BaseCastTimeDiv10);
-        stream.Write(CastSynergy); // castSynergy // (short)0
+
+        stream.Write(CastSynergy); // castSynergy (bool) // (short)0
+
+        WriteExtraData(stream);
+        return stream;
+    }
+
+    private void WriteExtraData(PacketStream stream)
+    {
         stream.Write((byte)ExtraDataFlag); // f
         if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasByte))
-            stream.Write(ExtraDataByte);
+            stream.Write(ExtraDataByte);   // c
         if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUShort))
-            stream.Write(ExtraDataUShort);
+            stream.Write(ExtraDataUShort); // e
         if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUInt))
-            stream.Write(ExtraDataUInt);
-        return stream;
+            stream.Write(ExtraDataUInt);   // p
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasBool))
+            stream.Write(ExtraDataBool);   // d
     }
 
     public SCSkillStartedPacket SetSkillResult(SkillResult skillResult)
@@ -95,6 +106,17 @@ public class SCSkillStartedPacket : GamePacket
         else
             ExtraDataFlag &= ~ExtraDataFlags.HasUInt;
         ExtraDataUInt = val;
+
+        return this;
+    }
+    
+    public SCSkillStartedPacket SetResultBool(bool val)
+    {
+        if (val != false)
+            ExtraDataFlag |= ExtraDataFlags.HasBool;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasBool;
+        ExtraDataBool = val;
 
         return this;
     }

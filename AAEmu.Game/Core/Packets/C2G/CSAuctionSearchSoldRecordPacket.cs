@@ -16,7 +16,7 @@ public class CSAuctionSearchSoldRecordPacket : GamePacket
         var itemTemplateId = stream.ReadUInt32();
         var itemGrade = stream.ReadByte();
 
-        var solds = AuctionManager.Instance.GetSoldAuctionLots(itemTemplateId, itemGrade);
+        var solds = AuctionManager.Instance.GetSalesForLast14Days(itemTemplateId, itemGrade);
 
         Connection.ActiveChar.SendPacket(new SCAuctionSoldRecordPacket(itemTemplateId, itemGrade, solds));
     }

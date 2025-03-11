@@ -8,12 +8,12 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Mails.Static;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks.Mails;
 
@@ -533,7 +533,7 @@ public class MailManager : Singleton<MailManager>
             if ((mail == null) || (mail.Body.Attachments.Count >= 10))
             {
                 mail = new MailPlayerToPlayer(character, character.Name);
-                mail.Header.SenderId = 0;
+                mail.Header.SenderId = (uint)SystemMailSenderKind.None;
                 mail.Header.SenderName = ".questReward";
                 mail.MailType = MailType.SysExpress;
                 // NOTE: On newer versions, this uses the .title / .body format, but this doesn't seem to work on 1.2

@@ -6,6 +6,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -61,6 +62,11 @@ public class SCSkillFiredPacket : GamePacket
     private static Queue<int> NpcFireAnimQueue;
 
     public short ComputedDelay { get; set; }
+    private ExtraDataFlags ExtraDataFlag { get; set; }
+    private byte ExtraDataByte { get; set; }
+    private ushort ExtraDataUShort { get; set; }
+    private uint ExtraDataUInt { get; set; }
+    private bool ExtraDataBool { get; set; }
 
     public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject, BaseUnit baseUnit)
         : base(SCOffsets.SCSkillFiredPacket, 5)
@@ -118,6 +124,52 @@ public class SCSkillFiredPacket : GamePacket
         {
             Logger.Info($"SkillFired: Id={_id}:{_fireAnimId}, caster={baseUnit.ObjId}, target={_target.ObjId}");
         }
+    }
+
+    public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject)
+        : base(SCOffsets.SCSkillFiredPacket, 5)
+    {
+        _id = id;
+        _tl = tl;
+        _caster = caster;
+        _target = target;
+        _skill = skill;
+        _skillObject = skillObject;
+    }
+
+    public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject, short effectDelay = 37, int fireAnimId = 2, bool dist = true)
+        : base(SCOffsets.SCSkillFiredPacket, 5)
+    {
+        _id = id;
+        _tl = tl;
+        _caster = caster;
+        _target = target;
+        _skill = skill;
+        _skillObject = skillObject;
+        _effectDelay = effectDelay;
+        _fireAnimId = fireAnimId;
+        _dist = dist;
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        //stream.Write(_id);      // st - skill type  removed in 3.0.3.0
+        stream.Write(_tl);       // sid - skill id
+
+        stream.Write(_caster);      // SkillCaster
+        stream.Write(_target);      // SkillCastTarget
+        stream.Write(_skillObject); // SkillObject
+
+        if (_character is not null)
+        {
+            WriteCharacterSkillData(stream);
+        }
+        else
+        {
+            WriteNpcSkillData(stream);
+        }
+
+        return stream;
     }
 
     private int GetNextAnimationId()
@@ -192,52 +244,6 @@ public class SCSkillFiredPacket : GamePacket
         }
     }
 
-    public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject)
-        : base(SCOffsets.SCSkillFiredPacket, 5)
-    {
-        _id = id;
-        _tl = tl;
-        _caster = caster;
-        _target = target;
-        _skill = skill;
-        _skillObject = skillObject;
-    }
-
-    public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject, short effectDelay = 37, int fireAnimId = 2, bool dist = true)
-        : base(SCOffsets.SCSkillFiredPacket, 5)
-    {
-        _id = id;
-        _tl = tl;
-        _caster = caster;
-        _target = target;
-        _skill = skill;
-        _skillObject = skillObject;
-        _effectDelay = effectDelay;
-        _fireAnimId = fireAnimId;
-        _dist = dist;
-    }
-
-    public override PacketStream Write(PacketStream stream)
-    {
-        //stream.Write(_id);      // st - skill type  removed in 3.0.3.0
-        stream.Write(_tl);       // sid - skill id
-
-        stream.Write(_caster);      // SkillCaster
-        stream.Write(_target);      // SkillCastTarget
-        stream.Write(_skillObject); // SkillObject
-
-        if (_character is not null)
-        {
-            WriteCharacterSkillData(stream);
-        }
-        else
-        {
-            WriteNpcSkillData(stream);
-        }
-
-        return stream;
-    }
-
     private void WriteCharacterSkillData(PacketStream stream)
     {
         if (_skill.Template.Id == 2)
@@ -248,8 +254,14 @@ public class SCSkillFiredPacket : GamePacket
                 // автоатака
                 stream.Write((short)0);
                 stream.Write((short)0);
-                stream.Write((byte)1);  // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
-                stream.Write((byte)15); // c
+
+                //stream.Write((byte)1);  // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+                //stream.Write((byte)15); // c
+
+                ExtraDataFlag = ExtraDataFlags.HasByte;
+                SetSkillResult(SkillResult.TooFarRange); // ExtraDataByte = 15;
+                WriteExtraData(stream);
+
                 stream.WritePisc(_id, 0); // added skill type here in 3.0.3.0
                 stream.Write((byte)0); // flag
             }
@@ -258,7 +270,10 @@ public class SCSkillFiredPacket : GamePacket
                 // отдельные удары
                 stream.Write((short)FireAnimData[_fireAnimId]); // выставляем время для ближнего боя в зависимости от анимации
                 stream.Write((short)0);
-                stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+
+                //stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+                WriteExtraData(stream);
+
                 stream.WritePisc(_id, _fireAnimId); // added skill type here in 3.0.3.0
                 stream.Write((byte)0); // flag
             }
@@ -268,7 +283,10 @@ public class SCSkillFiredPacket : GamePacket
             // дальняя атака
             stream.Write((short)(ComputedDelay / 10 + 10)); // TODO  +10 It became visible flying arrows 
             stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
-            stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+
+            //stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+            WriteExtraData(stream);
+
             stream.WritePisc(_id, _skill.Template.FireAnim?.Id ?? 0); // added skill type here in 3.0.3.0
             stream.Write((byte)0); // flag
         }
@@ -281,7 +299,10 @@ public class SCSkillFiredPacket : GamePacket
             // ближняя атака
             stream.Write((short)NpcFireAnimData[_fireAnimId]); // выставляем время для ближнего боя в зависимости от анимации
             stream.Write((short)0);
-            stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+
+            //stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+            WriteExtraData(stream);
+
             stream.WritePisc(_id, _fireAnimId); // added skill type here in 3.0.3.0
             stream.Write((byte)0); // flag
         }
@@ -290,9 +311,74 @@ public class SCSkillFiredPacket : GamePacket
             // дальняя атака
             stream.Write((short)(ComputedDelay / 10 + 10)); // TODO  +10 It became visible flying arrows 
             stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
-            stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+
+            //stream.Write((byte)0); // f - When changed to 1 when firing an auto-casting skill, will make the little blue arrow.
+            WriteExtraData(stream);
+
             stream.WritePisc(_id, _skill.Template.FireAnim?.Id ?? 0); // added skill type here in 3.0.3.0
             stream.Write((byte)0); // flag
         }
+    }
+
+    private void WriteExtraData(PacketStream stream)
+    {
+        stream.Write((byte)ExtraDataFlag); // f
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasByte))
+            stream.Write(ExtraDataByte);   // c
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUShort))
+            stream.Write(ExtraDataUShort); // e
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUInt))
+            stream.Write(ExtraDataUInt);   // p
+        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasBool))
+            stream.Write(ExtraDataBool);   // d
+    }
+
+    public SCSkillFiredPacket SetSkillResult(SkillResult skillResult)
+    {
+        if (skillResult != SkillResult.Success)
+            ExtraDataFlag |= ExtraDataFlags.HasByte;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasByte;
+        ExtraDataByte = (byte)skillResult;
+
+        return this;
+    }
+
+    public SCSkillFiredPacket SetResultUShort(ushort val)
+    {
+        if (val != 0)
+            ExtraDataFlag |= ExtraDataFlags.HasUShort;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasUShort;
+        ExtraDataUShort = val;
+
+        return this;
+    }
+
+    public SCSkillFiredPacket SetResultUInt(uint val)
+    {
+        if (val != 0)
+            ExtraDataFlag |= ExtraDataFlags.HasUInt;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasUInt;
+        ExtraDataUInt = val;
+
+        return this;
+    }
+
+    public SCSkillFiredPacket SetResultBool(bool val)
+    {
+        if (val != false)
+            ExtraDataFlag |= ExtraDataFlags.HasBool;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasBool;
+        ExtraDataBool = val;
+
+        return this;
+    }
+
+    public override string Verbose()
+    {
+        return $" - Id {_id}, TlId {_tl}, Caster {_caster.ObjId}, Target {_target.ObjId}, Skill {_skill.Template.Id}";
     }
 }

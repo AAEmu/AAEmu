@@ -52,7 +52,7 @@ public class CSStartSkillPacket : GamePacket
         skillCastTarget.Read(stream);
 
         var flag = stream.ReadByte();
-        var flagType = flag & 15;
+        var flagType = flag & 63; // in 1.2 = 15, in 3+ = 63
         var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
         if (flagType > 0) skillObject.Read(stream);
 

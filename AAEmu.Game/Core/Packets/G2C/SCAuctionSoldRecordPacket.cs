@@ -8,7 +8,6 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 class SCAuctionSoldRecordPacket : GamePacket
 {
-    private readonly AuctionItem _auctionItem;
     private readonly uint _itemTemplateId;
     private readonly byte _itemGrade;
     private readonly List<AuctionSold> _solds;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -32,6 +33,7 @@ public class Inventory
     public ItemContainer Warehouse { get; private set; }
     public ItemContainer MailAttachments { get; private set; }
     public ItemContainer SystemContainer { get; private set; }
+    public ItemContainer AuctionAttachments { get; private set; }
     public ulong PreviousBackPackItemId { get; set; } // used to re-equip glider when putting backpacks down
 
     public Inventory(ICharacter owner)
@@ -82,6 +84,9 @@ public class Inventory
                     break;
                 case SlotType.MailAttachment:
                     MailAttachments = newContainer;
+                    break;
+                case SlotType.Auction:
+                    AuctionAttachments = newContainer;
                     break;
                 case SlotType.Money:
                     SystemContainer = newContainer;
@@ -984,8 +989,7 @@ public class Inventory
             return false;
         }
 
-        return SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
-            toItemId, toSlotType, toSlot);
+        return SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot);
     }
 
     public bool SplitCofferItems(int count, ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
@@ -1014,8 +1018,7 @@ public class Inventory
             return false;
         }
 
-        return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
-            toItemId, toSlotType, toSlot, count);
+        return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
     }
 
     #region CharacterInfo_3EB0

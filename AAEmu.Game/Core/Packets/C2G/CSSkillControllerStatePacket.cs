@@ -22,25 +22,4 @@ public class CSSkillControllerStatePacket : GamePacket
 
         Logger.Warn("SkillControllerState");
     }
-
-    // TODO 
-    /*
-     *
-          if ( a2->Reader->field_1C() )
-          {
-            a2->Reader->ReadByte("scType", &v7 + 3, 0);
-            v2[1] = HIBYTE(v7);
-          }
-          else
-          {
-            HIBYTE(v7) = *(v2 + 4);
-            a2->Reader->ReadByte("scType", &v7 + 3, 0);
-          }
-          if ( !v2[1] )
-          {
-            a2->Reader->ReadFloat("len", v2 + 2, 0);
-            a2->Reader->ReadBool("teared", (v2 + 3), 0);
-            a2->Reader->ReadBool("cutouted", v2 + 13, 0);
-          }
-     */
 }

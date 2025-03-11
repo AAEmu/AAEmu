@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Mails.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.UnitTests.Utils.Mocks;
 using Xunit;

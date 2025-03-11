@@ -16,7 +16,7 @@ public class SCSkillLearnedPacket : GamePacket
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_skill.Id);
-        stream.Write(_skill.Level);
+        //stream.Write(_skill.Level); // removed in 5.0.7.0
         return stream;
     }
 }

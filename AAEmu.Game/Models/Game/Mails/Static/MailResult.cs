@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Mails;
+﻿namespace AAEmu.Game.Models.Game.Mails.Static;
 
 // There are many repetitions with ErrorMessageType
 public enum MailResult : byte
