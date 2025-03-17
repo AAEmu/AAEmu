@@ -178,6 +178,7 @@ public abstract class GamePacket : PacketBase<GameConnection>
             }
             catch (Exception ex)
             {
+                EncryptionManager.needNewkey1 = true;
                 Logger.Error($"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}");
                 Logger.Fatal(ex);
                 throw;

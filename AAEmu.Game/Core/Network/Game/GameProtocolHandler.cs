@@ -26,6 +26,8 @@ public class GameProtocolHandler : BaseProtocolHandler
         _packets.TryAdd(4, new ConcurrentDictionary<uint, Type>()); // deflate
         _packets.TryAdd(5, new ConcurrentDictionary<uint, Type>()); // encrypt
         _packets.TryAdd(6, new ConcurrentDictionary<uint, Type>()); // encrypt
+        EncryptionManager.needNewkey1 = false;
+        EncryptionManager.needNewkey2 = false;
     }
 
     public override void OnConnect(ISession session)
@@ -119,6 +121,7 @@ public class GameProtocolHandler : BaseProtocolHandler
                     stream.Rollback();
                     connection.LastPacket = stream;
                     stream = null;
+                    EncryptionManager.needNewkey1 = true;
                     continue;
                 }
                 var packetLen = len + stream.Pos;
@@ -202,7 +205,11 @@ public class GameProtocolHandler : BaseProtocolHandler
     {
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
-            dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
-        Logger.Error("Unknown packet 0x{0:x2}({3}) from {1}:\n{2}", type, connection.Ip, dump, level);
+            dump.Append($"{stream.Buffer[i]:x2} ");
+        Logger.Error($"Unknown packet 0x{type:x2}({level}) from {connection.Ip}:\n{dump}");
+        if (type > 0x1ff)
+        {
+            EncryptionManager.needNewkey1 = true;
+        }
     }
 }
