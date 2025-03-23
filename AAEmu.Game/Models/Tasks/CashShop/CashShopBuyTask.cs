@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
@@ -252,7 +251,7 @@ public class CashShopBuyTask : Task
                 case CashShopCurrencyType.Loyalty:
                     if (beforeBuyAccountDetails.Loyalty < sku.Price)
                         Logger.Error($"Sale validation failed for {_buyer.Name}, {sku.Currency} x {sku.Price}");
-                    AccountManager.Instance.AddLoyalty(_buyer.AccountId, (int)(sku.Price * -1));
+                    AccountManager.Instance.AddLoyalty(_buyer.AccountId, (int)-sku.Price);
                     break;
                 case CashShopCurrencyType.Coins:
                     if (!_buyer.SubtractMoney(SlotType.Bag, (int)sku.Price, ItemTaskType.StoreBuy))
@@ -288,10 +287,12 @@ public class CashShopBuyTask : Task
             entriesSold++;
 
             Logger.Info($"ICSBuyGood {_buyer.Name} -> {_targetPlayer.Name} - {useName} x {sku.ItemCount}, SKU:{sku.Sku}");
-            if (!CashShopManager.Instance.LogSale(_buyer.AccountId, _buyer.Id, _targetPlayer.AccountId,
-                    _targetPlayer.Id, DateTime.UtcNow, shopItem.ShopId, sku.Sku, (sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price), sku.Currency, string.Empty))
-                Logger.Error(
-                    $"ICSBuyGood {_buyer.Name} -> {_targetPlayer.Name} - {useName} x {sku.ItemCount}, SKU:{sku.Sku}, save failed!");
+            if (!CashShopManager.Instance.LogSale(_buyer.AccountId, _buyer.Id, _targetPlayer.AccountId, _targetPlayer.Id, DateTime.UtcNow, shopItem.ShopId, sku.Sku,
+                    sku.DiscountPrice > 0
+                        ? sku.DiscountPrice
+                        : sku.Price,
+                    sku.Currency, string.Empty))
+                Logger.Error($"ICSBuyGood {_buyer.Name} -> {_targetPlayer.Name} - {useName} x {sku.ItemCount}, SKU:{sku.Sku}, save failed!");
         }
 
         if (entriesSold > 0)

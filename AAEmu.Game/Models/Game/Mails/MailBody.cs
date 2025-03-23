@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 

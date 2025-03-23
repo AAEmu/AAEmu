@@ -18,10 +18,10 @@ public class CSTakeAllAttachmentItemPacket : GamePacket
         if (Connection.ActiveChar.Mails.GetAttached(mailId, true, true, true))
         {
             Connection.ActiveChar.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
-            Connection.ActiveChar.Mails.DeleteMail(mailId, false);
             Connection.ActiveChar.Mails.SendUnreadMailCount();
+            return;
         }
-        else
-            Logger.Debug($"CSTakeAllAttachmentItemPacket - Failed for: {mailId} -> {Connection.ActiveChar.Name}");
+
+        Logger.Debug($"CSTakeAllAttachmentItemPacket - Failed for: {mailId} -> {Connection.ActiveChar.Name}");
     }
 }

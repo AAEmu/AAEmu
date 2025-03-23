@@ -28,18 +28,18 @@ public class CharacterMails
         UnreadMailCount.ResetReceived();
     }
 
-    public void SendMailList(byte mailBoxListKind, int startIdx, int sentCnt, bool isRecover, bool isTest)
+    public void SendMailList(byte mailBoxListKind, int startIdx = 0, int sentCnt = 0, bool isRecover = false, bool isTest = false)
     {
         SendMailIndex = 0;
 
         var mailList = MailManager.Instance.GetCurrentMailList(Self).Values.ToList();
         var total = mailList.Count;
 
-        SendMailList(mailBoxListKind, mailList[SendMailIndex].Header, total);
-
+        Self.SendPacket(new SCMailListPacket(true, total, mailList[SendMailIndex].Header, mailBoxListKind));
+        UnreadMailCount.UpdateSend(1);
         SendMailIndex++;
 
-        if (SendMailIndex < total - 1)
+        if (SendMailIndex < total)
         {
             return;
         }
@@ -55,7 +55,9 @@ public class CharacterMails
 
         if (SendMailIndex < total)
         {
-            SendMailList(mailBoxListKind, mailList[SendMailIndex].Header, total);
+            //SendMailList(mailBoxListKind, mailList[SendMailIndex].Header, total);
+            Self.SendPacket(new SCMailListPacket(true, total, mailList[SendMailIndex].Header, mailBoxListKind));
+            UnreadMailCount.UpdateSend(1);
             SendMailIndex++;
             return;
         }
@@ -90,9 +92,8 @@ public class CharacterMails
                 mail.Header.Status = MailStatus.Read;
                 mail.IsDelivered = true;
             }
+            Self.SendPacket(new SCMailReceiverOpenedPacket(mail.Id, mail.OpenDate));
             Self.SendPacket(new SCMailBodyPacket(false, isSent, mail.Body, true, UnreadMailCount));
-            //Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, mail.Header.Status));
-            //SendUnreadMailCount();
         }
     }
 
@@ -150,23 +151,23 @@ public class CharacterMails
         // Send it
         if (mail.Send())
         {
+            UnreadMailCount.UpdateSend(1);
             Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray(), UnreadMailCount));
             // Take the fee
             Self.SubtractMoney(SlotType.Bag, mailFee + money0);
             return MailResult.Success;
         }
-        else
-        {
-            return MailResult.MailErrorOccurred;
-        }
+
+        return MailResult.MailErrorOccurred;
     }
 
     public bool GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected, ulong specifiedItemId = 0)
     {
         var res = true;
+        var itemSlotList = new List<ItemIdAndLocation>();
+
         if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
         {
-            var tookMoney = false;
             if (thisMail.MailType == MailType.AucOffSuccess && thisMail.Body.CopperCoins > 0 && takeMoney)
             {
                 if (Self.LaborPower < 1)
@@ -179,21 +180,24 @@ public class CharacterMails
                     Self.ChangeLabor(-1, (int)ActabilityType.Commerce);
                 }
             }
+
+            // Клиент шлет пакет CSTakeAttachmentSequentiallyPacket по количеству прикрепленных предметов.
+            // Сначала для получения денег, затем получение предметов.
+
             if (thisMail.Body.CopperCoins > 0 && takeMoney)
             {
+                // Money
                 Self.ChangeMoney(SlotType.Bag, thisMail.Body.CopperCoins);
                 thisMail.Body.CopperCoins = 0;
                 thisMail.Header.Attachments -= 1;
-                tookMoney = true;
+
+                // Send attachments taken packets (if needed)
+                Self.SendPacket(new SCMailAttachmentTakenPacket(mailId, true, false, takeAllSelected, new List<ItemIdAndLocation>()));
             }
-
-            if (thisMail.Body.CopperCoins == 0 && takeMoney)
-                takeMoney = false;
-
-            var itemSlotList = new List<ItemIdAndLocation>();
-            // Check if items need to be taken, and add them to a list
-            if (takeItems)
+            else if (takeItems && thisMail.Header.Attachments > 0)
             {
+                // Items
+                // Check if items need to be taken, and add them to a list
                 var toRemove = new List<Item>();
                 foreach (var itemAttachment in thisMail.Body.Attachments)
                 {
@@ -201,6 +205,21 @@ public class CharacterMails
                     if (specifiedItemId > 0 && itemAttachment.Id != specifiedItemId)
                     {
                         continue;
+                    }
+
+                    // добавим проверку на TemplateItem = 500 (Money)
+                    if (itemAttachment.TemplateId == 500)
+                    {
+                        // Money
+                        Self.ChangeMoney(SlotType.Bag, itemAttachment.Count);
+                        var iial = new ItemIdAndLocation();
+                        iial.Id = itemAttachment.Id;
+                        iial.SlotType = 0;
+                        iial.Slot = 0;
+                        itemSlotList.Add(iial);
+                        thisMail.Header.Attachments -= 1;
+                        toRemove.Add(itemAttachment);
+                        break;
                     }
 
                     // Sanity-check
@@ -225,48 +244,36 @@ public class CharacterMails
 
                             var iial = new ItemIdAndLocation();
                             iial.Id = itemAttachment.Id;
-                            iial.SlotType = itemAttachment.SlotType;
-                            iial.Slot = (byte)itemAttachment.Slot;
+                            iial.SlotType = 0; //itemAttachment.SlotType;
+                            iial.Slot = 0;     //(byte)itemAttachment.Slot;
 
                             // Move item to player inventory
-                            if (Self.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment, stackItem != null ? stackItem.Slot : -1))
+                            if (Self.Inventory.Bag.AddOrMoveExistingItem2(ItemTaskType.Mail, itemAttachment, stackItem != null ? stackItem.Slot : -1))
                             {
                                 itemSlotList.Add(iial);
                                 thisMail.Header.Attachments -= 1;
                                 toRemove.Add(itemAttachment);
+                                break; // обрабатываем каждый предмет по отдельности
                             }
-                            else
-                            {
-                                // Should technically never fail because of previous free slot check
-                                throw new Exception("GetAttachmentFailedAddToBag");
-                            }
+
+                            // Should technically never fail because of previous free slot check
+                            throw new Exception("GetAttachmentFailedAddToBag");
                         }
-                        else
-                        {
-                            // Bag Full
-                            Self.SendErrorMessage(ErrorMessageType.BagFull);
-                            res = false;
-                        }
+
+                        // Bag Full
+                        Self.SendErrorMessage(ErrorMessageType.BagFull);
+                        res = false;
                     }
                 }
+
                 // Removed those marked to be taken
                 foreach (var ia in toRemove)
                 {
                     thisMail.Body.Attachments.Remove(ia);
                 }
-            }
-            // Mark taken items
 
-            // Send attachments taken packets (if needed)
-            // Money
-            if (tookMoney)
-            {
-                Self.SendPacket(new SCMailAttachmentTakenPacket(mailId, true, false, takeAllSelected, new List<ItemIdAndLocation>()));
-            }
-
-            // Items
-            if (itemSlotList.Count > 0)
-            {
+                // Mark taken items
+                // Send attachments taken packets (if needed)
                 // Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, itemSlotList));
                 /*
                  * ZeromusXYZ:
@@ -278,23 +285,20 @@ public class CharacterMails
                 {
                     var dummyItemSlotList = new List<ItemIdAndLocation>();
                     dummyItemSlotList.Add(iSlot);
-                    Self.SendPacket(new SCMailAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, dummyItemSlotList));
+                    Self.SendPacket(new SCMailAttachmentTakenPacket(mailId, false, false, takeAllSelected, dummyItemSlotList));
                 }
+
+                // Mark mail as read in case we took at least one item from it
+                // TODO: Make sure attachment settings and mail info is sent back correctly 
+                // taking all attachments sometimes doesn't enable the delete button when getting attachments using "GetAllSelected"
+                // TODO: if source player is online, update their mail info (sent tab)
             }
 
-            // Mark mail as read in case we took at least one item from it
-            if (thisMail.Header.Status == MailStatus.Unread && (tookMoney || itemSlotList.Count > 0))
+            if (thisMail.Header.Status == MailStatus.Unpaid && thisMail.MailType == MailType.Charged)
             {
-                thisMail.Header.Status = MailStatus.Read;
-                UnreadMailCount.UpdateReceived(thisMail.MailType, -1);
-                Self.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
-                SendUnreadMailCount();
+                UnreadMailCount.UpdateUnreadReceived(thisMail.MailType, -1);
+                DeleteMail(thisMail.Id, false);
             }
-
-            // TODO: Make sure attachment settings and mail info is sent back correctly 
-            // taking all attachments sometimes doesn't enable the delete button when getting attachments using "GetAllSelected"
-
-            // TODO: if source player is online, update their mail info (sent tab)
         }
 
         return res;
@@ -304,22 +308,37 @@ public class CharacterMails
     {
         if (MailManager.Instance._allPlayerMails.ContainsKey(id) && !isSent)
         {
-            if (MailManager.Instance._allPlayerMails[id].Header.Attachments <= 0)
+            if (MailManager.Instance._allPlayerMails[id].Header.Attachments > 0)
             {
-                if (MailManager.Instance._allPlayerMails[id].Header.Status != MailStatus.Read)
-                {
-                    UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
-                    UnreadMailCount.UpdateUnreadReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
-                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, UnreadMailCount));
-                }
-                else
-                {
-                    UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
-                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, UnreadMailCount));
-                }
-
-                MailManager.Instance.DeleteMail(id);
+                return;
             }
+
+            if (MailManager.Instance._allPlayerMails[id].Header.Status == MailStatus.Unread)
+            {
+                UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
+                UnreadMailCount.UpdateUnreadReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
+                Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, UnreadMailCount));
+            }
+            else
+            {
+                UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
+                Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, UnreadMailCount));
+            }
+
+            MailManager.Instance.DeleteMail(id);
+            UnreadMailCount.UpdateSend(-1);
+        }
+        else
+        {
+            if (MailManager.Instance._allPlayerMails[id].Header.Attachments > 0)
+            {
+                return;
+            }
+
+            UnreadMailCount.UpdateSend(-1);
+            Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, UnreadMailCount));
+
+            MailManager.Instance.DeleteMail(id);
         }
     }
 

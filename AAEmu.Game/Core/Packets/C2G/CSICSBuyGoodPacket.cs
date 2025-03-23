@@ -6,7 +6,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.Tasks.CashShop;
 
@@ -20,7 +19,7 @@ public class CSICSBuyGoodPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        var buyer = Connection.ActiveChar;
+        //var buyer = Connection.ActiveChar;
         var buyList = new List<IcsSku>();
         var thisChar = Connection.ActiveChar;
         byte buyMode = 1; // No idea what this means
@@ -53,8 +52,7 @@ public class CSICSBuyGoodPacket : GamePacket
 
             if (sku == null)
             {
-                Logger.Warn(
-                    $"{Connection.ActiveChar.Name} is trying to shop from ShopItem: {shopItem.ShopId}, but with invalid index: {detailIndex}");
+                Logger.Warn($"{Connection.ActiveChar.Name} is trying to shop from ShopItem: {shopItem.ShopId}, but with invalid index: {detailIndex}");
                 continue;
             }
 

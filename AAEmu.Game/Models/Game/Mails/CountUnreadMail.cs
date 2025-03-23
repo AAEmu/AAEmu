@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -53,7 +52,10 @@ public class CountUnreadMail : PacketMarshaler
         {
             TotalReceived += amount;
         }
+
+        Logger.Debug($"UpdateReceived: TotalCommercialReceived={TotalCommercialReceived}, TotalMiaReceived={TotalMiaReceived}, TotalReceived={TotalReceived}");
     }
+
     public void UpdateUnreadReceived(MailType mailType, int amount)
     {
         if (mailType is MailType.Charged or MailType.Promotion)
@@ -69,6 +71,13 @@ public class CountUnreadMail : PacketMarshaler
         {
             UnreadReceived += amount;
         }
+        Logger.Debug($"UpdateUnreadReceived: UnreadCommercialReceived={UnreadCommercialReceived}, UnreadMiaReceived={UnreadMiaReceived}, UnreadReceived={UnreadReceived}");
     }
 
+    public void UpdateSend(int amount)
+    {
+        TotalSent += amount;
+
+        Logger.Debug($"UpdateSend: TotalSent={TotalSent}");
+    }
 }

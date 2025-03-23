@@ -143,6 +143,11 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var doodad = slave.GetDoodadByItemTemplateId(doodadId);
             //doodad?.DoDespawn(doodad);
+            if (doodad is null)
+            {
+                return;
+            }
+
             doodad.IsPersistent = false;
             doodad.Despawn = DateTime.UtcNow;
             SpawnManager.Instance.AddDespawn(doodad);
@@ -152,6 +157,11 @@ namespace AAEmu.Game.Core.Packets.C2G
         private static void DespawnSlave(Slave slave, uint slaveId)
         {
             var attachedSlave = slave.GetSlaveByItemTemplateId(slaveId);
+            if (attachedSlave is null)
+            {
+                return;
+            }
+
             WorldManager.Instance.RemoveObject(attachedSlave);
             attachedSlave.Despawn = DateTime.UtcNow;
             SpawnManager.Instance.AddDespawn(attachedSlave);
