@@ -33,6 +33,8 @@ public class GainLootPackItemEffect : EffectTemplate
             return;
 
         // Get Pack data
+        Logger.Debug($"GainLootPackItemEffect: LootPackId={LootPackId}");
+
         var pack = LootGameData.Instance.GetPack(LootPackId);
         if (pack == null || pack.Loots.Count <= 0)
             return;

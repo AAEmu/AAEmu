@@ -33,14 +33,14 @@ public enum ItemTaskType : byte
     MateCreate,                     // mate-create
     CraftActSaved,                  // craft-act-saved
     CraftPaySaved,                  // craft-pay-saved
-    CraftPickupProduct = 27,             // craft-pickup-product
+    CraftPickupProduct = 27,        // craft-pickup-product
     CraftCancel,                    // craft-cancel
     MakeCraftOrderSheet,            // make-craft-order-sheet
     RestoreCraftOrderSsheet,        // restore-craft-order-sheet
     PostCcraftOrder,                // post-craft-order
-    HouseCreation = 32,                  // 303-house-creation
+    HouseCreation = 32,             // 303-house-creation
     HouseDeposit,                   // house-deposit
-    HouseBuilding = 34,                  // house-building
+    HouseBuilding = 34,             // house-building
     PickupBloodstain,               // pickup-bloodstain
     AutoLootDoodadItem,             // 316-autoloot-doodad-item
     QuestStart = 37,                // 401-quest-start
@@ -53,8 +53,8 @@ public enum ItemTaskType : byte
     SkillEffectGainItemWithPos,     // skill-effect-gain-item-with-pos
     SkillEffectSiegeTicket,         // skill-effect-siege-ticket
     SkillEffectExpToItem,           // skill-effect-exp-to-item
-    Auction = 48,                        // auction
-    Mail = 49,                           // mail
+    Auction = 48,                   // auction
+    Mail = 49,                      // mail
     Trade,                          // trade
     EnchantMagical,                 // enchant-magical
     EnchantPhysical,                // enchant-physical
@@ -63,7 +63,7 @@ public enum ItemTaskType : byte
     StoreSell = 55,                 // 315-store-sell
     StoreBuy = 56,                  // 313-314-store-buy
     TodReward,                      // tod-reward
-    CreateOriginUcc,           // create-origin-ucc
+    CreateOriginUcc,                // create-origin-ucc
     MakeUccDdye,                    // make-ucc-dye
     // GainItemWithUcc = 56
     ImprintUcc = 60,                // imprint-ucc
@@ -81,7 +81,7 @@ public enum ItemTaskType : byte
     DemoDressOn,                    // demo-dress-on
     DemoClearBag,                   // demo-clear-bag
     DemoFillBag,                    // demo-fill-bag
-    SlaveDeath = 75,                     // slave-death
+    SlaveDeath = 75,                // slave-death
     ExpeditionCreation,             // expedition-creation
     DeclareExpeditionWar,           // declare-expedition-war
     RecruitmentDecMoney,            // recruitment-dec-money
@@ -135,10 +135,10 @@ public enum ItemTaskType : byte
     ItemTaskThistimeUnpack,         // item-task-thistime-unpack
     BuyPremiumService,              // buy-premium-service-ingameshop
     BuyAaPoint,                     // buy-aa-point-ingameshop
-    TakeScheduleItem,         // take-schedule-item
+    TakeScheduleItem,               // take-schedule-item
     ScaleCap,                       // scale-cap
     HousePayTax,                    // house-pay-tax
-    BuyItemIngameshop,              // buy-item-ingameshop
+    BuyItemIngameshop = 134,        // buy-item-ingameshop
     ExchangeCashFromItem,           // exchange-cash-from-item
     RepairSlaveEquipment,           // repair-slave-equipment
     RechargeSkill,                  // recharge-skill
@@ -148,7 +148,7 @@ public enum ItemTaskType : byte
     ItemTaskResurrectionInPlace,    // item-task-resurrection-in-place
     TodayAssignmentSupplyItems,     // today-assignment-supply-items
     ItemTaskBattleCoin,             // item-task-battle-coin
-    GiveRewardItem,                 // give-reward-item
+    GiveRewardItem = 144,           // give-reward-item
     ExchangeAapointFromCash,        // exchange-aapoint-from-cash
     SpendItemFromChat,              // spend-item-from-chat
     ItemTaskRemoveHeroReward,       // = 143,// item-task-remove-hero-reward

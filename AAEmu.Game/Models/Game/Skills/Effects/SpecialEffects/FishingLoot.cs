@@ -40,6 +40,8 @@ public class FishingLoot : SpecialEffectAction
 
         var lootTableId = target.Transform.World.Position.Z > 101 ? zoneGroup.FishingLandLootPackId : zoneGroup.FishingSeaLootPackId;
 
+        Logger.Debug($"FishingLoot: lootTableId={lootTableId}");
+
         var pack = LootGameData.Instance.GetPack(lootTableId);
 
         if (pack == null || pack.Loots.Count <= 0)

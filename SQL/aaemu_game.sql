@@ -26,7 +26,7 @@ CREATE TABLE `abilities`  (
   `exp` int NOT NULL,
   `owner` int UNSIGNED NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Skillsets Exp' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Skillsets Exp' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for accounts
@@ -44,7 +44,7 @@ CREATE TABLE `accounts`  (
   `last_credits_tick` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_loyalty_tick` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`account_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Account specific values not related to login' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Account specific values not related to login' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Triggers structure for table accounts
@@ -70,7 +70,7 @@ CREATE TABLE `actabilities`  (
   `step` tinyint UNSIGNED NOT NULL DEFAULT 0,
   `owner` int UNSIGNED NOT NULL,
   PRIMARY KEY (`owner`, `id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Vocations' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Vocations' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for appellations
@@ -81,7 +81,7 @@ CREATE TABLE `appellations`  (
   `active` tinyint(1) NOT NULL DEFAULT 0,
   `owner` int UNSIGNED NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Earned titles' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Earned titles' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for attendances
@@ -93,7 +93,7 @@ CREATE TABLE `attendances`  (
   `account_attendance` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `accept` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------------
 -- Table structure for auction_house
@@ -103,22 +103,23 @@ CREATE TABLE `auction_house`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `duration` tinyint NOT NULL,
   `item_id` bigint NOT NULL,
-  `end_time` datetime NOT NULL,
+  `post_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time when the auction item was put up for sale (in UTC)',
+  `end_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time when the sale period ends (in UTC)',
   `world_id` tinyint NOT NULL,
   `client_id` int NOT NULL,
-  `client_name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `client_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `start_money` int NOT NULL,
   `direct_money` int NOT NULL,
   `charge_percent` int NOT NULL,
   `bid_world_id` int NOT NULL,
   `bidder_id` int NOT NULL,
-  `bidder_name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `bidder_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `bid_money` int NOT NULL,
   `extra` int NOT NULL,
   `min_stack` int NOT NULL,
   `max_stack` int NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Listed AH Items' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Listed AH Items' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for auction_solds_data
@@ -151,13 +152,13 @@ CREATE TABLE `audit_ics_sales`  (
   `sku` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'SKU of the sold item',
   `sale_cost` int NOT NULL DEFAULT 0 COMMENT 'Amount this item was sold for',
   `sale_currency` tinyint UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Which currency was used',
-  `description` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT 'Added description of this transaction',
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'Added description of this transaction',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `buyer_account`(`buyer_account`) USING BTREE,
   INDEX `buyer_char`(`buyer_char`) USING BTREE,
   INDEX `target_account`(`target_account`) USING BTREE,
   INDEX `target_char`(`target_char`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Sales history for the ICS' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Sales history for the ICS' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for blocked
@@ -167,7 +168,7 @@ CREATE TABLE `blocked`  (
   `owner` int NOT NULL,
   `blocked_id` int NOT NULL,
   PRIMARY KEY (`owner`, `blocked_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for characters
@@ -176,7 +177,7 @@ DROP TABLE IF EXISTS `characters`;
 CREATE TABLE `characters`  (
   `id` int UNSIGNED NOT NULL,
   `account_id` int UNSIGNED NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `access_level` int UNSIGNED NOT NULL DEFAULT 0,
   `race` tinyint NOT NULL,
   `gender` tinyint(1) NOT NULL,
@@ -199,7 +200,7 @@ CREATE TABLE `characters`  (
   `pitch` float NOT NULL DEFAULT 0,
   `roll` float NOT NULL DEFAULT 0,
   `faction_id` int UNSIGNED NOT NULL,
-  `faction_name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `faction_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `expedition_id` int NOT NULL,
   `family` int UNSIGNED NOT NULL,
   `dead_count` mediumint UNSIGNED NOT NULL,
@@ -234,7 +235,7 @@ CREATE TABLE `characters`  (
   `return_district` int NOT NULL DEFAULT 0,
   `online_time` int NOT NULL DEFAULT 0 COMMENT 'Time that the character has been online',
   PRIMARY KEY (`id`, `account_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for completed_quests
@@ -245,7 +246,7 @@ CREATE TABLE `completed_quests`  (
   `data` tinyblob NOT NULL,
   `owner` int UNSIGNED NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Quests marked as completed for character' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Quests marked as completed for character' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for doodads
@@ -276,7 +277,7 @@ CREATE TABLE `doodads`  (
   `data` int NOT NULL DEFAULT 0 COMMENT 'Doodad specific data',
   `farm_type` int NOT NULL DEFAULT 0 COMMENT 'farm type for Public Farm',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Persistent doodads (e.g. tradepacks, furniture)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Persistent doodads (e.g. tradepacks, furniture)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for expedition_applicants
@@ -285,12 +286,12 @@ DROP TABLE IF EXISTS `expedition_applicants`;
 CREATE TABLE `expedition_applicants`  (
   `expedition_id` int NOT NULL,
   `character_id` int NOT NULL,
-  `character_name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `character_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `character_level` tinyint(1) NOT NULL,
-  `memo` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `memo` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `reg_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   PRIMARY KEY (`expedition_id`, `character_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for expedition_members
@@ -299,16 +300,16 @@ DROP TABLE IF EXISTS `expedition_members`;
 CREATE TABLE `expedition_members`  (
   `character_id` int NOT NULL,
   `expedition_id` int NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `level` tinyint UNSIGNED NOT NULL,
   `role` tinyint UNSIGNED NOT NULL,
   `last_leave_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `ability1` tinyint UNSIGNED NOT NULL,
   `ability2` tinyint UNSIGNED NOT NULL,
   `ability3` tinyint UNSIGNED NOT NULL,
-  `memo` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `memo` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`character_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Guild members' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Guild members' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for expedition_recruitments
@@ -316,17 +317,17 @@ CREATE TABLE `expedition_members`  (
 DROP TABLE IF EXISTS `expedition_recruitments`;
 CREATE TABLE `expedition_recruitments`  (
   `expedition_id` int NOT NULL,
-  `name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `level` int NULL DEFAULT NULL,
-  `owner_name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `introduce` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `owner_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `introduce` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `reg_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `end_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `member_count` int NULL DEFAULT NULL,
   `interest` int NULL DEFAULT NULL,
   `apply` tinyint(1) NOT NULL,
   PRIMARY KEY (`expedition_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Guild recruitments' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Guild recruitments' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for expedition_role_policies
@@ -335,7 +336,7 @@ DROP TABLE IF EXISTS `expedition_role_policies`;
 CREATE TABLE `expedition_role_policies`  (
   `expedition_id` int NOT NULL,
   `role` tinyint UNSIGNED NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `dominion_declare` tinyint(1) NOT NULL,
   `invite` tinyint(1) NOT NULL,
   `expel` tinyint(1) NOT NULL,
@@ -346,7 +347,7 @@ CREATE TABLE `expedition_role_policies`  (
   `siege_master` tinyint(1) NOT NULL,
   `join_siege` tinyint(1) NOT NULL,
   PRIMARY KEY (`expedition_id`, `role`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Guild role settings' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Guild role settings' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for expeditions
@@ -355,8 +356,8 @@ DROP TABLE IF EXISTS `expeditions`;
 CREATE TABLE `expeditions`  (
   `id` int NOT NULL,
   `owner` int NOT NULL DEFAULT 0,
-  `owner_name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `owner_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `mother` int NOT NULL DEFAULT 0,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `level` int NOT NULL DEFAULT 0,
@@ -367,13 +368,13 @@ CREATE TABLE `expeditions`  (
   `last_exp_update_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `is_level_update` tinyint(1) NOT NULL DEFAULT 0,
   `interest` int NOT NULL DEFAULT 0,
-  `motd_title` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `motd_content` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `motd_title` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `motd_content` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `win` int NOT NULL DEFAULT 0,
   `lose` int NOT NULL DEFAULT 0,
   `draw` int NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Guilds' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Guilds' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for family_members
@@ -382,11 +383,11 @@ DROP TABLE IF EXISTS `family_members`;
 CREATE TABLE `family_members`  (
   `character_id` int NOT NULL,
   `family_id` int NOT NULL,
-  `name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `role` tinyint(1) NOT NULL DEFAULT 0,
-  `title` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL,
+  `title` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
   PRIMARY KEY (`family_id`, `character_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Family members' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Family members' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for friends
@@ -397,7 +398,7 @@ CREATE TABLE `friends`  (
   `friend_id` int NOT NULL,
   `owner` int NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Friendslist' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Friendslist' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for housings
@@ -409,7 +410,7 @@ CREATE TABLE `housings`  (
   `owner` int UNSIGNED NOT NULL,
   `co_owner` int UNSIGNED NOT NULL,
   `template_id` int UNSIGNED NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `x` float NOT NULL,
   `y` float NOT NULL,
   `z` float NOT NULL,
@@ -426,7 +427,7 @@ CREATE TABLE `housings`  (
   `sell_price` bigint NOT NULL DEFAULT 0,
   `allow_recover` tinyint UNSIGNED NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Player buildings' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Player buildings' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for ics_menu
@@ -439,7 +440,7 @@ CREATE TABLE `ics_menu`  (
   `tab_pos` int NOT NULL DEFAULT 0 COMMENT 'Used to change display order',
   `shop_id` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Id of the item group for sale (shop item)',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 100 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Contains what item will be displayed on which tab' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 100 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Contains what item will be displayed on which tab' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for ics_shop_items
@@ -448,7 +449,7 @@ DROP TABLE IF EXISTS `ics_shop_items`;
 CREATE TABLE `ics_shop_items`  (
   `shop_id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU item id',
   `display_item_id` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Item who\'s icon to use for displaying in the shop, leave 0 for first item in the group',
-  `name` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL COMMENT 'Can be used to override the name in the shop',
+  `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'Can be used to override the name in the shop',
   `limited_type` tinyint UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Enables limited stock mode if non-zero, Account(1), Chracter(2)',
   `limited_stock_max` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Number of items left in stock for this SKU if limited stock is enabled',
   `level_min` tinyint UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Minimum level to buy the item (does not show on UI)',
@@ -462,7 +463,7 @@ CREATE TABLE `ics_shop_items`  (
   `shop_buttons` tinyint UNSIGNED NOT NULL DEFAULT 0 COMMENT 'All (0), NoCart (1), NoGift (2), OnlyBuy (3)',
   `remaining` int NOT NULL DEFAULT -1 COMMENT 'Number of items remaining, only for tab 1-1 (limited)',
   PRIMARY KEY (`shop_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2000000 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Possible Item listings that are for sale' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2000000 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Possible Item listings that are for sale' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for ics_skus
@@ -485,7 +486,7 @@ CREATE TABLE `ics_skus`  (
   `bonus_item_count` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Amount of bonus items included',
   `pay_item_type` int UNSIGNED NOT NULL DEFAULT 0,
   PRIMARY KEY (`sku`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1000000 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Has the actual sales items for the details' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1000000 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Has the actual sales items for the details' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for item_containers
@@ -493,13 +494,13 @@ CREATE TABLE `ics_skus`  (
 DROP TABLE IF EXISTS `item_containers`;
 CREATE TABLE `item_containers`  (
   `container_id` int UNSIGNED NOT NULL,
-  `container_type` varchar(64) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL DEFAULT 'ItemContainer' COMMENT 'Partial Container Class Name',
+  `container_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'ItemContainer' COMMENT 'Partial Container Class Name',
   `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
   `container_size` int NOT NULL DEFAULT 50 COMMENT 'Maximum Container Size',
   `owner_id` int UNSIGNED NOT NULL COMMENT 'Owning Character Id',
   `mate_id` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Owning Mate Id',
   PRIMARY KEY (`container_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for items
@@ -507,7 +508,7 @@ CREATE TABLE `item_containers`  (
 DROP TABLE IF EXISTS `items`;
 CREATE TABLE `items`  (
   `id` bigint UNSIGNED NOT NULL,
-  `type` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `template_id` int UNSIGNED NOT NULL,
   `container_id` int UNSIGNED NOT NULL DEFAULT 0,
   `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
@@ -529,7 +530,7 @@ CREATE TABLE `items`  (
   `charge_count` int NOT NULL DEFAULT 0 COMMENT 'Number of charges left',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `owner`(`owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'All items' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'All items' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for mails
@@ -539,13 +540,13 @@ CREATE TABLE `mails`  (
   `id` int NOT NULL,
   `type` int NOT NULL,
   `status` int NOT NULL,
-  `title` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `text` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `title` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `sender_id` int NOT NULL DEFAULT 0,
-  `sender_name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `sender_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `attachment_count` int NOT NULL DEFAULT 0,
   `receiver_id` int NOT NULL DEFAULT 0,
-  `receiver_name` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `receiver_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `open_date` datetime NOT NULL,
   `send_date` datetime NOT NULL,
   `received_date` datetime NOT NULL,
@@ -565,7 +566,7 @@ CREATE TABLE `mails`  (
   `attachment8` bigint NOT NULL DEFAULT 0,
   `attachment9` bigint NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'In-game mails' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'In-game mails' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for mates
@@ -574,7 +575,7 @@ DROP TABLE IF EXISTS `mates`;
 CREATE TABLE `mates`  (
   `id` int UNSIGNED NOT NULL,
   `item_id` bigint UNSIGNED NOT NULL,
-  `name` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `xp` int NOT NULL,
   `level` tinyint NOT NULL,
   `mileage` int NOT NULL,
@@ -584,7 +585,7 @@ CREATE TABLE `mates`  (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`, `item_id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Player mounts and pets' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Player mounts and pets' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for music
@@ -593,21 +594,21 @@ DROP TABLE IF EXISTS `music`;
 CREATE TABLE `music`  (
   `id` int NOT NULL AUTO_INCREMENT,
   `author` int NOT NULL COMMENT 'PlayerId',
-  `title` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `song` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT 'Song MML',
+  `title` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `song` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'Song MML',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'User Created Content (music)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'User Created Content (music)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for options
 -- ----------------------------
 DROP TABLE IF EXISTS `options`;
 CREATE TABLE `options`  (
-  `key` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `value` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `owner` int UNSIGNED NOT NULL,
   PRIMARY KEY (`key`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Settings that the client stores on the server' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Settings that the client stores on the server' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for portal_book_coords
@@ -615,7 +616,7 @@ CREATE TABLE `options`  (
 DROP TABLE IF EXISTS `portal_book_coords`;
 CREATE TABLE `portal_book_coords`  (
   `id` int NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `x` int NULL DEFAULT 0,
   `y` int NULL DEFAULT 0,
   `z` int NULL DEFAULT 0,
@@ -624,7 +625,7 @@ CREATE TABLE `portal_book_coords`  (
   `sub_zone_id` int NULL DEFAULT 0,
   `owner` int NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Recorded house portals in the portal book' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Recorded house portals in the portal book' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for portal_visited_district
@@ -635,7 +636,7 @@ CREATE TABLE `portal_visited_district`  (
   `subzone` int NOT NULL,
   `owner` int NOT NULL,
   PRIMARY KEY (`id`, `subzone`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'List of visited area for the portal book' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'List of visited area for the portal book' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for quests
@@ -648,7 +649,7 @@ CREATE TABLE `quests`  (
   `status` tinyint NOT NULL,
   `owner` int UNSIGNED NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Currently open quests' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Currently open quests' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for resident_members
@@ -657,12 +658,12 @@ DROP TABLE IF EXISTS `resident_members`;
 CREATE TABLE `resident_members`  (
   `id` int NOT NULL,
   `resident_id` int NOT NULL,
-  `name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `level` tinyint(1) NOT NULL,
   `family` int NULL DEFAULT NULL,
   `service_point` int NULL DEFAULT NULL,
   PRIMARY KEY (`id`, `resident_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for residents
@@ -677,7 +678,7 @@ CREATE TABLE `residents`  (
   `zone_point` int NULL DEFAULT NULL,
   `charge` datetime NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 30 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 30 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for skills
@@ -686,10 +687,10 @@ DROP TABLE IF EXISTS `skills`;
 CREATE TABLE `skills`  (
   `id` int UNSIGNED NOT NULL,
   `level` tinyint NOT NULL,
-  `type` enum('Skill','Buff') CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+  `type` enum('Skill','Buff') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `owner` int UNSIGNED NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Learned character skills' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Learned character skills' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for slaves
@@ -700,7 +701,7 @@ CREATE TABLE `slaves`  (
   `item_id` int UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
   `template_id` int UNSIGNED NULL DEFAULT NULL COMMENT 'Slave template Id of this vehicle',
   `attach_point` int NULL DEFAULT NULL COMMENT 'Binding point Id',
-  `name` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL,
+  `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL,
   `owner_type` int UNSIGNED NULL DEFAULT 0 COMMENT 'Parent unit type',
   `owner_id` int UNSIGNED NULL DEFAULT 0 COMMENT 'Parent unit DB Id',
   `summoner` int UNSIGNED NULL DEFAULT NULL COMMENT 'Owning player',
@@ -712,7 +713,7 @@ CREATE TABLE `slaves`  (
   `y` float NULL DEFAULT NULL,
   `z` float NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'Player vehicles summons' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Player vehicles summons' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for uccs
@@ -736,7 +737,7 @@ CREATE TABLE `uccs`  (
   `color3B` int UNSIGNED NOT NULL,
   `modified` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = 'User Created Content (crests)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'User Created Content (crests)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for divine_clock

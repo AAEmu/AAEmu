@@ -16,6 +16,8 @@ public class DoodadFuncLootPack : DoodadFuncTemplate
         if (caster is not Character character)
             return;
 
+        Logger.Debug($"DoodadFuncLootPack: LootPackId={LootPackId}");
+
         var lootPack = LootGameData.Instance.GetPack(LootPackId);
         if (lootPack != null)
         {

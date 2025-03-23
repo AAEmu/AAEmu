@@ -103,6 +103,7 @@ public sealed class GameService : IHostedService, IDisposable
         ShipyardManager.Instance.Initialize();
         // SkillTlIdManager.Instance.Initialize();
         IndunManager.Instance.Initialize();
+        AuctionIdManager.Instance.Initialize();
 
         GameDataManager.Instance.LoadGameData();
         QuestManager.Instance.Load();

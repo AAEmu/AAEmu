@@ -404,6 +404,7 @@ public class ItemContainer
         if (sourceContainer != null && sourceContainer != this)
         {
             sourceContainer.Items.Remove(item);
+            sourceContainer.IsDirty = true;
             sourceContainer.UpdateFreeSlotCount();
             if (sourceContainer.ContainerType != SlotType.MailAttachment)
             {
@@ -443,6 +444,173 @@ public class ItemContainer
         else
         // Adding mail attachment
         if (item.SlotType != SlotType.MailAttachment && ContainerType == SlotType.MailAttachment)
+        {
+            Owner?.Inventory.OnConsumedItem(item, item.Count);
+        }
+
+        return itemTasks.Count + sourceItemTasks.Count > 0;
+    }
+
+    /// <summary>
+    /// Adds an Item Object to this container and also updates source container, for new items like craft results, use AcquireDefaultItem instead
+    /// </summary>
+    /// <param name="taskType"></param>
+    /// <param name="item">Item Object to add/move to this container</param>
+    /// <param name="preferredSlot">preferred slot to place this item in</param>
+    /// <returns>Fails on Full Inventory or if target slot is invalid</returns>
+    public bool AddOrMoveExistingItem2(ItemTaskType taskType, Item item, int preferredSlot = -1)
+    {
+        if (item == null)
+        {
+            return false;
+        }
+
+        var sourceContainer = item._holdingContainer;
+        var sourceSlot = (byte)item.Slot;
+        var sourceSlotType = item.SlotType;
+
+        var currentPreferredSlotItem = GetItemBySlot(preferredSlot);
+        var newSlot = -1;
+        var canAddToSameSlot = false;
+
+        // When adding wearables to equipment container, for the slot numbers if needed
+        if (this is EquipmentContainer && item is EquipItem _ && preferredSlot < 0)
+        {
+            var validSlots = EquipmentContainer.GetAllowedGearSlots(item.Template);
+            // find valid empty slot (if any), stop looking if it is the preferred slot
+            foreach (var vSlot in validSlots)
+            {
+                if (GetItemBySlot((int)vSlot) == null)
+                {
+                    newSlot = (int)vSlot;
+                    break;
+                }
+            }
+        }
+
+        // Make sure the item is in container size's range
+        if (
+            ContainerType == SlotType.Bag && item.Template.MaxCount > 1 &&
+            currentPreferredSlotItem != null &&
+            currentPreferredSlotItem.TemplateId == item.TemplateId && currentPreferredSlotItem.Grade == item.Grade &&
+            item.Count + currentPreferredSlotItem.Count <= item.Template.MaxCount)
+        {
+            newSlot = preferredSlot;
+            canAddToSameSlot = true;
+        }
+        else
+        {
+            if (newSlot < 0)
+            {
+                newSlot = GetUnusedSlot(preferredSlot);
+            }
+
+            if (newSlot < 0)
+            {
+                return false; // Inventory Full
+            }
+        }
+
+        // Check if the newSlot fits
+        if (!CanAccept(item, newSlot))
+        {
+            return false;
+        }
+
+        var itemTasks = new List<ItemTask>();
+        var sourceItemTasks = new List<ItemTask>();
+
+        if (canAddToSameSlot)
+        {
+            currentPreferredSlotItem.Count += item.Count;
+            if (ContainerType != SlotType.Invalid)
+            {
+                itemTasks.Add(new ItemCountUpdate(currentPreferredSlotItem, item.Count));
+            }
+        }
+        else
+        {
+            item.SlotType = ContainerType;
+            item.Slot = newSlot;
+            item._holdingContainer = this;
+            item.OwnerId = OwnerId;
+
+            Items.Insert(0, item); // insert at front for easy buyback handling
+
+            UpdateFreeSlotCount();
+
+            // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
+            if (ContainerType != SlotType.Invalid)
+            {
+                itemTasks.Add(new ItemAdd(item));
+            }
+
+            if (sourceContainer != this)
+            {
+                sourceContainer?.OnLeaveContainer(item, sourceContainer, sourceSlot);
+                OnEnterContainer(item, this, (byte)newSlot);
+            }
+        }
+
+        // Item Tasks
+        if (sourceContainer?.ContainerType is not (SlotType.MailAttachment and SlotType.Auction))
+        {
+            if (sourceContainer is not null && sourceContainer != this)
+            {
+                sourceContainer.Items.Remove(item);
+                sourceContainer.IsDirty = true;
+                sourceContainer.UpdateFreeSlotCount();
+                if (sourceContainer.ContainerType != SlotType.MailAttachment || sourceContainer.ContainerType != SlotType.Auction)
+                {
+                    sourceItemTasks.Add(new ItemRemoveSlot(item.Id, sourceSlotType, sourceSlot));
+                }
+            }
+        }
+
+        // We use Invalid when doing internals, don't send to client
+        if (taskType != ItemTaskType.Invalid)
+        {
+            if (itemTasks.Count > 0)
+            {
+                Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            }
+
+            if (sourceItemTasks.Count > 0)
+            {
+                sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks, new List<ulong>()));
+            }
+        }
+
+        ApplyBindRules(taskType);
+
+        // Moved to the end of the method so that the item is already in the inventory
+        // Only trigger when moving between containers with different owners except for this being move to Mail container
+        //if ((sourceContainer != this) && (item.OwnerId != OwnerId) && (this.ContainerType != SlotType.MailAttachment))
+        if (sourceContainer != this && (ContainerType != SlotType.MailAttachment || ContainerType != SlotType.Auction))
+        {
+            Owner?.Inventory.OnAcquiredItem(item, item.Count);
+        }
+        else
+        // Got attachment from Mail
+        if (item.SlotType == SlotType.MailAttachment && ContainerType != SlotType.MailAttachment)
+        {
+            Owner?.Inventory.OnAcquiredItem(item, item.Count);
+        }
+        else
+        // Adding mail attachment
+        if (item.SlotType != SlotType.MailAttachment && ContainerType == SlotType.MailAttachment)
+        {
+            Owner?.Inventory.OnConsumedItem(item, item.Count);
+        }
+        else
+        // Got attachment from Auction
+        if (item.SlotType == SlotType.Auction && ContainerType != SlotType.Auction)
+        {
+            Owner?.Inventory.OnAcquiredItem(item, item.Count);
+        }
+        else
+        // Adding Auction attachment
+        if (item.SlotType != SlotType.Auction && ContainerType == SlotType.Auction)
         {
             Owner?.Inventory.OnConsumedItem(item, item.Count);
         }

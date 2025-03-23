@@ -44,6 +44,9 @@ public abstract class ItemTask : PacketMarshaler
             case ItemAction.Take: // 6
                 tlogT = ItemTaskLogType.MoveItem;
                 break;
+            case ItemAction.Remove when slotType == SlotType.MailAttachment: // 7
+                tlogT = ItemTaskLogType.RemoveItem;
+                break;
             case ItemAction.Remove when slotType == SlotType.Bag: // 7
                 tlogT = ItemTaskLogType.RemoveItem;
                 break;

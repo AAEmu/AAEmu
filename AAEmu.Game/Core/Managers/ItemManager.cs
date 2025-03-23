@@ -253,6 +253,8 @@ public class ItemManager : Singleton<ItemManager>
         // Generate the actual loot
         foreach (var lootPackDropping in lootPackDroppingNpcs)
         {
+            Logger.Debug($"CreateLootDropItems: lootPackDropping.LootPackId={lootPackDropping.LootPackId}");
+
             var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
             if (lootPack == null)
                 continue;
@@ -278,6 +280,8 @@ public class ItemManager : Singleton<ItemManager>
 
         foreach (var lootPackConvertFish in lootPackConvertFishes)
         {
+            Logger.Debug($"GetLootConvertFish: lootPackConvertFish.LootPackId={lootPackConvertFish.LootPackId}");
+
             var lootPacks = LootGameData.Instance.GetPack(lootPackConvertFish.LootPackId);
             var dropRateMax = (uint)0;
             for (var ui = 0; ui < lootPacks.Loots?.Count; ui++)

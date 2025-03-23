@@ -136,7 +136,7 @@ public class MailManager : Singleton<MailManager>
                         tempMail.Header.SenderName = reader.GetString("sender_name");
                         tempMail.Header.Attachments = (byte)reader.GetInt32("attachment_count");
                         tempMail.Header.ReceiverId = reader.GetUInt32("receiver_id");
-                        tempMail.Header.Returned = (reader.GetInt32("returned") != 0);
+                        tempMail.Header.Returned = reader.GetInt32("returned") != 0;
                         tempMail.Header.Extra = reader.GetInt64("extra");
 
                         tempMail.Body.Text = reader.GetString("text");
@@ -178,7 +178,7 @@ public class MailManager : Singleton<MailManager>
                         tempMail.Header.Attachments = (byte)attachmentCount;
 
                         // Set internal delivered flag
-                        tempMail.IsDelivered = (tempMail.Body.RecvDate <= DateTime.UtcNow);
+                        tempMail.IsDelivered = tempMail.Body.RecvDate <= DateTime.UtcNow;
                         tempMail.IsDirty = false;
 
                         // Remove from delete list if it's a recycled Id
@@ -285,13 +285,13 @@ public class MailManager : Singleton<MailManager>
         character.Mails.UnreadMailCount.ResetReceived();
         foreach (var mail in tempMails)
         {
-            character.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
-            if (mail.Value.Header.Status != MailStatus.Read)
+            if (mail.Value.Header.Status == MailStatus.Unread || mail.Value.Header.Status == MailStatus.Unpaid)
             {
+                character.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
                 character.Mails.UnreadMailCount.UpdateUnreadReceived(mail.Value.MailType, 1);
-                var addBody = (mail.Value.MailType == MailType.Charged);
+                var addBody = mail.Value.MailType == MailType.Charged;
 
-                //character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
+                character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
                 mail.Value.IsDelivered = true;
             }
         }
@@ -300,15 +300,15 @@ public class MailManager : Singleton<MailManager>
 
     public static bool NotifyNewMailByNameIfOnline(BaseMail m, string receiverName)
     {
-        Logger.Trace($"NotifyNewMailByNameIfOnline() - {receiverName}");
+        Logger.Debug($"NotifyNewMailByNameIfOnline() - {receiverName}");
         // If unread and ready to deliver
-        if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.UtcNow) && (m.IsDelivered == false))
+        if ((m.Header.Status == MailStatus.Unread || m.Header.Status == MailStatus.Unpaid) && m.Body.RecvDate <= DateTime.UtcNow && m.IsDelivered == false)
         {
             var player = WorldManager.Instance.GetCharacter(receiverName);
             if (player != null)
             {
                 // TODO: Mia mail stuff
-                var addBody = (m.MailType == MailType.Charged);
+                var addBody = m.MailType == MailType.Charged;
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
                 player.Mails.UnreadMailCount.UpdateUnreadReceived(m.MailType, 1);
 
@@ -326,9 +326,12 @@ public class MailManager : Singleton<MailManager>
         var player = WorldManager.Instance.GetCharacter(receiverName);
         if (player != null)
         {
-            player.Mails.UnreadMailCount.UpdateReceived(m.MailType, -1);
-            if (m.Header.Status != MailStatus.Read)
+            if (m.Header.Status == MailStatus.Unread)
+            {
+                player.Mails.UnreadMailCount.UpdateReceived(m.MailType, -1);
                 player.Mails.UnreadMailCount.UpdateUnreadReceived(m.MailType, -1);
+            }
+
             player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.UnreadMailCount));
             return true;
         }
@@ -339,7 +342,7 @@ public class MailManager : Singleton<MailManager>
     {
         // Deliver yet "undelivered" mails
         Logger.Trace("CheckAllMailTimings");
-        var undeliveredMails = _allPlayerMails.Where(x => (x.Value.Body.RecvDate <= DateTime.UtcNow) && (x.Value.IsDelivered == false)).ToDictionary(x => x.Key, x => x.Value);
+        var undeliveredMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && x.Value.IsDelivered == false).ToDictionary(x => x.Key, x => x.Value);
         var delivered = 0;
         foreach (var mail in undeliveredMails)
             if (NotifyNewMailByNameIfOnline(mail.Value, mail.Value.Header.ReceiverName))
@@ -367,7 +370,7 @@ public class MailManager : Singleton<MailManager>
         }
 
         var houseId = (uint)(mail.Header.Extra & 0xFFFFFFFF); // Extract house DB Id from Extra
-        var houseZoneGroup = ((mail.Header.Extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
+        var houseZoneGroup = (mail.Header.Extra >> 48) & 0xFFFF; // Extract zone group Id from Extra
         var house = HousingManager.Instance.GetHouseById(houseId);
 
         if (house == null)
@@ -395,7 +398,7 @@ public class MailManager : Singleton<MailManager>
             {
                 var c = consumedCerts;
                 // Use Bound First
-                if ((userBoundTaxCount > 0) && (c > 0))
+                if (userBoundTaxCount > 0 && c > 0)
                 {
                     if (c > userBoundTaxCount)
                         c = userBoundTaxCount;
@@ -403,7 +406,7 @@ public class MailManager : Singleton<MailManager>
                     consumedCerts -= c;
                 }
                 c = consumedCerts;
-                if ((userTaxCount > 0) && (c > 0))
+                if (userTaxCount > 0 && c > 0)
                 {
                     if (c > userTaxCount)
                         c = userTaxCount;
@@ -437,10 +440,11 @@ public class MailManager : Singleton<MailManager>
             Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
         else
         {
-            if (mail.Header.Status != MailStatus.Read)
+            if (mail.Header.Status == MailStatus.Unread)
             {
                 mail.Header.Status = MailStatus.Read;
                 character.Mails.UnreadMailCount.UpdateReceived(mail.MailType, -1);
+                character.Mails.UnreadMailCount.UpdateUnreadReceived(mail.MailType, -1);
             }
 
             character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
@@ -530,7 +534,7 @@ public class MailManager : Singleton<MailManager>
         // Distribute the quest rewards
         foreach(var item in totalRewardsItemsList)
         {
-            if ((mail == null) || (mail.Body.Attachments.Count >= 10))
+            if (mail == null || mail.Body.Attachments.Count >= 10)
             {
                 mail = new MailPlayerToPlayer(character, character.Name);
                 mail.Header.SenderId = (uint)SystemMailSenderKind.None;

@@ -12,6 +12,6 @@ public class CSTakeAttachmentMoneyPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var mailId = stream.ReadInt64();
-        Connection.ActiveChar.Mails.GetAttached(mailId, true, false, true);
+        Connection.ActiveChar.Mails.GetAttached(mailId, true, false, false);
     }
 }

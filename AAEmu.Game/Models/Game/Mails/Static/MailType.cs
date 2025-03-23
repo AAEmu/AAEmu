@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Mails.Static;
+﻿namespace AAEmu.Game.Models.Game.Mails;
 
 public enum MailType : byte
 {

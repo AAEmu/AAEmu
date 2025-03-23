@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.Mails;
-using AAEmu.Game.Models.Game.Mails.Static;
 
 namespace AAEmu.Game.Services.WebApi.Models;
 
