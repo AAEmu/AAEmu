@@ -1043,11 +1043,24 @@ public class NpcSpawner : Spawner<Npc>
     {
         lock (_spawnLock)
         {
-            SpawnedNpcs[SpawnerId].Clear();
-            Interlocked.Exchange(ref _spawnCount, 0);
+            if (SpawnedNpcs.TryGetValue(SpawnerId, out var npcList))
+            {
+                if (npcList.Count > 0)
+                {
+                    npcList.Clear();
+                    Interlocked.Exchange(ref _spawnCount, 0);
+                    //Logger.Info($"Cleared spawn count and all spawned NPCs for SpawnerId={SpawnerId}.");
+                }
+                else
+                {
+                    Logger.Warn($"No NPCs to clear for SpawnerId={SpawnerId}.");
+                }
+            }
+            else
+            {
+                Logger.Warn($"SpawnerId={SpawnerId} not found in SpawnedNpcs.");
+            }
         }
-
-        //Logger.Trace("Spawn count cleared.");
     }
 
     private void AddNpcToSpawned(uint key, Npc newNpc)
