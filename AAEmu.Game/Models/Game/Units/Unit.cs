@@ -1411,4 +1411,32 @@ public class Unit : BaseUnit, IUnit
                 ChatManager.Instance.GetZoneChat(Transform.ZoneId).JoinChannel(player);
         }
     }
+
+    private Dictionary<uint, int> _triggerCounts = new Dictionary<uint, int>();
+
+    public void IncrementTriggerCount(uint buffId)
+    {
+        if (_triggerCounts.ContainsKey(buffId))
+        {
+            _triggerCounts[buffId]++;
+        }
+        else
+        {
+            _triggerCounts[buffId] = 1;
+        }
+    }
+
+    public void DecrementTriggerCount(uint buffId)
+    {
+        if (_triggerCounts.ContainsKey(buffId) && _triggerCounts[buffId] > 0)
+        {
+            _triggerCounts[buffId]--;
+        }
+    }
+
+    public int GetTriggerCount(uint buffId)
+    {
+        return _triggerCounts.ContainsKey(buffId) ? _triggerCounts[buffId] : 0;
+    }
+
 }

@@ -348,10 +348,11 @@ public class Buffs : IBuffs
             }
 
             buff.Duration = buff.Template.GetDuration(buff.AbLevel);
-            buff.Duration = (int)buff.Caster.BuffModifiersCache.ApplyModifiers(buff.Template,
-                BuffAttribute.Duration, buff.Duration);
-            buff.Duration = (int)buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template,
-                BuffAttribute.InDuration, buff.Duration);
+            if (buff.Caster != null)
+            {
+                buff.Duration = (int)buff.Caster.BuffModifiersCache.ApplyModifiers(buff.Template, BuffAttribute.Duration, buff.Duration);
+            }
+            buff.Duration = (int)buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template, BuffAttribute.InDuration, buff.Duration);
 
             if (buffTolerance != null)
             {

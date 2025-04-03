@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
@@ -41,7 +42,8 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
 
         if (UseOriginSource)
         {
-            var doodads = WorldManager.GetAround<Doodad>(caster, areaTrigger.Shape.Value1, false);
+            // будем проверять на дистанции 4 м от персонажа
+            var doodads = WorldManager.GetAround<Doodad>(caster, 4f);
             foreach (var d in doodads)
             {
                 areaTrigger.Owner = d; // нам главное, чтобы рядом был doodad от которого будет искаться на кого наложить бафф
@@ -53,11 +55,13 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
         {
             areaTrigger.Owner = owner;
         }
-        areaTrigger.Caster = caster as Unit;
+
+        areaTrigger.Caster = caster is Character ? caster : owner;
+
         areaTrigger.InsideBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffId);
         areaTrigger.TargetRelation = TargetRelation;
         areaTrigger.TickRate = Tick;
-        areaTrigger.EffectPerTick = Effects.Select(eid => SkillManager.Instance.GetEffectTemplate(eid)).ToList(); //SkillId = skillId
+        areaTrigger.EffectsPerBuff = new Dictionary<uint, List<EffectTemplate>> { { BuffId, Effects.Select(eid => SkillManager.Instance.GetEffectTemplate(eid)).ToList() } };
 
         AreaTriggerManager.Instance.AddAreaTrigger(areaTrigger);
 
@@ -80,7 +84,7 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
 
             // Создаем и назначаем новую задачу
             // Create and assign a new task
-            owner.FuncTask = new DoodadFuncCloutTask(caster, owner, 0, NextPhase, areaTrigger);
+            owner.FuncTask = new DoodadFuncCloutTask(areaTrigger.Caster, areaTrigger.Owner, 0, NextPhase, areaTrigger);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Duration));
         }
         //owner.OverridePhase = NextPhase; // Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded

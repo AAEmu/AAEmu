@@ -1104,25 +1104,29 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public static List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
     {
-        if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
-            Logger.Trace("AreaShape with no size values was used");
-        if (shape.Type == AreaShapeType.Sphere)
+        switch (shape.Type)
         {
-            var radius = shape.Value1;
-            var height = shape.Value2;
-            return GetAround<T>(obj, radius, true);
+            case AreaShapeType.Sphere:
+                {
+                    var radius = shape.Value1 > 0 ? shape.Value1 : 40f;
+                    return GetAround<T>(obj, radius, true);
+                }
+            case AreaShapeType.Cuboid:
+                {
+                    var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
+                    var res = GetAround<T>(obj, (float)diagonal, true);
+                    res = shape.ComputeCuboid(obj, res);
+                    return res;
+                }
+            default:
+                {
+                    Logger.Error("AreaShape had impossible type");
+                    //throw new ArgumentNullException(nameof(shape), "AreaShape type does not exist!");
+                    break;
+                }
         }
 
-        if (shape.Type == AreaShapeType.Cuboid)
-        {
-            var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
-            var res = GetAround<T>(obj, (float)diagonal, true);
-            res = shape.ComputeCuboid(obj, res);
-            return res;
-        }
-
-        Logger.Error("AreaShape had impossible type");
-        throw new ArgumentNullException(nameof(shape), "AreaShape type does not exist!");
+        return null;
     }
 
     public List<T> GetInCell<T>(uint worldId, int x, int y) where T : class

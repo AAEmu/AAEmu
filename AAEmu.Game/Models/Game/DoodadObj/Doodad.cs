@@ -702,7 +702,8 @@ public class Doodad : BaseUnit
     {
         base.Delete();
         _deleted = true;
-        foreach (var areaTrigger in AttachAreaTriggers)
+        var triggersToRemove = new List<AreaTrigger>(AttachAreaTriggers);
+        foreach (var areaTrigger in triggersToRemove)
         {
             AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
         }
@@ -713,30 +714,30 @@ public class Doodad : BaseUnit
         if (ItemId > 0)
         {
             var item = ItemManager.Instance.GetItemByItemId(ItemId);
-            if (item != null && item._holdingContainer != null &&
-                (item._holdingContainer.ContainerType == SlotType.None ||
-                 item._holdingContainer.ContainerType == SlotType.System))
+            if (item is { _holdingContainer.ContainerType: SlotType.None or SlotType.System })
             {
                 item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
             }
         }
 
-        if (IsPersistent)
+        if (!IsPersistent)
         {
-            using (var connection = MySQL.CreateConnection())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "DELETE FROM doodads WHERE id = @id";
-                    command.Parameters.AddWithValue("@id", DbId);
-                    command.Prepare();
-                    command.ExecuteNonQuery();
-                }
-            }
-
-            SpawnManager.Instance.RemovePlayerDoodad(this);
-            IsPersistent = false;
+            return;
         }
+
+        using (var connection = MySQL.CreateConnection())
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "DELETE FROM doodads WHERE id = @id";
+                command.Parameters.AddWithValue("@id", DbId);
+                command.Prepare();
+                command.ExecuteNonQuery();
+            }
+        }
+
+        SpawnManager.Instance.RemovePlayerDoodad(this);
+        IsPersistent = false;
     }
 
     public void Save()
