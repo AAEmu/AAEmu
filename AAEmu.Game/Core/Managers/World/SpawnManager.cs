@@ -103,7 +103,7 @@ public class SpawnManager : Singleton<SpawnManager>
         }
 
         // Logger.Info($"idx={startIndex} -> {_currentSpawnerIndex} / {_currentSpawners.Count}. Update loop finished: {stopwatch.ElapsedMilliseconds} ms.");
-        
+
         // Если цикл завершен, сбрасываем индекс и список
         if (_currentSpawnerIndex >= _currentSpawners.Count)
         {
@@ -240,7 +240,8 @@ public class SpawnManager : Singleton<SpawnManager>
             if (npc.Spawner != null)
             {
                 npc.Spawner.RespawnTime = 9999999;
-                npc.Spawner.Despawn(npc);
+                //npc.Spawner.Despawn(npc);
+                npc.Spawner.DecreaseCount(npc);
             }
             else
             {
@@ -1163,10 +1164,9 @@ public class SpawnManager : Singleton<SpawnManager>
                     else if (obj is Doodad doodad2)
                         doodad2.Delete();
                     else
-                    {
-                        ObjectIdManager.Instance.ReleaseId(obj.ObjId);
                         obj.Delete();
-                    }
+
+                    ObjectIdManager.Instance.ReleaseId(obj.ObjId);
                     RemoveDespawn(obj);
                 }
             }

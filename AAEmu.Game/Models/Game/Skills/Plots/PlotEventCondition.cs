@@ -85,7 +85,7 @@ public class PlotEventCondition
             }
 
             if (condition.Condition.Check(source, state.CasterCaster, target,
-                state.TargetCaster, state.SkillObject, condition, state.ActiveSkill))
+                state.TargetCaster, state.SkillObject, state.ActiveSkill))
             {
                 continue;
             }

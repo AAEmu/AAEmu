@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -19,8 +20,7 @@ public class NpcPositionSubCommand : SubCommandBase
     public NpcPositionSubCommand()
     {
         Title = "[Npc Position]";
-        Description =
-            "Change npc position and angle - All positions are optional use all or only the ones you want to change (Use yaw to rotate npc)";
+        Description = "Change npc position and angle - All positions are optional use all or only the ones you want to change (Use yaw to rotate npc)";
         CallPrefix = $"{CommandManager.CommandPrefix}npc position||pos";
         AddParameter(new StringSubCommandParameter("target", "target", true, "target", "id"));
         AddParameter(new NumericSubCommandParameter<uint>("ObjId", "object id", false));
@@ -28,13 +28,11 @@ public class NpcPositionSubCommand : SubCommandBase
         AddParameter(new NumericSubCommandParameter<float>("y", "y=<new y>", false, "y"));
         AddParameter(new NumericSubCommandParameter<float>("z", "z=<new z>", false, "z"));
         AddParameter(new NumericSubCommandParameter<float>("roll", "roll=<new roll degrees>", false, "roll", 0, 360));
-        AddParameter(
-            new NumericSubCommandParameter<float>("pitch", "pitch=<new pitch degrees>", false, "pitch", 0, 360));
+        AddParameter(new NumericSubCommandParameter<float>("pitch", "pitch=<new pitch degrees>", false, "pitch", 0, 360));
         AddParameter(new NumericSubCommandParameter<float>("yaw", "yaw=<new yaw degrees>", false, "yaw", 0, 360));
     }
 
-    public override void Execute(ICharacter character, string triggerArgument,
-        IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Npc npc;
         if (parameters.TryGetValue("ObjId", out var npcObjId))
@@ -66,8 +64,7 @@ public class NpcPositionSubCommand : SubCommandBase
             .DegToRad();
         var roll = GetOptionalParameterValue(parameters, "roll", npc.Transform.Local.Rotation.X.RadToDeg()).DegToRad();
 
-        SendMessage(messageOutput,
-            $"Npc ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll.RadToDeg():0.#}°, pitch:{pitch.RadToDeg():0.#}°, yaw:{yaw.RadToDeg():0.#}°");
+        SendMessage(messageOutput, $"Npc ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll.RadToDeg():0.#}°, pitch:{pitch.RadToDeg():0.#}°, yaw:{yaw.RadToDeg():0.#}°");
 
         npc.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);

@@ -823,25 +823,60 @@ value.Yaw);
     }
 
     /// <summary>
-    /// Loads attachment points from slave_attach_points.json 
+    /// Loads attachment points from slave_attach_points*.json files
     /// </summary>
     /// <exception cref="IOException"></exception>
     public void LoadSlaveAttachmentPointLocations()
     {
         Logger.Info("Loading Slave Model Attach Points...");
 
-        var filePath = Path.Combine(FileManager.AppPath, "Data", "slave_attach_points.json");
-        var contents = FileManager.GetFileContents(filePath);
-        if (string.IsNullOrWhiteSpace(contents))
-            throw new IOException($"File {filePath} doesn't exists or is empty.");
+        // Get all files matching the pattern in the Data folder.
+        string dataFolder = Path.Combine(FileManager.AppPath, "Data");
+        string[] attachFiles;
+        try
+        {
+            attachFiles = Directory.GetFiles(dataFolder, "slave_attach_points*.json");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Error retrieving slave attachment point files: {ex.Message}");
+            return;
+        }
 
-        if (JsonHelper.TryDeserializeObject(contents, out List<SlaveModelAttachPoint> attachPoints, out _))
-            Logger.Info("Slave model attach points loaded...");
-        else
-            Logger.Warn("Slave model attach points not loaded...");
+        var allAttachPoints = new List<SlaveModelAttachPoint>();
 
-        // Convert degrees from json to radian
-        foreach (var vehicle in attachPoints)
+        foreach (var filePath in attachFiles)
+        {
+            if (!File.Exists(filePath))
+            {
+                Logger.Info($"Missing file: {Path.GetFileName(filePath)}");
+                continue;
+            }
+
+            var contents = FileManager.GetFileContents(filePath);
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"File {filePath} is empty.");
+                continue;
+            }
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<SlaveModelAttachPoint> attachPoints, out _))
+            {
+                allAttachPoints.AddRange(attachPoints);
+            }
+            else
+            {
+                Logger.Error($"Error parsing {filePath}");
+                continue;
+            }
+        }
+
+        // Log the count with proper singular/plural grammar.
+        int count = allAttachPoints.Count;
+        Logger.Info($"{count} slave model attach point{(count == 1 ? "" : "s")} loaded...");
+
+        // Convert degrees from JSON to radians.
+        foreach (var vehicle in allAttachPoints)
         {
             foreach (var pos in vehicle.AttachPoints)
             {
@@ -852,12 +887,11 @@ value.Yaw);
         }
 
         _attachPoints = [];
-        foreach (var set in attachPoints)
+        foreach (var set in allAttachPoints)
         {
             _attachPoints[set.ModelId] = set.AttachPoints;
         }
     }
-
     /// <summary>
     /// Load slave data
     /// </summary>

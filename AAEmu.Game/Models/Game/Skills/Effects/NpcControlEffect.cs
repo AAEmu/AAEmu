@@ -46,10 +46,14 @@ public class NpcControlEffect : EffectTemplate
                     {
                         if (targetNpc.IsInPatrol) { break; }
                         targetNpc.IsInPatrol = true;
-                        targetNpc.Simulation.RunningMode = false;
-                        targetNpc.Simulation.MoveToPathEnabled = false;
-                        targetNpc.Simulation.MoveFileName = ParamString;
-                        targetNpc.Simulation.GoToPath(targetNpc, true);
+                        if (targetNpc.Simulation != null)
+                        {
+                            targetNpc.Simulation.RunningMode = false;
+                            targetNpc.Simulation.MoveToPathEnabled = false;
+                            targetNpc.Simulation.MoveFileName = ParamString;
+                            targetNpc.Simulation.GoToPath(targetNpc, true);
+                        }
+
                         break;
                     }
                 case NpcControlCategory.AttackUnit:
@@ -94,12 +98,15 @@ public class NpcControlEffect : EffectTemplate
                             {
                                 if (targetNpc.IsInPatrol) { return; }
                                 targetNpc.IsInPatrol = true;
-                                targetNpc.Simulation.RunningMode = false;
-                                targetNpc.Simulation.Cycle = false;
-                                targetNpc.Simulation.MoveToPathEnabled = false;
-                                targetNpc.Simulation.MoveFileName = fileName;
-                                targetNpc.Simulation.MoveFileName2 = fileName2;
-                                targetNpc.Simulation.GoToPath(targetNpc, true, skillId, timeout);
+                                if (targetNpc.Simulation != null)
+                                {
+                                    targetNpc.Simulation.RunningMode = false;
+                                    targetNpc.Simulation.Cycle = false;
+                                    targetNpc.Simulation.MoveToPathEnabled = false;
+                                    targetNpc.Simulation.MoveFileName = fileName;
+                                    targetNpc.Simulation.MoveFileName2 = fileName2;
+                                    targetNpc.Simulation.GoToPath(targetNpc, true, skillId, timeout);
+                                }
                             }
                         }
                         break;

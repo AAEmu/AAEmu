@@ -92,7 +92,7 @@ public class SCUnitStatePacket : GamePacket
                 var npc = (Npc)_unit;
                 stream.WriteBc(npc.ObjId);    // objId
                 stream.Write(npc.TemplateId); // npc templateId
-                stream.Write(0);              // type(id) (ownerId?)
+                stream.Write(npc.OwnerId);    // ownerId (primarily used for target_my_npc flag)
                 stream.Write((byte)0);        // clientDriven
                 break;
             case BaseUnitType.Slave:
@@ -617,8 +617,8 @@ public class SCUnitStatePacket : GamePacket
         stream.Write(effect.Index);
         stream.Write(effect.Template.BuffId);
         stream.Write(effect.SkillCaster);
-        stream.Write(0u);                      // type(id)
-        stream.Write(effect.Caster.Level);     // sourceLevel
+        stream.Write(effect.Caster?.Id ?? 0);    // type(id)
+        stream.Write(effect.Caster?.Level ?? 1); // sourceLevel
         stream.Write((short)effect.AbLevel);   // sourceAbLevel
         stream.Write(effect.Duration);         // totalTime
         stream.Write(effect.GetTimeElapsed()); // elapsedTime

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Numerics;
+using Jitter.LinearMath;
 
 namespace AAEmu.Game.Utils;
 
@@ -22,5 +24,15 @@ public static class NumericExtensions
     public static float RadToDeg(this float val)
     {
         return val / MathF.PI * 180f;
+    }
+
+    public static Vector3 JVectorToVector(this JVector val)
+    {
+        return new Vector3(val.X, val.Z, val.Y);
+    }
+
+    public static JVector VectorToJVector(this Vector3 val)
+    {
+        return new JVector(val.X, val.Z, val.Y);
     }
 }

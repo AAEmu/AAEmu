@@ -312,7 +312,7 @@ public class Inventory
 
         var action = SwapAction.doNothing;
 
-        // Try to grab the target item by it's itemId
+        // Try to grab the target item by its itemId
         var itemInTargetSlot = ItemManager.Instance.GetItemByItemId(toItemId);
         // If no count provided, and we have a source item, use that item's total count instead
         if (count <= 0 && fromItem != null)
@@ -614,7 +614,7 @@ public class Inventory
             case SwapAction.doNothing:
             default:
                 // Should be impossible to get here
-                Owner.SendMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action + "|r");
+                Owner.SendDebugMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action + "|r");
                 Logger.Error("SplitOrMoveItem swap action not implemented " + action);
                 break;
         }

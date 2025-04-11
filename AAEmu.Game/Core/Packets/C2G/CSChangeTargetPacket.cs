@@ -29,24 +29,24 @@ public class CSChangeTargetPacket : GamePacket
 
         if (targetId == 0)
         {
-            Connection.ActiveChar.SendMessage("Selected nothing");
+            Connection.ActiveChar.SendDebugMessage("Selected nothing");
             return;
         }
         if (Connection.ActiveChar.CurrentTarget == null)
         {
-            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, TemplateId: not found in Db");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, TemplateId: not found in Db");
             WorldManager.Instance.RemoveObject(targetId); // trying to delete the missing object
             return;
         }
         if (Connection.ActiveChar.CurrentTarget is Portal portal)
-            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, TemplateId: {portal.TemplateId}\nPos: {portal.Transform}");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, TemplateId: {portal.TemplateId}\nPos: {portal.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Npc npc)
         {
             var spawnerId = npc.Spawner != null && npc.Spawner.NpcSpawnerIds.Count > 0
                 ? npc.Spawner.NpcSpawnerIds[0]
                 : 0u;
 
-            Connection.ActiveChar.SendMessage(string.Format("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7:F1}\nPos: {5}",
+            Connection.ActiveChar.SendDebugMessage(string.Format("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7:F1}\nPos: {5}",
                 targetId,
                 npc.TemplateId,
                 npc.Ai?.GetType().Name.Replace("AiCharacter", ""),
@@ -55,14 +55,14 @@ public class CSChangeTargetPacket : GamePacket
                 npc.CurrentGameStance, npc.BaseMoveSpeed));
         }
         else if (Connection.ActiveChar.CurrentTarget is House house)
-            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, HouseId: {house.Id}, Pos: {house.Transform}");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, HouseId: {house.Id}, Pos: {house.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)
-            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, Transfer TemplateId: {transfer.TemplateId}\nPos: {transfer.Transform}");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, Transfer TemplateId: {transfer.TemplateId}\nPos: {transfer.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Slave slave)
-            Connection.ActiveChar.SendMessage($"ObjId: {slave.ObjId}, Slave TemplateId: {slave.TemplateId}, Id: {slave.Id}, Owner: {slave.Summoner?.Name}\nPos: {slave.Transform}");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {slave.ObjId}, Slave TemplateId: {slave.TemplateId}, Id: {slave.Id}, Owner: {slave.Summoner?.Name}\nPos: {slave.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Character character)
-            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, CharacterId: {character.Id}, \nPos: {character.Transform.ToFullString(true, true)}");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, CharacterId: {character.Id}, \nPos: {character.Transform.ToFullString(true, true)}");
         else
-            Connection.ActiveChar.SendMessage($"ObjId: {targetId}, Pos: {Connection.ActiveChar.CurrentTarget.Transform}, {Connection.ActiveChar.CurrentTarget.Name}");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, Pos: {Connection.ActiveChar.CurrentTarget.Transform}, {Connection.ActiveChar.CurrentTarget.Name}");
     }
 }

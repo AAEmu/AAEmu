@@ -254,14 +254,7 @@ public class ItemManager : Singleton<ItemManager>
 
     public ItemTemplate GetItemTemplateFromItemId(uint itemId)
     {
-        foreach (var item in _templates)
-        {
-            if (item.Value.Id == itemId)
-            {
-                return item.Value;
-            }
-        }
-        return null;
+        return _templates.GetValueOrDefault(itemId);
     }
 
     private List<uint> GetItemIdsBySearchName(string searchString)

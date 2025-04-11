@@ -1,5 +1,6 @@
 @echo off
 cd ..
 pushd AAEmu.Login
-    start /I dotnet run AAEmu.Login
+    dotnet build -f net9.0 AAEmu.Login.csproj
+	pause
 popd

@@ -188,12 +188,10 @@ public abstract class NpcAi
 
     private void Transition(TransitionEvent on)
     {
-        if (!_transitions.TryGetValue(_currentBehavior, out var transitionList))
-            return;
+        if (_currentBehavior == null) return;
+        if (!_transitions.TryGetValue(_currentBehavior, out var transitionList)) return;
         var transition = transitionList.SingleOrDefault(t => t.On == on);
-        if (transition == null)
-            return;
-
+        if (transition == null) return;
         var newBehavior = GetBehavior(transition.Kind);
         SetCurrentBehavior(newBehavior);
     }

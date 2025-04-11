@@ -113,7 +113,51 @@ public class HousingManager : Singleton<HousingManager>
 
         return house;
     }
+    private List<HousingBindingTemplate> LoadHousingBindings(string dataFolder)
+    {
+        Logger.Info("Loading Housing Templates...");
+        var housingBindings = new List<HousingBindingTemplate>();
+        string[] bindingFiles;
 
+        try
+        {
+            bindingFiles = Directory.GetFiles(dataFolder, "housing_bindings*.json");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Error retrieving housing binding files: {ex.Message}");
+            return housingBindings;
+        }
+
+        foreach (var filePath in bindingFiles)
+        {
+            if (!File.Exists(filePath))
+            {
+                Logger.Info($"Missing file: {Path.GetFileName(filePath)}");
+                continue;
+            }
+
+            var contents = FileManager.GetFileContents(filePath);
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"File {filePath} is empty.");
+                continue;
+            }
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<HousingBindingTemplate> templates, out _))
+            {
+                housingBindings.AddRange(templates);
+            }
+            else
+            {
+                Logger.Error($"Error parsing {filePath}");
+                // Simply log and continue; no exception thrown.
+                continue;
+            }
+        }
+
+        return housingBindings;
+    }
     /// <summary>
     /// Load housing definitions, player houses and starts tax check timer
     /// </summary>
@@ -156,16 +200,21 @@ public class HousingManager : Singleton<HousingManager>
 
             Logger.Info("Loading Housing Templates...");
 
-            var filePath = Path.Combine(FileManager.AppPath, "Data", "housing_bindings.json");
-            var contents = FileManager.GetFileContents(filePath);
-            if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException(
-                    $"File {filePath} doesn't exists or is empty.");
+            // Define the folder path where your housing binding files reside.
+            string dataFolder = Path.Combine(FileManager.AppPath, "Data");
 
-            if (JsonHelper.TryDeserializeObject(contents, out List<HousingBindingTemplate> binding, out _))
-                Logger.Info("Housing bindings loaded...");
+            // Call the multi-file loader function.
+            var binding = LoadHousingBindings(dataFolder);
+
+            // Log the outcome based on whether bindings were found.
+            if (binding.Count > 0)
+            {
+                Logger.Info($"{binding.Count} housing binding{(binding.Count == 1 ? "" : "s")} loaded...");
+            }
             else
+            {
                 Logger.Warn("Housing bindings not loaded...");
+            }
 
             using (var command = connection.CreateCommand())
             {

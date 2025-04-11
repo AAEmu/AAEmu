@@ -135,7 +135,7 @@ public class CharacterQuests
 
         // Add it to the Active Quests
         ActiveQuests.Add(quest.TemplateId, quest);
-        quest.Owner.SendMessage($"[Quest] {Owner.Name}, quest {questId} added.");
+        quest.Owner.SendDebugMessage($"[Quest] {Owner.Name}, quest {questId} added.");
 
         // Execute the first Step
         _ = quest.RunCurrentStep(); // We don't need the return value here
@@ -235,7 +235,7 @@ public class CharacterQuests
             SetCompletedQuestFlag(questId, false);
         }
 
-        quest.Owner.SendMessage($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
+        quest.Owner.SendDebugMessage($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
         Logger.Warn($"[Quest] for player: {Owner.Name}, quest: {questId} removed.");
 
         QuestManager.Instance.RemoveQuestTimer(Owner.Id, questId);

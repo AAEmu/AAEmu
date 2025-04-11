@@ -104,6 +104,9 @@ public class CSSelectCharacterPacket : GamePacket
                 character.Buffs.AddBuff(new Buff(character, character, casterObj, buffTemplate, null, DateTime.UtcNow) { Passive = true });
             }
 
+            character.UpdateGearBonuses(null, null);
+            character.RestoreSavedHpMp();
+
             character.Breath = character.LungCapacity;
 
             Connection.ActiveChar.OnZoneChange(0, Connection.ActiveChar.Transform.ZoneId);

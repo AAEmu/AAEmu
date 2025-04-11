@@ -40,20 +40,20 @@ public class NpcSpawnerNpc : Spawner<Npc>
         MemberType = "Npc";
     }
 
-    public List<Npc> Spawn(NpcSpawner npcSpawner)
+    public List<Npc> Spawn(NpcSpawner npcSpawner, uint ownerID = 0)
     {
         switch (MemberType)
         {
             case "Npc":
-                return SpawnNpc(npcSpawner);
+                return SpawnNpc(npcSpawner, ownerID);
             case "NpcGroup":
-                return SpawnNpcGroup(npcSpawner);
+                return SpawnNpcGroup(npcSpawner, ownerID);
             default:
                 throw new InvalidOperationException($"Tried spawning an unsupported line from NpcSpawnerNpc - Id: {Id}");
         }
     }
 
-    private List<Npc> SpawnNpc(NpcSpawner npcSpawner)
+    private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint ownerID = 0)
     {
         var npcs = new List<Npc>();
         var npc = NpcManager.Instance.Create(0, MemberId);
@@ -62,6 +62,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             Logger.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db. Spawner Position: {npcSpawner.Position}");
             return null;
         }
+        npc.OwnerId = ownerID;
 
         npc.RegisterNpcEvents();
 
@@ -111,8 +112,8 @@ public class NpcSpawnerNpc : Spawner<Npc>
         return npcs;
     }
 
-    private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner)
+    private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint ownerID = 0)
     {
-        return SpawnNpc(npcSpawner);
+        return SpawnNpc(npcSpawner, ownerID);
     }
 }

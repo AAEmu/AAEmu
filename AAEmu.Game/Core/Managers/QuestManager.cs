@@ -1999,7 +1999,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
 
         // Actually schedule the task
         TaskManager.Instance.Schedule(timeoutTask, TimeSpan.FromMilliseconds(limitTime));
-        owner.SendMessage($"[Quest] Quest ({quest.Id}) will end in {limitTime / 60000} minutes.");
+        owner.SendDebugMessage($"[Quest] Quest ({quest.Id}) will end in {limitTime / 60000} minutes.");
         return true;
     }
 

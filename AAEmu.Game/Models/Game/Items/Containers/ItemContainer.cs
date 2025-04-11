@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
@@ -419,8 +420,7 @@ public class ItemContainer
 
             if (sourceItemTasks.Count > 0)
             {
-                sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks,
-                    []));
+                sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks, []));
             }
         }
 
@@ -467,8 +467,7 @@ public class ItemContainer
 
         // Handle items that can expire
         GamePacket sync = null;
-        if (item.ExpirationOnlineMinutesLeft > 0.0 || item.ExpirationTime > DateTime.UtcNow ||
-            item.UnpackTime > DateTime.UtcNow)
+        if (item.ExpirationOnlineMinutesLeft > 0.0 || item.ExpirationTime > DateTime.UtcNow || item.UnpackTime > DateTime.UtcNow)
         {
             sync = ItemManager.ExpireItemPacket(item);
         }
@@ -481,8 +480,7 @@ public class ItemContainer
         var res = item._holdingContainer.Items.Remove(item);
         if (res && task != ItemTaskType.Invalid)
         {
-            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)],
-                []));
+            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], []));
         }
 
         if (res && releaseIdAsWell)
@@ -614,8 +612,7 @@ public class ItemContainer
     /// <param name="crafterId"></param>
     /// <param name="preferredSlot"></param>
     /// <returns></returns>
-    public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd,
-        out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot = -1)
+    public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot = -1)
     {
         newItemsList = [];
         updatedItemsList = [];
@@ -631,8 +628,7 @@ public class ItemContainer
             return false; // Invalid item templateId
         }
 
-        var totalFreeSpaceForThisItem = currentItems.Count * template.MaxCount - currentTotalItemCount +
-                                        FreeSlotCount * template.MaxCount;
+        var totalFreeSpaceForThisItem = currentItems.Count * template.MaxCount - currentTotalItemCount + FreeSlotCount * template.MaxCount;
 
         // Trying to add too many item units to this container ?
         if (amountToAdd > totalFreeSpaceForThisItem)
@@ -659,8 +655,8 @@ public class ItemContainer
         // First try to add to existing item counts
         var itemTasks = new List<ItemTask>();
 
-        // Never update in mail containers
-        if (ContainerType != SlotType.Mail)
+        // Never update in mail or auction containers
+        if ((ContainerType != SlotType.Mail) && (ContainerType != SlotType.Auction))
         {
             foreach (var i in currentItems)
             {
@@ -712,8 +708,7 @@ public class ItemContainer
             // Timers
             if (newItem.Template.ExpAbsLifetime > 0)
             {
-                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem,
-                    DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
+                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
             }
 
             if (newItem.Template.ExpOnlineLifetime > 0)
@@ -729,23 +724,20 @@ public class ItemContainer
             if (newItem is EquipItem equipItem && newItem.Template is EquipItemTemplate equipItemTemplate)
             {
                 equipItem.ChargeCount = equipItemTemplate.ChargeCount;
-                if (equipItemTemplate.ChargeLifetime > 0 &&
-                    equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) == false)
+                if (equipItemTemplate.ChargeLifetime > 0 && equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) == false)
                 {
                     equipItem.ChargeStartTime = DateTime.UtcNow;
                 }
             }
 
-            if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem,
-                    prefSlot)) // Task set to invalid as we send our own packets inside this function
+            if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, prefSlot)) // Task set to invalid as we send our own packets inside this function
             {
                 itemTasks.Add(new ItemAdd(newItem));
                 newItemsList.Add(newItem);
             }
             else
             {
-                throw new GameException(
-                    "AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
+                throw new GameException("AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
             }
         }
 
@@ -800,8 +792,7 @@ public class ItemContainer
         }
 
         GetAllItemsByTemplate(itemToAdd.TemplateId, itemToAdd.Grade, out currentItems, out var currentTotalItemCount);
-        return currentItems.Count * itemToAdd.Template.MaxCount - currentTotalItemCount +
-               FreeSlotCount * itemToAdd.Template.MaxCount;
+        return currentItems.Count * itemToAdd.Template.MaxCount - currentTotalItemCount + FreeSlotCount * itemToAdd.Template.MaxCount;
     }
 
     /// <summary>
@@ -827,8 +818,7 @@ public class ItemContainer
     /// <param name="gradeToFind">Only lists items of specific grade equal to gradeToFind or any grade if -1 was provided</param>
     /// <param name="unitsOfItemFound">Total count of the count values of the found items</param>
     /// <returns>True if any item was found</returns>
-    public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems,
-        out int unitsOfItemFound)
+    public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems, out int unitsOfItemFound)
     {
         foundItems = [];
         unitsOfItemFound = 0;
@@ -901,8 +891,7 @@ public class ItemContainer
         // When it's a backpack, allow only gliders by default
         if (PartOfPlayerInventory && item.Template is BackpackTemplate backpackTemplate)
         {
-            return backpackTemplate.BackpackType == BackpackType.Glider ||
-                   backpackTemplate.BackpackType == BackpackType.ToyFlag;
+            return backpackTemplate.BackpackType is BackpackType.Glider or BackpackType.ToyFlag;
         }
 
         return true;
@@ -917,8 +906,7 @@ public class ItemContainer
     /// <param name="createWithNewId"></param>
     /// <param name="parentUnit">Actual unit that will hold this container</param>
     /// <returns></returns>
-    public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType,
-        bool createWithNewId, Unit parentUnit)
+    public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool createWithNewId, Unit parentUnit)
     {
         if (containerTypeName.EndsWith("MateEquipmentContainer"))
         {

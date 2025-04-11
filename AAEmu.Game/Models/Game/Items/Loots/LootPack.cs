@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -222,11 +223,12 @@ public class LootPack
                 }
 
                 // Group 0 items will always need to be included
-                if (loot.Group <= 0)
+                if (loot.Group <= 0 || loot.AlwaysDrop || loot.DropRate == 10000000)
                 {
-                    if (!selectedItemsByGroup.ContainsKey(loot.Group))
-                        selectedItemsByGroup.Add(loot.Group, []);
-                    selectedItemsByGroup[loot.Group].Add(loot);
+                    ref var lootList = ref CollectionsMarshal.GetValueRefOrAddDefault(selectedItemsByGroup, 0u, out var exists); // replaced loot.Group==0 with 0 to make it easier to see.
+                    if (!exists)
+                        lootList = [];
+                    lootList.Add(loot);
                     continue;
                 }
 

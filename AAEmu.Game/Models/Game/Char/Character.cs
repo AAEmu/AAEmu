@@ -229,6 +229,8 @@ public partial class Character : Unit, ICharacter
 
     // Set to true when character has finished loading for this instance
     private bool FinishedLoading { get; set; } = false;
+    private int _savedHp = 99999999;
+    private int _savedMp = 99999999;
 
     #region Attributes
 
@@ -1771,11 +1773,34 @@ public partial class Character : Unit, ICharacter
 
     public void SendMessage(string message) => SendMessage(ChatType.System, message, null);
 
+    /// <summary>
+    /// Sends a debug message to player chat, but only if DebugInfo is enabled in the configuration
+    /// </summary>
+    /// <param name="message"></param>
+    public void SendDebugMessage(string message)
+    {
+        if (AppConfiguration.Instance.DebugInfo && CharacterManager.Instance.GetEffectiveAccessLevel(this) >= AppConfiguration.Instance.DebugInfoLevel)
+            SendMessage(ChatType.System, message, null);
+    }
+    
+    /// <summary>
+    /// Sends an error message to the player
+    /// </summary>
+    /// <param name="errorMsgType">Error Id</param>
+    /// <param name="type">Addition argument for error if needed</param>
+    /// <param name="isNotify">If true, will also give a popup-text</param>
     public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
     {
         SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
     }
 
+    /// <summary>
+    /// Sends an error message to the player that also has a sub-type
+    /// </summary>
+    /// <param name="errorMsgType1"></param>
+    /// <param name="errorMsgType2"></param>
+    /// <param name="type"></param>
+    /// <param name="isNotify"></param>
     public void SendErrorMessage(ErrorMessageType errorMsgType1, ErrorMessageType errorMsgType2, uint type = 0, bool isNotify = true)
     {
         SendPacket(new SCErrorMsgPacket(errorMsgType1, errorMsgType2, type, isNotify));
@@ -2054,6 +2079,8 @@ public partial class Character : Unit, ICharacter
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
+                    character._savedHp = character.Hp; // save for later
+                    character._savedMp = character.Mp;
                     // character.LaborPower = reader.GetInt16("labor_power");
                     // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
                     character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
@@ -2170,6 +2197,8 @@ public partial class Character : Unit, ICharacter
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
+                    character._savedHp = character.Hp; // save for later
+                    character._savedMp = character.Mp;
                     character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
                     // character.LaborPower = reader.GetInt16("labor_power");
                     // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
@@ -2380,7 +2409,7 @@ public partial class Character : Unit, ICharacter
         }
 
         Mails = new CharacterMails(this);
-        MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
+        MailManager.Instance.GetCurrentMailList(Id); //Doesn't need a connection, but does need to load after the inventory
         // Update sync housing factions on login
         HousingManager.Instance.UpdateOwnedHousingFaction(Id, Faction.Id);
     }
@@ -2670,6 +2699,15 @@ public partial class Character : Unit, ICharacter
             return;
         FinishedLoading = true;
         SendMessage(ChatType.System, AppConfiguration.Instance.World.MOTD);
+    }
+
+    /// <summary>
+    /// Restores HP/MP back to their loaded values
+    /// </summary>
+    public void RestoreSavedHpMp()
+    {
+        Hp = Math.Min(_savedHp, MaxHp);
+        Mp = Math.Min(_savedMp, MaxMp);
     }
 
     public override string DebugName()

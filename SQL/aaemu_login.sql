@@ -25,6 +25,8 @@ CREATE TABLE `users` (
   `last_ip` varchar(128) NOT NULL,
   `created_at` bigint unsigned NOT NULL DEFAULT '0',
   `updated_at` bigint unsigned NOT NULL DEFAULT '0',
+  `banned` int NOT NULL DEFAULT '0',
+  `ban_reason` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Account login information';

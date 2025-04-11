@@ -29,6 +29,16 @@ public class CSDestroyItemPacket : GamePacket
             return;
         }
 
+        if (count <= 0)
+        {
+            // The amount to destroy should always be more than 0, assume hacking otherwise, and just destroy the entire item
+            SusManager.Instance.LogActivity(
+                SusManager.CategoryCheating,
+                Connection.ActiveChar,
+                $"CSDestroyItemPacket, player {Connection.ActiveChar?.Name} attempted to destroy a negative amount of items {count} for item: template {item.TemplateId}, id {item.Id}");
+            count = item.Count;
+        }
+
         if (item.Count > count)
         {
             item.Count -= count;

@@ -24,7 +24,7 @@ using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
 namespace AAEmu.Game.Core.Managers.World
 {
-    // ReSharper disable once HollowTypeName
+    // ReSharper disable HollowTypeName
     public class BoatPhysicsManager
     {
         private float TargetPhysicsTps { get; set; } = 100f;
@@ -95,10 +95,33 @@ namespace AAEmu.Game.Core.Managers.World
                     SlaveKind.MerchantShip, SlaveKind.Speedboat
                 };
 
-                while (ThreadRunning && Thread.CurrentThread.IsAlive)
+                var lastTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                var fixedStep = TimeSpan.FromSeconds(1f / TargetPhysicsTps);
+                const int MaxSteps = 4;
+                var accumulatedTime = TimeSpan.Zero;
+
+                while (ThreadRunning)
                 {
-                    Thread.Sleep((int)Math.Floor(1000f / TargetPhysicsTps));
-                    _physWorld.Step(1f / TargetPhysicsTps, false);
+                    Thread.Sleep(fixedStep);
+
+                    var currentTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                    var timeSinceLastTick = currentTick - lastTick;
+                    accumulatedTime += timeSinceLastTick;
+                    var steps = 0;
+
+                    // Potentially step multiple times to catch up if we were running behind.
+                    while (accumulatedTime > fixedStep)
+                    {
+                        _physWorld.Step((float)fixedStep.TotalSeconds, false);
+                        accumulatedTime -= fixedStep;
+
+                        if (++steps >= MaxSteps)
+                        {
+                            break;
+                        }
+                    }
+
+                    lastTick = currentTick;
 
                     lock (_slaveListLock)
                     {
@@ -120,7 +143,10 @@ namespace AAEmu.Game.Core.Managers.World
                             // Skip simulation if no rigidbody applied to slave
                             var slaveRigidBody = slave.RigidBody;
                             if (slaveRigidBody == null)
+                            {
+                                Logger.Debug($"Skip {slave.Name}");
                                 continue;
+                            }
 
                             SyncTransformWithRigidBody(slave);
                             BoatPhysicsTick(slave, slave.RigidBody);
@@ -144,6 +170,12 @@ namespace AAEmu.Game.Core.Managers.World
             var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
             var yDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
             var zDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
+            if (zDelta < -7)
+            {
+                slaveRigidBody.Position = slaveRigidBody.Position with { Y = slave.Transform.World.Position.Z };
+                zDelta = 0;
+                Logger.Info($"SyncTransformWithRigidBody {slave.Name} -> {SimulationWorld.Name}, _waterLevel={_waterLevel}, slave.Position.Z={slave.Transform.World.Position.Z}");
+            }
 
             slave.Transform.Local.Translate(xDelta, yDelta, zDelta);
             var rotation = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
@@ -159,10 +191,23 @@ namespace AAEmu.Game.Core.Managers.World
                 return;
             }
 
+            var slaveMaterial = new Material();
+
+            // New version: Keel & Tube
+            var transformedShapes = new CompoundShape.TransformedShape[2];
+            // Tube
             var slaveBox = new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY);
-            var rigidBody = new RigidBody(slaveBox);
-            rigidBody.Position = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y);
-            rigidBody.Orientation = JMatrix.CreateRotationY(slave.Transform.World.Rotation.Z);
+            transformedShapes[0] = new CompoundShape.TransformedShape(slaveBox, JMatrix.Identity, JVector.Zero);
+
+            // Keel
+            transformedShapes[1] = new CompoundShape.TransformedShape(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, 1f), JMatrix.Identity, JVector.Zero);
+
+            // Compound & rigidBody
+            var compoundShape = new CompoundShape(transformedShapes);
+            var rigidBody = new RigidBody(compoundShape, slaveMaterial);
+
+            rigidBody.Position = slave.Transform.World.Position.VectorToJVector();
+            rigidBody.Orientation = JMatrix.CreateRotationY(slave.Transform.World.Rotation.Z); // yaw y-axis in Jitter, z-axis in Archeage
             rigidBody.Mass = shipModel.Mass;
             rigidBody.IsActive = true;
             rigidBody.IsStatic = false;
@@ -170,7 +215,6 @@ namespace AAEmu.Game.Core.Managers.World
             _buoyancy.Add(rigidBody, 3);
             _physWorld.AddBody(rigidBody);
             slave.RigidBody = rigidBody;
-            Logger.Debug($"AddShip {slave.Name} -> {SimulationWorld.Name}");
         }
 
         public void RemoveShip(Slave slave)
@@ -189,6 +233,9 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var shipModel = ModelManager.Instance.GetShipModel(slave.Template.ModelId);
             if (shipModel == null) return;
+
+            rigidBody.IsActive = true;
+            rigidBody.IsStatic = false;
 
             // Calculate submerged depth and buoyancy force
             var submergedDepth = Math.Max(0, _waterLevel - rigidBody.Position.Y);
@@ -261,7 +308,7 @@ namespace AAEmu.Game.Core.Managers.World
                 slave.Steering = 0;
             }
 
-            //ApplyCollisions(slave, rigidBody, shipModel);
+            ApplyCollisions(slave, rigidBody, shipModel);
             ApplyForceAndTorque(slave, rigidBody, shipModel);
             SendUpdatedMovementData(slave, rigidBody);
         }
@@ -299,7 +346,8 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var floor = WorldManager.Instance.GetHeight(slave.Transform);
             var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
-            var boatBottom = rigidBody.Position.Y/* - boxSize.Y / 2*/ - shipModel.MassBoxSizeZ / 2 - shipModel.KeelHeight + shipModel.MassCenterZ;
+            var boatBottom = rigidBody.Position.Y;
+            //Logger.Debug($"Slave: {slave.Name}, floor: {floor:F1}, boatBottom: {boatBottom:F1}, boxSize: {boxSize}");
 
             if (boatBottom < floor)
             {
@@ -342,11 +390,10 @@ namespace AAEmu.Game.Core.Managers.World
             slave.RotSpeed = Math.Max(slave.RotSpeed, -shipModel.SteerVel);
 
             // Slow down turning if no steering active
+            const float AngularDamping = 0.9f; // Damping of angular velocity
             if (slave.Steering == 0)
             {
-                slave.RotSpeed -= slave.RotSpeed / (TargetPhysicsTps * 5);
-                if (Math.Abs(slave.RotSpeed) <= 0.01)
-                    slave.RotSpeed = 0;
+                slave.RotSpeed *= AngularDamping;
             }
             slave.RotSpeed = Math.Clamp(slave.RotSpeed, -1f, 1f);
 
@@ -361,12 +408,12 @@ namespace AAEmu.Game.Core.Managers.World
 
             // Calculate some stuff for later
             var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
-            var tubeVolume = shipModel.TubeLength * shipModel.TubeRadius * MathF.PI;
+            var tubeVolume = shipModel.MassCenterX * shipModel.MassCenterY * shipModel.MassCenterZ * MathF.PI;
             var solidVolume = MathF.Abs(rigidBody.Mass - tubeVolume);
 
             // Get current rotation of the ship
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
-            var slaveRotRad = rpy.Item1 + 90 * (MathF.PI / 180.0f);
+            var slaveRotRad = rpy.Item1 + 1.57f; // 90
 
             var forceThrottle = slave.Speed * slave.MoveSpeedMul; // Not sure if correct, but it feels correct
             // Apply directional force
@@ -408,7 +455,7 @@ namespace AAEmu.Game.Core.Managers.World
             moveType.VelZ = (short)(rigidBody.LinearVelocity.Y * 1024);
 
             // Do not allow the body to flip
-            //slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0); // TODO: Fix me with proper physics
+            slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0); // TODO: Fix me with proper physics
 
             // Apply new Location/Rotation to GameObject
             slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);

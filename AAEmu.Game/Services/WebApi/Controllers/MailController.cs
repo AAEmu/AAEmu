@@ -16,7 +16,7 @@ namespace AAEmu.Game.Services.WebApi.Controllers;
 
 internal class MailController : BaseController
 {
-    [WebApiPost("/mail/send")]
+    [WebApiPost("/api/mail/send")]
     public HttpResponse Send(HttpRequest request)
     {
         var mailRequest = JsonSerializer.Deserialize<SendMailRequest>(request.Body);
@@ -225,5 +225,93 @@ internal class MailController : BaseController
         }
 
         return OkJson(new { SendCount = sended });
+    }
+
+    [WebApiPost("/api/mail/list")]
+    public HttpResponse List(HttpRequest request)
+    {
+        // Parse request
+        ListMailRequest listRequest = null;
+        try
+        {
+            listRequest = JsonSerializer.Deserialize<ListMailRequest>(request.Body);
+        }
+        catch
+        {
+            return BadRequestJson("Invalid request.");
+        }
+
+        // Check if required arguments are set
+        if (listRequest == null || listRequest.CharacterId <= 0)
+        {
+            return BadRequestJson("Unknown character.");
+        }
+
+        // Check if the Id links to a used name 
+        var characterName = NameManager.Instance.GetCharacterName(listRequest.CharacterId);
+        if (string.IsNullOrWhiteSpace(characterName))
+        {
+            return BadRequestJson("Unknown character.");
+        }
+
+        // Get all the character's mails
+        var mailItems = new List<ListMailResponseItem>();
+        var mailList = MailManager.Instance.GetCurrentMailList(listRequest.CharacterId);
+        foreach (var (mailId, mail) in mailList)
+        {
+            var mailItem = new ListMailResponseItem()
+            {
+                Id = mailId,
+                SenderId = mail.Header.SenderId,
+                SenderName = mail.Header.SenderName,
+                ReceiveDate = mail.Body.RecvDate,
+                ReceiverId = mail.Header.ReceiverId,
+                IsDelivered = mail.IsDelivered,
+                Title = mail.Title,
+                MailType = mail.MailType,
+                SendDate = mail.Body.SendDate,
+                ReceiverName = mail.Header.ReceiverName,
+                OpenDate = mail.OpenDate,
+                AttachmentCount = mail.Body.Attachments.Count,
+                CopperCoins = mail.Body.CopperCoins,
+            };
+            mailItems.Add(mailItem);
+        }
+        return OkJson(new { mailItems });
+    }
+    
+    [WebApiPost("/api/mail/delete")]
+    public HttpResponse Delete(HttpRequest request)
+    {
+        // Parse request
+        DeleteMailRequest deleteRequest = null;
+        try
+        {
+            deleteRequest = JsonSerializer.Deserialize<DeleteMailRequest>(request.Body);
+        }
+        catch
+        {
+            return BadRequestJson("Invalid request.");
+        }
+
+        // Check if required arguments are set
+        if (deleteRequest == null || deleteRequest.MailId <= 0)
+        {
+            return BadRequestJson("Unknown mail.");
+        }
+
+        // Get the mail and verify if sender/receiver match
+        var mail = MailManager.Instance.GetMailById(deleteRequest.MailId);
+        if (mail == null || mail.Header.SenderId != deleteRequest.SenderId ||
+            mail.Header.ReceiverId != deleteRequest.ReceiverId)
+        {
+            return BadRequestJson("Verification failed.");
+        }
+
+        if (!MailManager.Instance.DeleteMail(mail, deleteRequest.TrashItems))
+        {
+            return BadRequestJson(new { message = "Mail could not be deleted.", mailId = mail.Id });
+        }
+        return OkJson(new { message = "Mail deleted.", mailId = mail.Id });
     }
 }

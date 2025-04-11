@@ -57,10 +57,8 @@ public class PlotTree
                 }
                 if (state.CancellationRequested())
                 {
-
                     if (state.IsCasting)
                     {
-
                         state.Caster.BroadcastPacket(
                             new SCPlotCastingStoppedPacket(state.ActiveSkill.TlId, 0, lastEvent),
                             true
@@ -69,16 +67,11 @@ public class PlotTree
                         new SCPlotChannelingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
                         true
                         );
-
                     }
 
                     DoPlotEnd(state);
                     return;
-
-
                 }
-
-
 
                 if (now >= item.timestamp)
                 {
@@ -88,8 +81,7 @@ public class PlotTree
                         state.Tickets.TryAdd(node.Event.Id, 1);
 
                     //Check if we hit max tickets
-                    if (state.Tickets[node.Event.Id] > node.Event.Tickets
-                        && node.Event.Tickets > 1)
+                    if (state.Tickets[node.Event.Id] > node.Event.Tickets && node.Event.Tickets > 1)
                     {
                         continue;
                     }
@@ -149,10 +141,9 @@ public class PlotTree
                     var delay = (int)queue.Min(o => (o.timestamp - DateTime.UtcNow).TotalMilliseconds);
                     delay = Math.Max(delay, 0);
 
-                    //await Task.Delay(delay).ConfigureAwait(false);
+                    // await Task.Delay(delay).ConfigureAwait(false);
                     if (delay > 0)
                         await Task.Delay(15).ConfigureAwait(false);
-
                 }
 
                 if (nodeWatch.ElapsedMilliseconds > 100)

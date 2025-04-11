@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Tasks.Skills;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -160,7 +161,51 @@ public class Buff
             StopEffectTask(replace);
         }
     }
+    public void OverwriteWith(Buff newBuff)
+    {
+        lock (_lock)
+        {
+            // Capture the remaining time before we update the StartTime.
+            var remaining = GetTimeLeft();
 
+            // Update buff properties from the new buff.
+            this.Charge = newBuff.Charge;
+            this.AbLevel = newBuff.AbLevel;
+            this.Caster = newBuff.Caster;
+            this.SkillCaster = newBuff.SkillCaster;
+
+            // Set StartTime to now.
+            var now = DateTime.UtcNow;
+            StartTime = now;
+
+            // Update Duration based on the stack rule:
+            if (Template.StackRule == BuffStackRule.Extend)
+            {
+                // Extend: new Duration = remaining time (from old timer) + newBuff.Duration.
+                Duration = newBuff.Duration + (int)remaining;
+            }
+            else
+            {
+                // Refresh: new Duration = newBuff.Duration.
+                Duration = newBuff.Duration;
+            }
+
+            // Recalculate EndTime based on the new StartTime and Duration.
+            EndTime = StartTime.AddMilliseconds(Duration);
+
+            // Remove any tasks associated with this buff using a predicate.
+            TaskManager.Instance.RemoveTasks(task =>
+            {
+                if (task is DispelTask dt && dt.Effect.Target is Buff buff)
+                {
+                    // Remove tasks if they are for this buff.
+                    return buff == this;
+                }
+                return false;
+            });
+            SetInUse(true, true);
+        }
+    }
     public void Exit(bool replace = false)
     {
         if (State == EffectState.Finished)

@@ -96,7 +96,7 @@ public class Skill
         var character = caster as Character;
 
         unit.ConditionChance = true;
-        
+
         var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster, casterCaster);
         if (requirementResult.ResultKey != SkillResultKeys.ok)
         {
@@ -860,7 +860,7 @@ public class Skill
         {
             possibleTargets.Add(caster);
         }
-        
+
         foreach (var target in possibleTargets)
         {
             if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
@@ -999,6 +999,15 @@ public class Skill
 
                 // Dice
                 if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
+                {
+                    continue;
+                }
+
+                // prevents an NPC Spawn Skill to be duplicated 
+                if (lastAppliedEffect != null &&
+                    effect.Template is NpcSpawnerSpawnEffect &&
+                    effect.EffectId == lastAppliedEffect.EffectId &&
+                    ((effect.Template as NpcSpawnerSpawnEffect).SpawnerId == (lastAppliedEffect.Template as NpcSpawnerSpawnEffect).SpawnerId))
                 {
                     continue;
                 }
@@ -1147,7 +1156,18 @@ public class Skill
                     // для квеста 3478, требуется чтобы caster был Npc
                     // для квеста 3993 должен выполняться эффект, а он прерывался из-за неправильного сравнения!
                     var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
-                    effect.Template.Apply(npc ?? caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    var effectiveNpc = npc ?? (target as Npc);
+
+                    // If we have an effective NPC and it is dead, skip the effect - KillNPCWithoutCorpse happens before death
+                    if (effectiveNpc != null && effectiveNpc.IsDead)
+                    {
+                        // Logger.Warn("Effective NPC is dead, skipping KillNpcWithoutCorpseEffect.");
+                    }
+                    else
+                    {
+                        effect.Template.Apply(npc ?? caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId),
+                            new EffectSource(this), skillObject, DateTime.UtcNow, packets);
+                    }
                 }
                 else
                 {
@@ -1155,7 +1175,7 @@ public class Skill
 
                     if (player is { SkillCancelled: true }) { Cancelled = true; }
                 }
-                
+
                 // Implement consumption of item sets
                 if (effect.ItemSetId > 0)
                 {
@@ -1256,7 +1276,7 @@ public class Skill
             // Lower cap at 1
             if ((Template.ConsumeLaborPower > 0) && (laborCost < 1))
                 laborCost = 1;
-            
+
             if (laborCost > 0 && !Cancelled && character.LaborPower >= laborCost)
             {
                 // Consume labor only if there is enough of it
