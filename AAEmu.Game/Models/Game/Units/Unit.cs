@@ -15,7 +15,6 @@ using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
-using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -227,7 +226,7 @@ public class Unit : BaseUnit, IUnit
     public SkillTask SkillTask { get; set; }
     public SkillTask AutoAttackTask { get; set; }
     public DateTime GlobalCooldown { get; set; }
-    public bool IsGlobalCooldowned => GlobalCooldown > DateTime.UtcNow;
+    public bool IsGlobalCooldownDone => GlobalCooldown > DateTime.UtcNow;
     public object GcdLock { get; set; }
     public DateTime SkillLastUsed { get; set; }
     public PlotState ActivePlotState { get; set; }
@@ -652,7 +651,7 @@ public class Unit : BaseUnit, IUnit
 
     public override void AddBonus(uint bonusIndex, Bonus bonus)
     {
-        var bonuses = Bonuses.TryGetValue(bonusIndex, out var bonuse) ? bonuse : [];
+        var bonuses = Bonuses.TryGetValue(bonusIndex, out var bonusList) ? bonusList : [];
         bonuses.Add(bonus);
         Bonuses[bonusIndex] = bonuses;
     }
@@ -953,11 +952,6 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    public virtual void Regenerate()
-    {
-        // Do nothing
-    }
-
     public WeaponWieldKind GetWeaponWieldKind()
     {
         var item = Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
@@ -1161,41 +1155,41 @@ public class Unit : BaseUnit, IUnit
 
         if (piecesToAccountForBuff.Count == 7)
         {
-            BuffTemplate templ = null;
+            BuffTemplate buffTemplate = null;
             switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
             {
                 case ArmorType.Cloth:
-                    templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth7P);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth7P);
                     break;
                 case ArmorType.Leather:
-                    templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather7P);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather7P);
                     break;
                 case ArmorType.Metal:
-                    templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate7P);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate7P);
                     break;
             }
 
-            if (templ != null)
-                Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
+            if (buffTemplate != null)
+                Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow));
         }
         else
         {
-            BuffTemplate templ = null;
+            BuffTemplate buffTemplate = null;
             switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
             {
                 case ArmorType.Cloth:
-                    templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth4P);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Cloth4P);
                     break;
                 case ArmorType.Leather:
-                    templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather4P);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Leather4P);
                     break;
                 case ArmorType.Metal:
-                    templ = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate4P);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Plate4P);
                     break;
             }
 
-            if (templ != null)
-                Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
+            if (buffTemplate != null)
+                Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow));
         }
 
         // Get only pieces >= arcane
@@ -1426,7 +1420,38 @@ public class Unit : BaseUnit, IUnit
 
     public int GetTriggerCount(uint buffId)
     {
-        return _triggerCounts.ContainsKey(buffId) ? _triggerCounts[buffId] : 0;
+        return _triggerCounts.GetValueOrDefault(buffId, 0);
     }
 
+    /// <summary>
+    /// Handle is still in combat related things
+    /// </summary>
+    /// <param name="delta"></param>
+    protected virtual void CombatTick(TimeSpan delta)
+    {
+        // TODO: Make it so you can also become out of combat if you are not on any aggro lists
+        if (IsInBattle && LastCombatActivity.AddSeconds(WorldManager.DefaultCombatTimeout) < DateTime.UtcNow)
+        {
+            IsInBattle = false;
+        }
+    }
+
+     /// <summary>
+     /// Call regeneration function of the unit
+     /// </summary>
+     /// <param name="delta"></param>
+     protected virtual void RegenTick(TimeSpan delta)
+     {
+         // Do nothing
+     }
+   
+    /// <summary>
+    /// Tick called for Units in active player regions about once per second
+    /// </summary>
+    /// <param name="delta"></param>
+    public virtual void OnActiveRegionTick(TimeSpan delta)
+    {
+        CombatTick(delta);
+        RegenTick(delta);
+    }
 }

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Threading;
-using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -34,6 +33,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
+using Task = System.Threading.Tasks.Task;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 
@@ -1316,6 +1316,11 @@ public partial class Character : Unit, ICharacter
 
     #endregion
 
+    /// <summary>
+    /// This time is used to decide if a user lost connection
+    /// </summary>
+    public DateTime LastPacketActivityTime { get; set; } = DateTime.UtcNow;
+
     public Character(UnitCustomModelParams modelParams)
     {
         _options = [];
@@ -1418,7 +1423,7 @@ public partial class Character : Unit, ICharacter
         }
     }
 
-    public bool ChangeMoney(SlotType moneylocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney) => ChangeMoney(SlotType.None, moneylocation, amount, itemTaskType);
+    public bool ChangeMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney) => ChangeMoney(SlotType.None, moneyLocation, amount, itemTaskType);
 
     public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
     {
@@ -1803,7 +1808,7 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
-    /// Sends an error message to the player that also has a sub-type
+    /// Sends an error message to the player that also has a subtype
     /// </summary>
     /// <param name="errorMsgType1"></param>
     /// <param name="errorMsgType2"></param>
@@ -1850,21 +1855,6 @@ public partial class Character : Unit, ICharacter
         }
 
         base.ReduceCurrentHp(attacker, value, killReason);
-    }
-
-    public void DoChangeBreath()
-    {
-        if (IsDrowning)
-        {
-            var damageAmount = MaxHp * .1;
-            ReduceCurrentHp(this, (int)damageAmount);
-            SendPacket(new SCEnvDamagePacket(EnvSource.Drowning, ObjId, (uint)damageAmount));
-        }
-        else
-        {
-            Breath -= 1000; //1 second
-            SendPacket(new SCSetBreathPacket(Breath));
-        }
     }
 
     public void DoRepair(List<Item> items)
@@ -1935,39 +1925,6 @@ public partial class Character : Unit, ICharacter
         }
 
         Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, []));
-    }
-
-    public override void Regenerate()
-    {
-        if (IsDead || !NeedsRegen || IsDrowning)
-        {
-            return;
-        }
-
-        var oldHp = Hp;
-
-        if (IsInBattle)
-        {
-            Hp += PersistentHpRegen;
-        }
-        else
-        {
-            Hp += HpRegen;
-        }
-
-        if (IsInPostCast)
-        {
-            Mp += PersistentMpRegen;
-        }
-        else
-        {
-            Mp += MpRegen;
-        }
-
-        Hp = Math.Min(Hp, MaxHp);
-        Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
-        PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
     /// <summary>
@@ -2716,6 +2673,121 @@ public partial class Character : Unit, ICharacter
     {
         Hp = Math.Min(_savedHp, MaxHp);
         Mp = Math.Min(_savedMp, MaxMp);
+    }
+
+    /// <summary>
+    /// Handle the "is still in combat" related things
+    /// </summary>
+    /// <param name="delta"></param>
+    protected override void CombatTick(TimeSpan delta)
+    {
+        // Handle normal combat things
+        base.CombatTick(delta);
+
+        // Player specific condition
+        if ((IsInPostCast && LastCast.AddSeconds(5) < DateTime.UtcNow))
+        {
+            IsInPostCast = false;
+        }
+    }
+
+    /// <summary>
+    /// Handle player's Breath updates
+    /// </summary>
+    /// <param name="delta"></param>
+    private void BreathTick(TimeSpan delta)
+    {
+        if (IsDead || !IsUnderWater)
+        {
+            return;
+        }
+
+        // TODO: make this delta-dependant
+        if (IsDrowning)
+        {
+            var damageAmount = MaxHp * .1;
+            ReduceCurrentHp(this, (int)damageAmount);
+            SendPacket(new SCEnvDamagePacket(EnvSource.Drowning, ObjId, (uint)damageAmount));
+        }
+        else
+        {
+            Breath -= 1000; //1 second
+            SendPacket(new SCSetBreathPacket(Breath));
+        }
+    }
+
+    /// <summary>
+    /// Call regeneration function of the unit
+    /// </summary>
+    /// <param name="delta"></param>
+    protected override void RegenTick(TimeSpan delta)
+    {
+        base.RegenTick(delta);
+
+        if (IsDead || !NeedsRegen || IsDrowning)
+        {
+            return;
+        }
+
+        var oldHp = Hp;
+
+        if (IsInBattle)
+        {
+            Hp += PersistentHpRegen;
+        }
+        else
+        {
+            Hp += HpRegen;
+        }
+
+        if (IsInPostCast)
+        {
+            Mp += PersistentMpRegen;
+        }
+        else
+        {
+            Mp += MpRegen;
+        }
+
+        Hp = Math.Min(Hp, MaxHp);
+        Mp = Math.Min(Mp, MaxMp);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
+    }
+
+    /// <summary>
+    /// Check if the player is inactive (crashed or disconnect) and remove the Character object from the world if they did
+    /// </summary>
+    /// <param name="delta"></param>
+    private void CheckPlayerInactivity(TimeSpan delta)
+    {
+        var maxAllowedInactivityTime = TimeSpan.FromMinutes(2);
+        if (DateTime.UtcNow.Subtract(delta) - LastPacketActivityTime > maxAllowedInactivityTime)
+        {
+            // Kind of prevent repeat calls
+            LastPacketActivityTime = DateTime.UtcNow;
+
+            // Remove character
+            EnterWorldManager.LeaveWorldTask(null, LeaveWorldTargetType.CharacterSelect, this);
+
+            // If this character is still linked, then unlink it from the connection
+            if ((Connection != null) && (Connection.ActiveChar == this))
+            {
+                Connection.ActiveChar = null;
+                Connection = null;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Tick called for players, about once per second
+    /// </summary>
+    /// <param name="delta"></param>    
+    public override void OnActiveRegionTick(TimeSpan delta)
+    {
+        base.OnActiveRegionTick(delta);
+        BreathTick(delta);
+        CheckPlayerInactivity(delta);
     }
 
     public override string DebugName()

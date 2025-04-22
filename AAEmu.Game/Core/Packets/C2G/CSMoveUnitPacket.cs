@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -58,6 +59,7 @@ public class CSMoveUnitPacket : GamePacket
         var character = Connection.ActiveChar;
 
         if (character == null) return;
+        character.LastPacketActivityTime = DateTime.UtcNow;
 
         // if movement is forbidden when teleporting to instances, then to exit
         if (character.DisabledSetPosition) return;

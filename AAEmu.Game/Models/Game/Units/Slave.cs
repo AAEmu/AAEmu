@@ -900,7 +900,7 @@ public class Slave : Unit
         return result;
     }
 
-    public override void Regenerate()
+    protected override void RegenTick(TimeSpan delta)
     {
         if (!NeedsRegen)
         {

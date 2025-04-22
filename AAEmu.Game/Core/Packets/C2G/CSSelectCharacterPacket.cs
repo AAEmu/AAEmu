@@ -14,22 +14,17 @@ using AAEmu.Game.Models.Game.Units.Route;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSelectCharacterPacket : GamePacket
+public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterPacket, 1)
 {
-    public CSSelectCharacterPacket() : base(CSOffsets.CSSelectCharacterPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var characterId = stream.ReadUInt32();
-        var gm = stream.ReadBoolean();
+        _ = stream.ReadBoolean(); // gm
         stream.ReadByte();
 
-        if (Connection.Characters.TryGetValue(characterId, out var connectionCharacter))
+        if (Connection.Characters.TryGetValue(characterId, out var character))
         {
             // Despawn any old pets this character might have even before loading it
-            var character = Connection.Characters[characterId];
             character.Load();
             character.Connection = Connection;
             var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
@@ -49,7 +44,7 @@ public class CSSelectCharacterPacket : GamePacket
             var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
             if (mySlave != null)
             {
-                Logger.Warn($"{Connection.ActiveChar.Name}: Прерываем задачу отключения транспорта");
+                Logger.Warn($"{Connection.ActiveChar.Name}: Abort the task of disabling vehicles");
                 mySlave.CancelTokenSource.Cancel();
             }
 
@@ -103,6 +98,8 @@ public class CSSelectCharacterPacket : GamePacket
                 var casterObj = new SkillCasterUnit(character.ObjId);
                 character.Buffs.AddBuff(new Buff(character, character, casterObj, buffTemplate, null, DateTime.UtcNow) { Passive = true });
             }
+            
+            // TODO: Load persistent buffs
 
             character.UpdateGearBonuses(null, null);
             character.RestoreSavedHpMp();
@@ -113,7 +110,8 @@ public class CSSelectCharacterPacket : GamePacket
         }
         else
         {
-            // TODO ...
+            // TODO: Character not found
+            Logger.Error($"Character {characterId} not found in list of loaded characters of this account {Connection.AccountId}");
         }
     }
 }

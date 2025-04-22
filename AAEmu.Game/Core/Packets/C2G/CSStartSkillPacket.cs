@@ -55,6 +55,9 @@ public class CSStartSkillPacket : GamePacket
         var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
         if (flagType > 0) skillObject.Read(stream);
 
+        if (Connection.ActiveChar != null)
+            Connection.ActiveChar.LastPacketActivityTime = DateTime.UtcNow;
+        
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
 
         var skillResult = SkillResult.Success;

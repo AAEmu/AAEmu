@@ -624,7 +624,7 @@ public sealed class Mate : Unit
         return fallDmg;
     }
 
-    public override void Regenerate()
+    protected override void RegenTick(TimeSpan delta)
     {
         if (!NeedsRegen)
         {

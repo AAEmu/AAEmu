@@ -80,57 +80,15 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         // Players
         foreach (var character in GetAllCharacters())
-        {
-            CombatTick(character);
-            RegenTick(character);
-            BreathTick(character);
-        }
+            character.OnActiveRegionTick(delta);
 
         // Pets
         foreach (var mate in GetAllMates())
-        {
-            CombatTick(mate);
-            RegenTick(mate);
-        }
+            mate.OnActiveRegionTick(delta);
 
         // Vehicles
         foreach (var slave in GetAllSlaves())
-        {
-            CombatTick(slave);
-            RegenTick(slave);
-        }
-
-        /*
-        //var sw = new Stopwatch();
-        //sw.Start();
-        var activeRegions = new HashSet<Region>();
-        foreach (var world in _worlds.Values)
-        {
-            foreach (var region in world.Regions)
-            {
-                if (region == null)
-                    continue;
-                if (activeRegions.Contains(region))
-                    continue;
-                if (region.IsEmpty())
-                    continue;
-                foreach (var activeRegion in region.GetNeighbors())
-                {
-                    activeRegions.Add(activeRegion);
-                    var units = activeRegion.GetList<Unit>(new(), 0);
-                    foreach (var unit in units)
-                    {
-                        if (unit is not Character character) { continue; }
-                        CombatTick(character);
-                        RegenTick(character);
-                        BreathTick(character);
-                    }
-                }
-            }
-        }
-        //sw.Stop();
-        //Logger.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
-        */
+            slave.OnActiveRegionTick(delta);
     }
 
     /// <summary>
@@ -859,36 +817,36 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <summary>
     /// Removes a GameObject from the list of "existing" objects on the server
     /// </summary>
-    /// <param name="ObjId"></param>
+    /// <param name="objId"></param>
     /// <returns></returns>
-    public bool RemoveObject(uint ObjId)
+    public bool RemoveObject(uint objId)
     {
-        if (ObjId == 0)
+        if (objId == 0)
             return false;
 
         var res = false;
 
-        if (_objects.TryRemove(ObjId, out _))
+        if (_objects.TryRemove(objId, out _))
         {
-            Logger.Debug($"WorldManager: object {ObjId} removed from _objects");
+            Logger.Debug($"WorldManager: object {objId} removed from _objects");
             res = true;
         }
 
-        if (_baseUnits.TryRemove(ObjId, out _))
+        if (_baseUnits.TryRemove(objId, out _))
         {
-            Logger.Debug($"WorldManager: object {ObjId} removed from _baseUnits");
+            Logger.Debug($"WorldManager: object {objId} removed from _baseUnits");
             res = true;
         }
 
-        if (_units.TryRemove(ObjId, out _))
+        if (_units.TryRemove(objId, out _))
         {
-            Logger.Debug($"WorldManager: object {ObjId} removed from _units");
+            Logger.Debug($"WorldManager: object {objId} removed from _units");
             res = true;
         }
 
-        if (_npcs.TryRemove(ObjId, out _))
+        if (_npcs.TryRemove(objId, out _))
         {
-            Logger.Debug($"WorldManager: object {ObjId} removed from _npcs");
+            Logger.Debug($"WorldManager: object {objId} removed from _npcs");
             res = true;
         }
 

@@ -19,6 +19,9 @@ public class PingPacket : GamePacket
         var local = stream.ReadUInt32();
 
         Connection.LastPing = DateTime.UtcNow;
+        if (Connection.ActiveChar != null)
+            Connection.ActiveChar.LastPacketActivityTime = DateTime.UtcNow;
+            
         Connection.SendPacket(new PongPacket(tm, when, local));
     }
 }

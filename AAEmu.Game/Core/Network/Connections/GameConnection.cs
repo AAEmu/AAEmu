@@ -16,12 +16,6 @@ using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Network.Connections;
 
-public enum GameState
-{
-    Lobby,
-    World
-}
-
 public class GameConnection
 {
     private ISession _session;
@@ -35,8 +29,8 @@ public class GameConnection
     public List<IDisposable> Subscribers { get; set; }
     public GameState State { get; set; }
     public Character ActiveChar { get; set; }
-    public Dictionary<uint, Character> Characters;
-    public Dictionary<uint, House> Houses;
+    public Dictionary<uint, Character> Characters { get; set; }
+    public Dictionary<uint, House> Houses { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
     public DateTime LastPing { get; set; }
@@ -52,21 +46,36 @@ public class GameConnection
         // AddAttribute("gmFlag", true);
     }
 
+    /// <summary>
+    /// Encodes and sends a single game packet to the active connection
+    /// </summary>
+    /// <param name="packet"></param>
     public void SendPacket(GamePacket packet)
     {
         packet.Connection = this;
         SendPacket(packet.Encode());
     }
 
-    public void SendPacket(byte[] packet)
+    /// <summary>
+    /// Sends RAW packet data to the active connection
+    /// </summary>
+    /// <param name="packet"></param>
+    private void SendPacket(byte[] packet)
     {
         _session?.SendPacket(packet);
     }
 
-    public static void OnConnect()
+    /// <summary>
+    /// On connect event
+    /// </summary>
+    public void OnConnect()
     {
+        //
     }
 
+    /// <summary>
+    /// On Disconnect event
+    /// </summary>
     public void OnDisconnect()
     {
         AccountManager.Instance.Remove(AccountId);
@@ -83,32 +92,55 @@ public class GameConnection
         foreach (var subscriber in Subscribers)
             subscriber.Dispose();
 
-        SaveAndRemoveFromWorld();
+        SaveAndRemoveFromWorld(ActiveChar);
         AccountManager.Instance.UpdateLoginTime(AccountId, DateTime.UtcNow);
     }
 
+    /// <summary>
+    /// Closes the active connection session
+    /// </summary>
     public void Shutdown()
     {
         _session?.Close();
     }
 
+    /// <summary>
+    /// Adds a named attribute object to the connection 
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="value"></param>
     public void AddAttribute(string name, object value)
     {
         _session.AddAttribute(name, value);
     }
 
+    /// <summary>
+    /// Gets a named attribute of the connection
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public object GetAttribute(string name)
     {
         return _session.GetAttribute(name);
     }
 
+    /// <summary>
+    /// Adds a subscriber object
+    /// </summary>
+    /// <param name="disposable"></param>
     public void PushSubscriber(IDisposable disposable)
     {
         Subscribers.Add(disposable);
     }
 
+    /// <summary>
+    /// Loads Account data for the connection like characters and houses
+    /// </summary>
     public void LoadAccount()
     {
+        // TODO: Load payment and account tier information
+
+        // Load character info for this account
         Characters.Clear();
         using (var connection = MySQL.CreateConnection())
         {
@@ -142,6 +174,7 @@ public class GameConnection
             */
         }
 
+        // Load housing info for this account
         Houses.Clear();
         HousingManager.Instance.GetByAccountId(Houses, AccountId);
     }
@@ -149,21 +182,21 @@ public class GameConnection
     /// <summary>
     /// Called when closing a connection
     /// </summary>
-    public void SaveAndRemoveFromWorld()
+    public static void SaveAndRemoveFromWorld(Character activeChar)
     {
         // TODO: this needs a rewrite
-        if (ActiveChar == null)
+        if (activeChar == null)
             return;
 
         // Remove Radars
-        RadarManager.Instance.UnRegister(ActiveChar);
+        RadarManager.Instance.UnRegister(activeChar);
 
-        ActiveChar.Delete();
+        activeChar.Delete();
         // Removed ReleaseId here to try and fix party/raid disconnect and reconnect issues. Replaced with saving the data
         //ObjectIdManager.Instance.ReleaseId(ActiveChar.ObjId);
 
         // Do a manual save here as it's no longer in _characters at this point
         // TODO: might need a better option like saving this transaction for later to be used by the SaveMananger
-        ActiveChar.SaveDirectlyToDatabase();
+        activeChar.SaveDirectlyToDatabase();
     }
 }
