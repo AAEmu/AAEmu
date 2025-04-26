@@ -87,6 +87,13 @@ public class LootingContainer(IBaseUnit owner)
             return;
         AlreadyGenerated = true;
 
+        // Add a global loot bag chance that's affected by loot rate
+        // A higher loot rate should make it LESS likely to drop, not more
+        var baseLootChance = 1.0f;
+        var lootRoll = Random.Shared.NextSingle();
+        if (lootRoll > baseLootChance / AppConfiguration.Instance.World.LootRate)
+            return;
+
         // Initialize some things
         LootOwnerType = LootOwner switch
         {
