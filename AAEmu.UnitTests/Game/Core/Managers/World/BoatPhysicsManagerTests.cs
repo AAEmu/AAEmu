@@ -1,12 +1,13 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
 
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Utils;
 
@@ -53,8 +54,31 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
                 _physWorld = null,
                 _buoyancy = null,
                 ThreadRunning = false,
-                SimulationWorld = _mockWorld.Object
+                SimulationWorld = _mockWorld.Object,
             };
+            _boatPhysicsManager.SimulationWorld.Water = new WaterBodies();
+            _boatPhysicsManager.SimulationWorld.Water.OceanLevel = _boatPhysicsManager.SimulationWorld.OceanLevel;
+
+            // Polygon water body (lake)
+            var mockWaterBodyPoly = new WaterBodyArea("mock_lake", WaterBodyAreaType.Polygon);
+            mockWaterBodyPoly.Points.Add(new Vector3(100f, 100f, 200f));
+            mockWaterBodyPoly.Points.Add(new Vector3(200f, 100f, 200f));
+            mockWaterBodyPoly.Points.Add(new Vector3(200f, 200f, 200f));
+            mockWaterBodyPoly.Points.Add(new Vector3(100f, 200f, 200f));
+            mockWaterBodyPoly.Depth = 50f;
+            mockWaterBodyPoly.UpdateBounds();
+            _boatPhysicsManager.SimulationWorld.Water.Areas.Add(mockWaterBodyPoly);
+
+            // LineArray water body (river) 
+            // Note: Z is at the bottom of the water body!
+            var mockWaterBodyLine = new WaterBodyArea("mock_river", WaterBodyAreaType.LineArray);
+            mockWaterBodyLine.Points.Add(new Vector3(300f, 100f, 200f));
+            mockWaterBodyLine.Points.Add(new Vector3(350f, 100f, 200f));
+            mockWaterBodyLine.Points.Add(new Vector3(400f, 100f, 200f));
+            mockWaterBodyLine.Depth = 50f;
+            mockWaterBodyLine.RiverWidth = 20f;
+            mockWaterBodyLine.UpdateBounds();
+            _boatPhysicsManager.SimulationWorld.Water.Areas.Add(mockWaterBodyLine);
         }
 
         [Fact]
@@ -147,18 +171,45 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             // Assert
             Assert.False(_boatPhysicsManager.ThreadRunning);
         }
-
-        [Fact]
-        public void TestCustomWater()
+        
+        public class WaterTestDataGenerator : IEnumerable<object[]>
         {
-            // Проверяем, что метод CustomWater корректно определяет водную область
-            _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
-            _mockWorld.Setup(w => w.IsWater(It.IsAny<Vector3>())).Returns(true);
+            private readonly List<object[]> _data =
+            [
+                // Ocean test
+                new object[] { new Vector3(0f, 0f, 0f), true }, // origin in the corner
+                new object[] { new Vector3(50f, 50f, 125f), false }, // above the ocean
+                new object[] { new Vector3(50f, 50f, 50f), true }, // inside the default ocean
 
-            var area = new JVector(0, 0, 0);
+                // Lake test
+                new object[] { new Vector3(125f, 125f, 175f), true }, // inside mock lake
+                new object[] { new Vector3(125f, 125f, 225f), false }, // above mock lake
+                new object[] { new Vector3(125f, 125f, 125f), false }, // below mock lake and above ocean
+
+                // River test
+                new object[] { new Vector3(350f, 100f, 190f), true }, // inside center of mock river
+                new object[] { new Vector3(360f, 110f, 190f), true }, // inside mock river slightly of center but within width
+                new object[] { new Vector3(350f, 100f, 125f), false }, // below mock river and above ocean
+                new object[] { new Vector3(350f, 100f, 300f), false } // above mock river
+            ];
+
+            public IEnumerator<object[]> GetEnumerator() => _data.GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        [Theory]
+        [ClassData(typeof(WaterTestDataGenerator))]        
+        public void TestCustomWater(Vector3 position, bool expected)
+        {
+            // Check that the CustomWater method correctly defines the water area
+            _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
+            // _mockWorld.Setup(w => w.IsWater(new Vector3(0f,0f, 0f))).Returns(true);
+
+            var area = position.VectorToJVector();
             var isWater = _boatPhysicsManager.CustomWater(ref area);
 
-            Assert.True(isWater);
+            Assert.Equal(isWater, expected);
         }
 
         [Fact]
