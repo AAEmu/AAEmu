@@ -3,12 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
-using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -35,29 +33,30 @@ namespace AAEmu.Game.Core.Managers.World;
 public class WorldManager : Singleton<WorldManager>, IWorldManager
 {
     // Default World and Instance ID that will be assigned to all Transforms as a Default value
-    public static uint DefaultWorldId { get; set; } = 0; // This will get reset to it's proper value when loading world data (which is usually 0)
+    public static uint DefaultWorldId { get; set; } // This will get reset to its proper value when loading world data (which is usually 0)
     public static uint DefaultInstanceId { get; set; } = 0;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private bool _loaded = false;
+    private bool _loaded;
 
     private Dictionary<uint, InstanceWorld> _worlds;
     private Dictionary<uint, uint> _worldIdByZoneId;
     private Dictionary<uint, List<uint>> _zonesByWorldId;
     private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
-    public bool IsSnowing = false;
-    private readonly ConcurrentDictionary<uint, GameObject> _objects;
-    private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
-    private readonly ConcurrentDictionary<uint, Unit> _units;
-    private readonly ConcurrentDictionary<uint, Doodad> _doodads;
-    private readonly ConcurrentDictionary<uint, Npc> _npcs;
-    private readonly ConcurrentDictionary<uint, Character> _characters;
-    private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes;
-    private readonly ConcurrentDictionary<uint, Transfer> _transfers;
-    private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
-    private readonly ConcurrentDictionary<uint, Slave> _slaves;
-    private readonly ConcurrentDictionary<uint, Mate> _mates;
-    private readonly ConcurrentDictionary<uint, IndunZone> _indunZones;
+    public bool IsSnowing { get; set; }
+    private readonly ConcurrentDictionary<uint, GameObject> _objects = new();
+    private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits = new();
+    private readonly ConcurrentDictionary<uint, Unit> _units = new();
+    private readonly ConcurrentDictionary<uint, Doodad> _doodads = new();
+    private readonly ConcurrentDictionary<uint, Npc> _npcs = new();
+    private readonly ConcurrentDictionary<uint, Character> _characters = new();
+    private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes = new();
+    private readonly ConcurrentDictionary<uint, Transfer> _transfers = new();
+    private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks = new();
+    private readonly ConcurrentDictionary<uint, Slave> _slaves = new();
+    private readonly ConcurrentDictionary<uint, Mate> _mates = new();
+    private readonly ConcurrentDictionary<uint, IndunZone> _indunZones = new();
 
+    // ReSharper disable InconsistentNaming
     public const int CELL_SIZE = 1024;
     /// <summary>
     /// Sector Size
@@ -73,24 +72,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     anything higher is overkill as you can't target it anymore in the client at that distance
     */
     public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
+    // ReSharper enable InconsistentNaming
 
     public const float DefaultCombatTimeout = 15f;
-
-    public WorldManager()
-    {
-        _objects = new ConcurrentDictionary<uint, GameObject>();
-        _baseUnits = new ConcurrentDictionary<uint, BaseUnit>();
-        _units = new ConcurrentDictionary<uint, Unit>();
-        _doodads = new ConcurrentDictionary<uint, Doodad>();
-        _npcs = new ConcurrentDictionary<uint, Npc>();
-        _characters = new ConcurrentDictionary<uint, Character>();
-        _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
-        _transfers = new ConcurrentDictionary<uint, Transfer>();
-        _gimmicks = new ConcurrentDictionary<uint, Gimmick>();
-        _slaves = new ConcurrentDictionary<uint, Slave>();
-        _mates = new ConcurrentDictionary<uint, Mate>();
-        _indunZones = new ConcurrentDictionary<uint, IndunZone>();
-    }
 
     private void ActiveRegionTick(TimeSpan delta)
     {
@@ -161,7 +145,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             unit.IsInBattle = false;
         }
 
-        if ((unit is Character character) && (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow))
+        if ((unit is Character { IsInPostCast: true } character) && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
         {
             character.IsInPostCast = false;
         }
@@ -254,9 +238,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             if (worldNode != null)
             {
                 var xmlWorld = new XmlWorld();
-                var world = new InstanceWorld();
-                world.Id = id;
-                world.TemplateId = id;
+                var world = new InstanceWorld
+                {
+                    Id = id,
+                    TemplateId = id
+                };
                 xmlWorld.ReadNode(worldNode, world);
                 world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
                 world.SpawnPosition.WorldId = id;
@@ -361,12 +347,14 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 {
                     while (reader.Read())
                     {
-                        var shape = new AreaShape();
-                        shape.Id = reader.GetUInt32("id");
-                        shape.Type = (AreaShapeType)reader.GetUInt32("kind_id");
-                        shape.Value1 = reader.GetFloat("value1");
-                        shape.Value2 = reader.GetFloat("value2");
-                        shape.Value3 = reader.GetFloat("value3");
+                        var shape = new AreaShape
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Type = (AreaShapeType)reader.GetUInt32("kind_id"),
+                            Value1 = reader.GetFloat("value1"),
+                            Value2 = reader.GetFloat("value2"),
+                            Value3 = reader.GetFloat("value3")
+                        };
                         _areaShapes.TryAdd(shape.Id, shape);
                     }
                 }
@@ -396,7 +384,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 var hMapCellX = br.ReadInt32();
                 var hMapCellY = br.ReadInt32();
-                br.ReadDouble(); // heightMaxCoeff
+                br.ReadDouble(); // heightMaxCoefficient
                 br.ReadInt32(); // count
 
                 if (hMapCellX == world.CellX && hMapCellY == world.CellY)
@@ -422,18 +410,18 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 }
                 else
                 {
-                    Logger.Warn("{0}: Invalid heightmap cells, does not match world definition ...", world.Name);
+                    Logger.Warn($"{world.Name}: Invalid heightmap cells, does not match world definition ...");
                     return false;
                 }
             }
             else
             {
-                Logger.Warn("{0}: Heightmap version not supported {1}", world.Name, version);
+                Logger.Warn($"{world.Name}: Heightmap version not supported {version}");
                 return false;
             }
         }
 
-        Logger.Info("{0} heightmap loaded", world.Name);
+        Logger.Info($"{world.Name} heightmap loaded");
         return true;
     }
 
@@ -509,7 +497,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                                                 case VersionCalc.V2:
                                                     {
                                                         value = node.RawDataByIndex(unitX, unitY);
-                                                        var height = node.RawDataToHeight(value);
+                                                        /* var height */ _ = node.RawDataToHeight(value);
                                                     }
                                                     break;
                                                 case VersionCalc.Draft:
@@ -530,7 +518,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     }
             }
 
-        Logger.Info("{0} heightmap loaded", world.Name);
+        Logger.Info($"{world.Name} heightmap loaded");
         return true;
     }
 
@@ -575,7 +563,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_worlds.TryGetValue(worldId, out var res))
             return res;
-        Logger.Fatal("GetWorld(): No such WorldId {0}", worldId);
+        Logger.Fatal($"GetWorld(): No such WorldId {worldId}");
         return null;
     }
 
@@ -588,14 +576,14 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
             return worldId;
-        Logger.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
+        Logger.Fatal($"GetWorldByZone(): No world defined for ZoneId {zoneId}");
         return 0xffffffff; // -1
     }
     public InstanceWorld GetWorldByZone(uint zoneId)
     {
         if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
             return GetWorld(worldId);
-        Logger.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
+        Logger.Fatal($"GetWorldByZone(): No world defined for ZoneId {zoneId}");
         return null;
     }
 
@@ -610,7 +598,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (!_worlds.TryGetValue(worldId, out var world))
         {
-            Logger.Fatal("GetZoneId(): No such WorldId {0}", worldId);
+            Logger.Fatal($"GetZoneId(): No such WorldId {worldId}");
             return 0;
         }
         var sx = (int)(x / REGION_SIZE);
@@ -618,7 +606,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         if (!world.ValidRegion(sx, sy))
         {
-            Logger.Fatal("GetZoneId(): Coordinates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}", worldId, x, y);
+            Logger.Fatal($"GetZoneId(): Coordinates out of bounds for WorldId {worldId} - x:{x:#,0.#} - y: {y:#,0.#}");
             return 0;
         }
 
@@ -809,7 +797,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public static Character GetTargetOrSelf(Character character, string TargetName, out int FirstNonNameArgument)
     {
         FirstNonNameArgument = 0;
-        if ((TargetName != null) && (TargetName != string.Empty))
+        if (!string.IsNullOrWhiteSpace(TargetName))
         {
             var player = Instance.GetCharacter(TargetName);
             if (player != null)
@@ -818,8 +806,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 return player;
             }
         }
-        if ((character.CurrentTarget != null) && (character.CurrentTarget is Character))
-            return (Character)character.CurrentTarget;
+        if (character.CurrentTarget is Character targetCharacter)
+            return targetCharacter;
         return character;
     }
 
@@ -954,7 +942,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (obj == null)
             return;
-        var region = GetRegion(obj); // Get region of Object or it's Root object if it has one
+        var region = GetRegion(obj); // Get region of an Object or its Root object if it has one
         var currentRegion = obj.Region; // Current Region this object is in
 
         // If region didn't change, ignore
@@ -1267,9 +1255,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public AreaShape GetAreaShapeById(uint id)
     {
-        if (_areaShapes.TryGetValue(id, out var res))
-            return res;
-        return null;
+        return _areaShapes.GetValueOrDefault(id);
     }
 
     public void Stop()
@@ -1285,10 +1271,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public void StartPhysics()
     {
-        foreach (var (key, world) in _worlds)
+        foreach (var (_, world) in _worlds)
         {
-            world.Physics = new BoatPhysicsManager();
-            world.Physics.SimulationWorld = world;
+            world.Physics = new BoatPhysicsManager
+            {
+                SimulationWorld = world
+            };
             world.Physics.Initialize();
             world.Physics.StartPhysics();
         }
@@ -1300,6 +1288,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             return null;
 
         // Apply Data to world
+        // ReSharper disable once UseObjectOrCollectionInitializer
         var newInstance = new InstanceWorld();
         newInstance.Id = WorldIdManager.Instance.GetNextId();
         newInstance.TemplateId = originalWorld.TemplateId;
@@ -1312,11 +1301,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         newInstance.SpawnPosition = originalWorld.SpawnPosition.Clone();
         newInstance.SpawnPosition.WorldId = newInstance.Id;
         newInstance.ZoneKeys = originalWorld.ZoneKeys;
-        newInstance.HeightMaps = originalWorld.HeightMaps; // TODO слишком долго копирует, клиент дисконнектит .CloneJson();
-        newInstance.XmlWorldZones = originalWorld.XmlWorldZones; // TODO копирование зацикливается
-        newInstance.Physics = originalWorld.Physics;  // TODO копирование зацикливается .CloneJson();
+        newInstance.HeightMaps = originalWorld.HeightMaps; // TODO: takes too long to copy, client disconnects .CloneJson();
+        newInstance.XmlWorldZones = originalWorld.XmlWorldZones; // TODO: copy loop
+        newInstance.Physics = originalWorld.Physics;  // TODO: copy is looped .CloneJson();
         newInstance.Physics.SimulationWorld.Id = newInstance.Id;
-        newInstance.Water = originalWorld.Water; // TODO .CloneJson();
+        newInstance.Water = originalWorld.Water; // TODO: .CloneJson();
         var dx = originalWorld.CellX * SECTORS_PER_CELL;
         var dy = originalWorld.CellY * SECTORS_PER_CELL;
         newInstance.Regions = new Region[dx, dy];

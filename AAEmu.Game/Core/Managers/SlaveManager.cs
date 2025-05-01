@@ -832,7 +832,7 @@ value.Yaw);
         Logger.Info("Loading Slave Model Attach Points...");
 
         // Get all files matching the pattern in the Data folder.
-        string dataFolder = Path.Combine(FileManager.AppPath, "Data");
+        var dataFolder = Path.Combine(FileManager.AppPath, "Data");
         string[] attachFiles;
         try
         {
@@ -868,12 +868,12 @@ value.Yaw);
             else
             {
                 Logger.Error($"Error parsing {filePath}");
-                continue;
+                // continue;
             }
         }
 
         // Log the count with proper singular/plural grammar.
-        int count = allAttachPoints.Count;
+        var count = allAttachPoints.Count;
         Logger.Info($"{count} slave model attach point{(count == 1 ? "" : "s")} loaded...");
 
         // Convert degrees from JSON to radians.

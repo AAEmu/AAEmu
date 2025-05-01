@@ -39,13 +39,13 @@ public class Slave : Unit
     public SlaveTemplate Template { get; set; }
     // public Character Driver { get; set; }
     public Character Summoner { get; set; }
-    public BaseUnitType OwnerType { get; set; }
+    public BaseUnitType OwnerType { get; init; }
 
-    public Item SummoningItem { get; set; }
+    public Item SummoningItem { get; init; }
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Slave> AttachedSlaves { get; set; }
     public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
-    public DateTime SpawnTime { get; set; }
+    public DateTime SpawnTime { get; init; }
     public sbyte ThrottleRequest { get; set; }
     public sbyte Throttle { get; set; }
     public float Speed { get; set; }
@@ -54,8 +54,8 @@ public class Slave : Unit
     public float RotSpeed { get; set; }
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
-    public sbyte AttachPointId { get; set; } = -1;
-    public uint OwnerObjId { get; set; }
+    public sbyte AttachPointId { get; init; } = -1;
+    public uint OwnerObjId { get; init; }
     public virtual RigidBody RigidBody { get; set; }
     public SlaveSpawner Spawner { get; set; }
     public Task LeaveTask { get; set; }

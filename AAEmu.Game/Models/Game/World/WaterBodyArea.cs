@@ -5,7 +5,6 @@ using System.Numerics;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 using Newtonsoft.Json;
-using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.World;
 
@@ -91,7 +90,7 @@ public class WaterBodyArea
         else
         if (AreaType == WaterBodyAreaType.LineArray)
         {
-            // For flowing water find the actual closest point, and use it's position as height
+            // For flowing water find the actual closest point, and use its position as height
             var closestPoint = Points[0];
             var closestDistance = 1000000000f;
             for (var i = 0; i < Points.Count - 1; i++)
@@ -134,7 +133,7 @@ public class WaterBodyArea
         {
             // If a line array, generate a border
             BorderPoints = new List<Vector3>();
-            var OtherSide = new List<Vector3>();
+            var otherSide = new List<Vector3>();
             
             var directionVector = Vector3.Zero;
             // going downstream 0 -> max
@@ -151,9 +150,9 @@ public class WaterBodyArea
                 
                 var left = new PositionAndRotation(Points[side], directionVector);
                 left.AddDistance(perpendicular * RiverWidth);
-                OtherSide.Insert(0,left.Position);
+                otherSide.Insert(0,left.Position);
             }
-            BorderPoints.AddRange(OtherSide);
+            BorderPoints.AddRange(otherSide);
         }
         else
         {
@@ -207,23 +206,20 @@ public class WaterBodyArea
 
     private static bool AreLinesIntersecting(Vector2 v1Start, Vector2 v1End, Vector2 v2Start, Vector2 v2End)
     {
-        float d1, d2;
-        float a1, a2, b1, b2, c1, c2;
-
         // Convert vector 1 to a line (line 1) of infinite length.
         // We want the line in linear equation standard form: A*x + B*y + C = 0
         // See: http://en.wikipedia.org/wiki/Linear_equation
-        a1 = v1End.Y - v1Start.Y;
-        b1 = v1Start.X - v1End.X;
-        c1 = (v1End.X * v1Start.Y) - (v1Start.X * v1End.Y);
+        var a1 = v1End.Y - v1Start.Y;
+        var b1 = v1Start.X - v1End.X;
+        var c1 = (v1End.X * v1Start.Y) - (v1Start.X * v1End.Y);
 
         // Every point (x,y), that solves the equation above, is on the line,
         // every point that does not solve it, is not. The equation will have a
         // positive result if it is on one side of the line and a negative one 
         // if is on the other side of it. We insert (x1,y1) and (x2,y2) of vector
         // 2 into the equation above.
-        d1 = (a1 * v2Start.X) + (b1 * v2Start.Y) + c1;
-        d2 = (a1 * v2End.X) + (b1 * v2End.Y) + c1;
+        var d1 = (a1 * v2Start.X) + (b1 * v2Start.Y) + c1;
+        var d2 = (a1 * v2End.X) + (b1 * v2End.Y) + c1;
 
         // If d1 and d2 both have the same sign, they are both on the same side
         // of our line 1 and in that case no intersection is possible. Careful, 
@@ -236,11 +232,11 @@ public class WaterBodyArea
         // mean it also intersects the vector 1. Vector 1 is only a subset of that
         // infinite line 1, so it may have intersected that line before the vector
         // started or after it ended. To know for sure, we have to repeat the
-        // the same test the other way round. We start by calculating the 
+        // same test the other way round. We start by calculating the 
         // infinite line 2 in linear equation standard form.
-        a2 = v2End.Y - v2Start.Y;
-        b2 = v2Start.X - v2End.X;
-        c2 = (v2End.X * v2Start.Y) - (v2Start.X * v2End.Y);
+        var a2 = v2End.Y - v2Start.Y;
+        var b2 = v2Start.X - v2End.X;
+        var c2 = (v2End.X * v2Start.Y) - (v2Start.X * v2End.Y);
 
         // Calculate d1 and d2 again, this time using points of vector 1.
         d1 = (a2 * v1Start.X) + (b2 * v1Start.Y) + c2;
@@ -315,7 +311,7 @@ public class WaterBodyArea
                     var fromPointDirection = MathUtil.CalculateDirection(p, Points[side]);
                     var diff = Math.Abs(nextPointDirection - fromPointDirection) * (180 / MathF.PI);
 
-                    if (((diff >= 90) && (diff <= 270))) // in front
+                    if (diff is >= 90 and <= 270) // in front
                         continue;
                 }
 
@@ -325,7 +321,7 @@ public class WaterBodyArea
                     var fromPointDirection = MathUtil.CalculateDirection(p, Points[side]);
                     var diff = Math.Abs(nextPointDirection - fromPointDirection) * (180 / MathF.PI);
 
-                    if (!((diff >= 90) && (diff <= 270))) // NOT in front
+                    if (!(diff is >= 90 and <= 270)) // NOT in front
                         continue;
                 }
 

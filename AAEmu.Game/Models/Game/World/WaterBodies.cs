@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -93,7 +92,7 @@ public class WaterBodies
         try
         {
             var jsonString = File.ReadAllText(fileName);
-            if (!JsonHelper.TryDeserializeObject<WaterBodies>(jsonString, out var newData, out var error))
+            if (!JsonHelper.TryDeserializeObject<WaterBodies>(jsonString, out var newData, out _))
                 return false;
             
             foreach (var area in newData.Areas)
@@ -111,7 +110,7 @@ public class WaterBodies
                 }
                 
                 // To fix issues with endpoints of rivers looping back to the start, remove the obsolete point from the data.
-                // This doesn't really give a issue with water itself due to how it's handled, but is wrong nonetheless.
+                // This doesn't really give an issue with water itself due to how it's handled, but is wrong nonetheless.
                 if ((area.AreaType == WaterBodyAreaType.LineArray) && (area.Points.Count > 2) && (area.Points[^1].Equals(area.Points[0])))
                     area.Points.RemoveAt(area.Points.Count-1);
                 
