@@ -11,12 +11,13 @@ public class ModelsJsonConverterTests
     public void ConvertAComplexObject_WhenYawRollPitchIsZero_ShouldIgnore()
     {
         //Arrange
-        var spawnsList = new JsonNpcSpawns[]
+        var spawnsList = new[]
         {
-            new()
+            new JsonNpcSpawns
             {
-                UnitId = 1,
                 Id = 1,
+                UnitId = 1,
+                Title = "test",
                 FollowPath = "test",
                 Position = new JsonPosition
                 {
@@ -24,10 +25,11 @@ public class ModelsJsonConverterTests
                     Yaw = 0,
                     Pitch = 0,
                     Roll = 0,
-                }
+                },
+                Scale = 1f
             }
         };
-        var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0}}]";
+        var expected = "[{\"Id\":1,\"UnitId\":1,\"Title\":\"test\",\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0},\"Scale\":1.0}]";
 
         //Act
         var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
@@ -44,19 +46,21 @@ public class ModelsJsonConverterTests
         {
             new()
             {
-                UnitId = 1,
                 Id = 1,
+                UnitId = 1,
+                Title = "test",
                 FollowPath = "test",
                 Position = new JsonPosition
                 {
-                    X = 1, Y = 1, Z = 1,
-                    Yaw = 0,
-                    Pitch = 10,
-                    Roll = 20,
-                }
+                    X = 1f, Y = 1f, Z = 1f,
+                    Roll = 30,
+                    Pitch = 20,
+                    Yaw = 0
+                },
+                Scale = 1f
             }
         };
-        var expected = "[{\"Id\":1,\"UnitId\":1,\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":20,\"Pitch\":10}}]";
+        var expected = "[{\"Id\":1,\"UnitId\":1,\"Title\":\"test\",\"FollowPath\":\"test\",\"Position\":{\"X\":1.0,\"Y\":1.0,\"Z\":1.0,\"Roll\":30,\"Pitch\":20},\"Scale\":1.0}]";
 
         //Act
         var conversion = JsonConvert.SerializeObject(spawnsList, new JsonModelsConverter());
