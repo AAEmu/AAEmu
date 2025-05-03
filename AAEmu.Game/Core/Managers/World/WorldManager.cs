@@ -109,29 +109,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
-    /// <summary>
-    /// Call regeneration function of the unit
-    /// </summary>
-    /// <param name="unit"></param>
-    private static void RegenTick(Unit unit)
-    {
-        unit.Regenerate();
-    }
-
-    /// <summary>
-    /// Handle player's Breath updates
-    /// </summary>
-    /// <param name="character"></param>
-    private static void BreathTick(Character character)
-    {
-        if (character.IsDead || !character.IsUnderWater)
-        {
-            return;
-        }
-
-        character.DoChangeBreath();
-    }
-
     public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
     {
         if (_worldInteractionGroups.TryGetValue(worldInteractionType, out var group))

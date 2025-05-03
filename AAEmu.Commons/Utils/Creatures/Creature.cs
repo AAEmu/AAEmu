@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
-
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 
 using NLog;
@@ -67,14 +67,11 @@ public class Creature : IComparable
 
     public int CompareTo(object obj)
     {
-        if (obj is Creature)
+        if (obj is Creature compareCreature)
         {
-            var comp = (Creature)obj;
-            if (comp.Id > Id)
-                return -1;
-            return 1;
+            return Id.CompareTo(compareCreature.Id);
         }
-        throw new Exception();
+        throw new GameException("Creature can only be compared to other Creatures.");
     }
 
     #endregion
