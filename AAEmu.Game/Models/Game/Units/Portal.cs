@@ -10,15 +10,36 @@ public sealed class Portal : Npc
     public override UnitCustomModelParams ModelParams { get; set; }
 
     public Transform TeleportPosition { get; set; }
+    public Npc LinkedPortal { get; set; }
 
     public Portal()
     {
         ModelParams = new UnitCustomModelParams();
     }
 
+    private void KillLinkedPortal()
+    {
+        // Make sure to mark this portal as "dead" to avoid loops
+        Hp = 0;
+        // Remove the linked portal as well if it's still alive
+        if (LinkedPortal is { Hp: > 0 })
+        {
+            LinkedPortal.Delete();
+        }
+    }
+
+    public override void DoDie(BaseUnit killer, KillReason killReason)
+    {
+        base.DoDie(killer, killReason);
+        KillLinkedPortal();
+    }
+
     public override void Delete()
     {
+        // Broadcast its kill effect to be sure it's removed 
         BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.PortalTimeout), false);
+        // Do normal despawn handling
         base.Delete();
+        KillLinkedPortal();
     }
 }

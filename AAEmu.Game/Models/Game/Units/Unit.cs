@@ -547,28 +547,6 @@ public class Unit : BaseUnit, IUnit
         */
     }
 
-    [Obsolete("This method is deprecated", false)]
-    public void StartRegen()
-    {
-        if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp || Hp == 0)
-        {
-            return;
-        }
-        _regenTask = new UnitPointsRegenTask(this);
-        TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
-    }
-
-    [Obsolete("This method is deprecated", false)]
-    public void StopRegen()
-    {
-        if (_regenTask == null)
-        {
-            return;
-        }
-        _regenTask.Cancel();
-        _regenTask = null;
-    }
-
     public void SetInvisible(bool value)
     {
         Invisible = value;

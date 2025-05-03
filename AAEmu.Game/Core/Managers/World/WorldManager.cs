@@ -32,8 +32,14 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class WorldManager : Singleton<WorldManager>, IWorldManager
 {
-    // Default World and Instance ID that will be assigned to all Transforms as a Default value
+    /// <summary>
+    /// Default World and Instance ID that will be assigned to all Transforms as a Default value
+    /// This is the TemplateId of "main_world"
+    /// </summary> 
     public static uint DefaultWorldId { get; set; } // This will get reset to its proper value when loading world data (which is usually 0)
+    /// <summary>
+    /// InstanceId of "main_world"
+    /// </summary>
     public static uint DefaultInstanceId { get; set; } = 0;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;

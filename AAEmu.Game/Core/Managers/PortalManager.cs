@@ -15,8 +15,10 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
@@ -377,21 +379,30 @@ public class PortalManager : Singleton<PortalManager>
         return false; // Not enough items
     }
 
-    private static void MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
+    /// <summary>
+    /// Create a portal Npc object and returns it
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="isExit"></param>
+    /// <param name="portalInfo"></param>
+    /// <param name="portalEffectObj"></param>
+    /// <returns></returns>
+    private static Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
     {
         // 3891 - Portal Entrance
         // 6949 - Portal Exit
         var portalPointDestination = new Transform(null, null,
             WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id, portalInfo.ZoneId,
-            WorldManager.DefaultInstanceId, portalInfo.X, portalInfo.Y, portalInfo.Z,
+            owner.Transform.InstanceId, portalInfo.X, portalInfo.Y, portalInfo.Z,
             0f, 0f, portalInfo.ZRot);
         var portalPointLocation = new Transform(null, null,
             owner.Transform.WorldId, owner.Transform.ZoneId, owner.Transform.InstanceId,
             portalEffectObj.X, portalEffectObj.Y, portalEffectObj.Z,
             owner.Transform.World.Rotation.X, owner.Transform.World.Rotation.Y, owner.Transform.World.Rotation.Z);
-        var templateId = isExit ? 6949u : 3891u; // TODO - better way? maybe not hardcoded
+        // TODO: Add support for different types of teleport books
+        var templateId = isExit ? 6949u : 3891u;
         var template = NpcManager.Instance.GetTemplate(templateId);
-        var portalUnitModel = new Models.Game.Units.Portal
+        var portalNpc = new Models.Game.Units.Portal
         {
             ObjId = ObjectIdManager.Instance.GetNextId(),
             OwnerId = ((Character)owner).Id,
@@ -402,14 +413,22 @@ public class PortalManager : Singleton<PortalManager>
             Level = template.Level,
             Transform = isExit ? portalPointDestination : portalPointLocation,
             Name = portalInfo.Name,
-            Hp = 955, // BUG - portal.MaxHp does not work 1.0
-            Mp = 290, // TODO - portal.MaxMp
+            //Hp = 955, // BUG - portal.MaxHp does not work 1.0
+            //Mp = 290, // TODO - portal.MaxMp
             TeleportPosition = portalPointDestination
         };
-        portalUnitModel.Spawn();
+        
+        portalNpc.InitializeSpawnBuffs();
+        portalNpc.UpdateGearBonuses(null, null);
 
-        var killTask = new KillPortalTask(portalUnitModel);
+        portalNpc.Hp = portalNpc.MaxHp;
+        portalNpc.Mp = portalNpc.MaxMp;
+        
+        portalNpc.Spawn();
+
+        var killTask = new KillPortalTask(portalNpc);
         TaskManager.Instance.Schedule(killTask, TimeSpan.FromSeconds(30));
+        return portalNpc;
     }
 
     public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
@@ -417,8 +436,11 @@ public class PortalManager : Singleton<PortalManager>
         var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
         if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;
 
-        MakePortal(owner, false, portalInfo, portalEffectObj);   // Entrance (green)
-        MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
+        var entrance = MakePortal(owner, false, portalInfo, portalEffectObj);   // Entrance (green)
+        var exit = MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
+        // Linked the 2 portals
+        entrance.LinkedPortal = exit;
+        exit.LinkedPortal = entrance;
     }
 
     public static void UsePortal(Character character, uint objId)
