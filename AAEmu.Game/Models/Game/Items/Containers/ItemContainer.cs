@@ -695,7 +695,7 @@ public class ItemContainer
                 newItem.MadeUnitId = crafterId;
                 newItem.WorldId =
                     (byte)WorldManager
-                        .DefaultWorldId; // TODO: proper world id handling, this should actually be the ServerId
+                        .DefaultWorldTemplateId; // TODO: proper world id handling, this should actually be the ServerId
             }
 
             amountToAdd -= addAmount;

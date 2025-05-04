@@ -1282,7 +1282,7 @@ public class SpawnManager : Singleton<SpawnManager>
         var chestTemplateIds = DoodadManager.Instance.GetTreasureChestTemplateIds();
         if (chestTemplateIds == null)
             return [];
-        var spawnerList = _doodadSpawners.GetValueOrDefault((byte)WorldManager.DefaultWorldId).ToDictionary();
+        var spawnerList = _doodadSpawners.GetValueOrDefault((byte)WorldManager.DefaultWorldTemplateId).ToDictionary();
         return spawnerList.Values.Where(ds => chestTemplateIds.Contains(ds.RespawnDoodadTemplateId) || chestTemplateIds.Contains(ds.UnitId)).ToList(); ;
     }
 

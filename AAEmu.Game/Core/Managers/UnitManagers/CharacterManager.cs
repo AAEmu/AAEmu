@@ -373,7 +373,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 var point = charTemplate.Pos.Clone();
                 // Recalculate ZoneId as this isn't included in the config
                 // Always use main_world Id for this
-                point.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldId, charTemplate.Pos.X, charTemplate.Pos.Y);
+                point.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldTemplateId, charTemplate.Pos.X, charTemplate.Pos.Y);
                 // Convert the json's degrees to rads
                 point.Roll = point.Roll.DegToRad();
                 point.Pitch = point.Pitch.DegToRad();
@@ -382,14 +382,14 @@ public class CharacterManager : Singleton<CharacterManager>
                 // Males
                 var template = _templates[(byte)(16 + charTemplate.Id)];
                 template.SpawnPosition = point;
-                template.SpawnPosition.WorldId = WorldManager.DefaultWorldId;
+                template.SpawnPosition.WorldId = WorldManager.DefaultWorldTemplateId;
                 template.NumInventorySlot = charTemplate.NumInventorySlot;
                 template.NumBankSlot = charTemplate.NumBankSlot;
 
                 // Females
                 template = _templates[(byte)(32 + charTemplate.Id)];
                 template.SpawnPosition = point;
-                template.SpawnPosition.WorldId = WorldManager.DefaultWorldId;
+                template.SpawnPosition.WorldId = WorldManager.DefaultWorldTemplateId;
                 template.NumInventorySlot = charTemplate.NumInventorySlot;
                 template.NumBankSlot = charTemplate.NumBankSlot;
             }

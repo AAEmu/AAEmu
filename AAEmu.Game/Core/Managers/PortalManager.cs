@@ -237,7 +237,7 @@ public class PortalManager : Singleton<PortalManager>
         if (JsonHelper.TryDeserializeObject(contents, out List<Portal> respawns, out _))
             foreach (var respawn in respawns)
             {
-                respawn.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldId, respawn.X, respawn.Y);
+                respawn.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldTemplateId, respawn.X, respawn.Y);
                 if (_respawns.ContainsKey(respawn.SubZoneId))
                 {
                     //

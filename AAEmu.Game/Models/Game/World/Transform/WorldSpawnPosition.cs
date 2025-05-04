@@ -12,7 +12,7 @@ public class WorldSpawnPosition
 {
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     [DefaultValue(1)] // Make sure to manually change this when default world is changed
-    public uint WorldId { get; set; } = WorldManager.DefaultWorldId;
+    public uint WorldId { get; set; } = WorldManager.DefaultWorldTemplateId;
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     [DefaultValue(0)]

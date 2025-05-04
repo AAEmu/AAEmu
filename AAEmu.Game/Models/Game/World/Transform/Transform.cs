@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.World.Transform;
 public class Transform : IDisposable
 {
     private GameObject _owningObject;
-    private uint _worldId = WorldManager.DefaultWorldId;
+    private uint _worldId = WorldManager.DefaultWorldTemplateId;
     private uint _instanceId = WorldManager.DefaultInstanceId;
     private uint _zoneId = 0;
     private PositionAndRotation _localPosRot;

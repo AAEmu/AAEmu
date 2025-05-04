@@ -28,7 +28,7 @@ public class CSResurrectCharacterPacket : GamePacket
 
         // поищем сначала "UnitId": 502, "Title": "Temple Priestess",
         // Inside dungeons or other instances, just respawn at the nearest Priestess
-        if (Connection.ActiveChar.Transform.WorldId != WorldManager.DefaultWorldId)
+        if (Connection.ActiveChar.Transform.WorldId != WorldManager.DefaultWorldTemplateId)
         {
             var npcs = WorldManager.Instance.GetAllNpcsFromWorld(Connection.ActiveChar.Transform.WorldId);
             foreach (var npc in npcs.Where(npc => npc.TemplateId == 502))

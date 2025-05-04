@@ -55,7 +55,7 @@ public class StreamManager : Singleton<StreamManager>
     {
         if (connection is not null)
         {
-            var worldId = connection.GameConnection?.ActiveChar?.Transform?.WorldId ?? WorldManager.DefaultWorldId;
+            var worldId = connection.GameConnection?.ActiveChar?.Transform?.WorldId ?? WorldManager.DefaultWorldTemplateId;
             // TODO: Handle requests for instances correctly ?
             var doodads = WorldManager.Instance.GetInCell<Doodad>(worldId, x, y).ToArray();
             var requestId = connection.GetNextRequestId(doodads);

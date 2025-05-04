@@ -36,52 +36,157 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// Default World and Instance ID that will be assigned to all Transforms as a Default value
     /// This is the TemplateId of "main_world"
     /// </summary> 
-    public static uint DefaultWorldId { get; set; } // This will get reset to its proper value when loading world data (which is usually 0)
+    public static uint DefaultWorldTemplateId { get; set; } // This will get reset to its proper value when loading world data (which is usually 0)
+
     /// <summary>
     /// InstanceId of "main_world"
     /// </summary>
     public static uint DefaultInstanceId { get; set; } = 0;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    /// <summary>
+    /// Flags if WorldManager has finished loading
+    /// </summary>
     private bool _loaded;
 
+    /// <summary>
+    /// List of world names by TemplateId 
+    /// </summary>
+    public List<string> WorldNames { get; private set; } = new();
+
+    /// <summary>
+    /// List of world spawn locations
+    /// </summary>
+    public List<WorldSpawnLocation> WorldSpawnLookups { get; private set; } = new();
+
+    /// <summary>
+    /// List of loaded world instances
+    /// </summary>
     private Dictionary<uint, InstanceWorld> _worlds;
+
+    /// <summary>
+    /// WorldTemplateId by ZoneId list (zoneId, worldTemplateId)
+    /// </summary>
     private Dictionary<uint, uint> _worldIdByZoneId;
+
+    /// <summary>
+    /// ZoneId list by WorldTemplateId
+    /// </summary>
     private Dictionary<uint, List<uint>> _zonesByWorldId;
+
+    /// <summary>
+    /// WorldInteractionGroup by Id
+    /// </summary>
     private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
-    public bool IsSnowing { get; set; }
+
+    /// <summary>
+    /// List of all GameObjects in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, GameObject> _objects = new();
+
+    /// <summary>
+    /// List of all BaseUnits in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits = new();
+
+    /// <summary>
+    /// List of all Units in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Unit> _units = new();
+
+    /// <summary>
+    /// List of all Doodads in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Doodad> _doodads = new();
+
+    /// <summary>
+    /// List of all Npcs in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Npc> _npcs = new();
+
+    /// <summary>
+    /// List of all Characters in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Character> _characters = new();
+
+    /// <summary>
+    /// List of all AreaShapes in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes = new();
+
+    /// <summary>
+    /// List of all Transfers in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Transfer> _transfers = new();
+
+    /// <summary>
+    /// List of all Gimmicks in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks = new();
+
+    /// <summary>
+    /// List of all Slaves in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Slave> _slaves = new();
+
+    /// <summary>
+    /// List of all Mates in this instance
+    /// </summary>
     private readonly ConcurrentDictionary<uint, Mate> _mates = new();
+
+    /// <summary>
+    /// List of all IndunZones in this instance (only used for dungeons)
+    /// </summary>
     private readonly ConcurrentDictionary<uint, IndunZone> _indunZones = new();
 
-    // ReSharper disable InconsistentNaming
-    public const int CELL_SIZE = 1024;
     /// <summary>
-    /// Sector Size
+    /// Flag to keep track is the global snowing effect is enabled
+    /// </summary>
+    public bool IsSnowing { get; set; }
+
+    // ReSharper disable InconsistentNaming
+    /// <summary>
+    /// Cell size in meters
+    /// </summary>
+    public const int CELL_SIZE = 1024;
+
+    /// <summary>
+    /// Sector size in meters
     /// </summary>
     public const int REGION_SIZE = 64;
+
+    /// <summary>
+    /// Number of sectors in a cell
+    /// </summary>
     public const int SECTORS_PER_CELL = CELL_SIZE / REGION_SIZE;
+
+    /// <summary>
+    /// Used heightmap resolution for a sector/region
+    /// </summary>
     public const int SECTOR_HMAP_RESOLUTION = REGION_SIZE / 2;
+
+    /// <summary>
+    /// Used heightmap resolution for a cell
+    /// </summary>
     public const int CELL_HMAP_RESOLUTION = CELL_SIZE / 2;
 
-    /*
-    REGION_NEIGHBORHOOD_SIZE (cell sector size) used for polling objects in your proximity
-    Was originally set to 1, recommended 3 and max 5
-    anything higher is overkill as you can't target it anymore in the client at that distance
-    */
+    /// <summary>
+    /// REGION_NEIGHBORHOOD_SIZE (cell sector size) used for polling objects in your proximity
+    /// Was originally set to 1, recommended 3 and max 5
+    /// anything higher is overkill as you can't target it anymore in the client at that distance 
+    /// </summary>
     public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
     // ReSharper enable InconsistentNaming
 
+    /// <summary>
+    /// Time in seconds before you are considered not in combat when doing no combat related actions
+    /// </summary>
     public const float DefaultCombatTimeout = 15f;
 
+    /// <summary>
+    /// Called every second and forwards the tick to all live player related objects
+    /// </summary>
+    /// <param name="delta"></param>
     private void ActiveRegionTick(TimeSpan delta)
     {
         // Players
@@ -98,7 +203,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     }
 
     /// <summary>
-    /// Handle is still in combat related things
+    /// Handle "is still in combat" related things
     /// </summary>
     /// <param name="unit"></param>
     private static void CombatTick(Unit unit)
@@ -115,13 +220,41 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
+    /// <summary>
+    /// Gets a world interaction group
+    /// </summary>
+    /// <param name="worldInteractionType"></param>
+    /// <returns></returns>
     public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
     {
-        if (_worldInteractionGroups.TryGetValue(worldInteractionType, out var group))
-            return group;
-        return null;
+        return _worldInteractionGroups.TryGetValue(worldInteractionType, out var group) ? group : null;
     }
 
+    /// <summary>
+    /// Gets WorldTemplateId by name 
+    /// </summary>
+    /// <param name="worldName"></param>
+    /// <returns></returns>
+    public byte GetWorldTemplateId(string worldName)
+    {
+        var res = WorldNames.IndexOf(worldName);
+        return res >= 0 ? (byte)res : byte.MaxValue;
+    }
+
+    /// <summary>
+    /// Gets world name by WorldTemplateId
+    /// </summary>
+    /// <param name="worldTemplateId"></param>
+    /// <returns></returns>
+    public string GetWorldName(byte worldTemplateId)
+    {
+        return worldTemplateId < WorldNames.Count ? WorldNames[worldTemplateId] : string.Empty;
+    }
+
+    /// <summary>
+    /// Loads all world templates from the game client
+    /// </summary>
+    /// <exception cref="OperationCanceledException"></exception>
     public void Load()
     {
         if (_loaded)
@@ -135,88 +268,44 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         Logger.Info("Loading world data...");
 
         #region LoadClientData
-
         var worldXmlPaths = ClientFileManager.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
 
         if (worldXmlPaths.Count <= 0)
         {
             throw new OperationCanceledException("No client worlds data has been found, please check the readme.txt file inside the ClientData folder for more info.");
         }
-        var worldNames = new List<string>
-        {
-            "main_world" // Make sure main_world is the first even if it wouldn't exist
-        };
+        WorldNames.Clear();
+        WorldNames.Add("main_world"); // Make sure main_world is the first even if it wouldn't exist
 
         // Grab world_spawns.json info
         var spawnPositionFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", "world_spawns.json");
         var contents = File.Exists(spawnPositionFile) ? File.ReadAllText(spawnPositionFile) : "";
-        var worldSpawnLookup = new List<WorldSpawnLocation>();
+        WorldSpawnLookups.Clear();
         if (string.IsNullOrWhiteSpace(contents))
             Logger.Error($"File {spawnPositionFile} doesn't exists or is empty.");
         else
             if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
             Logger.Error($"Error in {spawnPositionFile}.");
         else
-            worldSpawnLookup = worldSpawnLookupFromJson;
+            WorldSpawnLookups = worldSpawnLookupFromJson;
 
+        // Add all instance names to the worldNames list to generate world template Ids
         foreach (var worldXmlPath in worldXmlPaths)
         {
             var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the base name of the current directory
-            if (!worldNames.Contains(worldName))
-                worldNames.Add(worldName);
+            if (!WorldNames.Contains(worldName))
+                WorldNames.Add(worldName);
         }
 
-        for (uint id = 0; id < worldNames.Count; id++)
+        //var main_world = CreateWorldInstance("main_world");
+
+        // Load data for every instance name
+        for (byte worldTemplateId = 0; worldTemplateId < WorldNames.Count; worldTemplateId++)
         {
-            var worldName = worldNames[(int)id];
-            if (worldName == "main_world")
-                DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
-
-            using var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
-            var xml = new XmlDocument();
-            xml.Load(worldXmlData);
-            var worldNode = xml.SelectSingleNode("/World");
-            if (worldNode != null)
-            {
-                var xmlWorld = new XmlWorld();
-                var world = new InstanceWorld
-                {
-                    Id = id,
-                    TemplateId = id
-                };
-                xmlWorld.ReadNode(worldNode, world);
-                world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
-                world.SpawnPosition.WorldId = id;
-                // add coordinates for zones
-                foreach (var worldZones in world.XmlWorldZones.Values)
-                {
-                    foreach (var wsl in worldSpawnLookup)
-                    {
-                        if (wsl.Name == worldZones.Name)
-                        {
-                            worldZones.SpawnPosition = wsl.SpawnPosition;
-                            worldZones.SpawnPosition.WorldId = id;
-                            break;
-                        }
-                    }
-                }
-
-                _worlds.Add(id, world);
-
-                // cache zone keys to world reference
-                foreach (var zoneKey in world.ZoneKeys)
-                {
-                    _worldIdByZoneId.Add(zoneKey, id);
-
-                    if (!_zonesByWorldId.ContainsKey(id))
-                        _zonesByWorldId.Add(world.Id, []);
-                    _zonesByWorldId[id].Add(zoneKey);
-                }
-
-                world.Water = new WaterBodies();
-            }
+            var worldName = GetWorldName(worldTemplateId);
+            _ = CreateWorldInstance(worldName);
         }
-
+        
         #endregion
 
         #region LoadServerDB
@@ -247,8 +336,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                             ClientDriven = reader.GetBoolean("client_driven"),
                             SelectChannel = reader.GetBoolean("select_channel")
                         };
-                        idz.LocalizedName =
-                            LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
+                        idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
                         if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
                             Logger.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
                     }
@@ -256,14 +344,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
 
             Logger.Debug($"Loaded {_indunZones.Count} dungeon zones");
-            /*
-            // add dummy main world as ID 0
-            if (!_indunZones.TryAdd(0, new IndunZone() { ZoneGroupId = 0, Name = "Main World", LocalizedName = "Erenor" }))
-            {
-                Logger.Fatal("Failed to add main world");
-                return;
-            }
-            */
 
             using (var command = connection.CreateCommand())
             {
@@ -306,6 +386,75 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         TickManager.Instance.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
 
         _loaded = true;
+    }
+
+    public InstanceWorld CreateWorldInstance(string worldName)
+    {
+        var worldTemplateId = GetWorldTemplateId(worldName);
+        if (worldTemplateId == byte.MaxValue)
+            return null;
+
+        // Mark "main_world" as the DefaultWorldId
+        if (worldName == "main_world")
+            DefaultWorldTemplateId =
+                worldTemplateId; // prefer to do it like this, in case we change order or IDs later on
+
+        // Open XML file
+        using var worldXmlData =
+            ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
+        var xml = new XmlDocument();
+        xml.Load(worldXmlData);
+        var worldNode = xml.SelectSingleNode("/World");
+        if (worldNode != null)
+        {
+            var xmlWorld = new XmlWorld();
+            var world = new InstanceWorld { Id = worldTemplateId, TemplateId = worldTemplateId };
+            xmlWorld.ReadNode(worldNode, world);
+
+            // Check if it's a Persistent single Instance like main_world
+            // If it's marked as an instance or if it only has 1 zone defined, then it's a "dungeon"
+            var canBeInstanced = xmlWorld.IsInstance > 0 || xmlWorld.Zones.Count <= 1;
+            // If only one instance is allowed, check if it already exists, if it does, return that instead
+            if (!canBeInstanced)
+            {
+                var previousWorld = _worlds.FirstOrDefault(w => w.Value.TemplateId == worldTemplateId).Value;
+                if (previousWorld != null)
+                    return previousWorld;
+            }
+            
+            world.SpawnPosition = WorldSpawnLookups.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
+            world.SpawnPosition.WorldId = worldTemplateId;
+            // add coordinates for zones
+            foreach (var worldZones in world.XmlWorldZones.Values)
+            {
+                foreach (var wsl in WorldSpawnLookups)
+                {
+                    if (wsl.Name == worldZones.Name)
+                    {
+                        worldZones.SpawnPosition = wsl.SpawnPosition;
+                        worldZones.SpawnPosition.WorldId = worldTemplateId;
+                        break;
+                    }
+                }
+            }
+
+            _worlds.Add(worldTemplateId, world);
+
+            // cache zone keys to world reference
+            foreach (var zoneKey in world.ZoneKeys)
+            {
+                _worldIdByZoneId.Add(zoneKey, worldTemplateId);
+
+                if (!_zonesByWorldId.ContainsKey(worldTemplateId))
+                    _zonesByWorldId.Add(world.Id, []);
+                _zonesByWorldId[worldTemplateId].Add(zoneKey);
+            }
+
+            world.Water = new WaterBodies();
+            return world;
+        }
+
+        return null;
     }
 
     public static bool LoadHeightMapFromDatFile(InstanceWorld world)
@@ -535,11 +684,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return [];
     }
 
-    public uint GetZoneId(uint worldId, float x, float y)
+    public uint GetZoneId(uint worldTemplateId, float x, float y)
     {
-        if (!_worlds.TryGetValue(worldId, out var world))
+        if (!_worlds.TryGetValue(worldTemplateId, out var world))
         {
-            Logger.Fatal($"GetZoneId(): No such WorldId {worldId}");
+            Logger.Fatal($"GetZoneId(): No such WorldId {worldTemplateId}");
             return 0;
         }
         var sx = (int)(x / REGION_SIZE);
@@ -547,7 +696,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         if (!world.ValidRegion(sx, sy))
         {
-            Logger.Fatal($"GetZoneId(): Coordinates out of bounds for WorldId {worldId} - x:{x:#,0.#} - y: {y:#,0.#}");
+            Logger.Fatal($"GetZoneId(): Coordinates out of bounds for WorldId {worldTemplateId} - x:{x:#,0.#} - y: {y:#,0.#}");
             return 0;
         }
 
