@@ -1601,8 +1601,16 @@ public partial class Character : Unit, ICharacter
     {
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
+        var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
+        var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
         var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
         var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
+
+        // Ok, we actually changed zone groups, we'll have to do some chat channel stuff
+        if (lastZoneGroupId != 0)
+            ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
+        if (newZoneGroupId != 0)
+            ChatManager.Instance.GetZoneChat(newZoneKey).JoinChannel(this);
 
         if (newZone != null)
         {

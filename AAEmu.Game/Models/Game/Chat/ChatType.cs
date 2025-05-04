@@ -6,7 +6,7 @@ public enum ChatType : short
     Whisper = -3,
     System = -2,
     Notice = -1,
-    White = 0,
+    White = 0, // say
     Shout = 1,
     Trade = 2,
     GroupFind = 3,

@@ -1400,16 +1400,6 @@ public class Unit : BaseUnit, IUnit
                 }
             }
         }
-
-        // Ok, we actually changed zone groups, we'll have to do some chat channel stuff
-        if (this is Character player)
-        {
-            if (lastZoneGroupId != 0)
-                ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(player);
-
-            if (newZoneGroupId != 0)
-                ChatManager.Instance.GetZoneChat(Transform.ZoneId).JoinChannel(player);
-        }
     }
 
     private Dictionary<uint, int> _triggerCounts = new Dictionary<uint, int>();

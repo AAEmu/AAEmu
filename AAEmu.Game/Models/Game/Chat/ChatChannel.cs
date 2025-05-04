@@ -8,23 +8,41 @@ namespace AAEmu.Game.Models.Game.Chat;
 
 public class ChatChannel
 {
-    public ChatType ChatType { get; set; }
-    public short SubType { get; set; } // used for things like zone key for /shout
-    public FactionsEnum Faction { get; set; }
-    public List<Character> Members { get; set; }
-    public long InternalId { get; set; }
-    public string InternalName { get; set; }
+    /// <summary>
+    /// Chat channel type
+    /// </summary>
+    public ChatType ChatType { get; init; } = ChatType.White;
 
-    public ChatChannel()
-    {
-        ChatType = ChatType.White;
-        SubType = 0;
-        Faction = 0;
-        Members = [];
-        InternalId = 0;
-        InternalName = string.Empty;
-    }
+    /// <summary>
+    /// Extra channel info (like zone, partyId, etc...)
+    /// </summary>
+    public short SubType { get; init; }
 
+    /// <summary>
+    /// Faction Id for this channel if needed
+    /// </summary>
+    public FactionsEnum Faction { get; init; } = 0;
+
+    /// <summary>
+    /// Current members in this channel
+    /// </summary>
+    public List<Character> Members { get; set; } = [];
+
+    /// <summary>
+    /// Internal Id
+    /// </summary>
+    public long InternalId { get; init; }
+
+    /// <summary>
+    /// Internal name of this channel
+    /// </summary>
+    public string InternalName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Add a character to a channel
+    /// </summary>
+    /// <param name="character"></param>
+    /// <returns></returns>
     public bool JoinChannel(Character character)
     {
         if (character == null)
@@ -40,10 +58,16 @@ public class ChatChannel
         return true;
     }
 
+    /// <summary>
+    /// Removes a character from the channel
+    /// </summary>
+    /// <param name="character"></param>
+    /// <returns></returns>
     public bool LeaveChannel(Character character)
     {
         if (character == null)
             return false;
+
         // character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
         if (Members.Remove(character))
         {
@@ -56,7 +80,7 @@ public class ChatChannel
     /// <summary>
     /// Sends a message to all members of the channel
     /// </summary>
-    /// <param name="origin">Can be null or be the charater that is the origin of the message</param>
+    /// <param name="origin">Can be null or be the character that is the origin of the message</param>
     /// <param name="msg">Text to send</param>
     /// <param name="ability"></param>
     /// <param name="languageType"></param>
@@ -66,7 +90,7 @@ public class ChatChannel
         var res = 0;
         foreach (var m in Members)
         {
-            m.SendPacket(new SCChatMessagePacket(ChatType, origin != null ? origin : m, msg, ability, languageType));
+            m.SendPacket(new SCChatMessagePacket(ChatType, origin ?? m, msg, ability, languageType));
             res++;
         }
         return res;

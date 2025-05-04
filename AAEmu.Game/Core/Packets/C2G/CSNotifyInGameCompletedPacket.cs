@@ -4,16 +4,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSNotifyInGameCompletedPacket : GamePacket
+public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGameCompletedPacket, 1)
 {
-    public CSNotifyInGameCompletedPacket() : base(CSOffsets.CSNotifyInGameCompletedPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
-
         WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
-        Logger.Info("NotifyInGameCompleted SubZoneId {0}", Connection.ActiveChar.SubZoneId);
+        Logger.Info($"NotifyInGameCompleted SubZoneId {Connection.ActiveChar.SubZoneId}, {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id})");
     }
 }
