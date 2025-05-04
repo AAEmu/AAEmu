@@ -299,7 +299,7 @@ public class SpawnManager : Singleton<SpawnManager>
         Logger.Info("Loading spawns...");
         foreach (var world in worlds)
         {
-            var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
+            var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name);
 
             // Load NPC Spawns
             LoadNpcSpawns(world, worldPath);
@@ -333,7 +333,7 @@ public class SpawnManager : Singleton<SpawnManager>
         _loaded = true;
     }
 
-    private void LoadNpcSpawns(Models.Game.World.World world, string worldPath)
+    private void LoadNpcSpawns(Models.Game.World.WorldInstance worldInstance, string worldPath)
     {
         string[] npcFiles;
         try
@@ -349,7 +349,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             if (!File.Exists(jsonFileName))
             {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                Logger.Info($"World  {worldInstance.Template.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 continue;
             }
             var contents = FileManager.GetFileContents(jsonFileName);
@@ -366,7 +366,7 @@ public class SpawnManager : Singleton<SpawnManager>
                     entry++;
 
                     // Check for duplication by UnitId and Position
-                    if (_npcSpawners[(byte)world.Id].Values
+                    if (_npcSpawners[(byte)worldInstance.Id].Values
                         .SelectMany(spawners => spawners)
                         .Any(spawner => spawner.UnitId == npcSpawnerFromFile.UnitId &&
                                         Math.Abs(spawner.Position.X - npcSpawnerFromFile.Position.X) < 2f &&
@@ -381,8 +381,8 @@ public class SpawnManager : Singleton<SpawnManager>
                         Logger.Trace($"Npc Template {npcSpawnerFromFile.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
                         continue;
                     }
-                    npcSpawnerFromFile.Position.WorldId = world.Id;
-                    npcSpawnerFromFile.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, npcSpawnerFromFile.Position.X, npcSpawnerFromFile.Position.Y);
+                    npcSpawnerFromFile.Position.WorldId = worldInstance.Id;
+                    npcSpawnerFromFile.Position.ZoneId = WorldManager.Instance.GetZoneId(worldInstance.Id, npcSpawnerFromFile.Position.X, npcSpawnerFromFile.Position.Y);
                     npcSpawnerFromFile.Position.Yaw = npcSpawnerFromFile.Position.Yaw.DegToRad();
                     npcSpawnerFromFile.Position.Pitch = npcSpawnerFromFile.Position.Pitch.DegToRad();
                     npcSpawnerFromFile.Position.Roll = npcSpawnerFromFile.Position.Roll.DegToRad();
@@ -413,7 +413,7 @@ public class SpawnManager : Singleton<SpawnManager>
         return reversedFiles;
     }
 
-    private Dictionary<uint, DoodadSpawner> LoadDoodadSpawns(Models.Game.World.World world, string worldPath)
+    private Dictionary<uint, DoodadSpawner> LoadDoodadSpawns(Models.Game.World.WorldInstance worldInstance, string worldPath)
     {
         var doodadSpawners = new Dictionary<uint, DoodadSpawner>();
         string[] doodadFiles;
@@ -430,7 +430,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             if (!File.Exists(jsonFileName))
             {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                Logger.Info($"World  {worldInstance.Template.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 continue;
             }
             var contents = FileManager.GetFileContents(jsonFileName);
@@ -463,8 +463,8 @@ public class SpawnManager : Singleton<SpawnManager>
                         continue;
                     }
                     spawner.Id = _nextId;
-                    spawner.Position.WorldId = world.Id;
-                    spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                    spawner.Position.WorldId = worldInstance.Id;
+                    spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(worldInstance.Id, spawner.Position.X, spawner.Position.Y);
                     spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                     spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                     spawner.Position.Roll = spawner.Position.Roll.DegToRad();
@@ -483,7 +483,7 @@ public class SpawnManager : Singleton<SpawnManager>
         return doodadSpawners;
     }
 
-    private Dictionary<uint, TransferSpawner> LoadTransferSpawns(Models.Game.World.World world, string worldPath)
+    private Dictionary<uint, TransferSpawner> LoadTransferSpawns(Models.Game.World.WorldInstance worldInstance, string worldPath)
     {
         var transferSpawners = new Dictionary<uint, TransferSpawner>();
         string[] transferFiles;
@@ -499,7 +499,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             if (!File.Exists(jsonFileName))
             {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                Logger.Info($"World  {worldInstance.Template.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 continue;
             }
 
@@ -524,8 +524,8 @@ public class SpawnManager : Singleton<SpawnManager>
                     }
 
                     spawner.Id = _nextId;
-                    spawner.Position.WorldId = world.Id;
-                    spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                    spawner.Position.WorldId = worldInstance.Id;
+                    spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(worldInstance.Id, spawner.Position.X, spawner.Position.Y);
                     spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                     spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                     spawner.Position.Roll = spawner.Position.Roll.DegToRad();
@@ -543,7 +543,7 @@ public class SpawnManager : Singleton<SpawnManager>
         return transferSpawners;
     }
 
-    private Dictionary<uint, GimmickSpawner> LoadGimmickSpawns(Models.Game.World.World world, string worldPath)
+    private Dictionary<uint, GimmickSpawner> LoadGimmickSpawns(Models.Game.World.WorldInstance worldInstance, string worldPath)
     {
         var gimmickSpawners = new Dictionary<uint, GimmickSpawner>();
         string[] gimmickFiles;
@@ -559,7 +559,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             if (!File.Exists(jsonFileName))
             {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                Logger.Info($"World  {worldInstance.Template.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 continue;
             }
 
@@ -584,9 +584,9 @@ public class SpawnManager : Singleton<SpawnManager>
                     }
 
                     spawner.Id = _nextId;
-                    spawner.Position.WorldId = world.Id;
+                    spawner.Position.WorldId = worldInstance.Id;
                     spawner.Position.ZoneId =
-                        WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                        WorldManager.Instance.GetZoneId(worldInstance.Id, spawner.Position.X, spawner.Position.Y);
                     if (gimmickSpawners.TryAdd(_nextId, spawner))
                     {
                         _nextId++;
@@ -601,7 +601,7 @@ public class SpawnManager : Singleton<SpawnManager>
         return gimmickSpawners;
     }
 
-    private Dictionary<uint, SlaveSpawner> LoadSlaveSpawns(Models.Game.World.World world, string worldPath)
+    private Dictionary<uint, SlaveSpawner> LoadSlaveSpawns(Models.Game.World.WorldInstance worldInstance, string worldPath)
     {
         var slaveSpawners = new Dictionary<uint, SlaveSpawner>();
         string[] slaveFiles;
@@ -617,7 +617,7 @@ public class SpawnManager : Singleton<SpawnManager>
         {
             if (!File.Exists(jsonFileName))
             {
-                Logger.Info($"World  {world.Name}  is missing  {Path.GetFileName(jsonFileName)}");
+                Logger.Info($"World  {worldInstance.Template.Name}  is missing  {Path.GetFileName(jsonFileName)}");
                 continue;
             }
 
@@ -642,9 +642,9 @@ public class SpawnManager : Singleton<SpawnManager>
                     }
 
                     spawner.Id = _nextId;
-                    spawner.Position.WorldId = world.Id;
+                    spawner.Position.WorldId = worldInstance.Id;
                     spawner.Position.ZoneId =
-                        WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                        WorldManager.Instance.GetZoneId(worldInstance.Id, spawner.Position.X, spawner.Position.Y);
                     spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
                     spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
                     spawner.Position.Roll = spawner.Position.Roll.DegToRad();

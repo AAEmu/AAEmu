@@ -39,7 +39,6 @@ public class Unit : BaseUnit, IUnit
     public virtual BaseUnitType BaseUnitType { get; set; } = BaseUnitType.Invalid;
 
     public virtual UnitEvents Events { get; }
-    private Task _regenTask;
     public uint ModelId { get; set; }
     public SkillController ActiveSkillController { get; set; }
 
@@ -294,7 +293,7 @@ public class Unit : BaseUnit, IUnit
         }
         base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
-        var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.WorldId)?.OceanLevel - 2f ?? 98f;
+        var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.WorldId)?.Template.OceanLevel - 2f ?? 98f;
         if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold)
             IsUnderWater = true;
         else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)

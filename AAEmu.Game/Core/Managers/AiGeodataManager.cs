@@ -462,11 +462,11 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             var aiPath = new Dictionary<uint, List<Point>>();
             var aiNavigationModifier = new Dictionary<uint, List<Point>>();
 
-            var worldPath = Path.Combine("Data", "AiGeoData", world.Name);
+            var worldPath = Path.Combine("Data", "AiGeoData", world.Template.Name);
             var worldPathToFile = Path.Combine(worldPath, "server_ai_geo_data.sqlite3");
             if (!File.Exists(worldPathToFile))
             {
-                Logger.Info($"World {world.Name} is missing {Path.GetFileName(worldPathToFile)}");
+                Logger.Info($"World {world.Template.Name} is missing {Path.GetFileName(worldPathToFile)}");
             }
             else
             {

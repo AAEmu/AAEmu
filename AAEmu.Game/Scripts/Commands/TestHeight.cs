@@ -74,7 +74,7 @@ public class TestHeight : ICommand
                     doodadSpawner.Position.X = x;
                     doodadSpawner.Position.Y = y;
                     doodadSpawner.Position.Z =
-                        WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(x, y);
+                        WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId).GetHeight(x, y);
                     doodadSpawner.Position.Yaw = 0;
                     doodadSpawner.Position.Pitch = 0;
                     doodadSpawner.Position.Roll = 0;
@@ -106,7 +106,7 @@ public class TestHeight : ICommand
                 doodadSpawner.Position.X = x;
                 doodadSpawner.Position.Y = rY;
                 doodadSpawner.Position.Z =
-                    WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(x, rY);
+                    WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId).GetHeight(x, rY);
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;
@@ -127,7 +127,7 @@ public class TestHeight : ICommand
                 doodadSpawner.Position.X = rX;
                 doodadSpawner.Position.Y = y;
                 doodadSpawner.Position.Z =
-                    WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(rX, y);
+                    WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId).GetHeight(rX, y);
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;
@@ -137,7 +137,7 @@ public class TestHeight : ICommand
         else
         {
             // Show info
-            var world = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId);
+            var world = WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId);
 
             var height = world.GetHeight(targetPlayer.Transform.World.Position.X,
                 targetPlayer.Transform.World.Position.Y);

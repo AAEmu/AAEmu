@@ -108,7 +108,7 @@ public class SlaveSaveSubCommand : SubCommandBase
         }
 
         var jsonPathOut =
-            Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, "slave_spawns_new.json");
+            Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Template.Name, "slave_spawns_new.json");
         var json = JsonConvert.SerializeObject(slaveSpawnersToFile.ToArray(), Formatting.Indented,
             new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
@@ -158,7 +158,7 @@ public class SlaveSaveSubCommand : SubCommandBase
             spawnersFromFile[spawn.Id] = spawn;
         }
 
-        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "slave_spawns_new.json");
+        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, "slave_spawns_new.json");
         var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented,
             new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
@@ -166,9 +166,9 @@ public class SlaveSaveSubCommand : SubCommandBase
             $"All slaves have been saved with added slave ObjId:{slave.ObjId}, TemplateId:{slave.TemplateId}");
     }
 
-    private List<JsonSlaveSpawns> LoadSlavesFromFileByWorld(World world)
+    private List<JsonSlaveSpawns> LoadSlavesFromFileByWorld(WorldInstance worldInstance)
     {
-        var jsonPathIn = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "slave_spawns.json");
+        var jsonPathIn = Path.Combine(FileManager.AppPath, "Data", "Worlds", worldInstance.Template.Name, "slave_spawns.json");
         if (!File.Exists(jsonPathIn))
         {
             throw new GameException($"File {jsonPathIn} doesn't exists.");

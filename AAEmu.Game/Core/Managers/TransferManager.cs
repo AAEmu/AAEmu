@@ -394,7 +394,7 @@ public class TransferManager : Singleton<TransferManager>
         {
             var transferPaths = new Dictionary<uint, List<TransferRoads>>();
 
-            var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone");
+            var worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone");
             var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
 
             foreach (var pathFileName in pathFiles)

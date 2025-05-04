@@ -80,7 +80,7 @@ public class Nwrite : ICommand
             {
                 foreach (var world in worlds)
                 {
-                    var jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name,
+                    var jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name,
                         "doodad_spawns.json");
                     if (doodad.Spawner.Position.WorldId == world.Id)
                     {
@@ -165,7 +165,7 @@ public class Nwrite : ICommand
                 {
                     if (character.Transform.WorldId == world.Id)
                     {
-                        var jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name,
+                        var jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name,
                             "npc_spawns.json");
 
                         var contents = FileManager.GetFileContents(jsonPath);
@@ -259,7 +259,7 @@ public class Nwrite : ICommand
                 {
                     if (npc.Spawner.Position.WorldId == world.Id)
                     {
-                        var jsonPath = $"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns_new.json";
+                        var jsonPath = $"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/npc_spawns_new.json";
 
                         var contents = FileManager.GetFileContents(jsonPath);
                         if (string.IsNullOrWhiteSpace(contents))

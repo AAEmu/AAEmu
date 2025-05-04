@@ -351,7 +351,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
         if (!_sphereQuests.TryGetValue(dbSphere.SphereDetailId, out var dbSphereQuest))
             return null;
 
-        var pakDataSpheres = SphereQuestManager.Instance.GetSpheresForQuest(dbSphereQuest.QuestId);
+        var pakDataSpheres = SphereQuestManager.GetSpheresForQuest(dbSphereQuest.QuestId);
         foreach (var pakDataSphere in pakDataSpheres)
         {
             if (pakDataSphere.Contains(worldPosition) && (requiredComponentId == 0 || pakDataSphere.ComponentId == requiredComponentId))

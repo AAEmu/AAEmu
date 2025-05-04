@@ -9,10 +9,8 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.Team;
-
+using AAEmu.Game.Models.Game.World;
 using NLog;
-
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -364,7 +362,7 @@ public class IndunManager : Singleton<IndunManager>
         Logger.Info($"[IndunManager] Requesting system instance, characterId: {character.Id}");
         Logger.Info($"[IndunManager] Total dungeons created: Party={_teamDungeons.Count}, Solo={_soloDungeons.Count}, Sys={_sysDungeons.Count}");
 
-        // Если не было инстанса - создадим его
+        // If there was no instance, let's create one
         if (!_sysDungeons.TryGetValue(zoneId, out var dungeon))
         {
             dungeon = new Dungeon(IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId), character);
@@ -479,13 +477,13 @@ public class IndunManager : Singleton<IndunManager>
         return true;
     }
 
-    public static void DoIndunActions(uint startActionId, InstanceWorld world)
+    public static void DoIndunActions(uint startActionId, WorldInstance worldInstance)
     {
         while (true)
         {
             var action = IndunGameData.Instance.GetIndunActionById(startActionId);
-            action.Execute(world);
-            Logger.Warn($"DoIndunActions: world={world.Id}, action.Id={action.Id}, action.NextActionId={action.NextActionId}");
+            action.Execute(worldInstance);
+            Logger.Warn($"DoIndunActions: world={worldInstance.Id}, action.Id={action.Id}, action.NextActionId={action.NextActionId}");
             if (action.NextActionId > 0)
             {
                 startActionId = action.NextActionId;
@@ -514,9 +512,9 @@ public class IndunManager : Singleton<IndunManager>
         _teamDungeons.Remove(team);
     }
 
-    public void SetRoomCleared(uint indunRoomId, InstanceWorld world)
+    public void SetRoomCleared(uint indunRoomId, WorldInstance worldInstance)
     {
-        var dungeon = GetDungeonByWorldId(world.Id);
+        var dungeon = GetDungeonByWorldId(worldInstance.Id);
         dungeon.SetRoomCleared(indunRoomId);
     }
 

@@ -1,6 +1,5 @@
-﻿using NLog;
-
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
+﻿using AAEmu.Game.Models.Game.World;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Indun.Actions;
 
@@ -13,5 +12,5 @@ public class IndunAction
     public uint ZoneGroupId { get; set; }
     public uint NextActionId { get; set; }
 
-    public virtual void Execute(InstanceWorld world) { }
+    public virtual void Execute(WorldInstance worldInstance) { }
 }

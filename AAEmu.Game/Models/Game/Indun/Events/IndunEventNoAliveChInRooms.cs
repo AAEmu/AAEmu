@@ -5,8 +5,6 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
 
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
-
 namespace AAEmu.Game.Models.Game.Indun.Events;
 
 internal class IndunEventNoAliveChInRooms : IndunEvent
@@ -21,11 +19,11 @@ internal class IndunEventNoAliveChInRooms : IndunEvent
         _doodads = [];
     }
 
-    public override void Subscribe(InstanceWorld world)
+    public override void Subscribe(WorldInstance worldInstance)
     {
         var doodadList = new List<Doodad>();
         var indunRoom = IndunGameData.Instance.GetRoom(RoomId);
-        foreach (var region in world.Regions)
+        foreach (var region in worldInstance.Regions)
         {
             region.GetList(doodadList, 0);
         }
@@ -35,31 +33,31 @@ internal class IndunEventNoAliveChInRooms : IndunEvent
             if (doodadList.Count > 1)
                 Logger.Warn("[IndunEvent] DoodadList returned higher than one doodad count.");
 
-            if (_doodads.TryGetValue(world.Id, out _))
+            if (_doodads.TryGetValue(worldInstance.Id, out _))
             {
-                _doodads[world.Id] = doodadList[0];
+                _doodads[worldInstance.Id] = doodadList[0];
             }
             else
             {
-                _doodads.Add(world.Id, doodadList[0]);
+                _doodads.Add(worldInstance.Id, doodadList[0]);
             }
-            if (_playerRoomCount.TryGetValue(world.Id, out _))
+            if (_playerRoomCount.TryGetValue(worldInstance.Id, out _))
             {
-                _playerRoomCount[world.Id] = 0;
+                _playerRoomCount[worldInstance.Id] = 0;
             }
             else
             {
-                _playerRoomCount.Add(world.Id, 0);
+                _playerRoomCount.Add(worldInstance.Id, 0);
             }
-            world.Events.OnAreaClear += OnAreaClear;
+            worldInstance.Events.OnAreaClear += OnAreaClear;
         }
     }
 
-    public override void UnSubscribe(InstanceWorld world)
+    public override void UnSubscribe(WorldInstance worldInstance)
     {
-        _doodads.Remove(world.Id);
-        _playerRoomCount.Remove(world.Id);
-        world.Events.OnAreaClear -= OnAreaClear;
+        _doodads.Remove(worldInstance.Id);
+        _playerRoomCount.Remove(worldInstance.Id);
+        worldInstance.Events.OnAreaClear -= OnAreaClear;
     }
 
     public uint GetRoomPlayerCount(uint instanceId)
@@ -90,7 +88,7 @@ internal class IndunEventNoAliveChInRooms : IndunEvent
 
     private void OnAreaClear(object sender, OnAreaClearArgs args)
     {
-        if (sender is InstanceWorld world)
+        if (sender is WorldInstance world)
         {
             Logger.Warn($"OnAreaClear, world {world.Id}");
 

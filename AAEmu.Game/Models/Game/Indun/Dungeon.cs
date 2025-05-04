@@ -24,7 +24,7 @@ public class Dungeon
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private readonly List<uint> _players;
-    private readonly World.World _world;
+    private readonly WorldInstance _worldInstance;
     private readonly ZoneInstanceId _zoneInstanceId;
     public readonly IndunZone _indunZone;
     // unused private List<Character> _teleportList;
@@ -33,9 +33,9 @@ public class Dungeon
     private Team.Team _teamOwner;
     private bool _isTeamOwned;
     private readonly Dictionary<uint, bool> _rooms;
-    //private static Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - использовано попыток прохождения данжона
-    //private const int FreeAttempts = 3;  // свободных попыток
-    //private const int ExtraAttempts = 2; // дополнительных попыток
+    //private static Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - dungeon attempts used
+    //private const int FreeAttempts = 3;  // free attempts
+    //private const int ExtraAttempts = 2; // additional attempts
     //public bool IsWaitingDungeonAccessAttemptsCleared { get; set; }
 
     private readonly object _lock = new();
@@ -86,20 +86,20 @@ public class Dungeon
                 }
         }
 
-        var world = WorldManager.Instance.GetWorldByZone(zoneKeys[0]);
+        var world = WorldManager.Instance.GetWorldTemplateByZone(zoneKeys[0]);
         //if (_indunZone.ZoneGroupId is 49 or 70 or 71 or 72)
         Logger.Info($"[Dungeon] Create dungeon...");
         Logger.Info($"[Dungeon] делаем копию инстанса...");
-        _world = WorldManager.Instance.CreateWorld(world); // делаем копию инстанса
+        _worldInstance = WorldManager.Instance.CreateWorldInstance(world);
         Logger.Info($"[Dungeon] сделали копию инстанса...");
 
-        _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _world.Id);
-        // выводится окошко о том, что создается данжон
+        _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _worldInstance.Id);
+        // a window will pop up indicating that a dungeon is being created.
         character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));
 
         // let's spawn Npc, Doodad, Slave, Gimmick
         Logger.Info($"[Dungeon] spawning Npc, Doodad, Slave, Gimmick...");
-        _ = SpawnManager.Instance.SpawnAll(_world.Id, _world.TemplateId);
+        _ = SpawnManager.Instance.SpawnAll(_worldInstance.Id, _worldInstance.Template.Id);
         Logger.Info($"[Dungeon] spawned Npc, Doodad, Slave, Gimmick...");
 
         RegisterIndunEvents();
@@ -107,7 +107,6 @@ public class Dungeon
 
     /// <summary>
     /// For system dungeons like the mirage and the library
-    /// для системных данжей, таких как мираж и библиотека
     /// </summary>
     /// <param name="indunZone"></param>
     /// <param name="character"></param>
@@ -136,16 +135,16 @@ public class Dungeon
                     return;
                 }
         }
-        var world = WorldManager.Instance.GetWorldByZone(zoneKeys[0]);
+        var world = WorldManager.Instance.GetWorldTemplateByZone(zoneKeys[0]);
 
         Logger.Info($"[Dungeon] Create system dungeon...");
         // для zone_key: 260=arche_mall, 296=instance_library_1, 297=instance_library_2, 298=instance_library_3
         // или
         // для group_id: 49=arche_mall, 70=instance_library_1, 71=instance_library_2, 72=instance_library_3
         Logger.Info($"[Dungeon] не делаем копию инстанса...");
-        _world = world; // don't make a copy of the instance / не делаем копию инстанса
-        _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _world.Id);
-        // a window will pop up indicating that a dungeon is being created. / выводится окошко о том, что создается данжон
+        _worldInstance = WorldManager.Instance.CreateWorldInstance(world); // don't make a copy of the instance
+        _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _worldInstance.Id);
+        // a window will pop up indicating that a dungeon is being created
         character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));
 
         RegisterIndunEvents();
@@ -154,7 +153,7 @@ public class Dungeon
     /// <summary>
     /// Returns true if the dungeon is full capacity, false if not.
     /// </summary>
-    public bool IsFull => _players.Count == _indunZone.MaxPlayers;
+    public bool IsFull => _players.Count >= _indunZone.MaxPlayers;
 
     /// <summary>
     /// Returns true if the dungeon has players inside, false if not.
@@ -214,12 +213,12 @@ public class Dungeon
         Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Destroying team dungeon...");
 
         IndunManager.Instance.RemoveDungeon(_teamOwner);
-        if (_world == null) { return; }
+        if (_worldInstance == null) { return; }
 
         UnregisterIndunEvents();
 
         var npcList = new List<Npc>();
-        foreach (var region in _world.Regions)
+        foreach (var region in _worldInstance.Regions)
         {
             region?.GetList(npcList, 0);
         }
@@ -233,8 +232,8 @@ public class Dungeon
             ObjectIdManager.Instance.ReleaseId(npc.ObjId);
         }
 
-        WorldManager.Instance.RemoveWorld(_world.Id);
-        WorldIdManager.Instance.ReleaseId(_world.Id);
+        WorldManager.Instance.RemoveWorld(_worldInstance.Id);
+        WorldIdManager.Instance.ReleaseId(_worldInstance.Id);
     }
 
     /// <summary>
@@ -251,13 +250,13 @@ public class Dungeon
         _ = RemovePlayer(character);
 
         if (!soloDungeon.IsOwner(character) || soloDungeon.HasPlayers) { return false; }
-        if (_world == null) { return true; }
+        if (_worldInstance == null) { return true; }
 
         UnregisterIndunEvents();
 
         var npcList = new List<Npc>();
 
-        foreach (var region in _world.Regions)
+        foreach (var region in _worldInstance.Regions)
         {
             region?.GetList(npcList, 0);
         }
@@ -271,8 +270,8 @@ public class Dungeon
             ObjectIdManager.Instance.ReleaseId(npc.ObjId);
         }
 
-        WorldManager.Instance.RemoveWorld(_world.Id);
-        WorldIdManager.Instance.ReleaseId(_world.Id);
+        WorldManager.Instance.RemoveWorld(_worldInstance.Id);
+        WorldIdManager.Instance.ReleaseId(_worldInstance.Id);
 
         return true;
 
@@ -285,37 +284,37 @@ public class Dungeon
     private void MoveCharacterToSysWorld(Character character)
     {
         // we take the coordinates of the zone
-        foreach (var wz in _world.XmlWorldZones.Values)
+        foreach (var wz in _worldInstance.Template.XmlWorldZones.Values)
         {
             if (wz.Id == _zoneInstanceId.ZoneId)
             {
-                _world.SpawnPosition = wz.SpawnPosition;
+                _worldInstance.Template.SpawnPosition = wz.SpawnPosition;
                 break;
             }
         }
-        if (_world.SpawnPosition != null)
+        if (_worldInstance.Template.SpawnPosition != null)
         {
             character.DisabledSetPosition = true;
             //character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
             character.SendPacket(
                 new SCLoadInstancePacket(
-                    _world.Id,
+                    _worldInstance.Id,
                     _zoneInstanceId.ZoneId,
-                    _world.SpawnPosition.X,
-                    _world.SpawnPosition.Y,
-                    _world.SpawnPosition.Z,
-                _world.SpawnPosition.Roll.DegToRad(),
-                _world.SpawnPosition.Pitch.DegToRad(),
-                _world.SpawnPosition.Yaw.DegToRad()));
-            character.Transform.ApplyWorldSpawnPosition(_world.SpawnPosition, _world.Id);
-            character.InstanceId = _world.Id;
+                    _worldInstance.Template.SpawnPosition.X,
+                    _worldInstance.Template.SpawnPosition.Y,
+                    _worldInstance.Template.SpawnPosition.Z,
+                _worldInstance.Template.SpawnPosition.Roll.DegToRad(),
+                _worldInstance.Template.SpawnPosition.Pitch.DegToRad(),
+                _worldInstance.Template.SpawnPosition.Yaw.DegToRad()));
+            character.Transform.ApplyWorldSpawnPosition(_worldInstance.Template.SpawnPosition, _worldInstance.Id);
+            character.InstanceId = _worldInstance.Id;
 
             character.Events.OnDungeonLeave += OnDungeonLeave;
             character.Events.OnDisconnect += OnDisconnect;
         }
         else
         {
-            Logger.Info($"World #{_world.Id}, not have default spawn position.");
+            Logger.Info($"World #{_worldInstance.Id}, not have default spawn position.");
             character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
         }
     }
@@ -326,30 +325,30 @@ public class Dungeon
     private void MoveCharacterToWorld(Character character)
     {
         // we take the coordinates of the zone
-        foreach (var wz in _world.XmlWorldZones.Values)
+        foreach (var wz in _worldInstance.Template.XmlWorldZones.Values)
         {
             if (wz.Id == _zoneInstanceId.ZoneId)
             {
-                _world.SpawnPosition = wz.SpawnPosition;
+                _worldInstance.Template.SpawnPosition = wz.SpawnPosition;
                 break;
             }
         }
-        if (_world.SpawnPosition != null)
+        if (_worldInstance.Template.SpawnPosition != null)
         {
             character.DisabledSetPosition = true;
             //character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
             character.SendPacket(
                 new SCLoadInstancePacket(
-                    _world.Id,
+                    _worldInstance.Id,
                     _zoneInstanceId.ZoneId,
-                    _world.SpawnPosition.X,
-                    _world.SpawnPosition.Y,
-                    _world.SpawnPosition.Z,
-                _world.SpawnPosition.Roll.DegToRad(),
-                _world.SpawnPosition.Pitch.DegToRad(),
-                _world.SpawnPosition.Yaw.DegToRad()));
-            character.Transform.ApplyWorldSpawnPosition(_world.SpawnPosition, _world.Id);
-            character.InstanceId = _world.Id;
+                    _worldInstance.Template.SpawnPosition.X,
+                    _worldInstance.Template.SpawnPosition.Y,
+                    _worldInstance.Template.SpawnPosition.Z,
+                _worldInstance.Template.SpawnPosition.Roll.DegToRad(),
+                _worldInstance.Template.SpawnPosition.Pitch.DegToRad(),
+                _worldInstance.Template.SpawnPosition.Yaw.DegToRad()));
+            character.Transform.ApplyWorldSpawnPosition(_worldInstance.Template.SpawnPosition, _worldInstance.Id);
+            character.InstanceId = _worldInstance.Id;
 
             character.Events.OnTeamJoin += OnTeamJoin;
             character.Events.OnTeamKick += OnTeamLeave;
@@ -359,7 +358,7 @@ public class Dungeon
         }
         else
         {
-            Logger.Info($"World #{_world.Id}, not have default spawn position.");
+            Logger.Info($"World #{_worldInstance.Id}, not have default spawn position.");
             character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
         }
     }
@@ -381,7 +380,7 @@ public class Dungeon
 
         if (character.MainWorldPosition == null)
         {
-            Logger.Info($"World #.{_world.Id}, not have Main World spawn position.");
+            Logger.Info($"World #.{_worldInstance.Id}, not have Main World spawn position.");
             return;
         }
 
@@ -411,7 +410,7 @@ public class Dungeon
 
         if (character.MainWorldPosition == null)
         {
-            Logger.Info($"World #.{_world.Id}, not have Main World spawn position.");
+            Logger.Info($"World #.{_worldInstance.Id}, not have Main World spawn position.");
             return;
         }
 
@@ -480,7 +479,7 @@ public class Dungeon
         var character = args.Player;
         if (character == null) { return; }
 
-        Logger.Info($"Player={character.Name} has exit from dungeon={_world.Id}!");
+        Logger.Info($"Player={character.Name} has exit from dungeon={_worldInstance.Id}!");
 
         if (IsSystem)
         {
@@ -490,13 +489,13 @@ public class Dungeon
 
         if (character.InParty)
         {
-            // выход из данжона (без его удаления)
+            // exit from a dungeon (without deleting it)
             LeaveInstance(character);
             return;
         }
 
         if (!_players.Contains(character.Id) || character.InstanceId != _zoneInstanceId.InstanceId) { return; }
-        // выход из данжона (с его удалением)
+        // dungeon exit (with deletion)
         //IndunManager.Instance.RequestDeletion(character, this);
         LeaveInstance(character);
     }
@@ -549,7 +548,7 @@ public class Dungeon
     }
 
     /// <summary>
-    /// Удаляем данжон, когда все игроки тимы вышли оффлайн
+    /// Deletes a dungeon when all players in the team are offline
     /// </summary>
     /// <param name="delta"></param>
     private void LeaveDungeonTick(TimeSpan delta)
@@ -603,7 +602,7 @@ public class Dungeon
         Logger.Info($"Registering Indun Events...");
         foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
         {
-            ev?.Subscribe(_world);
+            ev?.Subscribe(_worldInstance);
         }
     }
 
@@ -612,7 +611,7 @@ public class Dungeon
         Logger.Info($"Unregistering Indun Events...");
         foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
         {
-            ev?.UnSubscribe(_world);
+            ev?.UnSubscribe(_worldInstance);
         }
     }
 
@@ -628,12 +627,12 @@ public class Dungeon
 
     public uint GetDungeonWorldId()
     {
-        return _world.Id;
+        return _worldInstance.Id;
     }
 
     public uint GetDungeonTemplateId()
     {
-        return _world.TemplateId;
+        return _worldInstance.Template.Id;
     }
 
     private void AreaClearTick(TimeSpan delta)
@@ -647,7 +646,7 @@ public class Dungeon
                 if (IsRoomCleared(room.RoomId)) { return; }
 
                 var indunRoom = IndunGameData.Instance.GetRoom(room.RoomId);
-                var doodad = room.GetRoomDoodad(_world.Id);
+                var doodad = room.GetRoomDoodad(_worldInstance.Id);
 
                 if (doodad == null) { continue; }
 
@@ -656,12 +655,12 @@ public class Dungeon
 
                 Logger.Info($"Character:{radiusCount} in room:{room.RoomId}");
 
-                if (radiusCount == 0 && room.GetRoomPlayerCount(_world.Id) != 0)
+                if (radiusCount == 0 && room.GetRoomPlayerCount(_worldInstance.Id) != 0)
                 {
-                    IndunManager.DoIndunActions(ev.StartActionId, _world);
+                    IndunManager.DoIndunActions(ev.StartActionId, _worldInstance);
                 }
 
-                room.SetRoomPlayerCount(_world.Id, (uint)radiusCount);
+                room.SetRoomPlayerCount(_worldInstance.Id, (uint)radiusCount);
             }
         }
     }

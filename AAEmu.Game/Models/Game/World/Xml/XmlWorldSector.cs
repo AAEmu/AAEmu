@@ -11,7 +11,7 @@ public class XmlWorldSector
     public int Y { get; set; }
     public XmlWorldCell Parent { get; set; }
 
-    public void ReadNode(XmlNode node, World world, XmlWorldCell xmlWorldCell)
+    public void ReadNode(XmlNode node, WorldTemplate worldTemplate, XmlWorldCell xmlWorldCell)
     {
         Parent = xmlWorldCell;
 
@@ -20,9 +20,8 @@ public class XmlWorldSector
         X = XmlH.ReadAttribute(a, "x", 0);
         Y = XmlH.ReadAttribute(a, "y", 0);
 
-        // Apply Data to world
-        var worldSector = world.GetRegion(WorldSectorX(), WorldSectorY());
-        worldSector.ZoneKey = Parent.Parent.Id;
+        // Apply Zone Data to world Template
+        worldTemplate.ZoneKeyByRegions[WorldSectorX(), WorldSectorY()] = Parent.Parent.Id;
     }
 
     private int WorldSectorX()

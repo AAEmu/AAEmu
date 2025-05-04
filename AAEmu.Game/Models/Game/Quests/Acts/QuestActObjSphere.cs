@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -32,12 +33,12 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
         base.InitializeAction(quest, questAct);
         quest.Owner.Events.OnEnterSphere += questAct.OnEnterSphere;
         quest.Owner.Events.OnExitSphere += questAct.OnExitSphere;
-        SphereQuestManager.Instance.AddSphereQuestTriggers(quest.Owner, quest, questAct.QuestComponent.Template.Id, NpcId);
+        WorldManager.Instance.GetWorldOfGameObject((GameObject)quest.Owner).SphereQuestManager.AddSphereQuestTriggers(quest.Owner, quest, questAct.QuestComponent.Template.Id, NpcId);
     }
 
     public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
-        SphereQuestManager.Instance.RemoveSphereQuestTriggers(quest.Owner.Id, quest.TemplateId);
+        WorldManager.Instance.GetWorldOfGameObject((GameObject)quest.Owner).SphereQuestManager.RemoveSphereQuestTriggers(quest.Owner.Id, quest.TemplateId);
         quest.Owner.Events.OnExitSphere -= questAct.OnExitSphere;
         quest.Owner.Events.OnEnterSphere -= questAct.OnEnterSphere;
         base.FinalizeAction(quest, questAct);

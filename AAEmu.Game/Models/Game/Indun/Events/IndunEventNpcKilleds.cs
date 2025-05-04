@@ -2,27 +2,25 @@
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
-
 namespace AAEmu.Game.Models.Game.Indun.Events;
 
 internal class IndunEventNpcKilleds : IndunEvent
 {
     public uint NpcId { get; set; }
 
-    public override void Subscribe(InstanceWorld world)
+    public override void Subscribe(WorldInstance worldInstance)
     {
-        world.Events.OnUnitKilled += OnUnitKilled;
+        worldInstance.Events.OnUnitKilled += OnUnitKilled;
     }
 
-    public override void UnSubscribe(InstanceWorld world)
+    public override void UnSubscribe(WorldInstance worldInstance)
     {
-        world.Events.OnUnitKilled -= OnUnitKilled;
+        worldInstance.Events.OnUnitKilled -= OnUnitKilled;
     }
 
     private void OnUnitKilled(object sender, OnUnitKilledArgs args)
     {
-        if (args.Victim is not Npc npc || sender is not InstanceWorld world) { return; }
+        if (args.Victim is not Npc npc || sender is not WorldInstance world) { return; }
         if (npc.TemplateId != NpcId) { return; }
 
         Logger.Warn($"IndunEventNpcKilleds - {NpcId}, {Id}");

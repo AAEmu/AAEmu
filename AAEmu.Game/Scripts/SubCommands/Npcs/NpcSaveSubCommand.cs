@@ -180,7 +180,7 @@ public class NpcSaveSubCommand : SubCommandBase
                 }
             });
 
-            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, $"npc_spawns_all_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
+            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Template.Name, $"npc_spawns_all_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
 
             // Запись новых данных в файл
             var json = JsonConvert.SerializeObject(npcSpawnersToFile, Formatting.Indented, new JsonModelsConverter());
@@ -260,16 +260,16 @@ public class NpcSaveSubCommand : SubCommandBase
 
         spawnersFromFile[spawn.Id] = spawn;
 
-        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, $"npc_spawns_add_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
+        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, $"npc_spawns_add_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
         var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
         SendMessage(messageOutput, $"All npcs have been saved with added npc ObjId:{npc.ObjId}, TemplateId:{npc.TemplateId}");
         Logger.Info($"All npcs have been saved with added npc ObjId:{npc.ObjId}, TemplateId:{npc.TemplateId}");
     }
 
-    private List<JsonNpcSpawns> LoadNpcsFromFileByWorld(World world)
+    private List<JsonNpcSpawns> LoadNpcsFromFileByWorld(WorldInstance worldInstance)
     {
-        var worldDirectory = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
+        var worldDirectory = Path.Combine(FileManager.AppPath, "Data", "Worlds", worldInstance.Template.Name);
         var jsonFiles = Directory.GetFiles(worldDirectory, "npc_spawns*.json");
 
         if (jsonFiles.Length == 0)

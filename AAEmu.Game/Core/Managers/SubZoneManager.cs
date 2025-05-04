@@ -31,7 +31,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
             {
                 #region subzone
 
-                var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone", zoneId.ToString(), "client");
+                var worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone", zoneId.ToString(), "client");
                 var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "subzone_area.xml", true);
 
                 foreach (var pathFileName in pathFiles)
@@ -137,10 +137,10 @@ public class SubZoneManager : Singleton<SubZoneManager>
                                         }
                                     }
 
-                                    if (!world.SubZones.TryGetValue(zoneId, out var value))
+                                    if (!world.Template.SubZones.TryGetValue(zoneId, out var value))
                                     {
                                         value = [];
-                                        world.SubZones.Add(zoneId, value);
+                                        world.Template.SubZones.Add(zoneId, value);
                                     }
 
                                     value.Add(template);
@@ -154,7 +154,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
                 #region housing_area
 
-                worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone", zoneId.ToString(), "client");
+                worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone", zoneId.ToString(), "client");
                 pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "housing_area.xml", true);
 
                 foreach (var pathFileName in pathFiles)
@@ -262,10 +262,10 @@ public class SubZoneManager : Singleton<SubZoneManager>
                                         }
                                     }
 
-                                    if (!world.HousingZones.TryGetValue(zoneId, out var value))
+                                    if (!world.Template.HousingZones.TryGetValue(zoneId, out var value))
                                     {
                                         value = [];
-                                        world.HousingZones.Add(zoneId, value);
+                                        world.Template.HousingZones.Add(zoneId, value);
                                     }
 
                                     value.Add(template);
@@ -292,7 +292,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
         var found = false;
 
-        foreach (var housezoneTemplate in world.HousingZones[zoneId])
+        foreach (var housezoneTemplate in world.Template.HousingZones[zoneId])
         {
             if (Point.IsInside(housezoneTemplate._points, housezoneTemplate._points.Count, new Point(x, y, 0)))
             {
@@ -329,7 +329,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
         var foundSubzones = new List<uint>();
 
         var found = false;
-        if (world.SubZones.TryGetValue(zoneId, out var subZoneList))
+        if (world.Template.SubZones.TryGetValue(zoneId, out var subZoneList))
         {
             foreach (var subzoneTemplate in subZoneList)
             {

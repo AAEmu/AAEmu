@@ -21,7 +21,6 @@ namespace AAEmu.Game.Models.Game.Quests;
 public partial class Quest : PacketMarshaler
 {
     private const int MaxObjectiveCount = 5;
-    private readonly ISphereQuestManager _sphereQuestManager;
     private readonly IQuestManager _questManager;
     private readonly ITaskManager _taskManager;
     private readonly ISkillManager _skillManager;
@@ -204,13 +203,11 @@ public partial class Quest : PacketMarshaler
     /// <param name="skillManager"></param>
     /// <param name="expressTextManager"></param>
     /// <param name="worldManager"></param>
-    public Quest(IQuestTemplate questTemplate, ICharacter owner, IQuestManager questManager, ISphereQuestManager sphereQuestManager,
-        ITaskManager taskManager, ISkillManager skillManager, IExpressTextManager expressTextManager,
-        IWorldManager worldManager)
+    public Quest(IQuestTemplate questTemplate, ICharacter owner, IQuestManager questManager, ITaskManager taskManager,
+        ISkillManager skillManager, IExpressTextManager expressTextManager, IWorldManager worldManager)
     {
         Owner = owner;
         _questManager = questManager;
-        _sphereQuestManager = sphereQuestManager;
         _taskManager = taskManager;
         _skillManager = skillManager;
         _expressTextManager = expressTextManager;
@@ -237,12 +234,12 @@ public partial class Quest : PacketMarshaler
         InitializeQuestActs();
     }
 
-    public Quest(ICharacter owner) : this(null, owner, QuestManager.Instance, SphereQuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
+    public Quest(ICharacter owner) : this(null, owner, QuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
     {
         // Nothing extra
     }
 
-    public Quest(IQuestTemplate template, ICharacter owner) : this(template, owner, QuestManager.Instance, SphereQuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
+    public Quest(IQuestTemplate template, ICharacter owner) : this(template, owner, QuestManager.Instance, TaskManager.Instance, SkillManager.Instance, ExpressTextManager.Instance, WorldManager.Instance)
     {
         // Nothing Extra
     }

@@ -20,14 +20,12 @@ using Moq;
 
 using Xunit;
 
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
-
 namespace AAEmu.UnitTests.Game.Core.Managers.World
 {
     public class BoatPhysicsManagerTests
     {
         //private readonly Mock<WorldManager> _mockWorldManager;
-        private readonly Mock<InstanceWorld> _mockWorld;
+        private readonly Mock<WorldInstance> _mockWorld;
         //private readonly Mock<SlaveManager> _mockSlaveManager;
         private readonly Mock<Slave> _mockSlave;
         private readonly Mock<RigidBody> _mockRigidBody;
@@ -37,7 +35,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         public BoatPhysicsManagerTests()
         {
             //_mockWorldManager = new Mock<WorldManager>();
-            _mockWorld = new Mock<InstanceWorld>();
+            _mockWorld = new Mock<WorldInstance>();
             //_mockSlaveManager = new Mock<SlaveManager>();
             _mockSlave = new Mock<Slave>();
             var mockShipModel = new Mock<ShipModel>();

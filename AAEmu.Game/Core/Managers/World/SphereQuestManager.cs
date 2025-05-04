@@ -17,11 +17,12 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestManager
+public class SphereQuestManager : ISphereQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private WorldInstance _parent;
 
-    private Dictionary<uint, List<SphereQuest>> _sphereQuests;
+    private static Dictionary<uint, List<SphereQuest>> _sphereQuests;
 
     private readonly List<SphereQuestTrigger> _sphereQuestTriggers;
     private List<SphereQuestTrigger> _addQueue;
@@ -34,8 +35,9 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     private object _addLock = new();
     private object _remLock = new();
 
-    public SphereQuestManager()
+    public SphereQuestManager(WorldInstance parent)
     {
+        _parent = parent;
         _sphereQuestTriggers = [];
         _addQueue = [];
         _removeQueue = [];
@@ -52,7 +54,8 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     public void Load()
     {
         // Load sphere data
-        _sphereQuests = LoadQuestSpheres();
+        if (_sphereQuests == null)
+            _sphereQuests = LoadQuestSpheres(_parent.Template);
 
         // Link quest starters to spheres
         _questStartingSpheres.Clear();
@@ -185,8 +188,8 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
             // Handle Global triggers for quest starters
             foreach (var questStartingSphere in _questStartingSpheres)
             {
-                if (questStartingSphere.Region == null)
-                    questStartingSphere.Region = WorldManager.Instance.GetRegion(questStartingSphere.Sphere.ZoneId, questStartingSphere.Sphere.Xyz.X, questStartingSphere.Sphere.Xyz.Y);
+                // Link the region if it hasn't been done yet
+                questStartingSphere.Region ??= _parent.GetRegionByPos(questStartingSphere.Sphere.Xyz);
 
                 if (!questStartingSphere.Region?.HasPlayerActivity() ?? true)
                     continue;
@@ -251,93 +254,93 @@ public class SphereQuestManager : Singleton<SphereQuestManager>, ISphereQuestMan
     /// Read all spheres from all instances
     /// </summary>
     /// <returns></returns>
-    private static Dictionary<uint, List<SphereQuest>> LoadQuestSpheres()
+    private static Dictionary<uint, List<SphereQuest>> LoadQuestSpheres(WorldTemplate worldTemplate)
     {
         Logger.Info("Loading SphereQuest...");
-        var worlds = WorldManager.Instance.GetWorlds();
         Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
         var sphereQuests = new Dictionary<uint, List<SphereQuest>>();
-        foreach (var world in worlds)
+        var worldLevelDesignDir = Path.Combine("game", "worlds", worldTemplate.Name, "level_design", "zone");
+        var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "quest_sign_sphere.g", true);
+        foreach (var pathFileName in pathFiles)
         {
-            var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone");
-            var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "quest_sign_sphere.g", true);
-            foreach (var pathFileName in pathFiles)
+            if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))), out var zoneId))
             {
-                if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))), out var zoneId))
-                {
-                    Logger.Warn($"Unable to parse zoneId from {pathFileName}");
-                    continue;
-                }
-                var contents = ClientFileManager.GetFileAsString(pathFileName);
-                if (string.IsNullOrWhiteSpace(contents))
-                {
-                    Logger.Warn($"{pathFileName} doesn't exists or is empty.");
-                    continue;
-                }
-                Logger.Debug($"Loading {pathFileName}");
+                Logger.Warn($"Unable to parse zoneId from {pathFileName}");
+                continue;
+            }
 
-                var area = contents.ToLower().Split('\n').ToList();
+            var contents = ClientFileManager.GetFileAsString(pathFileName);
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"{pathFileName} doesn't exists or is empty.");
+                continue;
+            }
 
-                for (var i = 0; i < area.Count - 4; i++)
+            Logger.Debug($"Loading {pathFileName}");
+
+            var area = contents.ToLower().Split('\n').ToList();
+
+            for (var i = 0; i < area.Count - 4; i++)
+            {
+                var l0 = area[i + 0].Trim(' ').Trim('\t').Trim('\r'); // area
+                var l1 = area[i + 1].Trim(' ').Trim('\t').Trim('\r'); // qtype
+                var l2 = area[i + 2].Trim(' ').Trim('\t').Trim('\r'); // ctype
+                var l3 = area[i + 3].Trim(' ').Trim('\t').Trim('\r'); // pos
+                var l4 = area[i + 4].Trim(' ').Trim('\t').Trim('\r'); // radius
+                if (l0.StartsWith("area") && l1.StartsWith("qtype") && l2.StartsWith("ctype") &&
+                    l3.StartsWith("pos") && l4.StartsWith("radius"))
                 {
-                    var l0 = area[i + 0].Trim(' ').Trim('\t').Trim('\r'); // area
-                    var l1 = area[i + 1].Trim(' ').Trim('\t').Trim('\r'); // qtype
-                    var l2 = area[i + 2].Trim(' ').Trim('\t').Trim('\r'); // ctype
-                    var l3 = area[i + 3].Trim(' ').Trim('\t').Trim('\r'); // pos
-                    var l4 = area[i + 4].Trim(' ').Trim('\t').Trim('\r'); // radius
-                    if (l0.StartsWith("area") && l1.StartsWith("qtype") && l2.StartsWith("ctype") && l3.StartsWith("pos") && l4.StartsWith("radius"))
+                    try
                     {
-                        try
+                        var sphere = new SphereQuest();
+                        sphere.WorldId = worldTemplate.Name;
+                        sphere.ZoneId = zoneId;
+                        sphere.QuestId = uint.Parse(l1.Substring(6));
+                        sphere.ComponentId = uint.Parse(l2.Substring(6));
+                        var subLine = l3.Substring(4).Replace("(", "").Replace(")", "").Replace("x", "")
+                            .Replace("y", "").Replace("z", "").Replace(" ", "");
+                        var posString = subLine.Split(',');
+                        if (posString.Length == 3)
                         {
-                            var sphere = new SphereQuest();
-                            sphere.WorldId = world.Name;
-                            sphere.ZoneId = zoneId;
-                            sphere.QuestId = uint.Parse(l1.Substring(6));
-                            sphere.ComponentId = uint.Parse(l2.Substring(6));
-                            var subLine = l3.Substring(4).Replace("(", "").Replace(")", "").Replace("x", "").Replace("y", "").Replace("z", "").Replace(" ", "");
-                            var posString = subLine.Split(',');
-                            if (posString.Length == 3)
-                            {
-                                // Parse the floats with NumberStyles.Float and CultureInfo.InvariantCulture or we get all sorts of 
-                                // weird stuff with the decimal points depending on the user's language settings
-                                var sphereX = float.Parse(posString[0], NumberStyles.Float, CultureInfo.InvariantCulture);
-                                var sphereY = float.Parse(posString[1], NumberStyles.Float, CultureInfo.InvariantCulture);
-                                var sphereZ = float.Parse(posString[2], NumberStyles.Float, CultureInfo.InvariantCulture);
-                                sphere.Xyz = new Vector3(sphereX, sphereY, sphereZ);
-                            }
-                            sphere.Radius = float.Parse(l4.AsSpan(7), NumberStyles.Float, CultureInfo.InvariantCulture);
-                            // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
-                            // convert coordinates from local to world, immediately when reading the path from the file
-                            sphere.Xyz = ZoneManager.ConvertToWorldCoordinates(zoneId, sphere.Xyz);
-                            if (!sphereQuests.TryGetValue(sphere.ComponentId, out var value))
-                            {
-                                var sphereList = new List<SphereQuest>
-                                {
-                                    sphere
-                                };
-                                sphereQuests.Add(sphere.ComponentId, sphereList);
-                            }
-                            else
-                            {
-                                value.Add(sphere);
-                            }
-                            i += 4;
+                            // Parse the floats with NumberStyles.Float and CultureInfo.InvariantCulture or we get all sorts of 
+                            // weird stuff with the decimal points depending on the user's language settings
+                            var sphereX = float.Parse(posString[0], NumberStyles.Float, CultureInfo.InvariantCulture);
+                            var sphereY = float.Parse(posString[1], NumberStyles.Float, CultureInfo.InvariantCulture);
+                            var sphereZ = float.Parse(posString[2], NumberStyles.Float, CultureInfo.InvariantCulture);
+                            sphere.Xyz = new Vector3(sphereX, sphereY, sphereZ);
                         }
-                        catch (Exception ex)
+
+                        sphere.Radius = float.Parse(l4.AsSpan(7), NumberStyles.Float, CultureInfo.InvariantCulture);
+                        // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
+                        // convert coordinates from local to world, immediately when reading the path from the file
+                        sphere.Xyz = ZoneManager.ConvertToWorldCoordinates(zoneId, sphere.Xyz);
+                        if (!sphereQuests.TryGetValue(sphere.ComponentId, out var value))
                         {
-                            Logger.Error("Loading SphereQuest error!");
-                            Logger.Fatal(ex);
-                            throw;
+                            var sphereList = new List<SphereQuest> { sphere };
+                            sphereQuests.Add(sphere.ComponentId, sphereList);
                         }
+                        else
+                        {
+                            value.Add(sphere);
+                        }
+
+                        i += 4;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Loading SphereQuest error!");
+                        Logger.Fatal(ex);
+                        throw;
                     }
                 }
             }
         }
+
         return sphereQuests;
     }
 
-    public List<SphereQuest> GetSpheresForQuest(uint questSphereQuestId)
+    public static List<SphereQuest> GetSpheresForQuest(uint questSphereQuestId)
     {
         var res = new List<SphereQuest>();
 

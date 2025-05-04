@@ -10,7 +10,7 @@ public class XmlWorldCell
     public int Y { get; set; }
     public XmlWorldZone Parent { get; set; }
 
-    public void ReadNode(XmlNode node, World world, XmlWorldZone xmlWorldZone)
+    public void ReadNode(XmlNode node, WorldTemplate worldTemplate, XmlWorldZone xmlWorldZone)
     {
         Parent = xmlWorldZone;
 
@@ -26,7 +26,7 @@ public class XmlWorldCell
             for (var i = 0; i < sectorNodes.Count; i++)
             {
                 var sector = new XmlWorldSector();
-                sector.ReadNode(sectorNodes[i], world, this);
+                sector.ReadNode(sectorNodes[i], worldTemplate, this);
             }
         }
     }

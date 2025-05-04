@@ -31,7 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
             
-            var saveFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
+            var saveFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, "water_bodies.json");
             if (WaterBodies.Save(saveFileName, world.Water))
                 character.SendMessage($"[WaterEdit] |cFFFFFFFF{saveFileName}|r has been saved.");
             else

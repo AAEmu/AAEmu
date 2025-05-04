@@ -56,11 +56,11 @@ public class Transform : IDisposable
     /// </summary>
     public GameObject GameObject { get => _owningObject; }
     /// <summary>
-    /// World ID
+    /// WorldTemplateId
     /// </summary>
     public uint WorldId { get => _worldId; set => _worldId = value; }
     /// <summary>
-    /// Instance ID
+    /// WorldInstanceId
     /// </summary>
     public uint InstanceId { get => _instanceId; set => _instanceId = value; }
 

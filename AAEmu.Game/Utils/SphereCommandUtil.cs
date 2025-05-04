@@ -132,14 +132,14 @@ public class SphereCommandUtil
                 continue;
             }
 
-            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
 
             var contents =
                 FileManager.GetFileContents(
-                    $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+                    $"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
                 Logger.Warn(
-                    $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                    $"File {FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {
                 if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -175,7 +175,7 @@ public class SphereCommandUtil
                 }
                 else
                     throw new GameException(
-                        $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
+                        $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json file");
 
                 var json = JsonConvert.SerializeObject(spheres.ToArray(), Formatting.Indented);
                 File.WriteAllText(path, json);
@@ -187,7 +187,8 @@ public class SphereCommandUtil
 
     private static void GetSphereList(Character character, uint questId)
     {
-        var triggers = SphereQuestManager.Instance.GetSphereQuestTriggers();
+        var world = WorldManager.Instance.GetWorld(character.Transform.InstanceId);
+        var triggers = world.SphereQuestManager.GetSphereQuestTriggers();
         var count = 0;
         foreach (var questTrigger in triggers)
         {
@@ -216,14 +217,14 @@ public class SphereCommandUtil
                 continue;
             }
 
-            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
 
             var contents =
                 FileManager.GetFileContents(
-                    $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+                    $"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
                 Logger.Warn(
-                    $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                    $"File {FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {
                 if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -250,7 +251,7 @@ public class SphereCommandUtil
                 }
                 else
                     throw new GameException(
-                        $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
+                        $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json file");
 
                 var json = JsonConvert.SerializeObject(spheres.ToArray(), Formatting.Indented);
                 File.WriteAllText(path, json);
@@ -272,14 +273,14 @@ public class SphereCommandUtil
                 continue;
             }
 
-            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
 
             var contents =
                 FileManager.GetFileContents(
-                    $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+                    $"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
             if (string.IsNullOrWhiteSpace(contents))
                 Logger.Warn(
-                    $"File {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json doesn't exists or is empty.");
+                    $"File {FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json doesn't exists or is empty.");
             else
             {
                 if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
@@ -302,7 +303,7 @@ public class SphereCommandUtil
                 }
                 else
                     throw new GameException(
-                        $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json file");
+                        $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json file");
             }
         }
     }

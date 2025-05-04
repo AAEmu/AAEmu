@@ -61,8 +61,8 @@ public sealed class GameService : IHostedService, IDisposable
         TaskIdManager.Instance.Initialize();
         TaskManager.Instance.Initialize();
 
-        WorldManager.Instance.Load();
         WorldIdManager.Instance.Initialize();
+        WorldManager.Instance.Load();
         ExperienceManager.Instance.Load();
         FeaturesManager.Initialize();
 
@@ -76,11 +76,9 @@ public sealed class GameService : IHostedService, IDisposable
             WorldManager.Instance.LoadHeightmaps();
         }, cancellationToken);
 
-        var waterBodyTask = Task.Run(() =>
-        {
-            WorldManager.Instance.LoadWaterBodies();
-        }, cancellationToken);
-
+        // Start main_world instance
+        _ = WorldManager.Instance.CreateWorldInstance(WorldManager.Instance.GetWorldTemplateByName("main_world"));
+        
         ContainerIdManager.Instance.Initialize();
         ItemIdManager.Instance.Initialize();
         DoodadIdManager.Instance.Initialize();
@@ -108,9 +106,6 @@ public sealed class GameService : IHostedService, IDisposable
 
         GameDataManager.Instance.LoadGameData();
         QuestManager.Instance.Load();
-
-        SphereQuestManager.Instance.Load();
-        SphereQuestManager.Instance.Initialize();
 
         FormulaManager.Instance.Load();
         AiPathsManager.Instance.Load();
@@ -192,12 +187,6 @@ public sealed class GameService : IHostedService, IDisposable
         RadarManager.Instance.Initialize();
         ManaRegenManager.Instance.Initialize();
         PublicFarmManager.Instance.Initialize();
-
-        if ((waterBodyTask != null) && (!waterBodyTask.IsCompleted))
-        {
-            Logger.Info("Waiting on water to be loaded before proceeding, please wait ...");
-            await waterBodyTask;
-        }
 
         if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
         {

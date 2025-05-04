@@ -1,6 +1,5 @@
-﻿using NLog;
-
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
+﻿using AAEmu.Game.Models.Game.World;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Indun.Events;
 
@@ -13,11 +12,11 @@ public class IndunEvent
     public uint ZoneGroupId { get; set; }
     public uint StartActionId { get; set; }
 
-    public virtual void Subscribe(InstanceWorld world)
+    public virtual void Subscribe(WorldInstance worldInstance)
     {
     }
 
-    public virtual void UnSubscribe(InstanceWorld world)
+    public virtual void UnSubscribe(WorldInstance worldInstance)
     {
     }
 }

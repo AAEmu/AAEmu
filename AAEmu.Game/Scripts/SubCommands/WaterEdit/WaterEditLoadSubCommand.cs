@@ -31,7 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
             
-            var loadFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
+            var loadFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, "water_bodies.json");
             if (!WaterBodies.Load(loadFileName, out var newWater))
             {
                 character.SendMessage($"|cFFFF0000[WaterEdit] Error loading {loadFileName} !|r");

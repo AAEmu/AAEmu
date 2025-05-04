@@ -172,7 +172,7 @@ public class DoodadSaveSubCommand : SubCommandBase
                 }
             });
 
-            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, $"doodad_spawns_all_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
+            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Template.Name, $"doodad_spawns_all_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
             var json = JsonConvert.SerializeObject(doodadSpawnersToFile, Formatting.Indented, new JsonModelsConverter());
             File.WriteAllText(jsonPathOut, json);
 
@@ -320,7 +320,7 @@ public class DoodadSaveSubCommand : SubCommandBase
                 }
             });
 
-            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Name, $"doodad_spawns_all_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
+            var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", currentWorld.Template.Name, $"doodad_spawns_all_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
 
             // Запись новых данных в файл
             var json = JsonConvert.SerializeObject(doodadSpawnersToFile, Formatting.Indented, new JsonModelsConverter());
@@ -400,7 +400,7 @@ public class DoodadSaveSubCommand : SubCommandBase
 
         spawnersFromFile[spawn.Id] = spawn;
 
-        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, $"doodad_spawns_add_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
+        var jsonPathOut = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, $"doodad_spawns_add_{DateTime.Now:yyyyMMdd_HHmmss}.json.add");
         var json = JsonConvert.SerializeObject(spawnersFromFile.Values.ToArray(), Formatting.Indented, new JsonModelsConverter());
         File.WriteAllText(jsonPathOut, json);
         //SendDebugMessage(messageOutput, $"Doodad ObjId: {doodad.ObjId} has been saved!");
@@ -408,9 +408,9 @@ public class DoodadSaveSubCommand : SubCommandBase
         Logger.Warn($"All doodads have been saved with added doodad ObjId:{doodad.ObjId}, TemplateId:{doodad.TemplateId}");
     }
 
-    private List<JsonDoodadSpawns> LoadDoodadsFromFileByWorld(World world)
+    private List<JsonDoodadSpawns> LoadDoodadsFromFileByWorld(WorldInstance worldInstance)
     {
-        var worldDirectory = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
+        var worldDirectory = Path.Combine(FileManager.AppPath, "Data", "Worlds", worldInstance.Template.Name);
         var jsonFiles = Directory.GetFiles(worldDirectory, "doodad_spawns*.json");
 
         if (jsonFiles.Length == 0)

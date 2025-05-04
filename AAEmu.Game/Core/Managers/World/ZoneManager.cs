@@ -208,8 +208,8 @@ public class ZoneManager : Singleton<ZoneManager>
 
     public static Vector2 GetZoneOriginCell(uint zoneId)
     {
-        var world = WorldManager.Instance.GetWorldByZone(zoneId);
-        if (world != null && world.XmlWorldZones.TryGetValue(zoneId, out var xmlZone))
+        var world = WorldManager.Instance.GetWorldTemplateByZone(zoneId);
+        if (world?.XmlWorldZones.TryGetValue(zoneId, out var xmlZone) ?? false)
         {
             return new Vector2(xmlZone.OriginX, xmlZone.OriginY);
         }

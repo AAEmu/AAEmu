@@ -26,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public string[] CommandNames { get; set; } = ["wateredit", "water_edit", "wedit"];
         public static WaterBodyArea SelectedWater { get; set; }
-        public static World SelectedWorld { get; set; }
+        public static WorldInstance SelectedWorld { get; set; }
         public static int NextPoint { get; set; }
         public static List<(WaterBodyArea, float)> NearbyList = new List<(WaterBodyArea, float)>();
         public static List<BaseUnit> Markers = new List<BaseUnit>();
@@ -87,12 +87,12 @@ namespace AAEmu.Game.Scripts.Commands
             return CallPrefix;
         }
         
-        public static void CreateNearbyList(ICharacter character, World world)
+        public static void CreateNearbyList(ICharacter character, WorldInstance worldInstance)
         {
             NearbyList.Clear();
-            lock (world.Water._lock)
+            lock (worldInstance.Water._lock)
             {
-                foreach (var area in world.Water.Areas)
+                foreach (var area in worldInstance.Water.Areas)
                 {
                     var offsetVec = area.Points[0] - character.Transform.World.Position;
                     var dist = offsetVec.Length();

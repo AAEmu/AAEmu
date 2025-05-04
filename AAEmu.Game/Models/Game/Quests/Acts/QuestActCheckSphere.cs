@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -11,14 +12,14 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
     public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        SphereQuestManager.Instance.AddSphereQuestTriggers(quest.Owner, quest, ParentComponent.Id, 0);
+        WorldManager.Instance.GetWorldOfGameObject((GameObject)quest.Owner).SphereQuestManager.AddSphereQuestTriggers(quest.Owner, quest, ParentComponent.Id, 0);
         quest.Owner.Events.OnEnterSphere += questAct.OnEnterSphere;
         quest.Owner.Events.OnExitSphere += questAct.OnExitSphere;
     }
 
     public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
-        SphereQuestManager.Instance.RemoveSphereQuestTriggers(quest.Owner.Id, (uint)quest.Id);
+        WorldManager.Instance.GetWorldOfGameObject((GameObject)quest.Owner).SphereQuestManager.RemoveSphereQuestTriggers(quest.Owner.Id, (uint)quest.Id);
         quest.Owner.Events.OnEnterSphere -= questAct.OnEnterSphere;
         quest.Owner.Events.OnExitSphere -= questAct.OnExitSphere;
         base.FinalizeAction(quest, questAct);

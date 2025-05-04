@@ -27,7 +27,7 @@ namespace AAEmu.Game.Scripts.Commands
                 character.SendMessage($"[WaterEdit] You are somehow not in a valid world!");
                 return;
             }
-            character.SendMessage($"[WaterEdit] World {world.Name} has {world.Water.Areas.Count} water bodies defined:");
+            character.SendMessage($"[WaterEdit] World {world.Template.Name} has {world.Water.Areas.Count} water bodies defined:");
             foreach (var area in world.Water.Areas)
             {
                 character.SendMessage($"|cFFFFFFFF{area.Name}|r ({area.Id}) => {area.Points.Count} points");

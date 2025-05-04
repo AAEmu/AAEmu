@@ -23,7 +23,7 @@ public class WaterEdit : ICommand
     public string[] CommandNames { get; set; } = ["wateredit", "water_edit", "wedit"];
 
     public static WaterBodyArea SelectedWater { get; set; }
-    public static World SelectedWorld { get; set; }
+    public static WorldInstance SelectedWorld { get; set; }
     public static int NextPoint { get; set; }
     public List<(WaterBodyArea, float)> NearbyList = [];
     public List<BaseUnit> Markers = [];
@@ -43,12 +43,12 @@ public class WaterEdit : ICommand
         return "Live editing, saving and loading of water bodies";
     }
 
-    public void CreateNearbyList(Character character, World world)
+    public void CreateNearbyList(Character character, WorldInstance worldInstance)
     {
         NearbyList.Clear();
-        lock (world.Water._lock)
+        lock (worldInstance.Water._lock)
         {
-            foreach (var area in world.Water.Areas)
+            foreach (var area in worldInstance.Water.Areas)
             {
                 var offsetVec = area.Points[0] - character.Transform.World.Position;
                 var dist = offsetVec.Length();
@@ -158,7 +158,7 @@ public class WaterEdit : ICommand
         {
             CommandManager.SendNormalText(this, messageOutput, $"Currently selected:");
             CommandManager.SendNormalText(this, messageOutput,
-                $"|cFFFFFFFF{SelectedWater?.Name ?? "<no area>"}|r in |cFFFFFFFF{SelectedWorld?.Name ?? "<no world>"}|r with height {SelectedWater?.Height ?? 0f}");
+                $"|cFFFFFFFF{SelectedWater?.Name ?? "<no area>"}|r in |cFFFFFFFF{SelectedWorld?.Template.Name ?? "<no world>"}|r with height {SelectedWater?.Height ?? 0f}");
             CommandManager.SendNormalText(this, messageOutput, $"Available commands:");
             CommandManager.SendNormalText(this, messageOutput,
                 $"|cFF00FF00list|r: lists all water bodies in the current world");
@@ -205,7 +205,7 @@ public class WaterEdit : ICommand
         if (subCommand is "list" or "l")
         {
             CommandManager.SendNormalText(this, messageOutput,
-                $"World {world.Name} has {world.Water.Areas.Count} water bodies defined:");
+                $"World {world.Template.Name} has {world.Water.Areas.Count} water bodies defined:");
             foreach (var area in world.Water.Areas)
             {
                 CommandManager.SendNormalText(this, messageOutput,
@@ -609,7 +609,7 @@ public class WaterEdit : ICommand
         }
         else if (subCommand == "save")
         {
-            var saveFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
+            var saveFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, "water_bodies.json");
             if (WaterBodies.Save(saveFileName, world.Water))
             {
                 CommandManager.SendNormalText(this, messageOutput, $"|cFFFFFFFF{saveFileName}|r has been saved.");
@@ -621,7 +621,7 @@ public class WaterEdit : ICommand
         }
         else if (subCommand == "load")
         {
-            var loadFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "water_bodies.json");
+            var loadFileName = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, "water_bodies.json");
             if (!WaterBodies.Load(loadFileName, out var newWater))
             {
                 CommandManager.SendErrorText(this, messageOutput, $"Error loading {loadFileName} !");

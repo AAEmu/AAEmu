@@ -3,8 +3,7 @@ using System.Linq;
 
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.NPChar;
-
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Indun.Actions;
 
@@ -12,9 +11,9 @@ internal class IndunActionRemoveTaggedNpcs : IndunAction
 {
     public uint TagId { get; set; }
 
-    public override void Execute(InstanceWorld world)
+    public override void Execute(WorldInstance worldInstance)
     {
-        foreach (var npc in GetTaggedNpcs(world))
+        foreach (var npc in GetTaggedNpcs(worldInstance))
         {
             npc.Delete();
         }
@@ -22,11 +21,11 @@ internal class IndunActionRemoveTaggedNpcs : IndunAction
         Logger.Warn($"IndunActionRemoveTaggedNpcs: {TagId}");
     }
 
-    private List<Npc> GetTaggedNpcs(InstanceWorld world)
+    private List<Npc> GetTaggedNpcs(WorldInstance worldInstance)
     {
         var npcList = new List<Npc>();
 
-        foreach (var region in world.Regions)
+        foreach (var region in worldInstance.Regions)
         {
             region.GetList(npcList, 0);
         }

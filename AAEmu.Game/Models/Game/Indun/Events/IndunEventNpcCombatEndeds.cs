@@ -1,22 +1,20 @@
 ﻿using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
-
 namespace AAEmu.Game.Models.Game.Indun.Events;
 
 internal class IndunEventNpcCombatEndeds : IndunEvent
 {
     public uint NpcId { get; set; }
 
-    public override void Subscribe(InstanceWorld world)
+    public override void Subscribe(WorldInstance worldInstance)
     {
-        world.Events.OnUnitCombatEnd += OnUnitCombatEnd;
+        worldInstance.Events.OnUnitCombatEnd += OnUnitCombatEnd;
     }
 
-    public override void UnSubscribe(InstanceWorld world)
+    public override void UnSubscribe(WorldInstance worldInstance)
     {
-        world.Events.OnUnitCombatEnd -= OnUnitCombatEnd;
+        worldInstance.Events.OnUnitCombatEnd -= OnUnitCombatEnd;
     }
 
     private void OnUnitCombatEnd(object sender, OnUnitCombatEndArgs args)

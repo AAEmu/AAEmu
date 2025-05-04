@@ -27,8 +27,8 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
     {
         Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId}, LifeTime={LifeTime}, UseSummonerAggroTarget={UseSummonerAggroTarget}, ActivationState={ActivationState}");
 
-        var world = WorldManager.Instance.GetWorldByZone(caster.Transform.ZoneId);
-        var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)world.TemplateId);
+        var world = WorldManager.Instance.GetWorldTemplateByZone(caster.Transform.ZoneId);
+        var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)world.Id);
         if (spawners is not { Count: not 0 })
             Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId} not found in spawners.");
         else

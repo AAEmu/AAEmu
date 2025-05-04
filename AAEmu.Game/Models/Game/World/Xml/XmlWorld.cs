@@ -25,7 +25,7 @@ public class XmlWorld
     /// </summary>
     public ConcurrentDictionary<uint, XmlWorldZone> Zones { get; set; }
 
-    public void ReadNode(XmlNode node, World world)
+    public void ReadNode(XmlNode node, WorldTemplate worldTemplate)
     {
         // Read XML
         var a = XmlH.ReadNodeAttributes(node);
@@ -42,21 +42,21 @@ public class XmlWorld
         IsReleaseBranch = XmlH.ReadAttribute<uint>(a, "isReleaseBranch", 0);
 
         // Apply Data to world
-        world.Name = Name;
-        world.CellX = (int)CellXCount;
-        world.CellY = (int)CellYCount;
-        world.OceanLevel = OceanLevel;
-        world.MaxHeight = MaxTerrainHeight;
+        worldTemplate.Name = Name;
+        worldTemplate.CellX = (int)CellXCount;
+        worldTemplate.CellY = (int)CellYCount;
+        worldTemplate.OceanLevel = OceanLevel;
+        worldTemplate.MaxHeight = MaxTerrainHeight;
 
         // pre-create heightmap data
-        world.HeightMaps = new ushort[world.CellX * WorldManager.CELL_HMAP_RESOLUTION, world.CellY * WorldManager.CELL_HMAP_RESOLUTION];
-        // world.HeightMaps = new ushort[world.CellX * 512, world.CellY * 512];
-        world.HeightMaxCoefficient = ushort.MaxValue / (world.MaxHeight / 4.0);
+        worldTemplate.HeightMaps = new ushort[worldTemplate.CellX * WorldManager.CELL_HMAP_RESOLUTION, worldTemplate.CellY * WorldManager.CELL_HMAP_RESOLUTION];
+        worldTemplate.ZoneKeyByRegions = new uint[worldTemplate.CellX * WorldManager.SECTORS_PER_CELL, worldTemplate.CellY * WorldManager.SECTORS_PER_CELL];
+        worldTemplate.HeightMaxCoefficient = ushort.MaxValue / (worldTemplate.MaxHeight / 4.0);
 
         // pre-create the required Sectors
-        world.Regions = new Region[world.CellX * WorldManager.SECTORS_PER_CELL, world.CellY * WorldManager.SECTORS_PER_CELL];
+        // worldTemplate.Regions = new Region[worldTemplate.CellX * WorldManager.SECTORS_PER_CELL, worldTemplate.CellY * WorldManager.SECTORS_PER_CELL];
         // Xml zone stuff cache
-        world.XmlWorldZones = new ConcurrentDictionary<uint, XmlWorldZone>();
+        worldTemplate.XmlWorldZones = new ConcurrentDictionary<uint, XmlWorldZone>();
 
         var zoneNodes = node.SelectNodes("ZoneList/Zone");
         Zones = new ConcurrentDictionary<uint, XmlWorldZone>();
@@ -67,11 +67,11 @@ public class XmlWorld
             for (var i = 0; i < zoneNodes.Count; i++)
             {
                 var zone = new XmlWorldZone();
-                zone.ReadNode(zoneNodes[i], world, this);
+                zone.ReadNode(zoneNodes[i], worldTemplate, this);
                 if (!Zones.TryAdd(zone.Id, zone))
                     throw new GameException("Duplicate zoneKey while reading world.xml");
 
-                world.XmlWorldZones.TryAdd(zone.Id, zone);
+                worldTemplate.XmlWorldZones.TryAdd(zone.Id, zone);
             }
         }
     }

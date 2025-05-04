@@ -392,7 +392,7 @@ public class PortalManager : Singleton<PortalManager>
         // 3891 - Portal Entrance
         // 6949 - Portal Exit
         var portalPointDestination = new Transform(null, null,
-            WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id, portalInfo.ZoneId,
+            WorldManager.Instance.GetWorldTemplateByZone(portalInfo.ZoneId).Id, portalInfo.ZoneId,
             owner.Transform.InstanceId, portalInfo.X, portalInfo.Y, portalInfo.Z,
             0f, 0f, portalInfo.ZRot);
         var portalPointLocation = new Transform(null, null,

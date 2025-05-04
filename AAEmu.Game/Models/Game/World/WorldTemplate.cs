@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Numerics;
-
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
@@ -14,22 +12,25 @@ namespace AAEmu.Game.Models.Game.World;
 /// <summary>
 /// Instance of a World
 /// </summary>
-public class World
+public class WorldTemplate
 {
     private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
-    /// Instance Id for this world
+    /// TemplateId for this world
     /// </summary>
     public uint Id { get; set; }
+
     /// <summary>
     /// World name
     /// </summary>
     public virtual string Name { get; set; }
+
     /// <summary>
     /// Max height for this world's map data
     /// </summary>
     public float MaxHeight { get; set; }
+
     /// <summary>
     /// Height Coefficient
     /// </summary>
@@ -47,41 +48,35 @@ public class World
     /// </summary>
     public int CellY { get; set; }
     /// <summary>
-    /// Internal template Id number for this world (WorldId)
-    /// </summary>
-    public uint TemplateId { get; set; }
-    /// <summary>
     /// Default spawn location for this world (not used when creating new characters)
     /// </summary>
     public WorldSpawnPosition SpawnPosition { get; set; } = new();
-    /// <summary>
-    /// Collection of Region data
-    /// </summary>
-    public Region[,] Regions { get; set; }
+
     /// <summary>
     /// Raw Heightmap data for this world
     /// </summary>
     public virtual ushort[,] HeightMaps { get; set; }
+
+    /// <summary>
+    /// Collection of ZoneKeys per Region
+    /// </summary>
+    public uint[,] ZoneKeyByRegions { get; set; }
+    
     /// <summary>
     /// List of levels inside this world (Zone Keys)
     /// </summary>
     public List<uint> ZoneKeys { get; set; } = [];
+
+    /// <summary>
+    /// Xml data for this world
+    /// </summary>
+    public XmlWorld XmlWorld { get; set; } = new();
+
     /// <summary>
     /// XML Zone data
     /// </summary>
     public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
-    /// <summary>
-    /// Physics handler
-    /// </summary>
-    public BoatPhysicsManager Physics { get; set; }
-    /// <summary>
-    /// Water definitions
-    /// </summary>
-    public WaterBodies Water { get; set; }
-    /// <summary>
-    /// Event handlers
-    /// </summary>
-    public WorldEvents Events { get; set; } = new();
+
     /// <summary>
     /// List of SubZones in this world (zoneId, list)
     /// </summary>
@@ -90,38 +85,6 @@ public class World
     /// List of housing zones in this world (zoneId, list)
     /// </summary>
     public Dictionary<uint, List<Area>> HousingZones { get; set; } = []; 
-
-    ~World()
-    {
-        Logger.Info($"World {Id} removed");
-    }
-
-    /// <summary>
-    /// Checks if target position is inside a body of water
-    /// </summary>
-    /// <param name="position"></param>
-    /// <returns></returns>
-    public bool IsWater(Vector3 position) => IsWater(position, out _);
-
-    /// <summary>
-    /// Checks if target position is inside a body of water and returns it's flow direction (if available)
-    /// </summary>
-    /// <param name="point"></param>
-    /// <param name="flowDirection"></param>
-    /// <returns></returns>
-    public bool IsWater(Vector3 point, out Vector3 flowDirection)
-    {
-        if (Water != null)
-            return Water.IsWater(point, out flowDirection);
-
-        flowDirection = Vector3.Zero;
-
-        if (point.Z <= OceanLevel)
-            return true;
-
-        // TODO: Check shapes
-        return false;
-    }
 
     /// <summary>
     /// Gets heightmap height at target position (not smoothened)
@@ -198,23 +161,6 @@ public class World
         var height = Blerp(heightTl, heightTr, heightBl, heightBr, offX, offY); // bilinear interpolation
 
         return height;
-    }
-
-    /// <summary>
-    /// Get Sector at specific offset
-    /// </summary>
-    /// <param name="sectorX">X offset of the Sector</param>
-    /// <param name="sectorY">Y offset of the Sector</param>
-    /// <returns></returns>
-    public Region GetRegion(int sectorX, int sectorY)
-    {
-        if (ValidRegion(sectorX, sectorY))
-            if (Regions[sectorX, sectorY] == null)
-                return Regions[sectorX, sectorY] = new Region(Id, sectorX, sectorY, 0);
-            else
-                return Regions[sectorX, sectorY];
-
-        return null;
     }
 
     /// <summary>

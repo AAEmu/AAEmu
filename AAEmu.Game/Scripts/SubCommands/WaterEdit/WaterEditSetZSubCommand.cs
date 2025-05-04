@@ -37,7 +37,7 @@ namespace AAEmu.Game.Scripts.Commands
             if (WaterEditCmd.SelectedWorld != world)
             {
                 character.SendMessage(
-                    $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEdit.SelectedWorld.Name})|r");
+                    $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEdit.SelectedWorld.Template.Name})|r");
                 return;
             }
 

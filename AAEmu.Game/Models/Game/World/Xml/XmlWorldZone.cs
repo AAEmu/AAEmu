@@ -17,7 +17,7 @@ public class XmlWorldZone
     public XmlWorld Parent { get; set; }
     public WorldSpawnPosition SpawnPosition { get; set; } = new WorldSpawnPosition(); // координаты для Zones
 
-    public void ReadNode(XmlNode node, World world, XmlWorld xmlWorld)
+    public void ReadNode(XmlNode node, WorldTemplate worldTemplate, XmlWorld xmlWorld)
     {
         Parent = xmlWorld;
         // Read XML
@@ -29,8 +29,8 @@ public class XmlWorldZone
         var cellNodes = node.SelectNodes("cellList/cell");
 
         // Apply Data to world
-        if (!world.ZoneKeys.Contains(Id))
-            world.ZoneKeys.Add(Id);
+        if (!worldTemplate.ZoneKeys.Contains(Id))
+            worldTemplate.ZoneKeys.Add(Id);
 
         Cells = new ConcurrentDictionary<(int, int), XmlWorldCell>();
         if (cellNodes != null)
@@ -38,7 +38,7 @@ public class XmlWorldZone
             for (var i = 0; i < cellNodes.Count; i++)
             {
                 var cell = new XmlWorldCell();
-                cell.ReadNode(cellNodes[i], world, this);
+                cell.ReadNode(cellNodes[i], worldTemplate, this);
                 if (!Cells.TryAdd((cell.X, cell.Y), cell))
                     throw new GameException($"Failed to add Cell {cell.X}, {cell.Y} in {Name}");
             }

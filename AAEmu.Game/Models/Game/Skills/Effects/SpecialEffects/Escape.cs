@@ -39,10 +39,10 @@ public class Escape : SpecialEffectAction
                 {
                     return;
                 }
-                portal.X = w.SpawnPosition.X;
-                portal.Y = w.SpawnPosition.Y;
-                portal.Z = w.SpawnPosition.Z;
-                portal.ZRot = w.SpawnPosition.Roll;
+                portal.X = w.Template.SpawnPosition.X;
+                portal.Y = w.Template.SpawnPosition.Y;
+                portal.Z = w.Template.SpawnPosition.Z;
+                portal.ZRot = w.Template.SpawnPosition.Roll;
             }
             else
             {
