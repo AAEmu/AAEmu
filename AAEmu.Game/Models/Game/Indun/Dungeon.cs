@@ -88,10 +88,9 @@ public class Dungeon
 
         var world = WorldManager.Instance.GetWorldTemplateByZone(zoneKeys[0]);
         //if (_indunZone.ZoneGroupId is 49 or 70 or 71 or 72)
-        Logger.Info($"[Dungeon] Create dungeon...");
-        Logger.Info($"[Dungeon] делаем копию инстанса...");
-        _worldInstance = WorldManager.Instance.CreateWorldInstance(world);
-        Logger.Info($"[Dungeon] сделали копию инстанса...");
+        Logger.Info($"[Dungeon] Creating new dungeon instance of {world.Name} ...");
+        _worldInstance = WorldManager.Instance.CreateWorldInstance(world, 0);
+        Logger.Info($"[Dungeon] Dungeon instance created {_worldInstance.Id} - {_worldInstance.Template.Name} ({_worldInstance.Template.Id}) !");
 
         _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _worldInstance.Id);
         // a window will pop up indicating that a dungeon is being created.
@@ -135,14 +134,14 @@ public class Dungeon
                     return;
                 }
         }
-        var world = WorldManager.Instance.GetWorldTemplateByZone(zoneKeys[0]);
+        var worldTemplate = WorldManager.Instance.GetWorldTemplateByZone(zoneKeys[0]);
 
         Logger.Info($"[Dungeon] Create system dungeon...");
         // для zone_key: 260=arche_mall, 296=instance_library_1, 297=instance_library_2, 298=instance_library_3
         // или
         // для group_id: 49=arche_mall, 70=instance_library_1, 71=instance_library_2, 72=instance_library_3
-        Logger.Info($"[Dungeon] не делаем копию инстанса...");
-        _worldInstance = WorldManager.Instance.CreateWorldInstance(world); // don't make a copy of the instance
+        Logger.Info($"[Dungeon] don't make a copy of the instance ...");
+        _worldInstance = WorldManager.Instance.CreateWorldInstance(worldTemplate, 0);
         _zoneInstanceId = new ZoneInstanceId(zoneKeys[0], _worldInstance.Id);
         // a window will pop up indicating that a dungeon is being created
         character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));

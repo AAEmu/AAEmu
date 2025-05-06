@@ -76,9 +76,6 @@ public sealed class GameService : IHostedService, IDisposable
             WorldManager.Instance.LoadHeightmaps();
         }, cancellationToken);
 
-        // Start main_world instance
-        _ = WorldManager.Instance.CreateWorldInstance(WorldManager.Instance.GetWorldTemplateByName("main_world"));
-        
         ContainerIdManager.Instance.Initialize();
         ItemIdManager.Instance.Initialize();
         DoodadIdManager.Instance.Initialize();
@@ -171,6 +168,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         TimeManager.Instance.Start();
         TaskManager.Instance.Start();
+        
         // LaborPowerManager.Initialize();
         TimedRewardsManager.Instance.Initialize();
 
@@ -194,6 +192,10 @@ public sealed class GameService : IHostedService, IDisposable
             await heightmapTask;
         }
 
+        // Start main_world and other static instance
+        WorldManager.Instance.CreateStaticInstances();
+        
+        // TODO: Move all spawns to WorldInstance
         var spawnSw = new Stopwatch();
         Logger.Info("Spawning units...");
         spawnSw.Start();
@@ -202,9 +204,6 @@ public sealed class GameService : IHostedService, IDisposable
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
         Logger.Info($"Units spawned in {spawnSw.Elapsed}");
-
-        // Start running Physics when everything is loaded
-        WorldManager.Instance.StartPhysics();
 
         CharacterManager.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();

@@ -22,7 +22,7 @@ public class QuestTests
     private void Start_WhenQuestStepIsNoneAndComponentIsEmpty_ShouldDoNothing()
     {
         // Arrange
-        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _, out _);
+        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns([]);
 
         // Act
@@ -37,7 +37,7 @@ public class QuestTests
     private void Start_WhenQuestActsIsEmpty_ShouldDoNothing()
     {
         // Arrange
-        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _, out _);
+        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _);
         var expectedIds = new List<uint>();
 
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>()))
@@ -60,7 +60,7 @@ public class QuestTests
     private void Start_WhenComponentActsAreAllQuestActConAcceptNpc_AndTargetNotMatch_ShouldAbort()
     {
         // Arrange
-        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _, out _);
+        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _);
         var expectedIds = new List<uint>();
 
         mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns<QuestComponentKind>(kind => [
@@ -91,7 +91,7 @@ public class QuestTests
     private void Start_WhenComponentActsAreAllQuestActConAcceptNpc_AndTargetMatch_ButComponentSkillIdIsZero_ShouldNotOwnerUseSkill()
     {
         // Arrange
-        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _, out _);
+        var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out var mockQuestManager, out _, out _, out _, out _);
         var expectedIds = new List<uint>();
         mockQuestTemplate.SetupGet(qt => qt.Components).Returns(new Dictionary<uint, QuestComponentTemplate>()
         {
@@ -122,7 +122,6 @@ public class QuestTests
         out Mock<ICharacter> mockCharacter,
         out Mock<IQuestTemplate> mockQuestTemplate,
         out Mock<IQuestManager> mockQuestManager,
-        out Mock<ISphereQuestManager> mockSphereQuestManager,
         out Mock<TaskManager> mockTaskManager,
         out Mock<ISkillManager> mockSkillManager,
         out Mock<IExpressTextManager> mockExpressTextManager,
@@ -132,7 +131,6 @@ public class QuestTests
         mockQuestManager = new Mock<IQuestManager>();
         mockQuestTemplate = new Mock<IQuestTemplate>();
         mockQuestTemplate.SetupGet(x => x.Components).Returns(new Dictionary<uint, QuestComponentTemplate>());
-        mockSphereQuestManager = new Mock<ISphereQuestManager>();
         mockExpressTextManager = new Mock<IExpressTextManager>();
         mockSkillManager = new Mock<ISkillManager>();
         mockTaskManager = new Mock<TaskManager>();
@@ -142,7 +140,6 @@ public class QuestTests
             mockQuestTemplate.Object,
             mockCharacter.Object,
             mockQuestManager.Object,
-            mockSphereQuestManager.Object,
             mockTaskManager.Object,
             mockSkillManager.Object,
             mockExpressTextManager.Object,

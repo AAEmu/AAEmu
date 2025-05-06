@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
-
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -20,7 +20,6 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
 
@@ -251,6 +250,26 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     }
 
     /// <summary>
+    /// Find a world template that has specified zone group in it
+    /// </summary>
+    /// <param name="zoneGroupId"></param>
+    /// <returns></returns>
+    public WorldTemplate GetWorldTemplateForZoneGroup(uint zoneGroupId)
+    {
+        foreach (var (_, worldTemplate) in WorldTemplates)
+        {
+            foreach (var zoneKey in worldTemplate.ZoneKeys)
+            {
+                var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
+                if (zone.GroupId == zoneGroupId)
+                    return worldTemplate;
+            }
+        }
+
+        return null;
+    }
+    
+    /// <summary>
     /// Loads all world templates from the game client
     /// </summary>
     /// <exception cref="OperationCanceledException"></exception>
@@ -385,21 +404,51 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         _loaded = true;
     }
 
-    public WorldInstance CreateWorldInstance(WorldTemplate worldTemplate)
+    /// <summary>
+    /// Create all the instances that should always exist in the server
+    /// </summary>
+    public void CreateStaticInstances()
+    {
+        // TODO: make this a config json
+        // Erenor
+        _ = CreateWorldInstance(GetWorldTemplateByName("main_world"), 0, true, 0);
+        // Mirage Island
+        _ = CreateWorldInstance(GetWorldTemplateByName("arche_mall_world"), 0, true, 1);
+        // TODO: Library floors
+    }
+
+    /// <summary>
+    /// Create a new World Instance
+    /// </summary>
+    /// <param name="worldTemplate">World template for this instance</param>
+    /// <param name="overrideInstanceId">Set true for static instances</param>
+    /// <param name="fixedInstanceId">InstanceId to use if overrideInstanceId is set, must be lower than 100 (0x64)</param>
+    /// <returns>Newly created instance, or the previously instance created instance if a static instance with the same name already exists</returns>
+    public WorldInstance CreateWorldInstance(WorldTemplate worldTemplate, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0)
     {
         // Check if it's a Persistent single Instance like main_world
         // If it's marked as an instance or if it only has 1 zone defined, then it's a "dungeon"
         var canBeInstanced = worldTemplate.XmlWorld.IsInstance > 0 || worldTemplate.XmlWorld.Zones.Count <= 1;
+        // TODO: Add code that if indun_zones.select_channel is set, that it is also a static instance 
+
         // If only one instance is allowed, check if it already exists, if it does, return that instead
         if (!canBeInstanced)
         {
             var previousWorld = _worlds.FirstOrDefault(w => w.Value.Template.Id == worldTemplate.Id).Value;
             if (previousWorld != null)
+            {
+                Logger.Warn($"Tried to create a new instance of {worldTemplate.Name} which does not allow multiple instances. Using InstanceId {previousWorld.Id} instead!");
                 return previousWorld;
+            }
         }
 
+        if (fixedInstanceId > 100)
+        {
+            throw new GameException("Fixed Instance ID is too large");
+        }
+        
         // Create a new instance
-        var world = new WorldInstance { Template = worldTemplate };
+        var world = new WorldInstance(worldTemplate, channelId, overrideInstanceId, overrideInstanceId ? fixedInstanceId : WorldIdManager.Instance.GetNextId());
         _worlds.Add((uint)_worlds.Count, world);
 
         // Create the Instance regions
@@ -414,10 +463,19 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
+        // Load water data
         world.LoadWaterBodies();
+
+        // Create and start the actual physics engine
+        world.StartPhysics();
+        
+        // Quest sphere handling instance
         world.SphereQuestManager = new SphereQuestManager(world);
         world.SphereQuestManager.Initialize();
         world.SphereQuestManager.Load();
+        
+        // TODO: Move spawns here
+
         return world;
     }
 
@@ -426,7 +484,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// </summary>
     /// <param name="worldName"></param>
     /// <returns></returns>
-    public WorldTemplate CreateWorldTemplate(string worldName)
+    private WorldTemplate CreateWorldTemplate(string worldName)
     {
         var worldTemplateId = WorldNames.IndexOf(worldName);
         if (worldTemplateId == -1)
@@ -485,9 +543,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             DefaultWorldTemplateId = worldTemplate.Id; // prefer to do it like this, in case we change order or IDs later on
 
         return worldTemplate;
-
     }
 
+    /// <summary>
+    /// Loads heightmap data from hmap.dat files
+    /// </summary>
+    /// <param name="worldTemplate"></param>
+    /// <returns></returns>
     private static bool LoadHeightMapFromDatFile(WorldTemplate worldTemplate)
     {
         var heightMap = Path.Combine(FileManager.AppPath, "Data", "Worlds", worldTemplate.Name, "hmap.dat");
@@ -546,6 +608,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return true;
     }
 
+    /// <summary>
+    /// Load heightmap data from the game client data
+    /// </summary>
+    /// <param name="worldTemplate"></param>
+    /// <returns></returns>
+    /// <exception cref="NotSupportedException"></exception>
     private static bool LoadHeightMapFromClientData(WorldTemplate worldTemplate)
     {
         // Use world.xml to check if we have client data enabled
@@ -642,6 +710,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return true;
     }
 
+    /// <summary>
+    /// Load heightmaps for all world templates
+    /// </summary>
     public void LoadHeightmaps()
     {
         if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!
@@ -664,26 +735,46 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
+    /// <summary>
+    /// Gets a world by it's instanceId
+    /// </summary>
+    /// <param name="worldInstanceId"></param>
+    /// <returns></returns>
     public WorldInstance GetWorld(uint worldInstanceId)
     {
         if (_worlds.TryGetValue(worldInstanceId, out var res))
             return res;
-        Logger.Fatal($"GetWorld(): No such World Instance {worldInstanceId}");
+        Logger.Fatal($"GetWorld: No such World Instance {worldInstanceId}");
         return null;
     }
 
+    /// <summary>
+    /// Get a list of all world instances
+    /// </summary>
+    /// <returns></returns>
     public WorldInstance[] GetWorlds()
     {
         return _worlds.Values.ToArray();
     }
 
+    /// <summary>
+    /// Get world template Id for a given zoneId
+    /// </summary>
+    /// <param name="zoneId"></param>
+    /// <returns></returns>
     public uint GetWorldIdByZone(uint zoneId)
     {
         if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
             return worldId;
-        Logger.Fatal($"GetWorldByZone(): No world defined for ZoneId {zoneId}");
+        Logger.Fatal($"GetWorldByZone: No world defined for ZoneId {zoneId}");
         return 0xffffffff; // -1
     }
+
+    /// <summary>
+    /// Get a world template for a given zoneId
+    /// </summary>
+    /// <param name="zoneId"></param>
+    /// <returns></returns>
     public WorldTemplate GetWorldTemplateByZone(uint zoneId)
     {
         if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
@@ -692,6 +783,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return null;
     }
 
+    /// <summary>
+    /// Get zones for a given world template id
+    /// </summary>
+    /// <param name="worldId"></param>
+    /// <returns></returns>
     public List<uint> GetZonesByWorldId(uint worldId)
     {
         if (_zonesByWorldId.TryGetValue(worldId, out var value))
@@ -699,11 +795,18 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return [];
     }
 
+    /// <summary>
+    /// Gets a zone Id for a given world template at target position
+    /// </summary>
+    /// <param name="worldTemplateId"></param>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
     public uint GetZoneId(uint worldTemplateId, float x, float y)
     {
         if (!WorldTemplatesById.TryGetValue(worldTemplateId, out var worldTemplate))
         {
-            Logger.Fatal($"GetZoneId(): No such WorldId {worldTemplateId}");
+            Logger.Fatal($"GetZoneId: No such WorldId {worldTemplateId}");
             return 0;
         }
         var sx = (int)(x / REGION_SIZE);
@@ -711,13 +814,20 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         if (!worldTemplate.ValidRegion(sx, sy))
         {
-            Logger.Fatal($"GetZoneId(): Coordinates out of bounds for WorldId {worldTemplateId} - x:{x:#,0.#} - y: {y:#,0.#}");
+            Logger.Fatal($"GetZoneId: Coordinates out of bounds for WorldId {worldTemplateId} - x:{x:#,0.#} - y: {y:#,0.#}");
             return 0;
         }
 
         return worldTemplate.ZoneKeyByRegions[sx, sy];
     }
 
+    /// <summary>
+    /// Get "floor" height at a given position for a zone
+    /// </summary>
+    /// <param name="zoneId">ZoneId used to find which world it needs to look in</param>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
     public float GetHeight(uint zoneId, float x, float y)
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
@@ -788,6 +898,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return height;
     }
 
+    /// <summary>
+    /// Gets the root GameObject all the way up from the parent/child object tree
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
     private static GameObject GetRootObj(GameObject obj)
     {
         if (obj.ParentObj == null)
@@ -800,13 +915,25 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
+    /// <summary>
+    /// Gets the region a GameObject is in
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
     public Region GetRegion(GameObject obj)
     {
         obj = GetRootObj(obj);
         var world = GetWorld(obj.Transform.WorldId);
-        return GetRegion(world, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
+        return world.GetRegionByPos(obj.Transform.World.Position);
     }
 
+    /// <summary>
+    /// Get a list of neighbouring Regions/Sectors as defined by REGION_NEIGHBORHOOD_SIZE
+    /// </summary>
+    /// <param name="worldId"></param>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
     public Region[] GetNeighbors(uint worldId, int x, int y)
     {
         var world = _worlds[worldId];
@@ -814,33 +941,58 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         var result = new List<Region>();
         for (var a = -REGION_NEIGHBORHOOD_SIZE; a <= REGION_NEIGHBORHOOD_SIZE; a++)
             for (var b = -REGION_NEIGHBORHOOD_SIZE; b <= REGION_NEIGHBORHOOD_SIZE; b++)
-                if (ValidRegion(world.Id, x + a, y + b) && world.Regions[x + a, y + b] != null)
+                if (world.Template.ValidRegion(x + a, y + b) && world.Regions[x + a, y + b] != null)
                     result.Add(world.Regions[x + a, y + b]);
 
         return result.ToArray();
     }
 
+    /// <summary>
+    /// Get GameObject by its ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public GameObject GetGameObject(uint objId)
     {
         return _objects.GetValueOrDefault(objId);
     }
 
+    /// <summary>
+    /// Get Unit by its ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public BaseUnit GetBaseUnit(uint objId)
     {
         return _baseUnits.GetValueOrDefault(objId);
     }
 
+    /// <summary>
+    /// Get Doodad by its ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
     public Doodad GetDoodad(uint objId)
     {
         return _doodads.GetValueOrDefault(objId);
     }
 
+    /// <summary>
+    /// Get Doodad by its database Id
+    /// </summary>
+    /// <param name="dbId"></param>
+    /// <returns></returns>
     public Doodad GetDoodadByDbId(uint dbId)
     {
         var ret = _doodads.FirstOrDefault(x => x.Value.DbId == dbId).Value;
         return ret;
     }
 
+    /// <summary>
+    /// Get House by its database Id
+    /// </summary>
+    /// <param name="houseDbId"></param>
+    /// <returns></returns>
     public List<Doodad> GetDoodadByHouseDbId(uint houseDbId)
     {
         var ret = _doodads.Where(x => x.Value.OwnerDbId == houseDbId).Select(y => y.Value).ToList();
@@ -877,11 +1029,21 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return _npcs.Values.FirstOrDefault(x => x.TemplateId == templateId);
     }
 
+    /// <summary>
+    /// Manually assign a Npc to the npc objects list (used for tests only) 
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <param name="npc"></param>
     internal void SetNpc(uint objId, Npc npc)
     {
         _npcs[objId] = npc;
     }
 
+    /// <summary>
+    /// Gets an active Character by their names
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public Character GetCharacter(string name)
     {
         foreach (var player in _characters.Values)
@@ -915,18 +1077,24 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return character;
     }
 
+    /// <summary>
+    /// Get an active Character by their ObjId
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public Character GetCharacterByObjId(uint id)
     {
-        _characters.TryGetValue(id, out var ret);
-        return ret;
+        return _characters.GetValueOrDefault(id);
     }
 
+    /// <summary>
+    /// Get an active Character by their database Id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public Character GetCharacterById(uint id)
     {
-        foreach (var player in _characters.Values)
-            if (player.Id.Equals(id))
-                return player;
-        return null;
+        return _characters.Values.FirstOrDefault(player => player.Id.Equals(id));
     }
 
     /// <summary>
@@ -1120,6 +1288,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     RemoveVisibleObject(child.GameObject);
     }
 
+    /// <summary>
+    /// Gets a list of all T GameObjects around a given GameObject depending on neighbourhood size
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
     public static List<T> GetAround<T>(GameObject obj) where T : class
     {
         var result = new List<T>();
@@ -1132,6 +1306,14 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return result;
     }
 
+    /// <summary>
+    /// Gets a list of all T GameObjects around a given radius around GameObject
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <param name="radius">Checked radius only include objects is the neighbourhood size</param>
+    /// <param name="useModelSize">Set true if model sizes are excluded from the distance check</param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>A list of GameObjects that meet the criteria</returns>
     public static List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
     {
         var result = new List<T>();
@@ -1156,6 +1338,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return result;
     }
 
+    /// <summary>
+    /// Gets a list of all T GameObjects within the target GameObject's neighbourhood
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
     private static List<T> GetNeighborRegionsObjs<T>(GameObject obj) where T : class
     {
         var result = new List<T>();
@@ -1168,6 +1356,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return result;
     }
 
+    /// <summary>
+    /// Checks if a radius around a GameObject is still always within the same Region/Sector
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <param name="radius"></param>
+    /// <returns></returns>
     private static bool RadiusFitsCurrentRegion(GameObject obj, float radius)
     {
         var xMod = obj?.Transform?.World?.Position.X % REGION_SIZE;
@@ -1180,6 +1374,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return true;
     }
 
+    /// <summary>
+    /// Gets all T GameObjects around a GameObject using a given shape
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <param name="shape"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
     public static List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
     {
         switch (shape.Type)
@@ -1207,35 +1408,16 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return null;
     }
 
-    public List<T> GetInCell<T>(uint worldId, int x, int y) where T : class
-    {
-        var result = new List<T>();
-        var regions = new List<Region>();
-        for (var a = x * SECTORS_PER_CELL; a < (x + 1) * SECTORS_PER_CELL; a++)
-            for (var b = y * SECTORS_PER_CELL; b < (y + 1) * SECTORS_PER_CELL; b++)
-            {
-                if (ValidRegion(worldId, a, b) && _worlds[worldId].Regions[a, b] != null)
-                    regions.Add(_worlds[worldId].Regions[a, b]);
-            }
-
-        foreach (var region in regions)
-            region.GetList(result, 0);
-        return result;
-    }
-
+    /// <summary>
+    /// Sends a packet to all players on the server
+    /// </summary>
+    /// <param name="packet"></param>
     public void BroadcastPacketToServer(GamePacket packet)
     {
         foreach (var character in _characters.Values)
         {
             character.SendPacket(packet);
         }
-    }
-
-    private static Region GetRegion(WorldInstance worldInstance, float x, float y)
-    {
-        var sx = (int)(x / REGION_SIZE);
-        var sy = (int)(y / REGION_SIZE);
-        return worldInstance.GetRegion(sx, sy);
     }
 
     private bool ValidRegion(uint worldTemplateId, int x, int y)
@@ -1333,6 +1515,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return _areaShapes.GetValueOrDefault(id);
     }
 
+    /// <summary>
+    /// Stops all worlds from running
+    /// </summary>
     public void Stop()
     {
         if (_worlds is not null)
@@ -1344,60 +1529,16 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
     }
 
-    public void StartPhysics()
+    /// <summary>
+    /// Removes a world instance
+    /// </summary>
+    /// <param name="worldInstanceId"></param>
+    public void RemoveWorld(uint worldInstanceId)
     {
-        foreach (var (_, world) in _worlds)
+        if (!_worlds.Remove(worldInstanceId))
         {
-            world.Physics = new BoatPhysicsManager
-            {
-                SimulationWorld = world
-            };
-            world.Physics.Initialize();
-            world.Physics.StartPhysics();
+            Logger.Info($"[Dungeon] couldn't remove the dungeon id={worldInstanceId}!");
         }
-    }
-
-    public WorldInstance CreateWorld(WorldInstance originalWorld)
-    {
-        if (originalWorld == null)
-            return null;
-
-        // Apply Data to world
-        // ReSharper disable once UseObjectOrCollectionInitializer
-        var newInstance = new WorldInstance { Template = originalWorld.Template };
-        newInstance.Id = WorldIdManager.Instance.GetNextId();
-        newInstance.Physics = originalWorld.Physics;  // TODO: copy is looped .CloneJson();
-        newInstance.Physics.SimulationWorld.Id = newInstance.Id;
-        newInstance.Water = originalWorld.Water; // TODO: .CloneJson();
-        var dx = newInstance.Template.CellX * SECTORS_PER_CELL;
-        var dy = newInstance.Template.CellY * SECTORS_PER_CELL;
-        newInstance.Regions = new Region[dx, dy];
-        for (var y = 0; y < dy; y++)
-        {
-            for (var x = 0; x < dx; x++)
-            {
-                newInstance.Regions[x, y] = new Region(newInstance.Id, x, y, originalWorld.Template.ZoneKeys[0]);
-            }
-        }
-
-        newInstance.Physics.SimulationWorld.Regions = newInstance.Regions;
-        //SpawnManager.Instance.CloneNpcEventSpawners((byte)originalWorld.TemplateId, (byte)newInstance.Id);
-
-        _worlds.Add(newInstance.Id, newInstance);
-
-        return newInstance;
-    }
-
-    public void RemoveWorld(uint worldId)
-    {
-        if (!_worlds.Remove(worldId))
-        {
-            Logger.Info($"[Dungeon] couldn't remove the dungeon id={worldId}!");
-        }
-        //if (!SpawnManager.Instance.RemoveNpcEventSpawners((byte)worldId))
-        //{
-        //    Logger.Info($"[Dungeon] could not delete the list of NpcEventSpawners for dungeon id={worldId}!");
-        //}
     }
 
     /// <summary>

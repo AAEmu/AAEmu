@@ -333,7 +333,7 @@ public class SpawnManager : Singleton<SpawnManager>
         _loaded = true;
     }
 
-    private void LoadNpcSpawns(Models.Game.World.WorldInstance worldInstance, string worldPath)
+    private void LoadNpcSpawns(WorldInstance worldInstance, string worldPath)
     {
         string[] npcFiles;
         try

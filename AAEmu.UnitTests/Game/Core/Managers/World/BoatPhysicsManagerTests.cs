@@ -55,7 +55,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
                 SimulationWorld = _mockWorld.Object,
             };
             _boatPhysicsManager.SimulationWorld.Water = new WaterBodies();
-            _boatPhysicsManager.SimulationWorld.Water.OceanLevel = _boatPhysicsManager.SimulationWorld.OceanLevel;
+            _boatPhysicsManager.SimulationWorld.Water.OceanLevel = _boatPhysicsManager.SimulationWorld.Template.OceanLevel;
 
             // Polygon water body (lake)
             var mockWaterBodyPoly = new WaterBodyArea("mock_lake", WaterBodyAreaType.Polygon);
@@ -83,9 +83,9 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         public void Initialize_Should_Initialize_Physics_World()
         {
             // Arrange
-            _mockWorld.Setup(w => w.Name).Returns("main_world");
-            _mockWorld.Setup(w => w.HeightMaps).Returns(new ushort[1, 1]);
-            _mockWorld.Setup(w => w.HeightMaxCoefficient).Returns(1.0f);
+            _mockWorld.Setup(w => w.Template.Name).Returns("main_world");
+            _mockWorld.Setup(w => w.Template.HeightMaps).Returns(new ushort[1, 1]);
+            _mockWorld.Setup(w => w.Template.HeightMaxCoefficient).Returns(1.0f);
 
             // Act
             _boatPhysicsManager.Initialize();
@@ -101,7 +101,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         public void StartPhysics_WhenCalled_StartsPhysicsThread()
         {
             // Arrange
-            _mockWorld.Object.Name = "main_world";
+            _mockWorld.Object.Template.Name = "main_world";
             _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
 
             // Act
@@ -169,8 +169,8 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             // Assert
             Assert.False(_boatPhysicsManager.ThreadRunning);
         }
-        
-        public class WaterTestDataGenerator : IEnumerable<object[]>
+
+        private class WaterTestDataGenerator : IEnumerable<object[]>
         {
             private readonly List<object[]> _data =
             [

@@ -42,13 +42,13 @@ namespace AAEmu.Game.Core.Managers;
 public class SlaveManager : Singleton<SlaveManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<uint, SlaveTemplate> _slaveTemplates;
-    private Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
-    private Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
-    private Dictionary<uint, SlaveMountSkills> _slaveMountSkills;
-    public Dictionary<uint, uint> _repairableSlaves; // SlaveId, RepairEffectId
+    private Dictionary<uint, SlaveTemplate> _slaveTemplates = [];
+    private Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints = [];
+    private Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems = []; // PackId and List<Slot/ItemData>
+    private Dictionary<uint, SlaveMountSkills> _slaveMountSkills = [];
+    public Dictionary<uint, uint> _repairableSlaves = []; // SlaveId, RepairEffectId
 
-    private object _slaveListLock;
+    private object _slaveListLock = new();
 
     public bool Exist(uint templateId)
     {
@@ -898,12 +898,6 @@ value.Yaw);
     /// </summary>
     public void Load()
     {
-        _slaveListLock = new object();
-        _slaveTemplates = [];
-        _slaveInitialItems = [];
-        _slaveMountSkills = [];
-        _repairableSlaves = [];
-
         #region SQLLite
 
         using (var connection = SQLite.CreateConnection())

@@ -459,7 +459,11 @@ public class HousingManager : Singleton<HousingManager>
     public void SpawnAll()
     {
         foreach (var house in _houses.Values)
+        {
+            house.Transform.WorldId = WorldManager.DefaultWorldTemplateId;
+            house.Transform.InstanceId = WorldManager.DefaultInstanceId;
             house.Spawn();
+        }
     }
 
     /// <summary>

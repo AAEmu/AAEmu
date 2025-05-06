@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Packets.S2C;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTQueryCharNamePacket : StreamPacket
+public class CTQueryCharNamePacket() : StreamPacket(CTOffsets.CTQueryCharNamePacket)
 {
-    public CTQueryCharNamePacket() : base(CTOffsets.CTQueryCharNamePacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();
@@ -19,6 +15,6 @@ public class CTQueryCharNamePacket : StreamPacket
         if (name != null)
             Connection.SendPacket(new TCCharNameQueriedPacket(id, name));
 
-        Logger.Debug("QueryCharName, Id: {0}, Name: {1}", id, name);
+        Logger.Debug($"QueryCharName, Id: {id}, Name: {name}");
     }
 }

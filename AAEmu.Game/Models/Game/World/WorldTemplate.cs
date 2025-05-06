@@ -10,7 +10,7 @@ using NLog;
 namespace AAEmu.Game.Models.Game.World;
 
 /// <summary>
-/// Instance of a World
+/// Template of a World
 /// </summary>
 public class WorldTemplate
 {

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using AAEmu.Commons.IO;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using NLog;
 
@@ -10,19 +12,29 @@ namespace AAEmu.Game.Models.Game.World;
 /// <summary>
 /// Instance of a World
 /// </summary>
-public class WorldInstance
+public class WorldInstance(WorldTemplate template, uint channelId, bool dontFreeInstanceId, uint instanceId)
 {
     private static Logger Logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
+    /// Keeps track if we need to release the Id or not
+    /// </summary>
+    private bool IsFixedInstanceId { get; } = dontFreeInstanceId;
+
+    /// <summary>
     /// Instance Id for this world
     /// </summary>
-    public uint Id { get; set; }
+    public uint Id { get; init; } = instanceId;
 
     /// <summary>
     /// Template of this world
     /// </summary>
-    public WorldTemplate Template { get; set; }
+    public WorldTemplate Template { get; init; } = template;
+
+    /// <summary>
+    /// Channel number for this instance (only for dungeons)
+    /// </summary>
+    public uint ChannelId { get; init; } = channelId;
 
     /// <summary>
     /// Collection of Region data
@@ -45,8 +57,11 @@ public class WorldInstance
     public WorldEvents Events { get; set; } = new();
 
     public SphereQuestManager SphereQuestManager { get; set; }
+
     ~WorldInstance()
     {
+        if (!IsFixedInstanceId)
+            WorldIdManager.Instance.ReleaseId(Id);
         Logger.Info($"WorldInstance {Id} - {Template.Name} ({Template.Id}) removed");
     }
 
@@ -171,6 +186,11 @@ public class WorldInstance
         return null;
     }
 
+    /// <summary>
+    /// Gets a sector at a specific world position
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <returns></returns>
     public Region GetRegionByPos(Vector3 pos)
     {
         var sectorX = (int)(pos.X / WorldManager.REGION_SIZE);
@@ -185,6 +205,43 @@ public class WorldInstance
     }
 
     /// <summary>
+    /// Gets all T GameObjects within a given Cell
+    /// </summary>
+    /// <param name="worldId"></param>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public List<T> GetInCell<T>(int x, int y) where T : class
+    {
+        var result = new List<T>();
+        var regions = new List<Region>();
+        for (var a = x * WorldManager.SECTORS_PER_CELL; a < (x + 1) * WorldManager.SECTORS_PER_CELL; a++)
+        {
+            for (var b = y * WorldManager.SECTORS_PER_CELL; b < (y + 1) * WorldManager.SECTORS_PER_CELL; b++)
+            {
+                if (Template.ValidRegion(a, b) && Regions[a, b] != null)
+                    regions.Add(Regions[a, b]);
+            }
+        }
+
+        foreach (var region in regions)
+            region.GetList(result, 0);
+        return result;
+    }
+    
+    /// <summary>
+    /// Creates and starts the physics engine for this world instance
+    /// </summary>
+    public void StartPhysics()
+    {
+        Logger.Debug($"Starting physics engine for instance {Id} - {Template.Name} ({Template.Id})");
+        Physics = new BoatPhysicsManager { SimulationWorld = this };
+        Physics.Initialize();
+        Physics.StartPhysics();
+    }
+
+    /// <summary>
     /// Loads water body date for this world
     /// </summary>
     public void LoadWaterBodies()
@@ -196,7 +253,7 @@ public class WorldInstance
             return;
         }
 
-        Logger.Debug($"Loading water body data for {Template.Name} ({Template.Id})");
+        Logger.Debug($"Loading water body data for instance {Id} - {Template.Name} ({Template.Id})");
         if (WaterBodies.Load(customFile, out var newWater))
         {
             Water = newWater;

@@ -4,13 +4,9 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTRequestCellPacket : StreamPacket
+public class CTRequestCellPacket() : StreamPacket(CTOffsets.CTRequestCellPacket)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
-
-    public CTRequestCellPacket() : base(CTOffsets.CTRequestCellPacket)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {
@@ -18,7 +14,7 @@ public class CTRequestCellPacket : StreamPacket
         var x = stream.ReadInt32();
         var y = stream.ReadInt32();
 
-        Logger.Warn("CTRequestCellPacket #.{0} ({1},{2})", instanceId, x, y);
+        Logger.Debug($"CTRequestCellPacket #.{instanceId} ({x},{y})");
         StreamManager.RequestCell(Connection, instanceId, x, y);
     }
 }
