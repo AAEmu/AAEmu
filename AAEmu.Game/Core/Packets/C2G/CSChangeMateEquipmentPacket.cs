@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
@@ -7,12 +6,8 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeMateEquipmentPacket : GamePacket
+public class CSChangeMateEquipmentPacket() : GamePacket(CSOffsets.CSChangeMateEquipmentPacket, 1)
 {
-    public CSChangeMateEquipmentPacket() : base(CSOffsets.CSChangeMateEquipmentPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Owner PlayerId
@@ -29,7 +24,7 @@ public class CSChangeMateEquipmentPacket : GamePacket
 
         Logger.Debug($"CSChangeMateEquipmentPacket - TlId: {mateTl}, Owner: {owningPlayerId}, Id2: {passengerPlayerId}, BTS: {bts}, Count: {itemCount}");
 
-        var mate = MateManager.Instance.GetActiveMateByTlId(mateTl);
+        var mate = Connection.ActiveChar.ParentWorld.MateManager.GetActiveMateByTlId(mateTl);
         if (mate == null)
         {
             Logger.Warn($"ChangeMateEquipment, Unable to find mate with tlId {mateTl}!");

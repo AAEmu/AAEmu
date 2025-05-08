@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Utils.Scripts;
@@ -24,7 +25,7 @@ public class GimmickSpawnSubCommand : SubCommandBase
     {
         uint gimmickTemplateId = parameters["GimmickTemplateId"];
 
-        if (!GimmickManager.Instance.Exist(gimmickTemplateId))
+        if (!GimmickGameData.Instance.Exist(gimmickTemplateId))
         {
             SendColorMessage(messageOutput, Color.Red, $"Gimmick template {gimmickTemplateId} doesn't exist");
             return;
@@ -34,7 +35,7 @@ public class GimmickSpawnSubCommand : SubCommandBase
         var creatorUnit = usingCharacter?.CurrentTarget ?? usingCharacter;
 
         var spawnEffect = SkillManager.Instance.GetSpawnGimmickEffect(gimmickTemplateId);
-        var gimmickSpawner = new GimmickSpawner(spawnEffect, creatorUnit);
+        var gimmickSpawner = new GimmickSpawner(creatorUnit!.ParentWorld, spawnEffect, creatorUnit);
         
         usingCharacter?.SendMessage($"Spawned Gimmick TemplateId: {gimmickSpawner.GimmickId} originating from {creatorUnit?.DebugName()}.");
     }

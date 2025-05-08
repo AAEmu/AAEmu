@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -40,7 +39,7 @@ public class Dist : ICommand
         {
             if (uint.TryParse(args[0], out var targetObjId))
             {
-                var go = WorldManager.Instance.GetGameObject(targetObjId);
+                var go = character.ParentWorld.GetGameObject(targetObjId);
                 if (go is BaseUnit bu)
                 {
                     target = bu;

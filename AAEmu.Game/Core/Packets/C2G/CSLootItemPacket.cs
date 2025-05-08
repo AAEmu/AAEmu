@@ -17,7 +17,7 @@ public class CSLootItemPacket() : GamePacket(CSOffsets.CSLootItemPacket, 1)
         
         Logger.Warn($"LootItem, itemIndex: {itemIndex}, LootOwner: {ownerType}:{ownerObjId}, u1: {u1}, u2: {u2}");
 
-        var owner = WorldManager.Instance.GetBaseUnit(ownerObjId);
+        var owner = Connection.ActiveChar.ParentWorld.GetBaseUnit(ownerObjId);
 
         owner?.LootingContainer.TryTakeLoot(Connection.ActiveChar, itemIndex, null, false);
     }

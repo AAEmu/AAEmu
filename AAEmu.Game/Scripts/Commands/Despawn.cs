@@ -64,7 +64,7 @@ public class Despawn : ICommand
             switch (action)
             {
                 case "doodad":
-                    var myDoodad = WorldManager.Instance.GetDoodad(unitId);
+                    var myDoodad = character.ParentWorld.GetDoodad(unitId);
 
                     if (myDoodad != null)
                     {
@@ -80,7 +80,7 @@ public class Despawn : ICommand
 
                     break;
                 case "npc":
-                    var myNPC = WorldManager.Instance.GetNpc(unitId);
+                    var myNPC = character.ParentWorld.GetNpc(unitId);
 
                     if (myNPC != null)
                     {
@@ -96,7 +96,7 @@ public class Despawn : ICommand
 
                     break;
                 case "unit":
-                    var myUnit = WorldManager.Instance.GetBaseUnit(unitId);
+                    var myUnit = character.ParentWorld.GetBaseUnit(unitId);
 
                     if (myUnit != null)
                     {

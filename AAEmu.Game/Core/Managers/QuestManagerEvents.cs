@@ -27,7 +27,7 @@ public partial class QuestManager
         if (npcObjId > 0)
         {
             // Turning in at a NPC?
-            var npc = WorldManager.Instance.GetNpc(npcObjId);
+            var npc = ((Character)owner).ParentWorld.GetNpc(npcObjId);
             // Is it a valid NPC?
             if (npc == null)
                 return;
@@ -45,7 +45,7 @@ public partial class QuestManager
         else if (doodadObjId > 0)
         {
             // Turning in at a Doodad?
-            var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+            var doodad = ((Character)owner).ParentWorld.GetDoodad(doodadObjId);
             // Does the Doodad exist?
             if (doodad == null)
                 return;
@@ -132,7 +132,7 @@ public partial class QuestManager
     /// <param name="questActId"></param>
     public void DoTalkMadeEvents(ICharacter sourcePlayer, ICharacter targetPlayer, uint npcObjId, uint questContextId, uint questComponentId, uint questActId)
     {
-        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        var npc = ((Character)sourcePlayer).ParentWorld.GetNpc(npcObjId);
         if (npc == null)
             return;
 
@@ -236,7 +236,7 @@ public partial class QuestManager
             Logger.Warn($"DoOnExpressFireEvents seems to have a invalid characterObjId referenced, Got:{characterObjId}, Expected:{owner.ObjId} ({owner.Name})");
             return;
         }
-        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        var npc = ((Character)owner).ParentWorld.GetNpc(npcObjId);
         if (npc == null)
             return;
 
@@ -261,7 +261,7 @@ public partial class QuestManager
         // Also handle Level-based (character main level) quest starters
         // Un-started quests can't have a level event handler, so we need to do it this way for quest starters
         var levelActs = _actTemplatesByDetailType.GetValueOrDefault("QuestActConAcceptLevelUp")?.Values;
-        if (levelActs != default)
+        if (levelActs != null)
             foreach (var levelAct in levelActs)
             {
                 if ((levelAct is QuestActConAcceptLevelUp actLevelUp) && // correct Template

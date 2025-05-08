@@ -15,11 +15,11 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -59,19 +59,19 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     private List<WorldSpawnLocation> WorldSpawnLookups { get; set; } = new();
 
     /// <summary>
-    /// List of loaded world instances
+    /// List of loaded world instances (instanceId, WorldInstance)
     /// </summary>
     private Dictionary<uint, WorldInstance> _worlds;
 
     /// <summary>
     /// WorldTemplateId by ZoneId list (zoneId, worldTemplateId)
     /// </summary>
-    private Dictionary<uint, uint> _worldIdByZoneId;
+    private Dictionary<uint, uint> _worldIdByZoneKey;
 
     /// <summary>
     /// ZoneId list by WorldTemplateId
     /// </summary>
-    private Dictionary<uint, List<uint>> _zonesByWorldId;
+    private Dictionary<uint, List<uint>> _zoneKeysByWorldId;
 
     /// <summary>
     /// WorldInteractionGroup by Id
@@ -92,6 +92,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// List of all IndunZones in this instance (only used for dungeons)
     /// </summary>
     private readonly ConcurrentDictionary<uint, IndunZone> _indunZones = new();
+
+    /// <summary>
+    /// Reference to main_world instance
+    /// </summary>
+    public WorldInstance MainWorld { get; set; }
 
     /// <summary>
     /// Flag to keep track is the global snowing effect is enabled
@@ -137,6 +142,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// </summary>
     public const float DefaultCombatTimeout = 15f;
 
+    // TODO: Make maxinstances a config value
+    /// <summary>
+    /// The maximum amount of instances the server is allowed to create. This includes all worlds and system instances.
+    /// Change this according to your server's available resources
+    /// </summary>
+    public const int MaxInstances = 32;
+
     /// <summary>
     /// Called every second and forwards the tick to all live player related objects
     /// </summary>
@@ -174,7 +186,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// </summary>
     /// <param name="worldName"></param>
     /// <returns></returns>
-    private WorldTemplate GetWorldTemplateByName(string worldName)
+    public WorldTemplate GetWorldTemplateByName(string worldName)
     {
         return WorldTemplates.GetValueOrDefault(worldName);
     }
@@ -219,9 +231,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             return;
 
         _worlds = [];
-        _worldIdByZoneId = [];
+        _worldIdByZoneKey = [];
         _worldInteractionGroups = [];
-        _zonesByWorldId = [];
+        _zoneKeysByWorldId = [];
 
         Logger.Info("Loading world data...");
 
@@ -268,39 +280,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         #region LoadServerDB
         using (var connection = SQLite.CreateConnection())
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM indun_zones";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var idz = new IndunZone()
-                        {
-                            ZoneGroupId = reader.GetUInt32("zone_group_id"),
-                            Name = reader.GetString("name"),
-                            Comment = reader.GetString("comment"),
-                            LevelMin = reader.GetUInt32("level_min"),
-                            LevelMax = reader.GetUInt32("level_max"),
-                            MaxPlayers = reader.GetUInt32("max_players"),
-                            PvP = reader.GetBoolean("pvp"),
-                            HasGraveyard = reader.GetBoolean("has_graveyard"),
-                            ItemId = reader.IsDBNull("item_id") ? 0 : reader.GetUInt32("item_id"),
-                            RestoreItemTime = reader.GetUInt32("restore_item_time"),
-                            PartyOnly = reader.GetBoolean("party_only"),
-                            ClientDriven = reader.GetBoolean("client_driven"),
-                            SelectChannel = reader.GetBoolean("select_channel")
-                        };
-                        idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
-                        if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
-                            Logger.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
-                    }
-                }
-            }
-
-            Logger.Debug($"Loaded {_indunZones.Count} dungeon zones");
-
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM wi_group_wis";
@@ -350,10 +329,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public void CreateStaticInstances()
     {
         // TODO: make this a config json
-        // Erenor
-        _ = CreateWorldInstance(GetWorldTemplateByName("main_world"), 0, true); // fixedInstanceId = 0
+
+        // Erenor (main_world)
+        MainWorld = CreateWorldInstance(GetWorldTemplateByName("main_world"), 0, true); // fixedInstanceId = 0
+        MainWorld.SpawnManager.SpawnAll();
+
         // Mirage Island
-        _ = CreateWorldInstance(GetWorldTemplateByName("arche_mall_world"), 0, true, 1);
+        _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName("arche_mall_world").ZoneKeys.First(), 0, true, 1);
         // TODO: Library floors
     }
 
@@ -365,7 +347,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="overrideInstanceId">Set true for static instances</param>
     /// <param name="fixedInstanceId">InstanceId to use if overrideInstanceId is set, must be lower than 100 (0x64)</param>
     /// <returns>Newly created instance, or the previously instance created instance if a static instance with the same name already exists</returns>
-    public WorldInstance CreateWorldInstance(WorldTemplate worldTemplate, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0)
+    public WorldInstance CreateWorldInstance(WorldTemplate worldTemplate, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0, Character notifyPlayer = null)
     {
         // Check if it's a Persistent single Instance like main_world
         // If it's marked as an instance or if it only has 1 zone defined, then it's a "dungeon"
@@ -390,7 +372,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         
         // Create a new instance
         var world = new WorldInstance(worldTemplate, channelId, overrideInstanceId, overrideInstanceId ? fixedInstanceId : WorldIdManager.Instance.GetNextId());
-        _worlds.Add((uint)_worlds.Count, world);
+        _worlds.Add(world.Id, world);
+
+        notifyPlayer?.SendPacket(new SCProcessingInstancePacket((int)world.Template.ZoneKeys[0]));
 
         // Create the Instance regions
         var dx =world.Template.CellX * SECTORS_PER_CELL;
@@ -400,7 +384,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             for (var x = 0; x < dx; x++)
             {
-                world.Regions[x, y] = new Region(world.Id, x, y, world.Template.ZoneKeys[0]);
+                world.Regions[x, y] = new Region(world, x, y, world.Template.ZoneKeys[0]);
             }
         }
 
@@ -415,7 +399,19 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         world.SphereQuestManager.Initialize();
         world.SphereQuestManager.Load();
         
-        // TODO: Move spawns here
+        world.SpawnManager = new SpawnManager(world);
+        world.SpawnManager.Load();
+
+        world.GimmickManager = new GimmickManager(world);
+        world.GimmickManager.Initialize();
+
+        world.SlaveManager = new SlaveManager(world);
+        world.SlaveManager.Initialize();
+
+        world.MateManager = new MateManager(world);
+        world.MateManager.Load();
+
+        // world.SpawnManager.SpawnAll();
 
         return world;
     }
@@ -472,11 +468,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // Cache zone keys to world reference
         foreach (var zoneKey in worldTemplate.ZoneKeys)
         {
-            _worldIdByZoneId.Add(zoneKey, worldTemplate.Id);
+            _worldIdByZoneKey.Add(zoneKey, worldTemplate.Id);
 
-            if (!_zonesByWorldId.ContainsKey(worldTemplate.Id))
-                _zonesByWorldId.Add(worldTemplate.Id, []);
-            _zonesByWorldId[worldTemplate.Id].Add(zoneKey);
+            if (!_zoneKeysByWorldId.ContainsKey(worldTemplate.Id))
+                _zoneKeysByWorldId.Add(worldTemplate.Id, []);
+            _zoneKeysByWorldId[worldTemplate.Id].Add(zoneKey);
         }
 
         // Mark "main_world" as the DefaultWorldId
@@ -702,26 +698,26 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <summary>
     /// Get world template Id for a given zoneId
     /// </summary>
-    /// <param name="zoneId"></param>
+    /// <param name="zoneKey"></param>
     /// <returns></returns>
-    public uint GetWorldIdByZone(uint zoneId)
+    public uint GetWorldIdByZoneKey(uint zoneKey)
     {
-        if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
+        if (_worldIdByZoneKey.TryGetValue(zoneKey, out var worldId))
             return worldId;
-        Logger.Fatal($"GetWorldByZone: No world defined for ZoneId {zoneId}");
-        return 0xffffffff; // -1
+        Logger.Fatal($"GetWorldByZone: No world defined for ZoneId {zoneKey}");
+        return uint.MaxValue; // -1
     }
 
     /// <summary>
     /// Get a world template for a given zoneId
     /// </summary>
-    /// <param name="zoneId"></param>
+    /// <param name="zoneKey"></param>
     /// <returns></returns>
-    public WorldTemplate GetWorldTemplateByZone(uint zoneId)
+    public WorldTemplate GetWorldTemplateByZoneKey(uint zoneKey)
     {
-        if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
+        if (_worldIdByZoneKey.TryGetValue(zoneKey, out var worldId))
             return GetWorldTemplateByName(GetWorldName(worldId));
-        Logger.Fatal($"GetWorldByZone(): No world template defined for ZoneId {zoneId}");
+        Logger.Fatal($"GetWorldByZone(): No world template defined for ZoneId {zoneKey}");
         return null;
     }
 
@@ -730,9 +726,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// </summary>
     /// <param name="worldId"></param>
     /// <returns></returns>
-    public List<uint> GetZonesByWorldId(uint worldId)
+    public List<uint> GetZoneKeysByWorldId(uint worldId)
     {
-        if (_zonesByWorldId.TryGetValue(worldId, out var value))
+        if (_zoneKeysByWorldId.TryGetValue(worldId, out var value))
             return value;
         return [];
     }
@@ -740,23 +736,21 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <summary>
     /// Gets a zone Id for a given world template at target position
     /// </summary>
-    /// <param name="worldTemplateId"></param>
+    /// <param name="worldTemplate"></param>
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public uint GetZoneId(uint worldTemplateId, float x, float y)
+    public uint GetZoneId(WorldTemplate worldTemplate, float x, float y)
     {
-        if (!WorldTemplatesById.TryGetValue(worldTemplateId, out var worldTemplate))
-        {
-            Logger.Fatal($"GetZoneId: No such WorldId {worldTemplateId}");
+        if (worldTemplate == null)
             return 0;
-        }
+
         var sx = (int)(x / REGION_SIZE);
         var sy = (int)(y / REGION_SIZE);
 
         if (!worldTemplate.ValidRegion(sx, sy))
         {
-            Logger.Fatal($"GetZoneId: Coordinates out of bounds for WorldId {worldTemplateId} - x:{x:#,0.#} - y: {y:#,0.#}");
+            Logger.Fatal($"GetZoneId: Coordinates out of bounds for WorldId {worldTemplate.Id} - x:{x:#,0.#} - y: {y:#,0.#}");
             return 0;
         }
 
@@ -766,20 +760,20 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <summary>
     /// Get "floor" height at a given position for a zone
     /// </summary>
-    /// <param name="zoneId">ZoneId used to find which world it needs to look in</param>
+    /// <param name="zoneKey">ZoneId used to find which world it needs to look in</param>
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public float GetHeight(uint zoneId, float x, float y)
+    public float GetHeight(uint zoneKey, float x, float y)
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
-        var world = GetWorldTemplateByZone(zoneId);
+        var world = GetWorldTemplateByZoneKey(zoneKey);
 
         if (AppConfiguration.Instance.World.GeoDataMode && world.Id > 0)
         {
-            var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneId, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
-            height = AiGeoDataManager.Instance.GetHeight(zoneId, position);
+            var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneKey, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
+            height = AiGeoDataManager.Instance.GetHeight(zoneKey, position);
         }
 
         // check, as there is no geodata for main_world yet
@@ -823,7 +817,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 try
                 {
-                    var world = GetWorld(transform.WorldId);
+                    var world = GetWorld(transform.InstanceId);
                     height = world?.GetHeight(transform.World.Position.X, transform.World.Position.Y) ?? transform.World.Position.Z;
                 }
                 catch
@@ -865,21 +859,19 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     public Region GetRegion(GameObject obj)
     {
         obj = GetRootObj(obj);
-        var world = GetWorld(obj.Transform.WorldId);
+        var world = obj.ParentWorld ?? GetWorld(obj.Transform.InstanceId);
         return world.GetRegionByPos(obj.Transform.World.Position);
     }
 
     /// <summary>
     /// Get a list of neighbouring Regions/Sectors as defined by REGION_NEIGHBORHOOD_SIZE
     /// </summary>
-    /// <param name="worldId"></param>
+    /// <param name="world"></param>
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public Region[] GetNeighbors(uint worldId, int x, int y)
+    public Region[] GetNeighbors(WorldInstance world, int x, int y)
     {
-        var world = _worlds[worldId];
-
         var result = new List<Region>();
         for (var a = -REGION_NEIGHBORHOOD_SIZE; a <= REGION_NEIGHBORHOOD_SIZE; a++)
             for (var b = -REGION_NEIGHBORHOOD_SIZE; b <= REGION_NEIGHBORHOOD_SIZE; b++)
@@ -1213,11 +1205,11 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <summary>
     /// Gets a list of all Npcs on a given world instance
     /// </summary>
-    /// <param name="worldId"></param>
+    /// <param name="worldInstanceId"></param>
     /// <returns></returns>
-    public List<Npc> GetAllNpcsFromWorld(uint worldId)
+    public List<Npc> GetAllNpcsFromWorld(uint worldInstanceId)
     {
-        return _worlds.TryGetValue(worldId, out var world) ? world.GetAllNpcs() : [];
+        return _worlds.TryGetValue(worldInstanceId, out var world) ? world.GetAllNpcs() : [];
     }
 
     /// <summary>
@@ -1263,16 +1255,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             Logger.Info($"[Dungeon] couldn't remove the dungeon id={worldInstanceId}!");
         }
-    }
-
-    /// <summary>
-    /// Gets the world instance a GameObject is currently in
-    /// </summary>
-    /// <param name="gameObject"></param>
-    /// <returns>WorldInstance OR the main_world's Instance or null if all else fails</returns>
-    public WorldInstance GetWorldOfGameObject(GameObject gameObject)
-    {
-        return _worlds.GetValueOrDefault(gameObject?.Transform?.InstanceId ?? DefaultInstanceId);
     }
 
     /// <summary>

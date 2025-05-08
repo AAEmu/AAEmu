@@ -18,7 +18,7 @@ public class SlaveSpawner : Spawner<Slave>
     private int _scheduledCount;
     private int _spawnCount;
     public uint Count { get; set; } = 1;
-    public uint WorldId { get; set; }
+    public WorldInstance World { get; set; }
 
     public SlaveSpawner()
     {
@@ -56,29 +56,30 @@ public class SlaveSpawner : Spawner<Slave>
         if (RespawnTime > 0 && _spawnCount + _scheduledCount < Count)
         {
             npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
-            SpawnManager.Instance.AddRespawn(npc);
+            World.SpawnManager.AddRespawn(npc);
             _scheduledCount++;
         }
 
         npc.Despawn = DateTime.UtcNow.AddSeconds(DespawnTime);
-        SpawnManager.Instance.AddDespawn(npc);
+        npc.ParentWorld.SpawnManager.AddDespawn(npc);
     }
 
     private void DoSpawn()
     {
-        var slave = SlaveManager.Instance.Create(null, this, 0);
+        var slave = World.SlaveManager.Create(null, this, 0);
         if (slave == null)
         {
-            Logger.Warn("Slave {0}, from spawn not exist at db", UnitId);
+            Logger.Warn($"Slave {UnitId}, from spawn not exist at db");
             return;
         }
 
+        slave.ParentWorld = World;
         slave.Spawner = this;
         // slave.Transform.ApplyWorldSpawnPosition(Position);
 
         if (slave.Transform.World.IsOrigin())
         {
-            Logger.Error("Can't spawn slave {1} from spawn {0}", Id, UnitId);
+            Logger.Error($"Can't spawn slave {UnitId} from spawn {Id}");
             return;
         }
 

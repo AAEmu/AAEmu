@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Gimmicks;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.Scripts;
@@ -106,13 +104,12 @@ public class FindObject : ICommand
         }
         maxCount = Math.Clamp(maxCount, 1, 100);
 
-        var sb = new StringBuilder();
         var results = new List<(float, GameObject)>();
         switch (args[0].ToLower())
         {
             case "doodads":
             case "doodad":
-                var doodads = WorldManager.Instance.GetAllDoodads().Where(d => d.TemplateId == templateId).ToList();
+                var doodads = character.ParentWorld.GetAllDoodads().Where(d => d.TemplateId == templateId).ToList();
                 foreach (var gameObject in doodads)
                 {
                     results.Add((character.GetDistanceTo(gameObject), gameObject));
@@ -123,7 +120,7 @@ public class FindObject : ICommand
             case "mobs":
             case "npc":
             case "npcs":
-                var npcs = WorldManager.Instance.GetAllNpcs().Where(n => n.TemplateId == templateId).ToList();
+                var npcs = character.ParentWorld.GetAllNpcs().Where(n => n.TemplateId == templateId).ToList();
                 foreach (var gameObject in npcs)
                 {
                     results.Add((character.GetDistanceTo(gameObject), gameObject));
@@ -132,7 +129,7 @@ public class FindObject : ICommand
 
             case "gimmick":
             case "gimmicks":
-                var gimmicks = WorldManager.Instance.GetAllNpcs().Where(n => n.TemplateId == templateId).ToList();
+                var gimmicks = character.ParentWorld.GetAllNpcs().Where(n => n.TemplateId == templateId).ToList();
                 foreach (var gameObject in gimmicks)
                 {
                     results.Add((character.GetDistanceTo(gameObject), gameObject));

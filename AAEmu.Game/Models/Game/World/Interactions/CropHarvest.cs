@@ -18,7 +18,7 @@ public class CropHarvest : IWorldInteraction
     {
         if (target is Doodad doodad)
         {
-            if (PublicFarmManager.Instance.InPublicFarm(doodad.Transform.WorldId, doodad.Transform.World.Position))
+            if (PublicFarmManager.Instance.InPublicFarm(doodad.ParentWorld.Template, doodad.Transform.World.Position))
             {
                 if (PublicFarmManager.IsProtected(doodad) && doodad.OwnerId != 0)
                 {

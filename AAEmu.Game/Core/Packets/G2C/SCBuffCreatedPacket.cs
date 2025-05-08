@@ -37,6 +37,6 @@ public class SCBuffCreatedPacket : GamePacket
 
     public override string Verbose()
     {
-        return " - " + WorldManager.Instance.GetGameObject(_buff.Owner.ObjId)?.DebugName() + " <- " + _buff?.Template?.BuffId.ToString();
+        return $" - {_buff.Owner.DebugName()} <- {_buff?.Template?.BuffId}";
     }
 }

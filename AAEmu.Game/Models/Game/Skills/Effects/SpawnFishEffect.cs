@@ -33,16 +33,16 @@ public class SpawnFishEffect : EffectTemplate
                 Logger.Debug($"Fish Spawner ID not found.");
                 return;
             }
-            //Process: Spawn the fish, add it to the world at the correct location, then: combat engaged, target, aggro target before starting fish AI.
+            // Process: Spawn the fish, add it to the world at the correct location, then: combat engaged, target, aggro target before starting fish AI.
 
-            //We need to get the spawner at the target location.
+            // We need to get the spawner at the target location.
             var npcSpawnerNpc = NpcGameData.Instance.GetNpcSpawnerNpc(fishSpawnerId);
             var unitId = npcSpawnerNpc.MemberId;
-            var spawnerId = 0;
-            var spawner = SpawnManager.Instance.GetNpcSpawner(fishSpawnerId, (byte)caster.Transform.WorldId);
-            spawnerId = spawner.Count;
+            var spawner = player.ParentWorld.SpawnManager.GetNpcSpawner(fishSpawnerId);
+            var spawnerId = spawner.Count;
 
             spawner.Add(new NpcSpawner());
+            spawner[spawnerId].ParentWorld = player.ParentWorld;
             spawner[spawnerId].UnitId = unitId;
             spawner[spawnerId].Id = fishSpawnerId;
             spawner[spawnerId].NpcSpawnerIds = [fishSpawnerId];
@@ -66,7 +66,7 @@ public class SpawnFishEffect : EffectTemplate
             spawner[spawnerId].Position = spawnPos.CloneAsSpawnPosition();
 
             // Spawn the NPC
-            Npc fish = spawner[spawnerId].DoRandomSpawn(fishSpawnerId, player.Id);
+            var fish = spawner[spawnerId].DoRandomSpawn(fishSpawnerId, player.Id);
 
             if (fish != null) // Ensure the fish spawned
             {
@@ -82,14 +82,15 @@ public class SpawnFishEffect : EffectTemplate
             }
         }
     }
-    public uint GetFishSpawnerId(Character player)
+
+    private uint GetFishSpawnerId(Character player)
     {
         var doodads = WorldManager.GetAround<Doodad>(player, 100);
-        for (var i = 0; i < doodads.Count; i++)
+        foreach (var doodad in doodads)
         {
-            if (doodads[i].Template.GroupId == 65)
+            if (doodad.Template.GroupId == 65)
             {
-                foreach (var func in doodads[i].CurrentPhaseFuncs)
+                foreach (var func in doodad.CurrentPhaseFuncs)
                 {
                     var template = DoodadManager.Instance.GetPhaseFuncTemplate(func.FuncId, func.FuncType);
                     if (template is DoodadFuncFishSchool doodadFuncFishSchoolTemplate)

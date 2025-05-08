@@ -32,7 +32,6 @@ public class Transfer : Unit
     public TransferTemplate Template { get; set; }
     public Transfer Bounded { get; set; }
     public TransferSpawner Spawner { get; set; }
-    public override UnitCustomModelParams ModelParams { get; set; }
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Character> AttachedCharacters { get; set; }
     public DateTime SpawnTime { get; set; }
@@ -400,7 +399,7 @@ public class Transfer : Unit
 
     public override void Spawn()
     {
-        WorldManager.Instance.AddObject(this);
+        ParentWorld.AddObject(this);
         Show();
     }
 

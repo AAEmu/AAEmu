@@ -24,7 +24,7 @@ public class Blink : SpecialEffectAction
         int value3,
         int value4)
     {
-        if (caster is Character) { Logger.Debug("Special effects: Blink value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug($"Special effects: Blink value1 {value1}, value2 {value2}, value3 {value3}, value4 {value4}"); }
 
         if (caster is Character character)
         {
@@ -35,8 +35,11 @@ public class Blink : SpecialEffectAction
             //var endZ = character.Transform.World.Position.Z;
             if (character.IsRiding)
             {
-                var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-                MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                var mateList = character.ParentWorld.MateManager.GetActiveMates(character.Id);
+                foreach (var mate in mateList)
+                {
+                    character.ParentWorld.MateManager.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                }
             }
             character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, newPos.Local.Position.X, newPos.Local.Position.Y, newPos.Local.Position.Z));
             //character.SendMessage("To: " + newPos.ToString());

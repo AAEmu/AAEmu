@@ -34,7 +34,7 @@ public class PutDownBackpackEffect : EffectTemplate
         var item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
         if (item == null) return;
 
-        if (PublicFarmManager.Instance.InPublicFarm(character.Transform.WorldId, character.Transform.World.Position))
+        if (PublicFarmManager.Instance.InPublicFarm(character.ParentWorld.Template, character.Transform.World.Position))
         {
             character.SendErrorMessage(ErrorMessageType.CommonFarmNotAllowedType);
             return;
@@ -66,7 +66,7 @@ public class PutDownBackpackEffect : EffectTemplate
             // Spawn doodad
             Logger.Debug("PutDownPackEffect");
 
-            var doodad = DoodadManager.Instance.Create(0, BackpackDoodadId, character, true);
+            var doodad = DoodadManager.Instance.Create(caster.ParentWorld, 0, BackpackDoodadId, character, true);
             if (doodad == null)
             {
                 Logger.Warn("Doodad {0}, from BackpackDoodadId could not be created", BackpackDoodadId);

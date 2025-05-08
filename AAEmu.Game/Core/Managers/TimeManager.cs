@@ -89,7 +89,7 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
     private void Push()
     {
         var time = GetTime;
-        foreach (var observer in _observers)
+        foreach (var observer in _observers.ToList())
             observer.OnNext(time);
         OnTimeOfDayChange(time, _lastTime);
         _lastTime = time;
@@ -102,46 +102,54 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
     /// <param name="oldTime"></param>
     public void OnTimeOfDayChange(float newTime, float oldTime)
     {
+        // TODO: move time to WorldInstance
         if (oldTime > newTime)
             oldTime -= 24f;
         // Only check if it changed at least to the next 6 seconds
         if ((int)Math.Floor(newTime * 600f) == (int)Math.Floor(oldTime * 600f))
             return;
 
-        // check all active Npcs to check if their animation needs to be updated
-        foreach (var npc in WorldManager.Instance.GetAllNpcs())
+        // Update on all instances
+        foreach (var world in WorldManager.Instance.GetWorlds())
         {
-            if (npc.Template.NpcPostureSets.Count <= 1)
-                continue;
-
-            var oldAnim = npc.Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= oldTime)?.AnimActionId ?? 0;
-            var newAnim = npc.Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= newTime)?.AnimActionId ?? 0;
-
-            if (oldAnim != newAnim)
-                npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, newAnim, true), false);
-        }
-
-        // check all doodad of they have a ToD trigger in the current active group, and try to run it again
-        foreach (var doodad in WorldManager.Instance.GetAllDoodads())
-        {
-            if (doodad.TemplateId == 2325)
+            // check all active Npcs to check if their animation needs to be updated
+            foreach (var npc in world.GetAllNpcs())
             {
-                // Checking Lamp
-                // Logger.Info($"Checking Lamp");
+                if (npc.Template.NpcPostureSets.Count <= 1)
+                    continue;
+
+                var oldAnim =
+                    npc.Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= oldTime)?.AnimActionId ?? 0;
+                var newAnim =
+                    npc.Template.NpcPostureSets.FirstOrDefault(x => x.StartTodTime <= newTime)?.AnimActionId ?? 0;
+
+                if (oldAnim != newAnim)
+                    npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, newAnim, true), false);
             }
-            if (doodad.CurrentToDTriggers.Count <= 0)
-                continue;
 
-            foreach (var (tod, nextPhase) in doodad.CurrentToDTriggers)
+            // check all doodad of they have a ToD trigger in the current active group, and try to run it again
+            foreach (var doodad in world.GetAllDoodads())
             {
-                if (newTime >= tod && oldTime < tod)
+                if (doodad.TemplateId == 2325)
                 {
-                    if (nextPhase > 0)
+                    // Checking Lamp
+                    // Logger.Info($"Checking Lamp");
+                }
+
+                if (doodad.CurrentToDTriggers.Count <= 0)
+                    continue;
+
+                foreach (var (tod, nextPhase) in doodad.CurrentToDTriggers)
+                {
+                    if (newTime >= tod && oldTime < tod)
                     {
-                        //doodad.DoChangePhase(doodad, nextPhase);
-                        doodad.FuncGroupId = (uint)nextPhase;
-                        doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
-                        break;
+                        if (nextPhase > 0)
+                        {
+                            //doodad.DoChangePhase(doodad, nextPhase);
+                            doodad.FuncGroupId = (uint)nextPhase;
+                            doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+                            break;
+                        }
                     }
                 }
             }

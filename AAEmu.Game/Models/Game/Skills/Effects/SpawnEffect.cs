@@ -1,7 +1,5 @@
 ﻿using System;
 
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
@@ -23,7 +21,6 @@ public class SpawnEffect : EffectTemplate
     public bool UseSummonerFaction { get; set; }
     public float LifeTime { get; set; }
     public bool DespawnOnCreatorDeath { get; set; }
-
     public bool UseSummonerAggroTarget { get; set; }
     public MateState MateStateId { get; set; }
 
@@ -33,13 +30,13 @@ public class SpawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Info($"SpawnEffect: OwnerTypeId={OwnerTypeId}, SubType={SubType}, UseSummonerFaction={UseSummonerFaction}, LifeTime={LifeTime}");
+        Logger.Trace($"SpawnEffect: OwnerTypeId={OwnerTypeId}, SubType={SubType}, UseSummonerFaction={UseSummonerFaction}, LifeTime={LifeTime}");
 
         switch (OwnerTypeId)
         {
             case BaseUnitType.Npc:
                 {
-                    var spawner = SpawnManager.Instance.GetNpcSpawner(SubType, target);
+                    var spawner = caster?.ParentWorld.SpawnManager.GetNpcSpawner(SubType, target);
                     if (spawner == null)
                     {
                         Logger.Info($"SpawnEffect: SubType={SubType} not found in spawners.");
@@ -96,7 +93,7 @@ public class SpawnEffect : EffectTemplate
                         transform.World.AddDistanceToFront(PosDistance);
                         transform.World.Rotate(transform.World.Rotation with { Z = OriAngle.DegToRad() });
 
-                        var slave = SlaveManager.Instance.Create(SubType, true, transform);
+                        var slave = player.ParentWorld.SlaveManager.Create(SubType, true, transform);
                         if (slave is { Template: null })
                         {
                             Logger.Info($"SpawnEffect: SubType={SubType} not found...");

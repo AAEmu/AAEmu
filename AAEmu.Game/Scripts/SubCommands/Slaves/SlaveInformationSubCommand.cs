@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
@@ -26,7 +25,7 @@ public class SlaveInformationSubCommand : SubCommandBase
         Models.Game.Units.Slave slave;
         if (parameters.TryGetValue("ObjId", out var objId))
         {
-            slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
+            slave = (Models.Game.Units.Slave)((Character)character).ParentWorld.GetGameObject(objId);
             if (slave is null)
             {
                 SendColorMessage(messageOutput, Color.Red, $"Slave with objId {objId} does not exist");

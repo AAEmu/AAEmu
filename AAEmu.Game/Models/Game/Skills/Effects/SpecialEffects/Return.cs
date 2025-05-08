@@ -44,7 +44,7 @@ public class Return : SpecialEffectAction
         {
             // Worldgates
             returnPointId = (uint)value1;
-            trp = PortalManager.Instance.GetWorldgatesById(returnPointId);
+            trp = PortalManager.Instance.GetWorldGatesById(returnPointId);
         }
 
         if (trp != null)
@@ -67,7 +67,6 @@ public class Return : SpecialEffectAction
             character.Transform = new Transform(
                 character,
                 null,
-                0,
                 trp.ZoneId,
                 0,
                 trp.X,

@@ -31,10 +31,10 @@ public class CSLootDicePacket() : GamePacket(CSOffsets.CSLootDicePacket, 1)
         switch (lootOwnerType)
         {
             case LootOwnerType.Npc:
-                lootOwner = WorldManager.Instance.GetNpc(lootOwnerObjId);
+                lootOwner = Connection.ActiveChar.ParentWorld.GetNpc(lootOwnerObjId);
                 break;
             case LootOwnerType.Doodad:
-                lootOwner = WorldManager.Instance.GetDoodad(lootOwnerObjId);
+                lootOwner = Connection.ActiveChar.ParentWorld.GetDoodad(lootOwnerObjId);
                 break;
         }
 

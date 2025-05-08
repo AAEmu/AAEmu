@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -42,8 +43,7 @@ public class TestSlave : ICommand
         slave.Transform.Local.AddDistanceToFront(5f);
         slave.Hp = slave.MaxHp = 190000;
         slave.Faction = character.Faction;
-        slave.ModelParams = new UnitCustomModelParams();
-        slave.Template = SlaveManager.Instance.GetSlaveTemplate(slave.TemplateId);
+        slave.Template = SlaveGameData.Instance.GetSlaveTemplate(slave.TemplateId);
 
         slave.Spawn();
     }

@@ -87,7 +87,11 @@ public class SummonSlave : Item
 
     public override void OnManuallyDestroyingItem()
     {
-        if (!SlaveManager.Instance.OnDeleteSlaveItem(this))
+        var owner = WorldManager.Instance.GetCharacterById((uint)OwnerId);
+        if (owner == null)
+            return;
+
+        if (!owner.ParentWorld.SlaveManager.OnDeleteSlaveItem(this))
             Logger.Warn($"Failed to delete Slave attached to Item Id: {Id}, Type: {TemplateId}");
     }
 
@@ -97,7 +101,7 @@ public class SummonSlave : Item
         var owner = WorldManager.Instance.GetCharacterById((uint)OwnerId);
         if (owner != null)
         {
-            var checkSlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(owner.ObjId);
+            var checkSlave = owner.ParentWorld.SlaveManager.GetActiveSlaveByOwnerObjId(owner.ObjId);
             if (checkSlave?.Id == SlaveDbId)
             {
                 owner.SendErrorMessage(ErrorMessageType.SlaveSpawnItemLocked);

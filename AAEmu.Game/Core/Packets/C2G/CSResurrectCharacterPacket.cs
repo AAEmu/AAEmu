@@ -28,9 +28,9 @@ public class CSResurrectCharacterPacket : GamePacket
 
         // поищем сначала "UnitId": 502, "Title": "Temple Priestess",
         // Inside dungeons or other instances, just respawn at the nearest Priestess
-        if (Connection.ActiveChar.Transform.WorldId != WorldManager.DefaultWorldTemplateId)
+        if (Connection.ActiveChar.Transform.InstanceId != WorldManager.DefaultInstanceId)
         {
-            var npcs = WorldManager.Instance.GetAllNpcsFromWorld(Connection.ActiveChar.Transform.WorldId);
+            var npcs = Connection.ActiveChar.ParentWorld.GetAllNpcs();
             foreach (var npc in npcs.Where(npc => npc.TemplateId == 502))
             {
                 portal.WorldId = Connection.ActiveChar.Transform.WorldId;
@@ -40,6 +40,7 @@ public class CSResurrectCharacterPacket : GamePacket
                 portal.Z = npc.Transform.World.Position.Z;
                 portal.ZRot = npc.Transform.World.Rotation.Z;
                 portal.Yaw = npc.Transform.World.Rotation.Z;
+                break;
             }
         }
         else

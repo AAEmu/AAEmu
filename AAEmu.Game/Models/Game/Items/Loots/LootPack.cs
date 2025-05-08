@@ -483,21 +483,21 @@ public class LootPack
 
         if (killer is Units.Mate { OwnerObjId: > 0 } mate)
         {
-            var mateOwner = WorldManager.Instance.GetBaseUnit(mate.OwnerObjId);
+            var mateOwner = mate.ParentWorld.GetBaseUnit(mate.OwnerObjId);
             if (mateOwner is Character mateOwnerCharacter)
                 return mateOwnerCharacter;
         }
         else
         if (killer is Slave { OwnerType: BaseUnitType.Character } slave)
         {
-            var slaveOwner = WorldManager.Instance.GetBaseUnit(slave.OwnerObjId);
+            var slaveOwner = slave.ParentWorld.GetBaseUnit(slave.OwnerObjId);
             if (slaveOwner is Character slaveOwnerCharacter)
                 return slaveOwnerCharacter;
         }
         else
         if (killer is Doodad { OwnerType: DoodadOwnerType.Character } doodad)
         {
-            var doodadOwner = WorldManager.Instance.GetBaseUnit(doodad.OwnerObjId);
+            var doodadOwner = doodad.ParentWorld.GetBaseUnit(doodad.OwnerObjId);
             if (doodadOwner is Character slaveOwnerCharacter)
                 return slaveOwnerCharacter;
         }

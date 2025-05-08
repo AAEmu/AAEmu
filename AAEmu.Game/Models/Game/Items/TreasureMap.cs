@@ -34,7 +34,7 @@ public class TreasureMap : Item
     {
         // Pick a random target
         // TODO: Update this to use the spawners rather than the Doodads
-        var possibleChests = SpawnManager.Instance.GetTreasureChestDoodadSpawners();
+        var possibleChests = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId).SpawnManager.GetTreasureChestDoodadSpawners();
         if (possibleChests.Count <= 0)
         {
             // No valid location found
@@ -85,7 +85,7 @@ public class TreasureMap : Item
     {
         if (stream.LeftBytes < DetailBytesLength)
             return;
-        var unknown1 = stream.ReadInt64();
+        _ = stream.ReadInt64(); // unknown1
         _mapPositionX = stream.ReadInt64();
         _mapPositionY = stream.ReadInt64();
     }

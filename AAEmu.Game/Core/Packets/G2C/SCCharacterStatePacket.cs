@@ -16,7 +16,7 @@ public class SCCharacterStatePacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_character.InstanceId); // instanceId
+        stream.Write(_character.Transform.InstanceId); // instanceId
         stream.Write(_character.Guid); // guid
         stream.Write(0); // rwd
 

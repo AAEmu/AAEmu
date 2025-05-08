@@ -262,6 +262,7 @@ public class SphereQuestManager : ISphereQuestManager
         var sphereQuests = new Dictionary<uint, List<SphereQuest>>();
         var worldLevelDesignDir = Path.Combine("game", "worlds", worldTemplate.Name, "level_design", "zone");
         var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "quest_sign_sphere.g", true);
+        Logger.Debug($"Loading {pathFiles.Count} quest sign sphere data files");
         foreach (var pathFileName in pathFiles)
         {
             if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))), out var zoneId))
@@ -277,7 +278,7 @@ public class SphereQuestManager : ISphereQuestManager
                 continue;
             }
 
-            Logger.Debug($"Loading {pathFileName}");
+            Logger.Trace($"Loading {pathFileName}");
 
             var area = contents.ToLower().Split('\n').ToList();
 

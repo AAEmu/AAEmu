@@ -83,6 +83,7 @@ public class DuelManager : Singleton<DuelManager>
 
                 // spawn flag
                 _combatFlag = new DoodadSpawner();
+                _combatFlag.ParentWorld = challenged.ParentWorld;
                 _combatFlag.Id = 0;
                 _combatFlag.UnitId = 5014; // Combat Flag Id=5014;
                 _combatFlag.Position = duel.Challenger.Transform.CloneAsSpawnPosition();

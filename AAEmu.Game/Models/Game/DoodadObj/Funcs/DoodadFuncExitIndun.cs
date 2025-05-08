@@ -18,7 +18,7 @@ public class DoodadFuncExitIndun : DoodadFuncTemplate
         {
             if (ReturnPointId == 0 && character.MainWorldPosition != null)
             {
-                IndunManager.Instance.RequestLeave(character);
+                IndunManager.Instance.RequestLeaveInstance(character);
             }
             else
             {

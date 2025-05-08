@@ -24,15 +24,11 @@ public class DoodadPhaseListSubCommand : SubCommandBase
     public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint doodadObjId = parameters["ObjId"];
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+        var doodad = ((Character)character).ParentWorld.GetDoodad(doodadObjId);
         if (doodad is null)
         {
             SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} Does not exist");
-        }
-
-        if (!(doodad is Doodad))
-        {
-            SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} is invalid (not a Doodad)");
+            return;
         }
 
         var availablePhases = string.Join(", ", DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId));

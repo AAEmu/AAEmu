@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -17,7 +18,6 @@ public class GameObject : IGameObject
 
     public Guid Guid { get; set; } = Guid.NewGuid();
     public uint ObjId { get; set; }
-    public uint InstanceId { get; set; } = WorldManager.DefaultInstanceId;
 
     public bool DisabledSetPosition
     {
@@ -53,6 +53,23 @@ public class GameObject : IGameObject
     public GameObject ParentObj { get; set; }
     public virtual float ModelSize { get; set; } = 0f;
 
+    /// <summary>
+    /// Cache of whatever World Instance this object is in. It's only set using the Transform property
+    /// </summary>
+    public WorldInstance ParentWorld
+    {
+        get => _parentWorld;
+        set
+        {
+            if (_parentWorld != value)
+            {
+                _parentWorld = value;
+                Transform.InstanceId = value.Id; // should not loop on itself
+            }
+        }
+    }
+    private WorldInstance _parentWorld;
+
     public GameObject()
     {
         Transform = new Transform.Transform(this, null);
@@ -83,7 +100,11 @@ public class GameObject : IGameObject
 
     public virtual void Spawn()
     {
-        WorldManager.Instance.AddObject(this);
+        if (ParentWorld == null)
+        {
+            throw new GameException("Tried to spawn a object without a owning parent world");
+        }
+        ParentWorld.AddObject(this);
         Show();
     }
 
@@ -91,7 +112,7 @@ public class GameObject : IGameObject
     {
         Hide();
         Transform?.DetachAll();
-        WorldManager.Instance.RemoveObject(this);
+        ParentWorld.RemoveObject(this);
     }
 
     public virtual void Show()

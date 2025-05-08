@@ -89,7 +89,7 @@ public class NpcSaveSubCommand : SubCommandBase
         try
         {
             _creatures = Creature.GetAllCreatures();
-            var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.WorldId);
+            var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.InstanceId);
             var npcsInWorld = WorldManager.Instance.GetAllNpcsFromWorld(currentWorld.Id);
             var npcSpawnersFromFile = LoadNpcsFromFileByWorld(currentWorld);
             var npcSpawnersToFile = npcSpawnersFromFile.ToList();
@@ -107,7 +107,7 @@ public class NpcSaveSubCommand : SubCommandBase
             var removeNpcs = npcsInWorld.Where(n => n.Spawner?.Id == 0xffffffff).ToList();
 
             // Получаем все npcs и последний идентификатор объекта
-            var allNpcs = WorldManager.Instance.GetAllNpcs();
+            var allNpcs = ((Character)character).ParentWorld.GetAllNpcs();
             var lastObjId = allNpcs.Last().ObjId++;
 
             // Освобождаем память, присваивая null
@@ -219,7 +219,7 @@ public class NpcSaveSubCommand : SubCommandBase
     {
         _creatures = Creature.GetAllCreatures();
         //var spawners = new List<JsonNpcSpawns>();
-        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        var npc = ((Character)character).ParentWorld.GetNpc(npcObjId);
         if (npc is null)
         {
             SendColorMessage(messageOutput, Color.Red, $"Npc with objId {npcObjId} Does not exist");
@@ -227,11 +227,11 @@ public class NpcSaveSubCommand : SubCommandBase
             return;
         }
 
-        var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
+        var world = WorldManager.Instance.GetWorld(npc.Transform.InstanceId);
         if (world is null)
         {
-            SendColorMessage(messageOutput, Color.Red, $"Could not find the worldId {npc.Transform.WorldId}");
-            Logger.Info($"Could not find the worldId {npc.Transform.WorldId}");
+            SendColorMessage(messageOutput, Color.Red, $"Could not find the worldId {npc.Transform.InstanceId}");
+            Logger.Info($"Could not find the worldId {npc.Transform.InstanceId}");
             return;
         }
 

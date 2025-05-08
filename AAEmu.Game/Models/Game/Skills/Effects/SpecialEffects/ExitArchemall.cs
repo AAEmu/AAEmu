@@ -23,11 +23,11 @@ public class ExitArchemall : SpecialEffectAction
         int value3,
         int value4)
     {
-        if (caster is Character) { Logger.Debug("Special effects: ExitArchemall value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is Character) { Logger.Debug($"Special effects: ExitArchemall value1 {value1}, value2 {value2}, value3 {value3}, value4 {value4}"); }
 
         if (caster is Character character)
         {
-            IndunManager.Instance.RequestSysLeave(character);
+            IndunManager.Instance.RequestLeaveInstance(character);
         }
     }
 }

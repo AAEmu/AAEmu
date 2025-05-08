@@ -373,7 +373,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 var point = charTemplate.Pos.Clone();
                 // Recalculate ZoneId as this isn't included in the config
                 // Always use main_world Id for this
-                point.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldTemplateId, charTemplate.Pos.X, charTemplate.Pos.Y);
+                point.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.Instance.GetWorldTemplateByName("main_world"), charTemplate.Pos.X, charTemplate.Pos.Y);
                 // Convert the json's degrees to rads
                 point.Roll = point.Roll.DegToRad();
                 point.Pitch = point.Pitch.DegToRad();

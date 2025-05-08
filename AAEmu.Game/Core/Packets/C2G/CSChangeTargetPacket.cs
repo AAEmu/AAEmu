@@ -19,7 +19,7 @@ public class CSChangeTargetPacket : GamePacket
         var targetId = stream.ReadBc();
         Connection
                 .ActiveChar
-                .CurrentTarget = targetId > 0 ? WorldManager.Instance.GetUnit(targetId) : null;
+                .CurrentTarget = targetId > 0 ? Connection.ActiveChar.ParentWorld.GetUnit(targetId) : null;
 
         Connection
             .ActiveChar
@@ -34,8 +34,8 @@ public class CSChangeTargetPacket : GamePacket
         }
         if (Connection.ActiveChar.CurrentTarget == null)
         {
-            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, TemplateId: not found in Db");
-            WorldManager.Instance.RemoveObject(targetId); // trying to delete the missing object
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, selection not found!");
+            // Connection.ActiveChar.ParentWorld.RemoveObject(targetId); // trying to delete the missing object
             return;
         }
         if (Connection.ActiveChar.CurrentTarget is Portal portal)

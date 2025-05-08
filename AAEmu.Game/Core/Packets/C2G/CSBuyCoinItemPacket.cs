@@ -17,7 +17,7 @@ public class CSBuyCoinItemPacket : GamePacket
         var id = stream.ReadUInt32();
 
         Logger.Trace("BuyCoinItem, objId: {0}, id: {1}", objId, id);
-        var doodad = WorldManager.Instance.GetDoodad(objId);
+        var doodad = Connection.ActiveChar.ParentWorld.GetDoodad(objId);
         if (doodad == null)
         {
             Logger.Warn("BuyCoinItem, no such doodad objId: {0}", objId);

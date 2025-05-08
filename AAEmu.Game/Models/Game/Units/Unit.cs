@@ -216,7 +216,7 @@ public class Unit : BaseUnit, IUnit
     public BaseUnit CurrentTarget { get; set; }
     public BaseUnit CurrentInteractionObject { get; set; }
     public virtual byte RaceGender => 0;
-    public virtual UnitCustomModelParams ModelParams { get; set; }
+    public UnitCustomModelParams ModelParams { get; set; } = new ();
     public byte ActiveWeapon { get; set; }
     public bool IdleStatus { get; set; }
     public bool ForceAttack { get; set; }
@@ -293,7 +293,7 @@ public class Unit : BaseUnit, IUnit
         }
         base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
-        var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.WorldId)?.Template.OceanLevel - 2f ?? 98f;
+        var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.InstanceId)?.Template.OceanLevel - 2f ?? 98f;
         if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold)
             IsUnderWater = true;
         else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)
@@ -394,11 +394,10 @@ public class Unit : BaseUnit, IUnit
         {
             attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { Target = attackerUnit });
 
-            var world = WorldManager.Instance.GetWorld(Transform.WorldId);
+            var world = WorldManager.Instance.GetWorld(Transform.InstanceId);
             if (Transform.WorldId > 0)
             {
-                var dungeon = IndunManager.Instance.GetDungeonByWorldId(Transform.WorldId);
-                if (dungeon is not null)
+                if (world.DungeonInstance is not null)
                 {
                     world.Events.OnUnitKilled(world, new OnUnitKilledArgs { Killer = attackerUnit, Victim = this });
                     world.Events.OnUnitCombatEnd(world, new OnUnitCombatEndArgs { Npc = this });
@@ -498,8 +497,8 @@ public class Unit : BaseUnit, IUnit
         // if we died sitting on a horse
         if (character.Hp > 0) { return; }
 
-        var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-        if (mate != null)
+        var mateList = character.ParentWorld.MateManager.GetActiveMates(character.Id);
+        foreach (var mate in mateList)
         {
             character.Mates.DespawnMate(mate.TlId);
         }
@@ -1204,9 +1203,8 @@ public class Unit : BaseUnit, IUnit
         if (itemRemoved != null)
         {
             // Static Item Buffs
-            var itemRemovedBuff = ItemGameData.Instance.GetItemBuff(itemRemoved.TemplateId, itemRemoved.Grade);
-            if (itemRemovedBuff == null)
-                itemRemovedBuff = SkillManager.Instance.GetBuffTemplate(itemRemoved.Template?.BuffId ?? 0);
+            var itemRemovedBuff = ItemGameData.Instance.GetItemBuff(itemRemoved.TemplateId, itemRemoved.Grade) ??
+                                  SkillManager.Instance.GetBuffTemplate(itemRemoved.Template?.BuffId ?? 0);
             if (itemRemovedBuff != null) // remove previous buff
             {
                 if (Buffs.CheckBuff(itemRemovedBuff.Id))
@@ -1225,9 +1223,7 @@ public class Unit : BaseUnit, IUnit
         if (itemAdded != null)
         {
             // Static Buffs
-            var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded.TemplateId, itemAdded.Grade);
-            if (itemAddedBuff == null)
-                itemAddedBuff = SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
+            var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded.TemplateId, itemAdded.Grade) ?? SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
             if (itemAddedBuff != null) // add buff from equipped item
             {
                 var newEffect =
@@ -1285,9 +1281,8 @@ public class Unit : BaseUnit, IUnit
                 // Static Buffs
                 if (item.Template.BuffId != 0)
                 {
-                    var buffTemplate = ItemGameData.Instance.GetItemBuff(item?.TemplateId ?? 0, item?.Grade ?? 0);
-                    if (buffTemplate == null)
-                        buffTemplate = SkillManager.Instance.GetBuffTemplate(item?.Template.BuffId ?? 0);
+                    var buffTemplate = ItemGameData.Instance.GetItemBuff(item?.TemplateId ?? 0, item?.Grade ?? 0) ??
+                                       SkillManager.Instance.GetBuffTemplate(item?.Template.BuffId ?? 0);
                     var newEffect =
                         new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                         {
@@ -1377,13 +1372,9 @@ public class Unit : BaseUnit, IUnit
 
     public void IncrementTriggerCount(uint buffId)
     {
-        if (_triggerCounts.ContainsKey(buffId))
+        if (!_triggerCounts.TryAdd(buffId, 1))
         {
             _triggerCounts[buffId]++;
-        }
-        else
-        {
-            _triggerCounts[buffId] = 1;
         }
     }
 

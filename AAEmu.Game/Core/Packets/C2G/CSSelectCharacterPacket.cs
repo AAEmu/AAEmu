@@ -24,11 +24,17 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 
         if (Connection.Characters.TryGetValue(characterId, out var character))
         {
+            // Force player into main_world when coming from character select
+            character.Transform.InstanceId = WorldManager.DefaultInstanceId;
             // Despawn any old pets this character might have even before loading it
             character.Load();
             character.Connection = Connection;
             var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
-            MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(character);
+            // Remove old pets from all world instances
+            foreach (var worldInstance in WorldManager.Instance.GetWorlds())
+            {
+                worldInstance.MateManager.RemoveAndDespawnAllActiveOwnedMates(character);
+            }
 
             Connection.ActiveChar = character;
             if (Character.UsedCharacterObjIds.TryGetValue(character.Id, out var oldObjId))
@@ -40,8 +46,10 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
                 Character.UsedCharacterObjIds.TryAdd(character.Id, character.ObjId);
             }
+            // Add to server pool
+            WorldManager.Instance.TryAddCharacter(character);
 
-            var mySlave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+            var mySlave = Connection.ActiveChar.ParentWorld.SlaveManager.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
             if (mySlave != null)
             {
                 Logger.Warn($"{Connection.ActiveChar.Name}: Abort the task of disabling vehicles");

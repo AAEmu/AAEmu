@@ -12,8 +12,8 @@ public class CSLootOpenBagPacket() : GamePacket(CSOffsets.CSLootOpenBagPacket, 1
         var obj2Id = stream.ReadBc();
         var lootAll = stream.ReadBoolean();
 
-        var lootOwner = WorldManager.Instance.GetBaseUnit(objId);
-        var object2 = WorldManager.Instance.GetBaseUnit(obj2Id);
+        var lootOwner = Connection.ActiveChar.ParentWorld.GetBaseUnit(objId);
+        var object2 = Connection.ActiveChar.ParentWorld.GetBaseUnit(obj2Id);
         
         lootOwner?.LootingContainer.OpenBag(Connection.ActiveChar, object2, lootAll);
     }

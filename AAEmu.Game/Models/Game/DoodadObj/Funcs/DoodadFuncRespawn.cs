@@ -22,6 +22,7 @@ public class DoodadFuncRespawn : DoodadPhaseFuncTemplate
             spawnPos.Local.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
             var doodad = new DoodadSpawner
             {
+                ParentWorld = character.ParentWorld,
                 Id = owner.ObjId,
                 UnitId = owner.TemplateId,
                 Position = spawnPos.CloneAsSpawnPosition()

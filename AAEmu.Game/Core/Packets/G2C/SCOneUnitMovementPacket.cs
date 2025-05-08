@@ -28,6 +28,6 @@ public class SCOneUnitMovementPacket : GamePacket // TODO ... SCUnitMovementsPac
 
     public override string Verbose()
     {
-        return " - " + (_type?.Type.ToString() ?? "none") + " " + (WorldManager.Instance.GetGameObject(_id)?.DebugName() ?? "(" + _id.ToString() + ")");
+        return " - " + (_type?.Type.ToString() ?? "none") + " " + (Connection.ActiveChar?.ParentWorld?.GetGameObject(_id)?.DebugName() ?? "(" + _id + ")");
     }
 }

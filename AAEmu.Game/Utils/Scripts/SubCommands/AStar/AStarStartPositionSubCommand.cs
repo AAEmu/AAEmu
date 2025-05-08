@@ -26,7 +26,7 @@ public class AStarStartPositionSubCommand : SubCommandBase
         Npc npc;
         if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId))
         {
-            npc = WorldManager.Instance.GetNpc(npcObjId);
+            npc = ((Character)character).ParentWorld.GetNpc(npcObjId);
             if (npc is null)
             {
                 SendColorMessage(messageOutput, Color.Coral, $"AStar: Npc with objId {npcObjId} does not exist");

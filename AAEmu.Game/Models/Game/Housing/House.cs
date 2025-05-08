@@ -75,7 +75,7 @@ public sealed class House : Unit
             {
                 foreach (var bindingDoodad in Template.HousingBindingDoodad)
                 {
-                    var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this, true);
+                    var doodad = DoodadManager.Instance.Create(ParentWorld, 0, bindingDoodad.DoodadId, this, true);
                     doodad.AttachPoint = bindingDoodad.AttachPointId;
                     doodad.ParentObj = this;
                     doodad.Transform = this.Transform.CloneDetached(doodad);
@@ -104,7 +104,6 @@ public sealed class House : Unit
         }
     }
     public override int MaxHp => Template.Hp;
-    public override UnitCustomModelParams ModelParams { get; set; }
 
     public HousingPermission Permission
     {
@@ -138,7 +137,6 @@ public sealed class House : Unit
     public House()
     {
         Level = 1;
-        ModelParams = new UnitCustomModelParams();
         AttachedDoodads = [];
         IsDirty = true;
         Events.OnDeath += OnDeath;

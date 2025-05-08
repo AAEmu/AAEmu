@@ -19,7 +19,7 @@ public class CSLootCloseBagPacket() : GamePacket(CSOffsets.CSLootCloseBagPacket,
 
         Logger.Warn($"LootCloseBag, itemIndex: {itemIndex}, LootOwner: {ownerType}:{ownerObjId}, b: {b}");
         
-        var lootOwner = WorldManager.Instance.GetBaseUnit(ownerObjId);
+        var lootOwner = Connection.ActiveChar.ParentWorld.GetBaseUnit(ownerObjId);
         lootOwner?.LootingContainer.CloseBag(Connection.ActiveChar, itemIndex, ownerType, ownerObjId, b);
     }
 }

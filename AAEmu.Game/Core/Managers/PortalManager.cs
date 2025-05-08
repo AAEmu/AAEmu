@@ -15,10 +15,8 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
@@ -43,8 +41,8 @@ public class PortalManager : Singleton<PortalManager>
     private Dictionary<uint, uint> _recallsKey;
     private Dictionary<uint, Portal> _respawns;
     private Dictionary<uint, uint> _respawnsKey;
-    private Dictionary<uint, Portal> _worldgates;
-    private Dictionary<uint, uint> _worldgatesKey;
+    private Dictionary<uint, Portal> _worldGates;
+    private Dictionary<uint, uint> _worldGatesKey;
 
     private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
     private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
@@ -91,23 +89,21 @@ public class PortalManager : Singleton<PortalManager>
     public Portal GetRespawnById(uint id)
     {
         return _respawnsKey != null && _respawnsKey.TryGetValue(id, out var key)
-            ? _respawns.TryGetValue(key, out var portal)
-                ? portal : null
+            ? _respawns.GetValueOrDefault(key)
             : null;
     }
 
-    public Portal GetWorldgatesBySubZoneId(uint subZoneId)
+    public Portal GetWorldGatesBySubZoneId(uint subZoneId)
     {
-        return _worldgates != null && _worldgates.TryGetValue(subZoneId, out var worldgate)
-            ? worldgate
+        return _worldGates != null && _worldGates.TryGetValue(subZoneId, out var worldGate)
+            ? worldGate
             : null;
     }
 
-    public Portal GetWorldgatesById(uint id)
+    public Portal GetWorldGatesById(uint id)
     {
-        return _worldgatesKey != null && _worldgatesKey.TryGetValue(id, out var key)
-            ? _worldgates.TryGetValue(key, out var portal)
-                ? portal : null
+        return _worldGatesKey != null && _worldGatesKey.TryGetValue(id, out var key)
+            ? _worldGates.GetValueOrDefault(key)
             : null;
     }
 
@@ -149,42 +145,14 @@ public class PortalManager : Singleton<PortalManager>
 
         _recalls = [];
         _respawns = [];
-        _worldgates = [];
+        _worldGates = [];
         _recallsKey = [];
         _respawnsKey = [];
-        _worldgatesKey = [];
+        _worldGatesKey = [];
 
         Logger.Info("Loading Portals ...");
 
         #region FileManager
-
-        //var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "SubZonePortalCoords.json");
-        //if (!File.Exists(filePath))
-        //    throw new IOException($"File {filePath} doesn't exists !");
-
-        //var contents = FileManager.GetFileContents(filePath);
-
-        //if (string.IsNullOrWhiteSpace(contents))
-        //    throw new IOException($"File {filePath} is empty !");
-
-        //if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
-        //    foreach (var portal in portals)
-        //    {
-        //        if (!_allDistrictPortals.ContainsKey(portal.SubZoneId))
-        //        {
-        //            _allDistrictPortals.Add(portal.SubZoneId, portal);
-        //        }
-        //        if (!_allDistrictPortalsKey.ContainsKey(portal.Id))
-        //        {
-        //            _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
-        //        }
-
-        //        _recalls.Add(portal.SubZoneId, portal);
-        //    }
-        //else
-        //    throw new Exception($"PortalManager: Parse {filePath} file");
-
-        //Logger.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
 
         var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "recalls.json");
         if (!File.Exists(filePath))
@@ -237,7 +205,7 @@ public class PortalManager : Singleton<PortalManager>
         if (JsonHelper.TryDeserializeObject(contents, out List<Portal> respawns, out _))
             foreach (var respawn in respawns)
             {
-                respawn.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldTemplateId, respawn.X, respawn.Y);
+                respawn.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.Instance.GetWorldTemplateByName("main_world"), respawn.X, respawn.Y);
                 if (_respawns.ContainsKey(respawn.SubZoneId))
                 {
                     //
@@ -259,16 +227,16 @@ public class PortalManager : Singleton<PortalManager>
         if (string.IsNullOrWhiteSpace(contents))
             throw new IOException($"File {filePath} is empty !");
 
-        if (JsonHelper.TryDeserializeObject(contents, out List<Portal> worldgates, out _))
-            foreach (var worldgate in worldgates)
+        if (JsonHelper.TryDeserializeObject(contents, out List<Portal> worldGates, out _))
+            foreach (var worldGate in worldGates)
             {
-                _worldgates.Add(worldgate.SubZoneId, worldgate);
-                _worldgatesKey.Add(worldgate.Id, worldgate.SubZoneId);
+                _worldGates.Add(worldGate.SubZoneId, worldGate);
+                _worldGatesKey.Add(worldGate.Id, worldGate.SubZoneId);
             }
         else
             throw new GameException($"PortalManager: Parse {filePath} file");
 
-        Logger.Info("Loaded {0} Worldgate Portals", _worldgates.Count);
+        Logger.Info("Loaded {0} Worldgate Portals", _worldGates.Count);
 
         #endregion
 
@@ -391,14 +359,17 @@ public class PortalManager : Singleton<PortalManager>
     {
         // 3891 - Portal Entrance
         // 6949 - Portal Exit
-        var portalPointDestination = new Transform(null, null,
-            WorldManager.Instance.GetWorldTemplateByZone(portalInfo.ZoneId).Id, portalInfo.ZoneId,
-            owner.Transform.InstanceId, portalInfo.X, portalInfo.Y, portalInfo.Z,
+        var portalPointDestination = new Transform(null, null, 
+            portalInfo.ZoneId,
+            owner.Transform.InstanceId,
+            portalInfo.X, portalInfo.Y, portalInfo.Z,
             0f, 0f, portalInfo.ZRot);
         var portalPointLocation = new Transform(null, null,
-            owner.Transform.WorldId, owner.Transform.ZoneId, owner.Transform.InstanceId,
+            owner.Transform.ZoneId,
+            owner.Transform.InstanceId,
             portalEffectObj.X, portalEffectObj.Y, portalEffectObj.Z,
             owner.Transform.World.Rotation.X, owner.Transform.World.Rotation.Y, owner.Transform.World.Rotation.Z);
+
         // TODO: Add support for different types of teleport books
         var templateId = isExit ? 6949u : 3891u;
         var template = NpcManager.Instance.GetTemplate(templateId);
@@ -446,7 +417,7 @@ public class PortalManager : Singleton<PortalManager>
     public static void UsePortal(Character character, uint objId)
     {
         // TODO - Cooldown between portals
-        var portalInfo = (Models.Game.Units.Portal)WorldManager.Instance.GetNpc(objId);
+        var portalInfo = (Models.Game.Units.Portal)character.ParentWorld.GetNpc(objId);
         if (portalInfo == null) return;
 
         //have Overburdened buff cannot UsePortal
@@ -459,7 +430,7 @@ public class PortalManager : Singleton<PortalManager>
         character.DisabledSetPosition = true;
         // TODO - UnitPortalUsed
         // TODO - Maybe need unitState?
-        if (portalInfo.TeleportPosition.InstanceId != character.InstanceId)
+        if (portalInfo.TeleportPosition.InstanceId != character.Transform.InstanceId)
         {
             character.SendPacket(
                 new SCLoadInstancePacket(
@@ -475,7 +446,7 @@ public class PortalManager : Singleton<PortalManager>
             );
 
             character.Transform = portalInfo.TeleportPosition.Clone(character);
-            character.InstanceId = portalInfo.TeleportPosition.WorldId;
+            character.Transform.InstanceId = portalInfo.TeleportPosition.WorldId;
         }
         // TODO - Reason, ErrorMessage
         character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.World.Position.X,
@@ -500,12 +471,13 @@ public class PortalManager : Singleton<PortalManager>
     {
         var currentPosition = character.Transform.World.Position;
         var distance = 999999f;
-        var portal = new Portal();
-        // Fail-safe coordinates
-        portal.X = currentPosition.X;
-        portal.Y = currentPosition.Y;
-        portal.Z = currentPosition.Z;
-        portal.ZoneId = character.Transform.ZoneId;
+        var portal = new Portal {
+            // Fail-safe coordinates
+            X = currentPosition.X,
+            Y = currentPosition.Y,
+            Z = currentPosition.Z,
+            ZoneId = character.Transform.ZoneId
+        };
 
         foreach (var (_, value) in _respawns)
         {

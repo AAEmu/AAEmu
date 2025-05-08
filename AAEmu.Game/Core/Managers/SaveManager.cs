@@ -94,15 +94,18 @@ public class SaveManager : Singleton<SaveManager>
                             if (c.Save(connection, transaction))
                                 savedCharacters++;
                             else
-                                Logger.Error("Failed to get save data for character {0} - {1}", c.Id, c.Name);
+                                Logger.Error($"Failed to get save data for character {c.Id} - {c.Name}");
                         }
 
                         // Slaves
                         var savedSlaves = 0;
-                        foreach (var slave in WorldManager.Instance.GetAllSlaves())
+                        foreach (var worldInstance in WorldManager.Instance.GetWorlds())
                         {
-                            if (slave.Save(connection, transaction))
-                                savedSlaves++;
+                            foreach (var slave in worldInstance.GetAllSlaves())
+                            {
+                                if (slave.Save(connection, transaction))
+                                    savedSlaves++;
+                            }
                         }
 
                         var totalCommits = 0;

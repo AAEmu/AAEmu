@@ -14,10 +14,9 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
@@ -65,7 +64,7 @@ public class NpcManager : Singleton<NpcManager>
         return null;
     }
 
-    public Npc Create(uint objectId, uint id)
+    public Npc Create(WorldInstance parentWorld, uint objectId, uint id)
     {
         var template = GetTemplate(id);
         if (template == null)
@@ -74,6 +73,7 @@ public class NpcManager : Singleton<NpcManager>
         }
 
         var npc = new Npc();
+        npc.ParentWorld = parentWorld;
         npc.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
         npc.TemplateId = id; // duplicate Id
         npc.Id = id;

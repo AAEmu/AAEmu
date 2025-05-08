@@ -52,7 +52,7 @@ public class SpawnDoodad : SpecialEffectAction
             Logger.Debug($"Special effects: SpawnDoodad doodadId {doodadId}, delay {delay}, createTradePack {createTradePack}, value4 {value4}");
         }
 
-        var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster, true);
+        var doodad = DoodadManager.Instance.Create(caster.ParentWorld, 0, (uint)doodadId, caster, true);
 
         doodad.Transform = caster.Transform.CloneDetached(doodad);
         var rpy = target.Transform.World.ToRollPitchYawDegrees();

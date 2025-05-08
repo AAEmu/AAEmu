@@ -1,11 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 
-using AAEmu.Commons.IO;
-using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -13,6 +10,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -22,49 +20,31 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
-using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Slave;
-using AAEmu.Game.Utils;
-using AAEmu.Game.Utils.DB;
-
 using MySql.Data.MySqlClient;
 
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SlaveManager : Singleton<SlaveManager>
+public class SlaveManager(WorldInstance parentWorldInstance)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<uint, SlaveTemplate> _slaveTemplates = [];
-    private Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints = [];
-    private Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems = []; // PackId and List<Slot/ItemData>
-    private Dictionary<uint, SlaveMountSkills> _slaveMountSkills = [];
-    public Dictionary<uint, uint> _repairableSlaves = []; // SlaveId, RepairEffectId
+    private WorldInstance World { get; init; } = parentWorldInstance;
 
-    private object _slaveListLock = new();
-
-    public bool Exist(uint templateId)
-    {
-        return _slaveTemplates.ContainsKey(templateId);
-    }
-
-    public SlaveTemplate GetSlaveTemplate(uint id)
-    {
-        return _slaveTemplates.GetValueOrDefault(id);
-    }
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
+    private readonly object _slaveListLock = new();
 
     public Slave GetActiveSlaveByOwnerObjId(uint objId)
     {
         lock (_slaveListLock)
         {
-            var slaves = WorldManager.Instance.GetAllSlaves();
+            var slaves = World.GetAllSlaves();
             return slaves.FirstOrDefault(slave => slave.Summoner?.ObjId == objId);
         }
     }
@@ -79,7 +59,7 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
-            var slaves = WorldManager.Instance.GetAllSlaves();
+            var slaves = World.GetAllSlaves();
             if (worldId >= uint.MaxValue)
             {
                 return slaves.Where(s => s.Template.SlaveKind == kind);
@@ -99,7 +79,7 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
-            var slaves = WorldManager.Instance.GetAllSlaves();
+            var slaves = World.GetAllSlaves();
             if (worldId >= uint.MaxValue)
                 return slaves.Where(s => kinds.Contains(s.Template.SlaveKind))
                     .Select(s => s);
@@ -110,11 +90,11 @@ public class SlaveManager : Singleton<SlaveManager>
         }
     }
 
-    public Slave GetSlaveByTlId(uint tlId)
+    private Slave GetSlaveByTlId(uint tlId)
     {
         lock (_slaveListLock)
         {
-            var slaves = WorldManager.Instance.GetAllSlaves();
+            var slaves = World.GetAllSlaves();
             foreach (var slave in slaves.Where(slave => slave.TlId == tlId))
             {
                 return slave;
@@ -127,7 +107,7 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
-            var slaves = WorldManager.Instance.GetAllSlaves();
+            var slaves = World.GetAllSlaves();
             foreach (var slave in slaves.Where(slave => slave.ObjId == objId))
             {
                 return slave;
@@ -140,36 +120,13 @@ public class SlaveManager : Singleton<SlaveManager>
     {
         lock (_slaveListLock)
         {
-            var slaves = WorldManager.Instance.GetAllSlaves();
+            var slaves = World.GetAllSlaves();
             foreach (var slave in slaves.Where(slave => slave.Id == dbId))
             {
                 return slave;
             }
         }
         return null;
-    }
-
-    /// <summary>
-    /// Get mount skill associated with slaveMountSkillId
-    /// </summary>
-    /// <param name="slaveMountSkillId"></param>
-    /// <returns></returns>
-    public uint GetSlaveMountSkillFromId(uint slaveMountSkillId)
-    {
-        return _slaveMountSkills.TryGetValue(slaveMountSkillId, out var res) ? res.MountSkillId : 0;
-    }
-
-    /// <summary>
-    /// Gets a list of all mount skills for a given slave type
-    /// </summary>
-    /// <param name="slaveTemplateId"></param>
-    /// <returns></returns>
-    public List<uint> GetSlaveMountSkillList(uint slaveTemplateId)
-    {
-        var res = new List<uint>();
-        foreach (var q in _slaveMountSkills.Values.Where(q => q.SlaveId == slaveTemplateId))
-            res.Add(q.MountSkillId);
-        return res;
     }
 
     /// <summary>
@@ -286,30 +243,30 @@ public class SlaveManager : Singleton<SlaveManager>
             if (owner != null)
                 doodad.IsPersistent = false;
             doodad.Despawn = despawnDelayedTime;
-            SpawnManager.Instance.AddDespawn(doodad);
+            World.SpawnManager.AddDespawn(doodad);
             // doodad.Delete();
         }
 
         foreach (var attachedSlave in slaveInfo.AttachedSlaves)
         {
             lock (_slaveListLock)
-                WorldManager.Instance.RemoveObject(attachedSlave);
+                World.RemoveObject(attachedSlave);
             attachedSlave.Despawn = despawnDelayedTime;
-            SpawnManager.Instance.AddDespawn(attachedSlave);
+            World.SpawnManager.AddDespawn(attachedSlave);
             //attachedSlave.Delete();
         }
 
-        var world = WorldManager.Instance.GetWorld(slaveInfo.Transform.WorldId);
+        var world = WorldManager.Instance.GetWorld(slaveInfo.Transform.InstanceId);
         world.Physics.RemoveShip(slaveInfo);
         owner?.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
         owner?.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, slaveInfo.TlId), true);
         lock (_slaveListLock)
         {
-            WorldManager.Instance.RemoveObject(slaveInfo);
+            World.RemoveObject(slaveInfo);
         }
 
         slaveInfo.Despawn = DateTime.UtcNow.AddSeconds(slaveInfo.Template.PortalTime + 0.5f);
-        SpawnManager.Instance.AddDespawn(slaveInfo);
+        World.SpawnManager.AddDespawn(slaveInfo);
     }
 
     /// <summary>
@@ -365,13 +322,14 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <returns>Newly created Slave</returns>
     public Slave Create(Character owner, SlaveSpawner useSpawner, uint templateId, Item item = null, bool hideSpawnEffect = false, Transform positionOverride = null)
     {
-        var slaveTemplate = GetSlaveTemplate(useSpawner?.UnitId ?? templateId);
+        var slaveTemplate = SlaveGameData.Instance.GetSlaveTemplate(useSpawner?.UnitId ?? templateId);
         if (slaveTemplate == null) return null;
 
         var tlId = (ushort)TlIdManager.Instance.GetNextId();
         var objId = ObjectIdManager.Instance.GetNextId();
 
         using var spawnPos = positionOverride ?? new Transform(null);
+        spawnPos.InstanceId = World.Id;
         var spawnOffsetPos = new Vector3();
 
         var dbId = 0u;
@@ -430,7 +388,7 @@ public class SlaveManager : Singleton<SlaveManager>
             }
             else
             {
-                spawnPos.ApplyWorldTransformToLocalPosition(owner.Transform, owner.InstanceId);
+                spawnPos.ApplyWorldTransformToLocalPosition(owner.Transform, owner.Transform.InstanceId);
             }
 
             // If no spawn position override has been provided, then handle normal spawning algorithm
@@ -446,7 +404,7 @@ public class SlaveManager : Singleton<SlaveManager>
             {
                 // If we're spawning a boat, put it at the water level regardless of our own height
                 // TODO: if not at ocean level, get actual target location water body height (for example rivers)
-                var world = WorldManager.Instance.GetWorld(spawnPos.WorldId);
+                var world = WorldManager.Instance.GetWorld(spawnPos.InstanceId);
                 if (world == null)
                 {
                     Logger.Fatal($"Unable to find world to spawn in {spawnPos.WorldId}");
@@ -529,6 +487,7 @@ public class SlaveManager : Singleton<SlaveManager>
         owner?.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
         var summonedSlave = new Slave
         {
+            ParentWorld = World,
             TlId = tlId,
             ObjId = objId,
             TemplateId = slaveTemplate.Id,
@@ -538,7 +497,6 @@ public class SlaveManager : Singleton<SlaveManager>
             Template = slaveTemplate,
             Hp = slaveHp,
             Mp = slaveMp,
-            ModelParams = new UnitCustomModelParams(),
             Faction = owner?.Faction ?? FactionManager.Instance.GetFaction(slaveTemplate.FactionId),
             Id = dbId,
             Summoner = owner,
@@ -560,7 +518,8 @@ public class SlaveManager : Singleton<SlaveManager>
 
         // Equip it's default items
         // TODO: Implement vehicle customization
-        if (_slaveInitialItems.TryGetValue(summonedSlave.Template.SlaveInitialItemPackId, out var itemPack))
+        var itemPack = SlaveGameData.Instance.GetSlaveInitialItemPack(summonedSlave.Template.SlaveInitialItemPackId);
+        if (itemPack != null)
         {
             foreach (var initialItem in itemPack)
             {
@@ -586,7 +545,7 @@ public class SlaveManager : Singleton<SlaveManager>
         // If this was a previously saved slave, load doodads from DB and spawn them
         if (isLoadedPlayerSlave)
         {
-            var doodadSpawnCount = SpawnManager.Instance.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
+            var doodadSpawnCount = World.SpawnManager.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
             Logger.Debug($"Loaded {doodadSpawnCount} doodads from DB for Slave {summonedSlave.ObjId} (Db: {summonedSlave.Id}");
         }
 
@@ -688,7 +647,7 @@ public class SlaveManager : Singleton<SlaveManager>
             if ((summonedSlave.Id > 0) && (childDbId <= 0))
                 childDbId = CharacterIdManager.Instance.GetNextId(); // Slaves of Persistent Slaves are always persistent as well
 
-            var childSlaveTemplate = GetSlaveTemplate(childSlaveTemplateId > 0 ? childSlaveTemplateId : slaveBinding.SlaveId);
+            var childSlaveTemplate = SlaveGameData.Instance.GetSlaveTemplate(childSlaveTemplateId > 0 ? childSlaveTemplateId : slaveBinding.SlaveId);
             var childTlId = (ushort)TlIdManager.Instance.GetNextId();
             var childObjId = ObjectIdManager.Instance.GetNextId();
             var childSlave = new Slave()
@@ -703,7 +662,6 @@ public class SlaveManager : Singleton<SlaveManager>
                 Template = childSlaveTemplate,
                 Hp = childSlaveHp,
                 Mp = childSlaveMp,
-                ModelParams = new UnitCustomModelParams(),
                 Faction = summonedSlave.Faction,
                 Id = childDbId,
                 Summoner = summonedSlave.Summoner,
@@ -742,7 +700,7 @@ public class SlaveManager : Singleton<SlaveManager>
         // If it's a boat, add it to boat physics
         if (summonedSlave.Template.IsABoat())
         {
-            var world = WorldManager.Instance.GetWorld(owner.Transform.WorldId);
+            var world = WorldManager.Instance.GetWorld(owner.Transform.InstanceId);
             world.Physics.AddShip(summonedSlave);
         }
 
@@ -771,17 +729,15 @@ public class SlaveManager : Singleton<SlaveManager>
     /// <param name="attachPoint">Location to apply</param>
     private void ApplyAttachPointLocation(Slave slave, GameObject baseUnit, AttachPointKind attachPoint)
     {
-        if (_attachPoints.ContainsKey(slave.ModelId))
+        var attachPoints = SlaveGameData.Instance.GetAttachPointsForSlave(slave.ModelId);
+        if (attachPoints != null)
         {
-            if (_attachPoints[slave.ModelId].TryGetValue(attachPoint, out var value))
+            if (attachPoints.TryGetValue(attachPoint, out var value))
             {
                 baseUnit.Transform = slave.Transform.CloneAttached(baseUnit);
                 baseUnit.Transform.Parent = slave.Transform;
                 baseUnit.Transform.Local.Translate(value.AsPositionVector());
-                baseUnit.Transform.Local.SetRotation(
-value.Roll,
-value.Pitch,
-value.Yaw);
+                baseUnit.Transform.Local.SetRotation(value.Roll, value.Pitch, value.Yaw);
                 Logger.Debug($"Model id: {slave.ModelId} attachment {attachPoint} => pos {value} = {baseUnit.Transform}");
                 return;
             }
@@ -824,388 +780,11 @@ value.Yaw);
     }
 
     /// <summary>
-    /// Loads attachment points from slave_attach_points*.json files
-    /// </summary>
-    /// <exception cref="IOException"></exception>
-    public void LoadSlaveAttachmentPointLocations()
-    {
-        Logger.Info("Loading Slave Model Attach Points...");
-
-        // Get all files matching the pattern in the Data folder.
-        var dataFolder = Path.Combine(FileManager.AppPath, "Data");
-        string[] attachFiles;
-        try
-        {
-            attachFiles = Directory.GetFiles(dataFolder, "slave_attach_points*.json");
-        }
-        catch (Exception ex)
-        {
-            Logger.Error($"Error retrieving slave attachment point files: {ex.Message}");
-            return;
-        }
-
-        var allAttachPoints = new List<SlaveModelAttachPoint>();
-
-        foreach (var filePath in attachFiles)
-        {
-            if (!File.Exists(filePath))
-            {
-                Logger.Info($"Missing file: {Path.GetFileName(filePath)}");
-                continue;
-            }
-
-            var contents = FileManager.GetFileContents(filePath);
-            if (string.IsNullOrWhiteSpace(contents))
-            {
-                Logger.Warn($"File {filePath} is empty.");
-                continue;
-            }
-
-            if (JsonHelper.TryDeserializeObject(contents, out List<SlaveModelAttachPoint> attachPoints, out _))
-            {
-                allAttachPoints.AddRange(attachPoints);
-            }
-            else
-            {
-                Logger.Error($"Error parsing {filePath}");
-                // continue;
-            }
-        }
-
-        // Log the count with proper singular/plural grammar.
-        var count = allAttachPoints.Count;
-        Logger.Info($"{count} slave model attach point{(count == 1 ? "" : "s")} loaded...");
-
-        // Convert degrees from JSON to radians.
-        foreach (var vehicle in allAttachPoints)
-        {
-            foreach (var pos in vehicle.AttachPoints)
-            {
-                pos.Value.Roll = pos.Value.Roll.DegToRad();
-                pos.Value.Pitch = pos.Value.Pitch.DegToRad();
-                pos.Value.Yaw = pos.Value.Yaw.DegToRad();
-            }
-        }
-
-        _attachPoints = [];
-        foreach (var set in allAttachPoints)
-        {
-            _attachPoints[set.ModelId] = set.AttachPoints;
-        }
-    }
-    /// <summary>
-    /// Load slave data
-    /// </summary>
-    public void Load()
-    {
-        #region SQLLite
-
-        using (var connection = SQLite.CreateConnection())
-        {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slaves";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlaveTemplate
-                        {
-                            Id = reader.GetUInt32("id"),
-                            Name =
-                                LocalizationManager.Instance.Get("slaves", "name", reader.GetUInt32("id"),
-                                    reader.GetString("name")),
-                            ModelId = reader.GetUInt32("model_id"),
-                            Mountable = reader.GetBoolean("mountable"),
-                            SpawnXOffset = reader.GetFloat("spawn_x_offset"),
-                            SpawnYOffset = reader.GetFloat("spawn_y_offset"),
-                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0),
-                            Level = reader.GetUInt32("level"),
-                            Cost = reader.GetInt32("cost"),
-                            SlaveKind = (SlaveKind)reader.GetUInt32("slave_kind_id"),
-                            SpawnValidAreaRance = reader.GetUInt32("spawn_valid_area_range", 0),
-                            SlaveInitialItemPackId = reader.GetUInt32("slave_initial_item_pack_id", 0),
-                            SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0),
-                            Customizable = reader.GetBoolean("customizable", false),
-                            PortalTime = reader.GetFloat("portal_time"),
-                            Hp25DoodadCount = reader.GetInt32("hp25_doodad_count"),
-                            Hp50DoodadCount = reader.GetInt32("hp50_doodad_count"),
-                            Hp75DoodadCount = reader.GetInt32("hp75_doodad_count"),
-                        };
-                        _slaveTemplates.Add(template.Id, template);
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Slave'";
-                command.Prepare();
-                using (var sqliteDataReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                {
-                    while (reader.Read())
-                    {
-                        var slaveId = reader.GetUInt32("owner_id");
-                        if (!_slaveTemplates.TryGetValue(slaveId, out var slaveTemplate))
-                            continue;
-                        var template = new BonusTemplate
-                        {
-                            Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"),
-                            ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
-                            Value = reader.GetInt32("value"),
-                            LinearLevelBonus = reader.GetInt32("linear_level_bonus")
-                        };
-                        slaveTemplate.Bonuses.Add(template);
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_initial_items";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var itemPackId = reader.GetUInt32("slave_initial_item_pack_id");
-                        var slotId = reader.GetByte("equip_slot_id");
-                        var item = reader.GetUInt32("item_id");
-
-                        if (_slaveInitialItems.TryGetValue(itemPackId, out var key))
-                        {
-                            key.Add(new SlaveInitialItems() { slaveInitialItemPackId = itemPackId, equipSlotId = slotId, itemId = item });
-                        }
-                        else
-                        {
-                            var newPack = new List<SlaveInitialItems>();
-                            var newKey = new SlaveInitialItems
-                            {
-                                slaveInitialItemPackId = itemPackId,
-                                equipSlotId = slotId,
-                                itemId = item
-                            };
-                            newPack.Add(newKey);
-
-                            _slaveInitialItems.Add(itemPackId, newPack);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_initial_buffs";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlaveInitialBuffs
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SlaveId = reader.GetUInt32("slave_id"),
-                            BuffId = reader.GetUInt32("buff_id")
-                        };
-                        if (_slaveTemplates.TryGetValue(template.SlaveId, out var value))
-                        {
-                            value.InitialBuffs.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_passive_buffs";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlavePassiveBuffs
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            PassiveBuffId = reader.GetUInt32("passive_buff_id")
-                        };
-                        if (_slaveTemplates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.PassiveBuffs.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_doodad_bindings";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlaveDoodadBindings
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                            Persist = reader.GetBoolean("persist", true),
-                            Scale = reader.GetFloat("scale")
-                        };
-                        if (_slaveTemplates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.DoodadBindings.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_healing_point_doodads";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlaveDoodadBindings
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                            Persist = false,
-                            Scale = 1f
-                        };
-                        if (_slaveTemplates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.HealingPointDoodads.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_bindings";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlaveBindings()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id"),
-                            SlaveId = reader.GetUInt32("slave_id")
-                        };
-
-                        if (_slaveTemplates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.SlaveBindings.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_drop_doodads";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlaveDropDoodad()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                            Count = reader.GetUInt32("count"),
-                            Radius = reader.GetFloat("radius"),
-                            OnWater = reader.GetBoolean("on_water", true),
-                        };
-
-                        if (template.OwnerType != "Slave")
-                        {
-                            Logger.Warn($"Non slave-owned drops defined in slave_drop_doodads table");
-                            continue;
-                        }
-                        if (_slaveTemplates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.SlaveDropDoodads.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM slave_mount_skills";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new SlaveMountSkills()
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SlaveId = reader.GetUInt32("slave_id"),
-                            MountSkillId = reader.GetUInt32("mount_skill_id")
-                        };
-
-                        if (!_slaveMountSkills.TryAdd(template.Id, template))
-                            Logger.Warn($"Duplicate entry for slave_mount_skills");
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM repairable_slaves";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        if (!_repairableSlaves.TryAdd(reader.GetUInt32("slave_id"),
-                                reader.GetUInt32("repair_slave_effect_id")))
-                            Logger.Warn($"Duplicate entry for repairable_slaves");
-                    }
-                }
-            }
-
-        }
-        #endregion
-
-        LoadSlaveAttachmentPointLocations();
-    }
-
-    /// <summary>
     /// Starts task that sends the MySlave packets to players (updates markers on the map)
     /// </summary>
-    public static void Initialize()
+    public void Initialize()
     {
-        var sendMySlaveTask = new SendMySlaveTask();
+        var sendMySlaveTask = new SendMySlaveTask(World);
         TaskManager.Instance.Schedule(sendMySlaveTask, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
 
@@ -1214,7 +793,7 @@ value.Yaw);
     /// </summary>
     public void SendMySlavePacketToAllOwners()
     {
-        var slaves = WorldManager.Instance.GetAllSlaves();
+        var slaves = World.GetAllSlaves();
 
         foreach (var slave in slaves)
         {
@@ -1238,7 +817,7 @@ value.Yaw);
     /// <returns>Slave the object is on or null of none</returns>
     public Slave GetIsMounted(uint objId, out AttachPointKind attachPoint)
     {
-        var slaves = WorldManager.Instance.GetAllSlaves();
+        var slaves = World.GetAllSlaves();
         attachPoint = AttachPointKind.None;
         lock (_slaveListLock)
         {
@@ -1362,7 +941,7 @@ value.Yaw);
 
                 doodad.Hide();
                 doodad.Despawn = DateTime.UtcNow;
-                SpawnManager.Instance.AddDespawn(doodad);
+                World.SpawnManager.AddDespawn(doodad);
                 slave.AttachedDoodads.Remove(doodad);
                 currentHealPoints.Remove(doodad);
                 unUsedHealPoints.Add(doodad.AttachPoint);

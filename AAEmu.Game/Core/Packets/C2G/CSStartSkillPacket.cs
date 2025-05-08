@@ -7,7 +7,9 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -57,6 +59,7 @@ public class CSStartSkillPacket : GamePacket
 
         if (Connection.ActiveChar != null)
             Connection.ActiveChar.LastPacketActivityTime = DateTime.UtcNow;
+        var world = Connection.ActiveChar?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
         
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
 
@@ -66,7 +69,7 @@ public class CSStartSkillPacket : GamePacket
 
         if (skillCaster is SkillCasterUnit scu)
         {
-            var unit = WorldManager.Instance.GetUnit(scu.ObjId);
+            var unit = world.GetUnit(scu.ObjId);
             if (unit is Character character)
                 Logger.Info($"{character.Name}:{character.ObjId} is using skill={skillId}");
         }
@@ -77,7 +80,7 @@ public class CSStartSkillPacket : GamePacket
             Logger.Trace($"SkillCasterMount - MountSkillTemplateId {scm.MountSkillTemplateId}");
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
 
-            var caster = WorldManager.Instance.GetBaseUnit(skillCaster.ObjId);
+            var caster = world.GetBaseUnit(skillCaster.ObjId);
             var mate = caster as Mate;
             var slave = caster as Slave;
             var mountAttachedSkill = 0u;
@@ -85,7 +88,7 @@ public class CSStartSkillPacket : GamePacket
             if ((mate != null) || (slave != null))
             {
                 // check if it's a mate or slave skill and return its rider/operator related skill
-                mountAttachedSkill = MateManager.Instance.GetMountAttachedSkills(skillId, Connection.ActiveChar.AttachedPoint);
+                mountAttachedSkill = MateGameData.Instance.GetMountAttachedSkills(skillId, Connection.ActiveChar?.AttachedPoint ?? AttachPointKind.None);
             }
 
             // Use the main skill on the mate/slave
@@ -124,7 +127,7 @@ public class CSStartSkillPacket : GamePacket
         }
         else if (skillCaster is SkillItem si)
         {
-            // A skill triggered by a item
+            // A skill triggered by an item
             var player = Connection.ActiveChar;
             // var item = player.Inventory.GetItemById(si.ItemId);
             // добавил проверку на ItemBindType.BindOnPickup для записи портала с помощью камина в доме

@@ -27,15 +27,10 @@ public class DoodadPhaseChangeSubCommand : SubCommandBase
     {
         uint doodadObjId = parameters["ObjId"];
         int phaseId = parameters["PhaseId"];
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+        var doodad = ((Character)character).ParentWorld.GetDoodad(doodadObjId);
         if (doodad is null)
         {
             SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} Does not exist");
-        }
-
-        if (!(doodad is Doodad))
-        {
-            SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} is invalid (not a Doodad)");
         }
 
         var availablePhases = string.Join(", ", DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId));

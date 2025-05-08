@@ -27,8 +27,7 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
     {
         Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId}, LifeTime={LifeTime}, UseSummonerAggroTarget={UseSummonerAggroTarget}, ActivationState={ActivationState}");
 
-        var world = WorldManager.Instance.GetWorldTemplateByZone(caster.Transform.ZoneId);
-        var spawners = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)world.Id);
+        var spawners = caster.ParentWorld.SpawnManager.GetNpcSpawner(SpawnerId);
         if (spawners is not { Count: not 0 })
             Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId} not found in spawners.");
         else
@@ -67,9 +66,9 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                     else
                     {
                         // Npc attacks the character
-                        if (target is Npc)
+                        if (target is Npc targetNpc)
                         {
-                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)target, 1);
+                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, targetNpc, 1);
                         }
                         else
                         {

@@ -15,6 +15,6 @@ public class CSBindSlavePacket : GamePacket
         var tlId = stream.ReadUInt16();
 
         Logger.Debug("BindSlave, Tl: {0}", tlId);
-        SlaveManager.Instance.BindSlave(Connection, tlId);
+        Connection.ActiveChar.ParentWorld.SlaveManager.BindSlave(Connection, tlId);
     }
 }

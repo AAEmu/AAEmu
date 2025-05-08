@@ -3,6 +3,7 @@ using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Tasks;
@@ -67,7 +68,7 @@ public class Scripts : ICommand
 
                 break;
             case "reloadslavepoints":
-                SlaveManager.Instance.LoadSlaveAttachmentPointLocations();
+                SlaveGameData.Instance.LoadSlaveAttachmentPointLocations();
                 CommandManager.SendNormalText(this, messageOutput,
                     "Slave Attachment Point Locations reloaded from .json file");
                 break;

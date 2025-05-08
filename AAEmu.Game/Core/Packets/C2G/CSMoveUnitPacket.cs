@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Linq;
 using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -13,16 +13,12 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSMoveUnitPacket : GamePacket
+public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
     private uint _objId;
     private MoveType _moveType;
-
-    public CSMoveUnitPacket() : base(CSOffsets.CSMoveUnitPacket, 1)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {
@@ -64,14 +60,14 @@ public class CSMoveUnitPacket : GamePacket
         // if movement is forbidden when teleporting to instances, then to exit
         if (character.DisabledSetPosition) return;
 
-        var targetUnit = WorldManager.Instance.GetBaseUnit(_objId);
+        var targetUnit = character.ParentWorld.GetBaseUnit(_objId);
 
         // Invalid Object ?
         if (targetUnit == null)
         {
             // TODO по какой то причине объект удалили из региона, наверное нужно его как то вернуть назад 
             // TODO for some reason the object has been removed from the region, you probably need to get it back somehow
-            Logger.Warn("Invalid target {0} from {1}", _objId, character.Name);
+            Logger.Warn($"Invalid target {_objId} from {character.Name}");
             return;
         }
 
@@ -126,7 +122,7 @@ public class CSMoveUnitPacket : GamePacket
                 {
                     // Logger.Debug($"{targetUnit.Name} => ActorFlags: 0x{dmt.ActorFlags:X} - ClimbData: {dmt.ClimbData:X} - GcId: {dmt.GcId}");
 
-                    // It moving Pets, handle Pet XP for moving
+                    // Its moving Pets, handle Pet XP for moving
                     if (targetUnit is Mate mate)
                     {
                         // Pet moved
@@ -163,7 +159,7 @@ public class CSMoveUnitPacket : GamePacket
                             // If we are sitting on a pet and Parent = null, we force it on there to prevent client crashing
                             if (player.Transform.Parent == null)
                             {
-                                var mate2 = MateManager.Instance.GetActiveMate(character.ObjId);
+                                var mate2 = Connection.ActiveChar.ParentWorld.MateManager.GetActiveMates(character.Id).FirstOrDefault();
                                 if (mate2 != null)
                                 {
                                     player.Transform.Parent = mate2.Transform;
@@ -179,10 +175,10 @@ public class CSMoveUnitPacket : GamePacket
                         player.SetPlayerMoved();
                     }
 
-                    var isStandingOnObject = ((MoveTypeFlags)dmt.Flags).HasFlag(MoveTypeFlags.StandingOnObject);
+                    var isStandingOnObject = dmt.Flags.HasFlag(MoveTypeFlags.StandingOnObject);
                     // Don't know why, but we need to Ignore GcId 1, it probably has some special meaning like "current parent"
                     var parentObject = isStandingOnObject && dmt.GcId > 1
-                        ? WorldManager.Instance.GetBaseUnit(dmt.GcId)
+                        ? character.ParentWorld.GetBaseUnit(dmt.GcId)
                         : null;
                     var isSticky = ((MoveTypeActorFlags)dmt.ActorFlags).HasFlag(MoveTypeActorFlags.HangingFromObject);
 
@@ -205,8 +201,7 @@ public class CSMoveUnitPacket : GamePacket
                             $"|cFF448844{targetUnit.Name} ({targetUnit.ObjId}) standing on Object {parentObject.Name} ({parentObject.ObjId}) " +
                             $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
                     }
-                    else if ((targetUnit.Transform.Parent != null) &&
-                             (targetUnit.Transform.Parent.GameObject != null) &&
+                    else if (targetUnit.Transform.Parent is { GameObject: not null } &&
                              (parentObject != null) &&
                              (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
                     {
@@ -253,19 +248,19 @@ public class CSMoveUnitPacket : GamePacket
                     //Logger.Info($"SetPosition:World {targetUnit.ObjId} is moving X={targetUnit.Transform.World.Position.X} Y={targetUnit.Transform.World.Position.Y}");
                     //Logger.Info($"SetPosition:Local {targetUnit.ObjId} is moving X={dmt.X} Y={dmt.Y}");
                     targetUnit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
-                    targetUnit.Transform.FinalizeTransform(true);
+                    targetUnit.Transform.FinalizeTransform();
 
                     // Handle Fall Velocity
                     if ((dmt.FallVel > 0) && (targetUnit is Unit unit))
                     {
-                        var fallDmg = unit.DoFallDamage(dmt.FallVel);
+                        _ = unit.DoFallDamage(dmt.FallVel);
                         // character.SendMessage("{0} took {1} fall damage {2}/{3} HP left", unit.Name, fallDmg, unit.Hp, unit.MaxHp);
                     }
 
                     break;
                 }
             default:
-                Logger.Warn("Unknown MoveType: {0} by {1} for {2} ", _moveType, character.Name, targetUnit.Name);
+                Logger.Warn($"Unknown MoveType: {_moveType} by {character.Name} for {targetUnit.Name}");
                 break;
         }
     }
@@ -278,6 +273,6 @@ public class CSMoveUnitPacket : GamePacket
 
     public override string Verbose()
     {
-        return " - " + (_moveType?.Type.ToString() ?? "none") + " " + (WorldManager.Instance.GetGameObject(_objId)?.DebugName() ?? "(" + _objId.ToString() + ")");
+        return " - " + (_moveType?.Type.ToString() ?? "none") + " " + (Connection.ActiveChar.ParentWorld.GetGameObject(_objId)?.DebugName() ?? "(" + _objId + ")");
     }
 }

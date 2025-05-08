@@ -505,7 +505,6 @@ public sealed class Mate : Unit
 
     public Mate()
     {
-        ModelParams = new UnitCustomModelParams();
         Skills = [];
         Passengers = [];
         Equipment = new MateEquipmentContainer(0, SlotType.EquipmentMate, false, this);
@@ -616,7 +615,7 @@ public sealed class Mate : Unit
                 {
                     rider.DoFallDamage(fallVel);
                     if (rider.Hp <= 0)
-                        MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
+                        rider.ParentWorld.MateManager.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
                 }
             }
         }
@@ -637,10 +636,7 @@ public sealed class Mate : Unit
             {
                 var pos = riders[i].Key;
                 var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value._objId);
-                if (rider != null)
-                {
-                    MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.None);
-                }
+                rider?.ParentWorld.MateManager.UnMountMate(rider, TlId, pos, AttachUnitReason.None);
             }
             return;
         }
@@ -664,7 +660,7 @@ public sealed class Mate : Unit
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 
-    public void StartUpdateXp(Character Owner)
+    public void StartUpdateXp(Character owner)
     {
         if (MateXpUpdateTask != null)
         {
@@ -672,7 +668,7 @@ public sealed class Mate : Unit
         }
         if (IsMaxLevel)
             return;
-        MateXpUpdateTask = new MateXpUpdateTask(Owner, this);
+        MateXpUpdateTask = new MateXpUpdateTask(owner, this);
         TaskManager.Instance.Schedule(MateXpUpdateTask, TimeSpan.FromSeconds(60));
         //Logger.Trace("[StartUpdateXp] The current timer has been started...");
     }

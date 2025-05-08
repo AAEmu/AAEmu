@@ -55,13 +55,15 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new Specialty();
-                        template.Id = reader.GetUInt32("id");
-                        template.RowZoneGroupId = reader.GetUInt32("row_zone_group_id");
-                        template.ColZoneGroupId = reader.GetUInt32("col_zone_group_id");
-                        template.Ratio = reader.GetUInt32("ratio");
-                        template.Profit = reader.GetUInt32("profit");
-                        template.VendorExist = reader.GetBoolean("id", true);
+                        var template = new Specialty
+                        {
+                            Id = reader.GetUInt32("id"),
+                            RowZoneGroupId = reader.GetUInt32("row_zone_group_id"),
+                            ColZoneGroupId = reader.GetUInt32("col_zone_group_id"),
+                            Ratio = reader.GetUInt32("ratio"),
+                            Profit = reader.GetUInt32("profit"),
+                            VendorExist = reader.GetBoolean("id", true)
+                        };
                         _specialties.Add(template.Id, template);
                     }
                 }
@@ -75,12 +77,14 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SpecialtyBundleItem();
-                        template.Id = reader.GetUInt32("id");
-                        template.ItemId = reader.GetUInt32("item_id");
-                        template.SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id");
-                        template.Profit = reader.GetUInt32("profit");
-                        template.Ratio = reader.GetUInt32("ratio");
+                        var template = new SpecialtyBundleItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id"),
+                            Profit = reader.GetUInt32("profit"),
+                            Ratio = reader.GetUInt32("ratio")
+                        };
                         _specialtyBundleItems.Add(template.Id, template);
 
                         if (!_specialtyBundleItemsMapped.ContainsKey(template.ItemId))
@@ -99,11 +103,13 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new SpecialtyNpc();
-                        template.Id = reader.GetUInt32("id");
-                        template.Name = reader.GetString("name");
-                        template.NpcId = reader.GetUInt32("npc_id");
-                        template.SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id");
+                        var template = new SpecialtyNpc
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            NpcId = reader.GetUInt32("npc_id"),
+                            SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id")
+                        };
 
                         _specialtyNpc.Add(template.NpcId, template);
                     }
@@ -123,7 +129,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         TaskManager.Instance.Schedule(ratioRegenTask, TimeSpan.FromMinutes(AppConfiguration.Instance.Specialty.RatioRegenTickMinutes), TimeSpan.FromMinutes(AppConfiguration.Instance.Specialty.RatioRegenTickMinutes));
     }
 
-    public void OnItemsLoaded(object sender, EventArgs e)
+    private void OnItemsLoaded(object sender, EventArgs e)
     {
         foreach (var specialtyBundleItem in _specialtyBundleItems.Values)
         {
@@ -170,7 +176,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         return res;
     }
 
-    public int GetBasePriceForSpecialty(Character player, uint npcId)
+    private int GetBasePriceForSpecialty(Character player, uint npcId)
     {
         // Sanity checks
         var backpack = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
@@ -180,7 +186,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             return 0;
         }
 
-        var npc = WorldManager.Instance.GetNpc(npcId);
+        var npc = player.ParentWorld.GetNpc(npcId);
         if (npc == null)
         {
             player.SendErrorMessage(ErrorMessageType.InvalidTarget);
@@ -199,7 +205,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             return 1;
         }
 
-        var bundleIdAtNPC = specialtyNpc.SpecialtyBundleId;
+        var bundleIdAtNpc = specialtyNpc.SpecialtyBundleId;
 
         if (!_specialtyBundleItemsMapped.TryGetValue(backpack.TemplateId, out var bundleMapping))
         {
@@ -207,7 +213,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             return 0;
         }
 
-        if (!bundleMapping.TryGetValue(bundleIdAtNPC, out var bundleItem))
+        if (!bundleMapping.TryGetValue(bundleIdAtNpc, out var bundleItem))
         {
             player.SendErrorMessage(ErrorMessageType.Invalid);
             return 0;
@@ -244,14 +250,14 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
             return basePrice;
         }
 
-        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        var npc = player.ParentWorld.GetNpc(npcObjId);
         if (npc == null)
             return basePrice;
 
         // Our backpack isn't null, we have the NPC, time to calculate the profits
 
-        // TODO: Get crafter ID of tradepack
-        uint crafterId = backpack.MadeUnitId != player.Id ? backpack.MadeUnitId : 0;
+        // TODO: Get crafter ID of trade-pack
+        var crafterId = backpack.MadeUnitId != player.Id ? backpack.MadeUnitId : 0;
         var sellerShare = 0.80f; // 80% default, set this to 1f for packs that don't share profit
 
         var interestRate = 5;

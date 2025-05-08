@@ -19,7 +19,7 @@ public class CSSendMailPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
-        Logger.Debug("SendMail by {0}", Connection.ActiveChar.Name);
+        Logger.Debug($"SendMail by {Connection.ActiveChar.Name}");
 
         var type = (MailType)stream.ReadByte();
         var receiverCharName = stream.ReadString();
@@ -43,7 +43,7 @@ public class CSSendMailPacket : GamePacket
         }
 
         var doodadObjId = stream.ReadBc();
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+        var doodad = Connection.ActiveChar.ParentWorld.GetDoodad(doodadObjId);
 
         // Validate if we are near a MailBox
         bool mailCheckOK;

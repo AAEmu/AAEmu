@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -71,10 +72,14 @@ public class Team : PacketMarshaler
 
     public bool IsObjMember(uint objId)
     {
-        var mate = MateManager.Instance.GetActiveMateByMateObjId(objId);
-        foreach (var member in Members)
-            if (member?.Character != null && (member.Character.ObjId == objId || mate?.OwnerObjId == member.Character.ObjId))
-                return true;
+        foreach (var worldInstance in WorldManager.Instance.GetWorlds())
+        {
+            var mate = worldInstance.MateManager.GetActiveMateByMateObjId(objId);
+            foreach (var member in Members)
+                if (member?.Character != null && (member.Character.ObjId == objId || mate?.OwnerObjId == member.Character.ObjId))
+                    return true;
+        }
+
         return false;
     }
 

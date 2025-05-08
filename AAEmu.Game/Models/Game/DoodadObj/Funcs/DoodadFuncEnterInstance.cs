@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -13,7 +14,7 @@ public class DoodadFuncEnterInstance : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        Logger.Info("DoodadFuncEnterInstance, ZoneId: {0}, ItemId: {1}", ZoneId, ItemId);
+        Logger.Info($"DoodadFuncEnterInstance, ZoneId: {ZoneId}, ItemId: {ItemId}");
 
         if (caster is Character character)
         {
@@ -21,12 +22,12 @@ public class DoodadFuncEnterInstance : DoodadFuncTemplate
             {
                 character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
             }
-            else if (character.Transform.WorldId == 0)
+            else if (character.Transform.InstanceId == WorldManager.DefaultInstanceId)
             {
                 character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
             }
 
-            IndunManager.Instance.RequestInstance(character, ZoneId);
+            IndunManager.Instance.RequestDungeonInstance(character, ZoneId, 0);
         }
     }
 }

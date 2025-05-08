@@ -36,6 +36,7 @@ public class NpcSpawnSubCommand : SubCommandBase
         var selfCharacter = (Character)character;
 
         var npcSpawner = new NpcSpawner();
+        npcSpawner.ParentWorld = ((Character)character).ParentWorld;
         npcSpawner.Id = 0;
         npcSpawner.UnitId = npcTemplateId;
         using var charPos = selfCharacter.Transform.CloneDetached();
@@ -57,7 +58,7 @@ public class NpcSpawnSubCommand : SubCommandBase
         npcSpawner.Position.Pitch = 0;
         npcSpawner.Position.Roll = 0;
 
-        SpawnManager.Instance.AddNpcSpawner(npcSpawner);
+        ((Character)character).ParentWorld.SpawnManager.AddNpcSpawner(npcSpawner);
 
         npcSpawner.Update();
     }

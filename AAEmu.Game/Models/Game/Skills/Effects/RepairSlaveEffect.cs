@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -23,27 +24,26 @@ public class RepairSlaveEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        if (targetObj is SkillCastItemTarget scit)
+        if (targetObj is SkillCastItemTarget skillCastItemTarget)
         {
-            var item = ItemManager.Instance.GetItemByItemId(scit.Id);
-            var targetPlayer = WorldManager.Instance.GetCharacterByObjId(scit.ObjId);
+            var item = ItemManager.Instance.GetItemByItemId(skillCastItemTarget.Id);
+            var targetPlayer = WorldManager.Instance.GetCharacterByObjId(skillCastItemTarget.ObjId);
             // TODO: might need to check if it's a repair point?
             if (targetPlayer == null)
             {
-                Logger.Warn($"RepairSlaveEffect target unit {scit.ObjId} is not a player");
+                Logger.Warn($"RepairSlaveEffect target unit {skillCastItemTarget.ObjId} is not a player");
                 return;
             }
             if (item is not SummonSlave slaveItem)
             {
-                Logger.Warn($"RepairSlaveEffect target item {scit.Id} is not a salve summon item");
+                Logger.Warn($"RepairSlaveEffect target item {skillCastItemTarget.Id} is not a salve summon item");
                 return;
             }
 
             if (slaveItem.Template is not SummonSlaveTemplate summonTemplate)
                 return;
 
-            if (!SlaveManager.Instance._repairableSlaves.TryGetValue(summonTemplate.SlaveId,
-                    out var expectedEffectId) || (expectedEffectId != Id))
+            if (!SlaveGameData.Instance.HasRepairEffectId(summonTemplate.SlaveId, Id))
             {
                 targetPlayer.SendErrorMessage(ErrorMessageType.ItemFailedRepair); // not sure if this would be the correct one
                 Logger.Warn($"{targetPlayer.Name} tried to use the wrong repair item {slaveItem.Id} (template: {slaveItem.TemplateId} for slave type {summonTemplate.SlaveId}");

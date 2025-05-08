@@ -6,7 +6,6 @@ using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
@@ -20,22 +19,14 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterQuests
+public class CharacterQuests(Character owner)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly List<uint> _removed;
+    private readonly List<uint> _removed = [];
 
-    private Character Owner { get; set; }
-    public Dictionary<uint, Quest> ActiveQuests { get; }
-    private Dictionary<ushort, CompletedQuest> CompletedQuests { get; }
-
-    public CharacterQuests(Character owner)
-    {
-        Owner = owner;
-        ActiveQuests = [];
-        CompletedQuests = [];
-        _removed = [];
-    }
+    private Character Owner { get; set; } = owner;
+    public Dictionary<uint, Quest> ActiveQuests { get; } = [];
+    private Dictionary<ushort, CompletedQuest> CompletedQuests { get; } = [];
 
     public bool HasQuest(uint questId)
     {
@@ -108,17 +99,19 @@ public class CharacterQuests
         }
 
         // Create new Quest Object
-        var quest = new Quest(template, Owner);
-        quest.Id = QuestIdManager.Instance.GetNextId();
-        quest.Status = QuestStatus.Invalid;
-        quest.Condition = QuestConditionObj.Progress;
-        quest.QuestAcceptorType = questAcceptorType;
-        quest.AcceptorId = acceptorId;
+        var quest = new Quest(template, Owner)
+        {
+            Id = QuestIdManager.Instance.GetNextId(),
+            Status = QuestStatus.Invalid,
+            Condition = QuestConditionObj.Progress,
+            QuestAcceptorType = questAcceptorType,
+            AcceptorId = acceptorId
+        };
 
         // If there's still a timer running for this quest, remove it
         if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
         {
-            if (QuestManager.Instance.QuestTimeoutTask.TryGetValue(quest.Owner.Id, out var value) && value.ContainsKey(questId))
+            if (QuestManager.Instance.QuestTimeoutTask.TryGetValue(quest.Owner.Id, out var value))
             {
                 value.Remove(questId);
             }
@@ -152,7 +145,7 @@ public class CharacterQuests
     /// <returns></returns>
     public bool AddQuestFromNpc(uint questId, uint npcObjId)
     {
-        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        var npc = Owner.ParentWorld.GetNpc(npcObjId);
         Owner.CurrentTarget = npc;
         return AddQuest(questId, false, QuestAcceptorType.Npc, npc.TemplateId);
     }
@@ -165,7 +158,7 @@ public class CharacterQuests
     /// <returns></returns>
     public bool AddQuestFromDoodad(uint questId, uint doodadObjId)
     {
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+        var doodad = Owner.ParentWorld.GetDoodad(doodadObjId);
         return AddQuest(questId, false, QuestAcceptorType.Doodad, doodad.TemplateId);
     }
 
@@ -281,7 +274,7 @@ public class CharacterQuests
             // Go through the steps in reverse order starting from the currently active one
             // This is needed because it's possible for the same item to be used in multiple acts, but will only cancel
             // the quest if it's on a specific step in the quest progress
-            // For example: "The Mad Scholar" ( 3544 ), where "Kyrios's Helm Fragment" ( 21500 ) would only cancel the
+            // For example: "The Mad Scholar" ( 3544 ), where "Kyrios' Helm Fragment" ( 21500 ) would only cancel the
             // quest if it's happening on the quest supply part.
             // From what I think needs to happen is that the DropOnDestroy setting from the last used/active
             // is the only one that counts. If you encounter any setting, stop looking and evaluate that one.
@@ -491,9 +484,11 @@ public class CharacterQuests
             {
                 while (reader.Read())
                 {
-                    var quest = new CompletedQuest();
-                    quest.Id = reader.GetUInt16("id");
-                    quest.Body = new BitArray((byte[])reader.GetValue("data"));
+                    var quest = new CompletedQuest
+                    {
+                        Id = reader.GetUInt16("id"),
+                        Body = new BitArray((byte[])reader.GetValue("data"))
+                    };
                     CompletedQuests.Add(quest.Id, quest);
                 }
             }
@@ -517,10 +512,12 @@ public class CharacterQuests
                         continue;
                     }
 
-                    var quest = new Quest(template, Owner);
-                    quest.Id = questId;
-                    quest.TemplateId = templateId;
-                    quest.Status = (QuestStatus)reader.GetByte("status");
+                    var quest = new Quest(template, Owner)
+                    {
+                        Id = questId,
+                        TemplateId = templateId,
+                        Status = (QuestStatus)reader.GetByte("status")
+                    };
                     var oldStatus = quest.Status;
                     quest.ReadData((byte[])reader.GetValue("data"));
                     quest.Status = oldStatus;
@@ -657,7 +654,7 @@ public class CharacterQuests
                     if (act.Template is QuestActObjItemUse questActObjItemUse)
                     {
                         if (questActObjItemUse.ItemId == itemId)
-                            res.Add((QuestAct)act);
+                            res.Add(act);
                     }
                 }
             }

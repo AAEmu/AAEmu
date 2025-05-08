@@ -5,13 +5,16 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.IO;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -21,8 +24,11 @@ namespace AAEmu.Game.Models.Game.World;
 /// </summary>
 public class WorldInstance(WorldTemplate template, uint channelId, bool dontFreeInstanceId, uint instanceId)
 {
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    // ReSharper disable once InconsistentNaming
     private static Logger Logger = LogManager.GetCurrentClassLogger();
 
+    #region InstanceProperties
     /// <summary>
     /// Keeps track if we need to release the Id or not
     /// </summary>
@@ -43,6 +49,13 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// </summary>
     public uint ChannelId { get; init; } = channelId;
 
+    /// <summary>
+    /// If this instance is a Dungeon, this links to the dungeon info
+    /// </summary>
+    public Dungeon DungeonInstance { get; set; }
+    #endregion InstanceProperties
+
+    #region GameWorldInstance
     /// <summary>
     /// Collection of Region data
     /// </summary>
@@ -68,6 +81,38 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// </summary>
     public SphereQuestManager SphereQuestManager { get; set; }
 
+    /// <summary>
+    /// Manager that handles spawns for this instance
+    /// </summary>
+    public SpawnManager SpawnManager { get; set; }
+    /// <summary>
+    /// Manager that handles vehicle spawns for this instance
+    /// </summary>
+    public SlaveManager SlaveManager { get; set; }
+
+    /// <summary>
+    /// Manager that handles pet spawns for this instance
+    /// </summary>
+    public MateManager MateManager { get; set; }
+
+    /// <summary>
+    /// Manager that handles Gimmicks for this instance
+    /// </summary>
+    public GimmickManager GimmickManager { get; set; }
+
+    /// <summary>
+    /// Global Instance flag to check if PvP is allowed here
+    /// </summary>
+    public bool AllowPvP
+    {
+        get
+        {
+            return DungeonInstance?._indunZone?.PvP ?? true;
+        }
+    }
+    #endregion GameWorldInstance
+
+    #region GameObjectLists
     /// <summary>
     /// List of all GameObjects in this instance
     /// </summary>
@@ -112,14 +157,31 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// List of all Mates in this instance
     /// </summary>
     private readonly ConcurrentDictionary<uint, Units.Mate> _mates = new();
-    
+
+    /// <summary>
+    /// List of all Players in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Character> _characters = new();
+    #endregion GameObjectLists
+
     ~WorldInstance()
     {
+        CleanupInstance();
         if (!IsFixedInstanceId)
             WorldIdManager.Instance.ReleaseId(Id);
-        Logger.Info($"WorldInstance {Id} - {Template.Name} ({Template.Id}) removed");
+        Logger.Info($"WorldInstance {this} removed");
     }
 
+    /// <summary>
+    /// Default formatting of World name in logs
+    /// </summary>
+    /// <returns></returns>
+    public override string ToString()
+    {
+        return $"{Id}-{Template.Name}({Template.Id})";
+    }
+
+    #region PhysicalProperties
     /// <summary>
     /// Checks if target position is inside a body of water
     /// </summary>
@@ -234,7 +296,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     {
         if (Template.ValidRegion(sectorX, sectorY))
             if (Regions[sectorX, sectorY] == null)
-                return Regions[sectorX, sectorY] = new Region(Id, sectorX, sectorY, 0);
+                return Regions[sectorX, sectorY] = new Region(this, sectorX, sectorY, 0);
             else
                 return Regions[sectorX, sectorY];
 
@@ -252,7 +314,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
         var sectorY = (int)(pos.Y / WorldManager.REGION_SIZE);
         if (Template.ValidRegion(sectorX, sectorY))
             if (Regions[sectorX, sectorY] == null)
-                return Regions[sectorX, sectorY] = new Region(Id, sectorX, sectorY, 0);
+                return Regions[sectorX, sectorY] = new Region(this, sectorX, sectorY, 0);
             else
                 return Regions[sectorX, sectorY];
 
@@ -289,7 +351,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// </summary>
     public void StartPhysics()
     {
-        Logger.Debug($"Starting physics engine for instance {Id} - {Template.Name} ({Template.Id})");
+        Logger.Debug($"Starting physics engine for instance {this}");
         Physics = new BoatPhysicsManager { SimulationWorld = this };
         Physics.Initialize();
         Physics.StartPhysics();
@@ -307,13 +369,15 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
             return;
         }
 
-        Logger.Debug($"Loading water body data for instance {Id} - {Template.Name} ({Template.Id})");
+        Logger.Debug($"Loading water body data for instance {this}");
         if (WaterBodies.Load(customFile, out var newWater))
         {
             Water = newWater;
         }
     }
+    #endregion PhysicalProperties
     
+    #region GetGameObjects
     /// <summary>
     /// Get GameObject by its ObjId
     /// </summary>
@@ -407,6 +471,72 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     }
 
     /// <summary>
+    /// Gets a list of all player characters in this instance
+    /// </summary>
+    /// <returns></returns>
+    public List<Character> GetAllCharacters()
+    {
+        return _characters.Values.ToList();
+    }
+
+    /// <summary>
+    /// Gets a character in this instance by their ObjId 
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public Character GetCharacterByObjId(uint objId)
+    {
+        return _characters.GetValueOrDefault(objId);
+    }
+
+    /// <summary>
+    /// Checks if target player is in this instance
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <returns></returns>
+    public bool HasCharacter(uint playerId)
+    {
+        return _characters.Values.Any(x => x.Id == playerId);
+    }
+
+    /// <summary>
+    /// Get the number of characters in the current instance
+    /// </summary>
+    /// <returns></returns>
+    public int GetCharacterCount()
+    {
+        return _characters.Count;
+    }
+
+    /// <summary>
+    /// Returns a contacted string of player names in this instance
+    /// </summary>
+    /// <param name="maxPlayerNames">Maximum number of names to show, when there are more, returns a number instead</param>
+    /// <returns></returns>
+    public string ListPlayerNames(uint maxPlayerNames)
+    {
+        if (_characters.Count > maxPlayerNames)
+        {
+            return _characters.Count.ToString();
+        }
+
+        if (_characters.Count <= 0)
+        {
+            return "[none]";
+        }
+
+        var res = string.Empty;
+        foreach (var player in _characters.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(res))
+                res += ", " + player.Name;
+            else
+                res += player.Name;
+        }
+        return res;
+    }
+
+    /// <summary>
     /// Adds a GameObject to the list of existing objects on the server
     /// </summary>
     /// <param name="obj"></param>
@@ -426,7 +556,12 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
         if (obj is Npc npc)
             _npcs.TryAdd(npc.ObjId, npc);
         if (obj is Character character)
+        {
+            // Add to server, should already be added at this point, but add it again anyway
             WorldManager.Instance.TryAddCharacter(character);
+            // Add to instance
+            _characters.TryAdd(character.ObjId, character);
+        }
         if (obj is Transfer transfer)
             _transfers.TryAdd(transfer.ObjId, transfer);
         if (obj is Gimmick gimmick)
@@ -440,72 +575,41 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// <summary>
     /// Removes a GameObject from the list of "existing" objects on the server
     /// </summary>
-    /// <param name="objId"></param>
+    /// <param name="obj"></param>
     /// <returns></returns>
-    public bool RemoveObject(uint objId)
+    public bool RemoveObject(GameObject obj)
     {
-        if (objId == 0)
-            return false;
+        if (obj == null)
+            return true;
 
         var res = false;
 
-        if (_objects.TryRemove(objId, out _))
+        res |= _objects.TryRemove(obj.ObjId, out _);
+        if (obj is BaseUnit)
+            res |= _baseUnits.TryRemove(obj.ObjId, out _);
+        if (obj is Unit)
+            res |= _units.TryRemove(obj.ObjId, out _);
+        if (obj is Doodad)
+            res |= _doodads.TryRemove(obj.ObjId, out _);
+        if (obj is Npc)
+            res |= _npcs.TryRemove(obj.ObjId, out _);
+        if (obj is Character)
         {
-            Logger.Debug($"WorldManager: object {objId} removed from _objects");
-            res = true;
+            // Server
+            // WorldManager.Instance.TryRemoveCharacter(obj.ObjId);
+            // Instance
+            res |= _characters.TryRemove(obj.ObjId, out _);
         }
-
-        if (_baseUnits.TryRemove(objId, out _))
-        {
-            Logger.Debug($"WorldManager: object {objId} removed from _baseUnits");
-            res = true;
-        }
-
-        if (_units.TryRemove(objId, out _))
-        {
-            Logger.Debug($"WorldManager: object {objId} removed from _units");
-            res = true;
-        }
-
-        if (_npcs.TryRemove(objId, out _))
-        {
-            Logger.Debug($"WorldManager: object {objId} removed from _npcs");
-            res = true;
-        }
+        if (obj is Transfer)
+            res |= _transfers.TryRemove(obj.ObjId, out _);
+        if (obj is Gimmick)
+            res |= _gimmicks.TryRemove(obj.ObjId, out _);
+        if (obj is Slave)
+            res |= _slaves.TryRemove(obj.ObjId, out _);
+        if (obj is Units.Mate mate)
+            res |= _mates.TryRemove(mate.ObjId, out _);
 
         return res;
-    }
-
-    /// <summary>
-    /// Removes a GameObject from the list of "existing" objects on the server
-    /// </summary>
-    /// <param name="obj"></param>
-    /// <returns></returns>
-    public void RemoveObject(GameObject obj)
-    {
-        if (obj == null)
-            return;
-
-        _objects.TryRemove(obj.ObjId, out _);
-
-        if (obj is BaseUnit)
-            _baseUnits.TryRemove(obj.ObjId, out _);
-        if (obj is Unit)
-            _units.TryRemove(obj.ObjId, out _);
-        if (obj is Doodad)
-            _doodads.TryRemove(obj.ObjId, out _);
-        if (obj is Npc)
-            _npcs.TryRemove(obj.ObjId, out _);
-        if (obj is Character)
-            WorldManager.Instance.TryRemoveCharacter(obj.ObjId);
-        if (obj is Transfer)
-            _transfers.TryRemove(obj.ObjId, out _);
-        if (obj is Gimmick)
-            _gimmicks.TryRemove(obj.ObjId, out _);
-        if (obj is Slave)
-            _slaves.TryRemove(obj.ObjId, out _);
-        if (obj is Units.Mate mate)
-            _mates.TryRemove(mate.ObjId, out _);
     }
 
     /// <summary>
@@ -517,22 +621,37 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
         return _npcs.Values.ToList();
     }
 
-
+    /// <summary>
+    /// Gets a list of all vehicles in this instance
+    /// </summary>
+    /// <returns></returns>
     public List<Slave> GetAllSlaves()
     {
         return _slaves.Values.ToList();
     }
 
+    /// <summary>
+    /// Gets a list of all pets in this instance
+    /// </summary>
+    /// <returns></returns>
     public List<Units.Mate> GetAllMates()
     {
         return _mates.Values.ToList();
     }
 
+    /// <summary>
+    /// Gets a list of all doodads in this instance
+    /// </summary>
+    /// <returns></returns>
     public List<Doodad> GetAllDoodads()
     {
         return _doodads.Values.ToList();
     }
 
+    /// <summary>
+    /// Gets a list of all gimmicks in this instance
+    /// </summary>
+    /// <returns></returns>
     public List<Gimmick> GetAllGimmicks()
     {
         return _gimmicks.Values.ToList();
@@ -555,8 +674,33 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
             res.Add(item);
         return res;
     }
-    
+    #endregion GetGameObjects
 
+    #region events
+
+    public void CleanupInstance()
+    {
+        // Stop respawn system
+        SpawnManager.Stop(); // Stop respawn loop
+        try
+        {
+            SpawnManager.DeleteAllSpawners(); // Remove spawners and their children
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e);
+        }
+        try
+        {
+            _ = SpawnManager.DeSpawnAll(); // Delete whatever is remaining
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e);
+        }
+        Logger.Debug($"Removed objects from WorldInstance {this}");
+    }
+    
     /// <summary>
     /// Handle "is still in combat" related things
     /// </summary>
@@ -574,4 +718,6 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
             character.IsInPostCast = false;
         }
     }
+    
+    #endregion events
 }

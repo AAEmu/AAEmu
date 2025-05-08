@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Numerics;
-
-using AAEmu.Game.Core.Managers;
+using System.Text.Json.Serialization;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
@@ -16,29 +14,13 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Gimmicks;
 
-public enum OffsetCoordinateType
-{
-    Unk0 = 0,
-    Unk1 = 1,
-    Unk2 = 2,
-    Unk3 = 3
-}
-public enum VelocityCoordinateType
-{
-    Unk0 = 0,
-    Unk1 = 1,
-    Unk2 = 2
-}
-public enum AngVelCoordinateType
-{
-    Unk0 = 0,
-    Unk1 = 1,
-    Unk2 = 2
-}
-
 public class GimmickSpawner : Spawner<Gimmick>
 {
+    [JsonIgnore]
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    [JsonIgnore]
+    public WorldInstance ParentWorld { get; set; }
 
     public uint GimmickId { get; set; } // here we mean TemplateId
     public long EntityGuid { get; set; }
@@ -52,6 +34,7 @@ public class GimmickSpawner : Spawner<Gimmick>
     public float RotationW { get; set; }
     //public Quaternion Rot { get; set; }
     public float Scale { get; set; }
+    [JsonIgnore]
     public Gimmick Last { get; set; }
     public uint Count { get; set; }
     public bool OffsetFromSource { get; set; }
@@ -68,30 +51,37 @@ public class GimmickSpawner : Spawner<Gimmick>
     public float AngVelY { get; set; }
     public float AngVelZ { get; set; }
 
-    public GimmickSpawner(SpawnGimmickEffect sgEffect, BaseUnit caster)
+    public GimmickSpawner()
     {
+        // DefaultConstructor for JSON reading
+    }
+    public GimmickSpawner(WorldInstance parentWorld, SpawnGimmickEffect sgEffect, BaseUnit caster)
+    {
+        ParentWorld = parentWorld;
         GimmickId = sgEffect.GimmickId;
         OffsetFromSource = sgEffect.OffsetFromSource;
-        OffsetCoordinateId = (OffsetCoordinateType)sgEffect.OffsetCoordiateId;
+        OffsetCoordinateId = (OffsetCoordinateType)sgEffect.OffsetCoordinateId;
         OffsetX = sgEffect.OffsetX;
         OffsetY = sgEffect.OffsetY;
         OffsetZ = sgEffect.OffsetZ;
         Scale = sgEffect.Scale;
-        VelocityCoordinateId = (VelocityCoordinateType)sgEffect.VelocityCoordiateId;
+        VelocityCoordinateId = (VelocityCoordinateType)sgEffect.VelocityCoordinateId;
         VelocityX = sgEffect.VelocityX;
         VelocityY = sgEffect.VelocityY;
         VelocityZ = sgEffect.VelocityZ;
-        AngVelCoordinateId = (AngVelCoordinateType)sgEffect.AngVelCoordiateId;
+        AngVelCoordinateId = (AngVelCoordinateType)sgEffect.AngVelCoordinateId;
         AngVelX = sgEffect.AngVelX;
         AngVelY = sgEffect.AngVelY;
         AngVelZ = sgEffect.AngVelZ;
         Count = 1;
 
-        var gimmick = GimmickManager.Instance.Create(GimmickId);
-
+        var gimmick = ParentWorld.GimmickManager.Create(GimmickId);
         gimmick.Spawner = this;
         gimmick.Spawner.RespawnTime = 0; // don't respawn
         gimmick.Transform = caster.Transform.CloneDetached(gimmick);
+        gimmick.EntityGuid = 0;
+        gimmick.SpawnerUnitId = caster.ObjId;
+        gimmick.GrasperUnitId = 0;
         switch (OffsetCoordinateId)
         {
             case OffsetCoordinateType.Unk0:
@@ -113,13 +103,10 @@ public class GimmickSpawner : Spawner<Gimmick>
 #pragma warning restore CA2208 // Instantiate argument exceptions correctly
         }
 
-        gimmick.EntityGuid = 0;
-        gimmick.SpawnerUnitId = caster.ObjId;
-        gimmick.GrasperUnitId = 0;
 
         gimmick.SetScale(Scale);
         gimmick.Spawn(); // добавляем в мир
-        GimmickManager.Instance.AddActiveGimmick(gimmick);
+        ParentWorld.GimmickManager.AddActiveGimmick(gimmick);
 
         if (caster is Npc npc)
         {
@@ -127,17 +114,18 @@ public class GimmickSpawner : Spawner<Gimmick>
         }
     }
 
-    public GimmickSpawner()
+    public GimmickSpawner(WorldInstance parentWorld)
     {
+        ParentWorld = parentWorld;
         Count = 1;
     }
 
     public override Gimmick Spawn(uint objId)
     {
-        var gimmick = GimmickManager.Instance.Create(objId, UnitId, this);
+        var gimmick = ParentWorld.GimmickManager.Create(objId, UnitId, this);
         if (gimmick == null)
         {
-            Logger.Warn("Gimmick {0}, from spawn not exist at db", UnitId);
+            Logger.Warn($"Gimmick {UnitId}, from spawn not exist at db");
             return null;
         }
 
@@ -147,7 +135,7 @@ public class GimmickSpawner : Spawner<Gimmick>
 
     public override void Despawn(Gimmick gimmick)
     {
-        GimmickManager.Instance.RemoveActiveGimmick(gimmick);
+        ParentWorld.GimmickManager.RemoveActiveGimmick(gimmick);
         gimmick.Delete();
         if (gimmick.Respawn == DateTime.MinValue)
         {
@@ -165,7 +153,7 @@ public class GimmickSpawner : Spawner<Gimmick>
         if (RespawnTime > 0)
         {
             gimmick.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
-            SpawnManager.Instance.AddRespawn(gimmick);
+            ParentWorld.SpawnManager.AddRespawn(gimmick);
         }
         else
         {

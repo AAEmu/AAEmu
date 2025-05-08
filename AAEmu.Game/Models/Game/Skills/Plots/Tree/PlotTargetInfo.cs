@@ -174,7 +174,7 @@ public class PlotTargetInfo
         posUnit.Region = PreviousTarget.Region;
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
         posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
-        posUnit.Transform.WorldId = PreviousTarget.Transform.WorldId;
+        posUnit.Transform.InstanceId = PreviousTarget.Transform.InstanceId;
         posUnit.Transform.Local.SetZRotation(((float)Rand.Next(-180, 180)).DegToRad());
         posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
         posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f), WorldManager.Instance.GetHeight(posUnit.Transform)));

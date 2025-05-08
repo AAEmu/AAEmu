@@ -187,7 +187,7 @@ public class SphereCommandUtil
 
     private static void GetSphereList(Character character, uint questId)
     {
-        var world = WorldManager.Instance.GetWorld(character.Transform.InstanceId);
+        var world = character.ParentWorld;
         var triggers = world.SphereQuestManager.GetSphereQuestTriggers();
         var count = 0;
         foreach (var questTrigger in triggers)

@@ -277,7 +277,7 @@ public partial class Quest : PacketMarshaler
             }
             else if (component.NpcId > 0)
             {
-                var npc = _worldManager.GetNpcByTemplateId(component.NpcId);
+                var npc = ((Character)Owner).ParentWorld.GetNpcByTemplateId(component.NpcId);
                 npc?.UseSkill(component.SkillId, npc);
             }
         }
@@ -294,7 +294,7 @@ public partial class Quest : PacketMarshaler
         {
             if (component.NpcId > 0)
             {
-                var npc = _worldManager.GetNpcByTemplateId(component.NpcId);
+                var npc = ((Character)Owner).ParentWorld.GetNpcByTemplateId(component.NpcId);
                 npc?.SetFaction(FactionsEnum.Monstrosity); // TODO mb Hostile
             }
         }

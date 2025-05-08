@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -12,13 +13,13 @@ public class DoodadFuncRemoveInstance : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        Logger.Info("DoodadFuncRemoveInstance, ZoneId: {0}", ZoneId);
-        if (caster is Character character)
+        Logger.Debug($"DoodadFuncRemoveInstance, ZoneId: {ZoneId}");
+        var zone = ZoneManager.Instance.GetZoneById(ZoneId);
+        if (caster is Character character && zone != null)
         {
-            var dungeon = IndunManager.Instance.GetSoloDungeon(character.Id);
-            if (dungeon != null && IndunManager.Instance.RequestDeletion(character, dungeon))
+            if (IndunManager.Instance.RequestDeletion(character, zone))
             {
-                Logger.Info("[Dungeon]" + ZoneId + ": " + " Destroying Solo Dungeon...");
+                Logger.Info($"DoodadFuncRemoveInstance, ZoneId: {ZoneId} has been removed");
             }
         }
     }

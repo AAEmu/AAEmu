@@ -652,7 +652,7 @@ public class Teleport : ICommand
                     }
                 }
             }
-            else if (character.InstanceId != WorldManager.DefaultInstanceId)
+            else if (character.Transform.InstanceId != WorldManager.DefaultInstanceId)
             {
                 CommandManager.SendErrorText(this, messageOutput, "Named teleports are not allowed inside a instance");
             }

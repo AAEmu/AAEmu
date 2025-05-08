@@ -26,7 +26,7 @@ public class SlaveRemoveSubCommand : SubCommandBase
         Slave slave;
         if (parameters.TryGetValue("ObjId", out var objId))
         {
-            slave = (Slave)WorldManager.Instance.GetGameObject(objId);
+            slave = (Slave)((Character)character).ParentWorld.GetGameObject(objId);
             if (slave is null)
             {
                 SendColorMessage(messageOutput, Color.Red, $"Slave with objId {objId} does not exist");

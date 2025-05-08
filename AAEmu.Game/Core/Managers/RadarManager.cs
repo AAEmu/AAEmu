@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -113,11 +114,17 @@ public class RadarManager : Singleton<RadarManager>
             var allTransfers = TransferManager.Instance.GetTransfers();
             var allFish = FishSchoolManager.Instance.GetAllFishSchools();
             // TODO: Add Shipyards
-            var allShips = SlaveManager.Instance.GetActiveSlavesByKinds(
-            [
-                SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.Speedboat, SlaveKind.MerchantShip,
-                SlaveKind.BigSailingShip, SlaveKind.SmallSailingShip
-            ]).ToList();
+            var allShips = new Dictionary<uint, List<Slave>>();
+            foreach (var worldInstance in WorldManager.Instance.GetWorlds())
+            {
+                
+                var shipList = worldInstance.SlaveManager.GetActiveSlavesByKinds(
+                [
+                    SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.Speedboat, SlaveKind.MerchantShip,
+                    SlaveKind.BigSailingShip, SlaveKind.SmallSailingShip
+                ]).ToList();
+                allShips.TryAdd(worldInstance.Id, shipList);
+            }
 
             foreach (var (_, entry) in Registrations)
             {
@@ -188,7 +195,7 @@ public class RadarManager : Singleton<RadarManager>
                 if (entry.ShowShipTelescopeRange > 0)
                 {
                     var inRangeShips = new List<Slave>();
-                    foreach (var ship in allShips)
+                    foreach (var ship in allShips.GetValueOrDefault(entry.Player.Transform.InstanceId))
                     {
                         if ((ship.Transform.WorldId != entry.Player.Transform.WorldId) || (ship.Transform.InstanceId != entry.Player.Transform.InstanceId))
                             continue;

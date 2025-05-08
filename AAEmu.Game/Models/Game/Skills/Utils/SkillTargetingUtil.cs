@@ -23,7 +23,7 @@ public static class SkillTargetingUtil
                 return units;
             case SkillTargetRelation.Raid:
                 var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
-                var mate = MateManager.Instance.GetActiveMate(caster.ObjId);
+                var mate = caster.ParentWorld.MateManager.GetActiveMates(caster.Id).FirstOrDefault(); // TODO: How to handle multiple pets?
                 units = team == null ? units.Where(o => o.ObjId == mate?.ObjId) : units.Where(o => team.IsObjMember(o.ObjId));
                 return units.Append(caster);
             case SkillTargetRelation.Others:

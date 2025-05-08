@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
@@ -150,7 +151,7 @@ public class TransferManager : Singleton<TransferManager>
         return null;
     }*/
 
-    public Transfer Create(uint objectId, uint templateId, TransferSpawner spawner)
+    public Transfer Create(WorldInstance parentWorld, uint objectId, uint templateId, TransferSpawner spawner)
     {
         /*
         * A sequence of packets when a cart appears:
@@ -167,6 +168,7 @@ public class TransferManager : Singleton<TransferManager>
 
         // create a wagon cabin
         var owner = new Transfer();
+        owner.ParentWorld = parentWorld;
         var carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
         owner.Name = carriage.Name;
         owner.TlId = (ushort)TlIdManager.Instance.GetNextId();
@@ -182,7 +184,6 @@ public class TransferManager : Singleton<TransferManager>
         owner.Level = 1;
         owner.Hp = owner.MaxHp;
         owner.Mp = owner.MaxMp;
-        owner.ModelParams = new UnitCustomModelParams();
         owner.Bounded = null;
         owner.Transform.ApplyWorldSpawnPosition(spawner.Position);
         owner.Transform.ResetFinalizeTransform();
@@ -202,6 +203,7 @@ public class TransferManager : Singleton<TransferManager>
 
         var boardingPart = GetTransferTemplate(carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
         var transfer = new Transfer();
+        transfer.ParentWorld = parentWorld;
         transfer.Name = boardingPart.Name;
         transfer.TlId = owner.TlId; // (ushort)TlIdManager.Instance.GetNextId();
         transfer.ObjId = ObjectIdManager.Instance.GetNextId();
@@ -217,7 +219,6 @@ public class TransferManager : Singleton<TransferManager>
         transfer.BondingObjId = owner.ObjId;
         transfer.Hp = transfer.MaxHp;
         transfer.Mp = transfer.MaxMp;
-        transfer.ModelParams = new UnitCustomModelParams();
         transfer.Transform.ApplyWorldSpawnPosition(spawner.Position);
         transfer.Transform.Local.AddDistanceToFront(-9.24417f);
         transfer.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(transfer.Transform));
@@ -243,7 +244,7 @@ public class TransferManager : Singleton<TransferManager>
 
         foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
         {
-            var doodad = DoodadManager.Instance.Create(0, doodadBinding.DoodadId, transfer);
+            var doodad = DoodadManager.Instance.Create(transfer.ParentWorld, 0, doodadBinding.DoodadId, transfer);
             doodad.Transform.StickyParent = null;
             doodad.Transform.Parent = transfer.Transform;
             doodad.ParentObjId = transfer.ObjId;

@@ -302,7 +302,7 @@ public abstract class BaseCombatBehavior : Behavior
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
                     // check that such a Npc is in the database, there are cases that it is in the game, but not in the database
-                    var currentTarget = abuser.ObjId > 0 ? WorldManager.Instance.GetUnit(abuser.ObjId) : null;
+                    var currentTarget = abuser.ObjId > 0 ? Ai.Owner.ParentWorld.GetUnit(abuser.ObjId) : null;
                     if (currentTarget == null)
                         continue;
 

@@ -18,8 +18,8 @@ public class CSHangPacket : GamePacket
         var targetObjId = stream.ReadBc();
 
         Logger.Trace($"Hang, unitObjId: {unitObjId}, targetObjId: {targetObjId}");
-        var character = WorldManager.Instance.GetBaseUnit(unitObjId);
-        var target = WorldManager.Instance.GetGameObject(targetObjId);
+        var character = Connection.ActiveChar.ParentWorld.GetBaseUnit(unitObjId);
+        var target = Connection.ActiveChar.ParentWorld.GetGameObject(targetObjId);
         if (character != null && target != null)
             character.Transform.StickyParent = target.Transform;
         Connection.ActiveChar.BroadcastPacket(new SCHungPacket(unitObjId, targetObjId), false);

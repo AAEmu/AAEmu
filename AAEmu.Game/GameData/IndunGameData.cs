@@ -19,9 +19,9 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
     private Dictionary<uint, IndunZone> _indunZones;
     private Dictionary<uint, IndunRoom> _indunRooms;
 
-    public IndunZone GetDungeonZone(uint id)
+    public IndunZone GetDungeonZone(uint zoneGroupId)
     {
-        if (_indunZones != null && _indunZones.TryGetValue(id, out var zone))
+        if (_indunZones != null && _indunZones.TryGetValue(zoneGroupId, out var zone))
             return zone;
         return null;
     }
@@ -334,18 +334,20 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 while (reader.Read())
                 {
 
-                    var indunZone = new IndunZone();
-                    indunZone.ZoneGroupId = reader.GetUInt32("zone_group_id");
-                    indunZone.LevelMin = reader.GetUInt32("level_min");
-                    indunZone.LevelMax = reader.GetUInt32("level_max");
-                    indunZone.MaxPlayers = reader.GetUInt32("max_players");
-                    indunZone.PlayerCombat = reader.GetBoolean("pvp", true);
-                    indunZone.HasGraveyard = reader.GetBoolean("has_graveyard", true);
-                    indunZone.ItemRequired = reader.GetUInt32("item_id", 0);
-                    indunZone.ItemCooldown = reader.GetUInt32("restore_item_time");
-                    indunZone.PartyRequired = reader.GetBoolean("party_only", true);
-                    indunZone.ClientDriven = reader.GetBoolean("client_driven", true);
-                    indunZone.SelectChannel = reader.GetBoolean("select_channel", true);
+                    var indunZone = new IndunZone
+                    {
+                        ZoneGroupId = reader.GetUInt32("zone_group_id"),
+                        LevelMin = reader.GetUInt32("level_min"),
+                        LevelMax = reader.GetUInt32("level_max"),
+                        MaxPlayers = reader.GetUInt32("max_players"),
+                        PvP = reader.GetBoolean("pvp", true),
+                        HasGraveyard = reader.GetBoolean("has_graveyard", true),
+                        ItemId = reader.GetUInt32("item_id", 0),
+                        RestoreItemTime = reader.GetUInt32("restore_item_time"),
+                        PartyOnly = reader.GetBoolean("party_only", true),
+                        ClientDriven = reader.GetBoolean("client_driven", true),
+                        SelectChannel = reader.GetBoolean("select_channel", true)
+                    };
 
                     _indunZones.Add(indunZone.ZoneGroupId, indunZone);
 

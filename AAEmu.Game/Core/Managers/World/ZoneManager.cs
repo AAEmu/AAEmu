@@ -208,7 +208,7 @@ public class ZoneManager : Singleton<ZoneManager>
 
     public static Vector2 GetZoneOriginCell(uint zoneId)
     {
-        var world = WorldManager.Instance.GetWorldTemplateByZone(zoneId);
+        var world = WorldManager.Instance.GetWorldTemplateByZoneKey(zoneId);
         if (world?.XmlWorldZones.TryGetValue(zoneId, out var xmlZone) ?? false)
         {
             return new Vector2(xmlZone.OriginX, xmlZone.OriginY);
@@ -258,7 +258,7 @@ public class ZoneManager : Singleton<ZoneManager>
         if (doodad.Transform.ZoneId <= 0)
         {
             // If ZoneId wasn't set yet, calculate it
-            var zoneId = WorldManager.Instance.GetZoneId(doodad.Transform.WorldId, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y);
+            var zoneId = WorldManager.Instance.GetZoneId(doodad.ParentWorld.Template, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y);
             doodad.Transform.ZoneId = zoneId;
         }
         var zone = ZoneManager.Instance.GetZoneByKey(doodad.Transform.ZoneId);

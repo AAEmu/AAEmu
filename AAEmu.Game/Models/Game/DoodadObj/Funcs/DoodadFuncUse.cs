@@ -26,7 +26,7 @@ public class DoodadFuncUse : DoodadFuncTemplate
             return;
         }
 
-        if (PublicFarmManager.Instance.InPublicFarm(owner.Transform.WorldId, owner.Transform.World.Position))
+        if (PublicFarmManager.Instance.InPublicFarm(owner.ParentWorld.Template, owner.Transform.World.Position))
         {
             if (PublicFarmManager.IsProtected(owner) && owner.OwnerId != 0)
             {

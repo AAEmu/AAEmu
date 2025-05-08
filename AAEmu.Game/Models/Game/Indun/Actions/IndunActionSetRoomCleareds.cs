@@ -9,7 +9,7 @@ internal class IndunActionSetRoomCleareds : IndunAction
 
     public override void Execute(WorldInstance worldInstance)
     {
-        IndunManager.Instance.SetRoomCleared(IndunRoomId, worldInstance);
+        worldInstance.DungeonInstance?.SetRoomCleared(IndunRoomId);
         Logger.Warn($"Room Clear: {IndunRoomId}");
 
         worldInstance.Events.OnAreaClear(worldInstance, new OnAreaClearArgs());

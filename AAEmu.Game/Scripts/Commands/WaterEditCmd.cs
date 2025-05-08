@@ -143,7 +143,7 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 SelectedWater.UpdateBounds();
 
-                var centerDoodad = DoodadManager.Instance.Create(0, centerSurfaceDoodadId);
+                var centerDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, centerSurfaceDoodadId);
                 centerDoodad.Transform.Local.SetPosition(SelectedWater.GetCenter(true));
                 centerDoodad.Show();
                 Markers.Add(centerDoodad);
@@ -156,13 +156,13 @@ namespace AAEmu.Game.Scripts.Commands
                     var point = ShowPoints[p];
                     var directionVector = Vector3.Zero;
 
-                    var bottomDoodad = DoodadManager.Instance.Create(0, bottomDoodadId);
+                    var bottomDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, bottomDoodadId);
                     bottomDoodad.Transform.Local.SetPosition(point);
                     bottomDoodad.Transform.Local.SetHeight(point.Z - SelectedWater.Depth);
                     bottomDoodad.Show();
                     Markers.Add(bottomDoodad);
 
-                    var surfaceUnit = NpcManager.Instance.Create(0, topNpcId);
+                    var surfaceUnit = NpcManager.Instance.Create(((Character)character).ParentWorld, 0, topNpcId);
                     surfaceUnit.Transform.Local.SetPosition(point);
                     
                     if ((p == 0) && (SelectedWater.AreaType == WaterBodyAreaType.Polygon) && (useVirtualBorder == false))
@@ -188,7 +188,7 @@ namespace AAEmu.Game.Scripts.Commands
                     for (int i = 1; i < dividers; i++)
                     {
                         var h = SelectedWater.Depth / dividers * (float)i;
-                        var middleDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
+                        var middleDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, middleDoodadId);
                         middleDoodad.Transform.Local.SetPosition(point);
                         middleDoodad.Transform.Local.SetHeight(point.Z - SelectedWater.Depth + h);
                         middleDoodad.Show();
@@ -198,13 +198,13 @@ namespace AAEmu.Game.Scripts.Commands
                         if ((SelectedWater.AreaType == WaterBodyAreaType.LineArray) && (useVirtualBorder == false))
                         {
                             var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
-                            var rightDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
+                            var rightDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, middleDoodadId);
                             rightDoodad.Transform = middleDoodad.Transform.CloneDetached();
                             rightDoodad.Transform.Local.AddDistance(perpendicular * SelectedWater.RiverWidth);
                             rightDoodad.Show();
                             Markers.Add(rightDoodad);
                             
-                            var leftDoodad = DoodadManager.Instance.Create(0, middleDoodadId);
+                            var leftDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, middleDoodadId);
                             leftDoodad.Transform = middleDoodad.Transform.CloneDetached();
                             leftDoodad.Transform.Local.AddDistance(perpendicular * SelectedWater.RiverWidth * -1f);
                             leftDoodad.Show();
@@ -236,7 +236,7 @@ namespace AAEmu.Game.Scripts.Commands
                 if (p > 0)
                     totalDistance += (point - RecordedData[p - 1]).Length();
 
-                var surfaceUnit = NpcManager.Instance.Create(0, topNpcId);
+                var surfaceUnit = NpcManager.Instance.Create(((Character)character).ParentWorld, 0, topNpcId);
                 surfaceUnit.Transform.Local.SetPosition(point);
                 surfaceUnit.Name = "#" + p.ToString();
                 surfaceUnit.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
@@ -277,7 +277,7 @@ namespace AAEmu.Game.Scripts.Commands
                     var p = new Vector3(x, y, SelectedWater.Highest);
                     if (SelectedWater.GetSurface(p, out var surfacePoint, out _))
                     {
-                        var markerDoodad = DoodadManager.Instance.Create(0, surfaceDoodadId);
+                        var markerDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, surfaceDoodadId);
                         markerDoodad.Transform.Local.SetPosition(surfacePoint);
                         markerDoodad.Show();
                         Markers.Add(markerDoodad);

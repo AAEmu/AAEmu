@@ -5,17 +5,13 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSDiscardSlavePacket : GamePacket
+public class CSDiscardSlavePacket() : GamePacket(CSOffsets.CSDiscardSlavePacket, 1)
 {
-    public CSDiscardSlavePacket() : base(CSOffsets.CSDiscardSlavePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var tlId = stream.ReadUInt16();
 
-        Logger.Debug("DiscardSlave, Tl: {0}", tlId);
-        SlaveManager.Instance.UnbindSlave(Connection.ActiveChar, tlId, AttachUnitReason.SlaveBinding);
+        Logger.Debug($"DiscardSlave, Tl: {tlId}");
+        Connection.ActiveChar.ParentWorld.SlaveManager.UnbindSlave(Connection.ActiveChar, tlId, AttachUnitReason.SlaveBinding);
     }
 }

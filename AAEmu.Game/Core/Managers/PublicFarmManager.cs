@@ -9,6 +9,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.PublicFarm;
 
 using NLog;
@@ -37,8 +38,10 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
 
     public void PublicFarmTick()
     {
-        var _deleted = new List<Doodad>();
-        foreach (var doodad in SpawnManager.Instance.GetAllPlayerDoodads())
+        // NOTE: Public farms only available in main_world
+        var world = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
+        var deleted = new List<Doodad>();
+        foreach (var doodad in world.SpawnManager.GetAllPlayerDoodads())
         {
             var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
             if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(guardTime)) { continue; }
@@ -49,32 +52,32 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
             doodad.OwnerType = DoodadOwnerType.System;
             doodad.FarmType = FarmType.Invalid;
             doodad.Save();
-            _deleted.Add(doodad);
+            deleted.Add(doodad);
         }
 
-        foreach (var doodad in _deleted)
+        foreach (var doodad in deleted)
         {
             //doodad.Delete();
-            SpawnManager.Instance.RemovePlayerDoodad(doodad);
+            world.SpawnManager.RemovePlayerDoodad(doodad);
         }
     }
 
-    public bool InPublicFarm(uint worldId, Vector3 pos)
+    public bool InPublicFarm(WorldTemplate worldTemplate, Vector3 pos)
     {
-        var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldId, pos);
+        var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldTemplate, pos);
         return subZoneList.Count > 0 && subZoneList.Any(subZoneId => _farmZones.ContainsKey(subZoneId));
     }
 
-    private uint GetFarmId(uint worldId, Vector3 pos)
+    private uint GetFarmId(WorldInstance world, Vector3 pos)
     {
-        var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldId, pos);
+        var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(world.Template, pos);
 
         return subZoneList.Count > 0 ? subZoneList.FirstOrDefault(subZoneId => _farmZones.ContainsKey(subZoneId)) : 0;
     }
 
-    public FarmType GetFarmType(uint worldId, Vector3 pos)
+    public FarmType GetFarmType(WorldInstance world, Vector3 pos)
     {
-        var subZoneId = GetFarmId(worldId, pos);
+        var subZoneId = GetFarmId(world, pos);
         return _farmZones.GetValueOrDefault(subZoneId, FarmType.Invalid);
     }
 
@@ -104,13 +107,13 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
     {
         var list = new Dictionary<FarmType, List<Doodad>>();
 
-        var playerDoodads = SpawnManager.Instance.GetPlayerDoodads(character.Id);
+        var playerDoodads = character.ParentWorld.SpawnManager.GetPlayerDoodads(character.Id);
 
         foreach (var doodad in playerDoodads)
         {
-            if (InPublicFarm(character.Transform.WorldId, doodad.Transform.World.Position))
+            if (InPublicFarm(character.ParentWorld.Template, doodad.Transform.World.Position))
             {
-                var farmType = GetFarmType(character.Transform.WorldId, doodad.Transform.World.Position);
+                var farmType = GetFarmType(character.ParentWorld, doodad.Transform.World.Position);
 
                 if (doodad.FarmType == farmType)
                 {

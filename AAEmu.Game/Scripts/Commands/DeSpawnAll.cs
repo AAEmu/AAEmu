@@ -27,7 +27,7 @@ public class DeSpawnAll : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        var removedCount = SpawnManager.Instance.DeSpawnAll((byte)character.Transform.WorldId);
+        var removedCount = character.ParentWorld.SpawnManager.DeSpawnAll();
         CommandManager.SendNormalText(this, messageOutput, $"Removed {removedCount} objects");
     }
 }

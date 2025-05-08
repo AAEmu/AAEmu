@@ -25,7 +25,7 @@ public class CSStartInteractionPacket : GamePacket
         Logger.Warn("StartInteraction, NpcObjId: {0}, objId: {1}, extraInfo: {2}, pickId: {3}, mouse: {4}, mods: {5}",
             npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys);
 
-        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        var npc = Connection.ActiveChar?.ParentWorld?.GetNpc(npcObjId);
         // TODO: Distance-check
         if (npc != null)
         {
@@ -64,7 +64,7 @@ public class CSStartInteractionPacket : GamePacket
                 pickId, mouseButton, modifierKeys, [option]));
         }
 
-        var slave = WorldManager.Instance.GetUnit(npcObjId);
+        var slave = Connection.ActiveChar?.ParentWorld?.GetUnit(npcObjId);
         if (slave is Mate mate)
         {
             Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys, [SkillsEnum.SlaveMounting]));

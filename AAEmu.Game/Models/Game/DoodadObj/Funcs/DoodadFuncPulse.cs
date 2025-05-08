@@ -13,7 +13,7 @@ public class DoodadFuncPulse : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        Logger.Debug($"DoodadFuncPulse: Flag {Flag}");
+        Logger.Trace($"DoodadFuncPulse: Flag {Flag}");
 
         if (caster is not null)
         {

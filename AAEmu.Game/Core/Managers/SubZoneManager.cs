@@ -25,10 +25,12 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
         foreach (var world in WorldManager.Instance.GetWorlds())
         {
-            var zonesList = WorldManager.Instance.GetZonesByWorldId(world.Id);
+            var zonesList = WorldManager.Instance.GetZoneKeysByWorldId(world.Id);
 
-            foreach (var zoneId in zonesList)
+            foreach (var zoneKey in zonesList)
             {
+                var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
+                var zoneId = zone.Id;
                 #region subzone
 
                 var worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone", zoneId.ToString(), "client");
@@ -282,30 +284,28 @@ public class SubZoneManager : Singleton<SubZoneManager>
         #endregion
     }
 
-    public List<uint> GetHousingZoneByPosition(uint worldId, float x, float y)
+    public List<uint> GetHousingZoneByPosition(WorldInstance world, float x, float y)
     {
-        var zoneId = WorldManager.Instance.GetZoneId(worldId, x, y);
+        var zoneId = WorldManager.Instance.GetZoneId(world.Template, x, y);
 
-        var world = WorldManager.Instance.GetWorld(worldId);
-
-        var foundHousingzones = new List<uint>();
+        var foundHousingZones = new List<uint>();
 
         var found = false;
 
-        foreach (var housezoneTemplate in world.Template.HousingZones[zoneId])
+        foreach (var houseZoneTemplate in world.Template.HousingZones[zoneId])
         {
-            if (Point.IsInside(housezoneTemplate._points, housezoneTemplate._points.Count, new Point(x, y, 0)))
+            if (Point.IsInside(houseZoneTemplate._points, houseZoneTemplate._points.Count, new Point(x, y, 0)))
             {
-                Logger.Debug("Is in zone {0} housezone name {2}", zoneId, housezoneTemplate.Id, housezoneTemplate.Name);
+                Logger.Debug("Is in zone {0} housezone name {2}", zoneId, houseZoneTemplate.Id, houseZoneTemplate.Name);
                 found = true;
 
-                foundHousingzones.Add(housezoneTemplate.Id);
+                foundHousingZones.Add(houseZoneTemplate.Id);
             }
         }
 
         if (found)
         {
-            return foundHousingzones;
+            return foundHousingZones;
         }
         else
         {
@@ -315,21 +315,19 @@ public class SubZoneManager : Singleton<SubZoneManager>
 
     }
 
-    public List<uint> GetSubZoneByPosition(uint worldId, Vector3 pos)
+    public List<uint> GetSubZoneByPosition(WorldTemplate worldTemplate, Vector3 pos)
     {
-        return GetSubZoneByPosition(worldId, pos.X, pos.Y);
+        return GetSubZoneByPosition(worldTemplate, pos.X, pos.Y);
     }
 
-    public List<uint> GetSubZoneByPosition(uint worldId, float x, float y)
+    public List<uint> GetSubZoneByPosition(WorldTemplate worldTemplate, float x, float y)
     {
-        var zoneId = WorldManager.Instance.GetZoneId(worldId, x, y);
-
-        var world = WorldManager.Instance.GetWorld(worldId);
+        var zoneId = WorldManager.Instance.GetZoneId(worldTemplate, x, y);
 
         var foundSubzones = new List<uint>();
 
         var found = false;
-        if (world.Template.SubZones.TryGetValue(zoneId, out var subZoneList))
+        if (worldTemplate.SubZones.TryGetValue(zoneId, out var subZoneList))
         {
             foreach (var subzoneTemplate in subZoneList)
             {
@@ -344,7 +342,7 @@ public class SubZoneManager : Singleton<SubZoneManager>
         }
 
         if (!found)
-            Logger.Debug($"No subzone found at this position! WorldId: {worldId}, Pos: {x} , {y}");
+            Logger.Debug($"No subzone found at this position! WorldId: {worldTemplate.Id}, Pos: {x} , {y}");
         return foundSubzones;
     }
 

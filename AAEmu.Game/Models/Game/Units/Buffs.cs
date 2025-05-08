@@ -17,6 +17,7 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class Buffs : IBuffs
 {
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _lock = new();
     private uint _nextIndex;
 
@@ -418,8 +419,12 @@ public class Buffs : IBuffs
 
                     if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
                     {
-                        var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-                        MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                        var mateList = character.ParentWorld.MateManager.GetActiveMates(character.Id);
+                        foreach (var mate in mateList)
+                        {
+                            // TODO: handle passengers
+                            character.ParentWorld.MateManager.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+                        }
                     }
 
                     if (bufft.Stun || bufft.Silence || bufft.Sleep)

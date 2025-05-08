@@ -18,7 +18,7 @@ public class CSInteractNPCPacket : GamePacket
 
         Logger.Debug("InteractNPC, BcId: {0}, TargetChanged: {1}", objId, isTargetChanged);
 
-        var unit = objId > 0 ? WorldManager.Instance.GetUnit(objId) : null;
+        var unit = objId > 0 ? Connection.ActiveChar.ParentWorld.GetUnit(objId) : null;
 
         Connection.ActiveChar.CurrentInteractionObject = unit;
 

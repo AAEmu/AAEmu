@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -10,9 +9,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 public class DoodadFuncAttachment : DoodadFuncTemplate
 {
     // doodad_funcs
-    public AttachPointKind AttachPointId { get; set; }
-    public int Space { get; set; }
-    public BondKind BondKindId { get; set; }
+    public AttachPointKind AttachPointId { get; init; }
+    public int Space { get; init; }
+    public BondKind BondKindId { get; init; }
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
@@ -35,7 +34,7 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
             // Ships // TODO Check how sit on the ship
             else
             {
-                SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId, AttachUnitReason.BoardTransfer);
+                character.ParentWorld.SlaveManager.BindSlave(character, owner.ParentObjId, AttachPointId, AttachUnitReason.BoardTransfer);
             }
         }
     }

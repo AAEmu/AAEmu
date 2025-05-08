@@ -36,7 +36,7 @@ public class ObjectRotation : ICommand
 
         if (uint.TryParse(args[0], out var id))
         {
-            var gameObject = WorldManager.Instance.GetGameObject(id);
+            var gameObject = character.ParentWorld.GetGameObject(id);
             if (gameObject != null)
             {
                 var oldX = gameObject.Transform.Local.Rotation.X.RadToDeg();

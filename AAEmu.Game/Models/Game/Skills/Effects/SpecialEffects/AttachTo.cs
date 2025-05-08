@@ -23,6 +23,6 @@ public class AttachTo : SpecialEffectAction
         if (!(caster is Character character))
             return;
 
-        SlaveManager.Instance.BindSlave(character, slave.ObjId, (AttachPointKind)value1, AttachUnitReason.NewMaster);
+        character.ParentWorld.SlaveManager.BindSlave(character, slave.ObjId, (AttachPointKind)value1, AttachUnitReason.NewMaster);
     }
 }

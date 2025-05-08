@@ -39,7 +39,7 @@ public class Nwrite : ICommand
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
         var worlds = WorldManager.Instance.GetWorlds().ToList();
-        var npcs = WorldManager.Instance.GetAllNpcs().ToList();
+        var npcs = character.ParentWorld.GetAllNpcs().ToList();
 
         Doodad doodad = null;
         Npc npc = null;
@@ -49,7 +49,7 @@ public class Nwrite : ICommand
         if (args.Length >= 2 && args[0].Equals("doodad", StringComparison.CurrentCultureIgnoreCase) &&
             uint.TryParse(args[1], out var targetDoodadId))
         {
-            doodad = WorldManager.Instance.GetDoodad(targetDoodadId);
+            doodad = character.ParentWorld.GetDoodad(targetDoodadId);
         }
 
         // NPC by targeting
@@ -61,7 +61,7 @@ public class Nwrite : ICommand
         // NPC by Id ?
         if (args.Length >= 2 && args[0].Equals("npc", StringComparison.CurrentCultureIgnoreCase) && uint.TryParse(args[1], out var targetNpcId))
         {
-            npc = WorldManager.Instance.GetNpc(targetNpcId);
+            npc = character.ParentWorld.GetNpc(targetNpcId);
         }
 
         // All Npcs ?
@@ -78,10 +78,10 @@ public class Nwrite : ICommand
             // Save target Doodad
             try
             {
+                // TODO: replace with templates instead of instances
                 foreach (var world in worlds)
                 {
-                    var jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name,
-                        "doodad_spawns.json");
+                    var jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Template.Name, "doodad_spawns.json");
                     if (doodad.Spawner.Position.WorldId == world.Id)
                     {
                         var contents = FileManager.GetFileContents(jsonPath);

@@ -30,9 +30,12 @@ public class NpcSpawner : Spawner<Npc>
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public WorldInstance ParentWorld { get; set; }
+
     private int _scheduledCount;
     private int _spawnCount;
-    private bool IsSpawnScheduled;
+    private bool IsSpawnScheduled = false;
     //private bool IsNotFoundInScheduler;
     private readonly object _spawnLock = new(); // Lock for thread safety
 
@@ -47,11 +50,6 @@ public class NpcSpawner : Spawner<Npc>
     private DateTime _lastSpawnTime = DateTime.MinValue;
     private readonly Dictionary<int, SpawnerPlayerCountCache> _playerCountCache = new();
     private readonly Dictionary<int, SpawnerPlayerInRadiusCache> _playerInRadiusCache = new();
-
-    public NpcSpawner()
-    {
-        IsSpawnScheduled = false;
-    }
 
     /// <summary>
     /// Initializes the list of SpawnableNpcs based on Template.Npcs.
@@ -188,7 +186,7 @@ public class NpcSpawner : Spawner<Npc>
         {
             if (randomValue < npcTemplate.Weight)
             {
-                var npc = NpcManager.Instance.Create(0, npcTemplate.MemberId);
+                var npc = NpcManager.Instance.Create(ParentWorld, 0, npcTemplate.MemberId);
                 if (npc != null)
                 {
                     return npc;
@@ -550,7 +548,7 @@ public class NpcSpawner : Spawner<Npc>
             if (RespawnTime > 0 && newSpawnCount + _scheduledCount < Count)
             {
                 npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
-                SpawnManager.Instance.AddRespawn(npc);
+                npc.ParentWorld.SpawnManager.AddRespawn(npc);
                 var newScheduledCount = Interlocked.Increment(ref _scheduledCount);
                 //Logger.Trace($"Scheduled respawn for NPC {npc.ObjId} in {RespawnTime} seconds. New scheduled count: {newScheduledCount}.");
             }
@@ -566,7 +564,7 @@ public class NpcSpawner : Spawner<Npc>
             }
 
             // Adds the NPC to the despawn list
-            SpawnManager.Instance.AddDespawn(npc);
+            npc.ParentWorld.SpawnManager.AddDespawn(npc);
             //Logger.Trace($"Added NPC {npc.ObjId} to despawn list.");
         }
         catch (Exception ex)
@@ -589,7 +587,7 @@ public class NpcSpawner : Spawner<Npc>
             return;
 
         npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
-        SpawnManager.Instance.AddRespawn(npc);
+        npc.ParentWorld.SpawnManager.AddRespawn(npc);
         Interlocked.Increment(ref _scheduledCount);
     }
 
@@ -664,7 +662,7 @@ public class NpcSpawner : Spawner<Npc>
                 }
 
                 // Creates the NPC
-                var npc = NpcManager.Instance.Create(0, npcTemplate.MemberId);
+                var npc = NpcManager.Instance.Create(ParentWorld, 0, npcTemplate.MemberId);
                 if (npc == null)
                 {
                     Logger.Warn($"Failed to create NPC from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");
@@ -910,7 +908,7 @@ public class NpcSpawner : Spawner<Npc>
         try
         {
             // Creates the NPC
-            var npc = NpcManager.Instance.Create(0, npcTemplate.MemberId);
+            var npc = NpcManager.Instance.Create(ParentWorld, 0, npcTemplate.MemberId);
             if (npc == null)
             {
                 Logger.Warn($"Failed to create NPC from template {npcTemplate.SpawnerId}:{npcTemplate.MemberId}");

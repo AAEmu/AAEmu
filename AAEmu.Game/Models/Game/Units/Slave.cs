@@ -680,7 +680,7 @@ public class Slave : Unit
     protected override void DoHpChangeTrigger(int triggerValue, bool tookDamage, int oldHpValue, int newHpValue)
     {
         Logger.Debug($"{Name} from {Summoner?.Name ?? "unknown"}'s HP is now at {triggerValue}%");
-        SlaveManager.Instance.UpdateSlaveRepairPoints(this);
+        ParentWorld.SlaveManager.UpdateSlaveRepairPoints(this);
     }
 
     public override void DoDie(BaseUnit killer, KillReason killReason)
@@ -723,7 +723,7 @@ public class Slave : Unit
                         var newDoodadId = putDownBackpackEffectTemplate.BackpackDoodadId;
 
                         // Create the Doodad at location on the floor if it's close to it
-                        var newDoodad = DoodadManager.Instance.Create(0, newDoodadId, null, true);
+                        var newDoodad = DoodadManager.Instance.Create(ParentWorld, 0, newDoodadId, null, true);
                         if (newDoodad == null)
                         {
                             Logger.Warn($"Dropped Doodad {newDoodadId}, from BackpackDoodadId could not be created");
@@ -743,7 +743,7 @@ public class Slave : Unit
                         newDoodad.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
 
                         var floor = WorldManager.Instance.GetHeight(newDoodad.Transform);
-                        var surface = WorldManager.Instance.GetWorld(doodad.Transform.WorldId)?.Water?.GetWaterSurface(newDoodad.Transform.World.Position, out _) ?? 0f;
+                        var surface = WorldManager.Instance.GetWorld(doodad.Transform.InstanceId)?.Water?.GetWaterSurface(newDoodad.Transform.World.Position, out _) ?? 0f;
                         var depth = surface - floor;
 
                         // It seems that when the water is deep, drops to the water surface, otherwise, it sinks to the floor
@@ -798,7 +798,7 @@ public class Slave : Unit
         {
             for (var counter = 0; counter < dropDoodad.Count; counter++)
             {
-                var doodad = DoodadManager.Instance.Create(0, dropDoodad.DoodadId, null, true);
+                var doodad = DoodadManager.Instance.Create(ParentWorld, 0, dropDoodad.DoodadId, null, true);
                 var pos = Transform.World.Position;
                 var rng = new Vector3((Random.Shared.NextSingle() * 2f) - 1f, (Random.Shared.NextSingle() * 2f) - 1f, 0);
                 rng = Vector3.Normalize(rng);
@@ -811,7 +811,7 @@ public class Slave : Unit
                 }
                 else
                 {
-                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetWorld(doodad.Transform.WorldId).Water.GetWaterSurface(pos, out _));
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetWorld(doodad.Transform.InstanceId).Water.GetWaterSurface(pos, out _));
                 }
                 doodad.Transform.Local.Rotate(0, 0, (float)(Random.Shared.NextDouble() * Math.PI * 2f));
                 doodad.InitDoodad();
@@ -909,7 +909,7 @@ public class Slave : Unit
         if (IsDead)
         {
             foreach (var (_, character) in AttachedCharacters)
-                SlaveManager.Instance.UnbindSlave(character, TlId, AttachUnitReason.None);
+                character.ParentWorld.SlaveManager.UnbindSlave(character, TlId, AttachUnitReason.None);
             return;
         }
 

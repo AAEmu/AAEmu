@@ -1,5 +1,5 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
@@ -25,7 +25,7 @@ public class EscapeMySlave : SpecialEffectAction
         {
             Logger.Debug($"Special effects: EscapeMySlave value1 {value1}, value2 {value2}, value3 {value3}, value4 {value4}");
 
-            SlaveManager.Instance.RidersEscape(player, skillCastPositionTarget);
+            player.ParentWorld.SlaveManager.RidersEscape(player, skillCastPositionTarget);
         }
     }
 }

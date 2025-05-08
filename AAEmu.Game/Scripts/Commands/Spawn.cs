@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Utils;
 using System.Globalization;
 using AAEmu.Game.Utils.Scripts;
+using Jitter;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -60,9 +61,9 @@ public class Spawn : ICommand
             switch (args[0])
             {
                 case "remove":
-                    var myDoodad = WorldManager.Instance.GetDoodad(unitId);
+                    var myDoodad = character.ParentWorld.GetDoodad(unitId);
 
-                    if (myDoodad != null && myDoodad is Doodad)
+                    if (myDoodad != null)
                     {
                         CommandManager.SendNormalText(this, messageOutput, $"Removing Doodad with ID {myDoodad.ObjId}");
                         ObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
@@ -82,6 +83,7 @@ public class Spawn : ICommand
                     }
 
                     var npcSpawner = new NpcSpawner();
+                    npcSpawner.ParentWorld = character.ParentWorld;
                     npcSpawner.Id = 0;
                     npcSpawner.UnitId = unitId;
                     charPos.Local.AddDistanceToFront(3f);
@@ -106,7 +108,7 @@ public class Spawn : ICommand
                     npcSpawner.Position.Pitch = 0;
                     npcSpawner.Position.Roll = 0;
 
-                    SpawnManager.Instance.AddNpcSpawner(npcSpawner);
+                    character.ParentWorld.SpawnManager.AddNpcSpawner(npcSpawner);
 
                     npcSpawner.SpawnAll();
                     // CommandManager.SendNormalText(this, messageOutput, "[Spawn] NPC {0} spawned with angle {1}", unitId, angle);
@@ -119,6 +121,7 @@ public class Spawn : ICommand
                     }
 
                     var doodadSpawner = new DoodadSpawner();
+                    doodadSpawner.ParentWorld = character.ParentWorld;
                     doodadSpawner.Id = 0;
                     doodadSpawner.UnitId = unitId;
                     charPos.Local.AddDistanceToFront(3f);

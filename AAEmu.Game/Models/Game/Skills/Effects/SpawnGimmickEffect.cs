@@ -14,16 +14,16 @@ public class SpawnGimmickEffect : EffectTemplate
 {
     public uint GimmickId { get; set; } // here we mean TemplateId
     public bool OffsetFromSource { get; set; }
-    public uint OffsetCoordiateId { get; set; }
+    public uint OffsetCoordinateId { get; set; }
     public float OffsetX { get; set; }
     public float OffsetY { get; set; }
     public float OffsetZ { get; set; }
     public float Scale { get; set; }
-    public uint VelocityCoordiateId { get; set; }
+    public uint VelocityCoordinateId { get; set; }
     public float VelocityX { get; set; }
     public float VelocityY { get; set; }
     public float VelocityZ { get; set; }
-    public uint AngVelCoordiateId { get; set; }
+    public uint AngVelCoordinateId { get; set; }
     public float AngVelX { get; set; }
     public float AngVelY { get; set; }
     public float AngVelZ { get; set; }
@@ -43,9 +43,9 @@ public class SpawnGimmickEffect : EffectTemplate
         //if (npc.Gimmick != null)
         //    return; // don't spawn another Gimmick until the current one disappears
 
-        Logger.Info($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}, skill={(castObj as CastSkill)?.SkillId}");
+        Logger.Trace($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}, skill={(castObj as CastSkill)?.SkillId}");
 
-        var spawner = new GimmickSpawner(this, caster);
+        var spawner = new GimmickSpawner(caster.ParentWorld, this, caster);
 
         // casterUnit.Gimmick = spawner.Spawn(0);
 

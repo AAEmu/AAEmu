@@ -36,6 +36,7 @@ public class DoodadSpawnSubCommand : SubCommandBase
         var defaultYaw = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
         var newYaw = GetOptionalParameterValue(parameters, "yaw", defaultYaw).DegToRad();
         var doodadSpawner = new DoodadSpawner { Id = 0, UnitId = unitTemplateId };
+        doodadSpawner.ParentWorld = ((Character)character).ParentWorld;
 
         doodadSpawner.Position = charPos.CloneAsSpawnPosition();
         doodadSpawner.Position.Yaw = newYaw;

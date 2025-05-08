@@ -23,17 +23,17 @@ public class CSBuyItemsPacket : GamePacket
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();
-        var npc = WorldManager.Instance.GetNpc(npcObjId);
+        var npc = Connection.ActiveChar.ParentWorld.GetNpc(npcObjId);
 
         var doodadObjId = stream.ReadBc();
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+        var doodad =Connection.ActiveChar.ParentWorld.GetDoodad(doodadObjId);
 
         var unkId = stream.ReadUInt32(); // type(id)?
 
         var nBuy = stream.ReadByte();
         var nBuyBack = stream.ReadByte();
 
-        Logger.Debug("NPCObjId:{0} DoodadObjId:{1} unkId:{2} nBuy:{3} nBuyBack{4}", npcObjId, doodadObjId, unkId, nBuy, nBuyBack);
+        Logger.Debug($"NPCObjId:{npcObjId} DoodadObjId:{doodadObjId} unkId:{unkId} nBuy:{nBuy} nBuyBack{nBuyBack}");
 
         // If a NPC was provided, check if it's valid
         if ((npcObjId != 0) && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))

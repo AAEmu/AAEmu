@@ -32,7 +32,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
 
     public List<AiNavigation> GetAvailablePoints(uint zoneKey, uint point)
     {
-        var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
 
         var ret = new List<AiNavigation>();
         _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
@@ -45,7 +45,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
 
     public bool CheckImpossibleWalk(uint zoneKey, Point point)
     {
-        var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
 
         var res = new List<bool>();
         _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
@@ -212,7 +212,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         var index = 0u;
         var point = new Point();
 
-        var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
 
         _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
         if (aiNavigation != null)
@@ -238,7 +238,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         var index = 0u;
         var point = new Point();
         var minDist = 99999.0f;
-        var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
 
         _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
         if (aiNavigation != null)
@@ -271,7 +271,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         //stopWatch.Start();
         try
         {
-            var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+            var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
 
             var posX = pos.X;
             var posY = pos.Y;
@@ -401,7 +401,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             var point = new Point();
             var res = new List<Point>();
 
-            var worldId = WorldManager.Instance.GetWorldIdByZone(zoneKey);
+            var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
 
             _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
             if (aiNavigation != null)

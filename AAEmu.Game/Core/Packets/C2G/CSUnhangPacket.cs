@@ -24,7 +24,7 @@ public class CSUnhangPacket : GamePacket
         Logger.Trace($"Unhang, unitObjId: {unitObjId}, targetObjId: {targetObjId}, Reason: {reason}");
         // For 1.2 the targetObjId is not sent, so we will need to grab our saved value from Transform
         // Later this can also be used to verify if it's the correct object
-        var character = WorldManager.Instance.GetBaseUnit(unitObjId);
+        var character = Connection.ActiveChar.ParentWorld.GetBaseUnit(unitObjId);
         if (character != null)
         {
             targetObjId = character.Transform.StickyParent?.GameObject?.ObjId ?? 0;

@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
@@ -15,7 +16,7 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterMates
+public class CharacterMates(Character owner)
 {
     /*
      * TODO:
@@ -24,24 +25,17 @@ public class CharacterMates
      * NAME FROM LOCALIZED TABLE
      */
 
-    public Character Owner { get; set; }
+    private Character Owner { get; set; } = owner;
 
-    private readonly Dictionary<ulong, MateDb> _mates; // itemId, MountDb
-    private readonly List<uint> _removedMates;
-
-    public CharacterMates(Character owner)
-    {
-        Owner = owner;
-        _mates = [];
-        _removedMates = [];
-    }
+    private readonly Dictionary<ulong, MateDb> _mates = []; // itemId, MountDb
+    private readonly List<uint> _removedMates = [];
 
     public MateDb GetMateInfo(ulong itemId)
     {
-        return _mates.TryGetValue(itemId, out var mate) ? mate : null;
+        return _mates.GetValueOrDefault(itemId);
     }
 
-    private MateDb CreateNewMate(ulong itemId, NpcTemplate npctemplate)
+    private MateDb CreateNewMate(ulong itemId, NpcTemplate npcTemplate)
     {
         if (_mates.ContainsKey(itemId)) return null;
         var template = new MateDb
@@ -49,11 +43,11 @@ public class CharacterMates
             // TODO
             Id = MateIdManager.Instance.GetNextId(),
             ItemId = itemId,
-            Level = npctemplate.Level,
-            Name = LocalizationManager.Instance.Get("npcs", "name", npctemplate.Id, npctemplate.Name), // npctemplate.Name,
+            Level = npcTemplate.Level,
+            Name = LocalizationManager.Instance.Get("npcs", "name", npcTemplate.Id, npcTemplate.Name), // npcTemplate.Name,
             Owner = Owner.Id,
             Mileage = 0,
-            Xp = ExperienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
+            Xp = ExperienceManager.Instance.GetExpForLevel(npcTemplate.Level, true),
             Hp = 9999,
             Mp = 9999,
             UpdatedAt = DateTime.UtcNow,
@@ -65,13 +59,15 @@ public class CharacterMates
 
     public void SpawnMount(SkillItem skillData)
     {
+        var despawnedOldPets = false;
         // Check if we had already spawned something
-        var oldMate = MateManager.Instance.GetActiveMate(Owner.ObjId);
-        if (oldMate != null)
+        foreach(var oldMate in Owner.ParentWorld.MateManager.GetActiveMates(Owner.Id).ToList())
         {
             DespawnMate(oldMate.TlId);
-            return;
+            despawnedOldPets = true;
         }
+        if (despawnedOldPets)
+            return;
 
         var item = Owner.Inventory.GetItemById(skillData.ItemId);
         if (item == null) return;
@@ -109,7 +105,7 @@ public class CharacterMates
         mount.Transform = Owner.Transform.CloneDetached(mount);
         SusManager.Instance.ResetAnalyzeMountDeltaMovement(mount.Id);
 
-        foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
+        foreach (var skill in MateGameData.Instance.GetMateSkills(npcId))
             mount.Skills.Add(skill);
 
         foreach (var buffId in template.Buffs)
@@ -131,13 +127,13 @@ public class CharacterMates
 
         mount.Transform.Local.AddDistanceToFront(3f);
         //Logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");
-        MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
+        Owner.ParentWorld.MateManager.AddActiveMateAndSpawn(Owner, mount, item);
         mount.PostUpdateCurrentHp(mount, 0, mount.Hp, KillReason.Unknown);
     }
 
     public void DespawnMate(uint tlId)
     {
-        var mateInfo = MateManager.Instance.GetActiveMateByTlId(tlId);
+        var mateInfo = Owner.ParentWorld.MateManager.GetActiveMateByTlId(tlId);
         if (mateInfo != null)
         {
             var mateDbInfo = GetMateInfo(mateInfo.ItemId);
@@ -153,37 +149,37 @@ public class CharacterMates
             }
         }
 
-        MateManager.Instance.RemoveActiveMateAndDespawn(Owner, tlId);
+        Owner.ParentWorld.MateManager.RemoveActiveMateAndDespawn(Owner, tlId);
     }
 
+    /// <summary>
+    /// Load pet data of the player
+    /// </summary>
+    /// <param name="connection"></param>
     public void Load(MySqlConnection connection)
     {
-        using (var command = connection.CreateCommand())
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM mates WHERE `owner` = @owner";
+        command.Parameters.AddWithValue("@owner", Owner.Id);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
         {
-            command.CommandText = "SELECT * FROM mates WHERE `owner` = @owner";
-            command.Parameters.AddWithValue("@owner", Owner.Id);
-            command.Prepare();
-            using (var reader = command.ExecuteReader())
+            var template = new MateDb
             {
-                while (reader.Read())
-                {
-                    var template = new MateDb
-                    {
-                        Id = reader.GetUInt32("id"),
-                        ItemId = reader.GetUInt64("item_id"),
-                        Name = reader.GetString("name"),
-                        Xp = reader.GetInt32("xp"),
-                        Level = reader.GetUInt16("level"),
-                        Mileage = reader.GetInt32("mileage"),
-                        Hp = reader.GetInt32("hp"),
-                        Mp = reader.GetInt32("mp"),
-                        Owner = reader.GetUInt32("owner"),
-                        UpdatedAt = reader.GetDateTime("updated_at"),
-                        CreatedAt = reader.GetDateTime("created_at")
-                    };
-                    _mates.Add(template.ItemId, template);
-                }
-            }
+                Id = reader.GetUInt32("id"),
+                ItemId = reader.GetUInt64("item_id"),
+                Name = reader.GetString("name"),
+                Xp = reader.GetInt32("xp"),
+                Level = reader.GetUInt16("level"),
+                Mileage = reader.GetInt32("mileage"),
+                Hp = reader.GetInt32("hp"),
+                Mp = reader.GetInt32("mp"),
+                Owner = reader.GetUInt32("owner"),
+                UpdatedAt = reader.GetDateTime("updated_at"),
+                CreatedAt = reader.GetDateTime("created_at")
+            };
+            _mates.Add(template.ItemId, template);
         }
     }
 
@@ -191,42 +187,38 @@ public class CharacterMates
     {
         if (_removedMates.Count > 0)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
+            using var command = connection.CreateCommand();
+            command.Connection = connection;
+            command.Transaction = transaction;
 
-                command.CommandText = "DELETE FROM mates WHERE owner = @owner AND id IN(" + string.Join(",", _removedMates) + ")";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                command.Prepare();
-                command.ExecuteNonQuery();
-                _removedMates.Clear();
-            }
+            command.CommandText = $"DELETE FROM mates WHERE owner = @owner AND id IN({string.Join(",", _removedMates)})";
+            command.Parameters.AddWithValue("@owner", Owner.Id);
+            command.Prepare();
+            command.ExecuteNonQuery();
+            _removedMates.Clear();
         }
 
         foreach (var (_, value) in _mates)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
+            using var command = connection.CreateCommand();
+            command.Connection = connection;
+            command.Transaction = transaction;
 
-                command.CommandText =
-                    "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
-                    "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
-                command.Parameters.AddWithValue("@id", value.Id);
-                command.Parameters.AddWithValue("@item_id", value.ItemId);
-                command.Parameters.AddWithValue("@name", value.Name);
-                command.Parameters.AddWithValue("@xp", value.Xp);
-                command.Parameters.AddWithValue("@level", value.Level);
-                command.Parameters.AddWithValue("@mileage", value.Mileage);
-                command.Parameters.AddWithValue("@hp", value.Hp);
-                command.Parameters.AddWithValue("@mp", value.Mp);
-                command.Parameters.AddWithValue("@owner", value.Owner);
-                command.Parameters.AddWithValue("@updated_at", value.UpdatedAt);
-                command.Parameters.AddWithValue("@created_at", value.CreatedAt);
-                command.ExecuteNonQuery();
-            }
+            command.CommandText =
+                "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
+                "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
+            command.Parameters.AddWithValue("@id", value.Id);
+            command.Parameters.AddWithValue("@item_id", value.ItemId);
+            command.Parameters.AddWithValue("@name", value.Name);
+            command.Parameters.AddWithValue("@xp", value.Xp);
+            command.Parameters.AddWithValue("@level", value.Level);
+            command.Parameters.AddWithValue("@mileage", value.Mileage);
+            command.Parameters.AddWithValue("@hp", value.Hp);
+            command.Parameters.AddWithValue("@mp", value.Mp);
+            command.Parameters.AddWithValue("@owner", value.Owner);
+            command.Parameters.AddWithValue("@updated_at", value.UpdatedAt);
+            command.Parameters.AddWithValue("@created_at", value.CreatedAt);
+            command.ExecuteNonQuery();
         }
     }
 }

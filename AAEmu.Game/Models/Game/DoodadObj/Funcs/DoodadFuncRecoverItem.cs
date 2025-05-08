@@ -23,7 +23,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
         {
             if (item != null)
             {
-                // Recoverable doodads, should be referencing a item in a System container, if this is not the case,
+                // Recoverable doodads, should be referencing an item in a System container, if this is not the case,
                 // that means that it was already picked up by somebody else
                 if (item._holdingContainer?.ContainerType != SlotType.System)
                 {
@@ -39,7 +39,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
                     switch (owner.OwnerType)
                     {
                         case DoodadOwnerType.Slave:
-                            ownerGameObject = SlaveManager.Instance.GetSlaveByObjId(owner.OwnerDbId);
+                            ownerGameObject = character.ParentWorld.SlaveManager.GetSlaveByObjId(owner.OwnerDbId);
                             break;
                         case DoodadOwnerType.Housing:
                             ownerGameObject = HousingManager.Instance.GetHouseById(owner.OwnerDbId);

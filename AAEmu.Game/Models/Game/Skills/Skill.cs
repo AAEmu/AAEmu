@@ -172,8 +172,13 @@ public class Skill
         // Unmount character if skill asks for it
         if (character is { IsRiding: true } && Template.Unmount)
         {
-            var mate = MateManager.Instance.GetActiveMate(character.ObjId);
-            MateManager.Instance.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+            var mateList = character.ParentWorld.MateManager.GetActiveMates(character.Id);
+            foreach (var mate in mateList)
+            {
+                // TODO: Handle this better so it works for passengers as well
+                if (mate.Passengers.GetValueOrDefault(AttachPointKind.Driver)?._objId == character.ObjId)
+                    character.ParentWorld.MateManager.UnMountMate(character, mate.TlId, AttachPointKind.Driver, AttachUnitReason.None);
+            }
         }
 
         // Check initial mana cost
@@ -183,7 +188,7 @@ public class Skill
         // Get a TlId for this skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
-        Logger.Info($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
+        Logger.Debug($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
 
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
@@ -254,7 +259,7 @@ public class Skill
                     if (specialEffect.Value1 > 0)
                     {
                         // Worldgates
-                        trp = PortalManager.Instance.GetWorldgatesById((uint)specialEffect.Value1);
+                        trp = PortalManager.Instance.GetWorldGatesById((uint)specialEffect.Value1);
                     }
                     else
                     {
@@ -268,7 +273,7 @@ public class Skill
 
             if (Template.Effects.Count > 0 && Template.Effects.First()?.Template is OpenPortalEffect)
             {
-                if (WorldManager.DefaultInstanceId != caster.InstanceId)
+                if (WorldManager.DefaultInstanceId != caster.Transform.InstanceId)
                 {
                     return SkillResult.InvalidLocation;
                 }
@@ -342,7 +347,7 @@ public class Skill
 
         // HACKFIX : Mounts and Turbulence
         if (skillCaster.Type == SkillCasterType.Mount || skillCaster.Type == SkillCasterType.Unit)
-            target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
+            target = caster.ParentWorld.GetUnit(skillCaster.ObjId);
 
         switch (Template.TargetType)
         {
@@ -362,7 +367,7 @@ public class Skill
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
-                        target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                        target = targetCaster.ObjId > 0 ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId) : caster;
                         if (target != null)
                         {
                             targetCaster.ObjId = target.ObjId;
@@ -382,7 +387,7 @@ public class Skill
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
-                        target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                        target = targetCaster.ObjId > 0 ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId) : caster;
                         if (target != null)
                         {
                             targetCaster.ObjId = target.ObjId;
@@ -405,7 +410,7 @@ public class Skill
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
-                        target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                        target = targetCaster.ObjId > 0 ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId) : caster;
                         if (target != null)
                         {
                             targetCaster.ObjId = target.ObjId;
@@ -418,7 +423,7 @@ public class Skill
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
-                        target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                        target = targetCaster.ObjId > 0 ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId) : caster;
                         if (target != null)
                         {
                             targetCaster.ObjId = target.ObjId;
@@ -434,7 +439,7 @@ public class Skill
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
-                        target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                        target = targetCaster.ObjId > 0 ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId) : caster;
                         if (target != null)
                         {
                             targetCaster.ObjId = target.ObjId;
@@ -452,7 +457,7 @@ public class Skill
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
-                        target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                        target = targetCaster.ObjId > 0 ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId) : caster;
                         if (target != null)
                         {
                             targetCaster.ObjId = target.ObjId;
@@ -474,7 +479,7 @@ public class Skill
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
-                        target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                        target = targetCaster.ObjId > 0 ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId) : caster;
                         if (target != null)
                         {
                             targetCaster.ObjId = target.ObjId;
@@ -747,7 +752,7 @@ public class Skill
         Doodad doodad = null;
         if (Template.ChannelingDoodadId > 0)
         {
-            doodad = DoodadManager.Instance.Create(0, Template.ChannelingDoodadId, caster, true);
+            doodad = DoodadManager.Instance.Create(unit.ParentWorld, 0, Template.ChannelingDoodadId, caster, true);
             doodad.Transform = caster.Transform.CloneDetached(doodad);
             doodad.InitDoodad();
             doodad.Spawn();
@@ -1155,7 +1160,7 @@ public class Skill
                 {
                     // для квеста 3478, требуется чтобы caster был Npc
                     // для квеста 3993 должен выполняться эффект, а он прерывался из-за неправильного сравнения!
-                    var npc = WorldManager.Instance.GetNpcByTemplateId(nsse.NpcId);
+                    var npc = caster.ParentWorld.GetNpcByTemplateId(nsse.NpcId);
                     var effectiveNpc = npc ?? (target as Npc);
 
                     // If we have an effective NPC and it is dead, skip the effect - KillNPCWithoutCorpse happens before death

@@ -56,7 +56,11 @@ public class StreamManager : Singleton<StreamManager>
         if (connection is not null)
         {
             var worldInstanceId = connection.GameConnection?.ActiveChar?.Transform?.InstanceId ?? WorldManager.DefaultInstanceId;
-            var world = WorldManager.Instance.GetWorld(worldInstanceId);
+            if (worldInstanceId != instanceId)
+            {
+                // Trying to grab cell info of a instance the player is not inside of
+            }
+            var world = WorldManager.Instance.GetWorld(instanceId);
             // TODO: Handle requests for instances correctly ?
             var doodads = world.GetInCell<Doodad>(x, y).ToArray();
             var requestId = connection.GetNextRequestId(doodads);

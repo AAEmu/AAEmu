@@ -68,13 +68,14 @@ public class TestHeight : ICommand
                     }
 
                     var doodadSpawner = new DoodadSpawner();
+                    doodadSpawner.ParentWorld = character.ParentWorld;
                     doodadSpawner.Id = 0;
                     doodadSpawner.UnitId = unitId;
                     doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                     doodadSpawner.Position.X = x;
                     doodadSpawner.Position.Y = y;
                     doodadSpawner.Position.Z =
-                        WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId).GetHeight(x, y);
+                        WorldManager.Instance.GetWorldTemplateByZoneKey(targetPlayer.Transform.ZoneId).GetHeight(x, y);
                     doodadSpawner.Position.Yaw = 0;
                     doodadSpawner.Position.Pitch = 0;
                     doodadSpawner.Position.Roll = 0;
@@ -100,13 +101,14 @@ public class TestHeight : ICommand
                 }
 
                 var doodadSpawner = new DoodadSpawner();
+                doodadSpawner.ParentWorld = character.ParentWorld;
                 doodadSpawner.Id = 0;
                 doodadSpawner.UnitId = unitId;
                 doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                 doodadSpawner.Position.X = x;
                 doodadSpawner.Position.Y = rY;
                 doodadSpawner.Position.Z =
-                    WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId).GetHeight(x, rY);
+                    WorldManager.Instance.GetWorldTemplateByZoneKey(targetPlayer.Transform.ZoneId).GetHeight(x, rY);
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;
@@ -121,13 +123,14 @@ public class TestHeight : ICommand
                 }
 
                 var doodadSpawner = new DoodadSpawner();
+                doodadSpawner.ParentWorld = character.ParentWorld;
                 doodadSpawner.Id = 0;
                 doodadSpawner.UnitId = unitId;
                 doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                 doodadSpawner.Position.X = rX;
                 doodadSpawner.Position.Y = y;
                 doodadSpawner.Position.Z =
-                    WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId).GetHeight(rX, y);
+                    WorldManager.Instance.GetWorldTemplateByZoneKey(targetPlayer.Transform.ZoneId).GetHeight(rX, y);
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;
@@ -137,7 +140,7 @@ public class TestHeight : ICommand
         else
         {
             // Show info
-            var world = WorldManager.Instance.GetWorldTemplateByZone(targetPlayer.Transform.ZoneId);
+            var world = WorldManager.Instance.GetWorldTemplateByZoneKey(targetPlayer.Transform.ZoneId);
 
             var height = world.GetHeight(targetPlayer.Transform.World.Position.X,
                 targetPlayer.Transform.World.Position.Y);

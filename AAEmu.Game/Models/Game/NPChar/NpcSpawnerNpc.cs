@@ -56,12 +56,14 @@ public class NpcSpawnerNpc : Spawner<Npc>
     private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint ownerID = 0)
     {
         var npcs = new List<Npc>();
-        var npc = NpcManager.Instance.Create(0, MemberId);
+        var npc = NpcManager.Instance.Create(npcSpawner.ParentWorld, 0, MemberId);
         if (npc == null)
         {
             Logger.Warn($"Npc {MemberId}, from spawner Id {npcSpawner.Id} not exist at db. Spawner Position: {npcSpawner.Position}");
             return null;
         }
+
+        npc.ParentWorld = npcSpawner.ParentWorld;
         npc.OwnerId = ownerID;
 
         npc.RegisterNpcEvents();
@@ -84,8 +86,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
             return null;
         }
 
-        npc.Transform.InstanceId = npc.Transform.WorldId;
-        npc.InstanceId = npc.Transform.WorldId;
+        npc.Transform.InstanceId = npc.Transform.InstanceId;
 
         if (npc.Ai != null)
         {
@@ -98,7 +99,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
         npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
         npc.Spawn();
 
-        var world = WorldManager.Instance.GetWorld(npc.Transform.WorldId);
+        var world = WorldManager.Instance.GetWorld(npc.Transform.InstanceId);
         world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
         npc.Simulation = new Simulation(npc);
 

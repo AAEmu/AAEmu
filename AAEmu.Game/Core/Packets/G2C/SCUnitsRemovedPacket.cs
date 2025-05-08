@@ -25,10 +25,10 @@ public class SCUnitsRemovedPacket : GamePacket
 
     public override string Verbose()
     {
-        if (_ids?.Length > 1)
-            return " - Removed " + _ids.Length.ToString() + " objects";
-        if (_ids?.Length == 1)
-            return " - " + WorldManager.Instance.GetGameObject(_ids[0])?.DebugName();
-        return base.Verbose();
+        //if (_ids?.Length > 1)
+            return $" - Removed {_ids.Length} objects";
+        //if (_ids?.Length == 1)
+        //    return " - " + WorldManager.Instance.GetGameObject(_ids[0])?.DebugName();
+        //return base.Verbose();
     }
 }

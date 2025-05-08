@@ -3,7 +3,6 @@ using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
@@ -16,16 +15,16 @@ namespace AAEmu.Game.Models.Game.Gimmicks;
 
 public class Gimmick : Unit
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None; // TODO для Gimmick не понятно что выбрать
-    public ushort GimmickId { get; set; }
+    public override UnitTypeFlag TypeFlag => UnitTypeFlag.None; // TODO для Gimmick не понятно что выбрать
+    public ushort GimmickId { get; init; }
     public long EntityGuid { get; set; } // TODO это не Guid в GameObject
-    public GimmickTemplate Template { get; set; }
+    public GimmickTemplate Template { get; init; }
     public uint SpawnerUnitId { get; set; }
     public uint GrasperUnitId { get; set; }
     public string ModelPath { get; set; }
     // public Quaternion Rot { get; set; } // углы должны быть в радианах
     public Vector3 Vel { get; set; }
-    public Vector3 AngVel { get; set; }
+    public Vector3 AngVel { get; private set; }
     public Vector3 Target { get; set; } = Vector3.Zero;
     public float ScaleVel { get; set; }
     public uint Time { get; set; }
@@ -33,14 +32,15 @@ public class Gimmick : Unit
     /// <summary>
     /// MoveZ
     /// </summary>
-    public bool moveDown { get; set; } = false;
+    public bool MoveDown { get; set; }
     public DateTime WaitTime { get; set; }
     public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
     public TimeSpan TotalLifeTime { get; set; } = TimeSpan.Zero;
     private TimeSpan LastLifeTime { get; set; } = TimeSpan.Zero;
     private Vector3 LastPos { get; set; } = Vector3.Zero;
     private Vector3 LastRot { get; set; } = Vector3.Zero;
-    private bool SkillStarted { get; set; } = false;
+    private bool SkillStarted { get; set; }
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _skillStartedLock = new(); 
     public GimmickMovementHandler MovementHandler { get; set; }
 
@@ -59,7 +59,7 @@ public class Gimmick : Unit
         stream.Write(SpawnerUnitId);    // spawnerUnitId
         stream.Write(GrasperUnitId);    // grasperUnitId
         stream.Write(Transform.ZoneId);
-        stream.Write(Template?.ModelPath ?? "", true);
+        stream.Write(Template?.ModelPath ?? "");
         //stream.Write("", true); // ModelPath
 
         stream.Write(Helpers.ConvertLongX(Transform.World.Position.X)); // WorldPosition qx,qx,fz
@@ -102,7 +102,7 @@ public class Gimmick : Unit
         Transform.Local.SetPosition(newX, newY, newZ);
         Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
-        var q = RotateBarrel(Pitch, Yaw, Roll);
+        var q = RotateBarrel(_pitch, _yaw, _roll);
         Transform.Local.ApplyFromQuaternion(q);
         Vel = new Vector3(0, 0, -distanceZ);
         AngVel = new Vector3(0f, 0f, 0f);
@@ -111,14 +111,15 @@ public class Gimmick : Unit
             BroadcastPacket(new SCGimmickMovementPacket(this), false);
     }
 
-    private float Pitch;
-    private float Yaw;
-    private float Roll;
+    private float _pitch;
+    private float _yaw;
+    private float _roll;
+
     private Quaternion RotateBarrel(float xRotation, float yRotation, float zRotation)
     {
-        Pitch = (Pitch + Spawner.VelocityX) % 360;
-        Yaw = (Yaw + Spawner.VelocityY) % 360;
-        Roll = (Roll + Spawner.VelocityZ) % 360;
+        _pitch = (_pitch + Spawner.VelocityX) % 360;
+        _yaw = (_yaw + Spawner.VelocityY) % 360;
+        _roll = (_roll + Spawner.VelocityZ) % 360;
 
         // Создаем новый Quaternion с заданными значениями вращения
         return Quaternion.CreateFromYawPitchRoll(xRotation.DegToRad(), yRotation.DegToRad(), zRotation.DegToRad());
@@ -161,7 +162,7 @@ public class Gimmick : Unit
         }
 
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
-        var caster = WorldManager.Instance.GetUnit(SpawnerUnitId);
+        var caster = ParentWorld.GetUnit(SpawnerUnitId);
         var skillCaster = new SkillDoodad(ObjId);
         var skillCastTarget = new SkillCastPositionTarget
         {
@@ -229,14 +230,13 @@ public class Gimmick : Unit
     /// <param name="target"></param>
     /// <param name="maxVelocity"></param>
     /// <param name="deltaTime"></param>
-    /// <param name="movingDistance"></param>
     /// <param name="velocityZ"></param>
     /// <param name="isMovingDown"></param>
-    public void MoveAlongZAxis(Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, float movingDistance, ref float velocityZ, ref bool isMovingDown)
+    public void MoveAlongZAxis(Gimmick gimmick, ref Vector3 position, Vector3 target, float maxVelocity, float deltaTime, ref float velocityZ, ref bool isMovingDown)
     {
         var distance = target - position;
         velocityZ = maxVelocity * Math.Sign(distance.Z);
-        movingDistance = velocityZ * deltaTime;
+        var movingDistance = velocityZ * deltaTime;
 
         if (Math.Abs(distance.Z) >= Math.Abs(movingDistance))
         {

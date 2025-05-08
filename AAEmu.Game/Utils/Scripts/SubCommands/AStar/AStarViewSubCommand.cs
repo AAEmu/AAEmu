@@ -43,6 +43,7 @@ public class AStarViewSubCommand : SubCommandBase
         using var charPos = ((Character)character).Transform.CloneDetached();
         var doodadSpawner = new DoodadSpawner
         {
+            ParentWorld = ((Character)character).ParentWorld,
             Id = 0,
             UnitId = unitTemplateId
         };

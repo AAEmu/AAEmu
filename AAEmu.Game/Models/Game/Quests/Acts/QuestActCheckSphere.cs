@@ -12,14 +12,14 @@ public class QuestActCheckSphere(QuestComponentTemplate parentComponent) : Quest
     public override void InitializeAction(Quest quest, QuestAct questAct)
     {
         base.InitializeAction(quest, questAct);
-        WorldManager.Instance.GetWorldOfGameObject((GameObject)quest.Owner).SphereQuestManager.AddSphereQuestTriggers(quest.Owner, quest, ParentComponent.Id, 0);
+        ((GameObject)quest.Owner).ParentWorld.SphereQuestManager.AddSphereQuestTriggers(quest.Owner, quest, ParentComponent.Id, 0);
         quest.Owner.Events.OnEnterSphere += questAct.OnEnterSphere;
         quest.Owner.Events.OnExitSphere += questAct.OnExitSphere;
     }
 
     public override void FinalizeAction(Quest quest, QuestAct questAct)
     {
-        WorldManager.Instance.GetWorldOfGameObject((GameObject)quest.Owner).SphereQuestManager.RemoveSphereQuestTriggers(quest.Owner.Id, (uint)quest.Id);
+        ((GameObject)quest.Owner).ParentWorld.SphereQuestManager.RemoveSphereQuestTriggers(quest.Owner.Id, (uint)quest.Id);
         quest.Owner.Events.OnEnterSphere -= questAct.OnEnterSphere;
         quest.Owner.Events.OnExitSphere -= questAct.OnExitSphere;
         base.FinalizeAction(quest, questAct);

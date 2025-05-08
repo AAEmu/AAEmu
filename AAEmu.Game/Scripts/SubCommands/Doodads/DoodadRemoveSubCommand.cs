@@ -60,7 +60,7 @@ public class DoodadRemoveSubCommand : SubCommandBase
             return;
         }
 
-        var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.WorldId);
+        var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.InstanceId);
         var doodadsInWorld = WorldManager.Instance.GetAllDoodadsFromWorld(currentWorld.Id);
 
         foreach (var doodad in doodadsInWorld.Where(d => d.TemplateId == nearestDoodad.TemplateId))
@@ -75,7 +75,7 @@ public class DoodadRemoveSubCommand : SubCommandBase
 
     private void RemoveById(ICharacter character, uint doodadObjId, IMessageOutput messageOutput)
     {
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+        var doodad = ((Character)character).ParentWorld.GetDoodad(doodadObjId);
         if (doodad is null)
         {
             doodad = GetNearestDoodad(character, 5f);

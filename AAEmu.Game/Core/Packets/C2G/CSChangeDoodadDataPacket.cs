@@ -19,7 +19,7 @@ public class CSChangeDoodadDataPacket : GamePacket
         var data = stream.ReadInt32();
 
         Logger.Warn($"ChangeDoodadData, ObjId: {objId}, Data: {data}");
-        var doodad = WorldManager.Instance.GetDoodad(objId);
+        var doodad = Connection.ActiveChar.ParentWorld.GetDoodad(objId);
         if (doodad != null)
         {
             var doodadName = LocalizationManager.Instance.Get("doodad_almighties", "name", doodad.TemplateId);

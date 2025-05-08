@@ -35,6 +35,7 @@ public class SpawnGrid : ICommand
     public static void SpawnDoodad(uint unitId, Character character, float newX, float newY)
     {
         var doodadSpawner = new DoodadSpawner();
+        doodadSpawner.ParentWorld = character.ParentWorld;
         doodadSpawner.Id = 0;
         doodadSpawner.UnitId = unitId;
         doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
@@ -53,6 +54,7 @@ public class SpawnGrid : ICommand
     public static void SpawnNPC(uint unitId, Character character, float newX, float newY)
     {
         var npcSpawner = new NpcSpawner();
+        npcSpawner.ParentWorld = character.ParentWorld;
         npcSpawner.Id = 0;
         npcSpawner.UnitId = unitId;
         npcSpawner.Position = character.Transform.CloneAsSpawnPosition();
@@ -64,7 +66,7 @@ public class SpawnGrid : ICommand
         npcSpawner.Position.Pitch = 0;
         npcSpawner.Position.Roll = 0;
 
-        SpawnManager.Instance.AddNpcSpawner(npcSpawner);
+        character.ParentWorld.SpawnManager.AddNpcSpawner(npcSpawner);
         npcSpawner.SpawnAll();
     }
 

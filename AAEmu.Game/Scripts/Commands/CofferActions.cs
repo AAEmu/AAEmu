@@ -64,7 +64,7 @@ public class CofferActions : ICommand
         }
         else
         {
-            var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+            var doodad = character.ParentWorld.GetDoodad(doodadObjId);
             if (doodad is DoodadCoffer dCoffer)
             {
                 coffer = dCoffer;

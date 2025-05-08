@@ -124,7 +124,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
                         logoutTime *= 30;
 
                     // Add 10 minutes if you have a Slave Active
-                    if (SlaveManager.Instance.GetActiveSlaveByOwnerObjId(connection.ActiveChar?.ObjId ?? 0) != null)
+                    if (connection.ActiveChar?.ParentWorld?.SlaveManager.GetActiveSlaveByOwnerObjId(connection.ActiveChar.ObjId) != null)
                         logoutTime += 1000 * 60 * 10;
 
                     connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, leaveWorldTargetType, false));
@@ -162,6 +162,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="leaveWorldTarget"></param>
+    /// <param name="activeChar"></param>
     public static void LeaveWorldTask(GameConnection connection, LeaveWorldTargetType leaveWorldTarget, Character activeChar)
     {
         if (activeChar != null)
@@ -174,8 +175,8 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             QuestManager.Instance.RemoveQuestTimer(activeChar.Id, 0);
 
             // Despawn and unmount everybody from owned Mates
-            MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(activeChar);
-            SlaveManager.Instance.RemoveAndDespawnAllActiveOwnedSlaves(activeChar);
+            activeChar.ParentWorld.MateManager.RemoveAndDespawnAllActiveOwnedMates(activeChar);
+            connection.ActiveChar.ParentWorld.SlaveManager.RemoveAndDespawnAllActiveOwnedSlaves(activeChar);
 
             // Check if still mounted on somebody else's mount and dismount that if needed
             activeChar.ForceDismount(/*AttachUnitReason.PrefabChanged*/); // Dismounting a mount because of unsummoning sends "10" for this
@@ -206,11 +207,14 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             // Remove subscribers
             foreach (var subscriber in activeChar.Subscribers)
                 subscriber.Dispose();
+
+            // Remove from server
+            WorldManager.Instance.TryRemoveCharacter(activeChar.ObjId);
         }
 
         GameConnection.SaveAndRemoveFromWorld(activeChar);
 
-        // connection isn't set if we are removing a orphaned Character object
+        // connection isn't set if we are removing an orphaned Character object
         if (connection != null)
         {
             connection.State = GameState.Lobby;

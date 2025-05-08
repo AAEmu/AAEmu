@@ -75,16 +75,32 @@ namespace AAEmu.Game.Models.Game.DoodadObj;
 public class Doodad : BaseUnit
 {
     private float _scale;
-
     private int _data;
     private uint _funcGroupId;
 
-    //public uint TemplateId { get; set; } // moved to BaseUnit
+    /// <summary>
+    /// Database Id used to save this Doodad
+    /// </summary>
     public uint DbId { get; set; }
+
+    /// <summary>
+    /// Marks if this Doodad should be saved
+    /// </summary>
     public bool IsPersistent { get; set; }
+
+    /// <summary>
+    /// This Doodad's Template
+    /// </summary>
     public DoodadTemplate Template { get; set; }
+
+    /// <summary>
+    /// Relative scale to use for this Doodad
+    /// </summary>
     public override float Scale => _scale;
 
+    /// <summary>
+    /// Gets the current use permission requirements for this Doodad
+    /// </summary>
     public DoodadFuncPermission FuncPermission
     {
         get
@@ -98,6 +114,9 @@ public class Doodad : BaseUnit
         }
     }
 
+    /// <summary>
+    /// Current FuncGroupId (phase)
+    /// </summary>
     public uint FuncGroupId
     {
         get => _funcGroupId;
@@ -135,20 +154,74 @@ public class Doodad : BaseUnit
     }
 
     // public string FuncType { get; set; }
-    public ulong ItemId { get; set; }
-    public ulong UccId { get; set; }
-    public uint ItemTemplateId { get; set; }
-    public DateTime GrowthTime { get; set; }
-    public DateTime PlantTime { get; set; }
-    public DateTime PhaseTime { get; set; }
-    public uint OwnerId { get; set; }
-    public uint OwnerObjId { get; set; }
-    public uint ParentObjId { get; set; }
-    public DoodadOwnerType OwnerType { get; set; }
-    public AttachPointKind AttachPoint { get; set; }
-    public uint OwnerDbId { get; set; }
-    public uint Type2 { get; set; } = 0;
 
+    /// <summary>
+    /// Item Id of the item stored by this doodad (if any). Think trade packs
+    /// </summary>
+    public ulong ItemId { get; set; }
+
+    /// <summary>
+    /// Applied UCC Id for this doodad. This is usually the same as the UCC that was on the source item
+    /// </summary>
+    public ulong UccId { get; set; }
+
+    /// <summary>
+    /// Item Template Id of the item stored by this doodad (if any). Mostly used for stackable items that don't require unique item data to be persistent
+    /// </summary>
+    public uint ItemTemplateId { get; set; }
+
+    /// <summary>
+    /// Growth time
+    /// </summary>
+    public DateTime GrowthTime { get; set; }
+
+    /// <summary>
+    /// Time this doodad got planted (or restarted)
+    /// </summary>
+    public DateTime PlantTime { get; set; }
+
+    /// <summary>
+    /// The time the current Doodad phase was started
+    /// </summary>
+    public DateTime PhaseTime { get; set; }
+
+    /// <summary>
+    /// Player Id of the owner (if it's player owned)
+    /// </summary>
+    public uint OwnerId { get; set; }
+
+    /// <summary>
+    /// ObjId of the owner
+    /// </summary>
+    public uint OwnerObjId { get; set; }
+    /// <summary>
+    /// ObjId of the parent object this Doodad is a child of (on top of)
+    /// </summary>
+    public uint ParentObjId { get; set; }
+
+    /// <summary>
+    /// Type of owner
+    /// </summary>
+    public DoodadOwnerType OwnerType { get; set; }
+
+    /// <summary>
+    /// If this is a child Doodad, this is set to the location withing its parent attachment points (think vehicle parts or houses doors)
+    /// </summary>
+    public AttachPointKind AttachPoint { get; set; }
+
+    /// <summary>
+    /// Database Id of the Owner (for example house id)
+    /// </summary>
+    public uint OwnerDbId { get; set; }
+
+    /// <summary>
+    /// Type2? Set to 1 if this doodad is part of a vehicle?
+    /// </summary>
+    public uint Type2 { get; set; }
+
+    /// <summary>
+    /// Doodad specific data
+    /// </summary>
     public int Data
     {
         get => _data;
@@ -164,16 +237,44 @@ public class Doodad : BaseUnit
             }
         }
     }
+
+    /// <summary>
+    /// Set to the type of public farm this Doodad is part of
+    /// </summary>
     public FarmType FarmType { get; set; }
+
+    /// <summary>
+    /// Set to 1 if this doodad is part of your quest
+    /// </summary>
     public uint QuestGlow { get; set; } //0 off // 1 on
+
+    /// <summary>
+    /// Sets what puzzle group this Doodad is a member of (mostly for dungeons)
+    /// </summary>
     public int PuzzleGroup { get; set; } = -1; // -1 off
+
+    /// <summary>
+    /// This Doodad's Spawner
+    /// </summary>
     public DoodadSpawner Spawner { get; set; }
+
+    /// <summary>
+    /// The current task this Doodad is doing
+    /// </summary>
     public DoodadFuncTask FuncTask { get; set; }
 
-    public List<DoodadFunc> CurrentFuncs { get; set; }
-    public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
     /// <summary>
-    /// ToD, next_phase
+    /// List of Funcs in the Current phase
+    /// </summary>
+    public List<DoodadFunc> CurrentFuncs { get; set; }
+
+    /// <summary>
+    /// List of current PhaseFuncs
+    /// </summary>
+    public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
+
+    /// <summary>
+    /// Time of Day, next_phase
     /// </summary>
     public Dictionary<float, int> CurrentToDTriggers { get; set; }
 
@@ -208,8 +309,19 @@ public class Doodad : BaseUnit
         }
     }
 
+    /// <summary>
+    /// When set, Doodad moves to it's next defined phase
+    /// </summary>
     public bool ToNextPhase { get; set; }
+
+    /// <summary>
+    /// Used for ratio calculations on random triggers
+    /// </summary>
     public int PhaseRatio { get; set; }
+
+    /// <summary>
+    /// Used for ratio calculations on random triggers
+    /// </summary>
     public int CumulativePhaseRatio { get; set; }
 
     /// <summary>
@@ -222,9 +334,21 @@ public class Doodad : BaseUnit
     /// </summary>
     public DateTime OverridePhaseTime { get; set; } = DateTime.MinValue;
 
-    private bool _deleted = false;
+    private bool _deleted;
+
+    /// <summary>
+    /// Seat data for this Doodad
+    /// </summary>
     public VehicleSeat Seat { get; set; }
+
+    /// <summary>
+    /// List of GroupId's of this Doodad
+    /// </summary>
     private List<uint> ListGroupId { get; set; }
+
+    /// <summary>
+    /// AreaTriggers that are linked to this Doodad
+    /// </summary>
     public List<AreaTrigger> AttachAreaTriggers { get; set; } = [];
 
     public Doodad()
@@ -239,26 +363,19 @@ public class Doodad : BaseUnit
         CurrentToDTriggers = [];
     }
 
+    /// <summary>
+    /// Changes the Scale for this Doodad
+    /// </summary>
+    /// <param name="scale"></param>
     public void SetScale(float scale)
     {
         _scale = scale;
     }
 
-    /* Unused
-    private bool CheckPhase(uint anotherPhase)
-    {
-        return ListGroupId.Any(phase => phase == anotherPhase);
-    }
-
-    private bool CheckFunc(uint anotherPhase)
-    {
-        return ListFuncGroupId.Any(phase => phase == anotherPhase);
-    }*/
-
     /*
      * 1. Создание (посадка) Doodad запускает на стартовой фазе PhaseFunc;
      * 2. Ждем взаимодействия с Doodad;
-     * 3. Непосредствено взаимодействие начинается с выполнения Func с учётом SkillId;
+     * 3. Непосредственно взаимодействие начинается с выполнения Func с учётом SkillId;
      * 4. Далее на следующей фазе начинаем выполнение с фазовых функций, а затем сами функции, если перед этим прошли проверки в фазовых функциях;
      *
      * 1. Creation (landing) Doodad launches on the PhaseFunc start phase;
@@ -266,11 +383,22 @@ public class Doodad : BaseUnit
      * 3. Direct interaction starts with execution of a Func, taking into account the SkillId;
      * 4. Then in the next phase we start execution with the phase functions and then the functions themselves, if the checks in the phase functions have been passed before;
      */
+
+    /// <summary>
+    /// Sets Doodad specific data value
+    /// </summary>
+    /// <param name="data"></param>
     public void SetData(int data)
     {
         _data = data;
     }
 
+    /// <summary>
+    /// "Executes/Uses" the Doodad's current phase
+    /// </summary>
+    /// <param name="caster"></param>
+    /// <param name="startedSkillId"></param>
+    /// <param name="funcGroupId"></param>
     public void Use(BaseUnit caster, uint startedSkillId = 0, int funcGroupId = 0)
     {
         var skillId = startedSkillId;
@@ -286,8 +414,7 @@ public class Doodad : BaseUnit
 
         while (true)
         {
-            var player = caster as Character;
-            if (player != null)
+            if (caster is Character player)
             {
                 Logger.Warn($"Use: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
             }
@@ -388,8 +515,8 @@ public class Doodad : BaseUnit
         {
             if (func.NextPhase == -1)
             {
-                // не надо переходить на другую фазу, остаемся на текущей фазе
-                // проверка нужна для Windstone id=1473
+                // We don't need to change phase, we stay in the current phase.
+                // the check is needed for Windstone id=1473
                 if (!HasOnlyGroupKindStart())
                 {
                     if (FuncTask != null)
@@ -443,11 +570,11 @@ public class Doodad : BaseUnit
     }
 
     /// <summary>
-    /// start-up for execution of phase functions
+    /// Start-up for execution of phase functions
     /// </summary>
     /// <param name="caster"></param>
     /// <param name="nextPhase"></param>
-    /// <returns>if true, it did not pass the check for the phase (it must be aborted)</returns>
+    /// <returns>If TRUE, it did not pass the check for the phase (it must be aborted)</returns>
     private bool DoPhaseFuncs(BaseUnit caster, ref int nextPhase)
     {
         if (nextPhase <= 0) { return true; }
@@ -549,7 +676,7 @@ public class Doodad : BaseUnit
     /// </summary>
     /// <param name="caster"></param>
     /// <param name="nextPhase"></param>
-    /// <returns>if TRUE, it did not pass the check for the quest (it must be aborted)</returns>
+    /// <returns>If TRUE, it did not pass the check for the quest (it must be aborted)</returns>
     public bool DoChangePhase(BaseUnit caster, int nextPhase)
     {
         // здесь не надо удалять doodad
@@ -582,6 +709,10 @@ public class Doodad : BaseUnit
         return stop; // if true, it did not pass the check for the quest (it must be aborted)
     }
 
+    /// <summary>
+    /// Returns true if this Doodad only has a starting phase 
+    /// </summary>
+    /// <returns></returns>
     private bool HasOnlyGroupKindStart()
     {
         return Template.FuncGroups.All(funcGroup =>
@@ -589,6 +720,11 @@ public class Doodad : BaseUnit
                 or DoodadFuncGroups.DoodadFuncGroupKind.End));
     }
 
+    /// <summary>
+    /// Checks if a given Func Group Id is a starter group
+    /// </summary>
+    /// <param name="funcGroupId"></param>
+    /// <returns></returns>
     public bool IsGroupKindStart(uint funcGroupId)
     {
         return Template.FuncGroups.Where(funcGroup =>
@@ -596,6 +732,10 @@ public class Doodad : BaseUnit
             .Any(funcGroup => funcGroupId == funcGroup.Id);
     }
 
+    /// <summary>
+    /// Finds the FuncGroupId of the Doodad starter group
+    /// </summary>
+    /// <returns></returns>
     public uint GetFuncGroupId()
     {
         return (from funcGroup in Template.FuncGroups
@@ -603,6 +743,11 @@ public class Doodad : BaseUnit
                 select funcGroup.Id).FirstOrDefault();
     }
 
+    /// <summary>
+    /// Triggered when a skill hits this Doodad
+    /// </summary>
+    /// <param name="caster"></param>
+    /// <param name="skillId"></param>
     public void OnSkillHit(BaseUnit caster, uint skillId)
     {
         var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
@@ -610,12 +755,13 @@ public class Doodad : BaseUnit
 
         foreach (var func in funcs.Where(func => func.FuncType == "DoodadFuncSkillHit"))
         {
+            // func.Use(caster, this, skillId);
             Use(caster, skillId);
         }
     }
 
     /// <summary>
-    /// initialization of the current doodad phase
+    /// Initialization of the current doodad phase
     /// </summary>
     public void InitDoodad()
     {
@@ -629,39 +775,52 @@ public class Doodad : BaseUnit
         GrowthTime = PlantTime.AddMilliseconds(growTime);
 
         // Actually do the phase change
-        var unit = WorldManager.Instance.GetUnit(OwnerObjId);
+        var unit = ParentWorld.GetUnit(OwnerObjId);
         DoChangePhase(unit, (int)FuncGroupId);
     }
 
+    /// <summary>
+    /// Forwards BroadcastPacket to base without self set
+    /// </summary>
+    /// <param name="packet"></param>
+    /// <param name="self"></param>
     public override void BroadcastPacket(GamePacket packet, bool self)
     {
-        foreach (var character in WorldManager.GetAround<Character>(this))
-        {
-            character.SendPacket(packet);
-        }
+        base.BroadcastPacket(packet, false);
     }
 
+    /// <summary>
+    /// Makes this Doodad visible to target player
+    /// </summary>
+    /// <param name="character"></param>
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCDoodadCreatedPacket(this));
         base.AddVisibleObject(character);
     }
 
+    /// <summary>
+    /// Hides this Doodad from target player
+    /// </summary>
+    /// <param name="character"></param>
     public override void RemoveVisibleObject(Character character)
     {
         base.RemoveVisibleObject(character);
         character.SendPacket(new SCDoodadRemovedPacket(ObjId));
     }
 
+    /// <summary>
+    /// Doodad packet stream
+    /// </summary>
+    /// <param name="stream"></param>
+    /// <returns></returns>
     public PacketStream Write(PacketStream stream)
     {
         stream.WriteBc(ObjId); //The object # in the list
-        stream.Write(
-            TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
+        stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
         stream.WriteBc(OwnerObjId); //The creator of the object
         stream.WriteBc(ParentObjId); //Things like boats or cars,
-        stream.Write(
-            (byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
+        stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
         if (AttachPoint > 0 || ParentObjId > 0)
         {
             stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
@@ -698,6 +857,9 @@ public class Doodad : BaseUnit
         return stream;
     }
 
+    /// <summary>
+    /// Removes this Doodad
+    /// </summary>
     public override void Delete()
     {
         base.Delete();
@@ -736,10 +898,13 @@ public class Doodad : BaseUnit
             }
         }
 
-        SpawnManager.Instance.RemovePlayerDoodad(this);
+        ParentWorld.SpawnManager.RemovePlayerDoodad(this);
         IsPersistent = false;
     }
 
+    /// <summary>
+    /// Save this Doodad to database if it's marked as persistent
+    /// </summary>
     public void Save()
     {
         if (!IsPersistent)
@@ -748,55 +913,58 @@ public class Doodad : BaseUnit
         }
 
         DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
-        using (var connection = MySQL.CreateConnection())
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        // Lookup Parent
+        var parentDoodadId = 0u;
+        if (Transform?.Parent?.GameObject is Doodad pDoodad && pDoodad.DbId > 0)
         {
-            using (var command = connection.CreateCommand())
-            {
-                // Lookup Parent
-                var parentDoodadId = 0u;
-                if (Transform?.Parent?.GameObject is Doodad pDoodad && pDoodad.DbId > 0)
-                {
-                    parentDoodadId = pDoodad.DbId;
-                }
-
-                command.CommandText =
-                    "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`, `farm_type`) " +
-                    "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data, @farm_type)";
-                command.Parameters.AddWithValue("@id", DbId);
-                command.Parameters.AddWithValue("@owner_id", OwnerId);
-                command.Parameters.AddWithValue("@owner_type", OwnerType);
-                command.Parameters.AddWithValue("@attach_point", AttachPoint);
-                command.Parameters.AddWithValue("@template_id", TemplateId);
-                command.Parameters.AddWithValue("@current_phase_id", FuncGroupId);
-                command.Parameters.AddWithValue("@plant_time", PlantTime);
-                command.Parameters.AddWithValue("@growth_time", GrowthTime);
-                command.Parameters.AddWithValue("@phase_time", PhaseTime);
-                // We save it's world position, and upon loading, we re-parent things depending on the data
-                command.Parameters.AddWithValue("@x", Transform?.Local.Position.X ?? 0f);
-                command.Parameters.AddWithValue("@y", Transform?.Local.Position.Y ?? 0f);
-                command.Parameters.AddWithValue("@z", Transform?.Local.Position.Z ?? 0f);
-                command.Parameters.AddWithValue("@roll", Transform?.Local.Rotation.X ?? 0f);
-                command.Parameters.AddWithValue("@pitch", Transform?.Local.Rotation.Y ?? 0f);
-                command.Parameters.AddWithValue("@yaw", Transform?.Local.Rotation.Z ?? 0f);
-                command.Parameters.AddWithValue("@scale", Scale);
-                command.Parameters.AddWithValue("@item_id", ItemId);
-                command.Parameters.AddWithValue("@house_id", OwnerDbId);
-                command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
-                command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
-                command.Parameters.AddWithValue("@item_container_id", GetItemContainerId());
-                command.Parameters.AddWithValue("@data", Data);
-                command.Parameters.AddWithValue("@farm_type", FarmType);
-                command.Prepare();
-                command.ExecuteNonQuery();
-            }
+            parentDoodadId = pDoodad.DbId;
         }
+
+        command.CommandText =
+            "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `attach_point`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `scale`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`, `item_container_id`, `data`, `farm_type`) " +
+            "VALUES(@id, @owner_id, @owner_type, @attach_point, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @scale, @item_id, @house_id, @parent_doodad, @item_template_id, @item_container_id, @data, @farm_type)";
+        command.Parameters.AddWithValue("@id", DbId);
+        command.Parameters.AddWithValue("@owner_id", OwnerId);
+        command.Parameters.AddWithValue("@owner_type", OwnerType);
+        command.Parameters.AddWithValue("@attach_point", AttachPoint);
+        command.Parameters.AddWithValue("@template_id", TemplateId);
+        command.Parameters.AddWithValue("@current_phase_id", FuncGroupId);
+        command.Parameters.AddWithValue("@plant_time", PlantTime);
+        command.Parameters.AddWithValue("@growth_time", GrowthTime);
+        command.Parameters.AddWithValue("@phase_time", PhaseTime);
+        // We save it's world position, and upon loading, we re-parent things depending on the data
+        command.Parameters.AddWithValue("@x", Transform?.Local.Position.X ?? 0f);
+        command.Parameters.AddWithValue("@y", Transform?.Local.Position.Y ?? 0f);
+        command.Parameters.AddWithValue("@z", Transform?.Local.Position.Z ?? 0f);
+        command.Parameters.AddWithValue("@roll", Transform?.Local.Rotation.X ?? 0f);
+        command.Parameters.AddWithValue("@pitch", Transform?.Local.Rotation.Y ?? 0f);
+        command.Parameters.AddWithValue("@yaw", Transform?.Local.Rotation.Z ?? 0f);
+        command.Parameters.AddWithValue("@scale", Scale);
+        command.Parameters.AddWithValue("@item_id", ItemId);
+        command.Parameters.AddWithValue("@house_id", OwnerDbId);
+        command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
+        command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
+        command.Parameters.AddWithValue("@item_container_id", GetItemContainerId());
+        command.Parameters.AddWithValue("@data", Data);
+        command.Parameters.AddWithValue("@farm_type", FarmType);
+        command.Prepare();
+        command.ExecuteNonQuery();
     }
 
-    public void DoDespawn(Doodad doodad)
+    /// <summary>
+    /// Starts despawning this Doodad
+    /// </summary>
+    public void DoDespawn()
     {
-        Spawner.DoDespawn(doodad);
+        Spawner.DoDespawn(this);
     }
 
+    /// <summary>
+    /// Checks if this Doodad can be safely removed
+    /// </summary>
+    /// <returns></returns>
     public override bool AllowRemoval()
     {
         // Only allow removal if there is no other persistent Doodads stacked on top of this
@@ -820,6 +988,11 @@ public class Doodad : BaseUnit
         return 0;
     }
 
+    /// <summary>
+    /// Write packet data structure used for radars
+    /// </summary>
+    /// <param name="stream"></param>
+    /// <returns></returns>
     public PacketStream WriteFishFinderUnit(PacketStream stream)
     {
         stream.WriteBc(ObjId);

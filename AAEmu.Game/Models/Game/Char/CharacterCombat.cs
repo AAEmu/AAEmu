@@ -37,8 +37,7 @@ public partial class Character
     {
         // check trade packs to drop
         var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
-        if ((item?.Template is BackpackTemplate backpackTemplate) &&
-            (backpackTemplate.BackpackType == BackpackType.TradePack))
+        if ((item?.Template is BackpackTemplate { BackpackType: BackpackType.TradePack } backpackTemplate))
         {
             // Find the linked doodad of this item's put down effect
             var backpackDoodadId = 0u;
@@ -57,7 +56,7 @@ public partial class Character
                 // Spawn doodad
                 Logger.Trace("Spawn tradepack on floor on death");
 
-                var doodad = DoodadManager.Instance.Create(0, backpackDoodadId, this, true);
+                var doodad = DoodadManager.Instance.Create(ParentWorld, 0, backpackDoodadId, this, true);
                 if (doodad == null)
                 {
                     Logger.Warn($"Doodad {backpackDoodadId}, from BackpackDoodadId could not be created");
@@ -86,7 +85,7 @@ public partial class Character
     public void OnDisconnect(object sender, OnDisconnectArgs args)
     {
         ForceDismount();
-        MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(this);
+        ParentWorld.MateManager.RemoveAndDespawnAllActiveOwnedMates(this);
     }
 
     public void OnEnterCombat(object sender, OnCombatStartedArgs args)

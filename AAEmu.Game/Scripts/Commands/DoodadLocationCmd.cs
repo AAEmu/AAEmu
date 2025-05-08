@@ -35,7 +35,7 @@ public class DoodadLocationCmd : ICommand
 
         if (uint.TryParse(args[0], out var id))
         {
-            var doodad = WorldManager.Instance.GetDoodad(id);
+            var doodad = character.ParentWorld.GetDoodad(id);
             if (doodad != null)
             {
                 var x = doodad.Transform.Local.Position.X;

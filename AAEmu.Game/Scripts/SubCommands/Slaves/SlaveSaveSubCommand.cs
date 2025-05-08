@@ -44,9 +44,9 @@ public class SlaveSaveSubCommand : SubCommandBase
 
     private void SaveAll(ICharacter character, IMessageOutput messageOutput)
     {
-        var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.WorldId);
+        var currentWorld = ((Character)character).ParentWorld;
 
-        var allSlaves = WorldManager.Instance.GetAllSlaves();
+        var allSlaves = currentWorld.GetAllSlaves();
         var slavesInWorld = WorldManager.Instance.GetAllSlavesFromWorld(currentWorld.Id);
 
         var slaveSpawnersFromFile = LoadSlavesFromFileByWorld(currentWorld);
@@ -118,17 +118,17 @@ public class SlaveSaveSubCommand : SubCommandBase
     private void SaveById(ICharacter character, uint objId, IMessageOutput messageOutput)
     {
         var spawners = new List<JsonSlaveSpawns>();
-        var slave = (Models.Game.Units.Slave)WorldManager.Instance.GetGameObject(objId);
+        var slave = (Models.Game.Units.Slave)((Character)character).ParentWorld.GetGameObject(objId);
         if (slave is null)
         {
             SendColorMessage(messageOutput, Color.Red, $"Slave with objId {objId} Does not exist");
             return;
         }
 
-        var world = WorldManager.Instance.GetWorld(slave.Transform.WorldId);
+        var world = WorldManager.Instance.GetWorld(slave.Transform.InstanceId);
         if (world is null)
         {
-            SendColorMessage(messageOutput, Color.Red, $"Could not find the worldId {slave.Transform.WorldId}");
+            SendColorMessage(messageOutput, Color.Red, $"Could not find the worldId {slave.Transform.InstanceId}");
             return;
         }
 

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.World;
 
 public class Region
 {
-    private readonly uint _worldId;
+    private readonly WorldInstance _worldInstance;
     private readonly object _objectsLock = new();
     private GameObject[] _objects;
     private int _objectsSize, _charactersSize;
@@ -27,9 +27,9 @@ public class Region
     public int Id => Y + (1024 * X);
     public uint ZoneKey { get; set; }
 
-    public Region(uint worldId, int x, int y, uint zoneKey)
+    public Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
     {
-        _worldId = worldId;
+        _worldInstance = worldInstance;
         X = x;
         Y = y;
         ZoneKey = zoneKey;
@@ -59,8 +59,8 @@ public class Region
 
         if (obj.Transform != null)
         {
-            obj.Transform.WorldId = _worldId;
-            var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
+            obj.Transform.InstanceId = _worldInstance.Id;
+            var zoneId = WorldManager.Instance.GetZoneId(_worldInstance.Template, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
             if (zoneId > 0)
                 obj.Transform.ZoneId = zoneId;
         }
@@ -249,7 +249,7 @@ public class Region
         //Will neighbor regions ever change?
         if (_neighbors == null)
         {
-            _neighbors = WorldManager.Instance.GetNeighbors(_worldId, X, Y);
+            _neighbors = WorldManager.Instance.GetNeighbors(_worldInstance, X, Y);
             return _neighbors;
         }
         else
@@ -392,12 +392,12 @@ public class Region
         if (obj.GetType() != typeof(Region))
             return false;
         var other = (Region)obj;
-        return other._worldId == _worldId && other.X == X && other.Y == Y;
+        return other._worldInstance == _worldInstance && other.X == X && other.Y == Y;
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(_worldId, X, Y);
+        return HashCode.Combine(_worldInstance, X, Y);
     }
 
     public Region[] FindDifferenceBetweenRegions(Region other)

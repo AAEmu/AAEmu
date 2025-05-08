@@ -15,19 +15,15 @@ namespace AAEmu.Game.Models.Game.Transfers;
 public class TransferSpawner : Spawner<Transfer>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    
+    public WorldInstance ParentWorld { get; set; }
 
-    private List<Transfer> _spawned;
+    private List<Transfer> _spawned = [];
     private Transfer _lastSpawn;
     private int _scheduledCount;
     private int _spawnCount;
 
-    public uint Count { get; set; }
-
-    public TransferSpawner()
-    {
-        _spawned = [];
-        Count = 1;
-    }
+    public uint Count { get; set; } = 1;
 
     public List<Transfer> SpawnAll()
     {
@@ -46,7 +42,7 @@ public class TransferSpawner : Spawner<Transfer>
 
     public override Transfer Spawn(uint objId)
     {
-        var transfer = TransferManager.Instance.Create(objId, UnitId, this);
+        var transfer = TransferManager.Instance.Create(ParentWorld, objId, UnitId, this);
         if (transfer == null)
         {
             Logger.Warn("Transfer {0}, from spawn not exist at db", UnitId);
@@ -144,11 +140,11 @@ public class TransferSpawner : Spawner<Transfer>
         if (RespawnTime > 0 && (_spawnCount + _scheduledCount) < Count)
         {
             transfer.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
-            SpawnManager.Instance.AddRespawn(transfer);
+            transfer.ParentWorld.SpawnManager.AddRespawn(transfer);
             _scheduledCount++;
         }
 
         transfer.Despawn = DateTime.UtcNow.AddSeconds(DespawnTime);
-        SpawnManager.Instance.AddDespawn(transfer);
+        transfer.ParentWorld.SpawnManager.AddDespawn(transfer);
     }
 }

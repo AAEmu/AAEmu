@@ -256,35 +256,43 @@ public class BuffTemplate
             DoAreaTick(caster, owner, buff);
             return;
         }
-        var mate = MateManager.Instance.GetActiveMate(owner.ObjId);
-        foreach (var tickEff in TickEffects)
+
+        var mateList = caster.ParentWorld?.MateManager.GetActiveMates(owner.Id) ?? owner.ParentWorld.MateManager.GetActiveMates(owner.Id);
+        // TODO: Rider spot only?
+        foreach (var mate in mateList)
         {
-            if (caster is Character character && character.IsRiding)
+            foreach (var tickEff in TickEffects)
             {
-                if (tickEff.TargetBuffTagId > 0 &&
-                    !mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                if (caster is Character character && character.IsRiding)
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        return;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        return;
+                }
+                else
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        return;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        return;
+                }
+
+                var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
+                if (eff == null)
+                {
                     return;
-                if (tickEff.TargetNoBuffTagId > 0 &&
-                    mate.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
-                    return;
+                }
+
+                var targetObj = new SkillCastUnitTarget(owner.ObjId);
+                var skillObj = new SkillObject(); // TODO ?
+                eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this),
+                    skillObj, DateTime.UtcNow);
             }
-            else
-            {
-                if (tickEff.TargetBuffTagId > 0 &&
-                    !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
-                    return;
-                if (tickEff.TargetNoBuffTagId > 0 &&
-                    owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
-                    return;
-            }
-            var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
-            if (eff == null)
-            {
-                return;
-            }
-            var targetObj = new SkillCastUnitTarget(owner.ObjId);
-            var skillObj = new SkillObject(); // TODO ?
-            eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
         }
     }
 

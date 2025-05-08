@@ -100,6 +100,7 @@ public sealed class GameService : IHostedService, IDisposable
         AuctionIdManager.Instance.Initialize();
         GimmickIdManager.Instance.Initialize();
         IndunManager.Instance.Initialize();
+        TaxationsManager.Instance.Load();
 
         GameDataManager.Instance.LoadGameData();
         QuestManager.Instance.Load();
@@ -115,8 +116,8 @@ public sealed class GameService : IHostedService, IDisposable
         PlotManager.Instance.Load();
         SkillManager.Instance.Load();
         CraftManager.Instance.Load();
-        MateManager.Instance.Load();
-        SlaveManager.Instance.Load();
+        // MateManager.Instance.Load();
+        // SlaveManager.Instance.Load(); // Moved to WorldInstance
         TeamManager.Instance.Load();
         AuctionManager.Instance.Load();
         MailManager.Instance.Load();
@@ -137,16 +138,14 @@ public sealed class GameService : IHostedService, IDisposable
         NpcManager.Instance.Load();
 
         DoodadManager.Instance.Load();
-        TaxationsManager.Instance.Load();
-        HousingManager.Instance.Load();
         TransferManager.Instance.Load();
-        GimmickManager.Instance.Load();
+        // GimmickManager.Instance.Load();
         ShipyardManager.Instance.Load();
 
         SubZoneManager.Instance.Load();
         PublicFarmManager.Instance.Load();
 
-        SpawnManager.Instance.Load();
+        // SpawnManager.Instance.Load(); // Moved to world instance
 
         AccessLevelManager.Instance.Load();
         CashShopManager.Instance.Load();
@@ -177,8 +176,7 @@ public sealed class GameService : IHostedService, IDisposable
         AreaTriggerManager.Instance.Initialize();
         SpecialtyManager.Initialize();
         TransferManager.Instance.Initialize();
-        GimmickManager.Instance.Initialize();
-        SlaveManager.Initialize();
+        // GimmickManager.Instance.Initialize();
         CashShopManager.Instance.Initialize();
         GameDataManager.Instance.PostLoadGameData();
         FishSchoolManager.Instance.Initialize();
@@ -194,14 +192,16 @@ public sealed class GameService : IHostedService, IDisposable
 
         // Start main_world and other static instance
         WorldManager.Instance.CreateStaticInstances();
-        
+
+        // Add houses only after the main world has loaded
+        HousingManager.Instance.LoadPlayerHousing();
+
         // TODO: Move all spawns to WorldInstance
-        move spawning
         var spawnSw = new Stopwatch();
         Logger.Info("Spawning units...");
         spawnSw.Start();
         HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
-        SpawnManager.Instance.SpawnAll();
+        // SpawnManager.Instance.SpawnAll();
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
         Logger.Info($"Units spawned in {spawnSw.Elapsed}");
@@ -223,7 +223,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         await SaveManager.Instance.StopAsync();
 
-        SpawnManager.Instance.Stop();
+        // SpawnManager.Instance.Stop(); Moved to World Instance
         TaskManager.Instance.Stop();
         GameNetwork.Instance.Stop();
         StreamNetwork.Instance.Stop();

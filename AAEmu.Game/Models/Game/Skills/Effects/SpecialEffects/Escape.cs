@@ -30,11 +30,11 @@ public class Escape : SpecialEffectAction
 
             var portal = new Portal();
 
-            if (WorldManager.DefaultInstanceId != character.InstanceId)
+            if (WorldManager.DefaultInstanceId != character.Transform.InstanceId)
             {
                 // var portal = PortalManager.Instance.GetClosestReturnPortal(character);
                 // character.Transform.World;
-                var w = WorldManager.Instance.GetWorld(character.InstanceId);
+                var w = character.ParentWorld;
                 if (w == null)
                 {
                     return;

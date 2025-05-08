@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
@@ -23,14 +24,14 @@ public class SlaveSpawnSubCommand : SubCommandBase
         IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint templateId = parameters["TemplateId"];
+        var owner = (Character)character;
 
-        if (!SlaveManager.Instance.Exist(templateId))
+        if (!SlaveGameData.Instance.Exist(templateId))
         {
             SendColorMessage(messageOutput, Color.Red, $"Slave template {templateId} doesn't exist");
             return;
         }
 
-        var owner = (Character)character;
-        SlaveManager.Instance.Create(owner, null, templateId);
+        owner.ParentWorld.SlaveManager.Create(owner, null, templateId);
     }
 }

@@ -2776,7 +2776,7 @@ public class DoodadManager : Singleton<DoodadManager>
         return -1;
     }
 
-    public Doodad Create(uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
+    public Doodad Create(WorldInstance parentWorld, uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
     {
         if (!_templates.TryGetValue(templateId, out var template))
         {
@@ -2792,6 +2792,12 @@ public class DoodadManager : Singleton<DoodadManager>
         }
 
         doodad ??= new Doodad();
+        if (parentWorld == null)
+        {
+            Logger.Fatal($"Tried to create a doodad without a world");
+            return null;
+        }
+        doodad.ParentWorld = parentWorld;
 
         doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
         doodad.TemplateId = template.Id; // copy the templateId
@@ -2980,14 +2986,17 @@ public class DoodadManager : Singleton<DoodadManager>
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
+        // NOTE: If you would ever want to use player housing outside of main_world, you'll need to modify this
         var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
 
         // Create doodad
-        var doodad = Instance.Create(0, id, character, true);
+        var doodad = Instance.Create(character.ParentWorld, 0, id, character, true);
         doodad.IsPersistent = true;
         doodad.Transform = character.Transform.CloneDetached(doodad);
         doodad.Transform.Local.SetPosition(x, y, z);
         doodad.Transform.Local.SetZRotation(zRot);
+        // doodad.Transform.WorldId = world.Template.Id;
+        doodad.Transform.InstanceId = character.ParentWorld.Id;
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
         doodad.FarmType = farmType;
@@ -3042,16 +3051,17 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.InitDoodad();
         doodad.Spawn();
         doodad.Save();
-        SpawnManager.Instance.AddPlayerDoodad(doodad);
+        character.ParentWorld.SpawnManager.AddPlayerDoodad(doodad);
 
         return doodad;
     }
 
     public static bool OpenCofferDoodad(Character character, uint objId)
     {
-        var doodad = WorldManager.Instance.GetDoodad(objId);
+        var doodad = character.ParentWorld.GetDoodad(objId);
         if (doodad is not DoodadCoffer coffer)
         {
+            SusManager.Instance.LogActivity(SusManager.CategoryCheating, character, $"{character.Name} tried to open doodad {objId} as a Coffer");
             return false;
         }
 
@@ -3065,11 +3075,6 @@ public class DoodadManager : Singleton<DoodadManager>
 
         coffer.OpenedBy = character;
 
-        if (character == null)
-        {
-            return true;
-        }
-
         byte firstSlot = 0;
         while (firstSlot < coffer.Capacity)
         {
@@ -3082,20 +3087,13 @@ public class DoodadManager : Singleton<DoodadManager>
 
     public static bool CloseCofferDoodad(Character character, uint objId)
     {
-        var doodad = WorldManager.Instance.GetDoodad(objId);
+        var doodad = character.ParentWorld.GetDoodad(objId);
         if (doodad is not DoodadCoffer coffer)
         {
+            SusManager.Instance.LogActivity(SusManager.CategoryCheating, character, $"{character.Name} tried to close doodad {objId} as a Coffer");
             return false;
         }
 
-        // Used for GM commands
-        if (character is null)
-        {
-            coffer.OpenedBy = null;
-            return true;
-        }
-
-        // Only the person who opened it, can close it
         if (coffer.OpenedBy is not null && coffer.OpenedBy.Id != character.Id)
         {
             return false;

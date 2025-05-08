@@ -34,7 +34,7 @@ public class TestTracker : ICommand
         GameObject targetObject = character.CurrentTarget;
         if (args.Length > 0 && uint.TryParse(args[0], out var targetObjIdVal))
         {
-            targetObject = WorldManager.Instance.GetGameObject(targetObjIdVal);
+            targetObject = character.ParentWorld.GetGameObject(targetObjIdVal);
         }
 
         if (targetObject != null && targetObject.Transform != null)

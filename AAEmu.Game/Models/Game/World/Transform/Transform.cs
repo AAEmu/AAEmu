@@ -21,9 +21,8 @@ namespace AAEmu.Game.Models.Game.World.Transform;
 public class Transform : IDisposable
 {
     private GameObject _owningObject;
-    private uint _worldId = WorldManager.DefaultWorldTemplateId;
-    private uint _instanceId = WorldManager.DefaultInstanceId;
-    private uint _zoneId = 0;
+    private uint _instanceId = uint.MaxValue;
+    private uint _zoneId;
     private PositionAndRotation _localPosRot;
     private Transform _parentTransform;
     private List<Transform> _children;
@@ -33,7 +32,8 @@ public class Transform : IDisposable
     private DateTime _lastFinalizeTime;
     private float _skipCheckTime;
     public List<Character> _debugTrackers;
-    private object _lock = new();
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
+    private readonly object _lock = new();
 
     /// <summary>
     /// Parent Transform this Transform is attached to, leave null for World
@@ -50,19 +50,36 @@ public class Transform : IDisposable
     /// Used for ladders on ships for example, only updates children if FinalizeTransform() is called
     /// FinalizeTransform takes the delta from previous call to calculate the delta movement
     /// </summary>
-    public List<Transform> StickyChildren { get => _stickyChildren; }
+    private List<Transform> StickyChildren { get => _stickyChildren; }
     /// <summary>
     /// The GameObject this Transform is attached to
     /// </summary>
     public GameObject GameObject { get => _owningObject; }
+
     /// <summary>
     /// WorldTemplateId
     /// </summary>
-    public uint WorldId { get => _worldId; set => _worldId = value; }
+    public uint WorldId { get; private set; } = WorldManager.DefaultWorldTemplateId;
+
     /// <summary>
     /// WorldInstanceId
     /// </summary>
-    public uint InstanceId { get => _instanceId; set => _instanceId = value; }
+    public uint InstanceId
+    {
+        get => _instanceId;
+        set
+        {
+            if (value != _instanceId)
+            {
+                _instanceId = value;
+                if (GameObject != null)
+                {
+                    GameObject.ParentWorld = WorldManager.Instance.GetWorld(value);
+                    WorldId = GameObject.ParentWorld?.Template?.Id ?? WorldManager.DefaultWorldTemplateId;
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Zone ID (Key)
@@ -135,32 +152,32 @@ public class Transform : IDisposable
         Local.Rotation = rotation;
     }
 
-    public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float roll, float pitch, float yaw)
+    public Transform(GameObject owningObject, Transform parentTransform, uint zoneId, uint instanceId, float posX, float posY, float posZ, float roll, float pitch, float yaw)
     {
         InternalInitializeTransform(owningObject, parentTransform, null);
-        WorldId = worldId;
-        ZoneId = zoneId;
         InstanceId = instanceId;
+        // WorldId = worldId;
+        ZoneId = zoneId;
         Local.Position = new Vector3(posX, posY, posZ);
         Local.Rotation = new Vector3(roll, pitch, yaw);
     }
 
-    public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw)
+    public Transform(GameObject owningObject, Transform parentTransform, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw)
     {
         InternalInitializeTransform(owningObject, parentTransform, null);
-        WorldId = worldId;
-        ZoneId = zoneId;
         InstanceId = instanceId;
+        // WorldId = worldId;
+        ZoneId = zoneId;
         Local.Position = new Vector3(posX, posY, posZ);
         Local.Rotation = new Vector3(0f, 0f, yaw);
     }
 
-    public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PositionAndRotation posRot)
+    public Transform(GameObject owningObject, Transform parentTransform, uint zoneId, uint instanceId, PositionAndRotation posRot)
     {
         InternalInitializeTransform(owningObject, parentTransform, null);
-        WorldId = worldId;
-        ZoneId = zoneId;
         InstanceId = instanceId;
+        // WorldId = worldId;
+        ZoneId = zoneId;
         _localPosRot = new PositionAndRotation(posRot.Position, posRot.Rotation);
     }
 
@@ -170,7 +187,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public Transform Clone()
     {
-        return new Transform(_owningObject, _parentTransform, WorldId, ZoneId, InstanceId, _localPosRot);
+        return new Transform(_owningObject, _parentTransform, ZoneId, InstanceId, _localPosRot);
     }
 
     /// <summary>
@@ -180,7 +197,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public Transform Clone(GameObject newOwner)
     {
-        return new Transform(newOwner, _parentTransform, WorldId, ZoneId, InstanceId, _localPosRot);
+        return new Transform(newOwner, _parentTransform, ZoneId, InstanceId, _localPosRot);
     }
 
     /// <summary>
@@ -189,7 +206,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public Transform CloneDetached()
     {
-        return new Transform(null, null, WorldId, ZoneId, InstanceId, GetWorldPosition());
+        return new Transform(null, null, ZoneId, InstanceId, GetWorldPosition());
     }
 
     /// <summary>
@@ -199,7 +216,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public Transform CloneDetached(GameObject newOwner)
     {
-        return new Transform(newOwner, null, WorldId, ZoneId, InstanceId, GetWorldPosition());
+        return new Transform(newOwner, null, ZoneId, InstanceId, GetWorldPosition());
     }
 
     /// <summary>
@@ -210,7 +227,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public Transform CloneAttached(GameObject childObject)
     {
-        return new Transform(childObject, this, WorldId, ZoneId, InstanceId, new PositionAndRotation());
+        return new Transform(childObject, this, ZoneId, InstanceId, new PositionAndRotation());
     }
 
     /// <summary>
@@ -249,7 +266,7 @@ public class Transform : IDisposable
     }
 
     /// <summary>
-    /// Detaches this Transform from it's Parent, and detaches all it's children.
+    /// Detaches this Transform from its Parent, and detaches all it's children.
     /// Children get their World Transform as Local
     /// </summary>
     public void DetachAll(bool keepStickyParent = false)
@@ -266,7 +283,7 @@ public class Transform : IDisposable
     /// Assigns a new Parent Transform, automatically handles related child Transforms
     /// </summary>
     /// <param name="parent"></param>
-    protected void SetParent(Transform parent)
+    private void SetParent(Transform parent)
     {
         if (_parentTransform == parent) return;
         lock (_lock)
@@ -374,10 +391,10 @@ public class Transform : IDisposable
     public void ApplyWorldSpawnPosition(WorldSpawnPosition wsp, uint newInstanceId = 0, bool keepStickyParent = false)
     {
         DetachAll(keepStickyParent);
-        WorldId = wsp.WorldId;
-        ZoneId = wsp.ZoneId;
         if (newInstanceId != 0)
             InstanceId = newInstanceId;
+        // WorldId = wsp.WorldId;
+        ZoneId = wsp.ZoneId;
         Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
         Local.Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
     }
@@ -400,13 +417,13 @@ public class Transform : IDisposable
         //        /*
         //        character.SendMessage("{0} - Delta: ({2}  {3}  {4}) - {1}",
         //            _owningObject.ObjId,
-        //            (_owningObject is BaseUnit bu) ? bu.Name : "<gameobject>",
+        //            (_owningObject is BaseUnit bUnit) ? bUnit.Name : "<GameObject>",
         //            worldPosDelta.X.ToString("F1"),worldPosDelta.Y.ToString("F1"),worldPosDelta.Z.ToString("F1"));
         //        */
         //        /*
         //        character.SendMessage("["+DateTime.UtcNow.ToString("HH:mm:ss") + "] {0} - ZoneKey: {2} Region: ({3} {4}) - {1}",
         //            _owningObject.ObjId,
-        //            (_owningObject is BaseUnit bu) ? bu.Name : "<gameobject>",
+        //            (_owningObject is BaseUnit bUnit) ? bUnit.Name : "<GameObject>",
         //            ZoneId, _owningObject?.Region?.X.ToString() ?? "??", _owningObject?.Region?.Y.ToString() ?? "??");
         //        */
         //    }
@@ -449,7 +466,7 @@ public class Transform : IDisposable
                 // Related to object we're sticking to
                 // First 13 bits is for vertical offset (Z)
                 // Next 8 bits is for horizontal offset (Y?)
-                // upper 8 bits is 0x7F when sticking to a vine or ladder, this might possibly be the depth (X?)
+                // upper 8 bits is 0x7F when sticking to a vine or ladder, this could possibly be the depth (X?)
                 mt.GcId = 0; 
                 stickyChild.GameObject.BroadcastPacket(
                     new SCOneUnitMovementPacket(stickyChild.GameObject.ObjId, mt),
@@ -466,10 +483,10 @@ public class Transform : IDisposable
 
         if (_owningObject is Slave slave)
         {
-            foreach (var dood in slave.AttachedDoodads)
-                WorldManager.Instance.AddVisibleObject(dood);
-            foreach (var chld in slave.AttachedSlaves)
-                WorldManager.Instance.AddVisibleObject(chld);
+            foreach (var doodad in slave.AttachedDoodads)
+                WorldManager.Instance.AddVisibleObject(doodad);
+            foreach (var child in slave.AttachedSlaves)
+                WorldManager.Instance.AddVisibleObject(child);
         }
 
         if (_owningObject is Transfer transfer)
@@ -483,13 +500,13 @@ public class Transform : IDisposable
                     attachedCharacter.Transform.StickyParent = transfer.Transform;
                     WorldManager.Instance.AddVisibleObject(attachedCharacter);
 
-                    var mate = MateManager.Instance.GetActiveMate(attachedCharacter.ObjId);
-                    if (mate != null)
+                    var mateList = attachedCharacter.ParentWorld.MateManager.GetActiveMates(attachedCharacter.Id);
+                    foreach(var mate in mateList)
                         WorldManager.Instance.AddVisibleObject(mate);
                 }
             }
         }
-        if (_owningObject is Units.Mate pet && pet.OwnerObjId > 0)
+        if (_owningObject is Units.Mate { OwnerObjId: > 0 } pet)
         {
             var chr = WorldManager.Instance.GetCharacterByObjId(pet.OwnerObjId);
             WorldManager.Instance.AddVisibleObject(chr);
@@ -501,6 +518,7 @@ public class Transform : IDisposable
             {
                 var child = _children[i];
                 if (child != null)
+                    // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                     child.FinalizeTransform(includeChildren);
             }
         }
@@ -537,7 +555,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public override string ToString()
     {
-        return ToFullString(true, false);
+        return ToFullString();//true, false);
     }
     public string ToFullString(bool isFirstInList = true, bool chatFormatted = false)
     {
@@ -546,9 +564,9 @@ public class Transform : IDisposable
         var chatColorYellow = chatFormatted ? "|cFFFFFF00" : "";
         var chatColorRestore = chatFormatted ? "|r" : "";
         var chatLineFeed = chatFormatted ? "\n" : "";
-        var res = string.Empty;
+        var res = "[i" + (_owningObject.ParentWorld?.Id.ToString() ?? "?") + "] ";
         if (isFirstInList && ((_parentTransform != null) || (_stickyParentTransform != null)))
-            res += "[" + chatColorWhite + World.ToString() + chatColorRestore + "] " + chatLineFeed + "=> ";
+            res += "[" + chatColorWhite + World + chatColorRestore + "] " + chatLineFeed + "=> ";
         res += Local.ToString();
         if (_parentTransform != null)
         {
@@ -585,7 +603,7 @@ public class Transform : IDisposable
     /// </summary>
     /// <param name="stickyChild"></param>
     /// <returns>Returns true if successfully attached, or false if already attached or other errors</returns>
-    public bool AttachStickyTransform(Transform stickyChild)
+    private bool AttachStickyTransform(Transform stickyChild)
     {
         // Null-check
         if ((stickyChild == null) || (stickyChild.GameObject == null))
@@ -605,14 +623,14 @@ public class Transform : IDisposable
     /// Detaches child from StickyChildren list, and sets the child's stickyParent to null
     /// </summary>
     /// <param name="stickyChild"></param>
-    public void DetachStickyTransform(Transform stickyChild)
+    private void DetachStickyTransform(Transform stickyChild)
     {
         if (StickyChildren.Contains(stickyChild))
             _stickyChildren.Remove(stickyChild);
         stickyChild._stickyParentTransform = null;
     }
 
-    protected void SetStickyParent(Transform stickyParent)
+    private void SetStickyParent(Transform stickyParent)
     {
         if (_stickyParentTransform == stickyParent) return;
 
@@ -678,9 +696,9 @@ public class Transform : IDisposable
     public void ApplyWorldTransformToLocalPosition(Transform sourceTransform, uint newInstanceId = 0, bool keepStickyParent = false)
     {
         DetachAll(keepStickyParent);
-        WorldId = sourceTransform.WorldId;
-        ZoneId = sourceTransform.ZoneId;
         InstanceId = newInstanceId != 0 ? newInstanceId : sourceTransform.InstanceId;
+        // WorldId = sourceTransform.WorldId;
+        ZoneId = sourceTransform.ZoneId;
         Local.Position = new Vector3(sourceTransform.World.Position.X, sourceTransform.World.Position.Y, sourceTransform.World.Position.Z);
         Local.Rotation = new Vector3(sourceTransform.World.Rotation.X, sourceTransform.World.Rotation.Y, sourceTransform.World.Rotation.Z);
     }

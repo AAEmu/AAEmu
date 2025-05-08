@@ -23,7 +23,6 @@ public sealed class Shipyard : Unit
 
     public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Shipyard;
     public override BaseUnitType BaseUnitType => BaseUnitType.Shipyard;
-    public override UnitCustomModelParams ModelParams { get; set; }
     public ShipyardData ShipyardData { get; set; }
     public ShipyardsTemplate Template
     {
@@ -72,7 +71,6 @@ public sealed class Shipyard : Unit
 
     public Shipyard()
     {
-        ModelParams = new UnitCustomModelParams();
         IsDirty = true;
         Events.OnDeath += OnDeath;
     }

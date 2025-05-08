@@ -4,18 +4,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSDespawnSlavePacket : GamePacket
+public class CSDespawnSlavePacket() : GamePacket(CSOffsets.CSDespawnSlavePacket, 1)
 {
-    public CSDespawnSlavePacket() : base(CSOffsets.CSDespawnSlavePacket, 1)
-    {
-        //
-    }
-
     public override void Read(PacketStream stream)
     {
         var slaveObjId = stream.ReadBc();
 
         // Logger.Debug($"DespawnSlave, SlaveObjId: {slaveObjId}");
-        SlaveManager.Instance.Delete(Connection.ActiveChar, slaveObjId, false);
+        Connection.ActiveChar.ParentWorld.SlaveManager.Delete(Connection.ActiveChar, slaveObjId, false);
     }
 }

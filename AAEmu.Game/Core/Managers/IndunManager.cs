@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Zones;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -18,21 +19,16 @@ public class IndunManager : Singleton<IndunManager>
 {
     private static Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<Team, List<Dungeon>> _teamDungeons;
-    private Dictionary<uint, Dungeon> _soloDungeons;
-    private Dictionary<uint, Dungeon> _sysDungeons;
     private Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - использовано попыток прохождения данжона
     private const int FreeAttempts = 3;  // свободных попыток
     // Unused private const int ExtraAttempts = 2; // дополнительных попыток
     private Dictionary<uint, Dictionary<uint, bool>> _waitingDungeonAccessAttemptsCleared; // <ownerId, <zoneGroupId, waiting>>, откат 4 часа, + еще 4 часа, если израсходовали дополнительные попытки
 
-    private object _lock = new();
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
+    private readonly object _lock = new();
 
     public void Initialize()
     {
-        _teamDungeons = [];
-        _soloDungeons = [];
-        _sysDungeons = [];
         TickManager.Instance.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(10), true);
         _attempts ??= [];
         _waitingDungeonAccessAttemptsCleared ??= [];
@@ -40,36 +36,60 @@ public class IndunManager : Singleton<IndunManager>
 
     private void IndunInfoTick(TimeSpan delta)
     {
-        if (_teamDungeons is { Count: > 0 })
+        var sysInstanceCount = 0;
+        var dungeonInstanceCount = 0;
+        var worldList = WorldManager.Instance.GetWorlds().ToList();
+
+        // Count dungeons
+        foreach (var worldInstance in worldList)
         {
-            Logger.Info($"Team dungeons: {_teamDungeons.Count}");
-        }
-        if (_soloDungeons is { Count: > 0 })
-        {
-            Logger.Info($"Solo dungeons: {_soloDungeons.Count}");
-        }
-        if (_sysDungeons is { Count: > 0 })
-        {
-            Logger.Info($"Sys dungeons: {_sysDungeons.Count}");
-        }
-        foreach (var td in _teamDungeons)
-        {
-            Logger.Info($"Team dungeon: team Id={td.Key.Id}, member counts={td.Key.MembersCount()}:");
-            foreach (var dungeon in td.Value)
+            if (worldInstance.DungeonInstance != null)
             {
-                Logger.Info($"- {dungeon.GetPlayerCount()} players in dungeon Id={dungeon.GetDungeonWorldId()}");
+                if (worldInstance.DungeonInstance.IsSystem)
+                {
+                    sysInstanceCount++;
+                }
+                else
+                {
+                    dungeonInstanceCount++;
+                }
             }
         }
-        foreach (var sd in _soloDungeons)
+
+        if (sysInstanceCount + dungeonInstanceCount <= 0)
+            return;
+        
+        Logger.Info($"Active Instances: {sysInstanceCount} system instance(s), {dungeonInstanceCount} dungeon(s)");
+
+        if (dungeonInstanceCount <= 0)
+            return;
+
+        // enumerate dungeon info
+        foreach (var worldInstance in worldList)
         {
-            Logger.Info($"Solo dungeon for char Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
-        }
-        foreach (var sd in _sysDungeons)
-        {
-            Logger.Info($"Sys dungeon for zone Id={sd.Key}: {sd.Value.GetPlayerCount()} player in dungeon Id={sd.Value.GetDungeonWorldId()}");
+            if (worldInstance.DungeonInstance != null)
+            {
+                Logger.Debug($"{worldInstance} - used by {worldInstance.GetCharacterCount()}/{worldInstance.DungeonInstance.PlayersWithAccess.Count} player(s): {worldInstance.ListPlayerNames(10)}");
+                if (worldInstance.DungeonInstance.IsExpired)
+                {
+                    Logger.Warn($"Removing expired solo dungeon {worldInstance}");
+                    worldInstance.DungeonInstance.DestroyDungeon();
+                }
+            }
         }
 
         InfoAttempt();
+    }
+
+    /// <summary>
+    /// Checks if the dungeon for a given zone requires a channel select
+    /// </summary>
+    /// <param name="zoneId"></param>
+    /// <returns></returns>
+    public bool InstanceHasChannels(uint zoneId)
+    {
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId);
+        return dungeonZone.SelectChannel;
     }
 
     /// <summary>
@@ -77,9 +97,12 @@ public class IndunManager : Singleton<IndunManager>
     /// </summary>
     /// <param name="character"></param>
     /// <param name="zoneId"></param>
+    /// <param name="channelId"></param>
+    /// <param name="dungeon"></param>
     /// <returns></returns>
-    public bool RequestSysInstance(Character character, uint zoneId)
+    public bool RequestSystemInstance(Character character, uint zoneId, uint channelId, out Dungeon dungeon)
     {
+        dungeon = null;
         // TODO ZoneId=183 - Arche mall
         if (character == null)
         {
@@ -87,15 +110,31 @@ public class IndunManager : Singleton<IndunManager>
             return false;
         }
 
-        var dungeon = CreateSysInstance(character, zoneId);
-        if (dungeon == null)
+        var zone = ZoneManager.Instance.GetZoneById(zoneId);
+        if (zone == null)
         {
+            Logger.Warn($"Requesting non existing system instance for zone {zoneId}, character {character.Name}");
             return false;
         }
 
-        dungeon.AddPlayer(character);
+        foreach (var possibleDungeon in GetExistingDungeonsByZoneKey(zone.ZoneKey))
+        {
+            if (possibleDungeon.World.ChannelId == channelId)
+            {
+                dungeon = possibleDungeon;
+                
+                return dungeon.QueuePlayer(character);
+            }
+        }
 
-        return true;
+        dungeon = CreateSystemInstance(character, zone.ZoneKey, channelId);
+        if (dungeon == null)
+        {
+            Logger.Error($"Failed to create system instance for zoneId {zoneId}, channel: {channelId}, character {character.Name}");
+            return false;
+        }
+
+        return dungeon.QueuePlayer(character);
     }
 
     /// <summary>
@@ -103,378 +142,341 @@ public class IndunManager : Singleton<IndunManager>
     /// </summary>
     /// <param name="character"></param>
     /// <param name="zoneId"></param>
+    /// <param name="channelId"></param>
     /// <returns></returns>
-    public bool RequestInstance(Character character, uint zoneId)
+    public bool RequestDungeonInstance(Character character, uint zoneId, uint channelId)
     {
         if (character == null)
         {
-            Logger.Info("[IndunManager] Player offline.");
+            Logger.Info($"Player requested a dungeon, but is now offline.");
+            return false;
+        }
+        var team = TeamManager.Instance.GetTeamByObjId(character.ObjId);
+        var zone = ZoneManager.Instance.GetZoneById(zoneId);
+
+        // Check valid zone/dungeon
+        var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(zone.ZoneKey);
+        if (worldTemplate == null)
+        {
+            // Non-existing dungeon zone
             return false;
         }
 
-        if (character.InParty)
+        var targetZone = ZoneManager.Instance.GetZoneById(zoneId);
+        if (targetZone == null)
         {
-            var team = TeamManager.Instance.GetTeamByObjId(character.ObjId);
-            if (team == null)
-            {
-                Logger.Info("[IndunManager] There is no such member on the team.");
-                character.SendErrorMessage(ErrorMessageType.TeamNoSuchMember);
-                return false;
-            }
+            // Key does not match any zone
+            return false;
+        }
+        
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(targetZone.GroupId);
+        if (dungeonZone == null)
+        {
+            // Not a dungeon
+            return false;
+        }
 
-            _teamDungeons.TryGetValue(team, out var teamDungeons);
-            if (teamDungeons != null)
+        // Check level (or other stat) requirements
+        if (!VerifyDungeonEnterRequirements(dungeonZone, character, team))
+        {
+            return false;
+        }
+
+        // TODO: Create helper function to "find" instances that other party members belong to
+
+        // TODO: 1 - Check if player is already a member of a active dungeon in this zone and re-enter it if they are
+        var possibleTargetInstances = GetExistingDungeonsByZoneKey(targetZone.ZoneKey);
+        foreach (var possibleTargetInstance in possibleTargetInstances)
+        {
+            // If queued for this dungeon, let them wait
+            if (possibleTargetInstance.EnterRequests.Contains(character))
             {
-                foreach (var instance in teamDungeons)
+                // Already queued, please wait
+                character.SendErrorMessage(ErrorMessageType.TryLaterInstance); // probably not a good error for this
+                return true;
+            }
+            // If they were already in there, add them again (probably after disconnect)
+            if (possibleTargetInstance.World.HasCharacter(character.Id))
+            {
+                possibleTargetInstance.AddPlayer(character);
+                return true;
+            }
+            // If they were already had access before, add them to queue (again)
+            if (possibleTargetInstance.PlayersWithAccess.Contains(character.Id))
+            {
+                // Return queue if not full yet
+                if (possibleTargetInstance.World.GetCharacterCount() > possibleTargetInstance._indunZone.MaxPlayers)
                 {
-                    if (instance?._indunZone?.ZoneGroupId != ZoneManager.Instance.GetZoneById(zoneId)?.GroupId)
-                    {
-                        continue;
-                    }
-
-                    // так как уже израсходовали предмет на создание данжона, то более не проверяем
-                    //if (instance?._indunZone is { ItemRequired: > 0 } && !PortalManager.CheckItemAndRemove(character, instance._indunZone.ItemRequired, 1))
-                    //{
-                    //    Logger.Info(
-                    //        "[IndunManager] There is not the right item in the Inventory to visit the area.");
-                    //    character.SendErrorMessage(ErrorMessageType.EnterInstReqItem);
-                    //    return false;
-                    //}
-
-                    if (!(character.Level >= instance?._indunZone?.LevelMin && character.Level <= instance._indunZone?.LevelMax))
-                    {
-                        Logger.Info("[IndunManager] Not the right level of character to visit the area.");
-                        character.SendErrorMessage(ErrorMessageType.InstanceLevel);
-                        return false;
-                    }
-
-                    if (instance.IsFull)
-                    {
-                        Logger.Info("[IndunManager] There is no place for you in this area.");
-                        character.SendErrorMessage(ErrorMessageType.InstanceQuota);
-                        return false;
-                    }
-
-                    instance.AddPlayer(character);
-                    return true;
+                    character.SendErrorMessage(ErrorMessageType.InstanceQuota); // Too many users are currently in the dungeon
+                    return false;
                 }
+                
+                return possibleTargetInstance.QueuePlayer(character);
             }
-
-            Logger.Info("[IndunManager] New team requesting instance.");
-            return CreateTeamInstance(team, character, zoneId);
-
-            //Logger.Info("[IndunManager] No instance in server resources.");
-            //character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
-            //return false;
         }
 
-        _soloDungeons.TryGetValue(character.Id, out var dungeon);
-        if (dungeon == null)
+        // TODO: 2 - Check if party/raid leader is a member of the requested dungeon, if so, join their instance
+        // TODO: 3 - Check if non-party/raid leader is a member of the requested dungeon, if so, join their instance
+        if (dungeonZone.PartyOnly) // Only if dungeon requires party
         {
-            return CreateSoloInstance(character, zoneId);
+            foreach (var possibleTargetInstance in possibleTargetInstances)
+            {
+                if (!possibleTargetInstance.PlayerInSameTeam(character))
+                    continue;
+                
+                // Join your team's dungeon (if enough room)
+                if (possibleTargetInstance.IsFull)
+                {
+                    character.SendErrorMessage(ErrorMessageType.InstanceQuota); // Too many users are currently in the dungeon
+                    return false;
+                }
+                
+                return possibleTargetInstance.QueuePlayer(character);
+            }
         }
 
-        if (dungeon._indunZone?.ZoneGroupId != ZoneManager.Instance.GetZoneById(zoneId)?.GroupId)
+        // TODO: 4 - If none of the above applies, actually create a new dungeon
+        Logger.Info($"Creating a new dungeon for player {character.Name} ({character.Id}), zone: {dungeonZone}, channel: {channelId}");
+        if (!CreateDungeonInstance(dungeonZone, character, channelId, out var dungeon))
         {
-            Logger.Info("[IndunManager] Solo dungeon request on different area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.ProhibitedInInstance);
-            RequestDeletion(character, dungeon);
             return false;
         }
 
-        if (dungeon._indunZone?.PartyRequired == true)
+        return dungeon.QueuePlayer(character);
+    }
+
+    /// <summary>
+    /// Creates a list of all currently active dungeons that have a given zone
+    /// </summary>
+    /// <param name="zoneKey">Required Zone Key for the dungeons</param>
+    /// <returns></returns>
+    private List<Dungeon> GetExistingDungeonsByZoneKey(uint zoneKey)
+    {
+        var res = new List<Dungeon>();
+        foreach (var worldInstance in WorldManager.Instance.GetWorlds())
         {
-            Logger.Info("[IndunManager] It is required to be in the party to visit this area. Deleting saved solo dungeon.");
+            if (worldInstance.DungeonInstance == null)
+                continue;
+            if (worldInstance.Template.ZoneKeys.Contains(zoneKey))
+                res.Add(worldInstance.DungeonInstance);
+        }
+        return res;
+    }
+
+    /// <summary>
+    /// Check if the player has the level, items and other requirements to be allowed to enter the given dungeon zone
+    /// </summary>
+    /// <param name="dungeonZone"></param>
+    /// <param name="character"></param>
+    /// <param name="team"></param>
+    /// <returns></returns>
+    private bool VerifyDungeonEnterRequirements(IndunZone dungeonZone, Character character, Team team)
+    {
+        // Check access count
+        if (GetWaitingDungeonAccess(character.Id, dungeonZone.ZoneGroupId))
+        {
+            Logger.Warn($"Requesting instance too many daily entries, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
+            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+            return false;
+        }
+
+        // Check Level requirement
+        if (character.Level < dungeonZone.LevelMin)
+        {
+            Logger.Warn($"Requesting instance level too low ({character.Level} < {dungeonZone.LevelMin}), characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
+            character.SendErrorMessage(ErrorMessageType.InstanceLevel);
+            return false;
+        }
+        if (character.Level > dungeonZone.LevelMax)
+        {
+            Logger.Warn($"Requesting instance level too high ({character.Level} > {dungeonZone.LevelMax}), characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
+            character.SendErrorMessage(ErrorMessageType.InstanceLevel);
+            return false;
+        }
+        
+        // Check party status
+        if (dungeonZone.PartyOnly && team == null)
+        {
+            Logger.Warn($"Requesting instance team required, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
             character.SendErrorMessage(ErrorMessageType.NeedParty);
-            character.SendErrorMessage(ErrorMessageType.CannotFollowNonParty);
-            character.SendErrorMessage(ErrorMessageType.InstanceLeaveParty);
-            RequestDeletion(character, dungeon);
             return false;
         }
-
-        // так как уже израсходовали предмет на создание данжона, то более не проверяем
-        //if (dungeon._indunZone is { ItemRequired: > 0 } && !PortalManager.CheckItemAndRemove(character, dungeon._indunZone.ItemRequired, 1))
-        //{
-        //    Logger.Info("[IndunManager] There is not the right item in the Inventory to visit the area. Deleting saved solo dungeon.");
-        //    character.SendErrorMessage(ErrorMessageType.EnterInstReqItem);
-        //    RequestDeletion(character, dungeon);
-        //    return false;
-        //}
-
-        if (!(character.Level >= dungeon._indunZone?.LevelMin && character.Level <= dungeon._indunZone?.LevelMax))
+        
+        // Check item requirement
+        if (dungeonZone is { ItemId: > 0 } && !PortalManager.CheckItemAndRemove(character, dungeonZone.ItemId, 1))
         {
-            Logger.Info("[IndunManager] Not the right level of character to visit the area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.InstanceLevel);
-            RequestDeletion(character, dungeon);
+            Logger.Info($"[IndunManager] Player does not have the required item to create a new dungeon, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}, item: {dungeonZone.ItemId}");
+            character.SendErrorMessage(ErrorMessageType.EnterInstReqItem, dungeonZone.ItemId);
             return false;
         }
-
-        if (dungeon.IsFull)
-        {
-            Logger.Info("[IndunManager] There is no place for you in this area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.InstanceQuota);
-            RequestDeletion(character, dungeon);
-            return false;
-        }
-
-        Logger.Info("[IndunManager] Solo dungeon matches area.");
-        //character.SendErrorMessage(ErrorMessageType.InstanceInMsgStart);
-        dungeon.AddPlayer(character);
 
         return true;
     }
 
-    private bool CreateTeamInstance(Team team, Character character, uint zoneId)
+    /// <summary>
+    /// Creates a new player created dungeon instance
+    /// </summary>
+    /// <param name="dungeonZone"></param>
+    /// <param name="character"></param>
+    /// <param name="channelId"></param>
+    /// <param name="dungeon"></param>
+    /// <returns></returns>
+    private bool CreateDungeonInstance(IndunZone dungeonZone, Character character, uint channelId, out Dungeon dungeon)
     {
-        Logger.Info($"[IndunManager] Requesting party instance, teamId: {team.Id}");
-        Logger.Info($"[IndunManager] Total dungeons created... Party: {_teamDungeons.Count}... Solo: {_soloDungeons.Count}...");
+        dungeon = null;
 
-        var zoneGroupId = IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId).ZoneGroupId;
-        if (GetWaitingDungeonAccess(character.Id, zoneGroupId))
+        // Check if we have capacity
+        if (WorldManager.Instance.GetWorlds().Length > WorldManager.MaxInstances)
         {
-            Logger.Info("[IndunManager] The team has exhausted its attendance limit for this area.");
-            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+            Logger.Warn($"Requesting a new instance would exceeds the allowed ammount, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
+            character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
+            return false;
+        }
+        
+        var team = TeamManager.Instance.GetTeamByObjId(character.ObjId);
+        Logger.Info($"Requesting instance, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
+
+        // Check requirements such as level, item, etc
+        if (!VerifyDungeonEnterRequirements(dungeonZone, character, team))
+        {
             return false;
         }
 
-        if (_teamDungeons.TryGetValue(team, out var dungeon))
-        {
-            dungeon ??= [];
-        }
-        else
-        {
-            dungeon = [];
-            _teamDungeons.Add(team, dungeon);
-        }
+        // Create the actual dungeon
+        dungeon = new Dungeon(dungeonZone, character, channelId, team);
 
-        var dungeonInstance = new Dungeon(IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId), character, team);
-
-        if (dungeonInstance._indunZone is { ItemRequired: > 0 } && !PortalManager.CheckItemAndRemove(character, dungeonInstance._indunZone.ItemRequired, 1))
-        {
-            Logger.Info("[IndunManager] There is not the right item in the Inventory to visit the area.");
-            character.SendErrorMessage(ErrorMessageType.EnterInstReqItem, dungeonInstance._indunZone.ItemRequired);
-            return false;
-        }
-
-        if (dungeonInstance.IsFull)
-        {
-            Logger.Info("[IndunManager] Not the right level of character to visit the area.");
-            character.SendErrorMessage(ErrorMessageType.InstanceLevel);
-            return false;
-        }
-
-        if (!(character.Level >= dungeonInstance._indunZone?.LevelMin && character.Level <= dungeonInstance._indunZone?.LevelMax))
-        {
-            Logger.Info("[IndunManager] Not the right level of character to visit the area.");
-            character.SendErrorMessage(ErrorMessageType.InstanceLevel);
-            return false;
-        }
-
-        if (!CheckingAttempt(dungeonInstance))
-        {
-            Logger.Info("[IndunManager] The team has exhausted its attendance limit for this area.");
-            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
-            return false;
-        }
-
-        dungeonInstance.AddPlayer(character);
-        dungeon.Add(dungeonInstance);
-        _teamDungeons[team] = dungeon;
-        //character.SendErrorMessage(ErrorMessageType.InstanceInMsgStart);
-
-        return true;
+        // Add creator to queue while dungeon is loading
+        return dungeon.QueuePlayer(character);
     }
 
-    private bool CreateSoloInstance(Character character, uint zoneId)
+    /// <summary>
+    /// Creates and returns a system instance with a given channel
+    /// </summary>
+    /// <param name="character"></param>
+    /// <param name="zoneKey"></param>
+    /// <param name="channelId"></param>
+    /// <param name="overrideInstanceId"></param>
+    /// <param name="fixedInstanceId"></param>
+    /// <returns></returns>
+    public Dungeon CreateSystemInstance(Character character, uint zoneKey, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0)
     {
-        Logger.Info($"[IndunManager] Requesting solo instance, characterId: {character.Id}");
-        Logger.Info($"[IndunManager] Total dungeons created... Party: {_teamDungeons.Count}... Solo: {_soloDungeons.Count}...");
+        Logger.Info($"Requesting system instance, zoneKey: {zoneKey}, character: {character?.Name ?? "[SYSTEM]"}, channel: {channelId}, override InstanceId: {(overrideInstanceId ? fixedInstanceId.ToString() : "NO")}");
 
-        var zoneGroupId = IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId).ZoneGroupId;
-        if (GetWaitingDungeonAccess(character.Id, zoneGroupId))
+        var team = character != null ? TeamManager.Instance.GetTeamByObjId(character.ObjId) : null;
+
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneByKey(zoneKey).GroupId);
+        if (dungeonZone == null)
         {
-            Logger.Info("[IndunManager] Solo dungeon has used up its attendance limit.");
-            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
-            return false;
+            Logger.Error($"Requesting invalid system instance: , zoneKey: {zoneKey}, character: {character?.Name ?? "[SYSTEM]"}, channel: {channelId}, override InstanceId: {(overrideInstanceId ? fixedInstanceId.ToString() : "NO")}");
+            return null;
+        }
+        
+        // Check for duplicate system instances
+        foreach (var worldInstance in WorldManager.Instance.GetWorlds())
+        {
+            if (worldInstance.ChannelId == channelId &&
+                worldInstance.DungeonInstance?.GetZoneGroupId == dungeonZone.ZoneGroupId)
+            {
+                // Check requirements such as level, item, etc
+                if (character != null && VerifyDungeonEnterRequirements(dungeonZone, character, team))
+                {
+                    worldInstance.DungeonInstance.QueuePlayer(character);
+                }
+                return worldInstance.DungeonInstance;
+            }
         }
 
-        var dungeon = new Dungeon(IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId), character, null);
-
-        if (dungeon._indunZone?.ZoneGroupId != ZoneManager.Instance.GetZoneById(zoneId)?.GroupId)
+        // Create new system instance
+        var dungeon = new Dungeon(dungeonZone, character, channelId, team, overrideInstanceId, fixedInstanceId)
         {
-            Logger.Info("[IndunManager] Solo dungeon request on different area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.ProhibitedInInstance);
-            RequestDeletion(character, dungeon);
-            return false;
-        }
+            IsSystem = true
+        };
 
-        if (dungeon._indunZone?.PartyRequired == true)
-        {
-            Logger.Info("[IndunManager] It is required to be in the party to visit this area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.NeedParty);
-            //character.SendErrorMessage(ErrorMessageType.CannotFollowNonParty);
-            //character.SendErrorMessage(ErrorMessageType.InstanceLeaveParty);
-            RequestDeletion(character, dungeon);
-            return false;
-        }
-
-        if (dungeon._indunZone is { ItemRequired: > 0 } && !PortalManager.CheckItemAndRemove(character, dungeon._indunZone.ItemRequired, 1))
-        {
-            Logger.Info("[IndunManager] There is not the right item in the Inventory to visit the area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.EnterInstReqItem, dungeon._indunZone.ItemRequired);
-            RequestDeletion(character, dungeon);
-            return false;
-        }
-
-        if (!(character.Level >= dungeon._indunZone?.LevelMin && character.Level <= dungeon._indunZone?.LevelMax))
-        {
-            RequestDeletion(character, dungeon);
-            Logger.Info("[IndunManager] Not the right level of character to visit the area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.InstanceLevel);
-            return false;
-        }
-
-        if (dungeon.IsFull)
-        {
-            RequestDeletion(character, dungeon);
-            Logger.Info("[IndunManager] There is no place for you in this area. Deleting saved solo dungeon.");
-            character.SendErrorMessage(ErrorMessageType.InstanceQuota);
-            return false;
-        }
-
-        if (!CheckingAttempt(dungeon))
-        {
-            Logger.Info("[IndunManager] Solo dungeon has used up its attendance limit.");
-            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
-            RequestDeletion(character, dungeon);
-            return false;
-        }
-
-        dungeon.AddPlayer(character);
-        _soloDungeons?.Add(character.Id, dungeon);
-        //character.SendErrorMessage(ErrorMessageType.InstanceInMsgStart);
-
-        return true;
-    }
-
-    private Dungeon CreateSysInstance(Character character, uint zoneId)
-    {
-        Logger.Info($"[IndunManager] Requesting system instance, characterId: {character.Id}");
-        Logger.Info($"[IndunManager] Total dungeons created: Party={_teamDungeons.Count}, Solo={_soloDungeons.Count}, Sys={_sysDungeons.Count}");
-
-        // If there was no instance, let's create one
-        if (!_sysDungeons.TryGetValue(zoneId, out var dungeon))
-        {
-            dungeon = new Dungeon(IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId), character);
-            _sysDungeons.Add(zoneId, dungeon);
-        }
-
-        if (dungeon?._indunZone?.ZoneGroupId != ZoneManager.Instance.GetZoneById(zoneId)?.GroupId)
+        // Check if zones match
+        if (dungeonZone.ZoneGroupId != ZoneManager.Instance.GetZoneByKey(zoneKey)?.GroupId)
         {
             Logger.Info("[IndunManager] system dungeon request on different area.");
-            character.SendErrorMessage(ErrorMessageType.ProhibitedInInstance);
+            character?.SendErrorMessage(ErrorMessageType.ProhibitedInInstance);
             return null;
         }
 
-        if (!(character.Level >= dungeon?._indunZone?.LevelMin && character.Level <= dungeon._indunZone?.LevelMax))
+        // Check requirements such as level, item, etc
+        if (character != null && VerifyDungeonEnterRequirements(dungeon._indunZone, character, team))
         {
-            Logger.Info("[IndunManager] Not the right level of character to visit the area.");
-            character.SendErrorMessage(ErrorMessageType.InstanceLevel);
-            return null;
-        }
-
-        if (dungeon.IsFull)
-        {
-            Logger.Info("[IndunManager] There is no place for you in this area.");
-            character.SendErrorMessage(ErrorMessageType.InstanceQuota);
-            return null;
+            dungeon.QueuePlayer(character);
         }
 
         return dungeon;
     }
 
-    public bool RequestDeletion(Character character, Dungeon dungeon)
+    /// <summary>
+    /// Player requesting to remove dungeon with a given zone
+    /// </summary>
+    /// <param name="character"></param>
+    /// <param name="zone"></param>
+    /// <returns></returns>
+    public bool RequestDeletion(Character character, Zone zone)
     {
-        if (character == null) { return false; }
-        if (dungeon == null)
+        if (character == null)
+        {
+            return false;
+        }
+        if (zone == null)
         {
             character.SendErrorMessage(ErrorMessageType.AlreadyUnboundInstance);
             return false;
         }
-        if (dungeon.IsSystem) { return false; } // do not delete system dungeons
-        if (character.InParty) { return false; }// dungeon for the team will not be deleted.
-        if (!dungeon.DestroySoloDungeon(character, dungeon)) { return false; }
-        _soloDungeons.Remove(character.Id);
 
+        var removedCount = 0;
+        var dungeons = GetExistingDungeonsByZoneKey(zone.ZoneKey);
+        foreach (var dungeon in dungeons)
+        {
+            if (dungeon.IsSystem)
+                continue;
+
+            if (!dungeon.PlayersWithAccess.Contains(character.Id))
+                continue;
+
+            // Remove player's own access flag
+            dungeon.PlayersWithAccess.Remove(character.Id);
+            removedCount++;
+
+            // If nobody has access anymore, remove the dungeon
+            if (dungeon.PlayersWithAccess.Count == 0)
+            {
+                dungeon.DestroyDungeon();
+            }
+        }
+
+        if (removedCount <= 0)
+        {
+            character.SendErrorMessage(ErrorMessageType.AlreadyUnboundInstance);
+        }
         return true;
     }
 
-    public bool RequestLeave(Character character)
+    /// <summary>
+    /// Player requesting to leave the dungeon/instance 
+    /// </summary>
+    /// <param name="character"></param>
+    /// <returns></returns>
+    public bool RequestLeaveInstance(Character character)
     {
         if (character == null)
             return false;
-
-        if (character.InParty)
+        
+        // Remove from all possible different types of dungeons
+        // System dungeons (mirage/library)
+        foreach (var worldInstance in WorldManager.Instance.GetWorlds().Where(w => w.HasCharacter(character.Id)))
         {
-            var team = TeamManager.Instance.GetTeamByObjId(character.ObjId);
-            if (!_teamDungeons.TryGetValue(team, out var teamDungeon) || teamDungeon is null)
-            {
-                return false;
-            }
-
-            foreach (var dungeon in teamDungeon)
-            {
-                if (!dungeon.IsPlayerInDungeon(character.Id)) { continue; }
-
-                // событие выхода из TeamDungeon для персонажа
-                character.Events.OnDungeonLeave(dungeon, new OnDungeonLeaveArgs { Player = character });
-                //dungeon.LeaveInstance(character);
-                //character.SendErrorMessage(ErrorMessageType.InstanceInMsgEnd);
-                return true;
-            }
-        }
-
-        foreach (var sysDungeon in _sysDungeons)
-        {
-            if (sysDungeon.Value.IsPlayerInDungeon(character.Id))
-            {
-                character.Events.OnDungeonLeave(sysDungeon, new OnDungeonLeaveArgs { Player = character });
-                return true;
-            }
-        }
-
-        if (!_soloDungeons.TryGetValue(character.Id, out var soloDungeon)) { return false; }
-        if (soloDungeon is null) { return false; }
-
-        // событие выхода из SoloDungeon для персонажа
-        character.Events.OnDungeonLeave(soloDungeon, new OnDungeonLeaveArgs { Player = character });
-        //soloDungeon.LeaveInstance(character);
-        //character.SendErrorMessage(ErrorMessageType.InstanceInMsgEnd);
-
-        return true;
-    }
-
-    public bool RequestSysLeave(Character character)
-    {
-        if (character == null) { return false; }
-
-        foreach (var dungeon in _sysDungeons.Values.Where(dungeon => dungeon.IsPlayerInDungeon(character.Id)))
-        {
-            dungeon.LeaveSysInstance(character);
+            
+            character.Events.OnDungeonLeave(worldInstance, new OnDungeonLeaveArgs { Player = character });
+            // dungeon.LeaveSysInstance(character); // Already called in the OnDungeonLeave event
             return true;
         }
 
+        // No instance found that needs exiting
         return false;
-    }
-
-    public bool SoloToParty(Character character, Team team, Dungeon dungeon)
-    {
-        if (!_soloDungeons.ContainsKey(character.Id)) { return false; }
-        _soloDungeons.Remove(character.Id);
-        var dungeonList = new List<Dungeon> { dungeon };
-        _teamDungeons.Add(team, dungeonList);
-
-        return true;
     }
 
     public static void DoIndunActions(uint startActionId, WorldInstance worldInstance)
@@ -494,35 +496,11 @@ public class IndunManager : Singleton<IndunManager>
         }
     }
 
-    internal Dungeon GetDungeonByWorldId(uint worldId)
-    {
-        foreach (var dungeons in _teamDungeons.Values)
-        {
-            foreach (var dungeon in dungeons.Where(dungeon => dungeon.GetDungeonWorldId() == worldId))
-            {
-                return dungeon;
-            }
-        }
-
-        return _soloDungeons.Values.FirstOrDefault(dungeon => dungeon.GetDungeonWorldId() == worldId);
-    }
-
-    public void RemoveDungeon(Team team)
-    {
-        _teamDungeons.Remove(team);
-    }
-
-    public void SetRoomCleared(uint indunRoomId, WorldInstance worldInstance)
-    {
-        var dungeon = GetDungeonByWorldId(worldInstance.Id);
-        dungeon.SetRoomCleared(indunRoomId);
-    }
-
     public void ClearAttemts(Dungeon dungeon)
     {
         lock (_lock)
         {
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetTeamOwner.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
+            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
             var zoneGroupId = dungeon.GetZoneGroupId;
             if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
             {
@@ -535,7 +513,7 @@ public class IndunManager : Singleton<IndunManager>
     {
         lock (_lock)
         {
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetTeamOwner.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
+            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
             var zoneGroupId = dungeon.GetZoneGroupId;
 
             if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
@@ -588,7 +566,7 @@ public class IndunManager : Singleton<IndunManager>
     {
         lock (_lock)
         {
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetTeamOwner.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
+            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
             var zoneGroupId = dungeon.GetZoneGroupId;
 
             if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
@@ -607,12 +585,12 @@ public class IndunManager : Singleton<IndunManager>
         }
     }
 
-    private bool CheckingAttempt(Dungeon dungeon)
+    public bool CheckingAttempt(Dungeon dungeon)
     {
         lock (_lock)
         {
             var res = false;
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetTeamOwner.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
+            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
             var zoneGroupId = dungeon.GetZoneGroupId;
 
             if (GetWaitingDungeonAccess(dungeon))
@@ -671,18 +649,11 @@ public class IndunManager : Singleton<IndunManager>
                     {
                         foreach (var cd in cds)
                         {
-                            Logger.Info($"For player={attempt.Key}: {cd.Value} attempts in dungeon Id={cd.Key}");
+                            Logger.Debug($"For player={attempt.Key}: {cd.Value} attempts in dungeon attemptId={cd.Key}");
                         }
                     }
                 }
             }
         }
-    }
-
-    public Dungeon GetSoloDungeon(uint characterId)
-    {
-        _soloDungeons.TryGetValue(characterId, out var dungeon);
-
-        return dungeon;
     }
 }

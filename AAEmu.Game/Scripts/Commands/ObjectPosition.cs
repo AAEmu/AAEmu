@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
@@ -35,7 +34,7 @@ public class ObjectPosition : ICommand
 
         if (uint.TryParse(args[0], out var id))
         {
-            var gameObject = WorldManager.Instance.GetGameObject(id);
+            var gameObject = character.ParentWorld.GetGameObject(id);
             if (gameObject != null)
             {
                 var oldX = gameObject.Transform.Local.Position.X;

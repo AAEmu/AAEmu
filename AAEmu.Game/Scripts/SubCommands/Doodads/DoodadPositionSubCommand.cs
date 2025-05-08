@@ -30,8 +30,8 @@ public class DoodadPositionSubCommand : SubCommandBase
     public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         uint doodadObjId = parameters["ObjId"];
-        var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-        if (doodad is null || !(doodad is Doodad))
+        var doodad = ((Character)character).ParentWorld.GetDoodad(doodadObjId);
+        if (doodad is null)
         {
             SendColorMessage(messageOutput, Color.Red, $"Doodad with objId {doodadObjId} Does not exist");
             return;
