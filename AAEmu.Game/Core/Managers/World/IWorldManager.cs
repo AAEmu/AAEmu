@@ -5,5 +5,5 @@ namespace AAEmu.Game.Core.Managers.World;
 public interface IWorldManager
 {
 
-    Npc GetNpcByTemplateId(uint templateId);
+    // Npc GetNpcByTemplateId(uint templateId);
 }

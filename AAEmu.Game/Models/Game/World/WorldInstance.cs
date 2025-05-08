@@ -1,10 +1,17 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -44,7 +51,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// <summary>
     /// Physics handler
     /// </summary>
-    public BoatPhysicsManager Physics { get; set; }
+    public BoatPhysicsManager Physics { get; private set; }
 
     /// <summary>
     /// Water definitions
@@ -56,8 +63,56 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// </summary>
     public WorldEvents Events { get; set; } = new();
 
+    /// <summary>
+    /// Manager for Quest sphere triggers
+    /// </summary>
     public SphereQuestManager SphereQuestManager { get; set; }
 
+    /// <summary>
+    /// List of all GameObjects in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, GameObject> _objects = new();
+
+    /// <summary>
+    /// List of all BaseUnits in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits = new();
+
+    /// <summary>
+    /// List of all Units in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Unit> _units = new();
+
+    /// <summary>
+    /// List of all Doodads in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Doodad> _doodads = new();
+
+    /// <summary>
+    /// List of all Npcs in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Npc> _npcs = new();
+
+    /// <summary>
+    /// List of all Transfers in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Transfer> _transfers = new();
+
+    /// <summary>
+    /// List of all Gimmicks in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks = new();
+
+    /// <summary>
+    /// List of all Slaves in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Slave> _slaves = new();
+
+    /// <summary>
+    /// List of all Mates in this instance
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Units.Mate> _mates = new();
+    
     ~WorldInstance()
     {
         if (!IsFixedInstanceId)
@@ -98,7 +153,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public float GetRawHeightMapHeight(int x, int y)
+    private float GetRawHeightMapHeight(int x, int y)
     {
         // This is the old GetHeight()
         var sx = x / 2;
@@ -207,7 +262,6 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// <summary>
     /// Gets all T GameObjects within a given Cell
     /// </summary>
-    /// <param name="worldId"></param>
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <typeparam name="T"></typeparam>
@@ -257,6 +311,267 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
         if (WaterBodies.Load(customFile, out var newWater))
         {
             Water = newWater;
+        }
+    }
+    
+    /// <summary>
+    /// Get GameObject by its ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public GameObject GetGameObject(uint objId)
+    {
+        return _objects.GetValueOrDefault(objId);
+    }
+
+    /// <summary>
+    /// Get Unit by its ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public BaseUnit GetBaseUnit(uint objId)
+    {
+        return _baseUnits.GetValueOrDefault(objId);
+    }
+
+    /// <summary>
+    /// Get Doodad by its ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public Doodad GetDoodad(uint objId)
+    {
+        return _doodads.GetValueOrDefault(objId);
+    }
+
+    /// <summary>
+    /// Get Doodad by its database Id
+    /// </summary>
+    /// <param name="dbId"></param>
+    /// <returns></returns>
+    public Doodad GetDoodadByDbId(uint dbId)
+    {
+        var ret = _doodads.FirstOrDefault(x => x.Value.DbId == dbId).Value;
+        return ret;
+    }
+
+    /// <summary>
+    /// Get House by its database Id
+    /// </summary>
+    /// <param name="houseDbId"></param>
+    /// <returns></returns>
+    public List<Doodad> GetDoodadByHouseDbId(uint houseDbId)
+    {
+        var ret = _doodads.Where(x => x.Value.OwnerDbId == houseDbId).Select(y => y.Value).ToList();
+        return ret;
+    }
+
+    /// <summary>
+    /// Get Active Unit by ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public Unit GetUnit(uint objId)
+    {
+        return _units.GetValueOrDefault(objId);
+    }
+
+    /// <summary>
+    /// Get active NPC by ObjId
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public Npc GetNpc(uint objId)
+    {
+        return _npcs.GetValueOrDefault(objId);
+    }
+
+    /// <summary>
+    /// Gets the first active NPC with a specific TemplateId
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    public Npc GetNpcByTemplateId(uint templateId)
+    {
+        return _npcs.Values.FirstOrDefault(x => x.TemplateId == templateId);
+    }
+
+    /// <summary>
+    /// Manually assign a Npc to the npc objects list (used for tests only) 
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <param name="npc"></param>
+    internal void SetNpc(uint objId, Npc npc)
+    {
+        _npcs[objId] = npc;
+    }
+
+    /// <summary>
+    /// Adds a GameObject to the list of existing objects on the server
+    /// </summary>
+    /// <param name="obj"></param>
+    public void AddObject(GameObject obj)
+    {
+        if (obj == null)
+            return;
+
+        _objects.TryAdd(obj.ObjId, obj);
+
+        if (obj is BaseUnit baseUnit)
+            _baseUnits.TryAdd(baseUnit.ObjId, baseUnit);
+        if (obj is Unit unit)
+            _units.TryAdd(unit.ObjId, unit);
+        if (obj is Doodad doodad)
+            _doodads.TryAdd(doodad.ObjId, doodad);
+        if (obj is Npc npc)
+            _npcs.TryAdd(npc.ObjId, npc);
+        if (obj is Character character)
+            WorldManager.Instance.TryAddCharacter(character);
+        if (obj is Transfer transfer)
+            _transfers.TryAdd(transfer.ObjId, transfer);
+        if (obj is Gimmick gimmick)
+            _gimmicks.TryAdd(gimmick.ObjId, gimmick);
+        if (obj is Slave slave)
+            _slaves.TryAdd(slave.ObjId, slave);
+        if (obj is Units.Mate mate)
+            _mates.TryAdd(mate.ObjId, mate);
+    }
+
+    /// <summary>
+    /// Removes a GameObject from the list of "existing" objects on the server
+    /// </summary>
+    /// <param name="objId"></param>
+    /// <returns></returns>
+    public bool RemoveObject(uint objId)
+    {
+        if (objId == 0)
+            return false;
+
+        var res = false;
+
+        if (_objects.TryRemove(objId, out _))
+        {
+            Logger.Debug($"WorldManager: object {objId} removed from _objects");
+            res = true;
+        }
+
+        if (_baseUnits.TryRemove(objId, out _))
+        {
+            Logger.Debug($"WorldManager: object {objId} removed from _baseUnits");
+            res = true;
+        }
+
+        if (_units.TryRemove(objId, out _))
+        {
+            Logger.Debug($"WorldManager: object {objId} removed from _units");
+            res = true;
+        }
+
+        if (_npcs.TryRemove(objId, out _))
+        {
+            Logger.Debug($"WorldManager: object {objId} removed from _npcs");
+            res = true;
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// Removes a GameObject from the list of "existing" objects on the server
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
+    public void RemoveObject(GameObject obj)
+    {
+        if (obj == null)
+            return;
+
+        _objects.TryRemove(obj.ObjId, out _);
+
+        if (obj is BaseUnit)
+            _baseUnits.TryRemove(obj.ObjId, out _);
+        if (obj is Unit)
+            _units.TryRemove(obj.ObjId, out _);
+        if (obj is Doodad)
+            _doodads.TryRemove(obj.ObjId, out _);
+        if (obj is Npc)
+            _npcs.TryRemove(obj.ObjId, out _);
+        if (obj is Character)
+            WorldManager.Instance.TryRemoveCharacter(obj.ObjId);
+        if (obj is Transfer)
+            _transfers.TryRemove(obj.ObjId, out _);
+        if (obj is Gimmick)
+            _gimmicks.TryRemove(obj.ObjId, out _);
+        if (obj is Slave)
+            _slaves.TryRemove(obj.ObjId, out _);
+        if (obj is Units.Mate mate)
+            _mates.TryRemove(mate.ObjId, out _);
+    }
+
+    /// <summary>
+    /// Gets list of all NPCs in this instance
+    /// </summary>
+    /// <returns></returns>
+    public List<Npc> GetAllNpcs()
+    {
+        return _npcs.Values.ToList();
+    }
+
+
+    public List<Slave> GetAllSlaves()
+    {
+        return _slaves.Values.ToList();
+    }
+
+    public List<Units.Mate> GetAllMates()
+    {
+        return _mates.Values.ToList();
+    }
+
+    public List<Doodad> GetAllDoodads()
+    {
+        return _doodads.Values.ToList();
+    }
+
+    public List<Gimmick> GetAllGimmicks()
+    {
+        return _gimmicks.Values.ToList();
+    }
+
+    /// <summary>
+    /// Get a list of NPCs that have loot and are past the "make public" time
+    /// </summary>
+    /// <returns></returns>
+    public HashSet<Npc> GetNpcsToMakePublicLooting()
+    {
+        HashSet<Npc> temp;
+        lock (_npcs)
+        {
+            temp = [.. _npcs.Values];
+        }
+
+        var res = new HashSet<Npc>();
+        foreach (var item in temp.Where(item => item.LootingContainer.CanMakePublic()))
+            res.Add(item);
+        return res;
+    }
+    
+
+    /// <summary>
+    /// Handle "is still in combat" related things
+    /// </summary>
+    /// <param name="unit"></param>
+    private static void CombatTick(Unit unit)
+    {
+        // TODO: Make it so you can also become out of combat if you are not on any aggro lists
+        if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(WorldManager.DefaultCombatTimeout) < DateTime.UtcNow)
+        {
+            unit.IsInBattle = false;
+        }
+
+        if ((unit is Character { IsInPostCast: true } character) && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
+        {
+            character.IsInPostCast = false;
         }
     }
 }

@@ -196,6 +196,7 @@ public sealed class GameService : IHostedService, IDisposable
         WorldManager.Instance.CreateStaticInstances();
         
         // TODO: Move all spawns to WorldInstance
+        move spawning
         var spawnSw = new Stopwatch();
         Logger.Info("Spawning units...");
         spawnSw.Start();
