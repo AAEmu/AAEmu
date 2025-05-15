@@ -2,6 +2,7 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/AAEmu/AAEmu/badge.svg?branch=develop)](https://coveralls.io/github/AAEmu/AAEmu?branch=develop)
 ![Discord](https://img.shields.io/discord/479677351618281472?color=%235865F2&label=Discord&logo=Discord&logoColor=%23FFFFFF")
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AAEmu/AAEmu)
 
 __Open source server software for ArcheAge written in .Net Core__
 
