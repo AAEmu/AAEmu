@@ -193,7 +193,7 @@ namespace AAEmu.Game.Core.Managers.World
             var xDelta = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
             var yDelta = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
             var zDelta = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
-            if (zDelta < -7)
+            if (zDelta < -3)
             {
                 slaveRigidBody.Position = slaveRigidBody.Position with { Y = slave.Transform.World.Position.Z };
                 zDelta = 0;
@@ -270,18 +270,7 @@ namespace AAEmu.Game.Core.Managers.World
             var isOnWater = submergedDepth > 0;
             var isOnLand = !isOnWater && submergedDepth <= 0;
 
-            if (isOnWater)
-            {
-                // Apply buoyancy and drag forces
-                var buoyancyForce = new JVector(0, submergedDepth * shipModel.Mass * shipModel.WaterDensity * 9.81f, 0);
-                rigidBody.AddForce(buoyancyForce);
-
-                var dragForce = new JVector(-rigidBody.LinearVelocity.X * shipModel.WaterResistance,
-                    -rigidBody.LinearVelocity.Y * shipModel.WaterResistance,
-                    -rigidBody.LinearVelocity.Z * shipModel.WaterResistance);
-                rigidBody.AddForce(dragForce);
-            }
-            else if (isOnLand)
+            if (isOnLand)
             {
                 // Apply ground friction and stop the ship
                 const float GroundFriction = 0.4f; // Sand: around 0.4

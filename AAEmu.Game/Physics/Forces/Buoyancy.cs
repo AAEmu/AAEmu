@@ -56,7 +56,7 @@ public class Buoyancy : ForceGenerator
     public Buoyancy(World world)
         : base(world)
     {
-        Density = 2.0f;
+        Density = 1.025f; // 1025 кг/м³ (seawater density)
         Damping = 0.1f;
         Flow = JVector.Zero;
     }
@@ -200,7 +200,7 @@ public class Buoyancy : ForceGenerator
                     if (containsCoord)
                     {
                         body.AddForce((1.0f / positions.Length) * body.Mass * Flow);
-                        body.AddForce(-(1.0f / positions.Length) * body.Shape.Mass * Density * world.Gravity, currentCoord);
+                        body.AddForce(-(1.0f / positions.Length) * body.Mass * Density * world.Gravity, currentCoord);
                         frac += 1.0f / positions.Length;
                     }
                 }
