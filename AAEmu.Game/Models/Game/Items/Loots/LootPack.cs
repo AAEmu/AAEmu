@@ -227,7 +227,7 @@ public class LootPack
                     // Roll each item
                     var requiresDice = (long)Math.Floor(loot.DropRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
                     var dice = (long)Rand.Next(0, 10_000_000);
-                    if (dice < requiresDice)
+                    if ((dice < requiresDice) || loot.AlwaysDrop)
                     {
                         if (!selectedItemsByGroup.ContainsKey(loot.Group))
                             selectedItemsByGroup.Add(loot.Group, []);
@@ -264,7 +264,7 @@ public class LootPack
                         // Non quest items
                         else
                         {
-                            normalizedRate += loot.DropRate;
+                            normalizedRate += loot.AlwaysDrop ? loot.DropRate : 10_000_000;
                             if (!tmpSelectedItemsByGroup.ContainsKey(groupNo))
                                 tmpSelectedItemsByGroup.Add(groupNo, []);
                             tmpSelectedItemsByGroup[groupNo].Add(loot);
