@@ -198,11 +198,29 @@ public class LootingContainer(IBaseUnit owner)
                 var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
                 if (lootPack == null)
                     continue;
-                lootPackResults.AddRange(lootPack.GeneratePackNew(lootDropRate, lootGoldRate, killer as Character, ActabilityType.None, true));
+                lootPackResults.AddRange(lootPack.GeneratePackNewV2(lootDropRate, lootGoldRate, killer as Character, ActabilityType.None, true));
                 // var items = lootPack.GenerateNpcPackItems(ref baseId, killer, lootDropRate, lootGoldRate);
                 // RegisterItems(items);
             }
 
+            // New Loot, i guess both loops can be optimzed....
+            var groups = lootPackResults.GroupBy(x => x.lootGroupOrigin).Select(x => x.Key).ToList();
+            foreach (var group in groups)
+            {
+                var selectByGroup = lootPackResults.Where(x => x.lootGroupOrigin == group).ToList();
+                if (selectByGroup.Count > 0)
+                {
+                    var resultsToAdd = new List<Item>();
+                    foreach (var singleItemInGroup in selectByGroup)
+                    {
+                        var item = ItemManager.Instance.Create(singleItemInGroup.itemId, singleItemInGroup.count, singleItemInGroup.grade, false);
+                        resultsToAdd.Add(item);
+                    }
+                    RegisterItems(resultsToAdd);
+                }
+            }
+
+            /*
             // Make Group list to enumerate with
             var groups = lootPackResults.GroupBy(x => x.lootGroupOrigin).Select(x => x.Key).ToList();
 
@@ -233,6 +251,7 @@ public class LootingContainer(IBaseUnit owner)
 
                 RegisterItems(resultsToAdd);
             }
+            */
 
             if (Items.Count <= 0)
             {

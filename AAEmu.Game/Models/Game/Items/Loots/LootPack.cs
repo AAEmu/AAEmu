@@ -35,7 +35,7 @@ public class LootPack
     {
         var lootDropRate = (100f + player.DropRateMul) / 100f;
         var lootGoldRate = (100f + player.LootGoldMul) / 100f;
-        return GeneratePackNew(lootDropRate, lootGoldRate, player, actabilityType, false);
+        return GeneratePackNewV2(lootDropRate, lootGoldRate, player, actabilityType, false);
     }
 
     /// <summary>
@@ -165,6 +165,143 @@ public class LootPack
         }
 
         // unused _generatedPack = items;
+        return items;
+    }
+
+    /// <summary>
+    /// Generates the contents of a LootPack, in the form of a list of tuples. This list is stored internally
+    /// New experimental version V2
+    /// </summary>
+    /// <param name="lootDropRate">1.0f = 100%</param>
+    /// <param name="lootGoldRate">1.0f = 100% applies to coins item only</param>
+    /// <param name="player">The player the loot is generated for, currently only used to handle exclusions</param>
+    /// <param name="actabilityType">AbilityType used to initiate the loot generation (used to calculate bonus)</param>
+    /// <param name="doNotPreFilter"></param>
+    /// <returns></returns>
+    public List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> GeneratePackNewV2(float lootDropRate, float lootGoldRate, Character player, ActabilityType actabilityType, bool doNotPreFilter)
+    {
+        var items = new List<(uint itemId, int count, byte grade, uint lootGroupOrigin)>();
+
+        foreach (var (groupNo, groupLootList) in LootsByGroupNo)
+        {
+            var group = Groups.Values.FirstOrDefault(g => g.GroupNo == groupNo);
+            // If group is defined, use it's DropRate for calculations
+            var groupRate = group is { DropRate: > 0 } ? group.DropRate / 10_000_000f : 1f;
+
+            var selectedItemsByGroup = new Dictionary<uint, List<Loot>>();
+            // Filter items
+            if (groupNo <= 0)
+            {
+                foreach (var loot in groupLootList)
+                {
+                    // Check if this loot uses ActAbilityGroup dice
+                    var actGroup = ActabilityGroups.Values.FirstOrDefault(g => g.GroupId == loot.Group);
+                    if (actGroup != null)
+                    {
+                        var actDice = (long)Rand.Next(0, 10_000);
+                        // Use generic loot multiplier for the ActGroups ?
+                        actDice = (long)Math.Floor(actDice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
+
+                        var actLevelMultiplier = 1f;
+                        if ((player != null) && (player.Actability.Actabilities.TryGetValue((byte)actabilityType, out var actAbility)))
+                        {
+                            actLevelMultiplier *= actAbility.GetLootMultiplier();
+                        }
+
+                        // TODO: Use MinDice for something as well?
+                        // TODO: Make ActAbility skill level of the player matter
+                        if (actDice * actLevelMultiplier > actGroup.MaxDice)
+                        {
+                            continue;
+                        }
+                    }
+
+                    // Check for Quest loot drops
+                    var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
+                    if (itemTemplate?.LootQuestId > 0)
+                    {
+                        // Skip item if player does not have quest
+                        if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
+                            continue;
+                    }
+
+                    // Roll item
+                    var itemRate = loot.DropRate > 1 ? loot.DropRate / 10_000_000f : 1f;
+                    var requiresDice = (long)Math.Floor(10_000_000f * itemRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
+                    var dice = (long)Rand.Next(0, 10_000_000);
+                    if (dice < requiresDice)
+                    {
+                        if (!selectedItemsByGroup.ContainsKey(loot.Group))
+                            selectedItemsByGroup.Add(loot.Group, []);
+                        selectedItemsByGroup[loot.Group].Add(loot);
+                    }
+                }
+            }
+            else
+            {
+                // Roll group
+                var requiresDice = (long)Math.Floor(10_000_000f * groupRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
+                var dice = (long)Rand.Next(0, 10_000_000);
+                if (dice < requiresDice)
+                {
+                    // Check for questS itemS in group
+                    foreach (var loot in groupLootList)
+                    {
+                        var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
+                        if (itemTemplate?.LootQuestId > 0)
+                        {
+                            // Skip item if player does not have quest
+                            if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
+                                continue;
+                        }
+                        if (!selectedItemsByGroup.ContainsKey(groupNo))
+                            selectedItemsByGroup.Add(groupNo, []);
+                        selectedItemsByGroup[groupNo].Add(loot);
+                    }
+                    // Pre-filter true
+                    if (doNotPreFilter == false)
+                    {
+                        // Success -> Select one random item in group
+                        var rngItem = Random.Shared.Next(groupLootList.Count);
+                        if (!selectedItemsByGroup.ContainsKey(groupNo))
+                            selectedItemsByGroup.Add(groupNo, []);
+                        selectedItemsByGroup[groupNo].Add(groupLootList[rngItem]);
+                    }
+                    // Pre-filter false
+                    else
+                    {
+                        // Add all items in the group
+                        foreach (var loot in groupLootList)
+                        {
+                            if (!selectedItemsByGroup.ContainsKey(groupNo))
+                                selectedItemsByGroup.Add(groupNo, []);
+                            selectedItemsByGroup[groupNo].Add(loot);
+                        }
+                    }
+                }
+            }
+            // No matches found
+            if (selectedItemsByGroup.Count <= 0)
+                continue;
+            // Finalize items loot list
+            foreach (var (groupId, loots) in selectedItemsByGroup)
+            {
+                foreach (var loot in loots)
+                {
+                    // Roll amount
+                    var countToAddNow = Random.Shared.Next(loot.MinAmount, loot.MaxAmount + 1);
+                    // Item Coin
+                    if (loot.ItemId == Item.Coins)
+                        countToAddNow = (int)Math.Round(countToAddNow * lootGoldRate * AppConfiguration.Instance.World.GoldLootMultiplier);
+                    // Choose grade
+                    var generatedGrade = loot.GradeId;
+                    if (group?.ItemGradeDistributionId > 0)
+                        generatedGrade = GetGradeFromDistribution(group.ItemGradeDistributionId);
+                    // Add selected item to final item
+                    items.Add((loot.ItemId, countToAddNow, generatedGrade, loot.Group));
+                }
+            }
+        }
         return items;
     }
 
