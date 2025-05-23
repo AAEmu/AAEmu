@@ -35,7 +35,7 @@ public class LootPack
     {
         var lootDropRate = (100f + player.DropRateMul) / 100f;
         var lootGoldRate = (100f + player.LootGoldMul) / 100f;
-        return GeneratePackNewV2(lootDropRate, lootGoldRate, player, actabilityType, false);
+        return GeneratePackNewV2(lootDropRate, lootGoldRate, player, actabilityType);
     }
 
     /// <summary>
@@ -176,16 +176,15 @@ public class LootPack
     /// <param name="lootGoldRate">1.0f = 100% applies to coins item only</param>
     /// <param name="player">The player the loot is generated for, currently only used to handle exclusions</param>
     /// <param name="actabilityType">AbilityType used to initiate the loot generation (used to calculate bonus)</param>
-    /// <param name="doNotPreFilter"></param>
     /// <returns></returns>
-    public List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> GeneratePackNewV2(float lootDropRate, float lootGoldRate, Character player, ActabilityType actabilityType, bool doNotPreFilter)
+    public List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> GeneratePackNewV2(float lootDropRate, float lootGoldRate, Character player, ActabilityType actabilityType)
     {
         var items = new List<(uint itemId, int count, byte grade, uint lootGroupOrigin)>();
 
         foreach (var (groupNo, groupLootList) in LootsByGroupNo)
         {
             var group = Groups.Values.FirstOrDefault(g => g.GroupNo == groupNo);
-            // If group is defined, use it's DropRate for calculations
+            // If group is defined, use it's DropRate for group rolls
             var groupRate = group is { DropRate: > 0 } ? group.DropRate / 10_000_000f : 1f;
 
             var selectedItemsByGroup = new Dictionary<uint, List<Loot>>();
@@ -225,9 +224,8 @@ public class LootPack
                             continue;
                     }
 
-                    // Roll item
-                    var itemRate = loot.DropRate > 1 ? loot.DropRate / 10_000_000f : 1f;
-                    var requiresDice = (long)Math.Floor(10_000_000f * itemRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
+                    // Roll each item
+                    var requiresDice = (long)Math.Floor(loot.DropRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
                     var dice = (long)Rand.Next(0, 10_000_000);
                     if (dice < requiresDice)
                     {
@@ -244,40 +242,61 @@ public class LootPack
                 var dice = (long)Rand.Next(0, 10_000_000);
                 if (dice < requiresDice)
                 {
-                    // Check for questS itemS in group
+                    var tmpSelectedItemsByGroup = new Dictionary<uint, List<Loot>>();
+                    var tmpSelectedQuestItemsByGroup = new Dictionary<uint, List<Loot>>();
+                    var normalizedRate = 0u;
+                    // Sort mixed quest / non-quest items
                     foreach (var loot in groupLootList)
                     {
                         var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
+                        // Check for questS itemS in group
                         if (itemTemplate?.LootQuestId > 0)
                         {
-                            // Skip item if player does not have quest
-                            if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
-                                continue;
+                            // Add item if player has quest
+                            if (player.Quests.HasQuest(itemTemplate.LootQuestId))
+                            {
+                                // TODO Add Loot rate for quest items ???
+                                if (!tmpSelectedQuestItemsByGroup.ContainsKey(groupNo))
+                                    tmpSelectedQuestItemsByGroup.Add(groupNo, []);
+                                tmpSelectedQuestItemsByGroup[groupNo].Add(loot);
+                            }
                         }
-                        if (!selectedItemsByGroup.ContainsKey(groupNo))
-                            selectedItemsByGroup.Add(groupNo, []);
-                        selectedItemsByGroup[groupNo].Add(loot);
-                    }
-                    // Pre-filter true
-                    if (doNotPreFilter == false)
-                    {
-                        // Success -> Select one random item in group
-                        var rngItem = Random.Shared.Next(groupLootList.Count);
-                        if (!selectedItemsByGroup.ContainsKey(groupNo))
-                            selectedItemsByGroup.Add(groupNo, []);
-                        selectedItemsByGroup[groupNo].Add(groupLootList[rngItem]);
-                    }
-                    // Pre-filter false
-                    else
-                    {
-                        // Add all items in the group
-                        foreach (var loot in groupLootList)
+                        // Non quest items
+                        else
                         {
-                            if (!selectedItemsByGroup.ContainsKey(groupNo))
-                                selectedItemsByGroup.Add(groupNo, []);
+                            normalizedRate += loot.DropRate;
+                            if (!tmpSelectedItemsByGroup.ContainsKey(groupNo))
+                                tmpSelectedItemsByGroup.Add(groupNo, []);
+                            tmpSelectedItemsByGroup[groupNo].Add(loot);
+                        }
+                    }
+                    // Roll item (from best chance item to lower chance item) with cumulative rate
+                    if (tmpSelectedItemsByGroup.Count > 0)
+                    {
+                        var cumulativeRate = 0f;
+                        var roll = (long)Rand.Next(0, normalizedRate);
+                        foreach (var loot in tmpSelectedItemsByGroup[groupNo])
+                        {
+                            var itemRate = loot.DropRate > 1 ? loot.DropRate / (float)normalizedRate : 1f;
+                            cumulativeRate += (long)Math.Floor((float)normalizedRate * itemRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
+                            if (roll < cumulativeRate)
+                            {
+                                if (!selectedItemsByGroup.ContainsKey(loot.Group))
+                                    selectedItemsByGroup.Add(loot.Group, []);
+                                selectedItemsByGroup[loot.Group].Add(loot);
+                                break;
+                            }
+                        }
+                    }
+                    // Merge quests items in selected items
+                    if (tmpSelectedQuestItemsByGroup.Count > 0)
+                        foreach (var loot in tmpSelectedQuestItemsByGroup[groupNo])
+                        {
+                            // Skip quest item if it was randomly selected
+                            if (selectedItemsByGroup[groupNo].Contains(loot))
+                                continue;
                             selectedItemsByGroup[groupNo].Add(loot);
                         }
-                    }
                 }
             }
             // No matches found

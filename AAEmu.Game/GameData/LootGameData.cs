@@ -39,7 +39,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         // table 'loots'
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT * FROM loots";
+            command.CommandText = "SELECT id, `group`, item_id, CASE WHEN drop_rate > 1 THEN drop_rate WHEN drop_rate <= 1 THEN 10000000 END as drop_rate, min_amount, max_amount, loot_pack_id, grade_id, always_drop FROM loots ORDER BY `group` ASC, loot_pack_id ASC, drop_rate DESC";
             command.Prepare();
             using (var sqliteReader = command.ExecuteReader())
             using (var reader = new SQLiteWrapperReader(sqliteReader))
@@ -72,7 +72,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         // table 'loot_groups'
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT * FROM loot_groups";
+            command.CommandText = "SELECT id, pack_id, group_no, CASE WHEN drop_rate > 1 THEN drop_rate WHEN drop_rate <= 1 THEN 10000000 END as drop_rate, item_grade_distribution_id FROM loot_groups ORDER BY pack_id ASC, group_no ASC, drop_rate DESC";
             command.Prepare();
             using (var sqliteReader = command.ExecuteReader())
             using (var reader = new SQLiteWrapperReader(sqliteReader))
