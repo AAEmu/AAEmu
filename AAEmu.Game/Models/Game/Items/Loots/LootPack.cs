@@ -193,28 +193,6 @@ public class LootPack
             {
                 foreach (var loot in groupLootList)
                 {
-                    // Check if this loot uses ActAbilityGroup dice
-                    var actGroup = ActabilityGroups.Values.FirstOrDefault(g => g.GroupId == loot.Group);
-                    if (actGroup != null)
-                    {
-                        var actDice = (long)Rand.Next(0, 10_000);
-                        // Use generic loot multiplier for the ActGroups ?
-                        actDice = (long)Math.Floor(actDice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
-
-                        var actLevelMultiplier = 1f;
-                        if ((player != null) && (player.Actability.Actabilities.TryGetValue((byte)actabilityType, out var actAbility)))
-                        {
-                            actLevelMultiplier *= actAbility.GetLootMultiplier();
-                        }
-
-                        // TODO: Use MinDice for something as well?
-                        // TODO: Make ActAbility skill level of the player matter
-                        if (actDice * actLevelMultiplier > actGroup.MaxDice)
-                        {
-                            continue;
-                        }
-                    }
-
                     // Check for Quest loot drops
                     var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
                     if (itemTemplate?.LootQuestId > 0)
@@ -264,6 +242,27 @@ public class LootPack
                         // Non quest items
                         else
                         {
+                            // Check if this loot uses ActAbilityGroup dice
+                            var actGroup = ActabilityGroups.Values.FirstOrDefault(g => g.GroupId == loot.Group);
+                            if (actGroup != null)
+                            {
+                                var actDice = (long)Rand.Next(0, 10_000);
+                                // Use generic loot multiplier for the ActGroups ?
+                                actDice = (long)Math.Floor(actDice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
+
+                                var actLevelMultiplier = 1f;
+                                if ((player != null) && (player.Actability.Actabilities.TryGetValue((byte)actabilityType, out var actAbility)))
+                                {
+                                    actLevelMultiplier *= actAbility.GetLootMultiplier();
+                                }
+
+                                // TODO: Use MinDice for something as well?
+                                // TODO: Make ActAbility skill level of the player matter
+                                if (actDice * actLevelMultiplier > actGroup.MaxDice)
+                                {
+                                    continue;
+                                }
+                            }
                             normalizedRate += loot.AlwaysDrop ? loot.DropRate : 10_000_000;
                             if (!tmpSelectedItemsByGroup.ContainsKey(groupNo))
                                 tmpSelectedItemsByGroup.Add(groupNo, []);
