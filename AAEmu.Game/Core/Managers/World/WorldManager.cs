@@ -142,13 +142,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// </summary>
     public const float DefaultCombatTimeout = 15f;
 
-    // TODO: Make maxinstances a config value
-    /// <summary>
-    /// The maximum amount of instances the server is allowed to create. This includes all worlds and system instances.
-    /// Change this according to your server's available resources
-    /// </summary>
-    public const int MaxInstances = 32;
-
     /// <summary>
     /// Called every second and forwards the tick to all live player related objects
     /// </summary>
@@ -335,8 +328,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         MainWorld.SpawnManager.SpawnAll();
 
         // Mirage Island
-        _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName("arche_mall_world").ZoneKeys.First(), 0, true, 1);
-        // TODO: Library floors
+        // _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName("arche_mall_world").ZoneKeys.First(), 0, true, 1);
+
+        // Load initial instances according to config
+        foreach (var dungeonLoadConfig in AppConfiguration.Instance.Dungeons.AutoCreate)
+        {
+            _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName(dungeonLoadConfig.Name).ZoneKeys.First(), dungeonLoadConfig.Channel, true, dungeonLoadConfig.Id);
+        }
     }
 
     /// <summary>

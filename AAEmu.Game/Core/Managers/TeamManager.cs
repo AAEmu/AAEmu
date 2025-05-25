@@ -20,8 +20,8 @@ public class TeamManager : Singleton<TeamManager>
      * RE-DO LEAVE / KICK / DISMISS
      */
 
-    private Dictionary<uint, Team> _activeTeams; // teamId, Team
-    private Dictionary<uint, InvitationTemplate> _activeInvitations; // targetId, InvitationTemplate
+    private Dictionary<uint, Team> _activeTeams = []; // teamId, Team
+    private Dictionary<uint, InvitationTemplate> _activeInvitations = []; // targetId, InvitationTemplate
 
     public Team GetActiveTeamByUnit(uint unitId)
     {
@@ -353,6 +353,7 @@ public class TeamManager : Singleton<TeamManager>
             {
                 target.InParty = false;
                 target.SendPacket(new SCLeavedTeamPacket(teamId, riskyAction == RiskyAction.Kick, false));
+                target.Events?.OnTeamLeave(target, new OnTeamLeaveArgs() { Id = activeTeam.Id, Team = activeTeam, Player = target });
             }
         }
 
@@ -559,8 +560,7 @@ public class TeamManager : Singleton<TeamManager>
 
     public void Load()
     {
-        _activeTeams = [];
-        _activeInvitations = [];
+        // Nothing special to do here
     }
 }
 

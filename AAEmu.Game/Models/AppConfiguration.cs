@@ -23,6 +23,7 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public string DiscordToken { get; set; }
     public ExpeditionConfig Expedition { get; set; }
     public WorldConfig World { get; set; }
+    public DungeonsConfig Dungeons { get; set; }
     public Dictionary<string, int> AccessLevel { get; set; } = [];
     public AccountConfig Account { get; set; }
     public CurrencyValuesConfig Labor { get; set; }

@@ -491,7 +491,8 @@ public class Dungeon
         character.SendErrorMessage(ErrorMessageType.InstanceLeaveParty);
         if (World.HasCharacter(character.Id) && character.Transform.InstanceId == _zoneInstanceId.InstanceId)
         {
-            _leaveRequests.TryAdd(character.Id, DateTime.UtcNow.AddSeconds(30));
+            PlayersWithAccess.Remove(character.Id);
+            _leaveRequests.TryAdd(character.Id, DateTime.UtcNow.AddSeconds(AppConfiguration.Instance.Dungeons.AutoTeamDisbandKickTime));
         }
     }
 
@@ -583,29 +584,41 @@ public class Dungeon
             return;
         }
 
-        foreach (var leaveRequest in _leaveRequests.ToList())
+        foreach (var (playerId, leaveRequestTime) in _leaveRequests.ToList())
         {
-            if (DateTime.UtcNow <= leaveRequest.Value) { continue; }
+            if (DateTime.UtcNow <= leaveRequestTime) { continue; }
 
-            Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Removing qualifying players from instance.");
-            var character = WorldManager.Instance.GetCharacterById(leaveRequest.Key);
+            var character = WorldManager.Instance.GetCharacterById(playerId);
             if (character == null)
             {
-                Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Player Id not found. Remove from processing..");
-                _leaveRequests.TryRemove(leaveRequest);
+                Logger.Warn($"[{World}] zoneId={_zoneInstanceId.ZoneId}: Player Id {playerId} not found. Removing request.");
+                _leaveRequests.TryRemove(playerId, out _);
                 return;
             }
+
             if (character.InParty)
             {
                 if (PlayerInSameTeam(character))
                 {
-                    Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: player={character.Name} rejoined party, aborting.");
-                    _leaveRequests.TryRemove(leaveRequest);
+                    Logger.Info($"[{World}] zoneId={_zoneInstanceId.ZoneId}: {character.Name} ({character.Id}) rejoined party, aborting.");
+                    _leaveRequests.TryRemove(playerId, out _);
                     return;
                 }
             }
 
-            LeaveDungeonInstance(character);
+            Logger.Info($"[{World}] zoneId={_zoneInstanceId.ZoneId}: Removing {character.Name} ({character.Id}) from instance.");
+            character.Events.OnDungeonLeave(World, new OnDungeonLeaveArgs { Player = character });
+            // LeaveDungeonInstance(character); // Called in OnDungeonLeave
+
+            // QoL update that's different from retail
+            // If a person got kicked and there are no more people left in the dungeon, destroy it (if it isn't a system dungeon)
+            if (AppConfiguration.Instance.Dungeons.AutoCleanupAfterKick && World.GetCharacterCount() <= 0 && !IsSystem)
+            {
+                if (!DestroyDungeon())
+                {
+                    Logger.Warn($"[{World}] Failed to removed empty dungeon with no players after kick from dungeon, zoneId={_zoneInstanceId.ZoneId}");
+                }
+            }
         }
     }
 

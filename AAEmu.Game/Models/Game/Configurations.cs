@@ -64,6 +64,38 @@ public class WorldConfig
     /// Enables the loading of NavMesh data for dungeons
     /// </summary>
     public bool GeoDataMode { get; set; }
+
+    /// <summary>
+    /// Maximum number of instances that can be created (includes system instances)
+    /// </summary>
+    public uint MaxInstances { get; set; } = 32;
+}
+
+public class DungeonLoadConfig
+{
+    public string Name { get; set; } = string.Empty;
+    public uint Channel { get; set; } = 0;
+    public uint Id { get; set; } = 0;
+}
+
+public class DungeonsConfig
+{
+    /// <summary>
+    /// If people are kicked from a dungeon and there are no people left,
+    /// should the system automatically remove the dungeon instance (default=yes, retail=no) 
+    /// </summary>
+    public bool AutoCleanupAfterKick { get; set; } = true;
+
+    /// <summary>
+    /// Time in seconds after being removed from a party in a dungeon before you get kicked out
+    /// </summary>
+    public int AutoTeamDisbandKickTime { get; set; } = 30;
+
+    /// <summary>
+    /// List of dungeon instances that should be created by default
+    /// </summary>
+    // ReSharper disable once CollectionNeverUpdated.Global
+    public List<DungeonLoadConfig> AutoCreate { get; set; } = [];
 }
 
 public class AccountDeleteDelayTiming

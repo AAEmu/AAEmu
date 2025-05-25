@@ -5,6 +5,7 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun;
@@ -326,7 +327,7 @@ public class IndunManager : Singleton<IndunManager>
         dungeon = null;
 
         // Check if we have capacity
-        if (WorldManager.Instance.GetWorlds().Length > WorldManager.MaxInstances)
+        if (WorldManager.Instance.GetWorlds().Length > AppConfiguration.Instance.World.MaxInstances)
         {
             Logger.Warn($"Requesting a new instance would exceeds the allowed ammount, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
             character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);

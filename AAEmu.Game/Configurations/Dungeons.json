@@ -1,0 +1,13 @@
+{
+    "Dungeons": {
+        "AutoCleanupAfterKick": true,
+		"AutoTeamDisbandKickTime": 15,
+        "AutoCreate": [
+            {
+                "Id": 1,
+                "Name": "arche_mall_world",
+                "Channel": 0
+            }
+        ]
+    }
+}

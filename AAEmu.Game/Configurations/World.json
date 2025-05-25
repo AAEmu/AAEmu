@@ -12,6 +12,7 @@
         "DaysForTaxPayment": 7,
         "IgnoreFallDamageAccessLevel": 100,
         "GodMode": false,
-        "GeoDataMode": false
+        "GeoDataMode": false,
+        "MaxInstances": 32
     }
 }
