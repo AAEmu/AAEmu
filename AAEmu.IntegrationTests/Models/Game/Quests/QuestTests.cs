@@ -68,8 +68,10 @@ public class QuestTests
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
 
         // Loads all quests from DB
+        TickManager.Instance.Initialize();
         TaskIdManager.Instance.Initialize();
         TaskManager.Instance.Initialize();
+
         ZoneManager.Instance.Load();
         QuestManager.Instance.Load();
         FormulaManager.Instance.Load();
@@ -77,7 +79,6 @@ public class QuestTests
         PlotManager.Instance.Load();
         // SkillTlIdManager.Instance.Initialize();
         SkillManager.Instance.Load();
-        SlaveManager.Instance.Load();
         ClientFileManager.Initialize();
         TlIdManager.Instance.Initialize();
         ObjectIdManager.Instance.Initialize();
@@ -97,11 +98,8 @@ public class QuestTests
         NpcManager.Instance.Load();
         DoodadManager.Instance.Load();
         TransferManager.Instance.Load();
-        GimmickManager.Instance.Load();
-        SpawnManager.Instance.Load();
 
         GameDataManager.Instance.PostLoadGameData();
-        SpawnManager.Instance.SpawnAllNpcs(0);
 
         s_managersLoaded = true;
     }
@@ -324,7 +322,7 @@ public class QuestTests
             {
                 mockCharacter.SetupGet(o => o.CurrentTarget).Returns(targetNpc);
             }
-            mockWorldManager.Setup(wm => wm.GetNpcByTemplateId(It.IsIn(npcComponent.NpcId))).Returns(mockComponentNpc.Object);
+            mockWorldManager.Setup(wm => wm.MainWorld.GetNpcByTemplateId(It.IsIn(npcComponent.NpcId))).Returns(mockComponentNpc.Object);
             // Act
             var result = quest.StartQuest();
 
@@ -340,7 +338,7 @@ public class QuestTests
                     mockCharacter.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockCharacter.Object)), Times.Once);
                 else if (npcComponentStart.NpcId > 0)
                 {
-                    mockWorldManager.Verify(o => o.GetNpcByTemplateId(It.IsIn(npcComponentStart.NpcId)), Times.Once);
+                    mockWorldManager.Verify(o => o.MainWorld.GetNpcByTemplateId(It.IsIn(npcComponentStart.NpcId)), Times.Once);
                     mockComponentNpc.Verify(o => o.UseSkill(It.IsIn(npcComponentStart.SkillId), It.IsIn<IUnit>(mockComponentNpc.Object)), Times.Once);
                 }
             }
@@ -369,7 +367,7 @@ public class QuestTests
             // Simulates the character to be targeting an expected npc for the quest
             var npcComponent = QuestManager.Instance.GetTemplate(questId).GetFirstComponent(QuestComponentKind.Start);
             var npcAcceptAct = npcComponent.ActTemplates.OfType<QuestActConAcceptNpc>().FirstOrDefault();
-            var npc = WorldManager.Instance.GetNpcByTemplateId(npcComponent.NpcId);
+            var npc = WorldManager.Instance.MainWorld.GetNpcByTemplateId(npcComponent.NpcId);
 
             var targetNpc = new Npc { TemplateId = npcAcceptAct?.NpcId ?? 0 };
             var mockSkillNpc = new Mock<NpcFake>(npc);
@@ -381,7 +379,7 @@ public class QuestTests
             }
             if (npc is not null)
             {
-                WorldManager.Instance.SetNpc(npc.ObjId, mockSkillNpc.Object);
+                WorldManager.Instance.MainWorld.SetNpc(npc.ObjId, mockSkillNpc.Object);
             }
 
             // Act
@@ -501,6 +499,7 @@ public class QuestTests
         mockSkillManager = new Mock<ISkillManager>();
         mockTaskManager = new Mock<ITaskManager>();
         mockWorldManager = new Mock<IWorldManager>();
+        ((IWorldManager)mockWorldManager).CreateStaticInstances();
 
         var quest = new Quest(
             questManager.GetTemplate(questId),

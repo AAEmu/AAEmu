@@ -16,11 +16,11 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
 {
-    private Dictionary<uint, List<NpcSkill>> _skillsForNpc;
-    private Dictionary<uint, List<NpcPassiveBuff>> _passivesForNpc;
-    public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerTemplateNpcs;      // Id, nsn
-    public Dictionary<uint, NpcSpawnerTemplate> _npcSpawnerTemplates;    // NpcSpawnerTemplateId, template
-    public Dictionary<uint, List<uint>> _npcMemberAndSpawnerTemplateIds; // memberId, List<npcSpawnerId>
+    private Dictionary<uint, List<NpcSkill>> _skillsForNpc = [];
+    private Dictionary<uint, List<NpcPassiveBuff>> _passivesForNpc = [];
+    public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerTemplateNpcs = [];      // Id, nsn
+    public Dictionary<uint, NpcSpawnerTemplate> _npcSpawnerTemplates = [];    // NpcSpawnerTemplateId, template
+    public Dictionary<uint, List<uint>> _npcMemberAndSpawnerTemplateIds = []; // memberId, List<npcSpawnerId>
 
     public void Load(SqliteConnection connection)
     {

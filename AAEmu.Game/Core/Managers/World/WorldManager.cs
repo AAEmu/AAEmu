@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -48,50 +48,50 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <summary>
     /// List of Templates by world names 
     /// </summary>
-    private Dictionary<string, WorldTemplate> WorldTemplates { get; set; } = new();
+    private Dictionary<string, WorldTemplate> WorldTemplates { get; set; } = [];
 
-    private Dictionary<uint, WorldTemplate> WorldTemplatesById { get; set; } = new();
+    private Dictionary<uint, WorldTemplate> WorldTemplatesById { get; set; } = [];
     private List<string> WorldNames { get; set; } = [];
 
     /// <summary>
     /// List of world spawn locations
     /// </summary>
-    private List<WorldSpawnLocation> WorldSpawnLookups { get; set; } = new();
+    private List<WorldSpawnLocation> WorldSpawnLookups { get; set; } = [];
 
     /// <summary>
     /// List of loaded world instances (instanceId, WorldInstance)
     /// </summary>
-    private Dictionary<uint, WorldInstance> _worlds;
+    private Dictionary<uint, WorldInstance> _worlds = [];
 
     /// <summary>
     /// WorldTemplateId by ZoneId list (zoneId, worldTemplateId)
     /// </summary>
-    private Dictionary<uint, uint> _worldIdByZoneKey;
+    private Dictionary<uint, uint> _worldIdByZoneKey = [];
 
     /// <summary>
     /// ZoneId list by WorldTemplateId
     /// </summary>
-    private Dictionary<uint, List<uint>> _zoneKeysByWorldId;
+    private Dictionary<uint, List<uint>> _zoneKeysByWorldId = [];
 
     /// <summary>
     /// WorldInteractionGroup by Id
     /// </summary>
-    private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
+    private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups = [];
 
     /// <summary>
     /// List of all Characters in the server
     /// </summary>
-    private readonly ConcurrentDictionary<uint, Character> _characters = new();
+    private readonly ConcurrentDictionary<uint, Character> _characters = [];
 
     /// <summary>
     /// List of all AreaShapes
     /// </summary>
-    private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes = new();
+    private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes = [];
 
     /// <summary>
     /// List of all IndunZones in this instance (only used for dungeons)
     /// </summary>
-    private readonly ConcurrentDictionary<uint, IndunZone> _indunZones = new();
+    private readonly ConcurrentDictionary<uint, IndunZone> _indunZones = [];
 
     /// <summary>
     /// Reference to main_world instance
@@ -421,7 +421,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// </summary>
     /// <param name="worldName"></param>
     /// <returns></returns>
-    private WorldTemplate CreateWorldTemplate(string worldName)
+    public WorldTemplate CreateWorldTemplate(string worldName)
     {
         var worldTemplateId = WorldNames.IndexOf(worldName);
         if (worldTemplateId == -1)

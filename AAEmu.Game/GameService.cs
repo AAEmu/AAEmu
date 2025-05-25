@@ -57,20 +57,25 @@ public sealed class GameService : IHostedService, IDisposable
 
         stopWatch.Start();
 
+        // Ticks and Tasks
         TickManager.Instance.Initialize();
         TaskIdManager.Instance.Initialize();
         TaskManager.Instance.Initialize();
 
+        // World
         WorldIdManager.Instance.Initialize();
         WorldManager.Instance.Load();
-        ExperienceManager.Instance.Load();
-        FeaturesManager.Initialize();
 
+        // Feature Sets 
+        FeaturesManager.Initialize();
         LocalizationManager.Instance.Load();
+
         ObjectIdManager.Instance.Initialize();
         TradeIdManager.Instance.Initialize();
+        ExperienceManager.Instance.Load();
 
         ZoneManager.Instance.Load();
+        // TODO: Implement lazy loading for heightmaps
         var heightmapTask = Task.Run(() =>
         {
             WorldManager.Instance.LoadHeightmaps();
