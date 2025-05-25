@@ -183,9 +183,7 @@ public class IndunManager : Singleton<IndunManager>
             return false;
         }
 
-        // TODO: Create helper function to "find" instances that other party members belong to
-
-        // TODO: 1 - Check if player is already a member of a active dungeon in this zone and re-enter it if they are
+        // 1 - Check if player is already a member of a active dungeon in this zone and re-enter it if they are
         var possibleTargetInstances = GetExistingDungeonsByZoneKey(targetZone.ZoneKey);
         foreach (var possibleTargetInstance in possibleTargetInstances)
         {
@@ -216,8 +214,7 @@ public class IndunManager : Singleton<IndunManager>
             }
         }
 
-        // TODO: 2 - Check if party/raid leader is a member of the requested dungeon, if so, join their instance
-        // TODO: 3 - Check if non-party/raid leader is a member of the requested dungeon, if so, join their instance
+        // 2 - First check Party required dungeons is available
         if (dungeonZone.PartyOnly) // Only if dungeon requires party
         {
             foreach (var possibleTargetInstance in possibleTargetInstances)
@@ -236,10 +233,52 @@ public class IndunManager : Singleton<IndunManager>
             }
         }
 
-        // TODO: 4 - If none of the above applies, actually create a new dungeon
+        // 3 - Check if non-party/raid leader is a member of the requested dungeon, if so, join their instance
+        if (team != null)
+        {
+            // 3a - Create a list of players to check with party leader as first entry
+            // The rest is the same order as the team order
+            var checkPlayersList = new List<Character>();
+            foreach (var teamMember in team.Members)
+            {
+                if (teamMember == null || teamMember.Character == null)
+                    continue;
+                if (teamMember.Character.Id == team.OwnerId)
+                {
+                    checkPlayersList.Insert(0, teamMember.Character);
+                }
+                else
+                {
+                    checkPlayersList.Add(teamMember.Character);
+                }
+            }
+
+            // 3b - Enumerate the sorted team member list to check if we have a matching dungeon to enter
+            foreach (var playerCharacter in checkPlayersList)
+            {
+                foreach (var possibleTargetInstance in possibleTargetInstances)
+                {
+                    if (!possibleTargetInstance.PlayersWithAccess.Contains(playerCharacter.Id))
+                        continue;
+                
+                    // Join your team's dungeon (if enough room)
+                    // TODO: not sure if we should toss a error here, or continue searching for others
+                    if (possibleTargetInstance.IsFull)
+                    {
+                        character.SendErrorMessage(ErrorMessageType.InstanceQuota); // Too many users are currently in the dungeon
+                        return false;
+                    }
+
+                    return possibleTargetInstance.QueuePlayer(character);
+                }
+            }
+        }
+
+        // 4 - If none of the above applies, actually create a new dungeon
         Logger.Info($"Creating a new dungeon for player {character.Name} ({character.Id}), zone: {dungeonZone}, channel: {channelId}");
         if (!CreateDungeonInstance(dungeonZone, character, channelId, out var dungeon))
         {
+            Logger.Error($"Failed to create a new dungeon for player {character.Name} ({character.Id}), zone: {dungeonZone}, channel: {channelId}");
             return false;
         }
 
