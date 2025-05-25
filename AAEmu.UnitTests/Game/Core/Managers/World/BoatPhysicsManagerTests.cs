@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
+
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -52,7 +51,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
                 OceanLevel = 100f,
                 SpawnPosition = null,
                 SubZones = [],
-                XmlWorld = new XmlWorld() {Zones = []},
+                XmlWorld = new XmlWorld { Zones = [] },
                 XmlWorldZones = [],
                 ZoneKeyByRegions = new uint[1, 1],
                 ZoneKeys = [0]
@@ -195,6 +194,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             Assert.False(_boatPhysicsManager.ThreadRunning);
         }
 
+        /*
         private class WaterTestDataGenerator : IEnumerable<object[]>
         {
             private readonly List<object[]> _data =
@@ -220,6 +220,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
+        */
 
         //[Theory]
         //[ClassData(typeof(WaterTestDataGenerator))]        
