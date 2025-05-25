@@ -56,6 +56,11 @@ public class WorldTemplate
     public virtual ushort[,] HeightMaps { get; set; }
 
     /// <summary>
+    /// List of what cells have been loaded/processed
+    /// </summary>
+    public virtual bool[,] LoadedCells { get; set; }
+
+    /// <summary>
     /// Collection of ZoneKeys per Region
     /// </summary>
     public uint[,] ZoneKeyByRegions { get; set; }
@@ -92,6 +97,8 @@ public class WorldTemplate
     /// <returns></returns>
     public float GetRawHeightMapHeight(int x, int y)
     {
+        WorldManager.Instance.VerifyCellLoaded(this, x, y);
+        
         // This is the old GetHeight()
         var sx = x / 2;
         var sy = y / 2;

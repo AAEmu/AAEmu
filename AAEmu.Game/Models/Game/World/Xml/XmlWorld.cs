@@ -49,6 +49,7 @@ public class XmlWorld
         worldTemplate.MaxHeight = MaxTerrainHeight;
 
         // pre-create heightmap data
+        worldTemplate.LoadedCells = new bool[worldTemplate.CellX, worldTemplate.CellY];
         worldTemplate.HeightMaps = new ushort[worldTemplate.CellX * WorldManager.CELL_HMAP_RESOLUTION, worldTemplate.CellY * WorldManager.CELL_HMAP_RESOLUTION];
         worldTemplate.ZoneKeyByRegions = new uint[worldTemplate.CellX * WorldManager.SECTORS_PER_CELL, worldTemplate.CellY * WorldManager.SECTORS_PER_CELL];
         worldTemplate.HeightMaxCoefficient = ushort.MaxValue / (worldTemplate.MaxHeight / 4.0);

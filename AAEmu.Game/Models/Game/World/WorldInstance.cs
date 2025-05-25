@@ -218,6 +218,8 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// <returns></returns>
     private float GetRawHeightMapHeight(int x, int y)
     {
+        WorldManager.Instance.VerifyCellLoaded(Template, x, y);
+
         // This is the old GetHeight()
         var sx = x / 2;
         var sy = y / 2;

@@ -40,6 +40,27 @@ namespace AAEmu.Game.Core.Managers.World
         // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
         private readonly object _slaveListLock = new();
 
+        public void AddHeightMapCellBody(int cellX, int cellY)
+        {
+            var dx = WorldManager.CELL_HMAP_RESOLUTION;
+            var dz = WorldManager.CELL_HMAP_RESOLUTION;
+            var xOff = WorldManager.CELL_HMAP_RESOLUTION * cellX;
+            var yOff = WorldManager.CELL_HMAP_RESOLUTION * cellY;
+            var scale = WorldManager.CELL_SIZE / WorldManager.CELL_HMAP_RESOLUTION;
+            var hmapTerrain = new float[dx, dz];
+            for (var x = 0; x < dx; x++)
+            for (var y = 0; y < dz; y++)
+            {
+                hmapTerrain[x, y] = (float)(SimulationWorld.Template.HeightMaps[x + xOff, y + yOff] /
+                                            SimulationWorld.Template.HeightMaxCoefficient);
+            }
+
+            var terrain = new TerrainShape(hmapTerrain, scale, scale);
+            var body = new RigidBody(terrain) { IsStatic = true };
+            body.Position = new JVector(cellX * WorldManager.CELL_SIZE, 0, cellY * WorldManager.CELL_SIZE);
+            _physWorld.AddBody(body);
+        }
+
         public void Initialize()
         {
             _collisionSystem = new CollisionSystemSAP();
@@ -51,6 +72,15 @@ namespace AAEmu.Game.Core.Managers.World
             if (SimulationWorld.Template.Name != "main_world") { return; }
             try
             {
+                for (var x = 0; x < SimulationWorld.Template.CellX; x++)
+                {
+                    for (var y = 0; y < SimulationWorld.Template.CellX; y++)
+                    {
+                        if (SimulationWorld.Template.LoadedCells[x, y])
+                            AddHeightMapCellBody(x,y);
+                    }
+                }
+                /*
                 var hmap = SimulationWorld.Template.HeightMaps;
                 var heightMaxCoefficient = SimulationWorld.Template.HeightMaxCoefficient;
                 var dx = hmap.GetLength(0);
@@ -62,6 +92,7 @@ namespace AAEmu.Game.Core.Managers.World
                 var terrain = new TerrainShape(hmapTerrain, 2.0f, 2.0f);
                 var body = new RigidBody(terrain) { IsStatic = true };
                 _physWorld.AddBody(body);
+                */
             }
             catch (Exception e)
             {

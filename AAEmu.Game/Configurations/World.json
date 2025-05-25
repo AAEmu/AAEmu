@@ -13,6 +13,7 @@
         "IgnoreFallDamageAccessLevel": 100,
         "GodMode": false,
         "GeoDataMode": false,
+        "PreLoadTerrain": false,
         "MaxInstances": 32
     }
 }

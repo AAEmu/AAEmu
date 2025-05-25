@@ -15,54 +15,72 @@ public class WorldConfig
     /// Message of the Day that gets displayed in player's chat upon login
     /// </summary>
     public string MOTD { get; set; } = "";
+
     /// <summary>
     /// Message shown to the player when they exit the game
     /// </summary>
     public string LogoutMessage { get; set; } = "";
+
     /// <summary>
     /// Time in minutes between user data Save events
     /// </summary>
     public double AutoSaveInterval { get; set; } = 5.0;
+
     /// <summary>
     /// Server-side Exp multiplier (on top of buffs)
     /// </summary>
     public double ExpRate { get; set; } = 1.0;
+
     /// <summary>
     /// Server-side Honor Points multiplier (on top of buffs)
     /// </summary>
     public double HonorRate { get; set; } = 1.0;
+
     /// <summary>
     /// Server-side Vocation Badge multiplier (on top of buffs)
     /// </summary>
     public double VocationRate { get; set; } = 1.0;
+
     /// <summary>
     /// Multiplier for the loot dice (some loot types are not affected by this)
     /// </summary>
     public double LootRate { get; set; } = 1.0;
+
     /// <summary>
     /// Multiplier for gold that is obtained through loot drops
     /// </summary>
     public double GoldLootMultiplier { get; set; } = 1.0;
+
     /// <summary>
     /// Multiplier for growth rate of doodads, note that this only affects steps marked as growth and not those with a simple timer.
     /// </summary>
     public double GrowthRate { get; set; } = 1.0;
+
     /// <summary>
     /// Number of days 1 week worth of tax pays for, set this to 3640 would make 1 tax payment last for about 10 years.
     /// </summary>
     public uint DaysForTaxPayment { get; set; } = 7u; 
+
     /// <summary>
     /// Set a minimum access-level that a character must have to ignore falling damage (for devs)
     /// </summary>
     public int IgnoreFallDamageAccessLevel { get; set; } = 100;
+
     /// <summary>
     /// When enabled, players take no damage at all
     /// </summary>
     public bool GodMode { get; set; }
+
     /// <summary>
     /// Enables the loading of NavMesh data for dungeons
     /// </summary>
     public bool GeoDataMode { get; set; }
+
+    /// <summary>
+    /// When false, heightmaps get loaded on-demand only. Should increase boot times and lower memory use
+    /// </summary>
+    // TODO: Also apply this to missionX.bai files
+    public bool PreLoadTerrain { get; set; }
 
     /// <summary>
     /// Maximum number of instances that can be created (includes system instances)
