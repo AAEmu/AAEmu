@@ -34,9 +34,6 @@ public class PortalManager : Singleton<PortalManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    //private Dictionary<uint, uint> _allDistrictPortalsKey;
-    //private Dictionary<uint, Portal> _allDistrictPortals;
-
     private Dictionary<uint, List<Portal>> _recalls;
     private Dictionary<uint, uint> _recallsKey;
     private Dictionary<uint, Portal> _respawns;
@@ -47,22 +44,6 @@ public class PortalManager : Singleton<PortalManager>
     private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
     private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
     private Dictionary<uint, DistrictReturnPoints> _districtReturnPoints;
-
-    //public Portal GetPortalBySubZoneId(uint subZoneId)
-    //{
-    //    return _allDistrictPortals != null && _allDistrictPortals.ContainsKey(subZoneId)
-    //        ? _allDistrictPortals[subZoneId]
-    //        : null;
-    //}
-
-    //public Portal GetPortalById(uint id)
-    //{
-    //    return _allDistrictPortalsKey != null && _allDistrictPortalsKey.ContainsKey(id)
-    //        ? _allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id])
-    //            ? _allDistrictPortals[_allDistrictPortalsKey[id]]
-    //            : null
-    //        : null;
-    //}
 
     public List<Portal> GetRecallBySubZoneId(uint subZoneId)
     {
@@ -191,7 +172,7 @@ public class PortalManager : Singleton<PortalManager>
         else
             throw new GameException($"PortalManager: Parse {filePath} file");
 
-        Logger.Info("Loaded {0} Recall Portals", _recalls.Count);
+        Logger.Info($"Loaded {_recalls.Count} Recall Portals");
 
         filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "respawns.json");
         if (!File.Exists(filePath))
@@ -216,7 +197,7 @@ public class PortalManager : Singleton<PortalManager>
         else
             throw new GameException($"PortalManager: Parse {filePath} file");
 
-        Logger.Info("Loaded {0} Respawn Portals", _respawns.Count);
+        Logger.Info($"Loaded {_respawns.Count} Respawn Portals");
 
         filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "worldgates.json");
         if (!File.Exists(filePath))
@@ -236,7 +217,7 @@ public class PortalManager : Singleton<PortalManager>
         else
             throw new GameException($"PortalManager: Parse {filePath} file");
 
-        Logger.Info("Loaded {0} Worldgate Portals", _worldGates.Count);
+        Logger.Info($"Loaded {_worldGates.Count} Worldgate Portals");
 
         #endregion
 
@@ -310,19 +291,6 @@ public class PortalManager : Singleton<PortalManager>
         if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
         owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount, null);
         return true;
-        /*
-        var items = owner.Inventory.RemoveItem(itemId, amount);
-        var tasks = new List<ItemTask>();
-        foreach (var (item, count) in items)
-        {
-            if (item.Count == 0)
-                tasks.Add(new ItemRemove(item));
-            else
-                tasks.Add(new ItemCountUpdate(item, -count));
-        }
-        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Teleport, tasks, new List<ulong>()));
-        return true;
-        */
     }
 
     private bool CheckCanOpenPortal(Character owner, uint targetZoneId)
@@ -364,17 +332,13 @@ public class PortalManager : Singleton<PortalManager>
             owner.Transform.InstanceId,
             portalInfo.X, portalInfo.Y, portalInfo.Z,
             0f, 0f, portalInfo.ZRot);
-        var portalPointLocation = new Transform(null, null,
-            owner.Transform.ZoneId,
-            owner.Transform.InstanceId,
-            portalEffectObj.X, portalEffectObj.Y, portalEffectObj.Z,
-            owner.Transform.World.Rotation.X, owner.Transform.World.Rotation.Y, owner.Transform.World.Rotation.Z);
 
         // TODO: Add support for different types of teleport books
         var templateId = isExit ? 6949u : 3891u;
         var template = NpcManager.Instance.GetTemplate(templateId);
         var portalNpc = new Models.Game.Units.Portal
         {
+            ParentWorld = owner.ParentWorld,
             ObjId = ObjectIdManager.Instance.GetNextId(),
             OwnerId = ((Character)owner).Id,
             TemplateId = templateId,
@@ -382,13 +346,22 @@ public class PortalManager : Singleton<PortalManager>
             ModelId = template.ModelId,
             Faction = owner.Faction, // INFO - FactionManager.Instance.GetFaction(template.FactionId)
             Level = template.Level,
-            Transform = isExit ? portalPointDestination : portalPointLocation,
             Name = portalInfo.Name,
-            //Hp = 955, // BUG - portal.MaxHp does not work 1.0
-            //Mp = 290, // TODO - portal.MaxMp
             TeleportPosition = portalPointDestination
         };
-        
+
+        if (isExit)
+        {
+            portalNpc.Transform.Local.SetPosition(portalInfo.X, portalInfo.Y, portalInfo.Z,
+                0f, 0f, portalInfo.ZRot);
+        }
+        else
+        {
+            portalNpc.Transform.Local.SetPosition(
+                portalEffectObj.X, portalEffectObj.Y, portalEffectObj.Z,
+                owner.Transform.World.Rotation.X, owner.Transform.World.Rotation.Y, owner.Transform.World.Rotation.Z);
+        }
+
         portalNpc.InitializeSpawnBuffs();
         portalNpc.UpdateGearBonuses(null, null);
 

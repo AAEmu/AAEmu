@@ -564,7 +564,7 @@ public class Transform : IDisposable
         var chatColorYellow = chatFormatted ? "|cFFFFFF00" : "";
         var chatColorRestore = chatFormatted ? "|r" : "";
         var chatLineFeed = chatFormatted ? "\n" : "";
-        var res = "[i" + (_owningObject.ParentWorld?.Id.ToString() ?? "?") + "] ";
+        var res = "[i" + (_owningObject?.ParentWorld?.Id.ToString() ?? "?") + "] ";
         if (isFirstInList && ((_parentTransform != null) || (_stickyParentTransform != null)))
             res += "[" + chatColorWhite + World + chatColorRestore + "] " + chatLineFeed + "=> ";
         res += Local.ToString();
