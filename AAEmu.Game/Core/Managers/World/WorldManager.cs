@@ -325,6 +325,8 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         // Erenor (main_world)
         MainWorld = CreateWorldInstance(GetWorldTemplateByName("main_world"), 0, true); // fixedInstanceId = 0
+
+        // Then spawn the rest
         MainWorld.SpawnManager.SpawnAll();
 
         // Mirage Island
@@ -396,7 +398,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         world.SphereQuestManager = new SphereQuestManager(world);
         world.SphereQuestManager.Initialize();
         world.SphereQuestManager.Load();
-        
+
         world.SpawnManager = new SpawnManager(world);
         world.SpawnManager.Load();
 

@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Housing;
@@ -114,11 +115,13 @@ public class HousingManager : Singleton<HousingManager>
     /// Load housing definitions, player houses and starts tax check timer
     /// </summary>
     /// <exception cref="IOException"></exception>
-    public void LoadPlayerHousing()
+    public void LoadPlayerHousing(WorldInstance worldInstance)
     {
         _houses = [];
         _housesTl = [];
         _removedHousings = [];
+
+        worldInstance ??= WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
 
         // var housingAreas = new Dictionary<uint, HousingAreas>();
         // var houseTaxes = new Dictionary<uint, HouseTax>();
@@ -137,7 +140,7 @@ public class HousingManager : Singleton<HousingManager>
                         var templateId = reader.GetUInt32("template_id");
                         var factionId = (FactionsEnum)reader.GetUInt32("faction_id");
                         var house = Create(templateId, factionId);
-                        house.ParentWorld = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
+                        house.ParentWorld = worldInstance;
                         house.Id = reader.GetUInt32("id");
                         house.AccountId = reader.GetUInt32("account_id");
                         house.OwnerId = reader.GetUInt32("owner");

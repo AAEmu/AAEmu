@@ -356,6 +356,11 @@ public class SpawnManager(WorldInstance parentWorld)
         // Spawn persistent doodads (main_world only)
         if (World.Template.Id == WorldManager.DefaultWorldTemplateId)
         {
+            // Load player housing data
+            Logger.Info($"Loading player housing for {World}");
+            HousingManager.Instance.LoadPlayerHousing(World);
+            HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
+            
             Logger.Info($"Loading persistent doodads for {World}");
             var doodadsSpawned = 0;
 
@@ -1163,8 +1168,7 @@ public class SpawnManager(WorldInstance parentWorld)
     {
         lock (_lockSpawner)
         {
-            var spawner = new NpcSpawner();
-            spawner.ParentWorld = World;
+            var spawner = new NpcSpawner { ParentWorld = World };
             var npcSpawnersIds = NpcGameData.Instance.GetSpawnerIds(unitId);
             if (npcSpawnersIds == null)
             {

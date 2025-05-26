@@ -198,14 +198,10 @@ public sealed class GameService : IHostedService, IDisposable
         // Start main_world and other static instance
         WorldManager.Instance.CreateStaticInstances();
 
-        // Add houses only after the main world has loaded
-        HousingManager.Instance.LoadPlayerHousing();
-
         // TODO: Move all spawns to WorldInstance
         var spawnSw = new Stopwatch();
         Logger.Info("Spawning units...");
         spawnSw.Start();
-        HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
         // SpawnManager.Instance.SpawnAll();
         TransferManager.Instance.SpawnAll();
         spawnSw.Stop();
