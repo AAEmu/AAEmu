@@ -45,12 +45,20 @@ public class XmlWorld
         worldTemplate.Name = Name;
         worldTemplate.CellX = (int)CellXCount;
         worldTemplate.CellY = (int)CellYCount;
+        // Create Cells info
+        worldTemplate.Cells = new WorldCell[CellXCount, CellYCount];
+        for (var cellX = 0; cellX < CellXCount; cellX++)
+        {
+            for (var cellY = 0; cellY < CellYCount; cellY++)
+            {
+                worldTemplate.Cells[cellX, cellY] = new WorldCell(cellX, cellY, worldTemplate);
+            }
+        }
+
         worldTemplate.OceanLevel = OceanLevel;
         worldTemplate.MaxHeight = MaxTerrainHeight;
 
         // pre-create heightmap data
-        worldTemplate.LoadedCells = new bool[worldTemplate.CellX, worldTemplate.CellY];
-        worldTemplate.HeightMaps = new ushort[worldTemplate.CellX * WorldManager.CELL_HMAP_RESOLUTION, worldTemplate.CellY * WorldManager.CELL_HMAP_RESOLUTION];
         worldTemplate.ZoneKeyByRegions = new uint[worldTemplate.CellX * WorldManager.SECTORS_PER_CELL, worldTemplate.CellY * WorldManager.SECTORS_PER_CELL];
         worldTemplate.HeightMaxCoefficient = ushort.MaxValue / (worldTemplate.MaxHeight / 4.0);
 

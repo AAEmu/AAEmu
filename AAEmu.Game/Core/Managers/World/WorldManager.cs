@@ -10,7 +10,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Indun;
@@ -132,7 +131,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// Was originally set to 1, recommended 3 and max 5
     /// anything higher is overkill as you can't target it anymore in the client at that distance 
     /// </summary>
-    public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
+    private const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
     // ReSharper enable InconsistentNaming
 
     /// <summary>
@@ -384,6 +383,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="channelId"></param>
     /// <param name="overrideInstanceId">Set true for static instances</param>
     /// <param name="fixedInstanceId">InstanceId to use if overrideInstanceId is set, must be lower than 100 (0x64)</param>
+    /// <param name="notifyPlayer"></param>
     /// <returns>Newly created instance, or the previously instance created instance if a static instance with the same name already exists</returns>
     public WorldInstance CreateWorldInstance(WorldTemplate worldTemplate, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0, Character notifyPlayer = null)
     {
@@ -525,195 +525,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     }
 
     /// <summary>
-    /// Loads heightmap data from hmap.dat files
-    /// </summary>
-    /// <param name="worldTemplate"></param>
-    /// <returns></returns>
-    private static bool LoadHeightMapFromDatFile(WorldTemplate worldTemplate)
-    {
-        var heightMap = Path.Combine(FileManager.AppPath, "Data", "Worlds", worldTemplate.Name, "hmap.dat");
-        if (!File.Exists(heightMap))
-        {
-            Logger.Trace($"HeightMap for `{worldTemplate.Name}` not found");
-            return false;
-        }
-
-        using (var stream = new FileStream(heightMap, FileMode.Open, FileAccess.Read, FileShare.None, 2 << 20))
-        using (var br = new BinaryReader(stream))
-        {
-            var version = br.ReadInt32();
-            if (version == 1)
-            {
-                var hMapCellX = br.ReadInt32();
-                var hMapCellY = br.ReadInt32();
-                br.ReadDouble(); // heightMaxCoefficient
-                br.ReadInt32(); // count
-
-                if (hMapCellX == worldTemplate.CellX && hMapCellY == worldTemplate.CellY)
-                {
-                    for (var cellX = 0; cellX < worldTemplate.CellX; cellX++)
-                    {
-                        for (var cellY = 0; cellY < worldTemplate.CellY; cellY++)
-                        {
-                            if (br.ReadBoolean())
-                                continue;
-                            for (var i = 0; i < SECTORS_PER_CELL; i++)
-                                for (var j = 0; j < SECTORS_PER_CELL; j++)
-                                    for (var x = 0; x < SECTOR_HMAP_RESOLUTION; x++)
-                                        for (var y = 0; y < SECTOR_HMAP_RESOLUTION; y++)
-                                        {
-                                            var sx = cellX * CELL_HMAP_RESOLUTION + i * SECTOR_HMAP_RESOLUTION + x;
-                                            var sy = cellY * CELL_HMAP_RESOLUTION + j * SECTOR_HMAP_RESOLUTION + y;
-
-                                            worldTemplate.HeightMaps[sx, sy] = br.ReadUInt16();
-                                        }
-                        }
-                    }
-                }
-                else
-                {
-                    Logger.Warn($"{worldTemplate.Name}: Invalid heightmap cells, does not match world definition ...");
-                    return false;
-                }
-            }
-            else
-            {
-                Logger.Warn($"{worldTemplate.Name}: Heightmap version not supported {version}");
-                return false;
-            }
-        }
-
-        Logger.Info($"{worldTemplate.Name} heightmap loaded");
-        return true;
-    }
-
-    /// <summary>
-    /// Loads a given Cell worth of heightmap data
-    /// </summary>
-    /// <param name="worldTemplate"></param>
-    /// <param name="cellX"></param>
-    /// <param name="cellY"></param>
-    /// <param name="version"></param>
-    /// <returns></returns>
-    /// <exception cref="NotSupportedException"></exception>
-    private static bool LoadCellHeightMapFromClientData(WorldTemplate worldTemplate, int cellX, int cellY, VersionCalc version)
-    {
-        var cellFileName = $"{cellX:000}_{cellY:000}";
-        var heightMapFile = Path.Combine("game", "worlds", worldTemplate.Name, "cells", cellFileName, "client",
-            "terrain", "heightmap.dat");
-        if (ClientFileManager.FileExists(heightMapFile))
-        {
-            using var stream = ClientFileManager.GetFileStream(heightMapFile);
-            if (stream == null)
-            {
-                //Logger.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
-                worldTemplate.LoadedCells[cellX, cellY] = true;
-                return true;
-            }
-
-            // Read the cell hmap data
-            using var br = new BinaryReader(stream);
-            var hmap = new Hmap();
-
-            var disableReCalc = false; // (version == VersionCalc.V1) // Version is never VersionCalc.V1
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-            if (hmap.Read(br, disableReCalc) < 0)
-            {
-                Logger.Error($"Error reading {heightMapFile}");
-                return false;
-            }
-
-            var nodes = hmap.Nodes
-                .OrderBy(cell => cell.BoxHeightmap.Min.X)
-                .ThenBy(cell => cell.BoxHeightmap.Min.Y)
-                .Where(x => x.pHMData.Length > 0)
-                .ToList();
-
-            // Read nodes into heightmap array
-
-            #region ReadNodes
-
-            for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
-            for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
-            for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
-            for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
-            {
-                var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
-                var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
-                var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
-
-                ushort value;
-                switch (version)
-                {
-                    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-                    case VersionCalc.V1:
-                        {
-                            var doubleValue = node.fRange * 100000d;
-                            var rawValue = node.RawDataByIndex(unitX, unitY);
-
-                            value = (ushort)((doubleValue / 1.52604335620711f) * worldTemplate.HeightMaxCoefficient /
-                                ushort.MaxValue * rawValue + node.BoxHeightmap.Min.Z * worldTemplate.HeightMaxCoefficient);
-                        }
-                        break;
-                    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-                    case VersionCalc.V2:
-                        {
-                            value = node.RawDataByIndex(unitX, unitY);
-                            /* var height */
-                            _ = node.RawDataToHeight(value);
-                        }
-                        break;
-                    case VersionCalc.Draft:
-                        {
-                            var height = node.GetHeight(unitX, unitY);
-                            value = (ushort)(height * worldTemplate.HeightMaxCoefficient);
-                        }
-                        break;
-                    default:
-                        throw new NotSupportedException(nameof(version));
-                }
-
-                worldTemplate.HeightMaps[oX, oY] = value;
-            }
-
-            #endregion
-        }
-
-        worldTemplate.LoadedCells[cellX, cellY] = true;
-
-        // TODO: update Physics engine with this data
-        foreach (var worldInstance in Instance.GetWorlds())
-        {
-            if (worldInstance.Template.Id == worldTemplate.Id)
-                worldInstance.Physics?.AddHeightMapCellBody(cellX, cellY);
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Checks if the cell at target position is loaded and loads it if it hasn't 
-    /// </summary>
-    /// <param name="worldTemplate"></param>
-    /// <param name="posX"></param>
-    /// <param name="posY"></param>
-    /// <returns></returns>
-    public bool VerifyCellLoaded(WorldTemplate worldTemplate, float posX, float posY)
-    {
-        var cellX = (int)Math.Floor(posX / CELL_SIZE);
-        var cellY = (int)Math.Floor(posY / CELL_SIZE);
-        if (cellX < 0 || cellX > worldTemplate.CellX || cellY < 0 || cellY > worldTemplate.CellY)
-            return true; // consider out of bounds as being already loaded
-
-        if (!worldTemplate.LoadedCells[cellX, cellY])
-        {
-            // Logger.Trace($"[{worldTemplate.Name}] loading cell {cellX}, {cellY}");
-            return LoadCellHeightMapFromClientData(worldTemplate, cellX, cellY, VersionCalc.Draft);
-        }
-        return true;
-    }
-
-    /// <summary>
     /// Load heightmap data from the game client data
     /// </summary>
     /// <param name="worldTemplate"></param>
@@ -726,18 +537,17 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (!ClientFileManager.FileExists(worldXmlTest))
             return false;
 
-        var version = VersionCalc.Draft;
-
         if (!AppConfiguration.Instance.World.PreLoadTerrain)
         {
-            Logger.Info($"PreLoadTerrain disabled, not loading heightmaps for {worldTemplate.Name} yet.");
+            Logger.Info($"PreLoadTerrain disabled, heightmaps for {worldTemplate.Name} will get loaded on demand.");
             return true;
         }
 
         for (var cellY = 0; cellY < worldTemplate.CellY; cellY++)
             for (var cellX = 0; cellX < worldTemplate.CellX; cellX++)
             {
-                LoadCellHeightMapFromClientData(worldTemplate, cellX, cellY, version);
+                worldTemplate.Cells[cellX, cellY].VerifyCellLoaded();
+                //LoadCellHeightMapFromClientData(worldTemplate, cellX, cellY, version);
             }
 
         Logger.Info($"{worldTemplate.Name} heightmap loaded");
@@ -757,11 +567,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             foreach (var worldTemplate in WorldTemplates.Values)
             {
                 Logger.Info($"Loading heightmap of {worldTemplate.Name}");
-                if (AppConfiguration.Instance.ClientData.PreferClientHeightMap && LoadHeightMapFromClientData(worldTemplate))
-                    loaded++;
-                else if (LoadHeightMapFromDatFile(worldTemplate))
-                    loaded++;
-                else if (LoadHeightMapFromClientData(worldTemplate))
+                if (LoadHeightMapFromClientData(worldTemplate))
                     loaded++;
             }
 

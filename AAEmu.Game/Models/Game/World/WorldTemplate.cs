@@ -50,15 +50,16 @@ public class WorldTemplate
     /// </summary>
     public WorldSpawnPosition SpawnPosition { get; set; } = new();
 
-    /// <summary>
-    /// Raw Heightmap data for this world
-    /// </summary>
-    public virtual ushort[,] HeightMaps { get; set; }
+    public WorldCell[,] Cells { get; set; } = new WorldCell[1, 1];
+    // <summary>
+    // Raw Heightmap data for this world
+    // </summary>
+    // public virtual ushort[,] HeightMaps { get; set; }
 
-    /// <summary>
-    /// List of what cells have been loaded/processed
-    /// </summary>
-    public virtual bool[,] LoadedCells { get; set; }
+    // <summary>
+    // List of what cells have been loaded/processed
+    // </summary>
+    // public virtual bool[,] LoadedCells { get; set; }
 
     /// <summary>
     /// Collection of ZoneKeys per Region
@@ -97,12 +98,14 @@ public class WorldTemplate
     /// <returns></returns>
     public float GetRawHeightMapHeight(int x, int y)
     {
-        WorldManager.Instance.VerifyCellLoaded(this, x, y);
-        
-        // This is the old GetHeight()
-        var sx = x / 2;
-        var sy = y / 2;
-        return (float)(HeightMaps[sx, sy] / HeightMaxCoefficient);
+        var cellX = x / WorldManager.CELL_SIZE;
+        var cellY = y / WorldManager.CELL_SIZE;
+        if (cellX < 0 || cellX > CellX || cellY < 0 || cellY > CellY)
+            return 0f; // out of bounds
+        var cell = Cells[cellX, cellY].VerifyCellLoaded();
+        var sx = (x % WorldManager.CELL_SIZE) / 2;
+        var sy = (y % WorldManager.CELL_SIZE) / 2;
+        return (float)(cell.HeightMap[sx, sy] / HeightMaxCoefficient);
     }
 
     /// <summary>

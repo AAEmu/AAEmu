@@ -42,17 +42,16 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void AddHeightMapCellBody(int cellX, int cellY)
         {
+            var cell = SimulationWorld.Template.Cells[cellX, cellY];
+            
             var dx = WorldManager.CELL_HMAP_RESOLUTION;
             var dz = WorldManager.CELL_HMAP_RESOLUTION;
-            var xOff = WorldManager.CELL_HMAP_RESOLUTION * cellX;
-            var yOff = WorldManager.CELL_HMAP_RESOLUTION * cellY;
             var scale = WorldManager.CELL_SIZE / WorldManager.CELL_HMAP_RESOLUTION;
             var hmapTerrain = new float[dx, dz];
             for (var x = 0; x < dx; x++)
             for (var y = 0; y < dz; y++)
             {
-                hmapTerrain[x, y] = (float)(SimulationWorld.Template.HeightMaps[x + xOff, y + yOff] /
-                                            SimulationWorld.Template.HeightMaxCoefficient);
+                hmapTerrain[x, y] = (float)(cell.HeightMap[x, y] / SimulationWorld.Template.HeightMaxCoefficient);
             }
 
             var terrain = new TerrainShape(hmapTerrain, scale, scale);
@@ -76,8 +75,8 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     for (var y = 0; y < SimulationWorld.Template.CellX; y++)
                     {
-                        if (SimulationWorld.Template.LoadedCells[x, y])
-                            AddHeightMapCellBody(x,y);
+                        if (SimulationWorld.Template.Cells[x, y].Loaded)
+                            AddHeightMapCellBody(x, y);
                     }
                 }
                 /*
