@@ -1178,4 +1178,14 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         return _characters.TryRemove(playerObjId, out _);
     }
+
+    /// <summary>
+    /// Gets all active worlds for a given template
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
+    public List<WorldInstance> GetWorldsByTemplate(uint templateId)
+    {
+        return _worlds.Values.Where(w => w.Template.Id == templateId).ToList();
+    }
 }

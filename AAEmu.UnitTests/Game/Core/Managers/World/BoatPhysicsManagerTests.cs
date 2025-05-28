@@ -9,10 +9,10 @@ using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Utils;
 
-using Jitter.Collision;
-using Jitter.Collision.Shapes;
-using Jitter.Dynamics;
-using Jitter.LinearMath;
+using Jitter2.Collision;
+using Jitter2.Collision.Shapes;
+using Jitter2.Dynamics;
+using Jitter2.LinearMath;
 
 using Moq;
 
@@ -58,7 +58,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             // _mockWorld = new Mock<WorldInstance>();
             //_mockSlaveManager = new Mock<SlaveManager>();
             _mockSlave = new Mock<Slave>();
-            var mockShipModel = new Mock<ShipModel>();
+            var mockShipModel = new Mock<ShipModelV1>();
             _mockRigidBody = new Mock<RigidBody>(new BoxShape(1, 1, 1));
 
             // Configure ModelManager to return _mockShipModel.Object for GetShipModel

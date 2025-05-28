@@ -38,13 +38,13 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
         // NOTE: Public farms only available in main_world
         var world = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
         var deleted = new List<Doodad>();
-        foreach (var doodad in world.SpawnManager.GetAllPlayerDoodads())
+        foreach (var doodad in world.SpawnManager?.GetAllPlayerDoodads() ?? [])
         {
+            if (doodad.FarmType == FarmType.Invalid) { continue; }
             var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
             if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(guardTime)) { continue; }
-            if (doodad.FarmType == FarmType.Invalid) { continue; }
 
-            // закончилось время защиты
+            // defense time is up
             doodad.OwnerId = 0;
             doodad.OwnerType = DoodadOwnerType.System;
             doodad.FarmType = FarmType.Invalid;
@@ -55,7 +55,7 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
         foreach (var doodad in deleted)
         {
             //doodad.Delete();
-            world.SpawnManager.RemovePlayerDoodad(doodad);
+            world.SpawnManager?.RemovePlayerDoodad(doodad);
         }
     }
 

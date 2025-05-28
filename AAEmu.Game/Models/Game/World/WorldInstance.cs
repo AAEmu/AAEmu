@@ -60,7 +60,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// <summary>
     /// Physics handler
     /// </summary>
-    public BoatPhysicsManager Physics { get; private set; }
+    public PhysicsManager Physics { get; private set; }
 
     /// <summary>
     /// Water definitions
@@ -332,15 +332,16 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
             region.GetList(result, 0);
         return result;
     }
-    
+
     /// <summary>
     /// Creates and starts the physics engine for this world instance
     /// </summary>
     public void StartPhysics()
     {
         Logger.Debug($"Starting physics engine for instance {this}");
-        Physics = new BoatPhysicsManager { SimulationWorld = this };
+        Physics = new PhysicsManager { SimulationWorld = this };
         Physics.Initialize();
+        Physics.InitializeTerrain();
         Physics.StartPhysics();
     }
 

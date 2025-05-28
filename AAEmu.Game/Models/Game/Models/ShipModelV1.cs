@@ -1,6 +1,6 @@
 namespace AAEmu.Game.Models.Game.Models;
 
-public class ShipModel : Model
+public class ShipModelV1 : Model
 {
     public float Velocity { get; set; }
     public float Mass { get; set; }

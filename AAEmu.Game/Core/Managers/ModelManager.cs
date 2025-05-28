@@ -35,13 +35,13 @@ namespace AAEmu.Game.Core.Managers
                 return null;
             }
 
-            public ShipModel GetShipModel(uint modelId)
+            public ShipModelV1 GetShipModel(uint modelId)
             {
                 if (!_modelTypes.TryGetValue(modelId, out var modelType))
                     return null;
                 if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))
                     return null;
-                if (model is ShipModel shipModel)
+                if (model is ShipModelV1 shipModel)
                     return shipModel;
                 return null;
             }
@@ -113,7 +113,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             while (reader.Read())
                             {
-                                var model = new ShipModel()
+                                var model = new ShipModelV1()
                                 {
                                     Id = reader.GetUInt32("id"),
                                     Velocity = reader.GetFloat("velocity"),
