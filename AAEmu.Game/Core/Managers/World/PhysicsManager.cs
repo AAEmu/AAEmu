@@ -37,7 +37,8 @@ public class PhysicsManager
     private const int MaxPhysicsSteps = 4;
 
     // TODO: Make this configurable
-    private float TargetPhysicsTps { get; set; } = 100f;
+    public float TargetPhysicsTps { get; set; } = 100f;
+    public float TargetPhysicsTickTime => 1f / TargetPhysicsTps;
     private Thread _thread;
 
     /// <summary>
@@ -183,10 +184,12 @@ public class PhysicsManager
 
                     // 3. Step the physics world
                     // Potentially step multiple times to catch up if we were running behind.
+                    var physicsTotalDelta = TimeSpan.Zero;
                     while (accumulatedTime > fixedStep)
                     {
                         _physWorld.Step((float)fixedStep.TotalSeconds, false);
                         accumulatedTime -= fixedStep;
+                        physicsTotalDelta += fixedStep;
                         if (++steps >= MaxPhysicsSteps) { break; }
                     }
 
@@ -219,6 +222,7 @@ public class PhysicsManager
                             if (!body.IsActive)
                                 continue;
 
+                            // TODO: move this
                             var underPos = slave.Transform.World.Position + (Vector3.UnitZ * -2f);
                             if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
                             {
@@ -233,10 +237,16 @@ public class PhysicsManager
 
                             if (_shipControllers.TryGetValue(slave.Id, out var boat))
                             {
+                                // Create floor/surface cache
+                                slave.CreateWaterAndLandSurfaceCache();
+                                // Sync transform
                                 SyncTransformWithRigidBody(slave);
-                                BoatPhysicsTick(slave, slave.RigidBody);
-                                ApplyCollisions(slave, slave.RigidBody);
-                                boat.UpdateControls(slave);
+                                // Do physics tick
+                                BoatPhysicsTick(slave, physicsTotalDelta);
+                                // Check if we collided
+                                CheckLandCollisions(slave, physicsTotalDelta);
+                                // Update Controls
+                                boat.UpdateControls(slave, physicsTotalDelta);
                                 SendUpdatedMovementData(slave, slave.RigidBody);
                             }
                         }
@@ -298,17 +308,14 @@ public class PhysicsManager
         var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
-        var ctrl = new ShipController(_physWorld, waterLevel: DefaultWaterLevel);
+        var ctrl = new ShipController(_physWorld, shipModel, waterLevel: DefaultWaterLevel);
 
-        ctrl.Build(
-            initialPosition: pos,
-            initialOrientation: rot,
-            initialDimension: dimensions,
-            hullMass: shipModel.Mass);
+        ctrl.Build(initialPosition: pos, initialOrientation: rot);
 
         _shipControllers[slave.Id] = ctrl;
         slave.RigidBody = ctrl.Hull;
         slave.RigidBody.Tag = slave;
+        slave.ShipController = ctrl;
 
         EnqueueAddBody(slave.RigidBody);
         _buoyancy.AddForRectangularParallelepiped(slave.RigidBody, 3);
@@ -338,14 +345,14 @@ public class PhysicsManager
     /// Handles physics tick for a ship 
     /// </summary>
     /// <param name="slave"></param>
-    /// <param name="rigidBody"></param>
-    private void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
+    /// <param name="deltaTime"></param>
+    private void BoatPhysicsTick(Slave slave, TimeSpan deltaTime)
     {
-        var shipModel = ModelManager.Instance.GetShipModel(slave.Template.ModelId);
+        var shipModel = slave.ShipController?.ShipModel;
         if (shipModel == null) return;
 
         // Calculate submerged depth and buoyancy force
-        var submergedDepth = Math.Max(0, DefaultWaterLevel - rigidBody.Position.Y);
+        var submergedDepth = Math.Max(0, slave.CachedWaterSurface - slave.RigidBody.Position.Y);
         var isOnWater = submergedDepth > 0;
         var isOnLand = !isOnWater && submergedDepth <= 0;
 
@@ -353,26 +360,26 @@ public class PhysicsManager
         {
             // Apply ground friction and stop the ship
             const float GroundFriction = 0.4f; // Sand: around 0.4
-            var frictionForce = new JVector(-rigidBody.Velocity.X * GroundFriction, 0, -rigidBody.Velocity.Z * GroundFriction);
-            rigidBody.AddForce(frictionForce);
+            var frictionForce = new JVector(-slave.RigidBody.Velocity.X * GroundFriction, 0, -slave.RigidBody.Velocity.Z * GroundFriction);
+            slave.RigidBody.AddForce(frictionForce);
 
             // Gradually reduce speed
             const float CollisionDamping = 0.5f;
-            rigidBody.Velocity *= CollisionDamping;
-            rigidBody.AngularVelocity *= CollisionDamping;
+            slave.RigidBody.Velocity *= CollisionDamping;
+            slave.RigidBody.AngularVelocity *= CollisionDamping;
 
             // Stop the ship and apply roll
-            if (rigidBody.Velocity.Length() < 0.01f)
+            if (slave.RigidBody.Velocity.Length() < 0.01f)
             {
-                rigidBody.Velocity = JVector.Zero;
-                rigidBody.AngularVelocity = JVector.Zero;
+                slave.RigidBody.Velocity = JVector.Zero;
+                slave.RigidBody.AngularVelocity = JVector.Zero;
 
                 // Apply roll to the ship
-                var rollAngle = GetRollAngle(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
+                var rollAngle = GetRollAngle(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation));
                 if (Math.Abs(rollAngle) < 0.1f)
                 {
-                    var correctionTorque = new JVector(0, 0, -rollAngle * rigidBody.Mass * 0.1f);
-                    rigidBody.AddForce(correctionTorque);
+                    var correctionTorque = new JVector(0, 0, -rollAngle * slave.RigidBody.Mass * 0.1f);
+                    slave.RigidBody.AddForce(correctionTorque);
                 }
 
                 // Disable control
@@ -447,37 +454,31 @@ public class PhysicsManager
     }
 
     /// <summary>
-    /// Apply collision between the ship and a given RigidBody (mostly the terrain)
+    /// Apply land collision between the ship and the expected terrain
     /// </summary>
     /// <param name="slave"></param>
-    /// <param name="rigidBody"></param>
-    private void ApplyCollisions(Slave slave, RigidBody rigidBody)
+    /// <param name="deltaTime"></param>
+    private void CheckLandCollisions(Slave slave, TimeSpan deltaTime)
     {
-        var shipModel = ModelManager.Instance.GetShipModel(slave.Template.ModelId);
-        if (shipModel is null)
+        if (slave.ShipController?.ShipModel is null)
             return;
 
-        var floor = WorldManager.Instance.GetHeight(slave.Transform);
-        //var boxSize = rigidBody.Shape.BoundingBox.Max - rigidBody.Shape.BoundingBox.Min;
-        var boatBottom = rigidBody.Position.Y;
+        var boatBottom = slave.RigidBody.Position.Y;
         //Logger.Debug($"Slave: {slave.Name}, floor: {floor:F1}, boatBottom: {boatBottom:F1}, boxSize: {boxSize}");
 
-        if (SimulationWorld?.Template.OceanLevel < floor)
+        if (slave.CachedWaterSurface < slave.CachedFloorLevel)
         {
-            var penetration = floor - boatBottom;
-            rigidBody.Position += new JVector(0, penetration, 0);
-            var collisionForce = new JVector(0, shipModel.Mass * 9.81f, 0);
-            rigidBody.AddForce(collisionForce);
+            var penetration = slave.CachedFloorLevel - boatBottom;
+            slave.RigidBody.Position += new JVector(0, penetration, 0); // Move the boat upwards to put the center level with the floor
+            var collisionForce = new JVector(0, slave.ShipController.ShipModel.Mass * 9.81f, 0);
+            slave.RigidBody.AddForce(collisionForce);
 
             // Gradually reduce speed
             var collisionDamping = 0.9f;
-            rigidBody.Velocity *= collisionDamping;
-            rigidBody.AngularVelocity *= collisionDamping;
+            slave.RigidBody.Velocity *= collisionDamping;
+            slave.RigidBody.AngularVelocity *= collisionDamping;
 
-            //rigidBody.Velocity = JVector.Zero;
-            //rigidBody.AngularVelocity = JVector.Zero;
-
-            // Logger.Debug($"Collision detected. Boat adjusted position: {rigidBody.Position}");
+            // Logger.Debug($"Land Collision detected. Boat adjusted position: {slave.RigidBody.Position}, boat penetration depth: {penetration}");
         }
     }
 
