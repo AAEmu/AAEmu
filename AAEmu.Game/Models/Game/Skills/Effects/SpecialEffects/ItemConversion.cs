@@ -84,7 +84,7 @@ public class ItemConversion : SpecialEffectAction
             }
         }
 
-        // destroy item
-        targetItem._holdingContainer.RemoveItem(ItemTaskType.Conversion, targetItem, true);
+        // consumes target item from stack or if there is only 1, destroy item
+        targetItem._holdingContainer.ConsumeItem(ItemTaskType.Conversion, targetItem.TemplateId, 1, targetItem);
     }
 }
