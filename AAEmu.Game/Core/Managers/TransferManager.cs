@@ -30,15 +30,13 @@ namespace AAEmu.Game.Core.Managers;
 public class TransferManager : Singleton<TransferManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private bool _initialized = false;
+    private bool _initialized;
 
-    private object _activeTransfersLock { get; set; } = new();
+    private object _activeTransfersLock { get; } = new();
     private Dictionary<uint, TransferTemplate> _templates;
     private Dictionary<uint, Transfer> _activeTransfers;
     private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
     private const double Delay = 100;
-    //private const double DelayInit = 1;
-    //private Task TransferTickTask { get; set; }
 
     public void Initialize()
     {
@@ -47,9 +45,6 @@ public class TransferManager : Singleton<TransferManager>
 
         Logger.Warn("TransferTickTask: Started");
 
-        //TransferTickTask = new TransferTickStartTask();
-        //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
-
         TickManager.Instance.OnTick.Subscribe(TransferTick, TimeSpan.FromMilliseconds(Delay), true);
 
         _initialized = true;
@@ -57,44 +52,23 @@ public class TransferManager : Singleton<TransferManager>
 
     private void TransferTick(TimeSpan delta)
     {
-        var activeTransfers = GetTransfers();
-        foreach (var transfer in activeTransfers)
+        foreach (var transfer in GetTransfers())
         {
             transfer.MoveTo(transfer);
         }
-
-        //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
     }
+    
     internal void TransferTick()
     {
-        var activeTransfers = GetTransfers();
-        foreach (var transfer in activeTransfers)
+        foreach (var transfer in GetTransfers())
         {
             transfer.MoveTo(transfer);
         }
-
-        //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
     }
-
-    //public void AddMoveTransfers(uint ObjId, Transfer transfer)
-    //{
-    //    _moveTransfers.Add(ObjId, transfer);
-    //}
 
     public bool Exist(uint templateId)
     {
         return _templates.ContainsKey(templateId);
-    }
-
-    public void SpawnAll()
-    {
-        lock (_activeTransfersLock)
-        {
-            foreach (var tr in _activeTransfers.Values)
-            {
-                tr.Spawn();
-            }
-        }
     }
 
     public Transfer[] GetTransfers()
@@ -105,51 +79,10 @@ public class TransferManager : Singleton<TransferManager>
         }
     }
 
-    public TransferTemplate GetTemplate(uint templateId)
-    {
-        return _templates.GetValueOrDefault(templateId);
-    }
-
-    public TransferTemplate GetTransferTemplate(uint id)
+    private TransferTemplate GetTransferTemplate(uint id)
     {
         return _templates.GetValueOrDefault(id);
     }
-    /*
-    private Transfer GetActiveTransferBiTemplateId(uint id)
-    {
-        return _activeTransfers.ContainsKey(id) ? _activeTransfers[id] : null;
-    }
-
-    private Transfer GetActiveTransferByOwnerObjId(uint objId)
-    {
-        return _activeTransfers.ContainsKey(objId) ? _activeTransfers[objId] : null;
-    }
-
-    private Transfer GetActiveTransferByObjId(uint objId)
-    {
-        foreach (var tr in _activeTransfers.Values)
-        {
-            if (tr.ObjId == objId)
-            {
-                return tr;
-            }
-        }
-
-        return null;
-    }
-
-    private Transfer GetActiveTransferByTlId(uint tlId)
-    {
-        foreach (var transfer in _activeTransfers.Values)
-        {
-            if (transfer.TlId == tlId)
-            {
-                return transfer;
-            }
-        }
-
-        return null;
-    }*/
 
     public Transfer Create(WorldInstance parentWorld, uint objectId, uint templateId, TransferSpawner spawner)
     {
@@ -383,93 +316,90 @@ public class TransferManager : Singleton<TransferManager>
         }
         #endregion
 
-        #region TransferPath
+        #region TransferPath (main_world only)
         Logger.Info("Loading transfer_path...");
 
-        var worlds = WorldManager.Instance.GetWorlds();
         Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
         //                              worldId           key  transfer_path
         _transferRoads = [];
-        foreach (var world in worlds)
+        
+        var transferPaths = new Dictionary<uint, List<TransferRoads>>();
+
+        var worldLevelDesignDir = Path.Combine("game", "worlds", "main_world", "level_design", "zone");
+        var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
+
+        foreach (var pathFileName in pathFiles)
         {
-            var transferPaths = new Dictionary<uint, List<TransferRoads>>();
-
-            var worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone");
-            var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
-
-            foreach (var pathFileName in pathFiles)
+            if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))), out var zoneId))
             {
-                if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))),
-                    out var zoneId))
+                Logger.Warn("Unable to parse zoneId from {0}", pathFileName);
+                continue;
+            }
+
+            var contents = ClientFileManager.GetFileAsString(pathFileName);
+
+            if (string.IsNullOrWhiteSpace(contents))
+            {
+                Logger.Warn($"{pathFileName} doesn't exists or is empty.");
+                continue;
+            }
+
+            Logger.Debug($"Loading {pathFileName}");
+
+            var transferPath = new List<TransferRoads>();
+            var xDoc = new XmlDocument();
+            xDoc.LoadXml(contents);
+            var xRoot = xDoc.DocumentElement;
+            if (xRoot != null)
+            {
+                foreach (XmlElement xNode in xRoot)
                 {
-                    Logger.Warn("Unable to parse zoneId from {0}", pathFileName);
-                    continue;
-                }
+                    var transferRoad = new TransferRoads();
+                    var transferAttribs = XmlHelper.ReadNodeAttributes(xNode);
 
-                var contents = ClientFileManager.GetFileAsString(pathFileName);
+                    transferRoad.ZoneId = zoneId;
+                    transferRoad.Name = XmlHelper.ReadAttribute(transferAttribs, "Name", "");
+                    transferRoad.Type = XmlHelper.ReadAttribute(transferAttribs, "Type", 0);
+                    transferRoad.CellX = XmlHelper.ReadAttribute(transferAttribs, "cellX", 0);
+                    transferRoad.CellY = XmlHelper.ReadAttribute(transferAttribs, "cellY", 0);
 
-                if (string.IsNullOrWhiteSpace(contents))
-                {
-                    Logger.Warn($"{pathFileName} doesn't exists or is empty.");
-                    continue;
-                }
-
-                Logger.Debug($"Loading {pathFileName}");
-
-                var transferPath = new List<TransferRoads>();
-                var xDoc = new XmlDocument();
-                xDoc.LoadXml(contents);
-                var xRoot = xDoc.DocumentElement;
-                if (xRoot != null)
-                {
-                    foreach (XmlElement xNode in xRoot)
+                    foreach (XmlNode childNode in xNode.ChildNodes)
                     {
-                        var transferRoad = new TransferRoads();
-                        var transferAttribs = XmlHelper.ReadNodeAttributes(xNode);
-
-                        transferRoad.ZoneId = zoneId;
-                        transferRoad.Name = XmlHelper.ReadAttribute(transferAttribs, "Name", "");
-                        transferRoad.Type = XmlHelper.ReadAttribute(transferAttribs, "Type", 0);
-                        transferRoad.CellX = XmlHelper.ReadAttribute(transferAttribs, "cellX", 0);
-                        transferRoad.CellY = XmlHelper.ReadAttribute(transferAttribs, "cellY", 0);
-
-                        foreach (XmlNode childNode in xNode.ChildNodes)
+                        foreach (XmlNode node in childNode.ChildNodes)
                         {
-                            foreach (XmlNode node in childNode.ChildNodes)
+                            var posNodeAttribs = XmlHelper.ReadNodeAttributes(node);
+                            if (posNodeAttribs.TryGetValue("Pos", out var attributeValue))
                             {
-                                var posNodeAttribs = XmlHelper.ReadNodeAttributes(node);
-                                if (posNodeAttribs.TryGetValue("Pos", out var attributeValue))
-                                {
-                                    var xyz = XmlHelper.StringToVector3(attributeValue);
+                                var xyz = XmlHelper.StringToVector3(attributeValue);
 
-                                    // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
-                                    // convert coordinates from local to world, immediately when reading the path from the file
-                                    var vec = ZoneManager.ConvertToWorldCoordinates(zoneId, xyz);
-                                    var pos = new WorldSpawnPosition()
-                                    {
-                                        X = vec.X,
-                                        Y = vec.Y,
-                                        Z = vec.Z,
-                                        WorldId = world.Id,
-                                        ZoneId = zoneId
-                                    };
-                                    transferRoad.Pos.Add(pos);
-                                }
+                                // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
+                                // convert coordinates from local to world, immediately when reading the path from the file
+                                var vec = ZoneManager.ConvertToWorldCoordinates(zoneId, xyz);
+                                var pos = new WorldSpawnPosition()
+                                {
+                                    X = vec.X,
+                                    Y = vec.Y,
+                                    Z = vec.Z,
+                                    WorldId = 0,
+                                    ZoneId = zoneId
+                                };
+                                transferRoad.Pos.Add(pos);
                             }
                         }
-
-                        transferPath.Add(transferRoad);
                     }
-                }
 
-                transferPaths.Add(zoneId, transferPath);
+                    transferPath.Add(transferRoad);
+                }
             }
-            _transferRoads.Add((byte)world.Id, transferPaths);
-            GetOwnerPaths(world.Id);
+
+            transferPaths.Add(zoneId, transferPath);
         }
+
+        _transferRoads.Add(0, transferPaths);
+        GetOwnerPaths();
+        
         #endregion
-        //GetOwnerPaths();
     }
 
     /// <summary>
