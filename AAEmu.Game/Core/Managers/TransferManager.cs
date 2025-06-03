@@ -9,6 +9,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -27,15 +28,13 @@ using XmlHelper = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class TransferManager : Singleton<TransferManager>
+public class TransferManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;
+    private object ActiveTransfersLock { get; set; } = new();
+    private Dictionary<uint, Transfer> _activeTransfers = [];
 
-    private object _activeTransfersLock { get; set; } = new();
-    private Dictionary<uint, TransferTemplate> _templates;
-    private Dictionary<uint, Transfer> _activeTransfers;
-    private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
     private const double Delay = 100;
     //private const double DelayInit = 1;
     //private Task TransferTickTask { get; set; }
@@ -65,30 +64,10 @@ public class TransferManager : Singleton<TransferManager>
 
         //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
     }
-    internal void TransferTick()
-    {
-        var activeTransfers = GetTransfers();
-        foreach (var transfer in activeTransfers)
-        {
-            transfer.MoveTo(transfer);
-        }
-
-        //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
-    }
-
-    //public void AddMoveTransfers(uint ObjId, Transfer transfer)
-    //{
-    //    _moveTransfers.Add(ObjId, transfer);
-    //}
-
-    public bool Exist(uint templateId)
-    {
-        return _templates.ContainsKey(templateId);
-    }
 
     public void SpawnAll()
     {
-        lock (_activeTransfersLock)
+        lock (ActiveTransfersLock)
         {
             foreach (var tr in _activeTransfers.Values)
             {
@@ -99,57 +78,11 @@ public class TransferManager : Singleton<TransferManager>
 
     public Transfer[] GetTransfers()
     {
-        lock (_activeTransfersLock)
+        lock (ActiveTransfersLock)
         {
             return _activeTransfers.Values.ToArray();
         }
     }
-
-    public TransferTemplate GetTemplate(uint templateId)
-    {
-        return _templates.GetValueOrDefault(templateId);
-    }
-
-    public TransferTemplate GetTransferTemplate(uint id)
-    {
-        return _templates.GetValueOrDefault(id);
-    }
-    /*
-    private Transfer GetActiveTransferBiTemplateId(uint id)
-    {
-        return _activeTransfers.ContainsKey(id) ? _activeTransfers[id] : null;
-    }
-
-    private Transfer GetActiveTransferByOwnerObjId(uint objId)
-    {
-        return _activeTransfers.ContainsKey(objId) ? _activeTransfers[objId] : null;
-    }
-
-    private Transfer GetActiveTransferByObjId(uint objId)
-    {
-        foreach (var tr in _activeTransfers.Values)
-        {
-            if (tr.ObjId == objId)
-            {
-                return tr;
-            }
-        }
-
-        return null;
-    }
-
-    private Transfer GetActiveTransferByTlId(uint tlId)
-    {
-        foreach (var transfer in _activeTransfers.Values)
-        {
-            if (transfer.TlId == tlId)
-            {
-                return transfer;
-            }
-        }
-
-        return null;
-    }*/
 
     public Transfer Create(WorldInstance parentWorld, uint objectId, uint templateId, TransferSpawner spawner)
     {
@@ -164,12 +97,15 @@ public class TransferManager : Singleton<TransferManager>
         * SCDoodadCreatedPacket(templateId = 5890, attachPoint=3, objId=objId2, x2y2z2)
         */
 
-        if (!Exist(templateId)) { return null; }
+        if (!TransferGameData.Instance.Exist(templateId))
+        {
+            return null;
+        }
 
         // create a wagon cabin
         var owner = new Transfer();
         owner.ParentWorld = parentWorld;
-        var carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
+        var carriage = TransferGameData.Instance.GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
         owner.Name = carriage.Name;
         owner.TlId = (ushort)TlIdManager.Instance.GetNextId();
         owner.ObjId = objectId == 0 ? ObjectIdManager.Instance.GetNextId() : objectId;
@@ -193,7 +129,7 @@ public class TransferManager : Singleton<TransferManager>
         var buffId = (uint)BuffConstants.Untouchable;
         owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
         owner.Spawn();
-        lock (_activeTransfersLock)
+        lock (ActiveTransfersLock)
         {
             _activeTransfers.Add(owner.ObjId, owner);
         }
@@ -201,7 +137,7 @@ public class TransferManager : Singleton<TransferManager>
         // Add additional transfer units if defined (like a Carriage/Boarding Part for example)
         if (carriage.TransferBindings.Count <= 0) { return owner; }
 
-        var boardingPart = GetTransferTemplate(carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
+        var boardingPart = TransferGameData.Instance.GetTransferTemplate(carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
         var transfer = new Transfer();
         transfer.ParentWorld = parentWorld;
         transfer.Name = boardingPart.Name;
@@ -237,7 +173,7 @@ public class TransferManager : Singleton<TransferManager>
         owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
         transfer.Spawn();
-        lock (_activeTransfersLock)
+        lock (ActiveTransfersLock)
         {
             _activeTransfers.Add(transfer.ObjId, transfer);
         }
@@ -276,241 +212,7 @@ public class TransferManager : Singleton<TransferManager>
 
     public void Load()
     {
-        _templates = [];
-        _activeTransfers = [];
-
-        #region SQLLite
-
-        using (var connection = SQLite.CreateConnection())
-        {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM transfers";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new TransferTemplate();
-
-                        template.Id = reader.GetUInt32("id"); // OwnerId
-                        template.Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"), reader.GetString("comment"));
-                        template.ModelId = reader.GetUInt32("model_id");
-                        template.WaitTime = reader.GetFloat("wait_time");
-                        template.Cyclic = reader.GetBoolean("cyclic", true);
-                        template.PathSmoothing = reader.GetFloat("path_smoothing");
-
-                        _templates.Add(template.Id, template);
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM transfer_bindings";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new TransferBindings
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt16("attach_point_id"),
-                            TransferId = reader.GetUInt32("transfer_id")
-                        };
-                        if (_templates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.TransferBindings.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM transfer_binding_doodads";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new TransferBindingDoodads
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
-                            DoodadId = reader.GetUInt32("doodad_id"),
-                        };
-                        if (_templates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.TransferBindingDoodads.Add(template);
-                        }
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM transfer_paths";
-                command.Prepare();
-
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new TransferPaths
-                        {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
-                            PathName = reader.GetString("path_name"),
-                            WaitTimeStart = reader.GetDouble("wait_time_start"),
-                            WaitTimeEnd = reader.GetDouble("wait_time_end")
-                        };
-                        if (_templates.TryGetValue(template.OwnerId, out var value))
-                        {
-                            value.TransferAllPaths.Add(template);
-                        }
-                    }
-                }
-            }
-        }
-        #endregion
-
-        #region TransferPath
-        Logger.Info("Loading transfer_path...");
-
-        var worlds = WorldManager.Instance.GetWorlds();
-        Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-
-        //                              worldId           key  transfer_path
-        _transferRoads = [];
-        foreach (var world in worlds)
-        {
-            var transferPaths = new Dictionary<uint, List<TransferRoads>>();
-
-            var worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone");
-            var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
-
-            foreach (var pathFileName in pathFiles)
-            {
-                if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))),
-                    out var zoneId))
-                {
-                    Logger.Warn("Unable to parse zoneId from {0}", pathFileName);
-                    continue;
-                }
-
-                var contents = ClientFileManager.GetFileAsString(pathFileName);
-
-                if (string.IsNullOrWhiteSpace(contents))
-                {
-                    Logger.Warn($"{pathFileName} doesn't exists or is empty.");
-                    continue;
-                }
-
-                Logger.Debug($"Loading {pathFileName}");
-
-                var transferPath = new List<TransferRoads>();
-                var xDoc = new XmlDocument();
-                xDoc.LoadXml(contents);
-                var xRoot = xDoc.DocumentElement;
-                if (xRoot != null)
-                {
-                    foreach (XmlElement xNode in xRoot)
-                    {
-                        var transferRoad = new TransferRoads();
-                        var transferAttribs = XmlHelper.ReadNodeAttributes(xNode);
-
-                        transferRoad.ZoneId = zoneId;
-                        transferRoad.Name = XmlHelper.ReadAttribute(transferAttribs, "Name", "");
-                        transferRoad.Type = XmlHelper.ReadAttribute(transferAttribs, "Type", 0);
-                        transferRoad.CellX = XmlHelper.ReadAttribute(transferAttribs, "cellX", 0);
-                        transferRoad.CellY = XmlHelper.ReadAttribute(transferAttribs, "cellY", 0);
-
-                        foreach (XmlNode childNode in xNode.ChildNodes)
-                        {
-                            foreach (XmlNode node in childNode.ChildNodes)
-                            {
-                                var posNodeAttribs = XmlHelper.ReadNodeAttributes(node);
-                                if (posNodeAttribs.TryGetValue("Pos", out var attributeValue))
-                                {
-                                    var xyz = XmlHelper.StringToVector3(attributeValue);
-
-                                    // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
-                                    // convert coordinates from local to world, immediately when reading the path from the file
-                                    var vec = ZoneManager.ConvertToWorldCoordinates(zoneId, xyz);
-                                    var pos = new WorldSpawnPosition()
-                                    {
-                                        X = vec.X,
-                                        Y = vec.Y,
-                                        Z = vec.Z,
-                                        WorldId = world.Id,
-                                        ZoneId = zoneId
-                                    };
-                                    transferRoad.Pos.Add(pos);
-                                }
-                            }
-                        }
-
-                        transferPath.Add(transferRoad);
-                    }
-                }
-
-                transferPaths.Add(zoneId, transferPath);
-            }
-            _transferRoads.Add((byte)world.Id, transferPaths);
-            GetOwnerPaths(world.Id);
-        }
-        #endregion
-        //GetOwnerPaths();
-    }
-
-    /// <summary>
-    /// Получить список всех частей своего пути для транспорта
-    /// </summary>
-    /// <param name="worldId"></param>
-    /// <returns></returns>
-    private void GetOwnerPaths(uint worldId = 0)
-    {
-        foreach (var (id, transferTemplate) in _templates)
-        {
-            foreach (var transferPaths in transferTemplate.TransferAllPaths)
-            {
-                foreach (var (wid, transfers) in _transferRoads)
-                {
-                    if (wid != worldId) { continue; }
-                    foreach (var (zid, transfer) in transfers)
-                    {
-                        foreach (var path in transfer.Where(path => path.Name == transferPaths.PathName))
-                        {
-                            var exist = false;
-                            foreach (var tr in transferTemplate.TransferRoads.Where(tr => tr.Name == transferPaths.PathName))
-                            {
-                                exist = true;
-                            }
-
-                            if (exist) { continue; }
-
-                            var tmp = new TransferRoads()
-                            {
-                                Name = path.Name,
-                                Type = path.Type,
-                                CellX = path.CellX,
-                                CellY = path.CellY,
-                                Pos = path.Pos
-                            };
-                            transferTemplate.TransferRoads.Add(tmp);
-                        }
-                    }
-                }
-            }
-        }
+        lock (ActiveTransfersLock)
+            _activeTransfers = [];
     }
 }

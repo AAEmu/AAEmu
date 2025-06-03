@@ -42,7 +42,7 @@ public class TransferSpawner : Spawner<Transfer>
 
     public override Transfer Spawn(uint objId)
     {
-        var transfer = TransferManager.Instance.Create(ParentWorld, objId, UnitId, this);
+        var transfer = ParentWorld.TransferManager.Create(ParentWorld, objId, UnitId, this);
         if (transfer == null)
         {
             Logger.Warn("Transfer {0}, from spawn not exist at db", UnitId);

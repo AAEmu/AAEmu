@@ -567,7 +567,7 @@ public class SpawnManager(WorldInstance parentWorld)
                     entry++;
                     spawner.ParentWorld = World;
                     
-                    if (!TransferManager.Instance.Exist(spawner.UnitId))
+                    if (!TransferGameData.Instance.Exist(spawner.UnitId))
                     {
                         Logger.Warn($"Transfer Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
                         continue;

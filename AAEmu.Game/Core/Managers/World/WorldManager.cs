@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -48,7 +49,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <summary>
     /// List of Templates by world names 
     /// </summary>
-    private Dictionary<string, WorldTemplate> WorldTemplates { get; set; } = [];
+    public Dictionary<string, WorldTemplate> WorldTemplates { get; set; } = [];
 
     private Dictionary<uint, WorldTemplate> WorldTemplatesById { get; set; } = [];
     private List<string> WorldNames { get; set; } = [];
@@ -410,6 +411,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         world.MateManager = new MateManager(world);
         world.MateManager.Load();
+        
+        world.TransferManager = new TransferManager();
+        world.TransferManager.Load();
+        world.TransferManager.Initialize(); // starts tick
 
         // world.SpawnManager.SpawnAll();
 

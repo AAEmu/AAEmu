@@ -111,13 +111,13 @@ public class RadarManager : Singleton<RadarManager>
             if (Registrations.Count <= 0)
                 return;
 
-            var allTransfers = TransferManager.Instance.GetTransfers();
             var allFish = FishSchoolManager.Instance.GetAllFishSchools();
             // TODO: Add Shipyards
+            var allTransfers = new List<Transfer>();
             var allShips = new Dictionary<uint, List<Slave>>();
             foreach (var worldInstance in WorldManager.Instance.GetWorlds())
             {
-                
+                allTransfers.AddRange(worldInstance.TransferManager.GetTransfers());
                 var shipList = worldInstance.SlaveManager.GetActiveSlavesByKinds(
                 [
                     SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.Speedboat, SlaveKind.MerchantShip,

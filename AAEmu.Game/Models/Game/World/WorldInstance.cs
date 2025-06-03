@@ -101,6 +101,11 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     public GimmickManager GimmickManager { get; set; }
 
     /// <summary>
+    /// Manager that handles Transfers for this instance 
+    /// </summary>
+    public TransferManager TransferManager { get; set; }
+
+    /// <summary>
     /// Global Instance flag to check if PvP is allowed here
     /// </summary>
     public bool AllowPvP

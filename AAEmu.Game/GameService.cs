@@ -143,8 +143,6 @@ public sealed class GameService : IHostedService, IDisposable
         NpcManager.Instance.Load();
 
         DoodadManager.Instance.Load();
-        TransferManager.Instance.Load();
-        // GimmickManager.Instance.Load();
         ShipyardManager.Instance.Load();
 
         SubZoneManager.Instance.Load();
@@ -180,8 +178,6 @@ public sealed class GameService : IHostedService, IDisposable
         SaveManager.Instance.Initialize();
         AreaTriggerManager.Instance.Initialize();
         SpecialtyManager.Initialize();
-        TransferManager.Instance.Initialize();
-        // GimmickManager.Instance.Initialize();
         CashShopManager.Instance.Initialize();
         GameDataManager.Instance.PostLoadGameData();
         FishSchoolManager.Instance.Initialize();
@@ -197,15 +193,6 @@ public sealed class GameService : IHostedService, IDisposable
 
         // Start main_world and other static instance
         WorldManager.Instance.CreateStaticInstances();
-
-        // TODO: Move all spawns to WorldInstance
-        var spawnSw = new Stopwatch();
-        Logger.Info("Spawning units...");
-        spawnSw.Start();
-        // SpawnManager.Instance.SpawnAll();
-        TransferManager.Instance.SpawnAll();
-        spawnSw.Stop();
-        Logger.Info($"Units spawned in {spawnSw.Elapsed}");
 
         CharacterManager.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
