@@ -198,15 +198,6 @@ public sealed class GameService : IHostedService, IDisposable
         // Start main_world and other static instance
         WorldManager.Instance.CreateStaticInstances();
 
-        // TODO: Move all spawns to WorldInstance
-        var spawnSw = new Stopwatch();
-        Logger.Info("Spawning units...");
-        spawnSw.Start();
-        // SpawnManager.Instance.SpawnAll();
-        TransferManager.Instance.SpawnAll();
-        spawnSw.Stop();
-        Logger.Info($"Units spawned in {spawnSw.Elapsed}");
-
         CharacterManager.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
 
