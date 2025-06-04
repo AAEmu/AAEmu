@@ -97,7 +97,6 @@ public class QuestTests
         HousingManager.Instance.LoadPlayerHousing(null);
         NpcManager.Instance.Load();
         DoodadManager.Instance.Load();
-        TransferManager.Instance.Load();
 
         GameDataManager.Instance.PostLoadGameData();
 
