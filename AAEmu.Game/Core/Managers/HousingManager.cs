@@ -82,10 +82,11 @@ public class HousingManager : Singleton<HousingManager>
     /// </summary>
     /// <param name="templateId"></param>
     /// <param name="factionId"></param>
+    /// <param name="worldInstance"></param>
     /// <param name="objectId"></param>
     /// <param name="tlId"></param>
     /// <returns></returns>
-    private House Create(uint templateId, FactionsEnum factionId, uint objectId = 0, ushort tlId = 0)
+    private House Create(uint templateId, FactionsEnum factionId, WorldInstance worldInstance, uint objectId = 0, ushort tlId = 0)
     {
         var template = HousingGameData.Instance.GetTemplate(templateId);
         if (template == null)
@@ -101,6 +102,7 @@ public class HousingManager : Singleton<HousingManager>
             Faction = FactionManager.Instance.GetFaction(factionId),
             Name = LocalizationManager.Instance.Get("housings", "name", template.Id)
         };
+        house.Transform.InstanceId = worldInstance.Id;
         house.Hp = house.MaxHp;
         // Force public on always public properties on create
         if (template.AlwaysPublic)
@@ -139,7 +141,7 @@ public class HousingManager : Singleton<HousingManager>
                     {
                         var templateId = reader.GetUInt32("template_id");
                         var factionId = (FactionsEnum)reader.GetUInt32("faction_id");
-                        var house = Create(templateId, factionId);
+                        var house = Create(templateId, factionId, worldInstance);
                         house.ParentWorld = worldInstance;
                         house.Id = reader.GetUInt32("id");
                         house.AccountId = reader.GetUInt32("account_id");
@@ -463,7 +465,7 @@ public class HousingManager : Singleton<HousingManager>
         }
 
         // Spawn the actual house
-        var house = Create(designId, connection.ActiveChar.Faction.Id);
+        var house = Create(designId, connection.ActiveChar.Faction.Id, connection.ActiveChar.ParentWorld);
 
         // Fallback for un-translated buildings (en_us)
         if (house.Name == string.Empty)

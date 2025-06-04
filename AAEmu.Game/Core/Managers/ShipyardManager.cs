@@ -57,6 +57,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
         var objId = ObjectIdManager.Instance.GetNextId();
         var shipId = ShipyardIdManager.Instance.GetNextId();
         var shipyard = new Shipyard();
+        shipyard.Transform.InstanceId = owner.ParentWorld.Id;
         shipyard.TemplateId = shipyardData.TemplateId; // duplicate Id
         shipyard.Id = shipyardData.TemplateId;
         shipyard.ObjId = objId;
