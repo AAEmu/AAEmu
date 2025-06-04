@@ -373,8 +373,12 @@ public class Transform : IDisposable
             return _localPosRot;
         var res = _parentTransform.GetWorldPosition().Clone();
 
-        // TODO: This is not taking into account parent rotation !
-        res.Translate(Local.Position);
+        // Use parent rotation to translate child coordinates
+        Quaternion q = res.ToQuaternion();
+        Quaternion qLoc = new Quaternion(Local.Position, 0);
+        Quaternion qTranslated = Quaternion.Inverse(q) * qLoc * q;
+        res.Translate(new Vector3(qTranslated.X, qTranslated.Y, qTranslated.Z));
+
         res.Rotate(Local.Rotation);
         // Is this even correct ?
 
