@@ -2993,10 +2993,10 @@ public class DoodadManager : Singleton<DoodadManager>
         var doodad = Instance.Create(character.ParentWorld, 0, id, character, true);
         doodad.IsPersistent = true;
         doodad.Transform = character.Transform.CloneDetached(doodad);
+        doodad.Transform.InstanceId = character.ParentWorld.Id;
         doodad.Transform.Local.SetPosition(x, y, z);
         doodad.Transform.Local.SetZRotation(zRot);
         // doodad.Transform.WorldId = world.Template.Id;
-        doodad.Transform.InstanceId = character.ParentWorld.Id;
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
         doodad.FarmType = farmType;
@@ -3008,6 +3008,7 @@ public class DoodadManager : Singleton<DoodadManager>
             doodad.ParentObj = targetHouse;
             doodad.ParentObjId = targetHouse.ObjId;
             doodad.Transform.Parent = targetHouse.Transform;
+            doodad.Transform.Local.Rotate(targetHouse.Transform.Local.Rotation);
         }
         else
         {
