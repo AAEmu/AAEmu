@@ -68,17 +68,11 @@ public class ShipController
     }
 
     /// <summary>
-    /// Обновляет управление кораблем. Вызывать перед каждым шагом физики.
+    /// Applies forces to the Ship according to previous steering calculations
     /// </summary>
-    public void UpdateControls(Slave slave, TimeSpan deltaTime)
-    {
-        if (slave is null)
-            throw new ArgumentNullException(nameof(slave));
-
-        ApplyForceAndTorque(slave, deltaTime);
-    }
-
-    private void ApplyForceAndTorque(Slave slave, TimeSpan deltaTime)
+    /// <param name="slave"></param>
+    /// <param name="deltaTime"></param>
+    public void ApplyForceAndTorque(Slave slave, TimeSpan deltaTime)
     {
         if (slave?.RigidBody is null)
             return;
@@ -107,7 +101,7 @@ public class ShipController
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
 
         // Calculate speed
-        slave.Speed += throttleNorm * (shipModel.Accel / 10f);
+        slave.Speed += throttleNorm * (shipModel.Accel * (float)deltaTime.TotalSeconds) / 2f;
 
         // Clamp speed between min and max Velocity
         var maxForward = shipModel.Velocity;
@@ -138,7 +132,7 @@ public class ShipController
         // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
         if (slave.Throttle == 0)
         {
-            slave.Speed -= slave.Speed / (100 * 3f);
+            slave.Speed -= (float)deltaTime.TotalSeconds * float.Sign(slave.Speed) * shipModel.WaterResistance;
             if (Math.Abs(slave.Speed) < 1)
             {
                 slave.Speed = 0;

@@ -206,10 +206,17 @@ public class Buoyancy : ForceGenerator
             // Skip if no controller or mass
             if (slave.ShipController == null || slave.ShipController.ShipModel.Mass <= 0)
                 continue;
+            
+            // Skip simulation if still summoning
+            body.AffectedByGravity = slave.SpawnTime.AddSeconds(slave.Template.PortalTime) <= DateTime.UtcNow;
+            if (!body.AffectedByGravity)
+            {
+                continue;
+            }
 
             var depth = WaterSurfaceLevel - body.Position.Y;
             if (depth <= 0) continue;
-
+            
             ApplyDrag(body, slave.ShipController.ShipModel.MassBoxSizeX, slave.ShipController.ShipModel.MassBoxSizeY, slave.ShipController.ShipModel.MassBoxSizeZ);
             // Calculate submerged depth and buoyancy force
             var submergedDepth = Math.Max(0, WaterSurfaceLevel - body.Position.Y);

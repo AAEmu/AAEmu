@@ -37,7 +37,7 @@ public class PhysicsManager
     private const int MaxPhysicsSteps = 4;
 
     // TODO: Make this configurable
-    public float TargetPhysicsTps { get; set; } = 100f;
+    public float TargetPhysicsTps { get; set; } = 25f;
     public float TargetPhysicsTickTime => 1f / TargetPhysicsTps;
     private Thread _thread;
 
@@ -152,20 +152,33 @@ public class PhysicsManager
             Logger.Debug($"Start: {Thread.CurrentThread.Name}");
 
             var lastTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
-            var fixedStep = TimeSpan.FromSeconds(1f / TargetPhysicsTps);
             var accumulatedTime = TimeSpan.Zero;
+            Thread.Sleep((int)TargetPhysicsTickTime);
 
             while (ThreadRunning)
             {
-                Thread.Sleep(fixedStep);
-
-                // 1. Process pending add/remove actions
-                while (_pendingActions.TryDequeue(out var action)) { action(); }
-
+                var targetStepTime = TimeSpan.FromSeconds(TargetPhysicsTickTime);
                 var currentTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
                 var timeSinceLastTick = currentTick - lastTick;
                 accumulatedTime += timeSinceLastTick;
-                var steps = 0;
+                var timeToNextStep = lastTick + targetStepTime - currentTick;
+                // Only sleep if needed, otherwise, directly continue
+                if (timeToNextStep.TotalMilliseconds > 1)
+                {
+                    Thread.Sleep((int)timeToNextStep.TotalMilliseconds);
+                }
+                else
+                if (timeToNextStep.TotalMilliseconds < -TargetPhysicsTps)
+                {
+                    // If it's taking more than double the expected time, toss a warning
+                    Logger.Warn($"Physics thread is running slow in {SimulationWorld} at {timeSinceLastTick.TotalMilliseconds:F1} / {targetStepTime.TotalMilliseconds:F1} ms");
+                }
+
+                var physicsTotalDelta = TimeSpan.FromMilliseconds(Environment.TickCount64) - lastTick; 
+                lastTick = currentTick;
+
+                // 1. Process pending add/remove actions
+                while (_pendingActions.TryDequeue(out var action)) { action(); }
 
                 List<(RigidBody body, JVector vel, bool moving)> snapshot = [];
 
@@ -184,16 +197,7 @@ public class PhysicsManager
 
                     // 3. Step the physics world
                     // Potentially step multiple times to catch up if we were running behind.
-                    var physicsTotalDelta = TimeSpan.Zero;
-                    while (accumulatedTime > fixedStep)
-                    {
-                        _physWorld.Step((float)fixedStep.TotalSeconds, false);
-                        accumulatedTime -= fixedStep;
-                        physicsTotalDelta += fixedStep;
-                        if (++steps >= MaxPhysicsSteps) { break; }
-                    }
-
-                    lastTick = currentTick;
+                    _physWorld.Step((float)physicsTotalDelta.TotalSeconds, false);
 
                     // 4. Sync positions and broadcast outside lock
                     foreach (var (body, velocity, isMoving) in snapshot)
@@ -246,7 +250,7 @@ public class PhysicsManager
                                 // Check if we collided
                                 CheckLandCollisions(slave, physicsTotalDelta);
                                 // Update Controls
-                                boat.UpdateControls(slave, physicsTotalDelta);
+                                boat.ApplyForceAndTorque(slave, physicsTotalDelta);
                                 SendUpdatedMovementData(slave, slave.RigidBody);
                             }
                         }
