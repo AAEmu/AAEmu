@@ -375,12 +375,11 @@ public class Transform : IDisposable
 
         // Use parent rotation to translate child coordinates
         Quaternion parentQuatRotation = res.ToQuaternion();
-        Quaternion localQuatPos = new Quaternion(Local.Position, 0);
-        Quaternion localTranslatedPos = Quaternion.Inverse(parentQuatRotation) * localQuatPos * parentQuatRotation;
-        res.Translate(new Vector3(localTranslatedPos.X, localTranslatedPos.Y, localTranslatedPos.Z));
+        res.Translate(Vector3.Transform(Local.Position, parentQuatRotation));
 
-        res.Rotate(Local.Rotation);
-        // Is this even correct ?
+        // Combines object rotation into world rotation
+        var worldRotation = Quaternion.Concatenate(parentQuatRotation, Local.ToQuaternion());
+        res.ApplyFromQuaternion(worldRotation);
 
         res.IsLocal = false;
         return res;
