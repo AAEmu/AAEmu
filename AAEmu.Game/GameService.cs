@@ -220,6 +220,7 @@ public sealed class GameService : IHostedService, IDisposable
         MailManager.Instance.Save();
         ItemManager.Instance.Save();
         */
+        AIManager.Instance.Stop();
         WorldManager.Instance.Stop();
 
         TickManager.Instance.Stop();

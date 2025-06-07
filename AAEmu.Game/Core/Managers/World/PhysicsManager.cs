@@ -138,7 +138,7 @@ public class PhysicsManager
     public void StartPhysics()
     {
         ThreadRunning = true;
-        _thread = new Thread(PhysicsThread) { Name = "Physics-" + (SimulationWorld?.Template?.Name ?? "???") };
+        _thread = new Thread(PhysicsThread) { Name = "Physics-" + SimulationWorld };
         _thread.Start();
     }
 

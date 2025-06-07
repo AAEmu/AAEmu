@@ -1140,10 +1140,15 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_worlds is not null)
         {
-            foreach (var world in _worlds)
+            foreach (var (worldId, world) in _worlds)
             {
-                world.Value?.Physics?.Stop();
+                Logger.Info($"Shutting down {world}");
+                world.Physics?.Stop();
+                world.SpawnManager?.Stop();
+                world.SpawnManager?.DeSpawnAll();
+                world.SpawnManager?.DeleteAllSpawners();
             }
+            _worlds.Clear();
         }
     }
 

@@ -268,6 +268,11 @@ public abstract class BaseCombatBehavior : Behavior
     /// <returns></returns>
     public bool UpdateTarget()
     {
+        // Check if owner still exists
+        if (Ai?.Owner == null)
+        {
+            return false;
+        }
         // We might want to optimize this somehow.
         var aggroList = Ai.Owner.AggroTable.Values;
         var abusers = aggroList.OrderByDescending(o => o.TotalAggro).Select(o => o.Owner).ToList();
