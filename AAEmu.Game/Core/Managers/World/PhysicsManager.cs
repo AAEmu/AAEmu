@@ -446,9 +446,10 @@ public class PhysicsManager
         moveType.AngVelZ = rigidBody.AngularVelocity.Y;
 
         // Seems display the correct speed this way, but what happens if you go over the bounds ?
-        moveType.VelX = (short)(rigidBody.Velocity.X * 1024);
-        moveType.VelY = (short)(rigidBody.Velocity.Z * 1024);
-        moveType.VelZ = (short)(rigidBody.Velocity.Y * 1024);
+        var velMultiplier = 2048; // 1024;
+        moveType.VelX = (short)(rigidBody.Velocity.X * velMultiplier);
+        moveType.VelY = (short)(rigidBody.Velocity.Z * velMultiplier);
+        moveType.VelZ = (short)(rigidBody.Velocity.Y * velMultiplier);
 
         // Do not allow the body to flip
         //slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0); // TODO: Fix me with proper physics

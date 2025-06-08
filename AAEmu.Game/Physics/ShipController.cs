@@ -146,7 +146,7 @@ public class ShipController
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
         var slaveRotRad = rpy.Item1 + 1.57f; // 90 degrees in radians
 
-        var forceThrottle = slave.Speed * slave.MoveSpeedMul / 2f; // Not sure if correct, but it feels correct
+        var forceThrottle = slave.Speed * slave.MoveSpeedMul / 4f; // Not sure if correct, but it feels correct
 
         // Apply directional force
         rigidBody.Velocity = new JVector(forceThrottle * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * MathF.Sin(slaveRotRad));
