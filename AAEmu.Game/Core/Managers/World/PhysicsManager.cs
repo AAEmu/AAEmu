@@ -41,14 +41,15 @@ public class PhysicsManager
     // TODO: Make this variable or configurable from a GM command or dynamic load system
     public float TargetPhysicsTps { get; set; } = AppConfiguration.Instance.World.TargetPhysicsTps;
     public float TargetPhysicsTickTime => 1f / TargetPhysicsTps;
-    private Thread _thread;
+    internal Thread _thread;
 
     /// <summary>
     /// The physics engine's World
     /// </summary>
-    private Jitter2.World _physWorld;
-    private Buoyancy _buoyancy;
-    private bool ThreadRunning { get; set; }
+    internal Jitter2.World _physWorld;
+
+    internal Buoyancy _buoyancy;
+    internal bool ThreadRunning { get; set; }
 
     /// <summary>
     /// List of Ship controllers (slaveId, controller)
@@ -509,7 +510,7 @@ public class PhysicsManager
     /// </summary>
     /// <param name="area"></param>
     /// <returns></returns>
-    private bool CustomWater(ref JVector area)
+    internal bool CustomWater(ref JVector area)
     {
         return SimulationWorld?.IsWater(new Vector3(area.X, area.Z, area.Y), out _) ?? area.Y <= (SimulationWorld?.Template.OceanLevel ?? DefaultWaterLevel);
     }
@@ -543,7 +544,7 @@ public class PhysicsManager
     /// </summary>
     /// <param name="orientation"></param>
     /// <returns></returns>
-    private static float GetRollAngle(JMatrix orientation)
+    internal static float GetRollAngle(JMatrix orientation)
     {
         var yawPitchRoll = GetYawPitchRollFromJMatrix(orientation);
         return yawPitchRoll.Item2; // Roll angle in radians
@@ -554,7 +555,7 @@ public class PhysicsManager
     /// </summary>
     /// <param name="mat"></param>
     /// <returns></returns>
-    private static (float, float, float) GetYawPitchRollFromJMatrix(JMatrix mat)
+    internal static (float, float, float) GetYawPitchRollFromJMatrix(JMatrix mat)
     {
         return MathUtil.GetYawPitchRollFromQuat(JMatrixToQuaternion(mat));
     }
@@ -564,7 +565,7 @@ public class PhysicsManager
     /// </summary>
     /// <param name="matrix"></param>
     /// <returns></returns>
-    private static Quaternion JMatrixToQuaternion(JMatrix matrix)
+    internal static Quaternion JMatrixToQuaternion(JMatrix matrix)
     {
         var jq = JQuaternion.CreateFromMatrix(matrix);
 

@@ -9,7 +9,6 @@ using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Utils;
 
-using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
@@ -28,7 +27,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         private readonly Mock<Slave> _mockSlave;
         private readonly Mock<RigidBody> _mockRigidBody;
         //private readonly Mock<ModelManager> _mockModelManager;
-        private readonly BoatPhysicsManager _boatPhysicsManager;
+        private readonly PhysicsManager _boatPhysicsManager;
         private WorldTemplate _worldTemplate;
 
         public BoatPhysicsManagerTests()
@@ -39,7 +38,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             {
                 CellX = 1,
                 CellY = 1,
-                HeightMaps = new ushort[1, 1],
+                Cells = new WorldCell[0,0],
                 HeightMaxCoefficient = 0.63,
                 HousingZones = [],
                 Id = 0,
@@ -65,16 +64,16 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             //_mockModelManager = new Mock<ModelManager>();
             //_mockModelManager.Setup(mm => mm.GetShipModel(It.IsAny<uint>())).Returns(mockShipModel.Object);
 
-            _boatPhysicsManager = new BoatPhysicsManager()
+            _boatPhysicsManager = new PhysicsManager
             {
-                _thread = null,
-                _collisionSystem = null,
-                _physWorld = null,
-                _buoyancy = null,
-                ThreadRunning = false,
-                // SimulationWorld = _mockWorld.Object,
+                //_thread = null,
+                //_collisionSystem = null,
+                //_physWorld = null,
+                //_buoyancy = null,
+                //ThreadRunning = false,
+                SimulationWorld = _mockWorld.Object,
             };
-            _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
+            // _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
             _boatPhysicsManager.SimulationWorld.Water = new WaterBodies();
             _boatPhysicsManager.SimulationWorld.Water.OceanLevel = _boatPhysicsManager.SimulationWorld.Template.OceanLevel;
 
@@ -105,14 +104,13 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         {
             // Arrange
             _mockWorld.Setup(w => w.Template.Name).Returns("main_world");
-            _mockWorld.Setup(w => w.Template.HeightMaps).Returns(new ushort[1, 1]);
+            _mockWorld.Setup(w => w.Template.Cells).Returns(new WorldCell[0, 0]);
             _mockWorld.Setup(w => w.Template.HeightMaxCoefficient).Returns(1.0f);
 
             // Act
             _boatPhysicsManager.Initialize();
 
             // Assert
-            Assert.NotNull(_boatPhysicsManager._collisionSystem);
             Assert.NotNull(_boatPhysicsManager._physWorld);
             Assert.NotNull(_boatPhysicsManager._buoyancy);
             //_mockWorld.Verify(w => w.HeightMaps, Times.Once);
@@ -123,7 +121,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         {
             // Arrange
             _mockWorld.Object.Template.Name = "main_world";
-            _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
+            //_boatPhysicsManager.SimulationWorld = _mockWorld.Object;
 
             // Act
             _boatPhysicsManager.StartPhysics();
@@ -144,9 +142,9 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         public void RemoveShip_WhenCalled_RemovesRigidBodyFromPhysicsWorld()
         {
             // Arrange
-            _boatPhysicsManager._physWorld = new Jitter.World(new CollisionSystemSAP());
+            _boatPhysicsManager._physWorld = new Jitter2.World();
             _boatPhysicsManager._buoyancy = new Buoyancy(_boatPhysicsManager._physWorld);
-            _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
+            //_boatPhysicsManager.SimulationWorld = _mockWorld.Object;
 
             _mockSlave.Setup(s => s.RigidBody).Returns(_mockRigidBody.Object);
 
@@ -156,7 +154,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             isActiveProperty?.SetValue(_mockRigidBody.Object, true);
 
             // Add the rigid body to the physics world
-            _boatPhysicsManager._physWorld.AddBody(_mockRigidBody.Object);
+            _boatPhysicsManager._physWorld.CreateRigidBody();
 
             // Act
             _boatPhysicsManager.RemoveShip(_mockSlave.Object);
@@ -171,7 +169,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         {
             // Arrange
             var orientation = JMatrix.CreateRotationY(45f.DegToRad()); // 45 градусов
-            var rollAngle = Math.Round(BoatPhysicsManager.GetRollAngle(orientation).RadToDeg());
+            var rollAngle = Math.Round(PhysicsManager.GetRollAngle(orientation).RadToDeg());
 
             // Assert
             Assert.Equal(45f, rollAngle);
@@ -224,10 +222,10 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         public void TestCustomWater(Vector3 position, bool expected)
         {
             // Check that the CustomWater method correctly defines the water area
-            _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
-            // _mockWorld.Setup(w => w.IsWater(new Vector3(0f,0f, 0f))).Returns(true);
+            // _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
+            _mockWorld.Setup(w => w.IsWater(new Vector3(0f,0f, 0f))).Returns(true);
 
-            var area = position.VectorToJVector();
+            var area = position.ToJVector();
             var isWater = _boatPhysicsManager.CustomWater(ref area);
 
             Assert.Equal(isWater, expected);
@@ -238,7 +236,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         {
             // Проверяем вычисление угла крена из ориентации
             var orientation = JMatrix.Identity;
-            var rollAngle = BoatPhysicsManager.GetRollAngle(orientation);
+            var rollAngle = PhysicsManager.GetRollAngle(orientation);
 
             Assert.Equal(0f, rollAngle);
         }
@@ -248,7 +246,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         {
             // Проверяем извлечение углов поворота из матрицы
             var mat = JMatrix.Identity;
-            var (yaw, pitch, roll) = BoatPhysicsManager.GetYawPitchRollFromJMatrix(mat);
+            var (yaw, pitch, roll) = PhysicsManager.GetYawPitchRollFromJMatrix(mat);
 
             Assert.Equal(0f, yaw);
             Assert.Equal(0f, pitch);
@@ -260,7 +258,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         {
             // Проверяем преобразование матрицы в кватернион
             var matrix = JMatrix.Identity;
-            var quaternion = BoatPhysicsManager.JMatrixToQuaternion(matrix);
+            var quaternion = PhysicsManager.JMatrixToQuaternion(matrix);
 
             Assert.Equal(0f, quaternion.X);
             Assert.Equal(0f, quaternion.Y);
