@@ -104,12 +104,12 @@ public class ShipController
         slave.Speed += throttleNorm * (shipModel.Accel * (float)deltaTime.TotalSeconds) / 2f;
 
         // Clamp speed between min and max Velocity
-        var maxForward = shipModel.Velocity;
-        var maxBackward = -shipModel.ReverseVelocity;
+        var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f;
+        var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f;
         slave.Speed = Math.Clamp(slave.Speed, maxBackward, maxForward);
 
         // Calculate rotation speed
-        var turnSpeed = slave.TurnSpeed == 0 ? 10f : slave.TurnSpeed;
+        var turnSpeed = slave.TurnSpeed == 0 ? 10f : slave.TurnSpeed * (float)deltaTime.TotalSeconds * MathF.PI;
         slave.RotSpeed += steeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f);
 
         // Clamp to Steer Velocity
@@ -117,12 +117,14 @@ public class ShipController
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMax, steerMax);
 
         // Slow down turning if no steering active
-        const float AngularDamping = 0.9f; // Damping of angular velocity
+        const float AngularDamping = 0.975f; // Damping of angular velocity
         if (slave.Steering == 0)
+        {
             slave.RotSpeed *= AngularDamping;
+        }
 
         // If not in water, seriously slow down the velocity
-        const float FloorCollisionSpeedMultiplier = 0.99f;
+        const float FloorCollisionSpeedMultiplier = 0.975f;
         if (slave.CachedFloorLevel > slave.CachedWaterSurface)
         {
             slave.Speed *= FloorCollisionSpeedMultiplier;
@@ -144,7 +146,7 @@ public class ShipController
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
         var slaveRotRad = rpy.Item1 + 1.57f; // 90 degrees in radians
 
-        var forceThrottle = slave.Speed; // * slave.MoveSpeedMul; // Not sure if correct, but it feels correct
+        var forceThrottle = slave.Speed * slave.MoveSpeedMul / 2f; // Not sure if correct, but it feels correct
 
         // Apply directional force
         rigidBody.Velocity = new JVector(forceThrottle * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * MathF.Sin(slaveRotRad));
