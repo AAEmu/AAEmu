@@ -86,6 +86,11 @@ public class WorldConfig
     /// Maximum number of instances that can be created (includes system instances)
     /// </summary>
     public uint MaxInstances { get; set; } = 32;
+
+    /// <summary>
+    /// Target Ticks per Second to use for Physics threads
+    /// </summary>
+    public float TargetPhysicsTps { get; set; } = 25f;
 }
 
 public class DungeonLoadConfig

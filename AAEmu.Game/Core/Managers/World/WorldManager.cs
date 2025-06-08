@@ -358,10 +358,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// </summary>
     public void CreateStaticInstances()
     {
-        // TODO: make this a config json
-
+        var createInstanceStartTime = DateTime.UtcNow;
+        Logger.Debug($"Creating static instances...");
         // Erenor (main_world)
-        MainWorld = CreateWorldInstance(GetWorldTemplateByName("main_world"), 0, true); // fixedInstanceId = 0
+        MainWorld = CreateWorldInstance(GetWorldTemplateByName("main_world"), 0, true, 0); // fixedInstanceId = 0
 
         // Then spawn the rest
         MainWorld.SpawnManager.SpawnAll();
@@ -374,6 +374,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName(dungeonLoadConfig.Name).ZoneKeys.First(), dungeonLoadConfig.Channel, true, dungeonLoadConfig.Id);
         }
+        Logger.Info($"Created static instances in {DateTime.UtcNow.Subtract(createInstanceStartTime)} ({GameService.TimeSinceStart} since server start)");
     }
 
     /// <summary>

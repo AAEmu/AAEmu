@@ -25,6 +25,8 @@ namespace AAEmu.Game;
 public sealed class GameService : IHostedService, IDisposable
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    public static DateTime StartTime { get; private set; } = DateTime.UtcNow;
+    public static TimeSpan TimeSinceStart => DateTime.UtcNow.Subtract(StartTime);
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {

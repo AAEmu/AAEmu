@@ -34,10 +34,12 @@ public class PhysicsManager
     public WorldInstance SimulationWorld { get; init; }
 
     private const float DefaultWaterLevel = 100f;
-    private const int MaxPhysicsSteps = 4;
 
-    // TODO: Make this configurable
-    public float TargetPhysicsTps { get; set; } = 25f;
+    /// <summary>
+    /// Target Ticks per Second for Physics in this world, use setting as default value
+    /// </summary>
+    // TODO: Make this variable or configurable from a GM command or dynamic load system
+    public float TargetPhysicsTps { get; set; } = AppConfiguration.Instance.World.TargetPhysicsTps;
     public float TargetPhysicsTickTime => 1f / TargetPhysicsTps;
     private Thread _thread;
 
@@ -200,8 +202,10 @@ public class PhysicsManager
                     _physWorld.Step((float)physicsTotalDelta.TotalSeconds, false);
 
                     // 4. Sync positions and broadcast outside lock
-                    foreach (var (body, velocity, isMoving) in snapshot)
+                    // body, velocity, isMoving
+                    foreach (var (body, _, _) in snapshot)
                     {
+                        /*
                         if (body.Tag is Npc npc)
                         {
                             // Update transform
@@ -210,8 +214,10 @@ public class PhysicsManager
                             // Update avoidance controller
                             //npc.AvoidanceController.Update(0.01f);
                         }
+                        */
 
-                        if (body.Tag is not Slave slave) { continue; }
+                        if (body.Tag is not Slave slave)
+                            continue;
 
                         try
                         {
@@ -311,7 +317,7 @@ public class PhysicsManager
         var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y);
         var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
-        var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
+        // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
         var ctrl = new ShipController(_physWorld, shipModel, waterLevel: DefaultWaterLevel);
 
         ctrl.Build(initialPosition: pos, initialOrientation: rot);
@@ -470,20 +476,22 @@ public class PhysicsManager
         var boatBottom = slave.RigidBody.Position.Y;
         //Logger.Debug($"Slave: {slave.Name}, floor: {floor:F1}, boatBottom: {boatBottom:F1}, boxSize: {boxSize}");
 
-        if (slave.CachedWaterSurface < slave.CachedFloorLevel)
+        if (slave.CachedWaterSurface >= slave.CachedFloorLevel)
         {
-            var penetration = slave.CachedFloorLevel - boatBottom;
-            slave.RigidBody.Position += new JVector(0, penetration, 0); // Move the boat upwards to put the center level with the floor
-            var collisionForce = new JVector(0, slave.ShipController.ShipModel.Mass * 9.81f, 0);
-            slave.RigidBody.AddForce(collisionForce);
-
-            // Gradually reduce speed
-            var collisionDamping = 0.9f;
-            slave.RigidBody.Velocity *= collisionDamping;
-            slave.RigidBody.AngularVelocity *= collisionDamping;
-
-            // Logger.Debug($"Land Collision detected. Boat adjusted position: {slave.RigidBody.Position}, boat penetration depth: {penetration}");
+            return;
         }
+
+        var penetration = slave.CachedFloorLevel - boatBottom;
+        slave.RigidBody.Position += new JVector(0, penetration, 0); // Move the boat upwards to put the center level with the floor
+        var collisionForce = _physWorld.Gravity * -1f;
+        slave.RigidBody.AddForce(collisionForce);
+
+        // Gradually reduce speed
+        var collisionDamping = 0.9f;
+        slave.RigidBody.Velocity *= collisionDamping;
+        slave.RigidBody.AngularVelocity *= collisionDamping;
+
+        // Logger.Debug($"Land Collision detected. Boat adjusted position: {slave.RigidBody.Position}, boat penetration depth: {penetration}");
     }
 
     /// <summary>
