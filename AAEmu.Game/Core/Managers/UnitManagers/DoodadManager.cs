@@ -3008,7 +3008,7 @@ public class DoodadManager : Singleton<DoodadManager>
             doodad.ParentObj = targetHouse;
             doodad.ParentObjId = targetHouse.ObjId;
             doodad.Transform.Parent = targetHouse.Transform;
-            doodad.Transform.Local.Rotate(targetHouse.Transform.Local.Rotation);
+            doodad.Transform.Local.Rotate(-targetHouse.Transform.Local.Rotation);
         }
         else
         {
