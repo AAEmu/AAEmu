@@ -67,12 +67,12 @@ public sealed class GameService : IHostedService, IDisposable
         WorldManager.Instance.Load();
 
         // Feature Sets 
+        ExperienceManager.Instance.Load();
         FeaturesManager.Initialize();
         LocalizationManager.Instance.Load();
 
         ObjectIdManager.Instance.Initialize();
         TradeIdManager.Instance.Initialize();
-        ExperienceManager.Instance.Load();
 
         ZoneManager.Instance.Load();
         // TODO: Implement lazy loading for heightmaps
