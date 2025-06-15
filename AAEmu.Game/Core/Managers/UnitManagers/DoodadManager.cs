@@ -2995,7 +2995,7 @@ public class DoodadManager : Singleton<DoodadManager>
         doodad.Transform = character.Transform.CloneDetached(doodad);
         doodad.Transform.InstanceId = character.ParentWorld.Id;
         doodad.Transform.Local.SetPosition(x, y, z);
-        doodad.Transform.Local.SetZRotation(zRot);
+        doodad.Transform.Local.SetRotation(0, 0, zRot);
         // doodad.Transform.WorldId = world.Template.Id;
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
@@ -3008,7 +3008,6 @@ public class DoodadManager : Singleton<DoodadManager>
             doodad.ParentObj = targetHouse;
             doodad.ParentObjId = targetHouse.ObjId;
             doodad.Transform.Parent = targetHouse.Transform;
-            doodad.Transform.Local.Rotate(targetHouse.Transform.Local.Rotation);
         }
         else
         {

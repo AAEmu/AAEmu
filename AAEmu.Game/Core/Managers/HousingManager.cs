@@ -478,7 +478,17 @@ public class HousingManager : Singleton<HousingManager>
 
         house.Id = HousingIdManager.Instance.GetNextId();
         house.Transform.Local.SetPosition(posX, posY, posZ);
-        house.Transform.Local.SetZRotation(zRot);
+        // In 1.2 the rotation in SCUnitStatePacket is sent as X, Y, Z using 1 byte each.
+        // This limits us to 256 unique rotations around Z (up) that can be represented.
+        // When placing the house with the preview and then finalizing it, this causes the actual rotation to be different from the preview.
+        // 3.0 sends a full 32-bit float for the Z-rotation for BaseUnitType.Housing, so this seems to have been fixed in later versions.
+        // The fact the server has a more accurate view of the rotation than the client means positions of objects (doodads) placed in the house
+        // can be offset.
+        // To make the server and client agree on the rotation, we convert the float zRot to a sbyte, then back to a float.
+        // The server then knows the rotation as one of the 256 unique rotations that the client can be sent.
+        var (_, _, yaw) = PositionAndRotation.ToRollPitchYawSBytes(new Vector3(0, 0, zRot));
+        zRot = PositionAndRotation.FromRollPitchYawSBytes(0, 0, yaw).Z;
+        house.Transform.Local.SetRotation(0, 0, zRot);
 
         if (house.Template.BuildSteps.Count > 0)
             house.CurrentStep = 0;

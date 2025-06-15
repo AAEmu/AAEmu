@@ -74,17 +74,40 @@ public class PositionAndRotation
         var q = ToQuaternion();
         // var q = Quaternion.CreateFromYawPitchRoll(Rotation.X, Rotation.Y, Rotation.Z);
         // q = Quaternion.Normalize(q);
+        return ToRollPitchYawShorts(q);
+    }
+    
+    public static (short, short, short) ToRollPitchYawShorts(Quaternion q)
+    {
         return ((short)(q.X * short.MaxValue), (short)(q.Y * short.MaxValue), (short)(q.Z * short.MaxValue));
     }
 
-    public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
+    public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes() => ToRollPitchYawSBytes(Rotation);
+
+    public static (sbyte Roll, sbyte Pitch, sbyte Yaw) ToRollPitchYawSBytes(Quaternion q)
     {
-        var roll = (sbyte)(Rotation.X / TwoPi / ToSByteDivider);
-        var pitch = (sbyte)(Rotation.Y / TwoPi / ToSByteDivider);
-        var yaw = (sbyte)(Rotation.Z / TwoPi / ToSByteDivider);
+        var euler = FromQuaternion(q);
+        return ToRollPitchYawSBytes(euler);
+    }
+    
+    public static (sbyte Roll, sbyte Pitch, sbyte Yaw) ToRollPitchYawSBytes(Vector3 v)
+    {
+        // MathF.Round is used to round the float to the nearest integer to avoid issues with floating point precision
+        // and round-tripping.
+        var roll = (sbyte)MathF.Round(v.X / TwoPi / ToSByteDivider);
+        var pitch = (sbyte)MathF.Round(v.Y / TwoPi / ToSByteDivider);
+        var yaw = (sbyte)MathF.Round(v.Z / TwoPi / ToSByteDivider);
         return (roll, pitch, yaw);
     }
-
+    
+    public static Vector3 FromRollPitchYawSBytes(sbyte roll, sbyte pitch, sbyte yaw)
+    {
+        var x = roll * ToSByteDivider * TwoPi;
+        var y = pitch * ToSByteDivider * TwoPi;
+        var z = yaw * ToSByteDivider * TwoPi;
+        return new Vector3(x, y, z); // Rotation.X/Y/Z in radians
+    }
+    
     public (sbyte, sbyte, sbyte) ToRollPitchYawSBytesMovement()
     {
         sbyte roll = MathUtil.ConvertRadianToDirection(Rotation.X - TwoPi);
