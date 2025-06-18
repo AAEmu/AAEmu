@@ -7,7 +7,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks;
 
@@ -126,7 +125,7 @@ public class GimmickManager(WorldInstance parentWorld)
 
     public void Initialize()
     {
-        Logger.Warn("GimmickTickTask: Started");
+        Logger.Info("GimmickTickTask: Started");
         TickManager.Instance.OnTick.Subscribe(GimmickTick, TimeSpan.FromMilliseconds(Delay), true);
     }
 

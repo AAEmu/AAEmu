@@ -194,6 +194,8 @@ public sealed class GameService : IHostedService, IDisposable
         // Start main_world and other static instance
         WorldManager.Instance.CreateStaticInstances();
 
+        WorldManager.Instance.Initialize();
+
         CharacterManager.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
 

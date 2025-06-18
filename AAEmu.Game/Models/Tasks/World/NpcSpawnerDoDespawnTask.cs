@@ -12,6 +12,6 @@ public class NpcSpawnerDoDespawnTask : Task
     }
     public override void Execute()
     {
-        _npc?.Spawner?.DoDespawn([_npc]);
+        _npc?.Spawner?.DoDespawn(_npc);
     }
 }

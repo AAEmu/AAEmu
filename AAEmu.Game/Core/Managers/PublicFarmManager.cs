@@ -30,7 +30,7 @@ public class PublicFarmManager : Singleton<PublicFarmManager>
 
     private void PublicFarmTickStart()
     {
-        Logger.Warn("PublicFarmTickTask: Started");
+        Logger.Info("PublicFarmTickTask: Started");
 
         var lpTickStartTask = new PublicFarmTickStartTask();
         TaskManager.Instance.Schedule(lpTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));

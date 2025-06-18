@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -58,150 +57,91 @@ public class SpawnManager(WorldInstance parentWorld)
     private uint _nextId = 1u;
     private uint _fakeSpawnerId = 9000001u;
 
-
-    private int _currentSpawnerIndex; // Index of the current spawner
-    private List<NpcSpawner> _currentSpawners = []; // List of spawners for the current world instance
-
-    /// <summary>
-    /// Handle spawner ticks
-    /// </summary>
-    /// <param name="delta"></param>
-    private void Update(TimeSpan delta)
-    {
-        // If the spawner list is empty, initialize it
-        if (_currentSpawners.Count == 0)
-        {
-            _currentSpawners = _npcSpawners.Values.SelectMany(x => x).ToList();
-        }
-
-        var stopwatch = Stopwatch.StartNew();
-
-        var c = 0;
-        var startIndex = _currentSpawnerIndex;
-        // Continue executing the loop until the time expires
-        for (; _currentSpawnerIndex < _currentSpawners.Count; _currentSpawnerIndex++)
-        {
-            var spawner = _currentSpawners[_currentSpawnerIndex];
-
-            if (spawner.Template == null)
-            {
-                Logger.Warn($"Templates not found for Npc templateId {spawner.SpawnerId}:{spawner.UnitId} in world {World}");
-            }
-            else
-            {
-                var innerStopwatch = Stopwatch.StartNew();
-                try
-                {
-                    spawner.Update();
-                }
-                finally
-                {
-                    innerStopwatch.Stop();
-                    // Logger.Trace($"Update for spawner {spawner.SpawnerId}:{spawner.UnitId} took {innerStopwatch.ElapsedMilliseconds} ms.");
-                }
-            }
-
-            c++;
-            // If the execution time has exceeded the allowed threshold, abort the loop
-            if (stopwatch.Elapsed > TimeSpan.FromMilliseconds(50)) // Threshold 50 ms
-            {
-                Logger.Debug($"Updated {c}/{_currentSpawners.Count} spawners idx={startIndex}->{_currentSpawnerIndex}. Update loop interrupted due to time limit. Elapsed time: {stopwatch.ElapsedMilliseconds} ms.");
-                break;
-            }
-        }
-
-        // Logger.Info($"idx={startIndex} -> {_currentSpawnerIndex} / {_currentSpawners.Count}. Update loop finished: {stopwatch.ElapsedMilliseconds} ms.");
-
-        // If the loop is complete, reset the index and the list
-        if (_currentSpawnerIndex >= _currentSpawners.Count)
-        {
-            _currentSpawnerIndex = 0;
-            _currentSpawners.Clear();
-        }
-    }
-
     /// <summary>
     /// Adds an NPC spawner to the manager.
     /// </summary>
     public void AddNpcSpawner(NpcSpawner npcSpawner)
     {
-        if (npcSpawner.NpcSpawnerIds is [0])
-            npcSpawner.NpcSpawnerIds = [];
-
-        // check for manually entered NpcSpawnerId
-        if (npcSpawner.NpcSpawnerIds.Count == 0)
+        lock (_npcSpawners)
         {
-            var npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(npcSpawner.UnitId);
-            var spawners = new List<NpcSpawner>();
-            if (npcSpawnerIds == null)
-            {
-                Logger.Trace($"SpawnerIds for Npc={npcSpawner.UnitId} doesn't exist");
-                Logger.Trace($"Generate Spawner for Npc={npcSpawner.UnitId}...");
-                var id = _fakeSpawnerId;
-                npcSpawner.ParentWorld = World;
-                npcSpawner.NpcSpawnerIds.Add(id);
-                npcSpawner.Id = id;
-                var tmpTemplate = NpcGameData.Instance.GetNpcSpawnerTemplate(1); // id=1 Test Warrior
-                npcSpawner.Template = Helpers.Clone(tmpTemplate);
-                npcSpawner.Template.Id = id;
+            if (npcSpawner.NpcSpawnerIds is [0])
+                npcSpawner.NpcSpawnerIds = [];
 
-                var tmpNpc = new NpcSpawnerNpc
+            // check for manually entered NpcSpawnerId
+            if (npcSpawner.NpcSpawnerIds.Count == 0)
+            {
+                var npcSpawnerIds = NpcGameData.Instance.GetSpawnerIds(npcSpawner.UnitId);
+                var spawners = new List<NpcSpawner>();
+                if (npcSpawnerIds == null)
                 {
-                    Position = npcSpawner.Position,
-                    MemberId = npcSpawner.UnitId,
-                    Id = id,
-                    MemberType = "Npc",
-                    Weight = 1f,
-                    NpcSpawnerTemplateId = id
-                };
-                npcSpawner.Template.Npcs = [tmpNpc];
-                NpcGameData.Instance.AddNpcSpawnerNpc(tmpNpc);
-                NpcGameData.Instance.AddMemberAndSpawnerTemplateIds(tmpNpc);
-                NpcGameData.Instance.AddNpcSpawner(npcSpawner.Template);
-                _fakeSpawnerId++;
+                    Logger.Trace($"SpawnerIds for Npc={npcSpawner.UnitId} doesn't exist");
+                    Logger.Trace($"Generate Spawner for Npc={npcSpawner.UnitId}...");
+                    var id = _fakeSpawnerId;
+                    npcSpawner.ParentWorld = World;
+                    npcSpawner.NpcSpawnerIds.Add(id);
+                    npcSpawner.Id = id;
+                    var tmpTemplate = NpcGameData.Instance.GetNpcSpawnerTemplate(1); // id=1 Test Warrior
+                    npcSpawner.Template = Helpers.Clone(tmpTemplate);
+                    npcSpawner.Template.Id = id;
+
+                    var tmpNpc = new NpcSpawnerNpc
+                    {
+                        Position = npcSpawner.Position,
+                        MemberId = npcSpawner.UnitId,
+                        Id = id,
+                        MemberType = "Npc",
+                        Weight = 1f,
+                        NpcSpawnerTemplateId = id
+                    };
+                    npcSpawner.Template.Npcs = [tmpNpc];
+                    NpcGameData.Instance.AddNpcSpawnerNpc(tmpNpc);
+                    NpcGameData.Instance.AddMemberAndSpawnerTemplateIds(tmpNpc);
+                    NpcGameData.Instance.AddNpcSpawner(npcSpawner.Template);
+                    _fakeSpawnerId++;
+                }
+                else
+                {
+                    foreach (var id in npcSpawnerIds)
+                    {
+                        var spawner = NpcSpawner.Clone(npcSpawner);
+                        var template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                        spawner.ParentWorld = World;
+                        spawner.InitializeSpawnableNpcs(template);
+                        spawner.NpcSpawnerIds.Add(id);
+                        spawner.Id = _nextId;
+                        spawner.SpawnerId = id;
+                        spawner.Template = template;
+                        foreach (var n in spawner.Template.Npcs)
+                        {
+                            n.Position = spawner.Position;
+                        }
+
+                        spawners.Add(spawner);
+                        _nextId++;
+                    }
+                }
+
+                _npcSpawners.TryAdd(_nextId, spawners);
             }
             else
             {
-                foreach (var id in npcSpawnerIds)
+                // Load NPC Spawns for Events
+                var spawners = new List<NpcSpawner>();
+                foreach (var id in npcSpawner.NpcSpawnerIds)
                 {
-                    var spawner = NpcSpawner.Clone(npcSpawner);
-                    var template = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
-                    spawner.ParentWorld = World;
-                    spawner.InitializeSpawnableNpcs(template);
-                    spawner.NpcSpawnerIds.Add(id);
-                    spawner.Id = _nextId;
-                    spawner.SpawnerId = id;
-                    spawner.Template = template;
-                    foreach (var n in spawner.Template.Npcs)
+                    npcSpawner.Id = id;
+                    npcSpawner.Template = new NpcSpawnerTemplate(id, npcSpawner.UnitId);
+                    npcSpawner.ParentWorld = World;
+                    foreach (var n in npcSpawner.Template.Npcs)
                     {
-                        n.Position = spawner.Position;
+                        n.Position = npcSpawner.Position;
                     }
-
-                    spawners.Add(spawner);
-                    _nextId++;
                 }
-            }
 
-            _npcSpawners.TryAdd(_nextId, spawners);
-        }
-        else
-        {
-            // Load NPC Spawns for Events
-            var spawners = new List<NpcSpawner>();
-            foreach (var id in npcSpawner.NpcSpawnerIds)
-            {
-                npcSpawner.Id = id;
-                npcSpawner.Template = new NpcSpawnerTemplate(id, npcSpawner.UnitId);
-                npcSpawner.ParentWorld = World;
-                foreach (var n in npcSpawner.Template.Npcs)
-                {
-                    n.Position = npcSpawner.Position;
-                }
+                spawners.Add(npcSpawner);
+                _npcEventSpawners.TryAdd(_nextId, spawners);
+                _nextId++;
             }
-
-            spawners.Add(npcSpawner);
-            _npcEventSpawners.TryAdd(_nextId, spawners);
-            _nextId++;
         }
     }
 
@@ -232,9 +172,6 @@ public class SpawnManager(WorldInstance parentWorld)
             }
         }
         Logger.Info($"{count} NPC spawners spawned in world {World}");
-
-        // Controls all spawners in the instance, updating their state and invoking spavin methods.
-        TickManager.Instance.OnTick.Subscribe(Update, TimeSpan.FromSeconds(1));
     }
 
     /// <summary>
@@ -251,8 +188,7 @@ public class SpawnManager(WorldInstance parentWorld)
                 if (npc.Spawner != null)
                 {
                     npc.Spawner.RespawnTime = 9999999;
-                    //npc.Spawner.Despawn(npc);
-                    npc.Spawner.DecreaseCount(npc);
+                    npc.Spawner.DoDespawn(npc);
                 }
                 else
                 {
@@ -896,7 +832,7 @@ public class SpawnManager(WorldInstance parentWorld)
     public void SpawnAll()
     {
         Logger.Info("Spawning NPCs...");
-        Task.Run(SpawnAllNpcs);
+        //Task.Run(SpawnAllNpcs);
 
         Logger.Info("Spawning Doodads...");
         Task.Run(() =>
@@ -1137,7 +1073,22 @@ public class SpawnManager(WorldInstance parentWorld)
             Thread.Sleep(1000);
         }
     }
+    
+    /// <summary>
+    /// Gets all Spawners.
+    /// </summary>
+    public Dictionary<uint, List<NpcSpawner>> GetAllSpawners()
+    {
+        lock (_npcSpawners)
+        {
+            var npcSpawners = _npcSpawners.ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value.ToList()
+            );
 
+            return npcSpawners;
+        }
+    }
 
     public List<NpcSpawner> GetNpcSpawner(uint spawnerId)
     {

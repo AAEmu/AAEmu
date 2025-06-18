@@ -36,7 +36,6 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
             {
                 // spawn in the same world as for caster
                 spawner.Position.WorldId = caster.Transform.WorldId;
-                spawner.ClearLastSpawnCount();
                 var npc = spawner.ForceSpawn(0);
                 if (npc == null)
                     continue;

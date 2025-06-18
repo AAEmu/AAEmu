@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml;
+
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
@@ -149,6 +150,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="delta"></param>
     private void ActiveRegionTick(TimeSpan delta)
     {
+        var sw = new Stopwatch();
+        sw.Start();
+
         // Players
         foreach (var character in GetAllCharacters())
             character.OnActiveRegionTick(delta);
@@ -162,7 +166,41 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             // Vehicles
             foreach (var slave in world.GetAllSlaves())
                 slave.OnActiveRegionTick(delta);
+
+            var npcSpawners = world.SpawnManager.GetAllSpawners();
+
+            // Фильтрация спавнеров
+            if (sw.ElapsedMilliseconds > 50)
+            {
+                Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
+            }
+
+            var activeSpawners = npcSpawners.Values.SelectMany(x => x)
+                .Where(spawner => spawner.Template != null && IsSpawnerActive(spawner))
+                .ToList();
+
+            // Последовательная обработка спавнеров
+            if (sw.ElapsedMilliseconds > 50)
+            {
+                Logger.Debug($"Processed {activeSpawners.Count} active spawners...");
+            }
+
+            foreach (var npcSpawner in activeSpawners)
+            {
+                npcSpawner.Update();
+            }
         }
+
+        sw.Stop();
+        if (sw.ElapsedMilliseconds > 100)
+        {
+            Logger.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+        }
+    }
+
+    private bool IsSpawnerActive(NpcSpawner spawner)
+    {
+        return spawner.IsPlayerInSpawnRadius();
     }
 
     /// <summary>
@@ -214,7 +252,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         return null;
     }
-    
+
     /// <summary>
     /// Loads all world templates from the game client
     /// </summary>
@@ -312,9 +350,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
         #endregion
 
-        TickManager.Instance.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
-
         _loaded = true;
+    }
+
+    public void Initialize()
+    {
+        TickManager.Instance.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
     }
 
     /// <summary>
@@ -370,7 +411,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             throw new GameException("Fixed Instance ID is too large");
         }
-        
+
         // Create a new instance
         var world = new WorldInstance(worldTemplate, channelId, overrideInstanceId, overrideInstanceId ? fixedInstanceId : WorldIdManager.Instance.GetNextId());
         _worlds.Add(world.Id, world);
@@ -378,7 +419,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         notifyPlayer?.SendPacket(new SCProcessingInstancePacket((int)world.Template.ZoneKeys[0]));
 
         // Create the Instance regions
-        var dx =world.Template.CellX * SECTORS_PER_CELL;
+        var dx = world.Template.CellX * SECTORS_PER_CELL;
         var dy = world.Template.CellY * SECTORS_PER_CELL;
         world.Regions = new Region[dx, dy];
         for (var y = 0; y < dy; y++)
@@ -394,7 +435,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         // Create and start the actual physics engine
         world.StartPhysics();
-        
+
         // Quest sphere handling instance
         world.SphereQuestManager = new SphereQuestManager(world);
         world.SphereQuestManager.Initialize();
@@ -411,7 +452,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         world.MateManager = new MateManager(world);
         world.MateManager.Load();
-        
+
         world.TransferManager = new TransferManager();
         world.TransferManager.Load();
         world.TransferManager.Initialize(); // starts tick
@@ -602,48 +643,49 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                     #region ReadNodes
 
                     for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
-                    for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
-                    for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
-                    for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
-                    {
-                        var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
-                        var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
-                        var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
-
-                        ushort value;
-                        switch (version)
-                        {
-                            // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-                            case VersionCalc.V1:
+                        for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
+                            for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
+                                for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
                                 {
-                                    var doubleValue = node.fRange * 100000d;
-                                    var rawValue = node.RawDataByIndex(unitX, unitY);
+                                    var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
+                                    var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
+                                    var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
 
-                                    value = (ushort)((doubleValue / 1.52604335620711f) *
-                                                     worldTemplate.HeightMaxCoefficient /
-                                                     ushort.MaxValue * rawValue +
-                                                     node.BoxHeightmap.Min.Z * worldTemplate.HeightMaxCoefficient);
-                                }
-                                break;
-                            // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-                            case VersionCalc.V2:
-                                {
-                                    value = node.RawDataByIndex(unitX, unitY);
-                                    /* var height */ _ = node.RawDataToHeight(value);
-                                }
-                                break;
-                            case VersionCalc.Draft:
-                                {
-                                    var height = node.GetHeight(unitX, unitY);
-                                    value = (ushort)(height * worldTemplate.HeightMaxCoefficient);
-                                }
-                                break;
-                            default:
-                                throw new NotSupportedException(nameof(version));
-                        }
+                                    ushort value;
+                                    switch (version)
+                                    {
+                                        // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+                                        case VersionCalc.V1:
+                                            {
+                                                var doubleValue = node.fRange * 100000d;
+                                                var rawValue = node.RawDataByIndex(unitX, unitY);
 
-                        worldTemplate.HeightMaps[oX, oY] = value;
-                    }
+                                                value = (ushort)((doubleValue / 1.52604335620711f) *
+                                                                 worldTemplate.HeightMaxCoefficient /
+                                                                 ushort.MaxValue * rawValue +
+                                                                 node.BoxHeightmap.Min.Z * worldTemplate.HeightMaxCoefficient);
+                                            }
+                                            break;
+                                        // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+                                        case VersionCalc.V2:
+                                            {
+                                                value = node.RawDataByIndex(unitX, unitY);
+                                                /* var height */
+                                                _ = node.RawDataToHeight(value);
+                                            }
+                                            break;
+                                        case VersionCalc.Draft:
+                                            {
+                                                var height = node.GetHeight(unitX, unitY);
+                                                value = (ushort)(height * worldTemplate.HeightMaxCoefficient);
+                                            }
+                                            break;
+                                        default:
+                                            throw new NotSupportedException(nameof(version));
+                                    }
+
+                                    worldTemplate.HeightMaps[oX, oY] = value;
+                                }
 
                     #endregion
                 }
