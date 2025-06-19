@@ -9,10 +9,15 @@ using NLog;
 
 namespace AAEmu.Commons.Utils.Updater;
 
+/// <summary>
+/// 提供用于自动执行 MySQL 数据库更新脚本的功能。
+/// 此类会跟踪已应用的更新，并按顺序运行新的更新脚本。
+/// </summary>
 public static class MySqlDatabaseUpdater
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     /*
+         更新表结构 (updates table structure):
         CREATE TABLE `updates` (
           `script_name` varchar(255) NOT NULL,
           `installed` tinyint NOT NULL DEFAULT '0',
@@ -22,7 +27,7 @@ public static class MySqlDatabaseUpdater
     */
 
     /// <summary>
-    /// Checks if the updates table already exists
+    /// 检查更新表是否已存在
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="databaseSchemaName"></param>
@@ -34,7 +39,7 @@ public static class MySqlDatabaseUpdater
         {
             command.Connection = connection;
 
-            // Check if the updates table exists or not
+            // 检查更新表是否存在
             command.CommandText = "SELECT EXISTS( SELECT `TABLE_NAME` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE (`TABLE_NAME` = 'updates') AND (`TABLE_SCHEMA` = @db_name) ) as `is-exists`;";
             command.Parameters.AddWithValue("@db_name", databaseSchemaName);
             using (var reader = command.ExecuteReader())
@@ -47,7 +52,7 @@ public static class MySqlDatabaseUpdater
     }
 
     /// <summary>
-    /// Create initial table
+    /// 创建初始表
     /// </summary>
     /// <param name="connection"></param>
     /// <returns></returns>
@@ -69,7 +74,7 @@ public static class MySqlDatabaseUpdater
             catch (MySqlException ex)
             {
                 Logger.Fatal(ex, "Failed to create updates table!");
-                // Failed to create the new table
+                // 创建新表失败
                 return false;
             }
 
@@ -79,7 +84,7 @@ public static class MySqlDatabaseUpdater
     }
 
     /// <summary>
-    /// Mark all current updates as installed
+    /// 将所有当前更新标记为已安装
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="allUpdatesFiles"></param>
@@ -95,10 +100,10 @@ public static class MySqlDatabaseUpdater
             {
                 var fName = Path.GetFileName(thisScriptFile);
                 if (fName == null)
-                    continue; // shouldn't happen here
+                    continue; // 这里不应该发生
                 fName = fName.ToLower();
                 if (!fName.Contains(moduleNamePrefix))
-                    continue; // These files are not related to us, ignore (technically shouldn't happen, but add it anyway)
+                    continue; // 这些文件与我们无关，忽略（理论上不应该发生，但还是加上）
 
                 command.CommandText = "REPLACE INTO `updates` " +
                                       "(`script_name`,`installed`,`install_date`,`last_error`" +
@@ -116,17 +121,24 @@ public static class MySqlDatabaseUpdater
         }
     }
 
+    /// <summary>
+    /// 安装或跳过指定的数据库更新脚本文件。
+    /// </summary>
+    /// <param name="connection">有效的 MySQL 连接。</param>
+    /// <param name="filesToRun">要运行的 SQL 脚本文件的完整路径列表。</param>
+    /// <param name="doSkip">如果为 true，则将脚本标记为已安装但跳过实际执行；否则，执行脚本。</param>
+    /// <returns>如果所有脚本都成功（执行或跳过），则为 true；否则为 false。</returns>
     private static bool InstallUpdatesFiles(MySqlConnection connection, List<string> filesToRun, bool doSkip)
     {
-        foreach (var fName in filesToRun)
+        foreach (var fName in filesToRun) // 遍历需要处理的每个脚本文件
         {
             var success = false;
             var errorText = string.Empty;
-            if (doSkip == false)
+            if (doSkip == false) // 如果不是跳过模式，则执行脚本
             {
-                var sql = File.ReadAllText(fName);
+                var sql = File.ReadAllText(fName); // 读取 SQL 脚本内容
 
-                // Run update script
+                // 运行更新脚本
                 success = false;
                 errorText = string.Empty;
                 using (var command = connection.CreateCommand())
@@ -151,7 +163,7 @@ public static class MySqlDatabaseUpdater
                 errorText = "Skipped";
             }
 
-            // Save the results
+            // 保存结果
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -184,20 +196,20 @@ public static class MySqlDatabaseUpdater
     }
 
     /// <summary>
-    /// Scans and runs updates from the SQL\Updates folder
+    /// 从 SQL\Updates 文件夹扫描并运行更新
     /// </summary>
-    /// <param name="connection">A valid MySqlConnection</param>
-    /// <param name="moduleNamePrefix">either aaemu_login or aaemu_game</param>
-    /// <param name="databaseSchemaName">actual database name for this configuration</param>
+    /// <param name="connection">一个有效的 MySqlConnection</param>
+    /// <param name="moduleNamePrefix">aaemu_login 或 aaemu_game</param>
+    /// <param name="databaseSchemaName">此配置的实际数据库名称</param>
     /// <returns></returns>
     public static bool Run(MySqlConnection connection, string moduleNamePrefix, string databaseSchemaName)
     {
         Logger.Debug($"Updating database for {moduleNamePrefix}");
 
-        // Check if the updates table already exists
+        // 检查更新表是否已存在
         var updateDbExists = UpdatesTableExists(connection, databaseSchemaName);
 
-        // (try to) Create the table if it doesn't exist yet
+        // （尝试）如果表尚不存在则创建表
         if (updateDbExists == false)
         {
             if (!CreateUpdatesTable(connection))
@@ -207,7 +219,7 @@ public static class MySqlDatabaseUpdater
             }
         }
 
-        // Get the Updates Files List
+        // 获取更新文件列表
         var updatesFolder = FindUpdatesFolder(moduleNamePrefix, out var allUpdatesFiles);
         allUpdatesFiles.Sort();
         var filesToRun = new List<string>();
@@ -219,16 +231,16 @@ public static class MySqlDatabaseUpdater
             return true;
         }
 
-        // If we're running this version for the first time, assume that all updates have been installed before
+        // 如果是第一次运行此版本，则假定之前已安装所有更新
         if (updateDbExists == false)
             InitializeUpdatesTable(connection, allUpdatesFiles, moduleNamePrefix);
 
-        // Load the DB contents
+        // 加载数据库内容
         using (var command = connection.CreateCommand())
         {
             command.Connection = connection;
 
-            // Query the DB for entries marked as not installed yet
+            // 查询数据库中标记为尚未安装的条目
             command.CommandText = "SELECT * FROM `updates` ORDER BY `script_name`";
             using (var reader = command.ExecuteReader())
             {
@@ -249,7 +261,7 @@ public static class MySqlDatabaseUpdater
             }
         }
 
-        // Add remaining files to lists that are not in the DB yet
+        // 将尚未在数据库中的剩余文件添加到列表中
         foreach (var fName in allUpdatesFiles)
         {
             if (filesToRun.Contains(fName))
@@ -287,36 +299,47 @@ public static class MySqlDatabaseUpdater
         return true;
     }
 
+    /// <summary>
+    /// 查找包含特定模块更新脚本的文件夹。
+    /// 它从应用程序路径开始向上查找 "SQL/updates" 子目录，
+    /// 并在该目录中搜索与模块前缀匹配的 .sql 文件。
+    /// </summary>
+    /// <param name="moduleNamePrefix">用于过滤 SQL 文件名的模块前缀（例如 "aaemu_login"）。</param>
+    /// <param name="res">输出参数，如果找到文件夹，则填充匹配的 SQL 文件路径列表。</param>
+    /// <returns>如果找到包含匹配脚本的文件夹，则返回该文件夹的路径；否则返回空字符串。</returns>
     private static string FindUpdatesFolder(string moduleNamePrefix, out List<string> res)
     {
-        // Crawl up to root directory to find a good folder
+        // 向上遍历到根目录以查找合适的文件夹
         var currentDir = FileManager.AppPath;
-        while (currentDir.Split(Path.DirectorySeparatorChar).Length > 1)
+        while (currentDir.Split(Path.DirectorySeparatorChar).Length > 1) // 只要当前目录不是根目录的直接子目录或根目录本身
         {
-            var testDir = Path.Combine(currentDir, "SQL", "updates");
-            if (Directory.Exists(testDir))
+            var testDir = Path.Combine(currentDir, "SQL", "updates"); // 构建潜在的 updates 文件夹路径
+            if (Directory.Exists(testDir)) // 检查文件夹是否存在
             {
                 var tryFiles = Directory
-                    .GetFiles(testDir, "*" + moduleNamePrefix + "*.sql", SearchOption.TopDirectoryOnly).ToList();
-                if (tryFiles.Count > 0)
+                    .GetFiles(testDir, "*" + moduleNamePrefix + "*.sql", SearchOption.TopDirectoryOnly).ToList(); // 查找匹配的 SQL 文件
+                if (tryFiles.Count > 0) // 如果找到文件
                 {
-                    res = tryFiles;
-                    return testDir;
+                    res = tryFiles; // 设置输出文件列表
+                    return testDir; // 返回文件夹路径
                 }
             }
 
             try
             {
-                currentDir = Directory.GetParent(currentDir)?.FullName ?? string.Empty;
+                var parentDir = Directory.GetParent(currentDir); // 获取上一级目录
+                currentDir = parentDir?.FullName ?? string.Empty; // 更新当前目录为上一级目录
+                if (string.IsNullOrEmpty(currentDir)) // 如果无法获取父目录，则停止
+                    break;
             }
-            catch (Exception ex)
+            catch (Exception ex) // 捕获可能的异常（例如权限问题）
             {
                 Logger.Error(ex);
-                currentDir = string.Empty;
+                currentDir = string.Empty; // 出错则停止
             }
         }
 
-        res = new List<string>();
-        return string.Empty;
+        res = new List<string>(); // 如果未找到，返回空列表
+        return string.Empty; // 如果未找到，返回空字符串
     }
 }

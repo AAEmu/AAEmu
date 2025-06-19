@@ -3,44 +3,41 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-// Source: https://www.cyberforum.ru/blogs/529033/blog3833.html
+// 来源：https://www.cyberforum.ru/blogs/529033/blog3833.html
 /*
- * Статический класс является расширением для всех объектов типа object и содержит один метод - CheckInterval.
- * В этот метод передается интервал времени в миллисекундах, а сам метод возвращает тип bool.
- * Метод автоматически запоминает время своего последнего срабатывания и возвращает false если время еще не наступило,
- * или возвращает true если интервал времени уже прошел. При возврате true метод запоминает текущее время и в следующий
- * раз возвратит true не ранее чем через указанный промежуток времени.
- * Хелпер устроен таким образом, что он автоматически запоминает время срабатывания для каждого объекта,
- * вызывающего CheckInterval. Кроме того, если у вас в одном классе есть несколько вызовов CheckInterval,
- * то для каждого из них будет создан отдельный счетчик времени. Это достигается использованием атрибута [CallerLineNumber]
- * который передает в метод номер строки кода, откуда произошел вызов метода CheckInterval.
+ * 静态类是所有 object 类型对象的扩展，包含一个方法 - CheckInterval。
+ * 此方法接收一个以毫秒为单位的时间间隔作为参数，并返回一个 bool 类型的值。
+ * 该方法会自动记录其上次触发的时间，如果时间尚未到达，则返回 false，
+ * 如果时间间隔已过，则返回 true。当返回 true 时，该方法会记录当前时间，
+ * 并且在下次返回 true 之前，至少会等待指定的时间间隔。
+ * 此助手类的设计使其能够自动为每个调用 CheckInterval 的对象记录触发时间。
+ * 此外，如果您在一个类中有多个 CheckInterval 调用，则会为每个调用创建一个单独的时间计数器。
+ * 这是通过使用 [CallerLineNumber] 特性实现的，该特性会将调用 CheckInterval 方法的代码行号传递给该方法。
  *
- *  Поэтому вот такой код также будет вполне корректно работать:
+ *  因此，这样的代码也能正常工作：
  *  void DoSomething()
  *  {
- *      // действие 1 делаем не чаще чем раз в 1 секунду
+ *      // 操作 1：每秒最多执行一次
  *      if(this.CheckInterval(1000))
  *          DoAction1();      
- *      // действие 2 делаем не чаще чем раз в 3 секунды
+ *      // 操作 2：每 3 秒最多执行一次
  *      if(this.CheckInterval(3000))
  *          DoAction2();
  *  }
  *
- * Статический класс содержит один метод - Triggered. В него передается аргумент типа bool и сам метод также возвращает bool.
- * Метод Triggered автоматически запоминает предыдущее значение своего аргумента и возвращает true, если параметр изменился
- * с false на true.
- * Как и в предыдущем хелпере, Triggered автоматически хранит предыдущее значение условия для каждого объекта
- * и для каждой строчки кода, которая его вызывает. Поэтому мы можем делать несколько вызовов Triggered
- * из одного метода - для каждого вызова будет создан отдельный флажок состояния:
+ * 静态类包含一个方法 - Triggered。它接收一个 bool 类型的参数，并且该方法本身也返回 bool 类型的值。
+ * Triggered 方法会自动记录其参数的先前值，如果参数从 false 变为 true，则返回 true。
+ * 与前一个助手类一样，Triggered 会自动为每个对象以及调用它的每一行代码存储条件的先前值。
+ * 因此，我们可以在一个方法中进行多次 Triggered 调用 - 会为每次调用创建一个单独的状态标志：
  *
  * void CheckDistanceAndSayHello()
  *  {
- *      // вычисляем расстояние между НПС и игроком
+ *      // 计算 NPC 和玩家之间的距离
  *      var dist = CalcDist(player, npc);      
- *      // если расстояние стало меньше 1 метра - один раз говорим Привет
+ *      // 如果距离小于 1 米 - 说一次“你好”
  *      if (this.Triggered(dist < 1))
  *          SayHello();      
- *      // если расстояние стало больше 2 метров - один раз говорим Пока
+ *      // 如果距离大于 2 米 - 说一次“再见”
  *      if (this.Triggered(dist > 2))
  *          SayBay();
  *  }
@@ -53,53 +50,53 @@ public static class Helper
     private static Dictionary<Tuple<object, int>, DateTime> intervals = new();
 
     /// <summary>
-    /// Возвращает true если прошло не менее указанного интервала времени (после предыдущего срабатывания)
+    /// 如果（自上次触发后）经过的时间不少于指定的时间间隔，则返回 true
     /// </summary>
     public static bool CheckInterval(this object caller, int interval = 1000, [CallerLineNumber] int lineNumber = 0)
     {
-        // получаем текущее время
+        // 获取当前时间
         var now = DateTime.UtcNow;
 
-        // формируем ключ состоящий из вызывающего объекта и номера строки из которой вызывается метод
+        // 生成由调用对象和调用该方法的代码行号组成的键
         var key = new Tuple<object, int>(caller, lineNumber);
 
-        // получаем время следующего срабатывания для данного ключа
+        // 获取此键的下次触发时间
         if (!intervals.TryGetValue(key, out var next))
-            next = now;// если в словаре еще нет времени - считаем что сработать нужно сейчас
+            next = now;// 如果字典中还没有时间 - 我们认为现在需要触发
 
-        // время еще не пришло?
+        // 时间还没到？
         if (next > now)
             return false;
 
-        // формируем время следующего срабатывания
+        // 生成下次触发时间
         intervals[key] = now.AddMilliseconds(interval);
 
-        // время пришло - возвращаем true
+        // 时间到了 - 返回 true
         return true;
     }
 
     private static ConcurrentDictionary<Tuple<object, int>, bool> conditions = new();
 
     /// <summary>
-    /// Возвращает true если условие изменилось с false на true
+    /// 如果条件从 false 变为 true，则返回 true
     /// </summary>
     public static bool Triggered(this object sender, bool condition, [CallerLineNumber] int lineNumber = 0)
     {
-        // формируем ключ состоящий из вызывающего объекта и номера строки из которой вызывается метод
+        // 生成由调用对象和调用该方法的代码行号组成的键
         var key = new Tuple<object, int>(sender, lineNumber);
 
-        // получаем предыдущее значение условия
+        // 获取条件的先前值
         if (!conditions.TryGetValue(key, out var old))
             old = false;
 
-        // запоминаем новое состояние
+        // 记住新状态
         conditions[key] = condition;
 
-        // если сейчас условие выполняется, а раньше - не выполнялось - возвращаем true
+        // 如果当前条件满足，而之前不满足 - 返回 true
         if (condition && !old)
             return true;
 
-        // иначе - возвращаем false
+        // 否则 - 返回 false
         return false;
     }
 }

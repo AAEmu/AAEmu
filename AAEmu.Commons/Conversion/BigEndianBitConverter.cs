@@ -1,23 +1,23 @@
 ﻿namespace AAEmu.Commons.Conversion;
 
 /// <summary>
-/// Implementation of EndianBitConverter which converts to/from big-endian byte arrays.
+/// EndianBitConverter 的实现，用于大端字节数组的转换。
 /// </summary>
 public sealed class BigEndianBitConverter : EndianBitConverter
 {
     /// <summary>
-    /// Indicates the byte order ("endianess") in which data is converted using this class.
+    /// 指示此类转换数据时使用的字节顺序（“字节序”）。
     /// </summary>
     /// <remarks>
-    /// Different computer architectures store data using different byte orders. "Big-endian"
-    /// means the most significant byte is on the left end of a word. "Little-endian" means the 
-    /// most significant byte is on the right end of a word.
+    /// 不同的计算机体系结构使用不同的字节顺序存储数据。“大端”
+    /// 表示最高有效字节位于字的最左端。“小端”表示
+    /// 最高有效字节位于字的最右端。
     /// </remarks>
-    /// <returns>true if this converter is little-endian, false otherwise.</returns>
+    /// <returns>如果此转换器是小端字节序，则为 true，否则为 false。</returns>
     public override bool IsLittleEndian() => false;
 
     /// <summary>
-    /// Indicates the byte order ("endianess") in which data is converted using this class.
+    /// 指示此类转换数据时使用的字节顺序（“字节序”）。
     /// </summary>
     public override Endianness Endianness
     {
@@ -25,12 +25,12 @@ public sealed class BigEndianBitConverter : EndianBitConverter
     }
 
     /// <summary>
-    /// Copies the specified number of bytes from value to buffer, starting at index.
+    /// 从 value 复制指定数量的字节到 buffer，从 index 开始。
     /// </summary>
-    /// <param name="value">The value to copy</param>
-    /// <param name="bytes">The number of bytes to copy</param>
-    /// <param name="buffer">The buffer to copy the bytes into</param>
-    /// <param name="index">The index to start at</param>
+    /// <param name="value">要复制的值</param>
+    /// <param name="bytes">要复制的字节数</param>
+    /// <param name="buffer">要将字节复制到的缓冲区</param>
+    /// <param name="index">起始索引</param>
     protected override void CopyBytesImpl(long value, int bytes, byte[] buffer, int index)
     {
         var endOffset = index + bytes - 1;
@@ -42,13 +42,12 @@ public sealed class BigEndianBitConverter : EndianBitConverter
     }
 
     /// <summary>
-    /// Returns a value built from the specified number of bytes from the given buffer,
-    /// starting at index.
+    /// 从给定缓冲区的指定数量的字节（从 startIndex 开始）构建并返回值。
     /// </summary>
-    /// <param name="buffer">The data in byte array format</param>
-    /// <param name="startIndex">The first index to use</param>
-    /// <param name="bytesToConvert">The number of bytes to use</param>
-    /// <returns>The value built from the given bytes</returns>
+    /// <param name="buffer">字节数组格式的数据</param>
+    /// <param name="startIndex">要使用的第一个索引</param>
+    /// <param name="bytesToConvert">要使用的字节数</param>
+    /// <returns>从给定字节构建的值</returns>
     protected override long FromBytes(byte[] buffer, int startIndex, int bytesToConvert)
     {
         long ret = 0;

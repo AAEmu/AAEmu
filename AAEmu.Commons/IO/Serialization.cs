@@ -7,16 +7,17 @@ using System.Xml.Serialization;
 namespace AAEmu.Commons.IO;
 
 /// <summary>
-/// Helps with serializing an object to XML and back again.
+/// 帮助将对象序列化为 XML 以及从 XML 反序列化回对象。
 /// </summary>
 public static class Serialization
 {
     /// <summary>
-    /// Converts an object to XML
+    /// 将对象转换为 XML
     /// </summary>
-    /// <param name="temp">Object to convert</param>
-    /// <param name="fileName">File to save the XML to</param>
-    /// <returns>string representation of the object in XML format</returns>
+    /// <param name="temp">要转换的对象</param>
+    /// <param name="rootName">XML 的根元素名称。</param>
+    /// <param name="fileName">要保存 XML 到的文件</param>
+    /// <returns>XML 格式的对象的字符串表示形式</returns>
     public static string ObjectToXML(object temp, string rootName, string fileName)
     {
         var xml = ObjectToXML(temp, rootName);
@@ -25,10 +26,11 @@ public static class Serialization
     }
 
     /// <summary>
-    /// Converts an object to XML
+    /// 将对象转换为 XML
     /// </summary>
-    /// <param name="temp">Object to convert</param>
-    /// <returns>string representation of the object in XML format</returns>
+    /// <param name="temp">要转换的对象</param>
+    /// <param name="rootName">XML 的根元素名称。</param>
+    /// <returns>XML 格式的对象的字符串表示形式</returns>
     public static string ObjectToXML(object temp, string rootName)
     {
         if (temp == null)
@@ -43,10 +45,11 @@ public static class Serialization
     }
 
     /// <summary>
-    /// Takes an XML file and exports the Object it holds
+    /// 读取 XML 文件并导出其中包含的对象
     /// </summary>
-    /// <param name="fileName">File name to use</param>
-    /// <param name="result">Object to export to</param>
+    /// <param name="fileName">要使用的文件名</param>
+    /// <param name="result">要导出到的对象</param>
+    /// <param name="rootName">期望的 XML 根元素名称。</param>
     public static void XMLToObject<T>(string fileName, out T result, string rootName)
     {
         if (string.IsNullOrEmpty(fileName))
@@ -58,11 +61,12 @@ public static class Serialization
     }
 
     /// <summary>
-    /// Converts an XML string to an object
+    /// 将 XML 字符串转换为对象
     /// </summary>
-    /// <typeparam name="T">Object type</typeparam>
-    /// <param name="xml">XML string</param>
-    /// <returns>The object of the specified type</returns>
+    /// <typeparam name="T">对象类型</typeparam>
+    /// <param name="xml">XML 字符串</param>
+    /// <param name="rootName">期望的 XML 根元素名称。</param>
+    /// <returns>指定类型的对象</returns>
     public static T XMLToObject<T>(string xml, string rootName)
     {
         if (string.IsNullOrEmpty(xml))
@@ -75,11 +79,12 @@ public static class Serialization
     }
 
     /// <summary>
-    /// Takes an XML file and exports the Object it holds
+    /// 读取 XML 文件并导出其中包含的对象
     /// </summary>
-    /// <param name="fileName">File name to use</param>
-    /// <param name="result">Object to export to</param>
-    /// <param name="type">Object type to export</param>
+    /// <param name="fileName">要使用的文件名</param>
+    /// <param name="result">要导出到的对象</param>
+    /// <param name="type">要导出的对象类型</param>
+    /// <param name="rootName">期望的 XML 根元素名称。</param>
     public static void XMLToObject(string fileName, out object result, Type type, string rootName)
     {
         if (string.IsNullOrEmpty(fileName))
@@ -91,11 +96,12 @@ public static class Serialization
     }
 
     /// <summary>
-    /// Converts an XML string to an object
+    /// 将 XML 字符串转换为对象
     /// </summary>
-    /// <param name="xml">XML string</param>
-    /// <param name="type">Object type to export</param>
-    /// <returns>The object of the specified type</returns>
+    /// <param name="xml">XML 字符串</param>
+    /// <param name="type">要导出的对象类型</param>
+    /// <param name="rootName">期望的 XML 根元素名称。</param>
+    /// <returns>指定类型的对象</returns>
     public static object XMLToObject(string xml, Type type, string rootName)
     {
         if (string.IsNullOrEmpty(xml))

@@ -3,25 +3,25 @@
 namespace AAEmu.Commons.Conversion;
 
 /// <summary>
-/// Equivalent of System.BitConverter, but with either endianness.
+/// 等效于 System.BitConverter，但可以处理任一字节序。
 /// </summary>
 public abstract class EndianBitConverter
 {
     #region Endianness of this converter
 
     /// <summary>
-    /// Indicates the byte order ("endianess") in which data is converted using this class.
+    /// 指示此类转换数据时使用的字节顺序（“字节序”）。
     /// </summary>
     /// <remarks>
-    /// Different computer architectures store data using different byte orders. "Big-endian"
-    /// means the most significant byte is on the left end of a word. "Little-endian" means the 
-    /// most significant byte is on the right end of a word.
+    /// 不同的计算机体系结构使用不同的字节顺序存储数据。“大端”
+    /// 表示最高有效字节位于字的最左端。“小端”表示
+    /// 最高有效字节位于字的最右端。
     /// </remarks>
-    /// <returns>true if this converter is little-endian, false otherwise.</returns>
+    /// <returns>如果此转换器是小端字节序，则为 true，否则为 false。</returns>
     public abstract bool IsLittleEndian();
 
     /// <summary>
-    /// Indicates the byte order ("endianess") in which data is converted using this class.
+    /// 指示此类转换数据时使用的字节顺序（“字节序”）。
     /// </summary>
     public abstract Endianness Endianness { get; }
 
@@ -32,8 +32,7 @@ public abstract class EndianBitConverter
     private static readonly LittleEndianBitConverter s_little = new();
 
     /// <summary>
-    /// Returns a little-endian bit converter instance. The same instance is
-    /// always returned.
+    /// 返回一个小端字节序转换器实例。始终返回相同的实例。
     /// </summary>
     public static LittleEndianBitConverter Little
     {
@@ -43,8 +42,7 @@ public abstract class EndianBitConverter
     private static readonly BigEndianBitConverter s_big = new();
 
     /// <summary>
-    /// Returns a big-endian bit converter instance. The same instance is
-    /// always returned.
+    /// 返回一个大端字节序转换器实例。始终返回相同的实例。
     /// </summary>
     public static BigEndianBitConverter Big
     {
@@ -56,47 +54,47 @@ public abstract class EndianBitConverter
     #region Double/primitive conversions
 
     /// <summary>
-    /// Converts the specified double-precision floating point number to a 
-    /// 64-bit signed integer. Note: the endianness of this converter does not affect the returned value.
+    /// 将指定的双精度浮点数转换为 64 位有符号整数。
+    /// 注意：此转换器的字节序不影响返回的值。
     /// </summary>
-    /// <param name="value">The number to convert. </param>
-    /// <returns>A 64-bit signed integer whose value is equivalent to value.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>其值等效于 value 的 64 位有符号整数。</returns>
     public static long DoubleToInt64Bits(double value)
     {
         return BitConverter.DoubleToInt64Bits(value);
     }
 
     /// <summary>
-    /// Converts the specified 64-bit signed integer to a double-precision 
-    /// floating point number. Note: the endianness of this converter does not affect the returned value.
+    /// 将指定的 64 位有符号整数转换为双精度浮点数。
+    /// 注意：此转换器的字节序不影响返回的值。
     /// </summary>
-    /// <param name="value">The number to convert. </param>
-    /// <returns>A double-precision floating point number whose value is equivalent to value.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>其值等效于 value 的双精度浮点数。</returns>
     public static double Int64BitsToDouble(long value)
     {
         return BitConverter.Int64BitsToDouble(value);
     }
 
     /// <summary>
-    /// Converts the specified single-precision floating point number to a 
-    /// 32-bit signed integer. Note: the endianness of this converter does not affect the returned value.
+    /// 将指定的单精度浮点数转换为 32 位有符号整数。
+    /// 注意：此转换器的字节序不影响返回的值。
     /// </summary>
-    /// <param name="value">The number to convert. </param>
-    /// <returns>A 32-bit signed integer whose value is equivalent to value.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>其值等效于 value 的 32 位有符号整数。</returns>
     public unsafe int SingleToInt32Bits(float value)
     {
         return *((int*)&value);
     }
 
     /// <summary>
-    /// Converts the specified 32-bit signed integer to a single-precision floating point 
-    /// number. Note: the endianness of this converter does not affect the returned value.
+    /// 将指定的 32 位有符号整数转换为单精度浮点数。
+    /// 注意：此转换器的字节序不影响返回的值。
     /// </summary>
-    /// <param name="value">The number to convert. </param>
-    /// <returns>A single-precision floating point number whose value is equivalent to value.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>其值等效于 value 的单精度浮点数。</returns>
     public unsafe float Int32BitsToSingle(int value)
     {
-        // TODO return BitConverter.ToSingle(BitConverter.GetBytes(value), 0);
+        // TODO 返回 BitConverter.ToSingle(BitConverter.GetBytes(value), 0);
         return *((float*)&value);
     }
 
@@ -105,11 +103,11 @@ public abstract class EndianBitConverter
     #region To(PrimitiveType) conversions
 
     /// <summary>
-    /// Returns a Boolean value converted from one byte at a specified position in a byte array.
+    /// 从字节数组中指定位置的一个字节转换并返回一个布尔值。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>true if the byte at startIndex in value is nonzero; otherwise, false.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>如果 value 中 startIndex 位置的字节非零，则为 true；否则为 false。</returns>
     public static bool ToBoolean(byte[] value, int startIndex)
     {
         CheckByteArgument(value, startIndex, 1);
@@ -117,115 +115,113 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Returns a Unicode character converted from two bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的两个字节转换并返回一个 Unicode 字符。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A character formed by two bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的两个字节组成的字符。</returns>
     public char ToChar(byte[] value, int startIndex)
     {
         return unchecked((char)(CheckedFromBytes(value, startIndex, 2)));
     }
 
     /// <summary>
-    /// Returns a double-precision floating point number converted from eight bytes 
-    /// at a specified position in a byte array.
+    /// 从字节数组中指定位置的八个字节转换并返回一个双精度浮点数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A double precision floating point number formed by eight bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的八个字节组成的双精度浮点数。</returns>
     public double ToDouble(byte[] value, int startIndex)
     {
         return Int64BitsToDouble(ToInt64(value, startIndex));
     }
 
     /// <summary>
-    /// Returns a single-precision floating point number converted from four bytes 
-    /// at a specified position in a byte array.
+    /// 从字节数组中指定位置的四个字节转换并返回一个单精度浮点数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A single precision floating point number formed by four bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的四个字节组成的单精度浮点数。</returns>
     public float ToSingle(byte[] value, int startIndex)
     {
         return Int32BitsToSingle(ToInt32(value, startIndex));
     }
 
     /// <summary>
-    /// Returns a 16-bit signed integer converted from two bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的两个字节转换并返回一个 16 位有符号整数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A 16-bit signed integer formed by two bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的两个字节组成的 16 位有符号整数。</returns>
     public short ToInt16(byte[] value, int startIndex)
     {
         return unchecked((short)(CheckedFromBytes(value, startIndex, 2)));
     }
 
     /// <summary>
-    /// Returns a 32-bit signed integer converted from four bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的四个字节转换并返回一个 32 位有符号整数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A 32-bit signed integer formed by four bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的四个字节组成的 32 位有符号整数。</returns>
     public int ToInt32(byte[] value, int startIndex)
     {
         return unchecked((int)(CheckedFromBytes(value, startIndex, 4)));
     }
 
     /// <summary>
-    /// Returns a 64-bit signed integer converted from eight bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的八个字节转换并返回一个 64 位有符号整数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A 64-bit signed integer formed by eight bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的八个字节组成的 64 位有符号整数。</returns>
     public long ToInt64(byte[] value, int startIndex)
     {
         return CheckedFromBytes(value, startIndex, 8);
     }
 
     /// <summary>
-    /// Returns a 16-bit unsigned integer converted from two bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的两个字节转换并返回一个 16 位无符号整数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A 16-bit unsigned integer formed by two bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的两个字节组成的 16 位无符号整数。</returns>
     public ushort ToUInt16(byte[] value, int startIndex)
     {
         return unchecked((ushort)(CheckedFromBytes(value, startIndex, 2)));
     }
 
     /// <summary>
-    /// Returns a 32-bit unsigned integer converted from four bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的四个字节转换并返回一个 32 位无符号整数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A 32-bit unsigned integer formed by four bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的四个字节组成的 32 位无符号整数。</returns>
     public uint ToUInt32(byte[] value, int startIndex)
     {
         return unchecked((uint)(CheckedFromBytes(value, startIndex, 4)));
     }
 
     /// <summary>
-    /// Returns a 64-bit unsigned integer converted from eight bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的八个字节转换并返回一个 64 位无符号整数。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A 64-bit unsigned integer formed by eight bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的八个字节组成的 64 位无符号整数。</returns>
     public ulong ToUInt64(byte[] value, int startIndex)
     {
         return unchecked((ulong)(CheckedFromBytes(value, startIndex, 8)));
     }
 
     /// <summary>
-    /// Checks the given argument for validity.
+    /// 检查给定参数的有效性。
     /// </summary>
-    /// <param name="value">The byte array passed in</param>
-    /// <param name="startIndex">The start index passed in</param>
-    /// <param name="bytesRequired">The number of bytes required</param>
-    /// <exception cref="ArgumentNullException">value is a null reference</exception>
+    /// <param name="value">传入的字节数组</param>
+    /// <param name="startIndex">传入的起始索引</param>
+    /// <param name="bytesRequired">所需的字节数</param>
+    /// <exception cref="ArgumentNullException">value 为空引用</exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// startIndex is less than zero or greater than the length of value minus bytesRequired.
+    /// startIndex 小于零或大于 value 的长度减去 bytesRequired。
     /// </exception>
     private static void CheckByteArgument(byte[] value, int startIndex, int bytesRequired)
     {
@@ -235,12 +231,12 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Checks the arguments for validity before calling FromBytes
-    /// (which can therefore assume the arguments are valid).
+    /// 在调用 FromBytes 之前检查参数的有效性
+    /// （因此 FromBytes 可以假定参数有效）。
     /// </summary>
-    /// <param name="value">The bytes to convert after checking</param>
-    /// <param name="startIndex">The index of the first byte to convert</param>
-    /// <param name="bytesToConvert">The number of bytes to convert</param>
+    /// <param name="value">检查后要转换的字节</param>
+    /// <param name="startIndex">要转换的第一个字节的索引</param>
+    /// <param name="bytesToConvert">要转换的字节数</param>
     /// <returns></returns>
     private long CheckedFromBytes(byte[] value, int startIndex, int bytesToConvert)
     {
@@ -249,14 +245,14 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Convert the given number of bytes from the given array, from the given start
-    /// position, into a long, using the bytes as the least significant part of the long.
-    /// By the time this is called, the arguments have been checked for validity.
+    /// 从给定数组的给定起始位置转换给定数量的字节为 long 类型，
+    /// 将这些字节用作 long 类型的最低有效部分。
+    /// 调用此方法时，已检查参数的有效性。
     /// </summary>
-    /// <param name="value">The bytes to convert</param>
-    /// <param name="startIndex">The index of the first byte to convert</param>
-    /// <param name="bytesToConvert">The number of bytes to use in the conversion</param>
-    /// <returns>The converted number</returns>
+    /// <param name="value">要转换的字节</param>
+    /// <param name="startIndex">要转换的第一个字节的索引</param>
+    /// <param name="bytesToConvert">转换中要使用的字节数</param>
+    /// <returns>转换后的数字</returns>
     protected abstract long FromBytes(byte[] value, int startIndex, int bytesToConvert);
 
     #endregion
@@ -264,13 +260,13 @@ public abstract class EndianBitConverter
     #region ToString conversions
 
     /// <summary>
-    /// Returns a String converted from the elements of a byte array.
+    /// 从字节数组的元素转换并返回一个字符串。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <remarks>All the elements of value are converted.</remarks>
+    /// <param name="value">字节数组。</param>
+    /// <remarks>value 的所有元素都将被转换。</remarks>
     /// <returns>
-    /// A String of hexadecimal pairs separated by hyphens, where each pair 
-    /// represents the corresponding element in value; for example, "7F-2C-4A".
+    /// 一个由连字符分隔的十六进制对字符串，其中每对
+    /// 表示 value 中的相应元素；例如，“7F-2C-4A”。
     /// </returns>
     public static string ToString(byte[] value)
     {
@@ -278,14 +274,14 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Returns a String converted from the elements of a byte array starting at a specified array position.
+    /// 从字节数组中从指定数组位置开始的元素转换并返回一个字符串。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <remarks>The elements from array position startIndex to the end of the array are converted.</remarks>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <remarks>从数组位置 startIndex 到数组末尾的元素将被转换。</remarks>
     /// <returns>
-    /// A String of hexadecimal pairs separated by hyphens, where each pair 
-    /// represents the corresponding element in value; for example, "7F-2C-4A".
+    /// 一个由连字符分隔的十六进制对字符串，其中每对
+    /// 表示 value 中的相应元素；例如，“7F-2C-4A”。
     /// </returns>
     public static string ToString(byte[] value, int startIndex)
     {
@@ -293,15 +289,15 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Returns a String converted from a specified number of bytes at a specified position in a byte array.
+    /// 从字节数组中指定位置的指定数量字节转换并返回一个字符串。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <param name="length">The number of bytes to convert.</param>
-    /// <remarks>The length elements from array position startIndex are converted.</remarks>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <param name="length">要转换的字节数。</param>
+    /// <remarks>从数组位置 startIndex 开始的 length 个元素将被转换。</remarks>
     /// <returns>
-    /// A String of hexadecimal pairs separated by hyphens, where each pair 
-    /// represents the corresponding element in value; for example, "7F-2C-4A".
+    /// 一个由连字符分隔的十六进制对字符串，其中每对
+    /// 表示 value 中的相应元素；例如，“7F-2C-4A”。
     /// </returns>
     public static string ToString(byte[] value, int startIndex, int length)
     {
@@ -313,17 +309,16 @@ public abstract class EndianBitConverter
     #region	Decimal conversions
 
     /// <summary>
-    /// Returns a decimal value converted from sixteen bytes 
-    /// at a specified position in a byte array.
+    /// 从字节数组中指定位置的十六个字节转换并返回一个 decimal 值。
     /// </summary>
-    /// <param name="value">An array of bytes.</param>
-    /// <param name="startIndex">The starting position within value.</param>
-    /// <returns>A decimal  formed by sixteen bytes beginning at startIndex.</returns>
+    /// <param name="value">字节数组。</param>
+    /// <param name="startIndex">value 中的起始位置。</param>
+    /// <returns>由 startIndex 开始的十六个字节组成的 decimal 值。</returns>
     public decimal ToDecimal(byte[] value, int startIndex)
     {
-        // HACK: This always assumes four parts, each in their own endianness,
-        // starting with the first part at the start of the byte array.
-        // On the other hand, there's no real format specified...
+        // HACK（注）：这里总是假设有四个部分，每个部分都有自己的字节序，
+        // 从字节数组开头的第一个部分开始。
+        // 另一方面，没有指定真正的格式…
         var parts = new int[4];
         for (var i = 0; i < 4; i++)
             parts[i] = ToInt32(value, startIndex + i * 4);
@@ -331,10 +326,10 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Returns the specified decimal value as an array of bytes.
+    /// 将指定的 decimal 值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 16.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 16 的字节数组。</returns>
     public byte[] GetBytes(decimal value)
     {
         var bytes = new byte[16];
@@ -345,12 +340,12 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Copies the specified decimal value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 decimal 值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">A character to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的字符。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(decimal value, byte[] buffer, int index)
     {
         var parts = decimal.GetBits(value);
@@ -363,12 +358,12 @@ public abstract class EndianBitConverter
     #region GetBytes conversions
 
     /// <summary>
-    /// Returns an array with the given number of bytes formed
-    /// from the least significant bytes of the specified value.
-    /// This is used to implement the other GetBytes methods.
+    /// 返回一个包含给定数量字节的数组，这些字节由指定值的
+    /// 最低有效字节构成。
+    /// 此方法用于实现其他 GetBytes 方法。
     /// </summary>
-    /// <param name="value">The value to get bytes for</param>
-    /// <param name="bytes">The number of significant bytes to return</param>
+    /// <param name="value">要获取字节的值</param>
+    /// <param name="bytes">要返回的有效字节数</param>
     public byte[] GetBytes(long value, int bytes)
     {
         var buffer = new byte[bytes];
@@ -377,100 +372,100 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Returns the specified Boolean value as an array of bytes.
+    /// 将指定的布尔值作为字节数组返回。
     /// </summary>
-    /// <param name="value">A Boolean value.</param>
-    /// <returns>An array of bytes with length 1.</returns>
+    /// <param name="value">布尔值。</param>
+    /// <returns>长度为 1 的字节数组。</returns>
     public static byte[] GetBytes(bool value)
     {
         return BitConverter.GetBytes(value);
     }
 
     /// <summary>
-    /// Returns the specified Unicode character value as an array of bytes.
+    /// 将指定的 Unicode 字符值作为字节数组返回。
     /// </summary>
-    /// <param name="value">A character to convert.</param>
-    /// <returns>An array of bytes with length 2.</returns>
+    /// <param name="value">要转换的字符。</param>
+    /// <returns>长度为 2 的字节数组。</returns>
     public byte[] GetBytes(char value)
     {
         return GetBytes(value, 2);
     }
 
     /// <summary>
-    /// Returns the specified double-precision floating point value as an array of bytes.
+    /// 将指定的双精度浮点值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 8.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 8 的字节数组。</returns>
     public byte[] GetBytes(double value)
     {
         return GetBytes(DoubleToInt64Bits(value), 8);
     }
 
     /// <summary>
-    /// Returns the specified 16-bit signed integer value as an array of bytes.
+    /// 将指定的 16 位有符号整数值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 2.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 2 的字节数组。</returns>
     public byte[] GetBytes(short value)
     {
         return GetBytes(value, 2);
     }
 
     /// <summary>
-    /// Returns the specified 32-bit signed integer value as an array of bytes.
+    /// 将指定的 32 位有符号整数值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 4.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 4 的字节数组。</returns>
     public byte[] GetBytes(int value)
     {
         return GetBytes(value, 4);
     }
 
     /// <summary>
-    /// Returns the specified 64-bit signed integer value as an array of bytes.
+    /// 将指定的 64 位有符号整数值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 8.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 8 的字节数组。</returns>
     public byte[] GetBytes(long value)
     {
         return GetBytes(value, 8);
     }
 
     /// <summary>
-    /// Returns the specified single-precision floating point value as an array of bytes.
+    /// 将指定的单精度浮点值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 4.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 4 的字节数组。</returns>
     public byte[] GetBytes(float value)
     {
         return GetBytes(SingleToInt32Bits(value), 4);
     }
 
     /// <summary>
-    /// Returns the specified 16-bit unsigned integer value as an array of bytes.
+    /// 将指定的 16 位无符号整数值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 2.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 2 的字节数组。</returns>
     public byte[] GetBytes(ushort value)
     {
         return GetBytes(value, 2);
     }
 
     /// <summary>
-    /// Returns the specified 32-bit unsigned integer value as an array of bytes.
+    /// 将指定的 32 位无符号整数值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 4.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 4 的字节数组。</returns>
     public byte[] GetBytes(uint value)
     {
         return GetBytes(value, 4);
     }
 
     /// <summary>
-    /// Returns the specified 64-bit unsigned integer value as an array of bytes.
+    /// 将指定的 64 位无符号整数值作为字节数组返回。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <returns>An array of bytes with length 8.</returns>
+    /// <param name="value">要转换的数字。</param>
+    /// <returns>长度为 8 的字节数组。</returns>
     public byte[] GetBytes(ulong value)
     {
         return GetBytes(unchecked((long)value), 8);
@@ -481,15 +476,14 @@ public abstract class EndianBitConverter
     #region CopyBytes conversions
 
     /// <summary>
-    /// Copies the given number of bytes from the least-specific
-    /// end of the specified value into the specified byte array, beginning
-    /// at the specified index.
-    /// This is used to implement the other CopyBytes methods.
+    /// 从指定值的最低有效端复制给定数量的字节到指定的字节数组中，
+    /// 从指定的索引开始。
+    /// 此方法用于实现其他 CopyBytes 方法。
     /// </summary>
-    /// <param name="value">The value to copy bytes for</param>
-    /// <param name="bytes">The number of significant bytes to copy</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要为其复制字节的值</param>
+    /// <param name="bytes">要复制的有效字节数</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     private void CopyBytes(long value, int bytes, byte[] buffer, int index)
     {
         if (buffer == null)
@@ -501,133 +495,132 @@ public abstract class EndianBitConverter
     }
 
     /// <summary>
-    /// Copies the given number of bytes from the least-specific
-    /// end of the specified value into the specified byte array, beginning
-    /// at the specified index.
-    /// This must be implemented in concrete derived classes, but the implementation
-    /// may assume that the value will fit into the buffer.
+    /// 从指定值的最低有效端复制给定数量的字节到指定的字节数组中，
+    /// 从指定的索引开始。
+    /// 这必须在具体的派生类中实现，但实现
+    /// 可以假定值将适合缓冲区。
     /// </summary>
-    /// <param name="value">The value to copy bytes for</param>
-    /// <param name="bytes">The number of significant bytes to copy</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要为其复制字节的值</param>
+    /// <param name="bytes">要复制的有效字节数</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     protected abstract void CopyBytesImpl(long value, int bytes, byte[] buffer, int index);
 
     /// <summary>
-    /// Copies the specified Boolean value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的布尔值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">A Boolean value.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">布尔值。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(bool value, byte[] buffer, int index)
     {
         CopyBytes(value ? 1 : 0, 1, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified Unicode character value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 Unicode 字符值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">A character to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的字符。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(char value, byte[] buffer, int index)
     {
         CopyBytes(value, 2, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified double-precision floating point value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的双精度浮点值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(double value, byte[] buffer, int index)
     {
         CopyBytes(DoubleToInt64Bits(value), 8, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified 16-bit signed integer value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 16 位有符号整数值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(short value, byte[] buffer, int index)
     {
         CopyBytes(value, 2, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified 32-bit signed integer value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 32 位有符号整数值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(int value, byte[] buffer, int index)
     {
         CopyBytes(value, 4, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified 64-bit signed integer value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 64 位有符号整数值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(long value, byte[] buffer, int index)
     {
         CopyBytes(value, 8, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified single-precision floating point value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的单精度浮点值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(float value, byte[] buffer, int index)
     {
         CopyBytes(SingleToInt32Bits(value), 4, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified 16-bit unsigned integer value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 16 位无符号整数值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(ushort value, byte[] buffer, int index)
     {
         CopyBytes(value, 2, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified 32-bit unsigned integer value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 32 位无符号整数值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(uint value, byte[] buffer, int index)
     {
         CopyBytes(value, 4, buffer, index);
     }
 
     /// <summary>
-    /// Copies the specified 64-bit unsigned integer value into the specified byte array,
-    /// beginning at the specified index.
+    /// 将指定的 64 位无符号整数值复制到指定的字节数组中，
+    /// 从指定的索引开始。
     /// </summary>
-    /// <param name="value">The number to convert.</param>
-    /// <param name="buffer">The byte array to copy the bytes into</param>
-    /// <param name="index">The first index into the array to copy the bytes into</param>
+    /// <param name="value">要转换的数字。</param>
+    /// <param name="buffer">要将字节复制到的字节数组</param>
+    /// <param name="index">复制字节到数组的起始索引</param>
     public void CopyBytes(ulong value, byte[] buffer, int index)
     {
         CopyBytes(unchecked((long)value), 8, buffer, index);

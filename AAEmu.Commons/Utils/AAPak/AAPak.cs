@@ -7,48 +7,48 @@ using System.Security.Cryptography;
 using System.Text;
 using AAEmu.Commons.Exceptions;
 
-// Source: https://github.com/ZeromusXYZ/AAEmu-Packer
+// 来源：https://github.com/ZeromusXYZ/AAEmu-Packer
 
 namespace AAEmu.Commons.Utils.AAPak;
 
 /// <summary>
-/// File Details Block
+/// 文件详情块
 /// </summary>
 public class AAPakFileInfo
 {
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x108)] public string name;
     public long offset;
     public long size;
-    public long sizeDuplicate; // maybe compressed data size ? if used, observed always same as size
-    public int paddingSize; // number of bytes of free space left until the next blocksize of 512 (or space until next file)
-    public byte[] md5; // this should be 16 bytes
-    public uint dummy1; // looks like padding, mostly 0 or 0x80000000 observed, possible file flags ?
+    public long sizeDuplicate; // 可能是压缩数据大小？如果使用，观察到的始终与 size 相同
+    public int paddingSize; // 直到下一个 512 字节块大小的剩余可用空间字节数（或直到下一个文件的空间）
+    public byte[] md5; // 这里应该是 16 字节
+    public uint dummy1; // 看起来像填充，通常观察到为 0 或 0x80000000，可能是文件标志？
     public long createTime;
     public long modifyTime;
-    public ulong dummy2; // looks like padding to fill out the block, observed 0
-    // The following are not part of the structure but used by the program
+    public ulong dummy2; // 看起来像用于填充块的填充，观察到为 0
+    // 以下内容不是结构的一部分，但由程序使用
     public int entryIndexNumber = -1;
     public int deletedIndexNumber = -1;
 }
 
 /// <summary>
-/// Pak Header Information
+/// Pak 包头信息
 /// </summary>
 public class AAPakFileHeader
 {
     /// <summary>
-    /// Default AES128 key used by XLGames for ArcheAge as encryption key for header and fileinfo data
+    /// XLGames 用于 ArcheAge 的默认 AES128 密钥，用作头部和文件信息数据的加密密钥
     /// 32 1F 2A EE AA 58 4A B4 9A 6C 9E 09 D5 9E 9C 6F
     /// </summary>
     private readonly byte[] XLGamesKey = new byte[] { 0x32, 0x1F, 0x2A, 0xEE, 0xAA, 0x58, 0x4A, 0xB4, 0x9A, 0x6C, 0x9E, 0x09, 0xD5, 0x9E, 0x9C, 0x6F };
     /// <summary>
-    /// Current encryption key
+    /// 当前加密密钥
     /// </summary>
     private byte[] key;
     protected static readonly int headerSize = 0x200;
     protected static readonly int fileInfoSize = 0x150;
     /// <summary>
-    /// Memory stream that holds the encrypted file information + header part of the file
+    /// 包含加密文件信息和文件头部分的内存流
     /// </summary>
     public MemoryStream FAT = new();
 
@@ -56,48 +56,48 @@ public class AAPakFileHeader
     public int Size = headerSize;
     public long FirstFileInfoOffset;
     public long AddFileOffset;
-    public byte[] rawData = new byte[headerSize]; // unencrypted header
-    public byte[] data = new byte[headerSize]; // decrypted header data
+    public byte[] rawData = new byte[headerSize]; // 未加密的头部
+    public byte[] data = new byte[headerSize]; // 已解密的头部数据
     public bool isValid;
     /// <summary>
-    /// Number of used files inside this pak
+    /// 此 pak 包中已使用文件的数量
     /// </summary>
     public uint fileCount;
     /// <summary>
-    /// Number of unused "deleted" files inside this pak
+    /// 此 pak 包中未使用（“已删除”）文件的数量
     /// </summary>
     public uint extraFileCount;
 
     /// <summary>
-    /// Empty MD5 Hash to compare against
+    /// 用于比较的空 MD5 哈希值
     /// </summary>
-    // Not used
+    // 未使用
     //public static byte[] nullHash = new byte[16];
 
     /// <summary>
-    /// Empty MD5 Hash as a hex string to compare against
+    /// 用于比较的空 MD5 哈希值的十六进制字符串形式
     /// </summary>
     //public static string nullHashString = "".PadRight(32, '0');
     public static string LastAESError { get; set; } = string.Empty;
 
     /// <summary>
-    /// Creates a new Header Block for a Pak file
+    /// 为 Pak 文件创建一个新的头部块
     /// </summary>
-    /// <param name="owner">The AAPak that this header belongs to</param>
+    /// <param name="owner">此头部所属的 AAPak</param>
     public AAPakFileHeader(AAPak owner)
     {
         _owner = owner;
         SetCustomKey(XLGamesKey);
     }
 
-    /* Empty finalizer
+    /* 空的析构函数
     ~AAPakFileHeader()
     {
         // FAT.Dispose();
     }*/
 
     /// <summary>
-    /// If you want to use custom keys on your pak file, use this function to change the key that is used for encryption/decryption of the FAT and header data
+    /// 如果要在 pak 文件上使用自定义密钥，请使用此函数更改用于 FAT 和头部数据加密/解密的密钥
     /// </summary>
     /// <param name="newKey"></param>
     public void SetCustomKey(byte[] newKey)
@@ -107,7 +107,7 @@ public class AAPakFileHeader
     }
 
     /// <summary>
-    /// Reverts back to the original encryption key, this function is also automatically called when closing a file
+    /// 恢复到原始加密密钥，关闭文件时也会自动调用此函数
     /// </summary>
     public void SetDefaultKey()
     {
@@ -115,13 +115,13 @@ public class AAPakFileHeader
     }
 
     /// <summary>
-    /// Encrypts or Decrypts a byte array using AES128 CBC - 
-    /// SourceCode: https://stackoverflow.com/questions/44782910/aes128-decryption-in-c-sharp
+    /// 使用 AES128 CBC 加密或解密字节数组 -
+    /// 源代码：https://stackoverflow.com/questions/44782910/aes128-decryption-in-c-sharp
     /// </summary>
-    /// <param name="message">Byte array to process</param>
-    /// <param name="key">Encryption key to use</param>
-    /// <param name="doEncryption">False = Decrypt, True = Encrypt</param>
-    /// <returns>Returns a new byte array containing the processed data</returns>
+    /// <param name="message">要处理的字节数组</param>
+    /// <param name="key">要使用的加密密钥</param>
+    /// <param name="doEncryption">False = 解密, True = 加密</param>
+    /// <returns>返回包含已处理数据的新字节数组</returns>
     public static byte[] EncryptAES(byte[] message, byte[] key, bool doEncryption)
     {
         try
@@ -165,7 +165,7 @@ public class AAPakFileHeader
             else
                 cipher = aes.CreateDecryptor();
 
-            // Create the streams used for encryption.
+            // 创建用于加密的流。
 
             using CryptoStream csEncrypt = new CryptoStream(target, cipher, CryptoStreamMode.Write);
             source.CopyTo(csEncrypt);
@@ -204,7 +204,7 @@ public class AAPakFileHeader
             else
                 cipher = aes.CreateDecryptor();
 
-            // Create the streams used for encryption.
+            // 创建用于加密的流。
             using (CryptoStream csEncrypt = new CryptoStream(target, cipher, CryptoStreamMode.Write))
             {
                 source.CopyTo(csEncrypt);
@@ -219,7 +219,7 @@ public class AAPakFileHeader
     }
 
     /// <summary>
-    /// Same as the EncryptAES but specifying a specific IV
+    /// 与 EncryptAES 相同，但指定特定的 IV (初始化向量)
     /// </summary>
     /// <param name="message"></param>
     /// <param name="key"></param>
@@ -253,23 +253,23 @@ public class AAPakFileHeader
     }
 
     /// <summary>
-    /// Locate and load the encrypted FAT data into memory
+    /// 定位并加载加密的 FAT 数据到内存中
     /// </summary>
-    /// <returns>Returns true on success</returns>
+    /// <returns>成功则返回 true</returns>
     public bool LoadRawFAT()
     {
-        // Read all File Table Data into Memory
+        // 将所有文件表数据读入内存
         FAT.SetLength(0);
 
         long TotalFileInfoSize = (fileCount + extraFileCount) * fileInfoSize;
         _owner._gpFileStream.Seek(0, SeekOrigin.End);
         FirstFileInfoOffset = _owner._gpFileStream.Position;
 
-        // Search for the first file location, it needs to be alligned to a 0x200 size block
+        // 搜索第一个文件位置，它需要与 0x200 大小的块对齐
         FirstFileInfoOffset -= headerSize;
         FirstFileInfoOffset -= TotalFileInfoSize;
         var dif = FirstFileInfoOffset % 0x200;
-        // Align to previous block of 512 bytes
+        // 与前一个 512 字节的块对齐
         FirstFileInfoOffset -= dif;
 
         _owner._gpFileStream.Position = FirstFileInfoOffset;
@@ -281,22 +281,22 @@ public class AAPakFileHeader
     }
 
     /// <summary>
-    /// Writes current files info back into FAT (encrypted)
+    /// 将当前文件信息写回 FAT（加密）
     /// </summary>
-    /// <returns>Returns true on success</returns>
+    /// <returns>成功则返回 true</returns>
     public bool WriteToFAT()
     {
         if (_owner.PakType == PakFileType.CSV)
             return false;
 
-        // Read all File Table Data into Memory
+        // 将所有文件表数据读入内存
         FAT.SetLength(0);
 
-        int bufSize = 0x150; // Marshal.SizeOf(typeof(AAPakFileInfo));
-        MemoryStream ms = new MemoryStream(bufSize); // Could probably do without the intermediate memorystream, but it's easier to process
+        int bufSize = 0x150; // Marshal.SizeOf(typeof(AAPakFileInfo)); // 获取 AAPakFileInfo 类型的大小
+        MemoryStream ms = new MemoryStream(bufSize); // 可能不需要中间的内存流，但这样处理起来更容易
         using BinaryWriter writer = new BinaryWriter(ms);
 
-        // Init File Counts
+        // 初始化文件计数
         var totalFileCount = _owner.files.Count + _owner.extraFiles.Count;
         var filesToGo = _owner.files.Count;
         var extrasToGo = _owner.extraFiles.Count;
@@ -310,7 +310,7 @@ public class AAPakFileHeader
 
             if ((_owner.PakType == PakFileType.TypeA) || (_owner.PakType == PakFileType.TypeF))
             {
-                // TypeA has files first, extra files after that
+                // TypeA 类型的文件在前，额外文件在后
                 if (filesToGo > 0)
                 {
                     filesToGo--;
@@ -326,7 +326,7 @@ public class AAPakFileHeader
                 }
                 else
                 {
-                    // If we get here, your PC cannot math and something went wrong
+                    // 如果执行到这里，说明你的电脑计算出了问题
                     pfi = null;
                     break;
                 }
@@ -334,7 +334,7 @@ public class AAPakFileHeader
             else
             if (_owner.PakType == PakFileType.TypeB)
             {
-                // TypeB has files first, extra files after that
+                // TypeB 类型的额外文件在前，普通文件在后
                 if (extrasToGo > 0)
                 {
                     extrasToGo--;
@@ -350,20 +350,20 @@ public class AAPakFileHeader
                 }
                 else
                 {
-                    // If we get here, your PC cannot math and something went wrong
+                    // 如果执行到这里，说明你的电脑计算出了问题
                     pfi = null;
                     break;
                 }
             }
             else
             {
-                // Unsupported Type somehow
+                // 不知何故出现了不支持的类型
                 throw new GameException("Don't know how to write this FAT: " + _owner.PakType);
             }
 
             if (_owner.PakType == PakFileType.TypeA)
             {
-                // Manually write the string for filename
+                // 手动写入文件名字符串
                 for (int c = 0; c < 0x108; c++)
                 {
                     byte ch = 0;
@@ -389,7 +389,7 @@ public class AAPakFileHeader
                 writer.Write(pfi.dummy1);
                 writer.Write(pfi.size);
 
-                // Manually write the string for filename
+                // 手动写入文件名字符串
                 for (int c = 0; c < 0x108; c++)
                 {
                     byte ch = 0;
@@ -407,7 +407,7 @@ public class AAPakFileHeader
             if (_owner.PakType == PakFileType.TypeF)
             {
                 writer.Write(pfi.dummy2);
-                // Manually write the string for filename
+                // 手动写入文件名字符串
                 for (int c = 0; c < 0x108; c++)
                 {
                     byte ch = 0;
@@ -422,14 +422,14 @@ public class AAPakFileHeader
                 writer.Write(pfi.md5);
                 writer.Write(pfi.dummy1);
                 writer.Write(pfi.createTime);
-                writer.Write(pfi.modifyTime); // For TypeF this is typically zero
+                writer.Write(pfi.modifyTime); // 对于 TypeF 类型，这通常为零
             }
             else
             {
                 throw new GameException("I don't know how to write this file format: " + _owner.PakType);
             }
 
-            // encrypt and write our new file into the FAT memory stream
+            // 加密新的文件数据并将其写入 FAT 内存流
             byte[] decryptedFileData = new byte[bufSize];
             ms.Position = 0;
             ms.Read(decryptedFileData, 0, bufSize);
@@ -438,7 +438,7 @@ public class AAPakFileHeader
         }
         ms.Dispose();
 
-        // Calculate padding to header
+        // 计算到头部的填充
         var dif = (FAT.Length % 0x200);
         if (dif > 0)
         {
@@ -446,32 +446,32 @@ public class AAPakFileHeader
             FAT.SetLength(FAT.Length + pad);
             FAT.Position = FAT.Length;
         }
-        // Update header info
+        // 更新头部信息
         fileCount = (uint)_owner.files.Count;
         extraFileCount = (uint)_owner.extraFiles.Count;
-        // Stretch size for header
+        // 为头部扩展大小
         FAT.SetLength(FAT.Length + headerSize);
-        // Encrypt the Header data
+        // 加密头部数据
         EncryptHeaderData();
-        // Write encrypted header
+        // 写入加密的头部
         FAT.Write(rawData, 0, 0x20);
 
         return true;
     }
 
     /// <summary>
-    /// Read and decrypt the File Details Table that was loaded into the FAT MemoryStream
+    /// 读取并解密已加载到 FAT MemoryStream 中的文件详情表
     /// </summary>
     public void ReadFileTable()
     {
-        // Check aa.bms QuickBMS file for reference
+        // 请参阅 aa.bms QuickBMS 文件以供参考
         FAT.Position = 0;
 
-        int bufSize = 0x150; // Marshal.SizeOf(typeof(AAPakFileInfo));
-        MemoryStream ms = new MemoryStream(bufSize); // Could probably do without the intermediate memorystream, but it's easier to process
+        int bufSize = 0x150; // Marshal.SizeOf(typeof(AAPakFileInfo)); // 获取 AAPakFileInfo 类型的大小
+        MemoryStream ms = new MemoryStream(bufSize); // 可能不需要中间的内存流，但这样处理起来更容易
         using BinaryReader reader = new BinaryReader(ms);
 
-        // Read the Files
+        // 读取文件
         _owner.files.Clear();
         _owner.extraFiles.Clear();
         var totalFileCount = fileCount + extraFileCount;
@@ -481,19 +481,19 @@ public class AAPakFileHeader
         var deletedIndexCounter = -1;
         for (uint i = 0; i < totalFileCount; i++)
         {
-            // Read and decrypt a fileinfo block
-            byte[] rawFileData = new byte[bufSize]; // decrypted header data
+            // 读取并解密文件信息块
+            byte[] rawFileData = new byte[bufSize]; // 已解密的文件数据
             FAT.Read(rawFileData, 0, bufSize);
             byte[] decryptedFileData = EncryptAES(rawFileData, key, false);
 
-            // Read decrypted data into a AAPakFileInfo
+            // 将解密后的数据读入 AAPakFileInfo
             ms.SetLength(0);
             ms.Write(decryptedFileData, 0, bufSize);
             ms.Position = 0;
             AAPakFileInfo pfi = new AAPakFileInfo();
             if (_owner.PakType == PakFileType.TypeA)
             {
-                // Manually read the string for filename
+                // 手动写入文件名字符串
                 pfi.name = "";
                 for (int c = 0; c < 0x108; c++)
                 {
@@ -509,10 +509,10 @@ public class AAPakFileHeader
                 pfi.sizeDuplicate = reader.ReadInt64();
                 pfi.paddingSize = reader.ReadInt32();
                 pfi.md5 = reader.ReadBytes(16);
-                pfi.dummy1 = reader.ReadUInt32(); // observed 0x00000000
+                pfi.dummy1 = reader.ReadUInt32(); // 观察到为 0x00000000
                 pfi.createTime = reader.ReadInt64();
                 pfi.modifyTime = reader.ReadInt64();
-                pfi.dummy2 = reader.ReadUInt64(); // unused ?
+                pfi.dummy2 = reader.ReadUInt64(); // 未使用？
             }
             else
             if (_owner.PakType == PakFileType.TypeB)
@@ -521,7 +521,7 @@ public class AAPakFileHeader
                 pfi.md5 = reader.ReadBytes(16);
                 pfi.dummy1 = reader.ReadUInt32(); // 0x80000000
                 pfi.size = reader.ReadInt64();
-                // Manually read the string for filename
+                // 手动写入文件名字符串
                 pfi.name = "";
                 for (int c = 0; c < 0x108; c++)
                 {
@@ -536,13 +536,13 @@ public class AAPakFileHeader
                 pfi.offset = reader.ReadInt64();
                 pfi.modifyTime = reader.ReadInt64();
                 pfi.createTime = reader.ReadInt64();
-                pfi.dummy2 = reader.ReadUInt64(); // unused ?
+                pfi.dummy2 = reader.ReadUInt64(); // 未使用？
             }
             else
             if (_owner.PakType == PakFileType.TypeF)
             {
-                pfi.dummy2 = reader.ReadUInt64(); // unused ?
-                // Manually read the string for filename
+                pfi.dummy2 = reader.ReadUInt64(); // 未使用？
+                // 手动写入文件名字符串
                 pfi.name = "";
                 for (int c = 0; c < 0x108; c++)
                 {
@@ -559,9 +559,9 @@ public class AAPakFileHeader
                 pfi.sizeDuplicate = reader.ReadInt64();
                 pfi.paddingSize = reader.ReadInt32();
                 pfi.md5 = reader.ReadBytes(16);
-                pfi.dummy1 = reader.ReadUInt32(); // observed 0x00000000
+                pfi.dummy1 = reader.ReadUInt32(); // 观察到为 0x00000000
                 pfi.createTime = reader.ReadInt64();
-                pfi.modifyTime = reader.ReadInt64(); // For TypeF this is typically zero
+                pfi.modifyTime = reader.ReadInt64(); // 对于 TypeF 类型，这通常为零
             }
             else
             {
@@ -576,7 +576,7 @@ public class AAPakFileHeader
 
             if ((_owner.PakType == PakFileType.TypeA) || (_owner.PakType == PakFileType.TypeF))
             {
-                // TypeA has files first and extra files last
+                // TypeA 类型的文件在前，额外文件在后
                 if (filesToGo > 0)
                 {
                     fileIndexCounter++;
@@ -588,8 +588,8 @@ public class AAPakFileHeader
                 else
                 if (extraToGo > 0)
                 {
-                    // "Extra" Files. It looks like these are old deleted files renamed to "__unused__"
-                    // There might be more to these, but can't be sure at this moment, looks like they are 512 byte blocks on my paks
+                    // “额外”文件。看起来这些是重命名为 "__unused__" 的旧的已删除文件
+                    // 这些文件可能还有更多含义，但目前无法确定，在我的 pak 包中它们看起来是 512 字节的块
                     deletedIndexCounter++;
                     pfi.deletedIndexNumber = deletedIndexCounter;
 
@@ -600,7 +600,7 @@ public class AAPakFileHeader
             else
             if (_owner.PakType == PakFileType.TypeB)
             {
-                // TypeB has extra files first and normal files last
+                // TypeB 类型的额外文件在前，普通文件在后
                 if (extraToGo > 0)
                 {
                     fileIndexCounter++;
@@ -621,11 +621,11 @@ public class AAPakFileHeader
             }
             else
             {
-                // Call the police, illegal Types are invading our safespace
+                // 快报警，非法类型正在侵入我们的安全空间
             }
 
             /*
-            // Debug stuff
+            // 调试内容
             if (pfi.name == "bin32/archeage.exe")
             {
                 ByteArrayToHexFile(decryptedFileData, "file-"+ i.ToString() + ".hex");
@@ -633,7 +633,7 @@ public class AAPakFileHeader
             }
             */
 
-            // Update our "end of file data" location if needed
+            // 如果需要，更新我们的“文件数据结束”位置
             if ((pfi.offset + pfi.size + pfi.paddingSize) > AddFileOffset)
             {
                 AddFileOffset = pfi.offset + pfi.size + pfi.paddingSize;
@@ -645,11 +645,11 @@ public class AAPakFileHeader
 
 
     /// <summary>
-    /// Helper function for debugging, write byte array as a hex text file
+    /// 调试辅助函数，将字节数组写入十六进制文本文件
     /// </summary>
     /// <param name="bytes"></param>
     /// <param name="fileName"></param>
-    /* Unused method
+    /* 未使用的方法
     private static void ByteArrayToHexFile(byte[] bytes, string fileName)
     {
         string s = "";
@@ -670,7 +670,7 @@ public class AAPakFileHeader
     }*/
 
     /// <summary>
-    /// Helper function for debugging, write byte array as a hex text file
+    /// 调试辅助函数，将字节数组转换为十六进制字符串
     /// </summary>
     /// <param name="bytes"></param>
     public static string ByteArrayToHexString(byte[] bytes, string spacingText = " ", string lineFeed = "\r\n")
@@ -695,13 +695,13 @@ public class AAPakFileHeader
 
 
     /// <summary>
-    /// Decrypt the current header data to get the file counts
+    /// 解密当前头部数据以获取文件计数
     /// </summary>
     public void DecryptHeaderData()
     {
         data = EncryptAES(rawData, key, false);
 
-        // A valid header/footer is check by it's identifier
+        // 通过其标识符检查有效的头部/尾部
         if ((data[0] == 'W') && (data[1] == 'I') && (data[2] == 'B') && (data[3] == 'O'))
         {
             // W I B O = 0x57 0x49 0x42 0x4F
@@ -730,7 +730,7 @@ public class AAPakFileHeader
         }
         else
         {
-            // Doesn't look like this is a pak file, the file is corrupted, or is in a unknown layout/format
+            // 看起来这不是一个 pak 文件，文件已损坏，或者格式未知
             fileCount = 0;
             extraFileCount = 0;
             isValid = false;
@@ -744,7 +744,7 @@ public class AAPakFileHeader
     }
 
     /// <summary>
-    /// Encrypt the current header data
+    /// 加密当前头部数据
     /// </summary>
     public void EncryptHeaderData()
     {
@@ -790,13 +790,13 @@ public class AAPakFileHeader
         }
         else
         {
-            // I don't know what to do with something that shouldn't exist
+            // 我不知道如何处理不应该存在的东西
         }
 
         ms.Position = 0;
         ms.Read(data, 0, headerSize);
         ms.Dispose();
-        // Encrypted our stored data into rawData
+        // 将我们存储的数据加密到 rawData
         rawData = EncryptAES(data, key, true);
     }
 }
@@ -804,63 +804,63 @@ public class AAPakFileHeader
 public enum PakFileType { TypeA, TypeB, CSV, TypeF };
 
 /// <summary>
-/// AAPak Class used to handle game_pak from ArcheAge
+/// AAPak 类，用于处理 ArcheAge 的 game_pak 文件
 /// </summary>
 public class AAPak
 {
     /// <summary>
-    /// Virtual data to return as a null value for file details, can be used as to initialize a var to pass as a ref
+    /// 作为文件详情的空值返回的虚拟数据，可用于初始化要作为 ref 传递的变量
     /// </summary>
     public AAPakFileInfo nullAAPakFileInfo = new();
     public string _gpFilePath { get; private set; }
     public FileStream _gpFileStream { get; private set; }
     /// <summary>
-    /// points to this pakfile's header
+    /// 指向此 pak 文件的头部
     /// </summary>
     public AAPakFileHeader _header;
     /// <summary>
-    /// Checks if current pakfile information is loaded into memory
+    /// 检查当前 pak 文件信息是否已加载到内存中
     /// </summary>
     public bool isOpen = false;
     /// <summary>
-    /// Set to true if there have been changes made that require a rewrite of the FAT and/or header
+    /// 如果已进行需要重写 FAT 和/或头部的更改，则设置为 true
     /// </summary>
     public bool isDirty = false;
     /// <summary>
-    /// Set to true if this is not a pak file, but rather information loaded from somewhere else
+    /// 如果这不是一个 pak 文件，而是从其他地方加载的信息，则设置为 true
     /// </summary>
     public bool isVirtual = false;
     /// <summary>
-    /// List of all used files
+    /// 所有已使用文件的列表
     /// </summary>
     public List<AAPakFileInfo> files = new();
     /// <summary>
-    /// List of all unused files, normally these are all named "__unused__"
+    /// 所有未使用文件的列表，通常这些文件都命名为 "__unused__"
     /// </summary>
     public List<AAPakFileInfo> extraFiles = new();
     /// <summary>
-    /// Virtual list of all folder names, use GenerateFolderList() to populate this list (might take a while)
+    /// 所有文件夹名称的虚拟列表，使用 GenerateFolderList() 填充此列表（可能需要一段时间）
     /// </summary>
     public List<string> folders = new();
     /// <summary>
-    /// Show if this pakfile is opened in read-only mode
+    /// 显示此 pak 文件是否以只读模式打开
     /// </summary>
     public bool readOnly { get; private set; }
     /// <summary>
-    /// If set to true, adds the freed space from a delete to the previous file's padding. 
-    /// If false (default), it "moves" the file into extraFiles for freeing up space, allowing it to be reused instead.
-    /// Should only need to be changed if you are writing your own specialized patcher, and only in special cases
+    /// 如果设置为 true，则将删除操作释放的空间添加到前一个文件的填充中。
+    /// 如果为 false（默认），则将文件“移动”到 extraFiles 以释放空间，从而允许重用该空间。
+    /// 仅当您正在编写自己的专用修补程序并且仅在特殊情况下才需要更改此设置
     /// </summary>
     public bool paddingDeleteMode = false;
     public PakFileType PakType = PakFileType.TypeA;
     public bool DebugMode = false;
 
     /// <summary>
-    /// Creates and/or opens a game_pak file
+    /// 创建和/或打开 game_pak 文件
     /// </summary>
-    /// <param name="filePath">Filename of the pak</param>
-    /// <param name="openAsReadOnly">Open pak in readOnly Mode if true. Ignored if createAsNewPak is set</param>
-    /// <param name="createAsNewPak">If true, openAsReadOnly is ignored and will create a new pak at filePath location in read/write mode. Warning: This will overwrite any existing pak at that location !</param>
+    /// <param name="filePath">pak 的文件名</param>
+    /// <param name="openAsReadOnly">如果为 true，则以只读模式打开 pak。如果设置了 createAsNewPak，则忽略此参数</param>
+    /// <param name="createAsNewPak">如果为 true，则忽略 openAsReadOnly，并将在 filePath 位置以读/写模式创建一个新的 pak。警告：这将覆盖该位置的任何现有 pak！</param>
     public AAPak(string filePath, bool openAsReadOnly = true, bool createAsNewPak = false)
     {
         _header = new AAPakFileHeader(this);
@@ -874,11 +874,11 @@ public class AAPak
             {
                 if ((openAsReadOnly == true) && (createAsNewPak == false))
                 {
-                    // Open file as CVS data
+                    // 以 CSV 数据形式打开文件
                     isLoaded = OpenVirtualCSVPak(filePath);
                     return;
                 }
-                // We will only allow opening as a CVS file when it's set to readonly (and not a new file)
+                // 仅当设置为只读（且不是新文件）时，才允许以 CSV 文件形式打开
             }
             */
 
@@ -912,18 +912,18 @@ public class AAPak
     }
 
     /// <summary>
-    /// Opens a pak file, can only be used if no other file is currently loaded
+    /// 打开一个 pak 文件，仅当当前没有加载其他文件时才能使用
     /// </summary>
-    /// <param name="filePath">Filename of the pakfile to open</param>
-    /// <param name="openAsReadOnly">Set to true to open the pak in read-only mode</param>
-    /// <returns>Returns true on success, or false if something failed</returns>
+    /// <param name="filePath">要打开的 pak 文件的文件名</param>
+    /// <param name="openAsReadOnly">设置为 true 以只读模式打开 pak</param>
+    /// <returns>成功则返回 true，否则返回 false</returns>
     public bool OpenPak(string filePath, bool openAsReadOnly)
     {
-        // Fail if already open
+        // 如果已打开则失败
         if (isOpen)
             return false;
 
-        // Check if it exists
+        // 检查是否存在
         if (!File.Exists(filePath))
         {
             return false;
@@ -936,13 +936,13 @@ public class AAPak
         {
             openAsReadOnly = true;
             readOnly = true;
-            // Open file as CVS data
+            // 以 CSV 数据形式打开文件
             return OpenVirtualCSVPak(filePath);
         }
 
         try
         {
-            // Open stream
+            // 打开流
             if (openAsReadOnly)
             {
                 _gpFileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
@@ -967,26 +967,26 @@ public class AAPak
     }
 
     /// <summary>
-    /// Creates a new pakfile with name filename, will overwrite a existing file if it exists
+    /// 创建一个名为 filename 的新 pak 文件，如果存在同名文件则会覆盖
     /// </summary>
-    /// <param name="filePath">Filename of the new pakfile</param>
-    /// <returns>Returns true on success, or false if something went wrong, or if you still have a pakfile open</returns>
+    /// <param name="filePath">新 pak 文件的文件名</param>
+    /// <returns>成功则返回 true，如果出现问题或仍有 pak 文件打开则返回 false</returns>
     public bool NewPak(string filePath)
     {
-        // Fail if already open
+        // 如果已打开则失败
         if (isOpen)
             return false;
         isVirtual = false;
         try
         {
-            // Create new file stream
+            // 创建新的文件流
             _gpFileStream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
             _gpFilePath = filePath;
             readOnly = false;
             isOpen = true;
             isDirty = true;
-            SaveHeader(); // Save blank data
-            return ReadHeader(); // read blank data to confirm
+            SaveHeader(); // 保存空白数据
+            return ReadHeader(); // 读取空白数据以确认
         }
         catch
         {
@@ -1000,20 +1000,20 @@ public class AAPak
 
     public bool OpenVirtualCSVPak(string csvfilePath)
     {
-        // Fail if already open
+        // 如果已打开则失败
         if (isOpen)
             return false;
 
-        // Check if it exists
+        // 检查是否存在
         if (!File.Exists(csvfilePath))
         {
             return false;
         }
         isVirtual = true;
-        _gpFileStream = null; // Not used on virtual paks
+        _gpFileStream = null; // 未在虚拟 pak 上使用
         try
         {
-            // Open stream
+            // 打开流
             _gpFilePath = csvfilePath;
             isDirty = false;
             isOpen = true;
@@ -1030,7 +1030,7 @@ public class AAPak
     }
 
     /// <summary>
-    /// Closes the currently opened pakfile (if open)
+    /// 关闭当前打开的 pak 文件（如果已打开）
     /// </summary>
     public void ClosePak()
     {
@@ -1047,9 +1047,9 @@ public class AAPak
     }
 
     /// <summary>
-    /// Encrypts and saves Header and File Information Table back to the pak. 
-    /// This is also automatically called on ClosePak() if changes where made.
-    /// Warning: Failing to save might corrupt your pak if files were added or deleted !
+    /// 加密并将头部和文件信息表保存回 pak。
+    /// 如果进行了更改，则在 ClosePak() 时也会自动调用此方法。
+    /// 警告：如果添加或删除了文件，保存失败可能会损坏您的 pak！
     /// </summary>
     public void SaveHeader()
     {
@@ -1063,27 +1063,27 @@ public class AAPak
     }
 
     /// <summary>
-    /// Read Pak Header and FAT
+    /// 读取 Pak 头部和 FAT
     /// </summary>
-    /// <returns>Returns true if the read information makes a valid pakfile</returns>
+    /// <returns>如果读取的信息构成有效的 pak 文件，则返回 true</returns>
     protected bool ReadHeader()
     {
         files.Clear();
         extraFiles.Clear();
         folders.Clear();
 
-        // Read the last 512 bytes as raw header data
+        // 将最后 512 字节作为原始头部数据读取
         _gpFileStream.Seek(-_header.Size, SeekOrigin.End);
 
-        // Mark correct location as header offset location
-        _gpFileStream.Read(_header.rawData, 0, _header.Size); // We don't need to read the entire thing, just the first 32 bytes contain data
+        // 将正确位置标记为头部偏移位置
+        _gpFileStream.Read(_header.rawData, 0, _header.Size); // 我们不需要读取整个内容，只需前 32 个字节包含数据即可
         // _gpFileStream.Read(_header.rawData, 0, _header.Size);
 
         _header.DecryptHeaderData();
 
         if (_header.isValid)
         {
-            // Only allow editing for TypeA
+            // 仅允许编辑 TypeA 类型
             // if (PakType != PakFileType.PakTypeA) readOnly = true;
             _header.LoadRawFAT();
             _header.ReadFileTable();
@@ -1120,10 +1120,10 @@ public class AAPak
     }
 
     /// <summary>
-    /// Creates a file time from a given specialized string
+    /// 从给定的专用字符串创建文件时间
     /// </summary>
     /// <param name="encodedString"></param>
-    /// <returns>FILETIME as UTC</returns>
+    /// <returns>FILETIME (UTC)</returns>
     public static long DateTimeStrToFILETIME(string encodedString)
     {
         long res = 0;
@@ -1201,7 +1201,7 @@ public class AAPak
                     {
                         var fni = new AAPakFileInfo();
 
-                        // Looks like it's valid, read it
+                        // 看起来有效，读取它
                         fni.name = fields[0];
                         fni.size = long.Parse(fields[1]);
                         fni.offset = long.Parse(fields[2]);
@@ -1213,7 +1213,7 @@ public class AAPak
                         fni.dummy1 = uint.Parse(fields[8]);
                         fni.dummy2 = uint.Parse(fields[9]);
 
-                        // TODO: check if this reads correctly
+                        // TODO：检查此读取是否正确
                         files.Add(fni);
                     }
                     catch
@@ -1230,12 +1230,12 @@ public class AAPak
 
 
     /// <summary>
-    /// Populate the folders string list with virual folder names derived from the files found inside the pak
+    /// 使用从 pak 内部找到的文件派生的虚拟文件夹名称填充文件夹字符串列表
     /// </summary>
-    /// <param name="sortTheList">Set to false if you don't want the resulting folders list to be sorted (not recommended)</param>
+    /// <param name="sortTheList">如果您不希望对生成的文件夹列表进行排序，则设置为 false（不推荐）</param>
     public void GenerateFolderList(bool sortTheList = true)
     {
-        // There is no actual directory info stored in the pak file, so we just generate it based on filenames
+        // pak 文件中没有存储实际的目录信息，因此我们仅根据文件名生成它
         folders.Clear();
         if (!isOpen || !_header.isValid) return;
         foreach (AAPakFileInfo pfi in files)
@@ -1244,7 +1244,7 @@ public class AAPak
                 continue;
             try
             {
-                // Horror function, I know :p
+                // 我知道这是个恐怖的函数 :p
                 string n = Path.GetDirectoryName(pfi.name.ToLower().Replace('/', Path.DirectorySeparatorChar)).Replace(Path.DirectorySeparatorChar, '/');
                 var pos = folders.IndexOf(n);
                 if (pos >= 0)
@@ -1260,17 +1260,17 @@ public class AAPak
     }
 
     /// <summary>
-    /// Get a list of files inside a given "directory".
+    /// 获取给定“目录”内的文件列表。
     /// </summary>
-    /// <param name="dirname">Directory name to search in</param>
-    /// <returns>Returns a new List of all found files</returns>
+    /// <param name="dirname">要搜索的目录名</param>
+    /// <returns>返回包含所有找到文件的新列表</returns>
     public List<AAPakFileInfo> GetFilesInDirectory(string dirname)
     {
         var res = new List<AAPakFileInfo>();
         dirname = dirname.ToLower();
         foreach (AAPakFileInfo pfi in files)
         {
-            // extract dir name
+            // 提取目录名
             string n = string.Empty;
             try
             {
@@ -1287,11 +1287,11 @@ public class AAPak
     }
 
     /// <summary>
-    /// Find a file information inside the pak by it's filename
+    /// 通过文件名在 pak 中查找文件信息
     /// </summary>
-    /// <param name="filename">filename inside the pak of the requested file</param>
-    /// <param name="fileInfo">Returns the AAPakFile info of the requested file or nullAAPakFileInfo if it does not exist</param>
-    /// <returns>Returns true if the file was found</returns>
+    /// <param name="filename">请求文件在 pak 中的文件名</param>
+    /// <param name="fileInfo">返回请求文件的 AAPakFile 信息，如果不存在则返回 nullAAPakFileInfo</param>
+    /// <returns>如果找到文件则返回 true</returns>
     public bool GetFileByName(string filename, ref AAPakFileInfo fileInfo)
     {
         var fn = ToPakSlashes(filename);
@@ -1303,7 +1303,7 @@ public class AAPak
                 return true;
             }
         }
-        fileInfo = nullAAPakFileInfo; // return null file if it fails
+        fileInfo = nullAAPakFileInfo; // 如果失败则返回空文件
         return false;
     }
 
@@ -1317,7 +1317,7 @@ public class AAPak
                 return true;
             }
         }
-        fileInfo = nullAAPakFileInfo; // return null file if it fails
+        fileInfo = nullAAPakFileInfo; // 如果失败则返回空文件
         return false;
     }
 
@@ -1327,10 +1327,10 @@ public class AAPak
     }
 
     /// <summary>
-    /// Check if file exists within the pak
+    /// 检查文件是否存在于 pak 中
     /// </summary>
-    /// <param name="filename">filename of the file to check</param>
-    /// <returns>Returns true if the file was found</returns>
+    /// <param name="filename">要检查的文件名</param>
+    /// <returns>如果找到文件则返回 true</returns>
     public bool FileExists(string filename)
     {
         var fn = ToPakSlashes(filename);
@@ -1345,20 +1345,20 @@ public class AAPak
     }
 
     /// <summary>
-    /// Exports a given file as a Stream
+    /// 将给定文件导出为流
     /// </summary>
-    /// <param name="file">AAPakFileInfo of the file to be exported</param>
-    /// <returns>Returns a SubStream of file within the pak</returns>
+    /// <param name="file">要导出的文件的 AAPakFileInfo</param>
+    /// <returns>返回 pak 中文件的 SubStream</returns>
     public Stream ExportFileAsStream(AAPakFileInfo file)
     {
         return new SubStream(_gpFileStream, file.offset, file.size);
     }
 
     /// <summary>
-    /// Exports a given file as stream (might not be thread-safe)
+    /// 将给定文件导出为流（可能不是线程安全的）
     /// </summary>
-    /// <param name="fileName">filename inside the pak of the file to be exported</param>
-    /// <returns>Returns a SubStream of file within the pak</returns>
+    /// <param name="fileName">要导出的文件在 pak 中的文件名</param>
+    /// <returns>返回 pak 中文件的 SubStream</returns>
     public Stream ExportFileAsStream(string fileName)
     {
         AAPakFileInfo file = nullAAPakFileInfo;
@@ -1373,10 +1373,10 @@ public class AAPak
     }
 
     /// <summary>
-    /// Exports a given file as stream by first creating a new file handle to access it
+    /// 通过首先创建新的文件句柄来访问给定文件并将其导出为流
     /// </summary>
-    /// <param name="fileName">filename inside the pak of the file to be exported</param>
-    /// <returns>Returns a SubStream of file within the pak</returns>
+    /// <param name="fileName">要导出的文件在 pak 中的文件名</param>
+    /// <returns>返回 pak 中文件的 SubStream</returns>
     public Stream ExportFileAsStreamCloned(string fileName)
     {
         AAPakFileInfo file = nullAAPakFileInfo;
@@ -1393,10 +1393,10 @@ public class AAPak
 
 
     /// <summary>
-    /// Calculates and set the MD5 Hash of a given file
+    /// 计算并设置给定文件的 MD5 哈希值
     /// </summary>
-    /// <param name="file">AAPakFileInfo of the file to be updated</param>
-    /// <returns>Returns the new hash as a hex string (with removed dashes)</returns>
+    /// <param name="file">要更新的文件的 AAPakFileInfo</param>
+    /// <returns>以十六进制字符串形式返回新的哈希值（已删除破折号）</returns>
     public string UpdateMD5(AAPakFileInfo file)
     {
         MD5 hash = MD5.Create();
@@ -1405,19 +1405,19 @@ public class AAPak
         hash.Dispose();
         if (!file.md5.SequenceEqual(newHash))
         {
-            // Only update if different
+            // 仅当不同时才更新
             newHash.CopyTo(file.md5, 0);
             isDirty = true;
         }
-        return BitConverter.ToString(file.md5).Replace("-", ""); // Return the (updated) md5 as a string
+        return BitConverter.ToString(file.md5).Replace("-", ""); // 以字符串形式返回（更新后的）md5 值
     }
 
     /// <summary>
-    /// Manually set a new MD5 value for a file
+    /// 手动设置文件的新 MD5 值
     /// </summary>
     /// <param name="file"></param>
     /// <param name="newHash"></param>
-    /// <returns>Returns true if a new value was set</returns>
+    /// <returns>如果设置了新值则返回 true</returns>
     public bool SetMD5(AAPakFileInfo file, byte[] newHash)
     {
         if ((file == null) || (newHash == null) || (newHash.Length != 16))
@@ -1429,12 +1429,12 @@ public class AAPak
 
 
     /// <summary>
-    /// Try to find a file inside the pakfile base on a offset position inside the pakfile.
-    /// Note: this only checks inside the used files and does not account for "deleted" files
+    /// 尝试根据 pak 文件内的偏移位置在 pak 文件内查找文件。
+    /// 注意：这仅检查已使用的文件，不包括“已删除”的文件
     /// </summary>
-    /// <param name="offset">Offset to check against</param>
-    /// <param name="fileInfo">Returns the found file's info, or nullAAPakFileInfo if nothing was found</param>
-    /// <returns>Returns true if the location was found to be inside a valid file</returns>
+    /// <param name="offset">要检查的偏移量</param>
+    /// <param name="fileInfo">返回找到文件的信息，如果未找到则返回 nullAAPakFileInfo</param>
+    /// <returns>如果位置位于有效文件内则返回 true</returns>
     public bool FindFileByOffset(long offset, ref AAPakFileInfo fileInfo)
     {
         foreach (AAPakFileInfo pfi in files)
@@ -1450,29 +1450,29 @@ public class AAPak
     }
 
     /// <summary>
-    /// Replaces a file's data with new data from a stream, can only be used if the current file location has enough space to hold the new data
+    /// 用来自流的新数据替换文件数据，仅当当前文件位置有足够空间容纳新数据时才能使用
     /// </summary>
-    /// <param name="pfi">Fileinfo of the file to replace</param>
-    /// <param name="sourceStream">Stream to replace the data with</param>
-    /// <param name="modifyTime">Time to be used as a modified time stamp</param>
-    /// <returns>Returns true on success</returns>
+    /// <param name="pfi">要替换的文件的 Fileinfo</param>
+    /// <param name="sourceStream">用于替换数据的流</param>
+    /// <param name="modifyTime">用作修改时间戳的时间</param>
+    /// <returns>成功则返回 true</returns>
     public bool ReplaceFile(ref AAPakFileInfo pfi, Stream sourceStream, DateTime modifyTime)
     {
-        // Overwrite a existing file in the pak
+        // 覆盖 pak 中的现有文件
 
         if (readOnly)
             return false;
 
-        // Fail if the new file is too big
+        // 如果新文件太大则失败
         if (sourceStream.Length > (pfi.size + pfi.paddingSize))
             return false;
 
-        // Save endpos for easy calculation later
+        // 保存结束位置以便稍后计算
         long endPos = pfi.offset + pfi.size + pfi.paddingSize;
 
         try
         {
-            // Copy new data over the old data
+            // 将新数据复制到旧数据之上
             _gpFileStream.Position = pfi.offset;
             sourceStream.Position = 0;
             sourceStream.CopyTo(_gpFileStream);
@@ -1482,32 +1482,32 @@ public class AAPak
             return false;
         }
 
-        // Update File Size in File Table
+        // 更新文件表中的文件大小
         pfi.size = sourceStream.Length;
         pfi.sizeDuplicate = pfi.size;
-        // Calculate new Padding size
+        // 计算新的填充大小
         pfi.paddingSize = (int)(endPos - pfi.size - pfi.offset);
-        // Recalculate the MD5 hash
-        UpdateMD5(pfi); // TODO: optimize this to calculate WHILE we are copying the stream
+        // 重新计算 MD5 哈希值
+        UpdateMD5(pfi); // TODO：优化此项，以便在复制流的同时进行计算
         pfi.modifyTime = modifyTime.ToFileTimeUtc();
 
         if (PakType == PakFileType.TypeB)
             pfi.dummy1 = 0x80000000;
 
-        // Mark File Table as dirty
+        // 将文件表标记为脏数据
         isDirty = true;
 
         return true;
     }
 
     /// <summary>
-    /// Delete a file from pak. Behaves differenly depending on the paddingDeleteMode setting
+    /// 从 pak 中删除文件。根据 paddingDeleteMode 设置的不同，行为会有所不同
     /// </summary>
-    /// <param name="pfi">AAPakFileInfo of the file that is to be deleted</param>
-    /// <returns>Returns true on success</returns>
+    /// <param name="pfi">要删除的文件的 AAPakFileInfo</param>
+    /// <returns>成功则返回 true</returns>
     public bool DeleteFile(AAPakFileInfo pfi)
     {
-        // When we detele a file from the pak, we remove the entry from the FileTable and expand the previous file's padding to take up the space
+        // 当我们从 pak 中删除文件时，我们会从文件表中删除该条目，并扩展前一个文件的填充以占用该空间
         if (readOnly)
             return false;
 
@@ -1516,14 +1516,14 @@ public class AAPak
             AAPakFileInfo prevPfi = nullAAPakFileInfo;
             if (FindFileByOffset(pfi.offset - 1, ref prevPfi))
             {
-                // If we have a previous file, expand it's padding area with the free space from this file
+                // 如果存在前一个文件，则用此文件的可用空间扩展其填充区域
                 prevPfi.paddingSize += (int)pfi.size + pfi.paddingSize;
             }
             files.Remove(pfi);
         }
         else
         {
-            // "move" offset and size data to extrafiles
+            // 将偏移量和大小数据“移动”到 extraFiles
             AAPakFileInfo eFile = new AAPakFileInfo();
             eFile.name = "__unused__";
             eFile.offset = pfi.offset;
@@ -1543,10 +1543,10 @@ public class AAPak
     }
 
     /// <summary>
-    /// Delete a file from pak. Behaves differenly depending on the paddingDeleteMode setting
+    /// 从 pak 中删除文件。根据 paddingDeleteMode 设置的不同，行为会有所不同
     /// </summary>
-    /// <param name="filename">Filename of the file to delete from the pakfile</param>
-    /// <returns>Returns true on success or if the file didn't exist</returns>
+    /// <param name="filename">要从 pak 文件中删除的文件的文件名</param>
+    /// <returns>成功或文件不存在则返回 true</returns>
     public bool DeleteFile(string filename)
     {
         if (readOnly)
@@ -1559,24 +1559,24 @@ public class AAPak
         }
         else
         {
-            // Return true if the file didn't exist
+            // 如果文件不存在则返回 true
             return true;
         }
     }
 
     /// <summary>
-    /// Adds a new file into the pak
+    /// 将新文件添加到 pak 中
     /// </summary>
-    /// <param name="filename">Filename of the file inside the pakfile</param>
-    /// <param name="sourceStream">Source Stream containing the file data</param>
-    /// <param name="CreateTime">Time to use as initial file creation timestamp</param>
-    /// <param name="ModifyTime">Time to use as last modified timestamp</param>
-    /// <param name="autoSpareSpace">When set, tries to pre-allocate extra free space at the end of the file, this will be 25% of the filesize if used. If a "deleted file" is used, this parameter is ignored</param>
-    /// <param name="pfi">Returns the fileinfo of the newly created file</param>
-    /// <returns>Returns true on success</returns>
+    /// <param name="filename">pak 文件内文件的文件名</param>
+    /// <param name="sourceStream">包含文件数据的源流</param>
+    /// <param name="CreateTime">用作初始文件创建时间戳的时间</param>
+    /// <param name="ModifyTime">用作最后修改时间戳的时间</param>
+    /// <param name="autoSpareSpace">设置后，尝试在文件末尾预分配额外的可用空间，如果使用，则为文件大小的 25%。如果使用“已删除文件”，则忽略此参数</param>
+    /// <param name="pfi">返回新创建文件的文件信息</param>
+    /// <returns>成功则返回 true</returns>
     public bool AddAsNewFile(string filename, Stream sourceStream, DateTime CreateTime, DateTime ModifyTime, bool autoSpareSpace, out AAPakFileInfo pfi)
     {
-        // When we have a new file, or previous space wasn't enough, we will add it where the file table starts, and move the file table
+        // 当我们有新文件，或者先前的空间不足时，我们会将其添加到文件表的起始位置，并移动文件表
         if (readOnly)
         {
             pfi = nullAAPakFileInfo;
@@ -1596,14 +1596,14 @@ public class AAPak
         if (PakType == PakFileType.TypeB)
             newFile.dummy1 = 0x80000000;
 
-        // check if we have "unused" space in extraFiles that we can use
+        // 检查 extraFiles 中是否有可用的“未使用”空间
         for (int i = 0; i < extraFiles.Count; i++)
         {
             if (newFile.size <= extraFiles[i].size)
             {
-                // Copy the spare file's properties and remove it from extraFiles
+                // 复制备用文件的属性并将其从 extraFiles 中删除
                 newFile.offset = extraFiles[i].offset;
-                newFile.paddingSize = (int)(extraFiles[i].size - newFile.size); // This should already be aligned
+                newFile.paddingSize = (int)(extraFiles[i].size - newFile.size); // 这应该已经对齐了
                 addedAtTheEnd = false;
                 extraFiles.Remove(extraFiles[i]);
                 break;
@@ -1612,7 +1612,7 @@ public class AAPak
 
         if (addedAtTheEnd)
         {
-            // Only need to calculate padding if we are adding at the end
+            // 仅当在末尾添加时才需要计算填充
             var dif = (newFile.size % 0x200);
             if (dif > 0)
             {
@@ -1620,20 +1620,20 @@ public class AAPak
             }
             if (autoSpareSpace)
             {
-                // If autoSpareSpace is used to add files, we will reserve some extra space as padding
-                // Add 25% by default
+                // 如果使用 autoSpareSpace 添加文件，我们将保留一些额外的空间作为填充
+                // 默认添加 25%
                 var spareSpace = (newFile.size / 4);
-                spareSpace -= (spareSpace % 0x200); // Align the spare space
+                spareSpace -= (spareSpace % 0x200); // 对齐备用空间
                 newFile.paddingSize += (int)spareSpace;
             }
         }
 
-        // Add to files list
+        // 添加到文件列表
         files.Add(newFile);
 
         isDirty = true;
 
-        // Add File Data
+        // 添加文件数据
         _gpFileStream.Position = newFile.offset;
         sourceStream.Position = 0;
         sourceStream.CopyTo(_gpFileStream);
@@ -1643,23 +1643,23 @@ public class AAPak
             _header.FirstFileInfoOffset = newFile.offset + newFile.size + newFile.paddingSize;
         }
 
-        UpdateMD5(newFile); // TODO: optimize this to calculate WHILE we are copying the stream
+        UpdateMD5(newFile); // TODO：优化此项，以便在复制流的同时进行计算
 
-        // Set output
+        // 设置输出
         pfi = newFile;
         return true;
     }
 
     /// <summary>
-    /// Adds or replace a given file with name filename with data from sourceStream
+    /// 用来自 sourceStream 的数据添加或替换名为 filename 的给定文件
     /// </summary>
-    /// <param name="filename">The filename used inside the pak</param>
-    /// <param name="sourceStream">Source Stream of file to be added</param>
-    /// <param name="CreateTime">Time to use as original file creation time</param>
-    /// <param name="ModifyTime">Time to use as last modified time</param>
-    /// <param name="autoSpareSpace">Enable adding 25% of the sourceStream size as padding when not replacing a file</param>
-    /// <param name="pfi">AAPakFileInfo of the newly added or modified file</param>
-    /// <returns>Returns true on success</returns>
+    /// <param name="filename">pak 内部使用的文件名</param>
+    /// <param name="sourceStream">要添加的文件的源流</param>
+    /// <param name="CreateTime">用作原始文件创建时间的时间</param>
+    /// <param name="ModifyTime">用作最后修改时间的时间</param>
+    /// <param name="autoSpareSpace">当不替换文件时，启用添加 sourceStream 大小 25% 的填充</param>
+    /// <param name="pfi">新添加或修改的文件的 AAPakFileInfo</param>
+    /// <returns>成功则返回 true</returns>
     public bool AddFileFromStream(string filename, Stream sourceStream, DateTime CreateTime, DateTime ModifyTime, bool autoSpareSpace, out AAPakFileInfo pfi)
     {
         pfi = nullAAPakFileInfo;
@@ -1669,12 +1669,12 @@ public class AAPak
         }
 
         bool addAsNew = true;
-        // Try to find the existing file
+        // 尝试查找现有文件
         if (GetFileByName(filename, ref pfi))
         {
             var reservedSizeMax = pfi.size + pfi.paddingSize;
             addAsNew = (sourceStream.Length > reservedSizeMax);
-            // Bugfix: If we have inssuficient space, make sure to delete the old file first as well
+            // 错误修复：如果空间不足，请确保也首先删除旧文件
             if (addAsNew)
             {
                 DeleteFile(pfi);
@@ -1692,12 +1692,12 @@ public class AAPak
     }
 
     /// <summary>
-    /// Adds a file into the pakfile with a given name
+    /// 将具有给定名称的文件添加到 pak 文件中
     /// </summary>
-    /// <param name="sourceFileName">Filename of the source file to be added</param>
-    /// <param name="asFileName">Filename inside the pakfile to use</param>
-    /// <param name="autoSpareSpace">When set, tries to pre-allocate extra free space at the end of the file, this will be 25% of the filesize if used. If a "deleted file" is used, this parameter is ignored</param>
-    /// <returns>Returns true on success</returns>
+    /// <param name="sourceFileName">要添加的源文件的文件名</param>
+    /// <param name="asFileName">在 pak 文件内使用的文件名</param>
+    /// <param name="autoSpareSpace">设置后，尝试在文件末尾预分配额外的可用空间，如果使用，则为文件大小的 25%。如果使用“已删除文件”，则忽略此参数</param>
+    /// <returns>成功则返回 true</returns>
     public bool AddFileFromFile(string sourceFileName, string asFileName, bool autoSpareSpace)
     {
         if (!File.Exists(sourceFileName))
@@ -1711,10 +1711,10 @@ public class AAPak
     }
 
     /// <summary>
-    /// Convert a stream into a string
+    /// 将流转换为字符串
     /// </summary>
-    /// <param name="stream">Source stream</param>
-    /// <returns>String value of the data isnide the stream</returns>
+    /// <param name="stream">源流</param>
+    /// <returns>流内部数据的字符串值</returns>
     static public string StreamToString(Stream stream)
     {
         stream.Position = 0;
@@ -1725,10 +1725,10 @@ public class AAPak
     }
 
     /// <summary>
-    /// Convert a string into a MemoryStream
+    /// 将字符串转换为 MemoryStream
     /// </summary>
-    /// <param name="src">Source string</param>
-    /// <returns>A new MemoryStream that holds the source string's data</returns>
+    /// <param name="src">源字符串</param>
+    /// <returns>包含源字符串数据的新 MemoryStream</returns>
     static public Stream StringToStream(string src)
     {
         byte[] byteArray = Encoding.UTF8.GetBytes(src);

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace AAEmu.Commons.Utils.AAPak;
 
-// Sources:
+// 来源：
 // https://stackoverflow.com/questions/6949441/how-to-expose-a-sub-section-of-my-stream-to-a-user
 // https://social.msdn.microsoft.com/Forums/vstudio/en-US/c409b63b-37df-40ca-9322-458ffe06ea48/how-to-access-part-of-a-filestream-or-memorystream?forum=netfxbcl
 
@@ -30,7 +30,7 @@ public class SubStream : Stream
         }
         else
         {
-            // read it manually...
+            // 手动读取...
             const int BUFFER_SIZE = 512;
             byte[] buffer = new byte[BUFFER_SIZE];
             while (offset > 0)
@@ -113,13 +113,13 @@ public class SubStream : Stream
     {
         base.Dispose(disposing);
         /*
-        if (disposing)
+        if (disposing) // 如果正在释放
         {
-            if (baseStream != null)
+            if (baseStream != null) // 如果基础流不为空
             {
-                try { baseStream.Dispose(); }
-                catch { }
-                baseStream = null;
+                try { baseStream.Dispose(); } // 尝试释放基础流
+                catch { } // 捕获可能的异常
+                baseStream = null; // 将基础流设置为空
             }
         }
         */

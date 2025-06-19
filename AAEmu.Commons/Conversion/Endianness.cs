@@ -2,16 +2,16 @@
 namespace AAEmu.Commons.Conversion;
 
 /// <summary>
-/// Endianness of a converter
+/// 转换器的字节序
 /// </summary>
 public enum Endianness
 {
     /// <summary>
-    /// Little endian - least significant byte first
+    /// 小端字节序 - 最低有效字节在前
     /// </summary>
     LittleEndian,
     /// <summary>
-    /// Big endian - most significant byte first
+    /// 大端字节序 - 最高有效字节在前
     /// </summary>
     BigEndian
 }

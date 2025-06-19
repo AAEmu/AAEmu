@@ -27,7 +27,7 @@ public sealed class BitSet
         if (offset >= Count)
             return -1;
         var res = _bits.Get(offset);
-        // locate non-empty slot
+        // 定位非空槽位
         while (!res)
         {
             if ((++offset) >= Count)
@@ -44,7 +44,7 @@ public sealed class BitSet
         if (offset >= Count)
             return -1;
         var res = _bits.Get(offset);
-        // locate non-empty slot
+        // 定位非空槽位
         while (res)
         {
             if ((++offset) >= Count)

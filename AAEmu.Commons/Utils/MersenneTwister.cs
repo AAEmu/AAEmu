@@ -77,40 +77,39 @@ using System;
 namespace AAEmu.Commons.Utils;
 
 /// <summary>
-/// Generates pseudo-random numbers using the Mersenne Twister algorithm.
+/// 使用马特赛特旋转算法生成伪随机数。
 /// </summary>
 /// <remarks>
-/// See <a href="http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html">
-/// http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html</a> for details
-/// on the algorithm.
+/// 有关该算法的详细信息，请参见 <a href="http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html">
+/// http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html</a>。
 /// </remarks>
 public class MersenneTwister : Random
 {
     /// <summary>
-    /// Creates a new pseudo-random number generator with a given seed.
+    /// 使用给定的种子创建一个新的伪随机数生成器。
     /// </summary>
-    /// <param name="seed">A value to use as a seed.</param>
+    /// <param name="seed">用作种子的值。</param>
     public MersenneTwister(int seed)
     {
         init((uint)seed);
     }
 
     /// <summary>
-    /// Creates a new pseudo-random number generator with a default seed.
+    /// 使用默认种子创建一个新的伪随机数生成器。
     /// </summary>
     /// <remarks>
-    /// <c>new <see cref="Random"/>().<see cref="Random.Next()"/></c> 
-    /// is used for the seed.
+    /// 使用 <c>new <see cref="Random"/>().<see cref="Random.Next()"/></c>
+    /// 作为种子。
     /// </remarks>
     public MersenneTwister()
-        : this(new Random().Next()) /* a default initial seed is used   */
+        : this(new Random().Next()) /* 使用默认的初始种子 */
     {
     }
 
     /// <summary>
-    /// Creates a pseudo-random number generator initialized with the given array.
+    /// 创建一个使用给定数组初始化的伪随机数生成器。
     /// </summary>
-    /// <param name="initKey">The array for initializing keys.</param>
+    /// <param name="initKey">用于初始化密钥的数组。</param>
     public MersenneTwister(int[] initKey)
     {
         if (initKey == null)
@@ -127,23 +126,23 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns the next pseudo-random <see cref="uint"/>.
+    /// 返回下一个伪随机 <see cref="uint"/>。
     /// </summary>
-    /// <returns>A pseudo-random <see cref="uint"/> value.</returns>
+    /// <returns>一个伪随机 <see cref="uint"/> 值。</returns>
     public virtual uint NextUInt32()
     {
         return GenerateUInt32();
     }
 
     /// <summary>
-    /// Returns the next pseudo-random <see cref="uint"/> 
-    /// up to <paramref name="maxValue"/>.
+    /// 返回下一个伪随机 <see cref="uint"/>，
+    /// 最大不超过 <paramref name="maxValue"/>。
     /// </summary>
     /// <param name="maxValue">
-    /// The maximum value of the pseudo-random number to create.
+    /// 要创建的伪随机数的最大值。
     /// </param>
     /// <returns>
-    /// A pseudo-random <see cref="uint"/> value which is at most <paramref name="maxValue"/>.
+    /// 一个伪随机 <see cref="uint"/> 值，其最大为 <paramref name="maxValue"/>。
     /// </returns>
     public virtual uint NextUInt32(uint maxValue)
     {
@@ -151,19 +150,19 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns the next pseudo-random <see cref="uint"/> at least 
-    /// <paramref name="minValue"/> and up to <paramref name="maxValue"/>.
+    /// 返回下一个伪随机 <see cref="uint"/>，其值至少为
+    /// <paramref name="minValue"/> 且最大不超过 <paramref name="maxValue"/>。
     /// </summary>
-    /// <param name="minValue">The minimum value of the pseudo-random number to create.</param>
-    /// <param name="maxValue">The maximum value of the pseudo-random number to create.</param>
+    /// <param name="minValue">要创建的伪随机数的最小值。</param>
+    /// <param name="maxValue">要创建的伪随机数的最大值。</param>
     /// <returns>
-    /// A pseudo-random <see cref="uint"/> value which is at least 
-    /// <paramref name="minValue"/> and at most <paramref name="maxValue"/>.
+    /// 一个伪随机 <see cref="uint"/> 值，其值至少为
+    /// <paramref name="minValue"/> 且最大为 <paramref name="maxValue"/>。
     /// </returns>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// If <c><paramref name="minValue"/> &gt;= <paramref name="maxValue"/></c>.
+    /// 如果 <c><paramref name="minValue"/> &gt;= <paramref name="maxValue"/></c>。
     /// </exception>
-    public virtual uint NextUInt32(uint minValue, uint maxValue) /* throws ArgumentOutOfRangeException */
+    public virtual uint NextUInt32(uint minValue, uint maxValue) /* 抛出 ArgumentOutOfRangeException */
     {
         if (minValue > maxValue)
             throw new ArgumentOutOfRangeException(nameof(minValue), $"{nameof(minValue)} is greater than {nameof(maxValue)}");
@@ -172,23 +171,23 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns the next pseudo-random <see cref="int"/>.
+    /// 返回下一个伪随机 <see cref="int"/>。
     /// </summary>
-    /// <returns>A pseudo-random <see cref="int"/> value.</returns>
+    /// <returns>一个伪随机 <see cref="int"/> 值。</returns>
     public override int Next()
     {
         return Next(int.MaxValue);
     }
 
     /// <summary>
-    /// Returns the next pseudo-random <see cref="int"/> up to <paramref name="maxValue"/>.
+    /// 返回下一个伪随机 <see cref="int"/>，最大不超过 <paramref name="maxValue"/>。
     /// </summary>
-    /// <param name="maxValue">The maximum value of the pseudo-random number to create.</param>
+    /// <param name="maxValue">要创建的伪随机数的最大值。</param>
     /// <returns>
-    /// A pseudo-random <see cref="int"/> value which is at most <paramref name="maxValue"/>.
+    /// 一个伪随机 <see cref="int"/> 值，其最大为 <paramref name="maxValue"/>。
     /// </returns>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// When <paramref name="maxValue"/> &lt; 0.
+    /// 当 <paramref name="maxValue"/> &lt; 0 时。
     /// </exception>
     public override int Next(int maxValue)
     {
@@ -203,16 +202,16 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns the next pseudo-random <see cref="int"/> 
-    /// at least <paramref name="minValue"/> 
-    /// and up to <paramref name="maxValue"/>.
+    /// 返回下一个伪随机 <see cref="int"/>，
+    /// 其值至少为 <paramref name="minValue"/>
+    /// 且最大不超过 <paramref name="maxValue"/>。
     /// </summary>
-    /// <param name="minValue">The minimum value of the pseudo-random number to create.</param>
-    /// <param name="maxValue">The maximum value of the pseudo-random number to create.</param>
-    /// <returns>A pseudo-random Int32 value which is at least <paramref name="minValue"/> and at 
-    /// most <paramref name="maxValue"/>.</returns>
+    /// <param name="minValue">要创建的伪随机数的最小值。</param>
+    /// <param name="maxValue">要创建的伪随机数的最大值。</param>
+    /// <returns>一个伪随机 Int32 值，其值至少为 <paramref name="minValue"/> 且
+    /// 最大为 <paramref name="maxValue"/>。</returns>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// If <c><paramref name="minValue"/> &gt;= <paramref name="maxValue"/></c>.
+    /// 如果 <c><paramref name="minValue"/> &gt;= <paramref name="maxValue"/></c>。
     /// </exception>
     public override int Next(int minValue, int maxValue)
     {
@@ -226,15 +225,15 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Fills a buffer with pseudo-random bytes.
+    /// 用伪随机字节填充缓冲区。
     /// </summary>
-    /// <param name="buffer">The buffer to fill.</param>
+    /// <param name="buffer">要填充的缓冲区。</param>
     /// <exception cref="ArgumentNullException">
-    /// If <c><paramref name="buffer"/> == <see langword="null"/></c>.
+    /// 如果 <c><paramref name="buffer"/> == <see langword="null"/></c>。
     /// </exception>
     public override void NextBytes(byte[] buffer)
     {
-        // [codekaizen: corrected this to check null before checking length.]
+        // [codekaizen: 已更正此问题，以便在检查长度之前检查 null。]
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
 
@@ -244,28 +243,24 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns the next pseudo-random <see cref="double"/> value.
+    /// 返回下一个伪随机 <see cref="double"/> 值。
     /// </summary>
-    /// <returns>A pseudo-random double floating point value.</returns>
+    /// <returns>一个伪随机双精度浮点值。</returns>
     /// <remarks>
     /// <para>
-    /// There are two common ways to create a double floating point using MT19937: 
-    /// using <see cref="GenerateUInt32"/> and dividing by 0xFFFFFFFF + 1, 
-    /// or else generating two double words and shifting the first by 26 bits and 
-    /// adding the second.
+    /// 使用 MT19937 创建双精度浮点数有两种常见方法：
+    /// 使用 <see cref="GenerateUInt32"/> 并除以 0xFFFFFFFF + 1，
+    /// 或者生成两个双字，将第一个移位 26 位并加上第二个。
     /// </para>
     /// <para>
-    /// In a newer measurement of the randomness of MT19937 published in the 
-    /// journal "Monte Carlo Methods and Applications, Vol. 12, No. 5-6, pp. 385 � 393 (2006)"
-    /// entitled "A Repetition Test for Pseudo-Random Number Generators",
-    /// it was found that the 32-bit version of generating a double fails at the 95% 
-    /// confidence level when measuring for expected repetitions of a particular 
-    /// number in a sequence of numbers generated by the algorithm.
+    /// 在《Monte Carlo Methods and Applications》杂志第 12 卷第 5-6 期第 385 – 393 页（2006 年）
+    /// 发表的一篇题为“伪随机数生成器的重复性测试”的关于 MT19937 随机性测量的最新研究中，
+    /// 发现在测量算法生成的数字序列中特定数字的预期重复次数时，
+    /// 生成双精度浮点数的 32 位版本在 95% 置信水平下失败。
     /// </para>
     /// <para>
-    /// Due to this, the 53-bit method is implemented here and the 32-bit method
-    /// of generating a double is not. If, for some reason,
-    /// the 32-bit method is needed, it can be generated by the following:
+    /// 因此，此处实现了 53 位方法，而未实现生成双精度浮点数的 32 位方法。
+    /// 如果由于某种原因需要 32 位方法，可以通过以下方式生成：
     /// <code>
     /// (Double)NextUInt32() / ((UInt64)UInt32.MaxValue + 1);
     /// </code>
@@ -277,22 +272,18 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns a pseudo-random number greater than or equal to zero, and 
-    /// either strictly less than one, or less than or equal to one, 
-    /// depending on the value of the given parameter.
+    /// 返回一个大于或等于零的伪随机数，并且根据给定参数的值，
+    /// 该数严格小于一或小于或等于一。
     /// </summary>
     /// <param name="includeOne">
-    /// If <see langword="true"/>, the pseudo-random number returned will be 
-    /// less than or equal to one; otherwise, the pseudo-random number returned will
-    /// be strictly less than one.
+    /// 如果为 <see langword="true"/>，则返回的伪随机数将小于或等于一；
+    /// 否则，返回的伪随机数将严格小于一。
     /// </param>
     /// <returns>
-    /// If <paramref name="includeOne"/> is <see langword="true"/>, 
-    /// this method returns a double-precision pseudo-random number greater than 
-    /// or equal to zero, and less than or equal to one. 
-    /// If <paramref name="includeOne"/> is <see langword="false"/>, this method
-    /// returns a double-precision pseudo-random number greater than or equal to zero and
-    /// strictly less than one.
+    /// 如果 <paramref name="includeOne"/> 为 <see langword="true"/>，
+    /// 此方法返回一个大于或等于零且小于或等于一的双精度伪随机数。
+    /// 如果 <paramref name="includeOne"/> 为 <see langword="false"/>，此方法
+    /// 返回一个大于或等于零且严格小于一的双精度伪随机数。
     /// </returns>
     public double NextDouble(bool includeOne)
     {
@@ -300,20 +291,19 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns a pseudo-random number greater than 0.0 and less than 1.0.
+    /// 返回一个大于 0.0 且小于 1.0 的伪随机数。
     /// </summary>
-    /// <returns>A pseudo-random number greater than 0.0 and less than 1.0.</returns>
+    /// <returns>一个大于 0.0 且小于 1.0 的伪随机数。</returns>
     public double NextDoublePositive()
     {
         return Compute53BitRandom(0.5, Inverse53BitsOf1S);
     }
 
     /// <summary>
-    /// Returns a pseudo-random number between 0.0 and 1.0.
+    /// 返回一个介于 0.0 和 1.0 之间的伪随机数。
     /// </summary>
     /// <returns>
-    /// A single-precision floating point number greater than or equal to 0.0, 
-    /// and less than 1.0.
+    /// 一个大于或等于 0.0 且小于 1.0 的单精度浮点数。
     /// </returns>
     public new float NextSingle()
     {
@@ -321,21 +311,18 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns a pseudo-random number greater than or equal to zero, and either strictly
-    /// less than one, or less than or equal to one, depending on the value of the
-    /// given boolean parameter.
+    /// 返回一个大于或等于零的伪随机数，并且根据给定布尔参数的值，
+    /// 该数严格小于一或小于或等于一。
     /// </summary>
     /// <param name="includeOne">
-    /// If <see langword="true"/>, the pseudo-random number returned will be 
-    /// less than or equal to one; otherwise, the pseudo-random number returned will
-    /// be strictly less than one.
+    /// 如果为 <see langword="true"/>，则返回的伪随机数将小于或等于一；
+    /// 否则，返回的伪随机数将严格小于一。
     /// </param>
     /// <returns>
-    /// If <paramref name="includeOne"/> is <see langword="true"/>, this method returns a
-    /// single-precision pseudo-random number greater than or equal to zero, and less
-    /// than or equal to one. If <paramref name="includeOne"/> is <see langword="false"/>, 
-    /// this method returns a single-precision pseudo-random number greater than or equal to zero and
-    /// strictly less than one.
+    /// 如果 <paramref name="includeOne"/> 为 <see langword="true"/>，此方法返回一个
+    /// 大于或等于零且小于或等于一的单精度伪随机数。
+    /// 如果 <paramref name="includeOne"/> 为 <see langword="false"/>，此方法
+    /// 返回一个大于或等于零且严格小于一的单精度伪随机数。
     /// </returns>
     public float NextSingle(bool includeOne)
     {
@@ -343,24 +330,24 @@ public class MersenneTwister : Random
     }
 
     /// <summary>
-    /// Returns a pseudo-random number greater than 0.0 and less than 1.0.
+    /// 返回一个大于 0.0 且小于 1.0 的伪随机数。
     /// </summary>
-    /// <returns>A pseudo-random number greater than 0.0 and less than 1.0.</returns>
+    /// <returns>一个大于 0.0 且小于 1.0 的伪随机数。</returns>
     public float NextSinglePositive()
     {
         return (float)NextDoublePositive();
     }
 
     /// <summary>
-    /// Generates a new pseudo-random <see cref="uint"/>.
+    /// 生成一个新的伪随机 <see cref="uint"/>。
     /// </summary>
-    /// <returns>A pseudo-random <see cref="uint"/>.</returns>
+    /// <returns>一个伪随机 <see cref="uint"/>。</returns>
     protected uint GenerateUInt32()
     {
         uint y;
 
-        /* _mag01[x] = x * MatrixA  for x=0,1 */
-        if (_mti >= N) /* generate N words at one time */
+        /* _mag01[x] = x * MatrixA  对于 x=0,1 */
+        if (_mti >= N) /* 一次生成 N 个字 */
         {
             short kk = 0;
 
@@ -391,14 +378,14 @@ public class MersenneTwister : Random
         return y;
     }
 
-    /* Period parameters */
+    /* 周期参数 */
     private const int N = 624;
     private const int M = 397;
-    private const uint MatrixA = 0x9908b0df; /* constant vector a */
-    private const uint UpperMask = 0x80000000; /* most significant w-r bits */
-    private const uint LowerMask = 0x7fffffff; /* least significant r bits */
+    private const uint MatrixA = 0x9908b0df; /* 常量向量 a */
+    private const uint UpperMask = 0x80000000; /* 最高有效 w-r 位 */
+    private const uint LowerMask = 0x7fffffff; /* 最低有效 r 位 */
 
-    /* Tempering parameters */
+    /* 回火参数 */
     private const uint TemperingMaskB = 0x9d2c5680;
     private const uint TemperingMaskC = 0xefc60000;
 
@@ -422,7 +409,7 @@ public class MersenneTwister : Random
         return (y >> 18);
     }
 
-    private readonly uint[] _mt = new uint[N]; /* the array for the state vector  */
+    private readonly uint[] _mt = new uint[N]; /* 状态向量数组 */
     private short _mti;
 
     private static readonly uint[] _mag01 = { 0x0, MatrixA };
@@ -434,12 +421,12 @@ public class MersenneTwister : Random
         for (_mti = 1; _mti < N; _mti++)
         {
             _mt[_mti] = (uint)(1812433253U * (_mt[_mti - 1] ^ (_mt[_mti - 1] >> 30)) + _mti);
-            // See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. 
-            // In the previous versions, MSBs of the seed affect   
-            // only MSBs of the array _mt[].                        
-            // 2002/01/09 modified by Makoto Matsumoto             
+            // 乘数请参见 Knuth TAOCP 第 2 卷第 3 版第 106 页。
+            // 在先前版本中，种子的最高有效位会影响
+            // 仅数组 _mt[] 的最高有效位。
+            // 2002/01/09 由 Makoto Matsumoto 修改
             _mt[_mti] &= 0xffffffffU;
-            // for >32 bit machines
+            // 适用于超过 32 位的机器
         }
     }
 
@@ -455,8 +442,8 @@ public class MersenneTwister : Random
         for (; k > 0; k--)
         {
             _mt[i] = (uint)((_mt[i] ^ ((_mt[i - 1] ^ (_mt[i - 1] >> 30)) * 1664525U)) + key[j] +
-                             j); /* non linear */
-            _mt[i] &= 0xffffffffU; // for WORDSIZE > 32 machines
+                             j); /* 非线性 */
+            _mt[i] &= 0xffffffffU; // 适用于超过 32 位的机器
             i++;
             j++;
             if (i >= N)
@@ -470,8 +457,8 @@ public class MersenneTwister : Random
 
         for (k = N - 1; k > 0; k--)
         {
-            _mt[i] = (uint)((_mt[i] ^ ((_mt[i - 1] ^ (_mt[i - 1] >> 30)) * 1566083941U)) - i); /* non linear */
-            _mt[i] &= 0xffffffffU; // for WORDSIZE > 32 machines
+            _mt[i] = (uint)((_mt[i] ^ ((_mt[i - 1] ^ (_mt[i - 1] >> 30)) * 1566083941U)) - i); /* 非线性 */
+            _mt[i] &= 0xffffffffU; // 适用于超过 32 位的机器
             i++;
 
             if (i < N)
@@ -483,32 +470,31 @@ public class MersenneTwister : Random
             i = 1;
         }
 
-        _mt[0] = 0x80000000U; // MSB is 1; assuring non-zero initial array
+        _mt[0] = 0x80000000U; // 最高有效位为 1；确保初始数组非零
     }
 
 
-    // 9007199254740991.0 is the maximum double value which the 53 significand
-    // can hold when the exponent is 0.
+    // 9007199254740991.0 是当指数为 0 时，53 位有效数字可以表示的最大双精度浮点数值。
     private const double FiftyThreeBitsOf1S = 9007199254740991.0;
 
-    // Multiply by inverse to (vainly?) try to avoid a division.
+    // 乘以逆数以（徒劳地？）尝试避免除法。
     private const double Inverse53BitsOf1S = 1.0 / FiftyThreeBitsOf1S;
     private const double OnePlus53BitsOf1S = FiftyThreeBitsOf1S + 1;
     private const double InverseOnePlus53BitsOf1S = 1.0 / OnePlus53BitsOf1S;
 
     private double Compute53BitRandom(double translate, double scale)
     {
-        // get 27 pseudo-random bits
+        // 获取 27 个伪随机位
         var a = (ulong)GenerateUInt32() >> 5;
-        // get 26 pseudo-random bits
+        // 获取 26 个伪随机位
         var b = (ulong)GenerateUInt32() >> 6;
 
-        // shift the 27 pseudo-random bits (a) over by 26 bits (* 67108864.0) and
-        // add another pseudo-random 26 bits (+ b).
+        // 将 27 个伪随机位 (a) 左移 26 位 (* 67108864.0) 并
+        // 加上另外 26 个伪随机位 (+ b)。
         return ((a * 67108864.0 + b) + translate) * scale;
 
-        // What about the following instead of the above? Is the multiply better? 
-        // Why? (Is it the FMUL instruction? Does this count in .Net? Will the JITter notice?)
-        //return BitConverter.Int64BitsToDouble((a << 26) + b));
+        // 用下面的代码代替上面的怎么样？乘法更好吗？
+        // 为什么？（是 FMUL 指令吗？这在 .Net 中有效吗？JIT 编译器会注意到吗？）
+        //return BitConverter.Int64BitsToDouble((a << 26) + b)); // 将长整型位转换为双精度浮点数
     }
 }

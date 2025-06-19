@@ -2,17 +2,25 @@
 
 namespace AAEmu.Commons.Utils;
 
+/// <summary>
+/// 提供用于查找素数的静态方法，通常用于确定哈希表等数据结构的最佳容量。
+/// 它使用一个预定义的素数列表进行高效查找。
+/// </summary>
 public static class PrimeFinder
 {
-    private static bool _init;
-    private static int largestPrime = int.MaxValue;
+    private static bool _init; // 标记静态资源（如排序后的素数数组）是否已初始化。
+    private static int largestPrime = int.MaxValue; // 列表中的最大素数，作为哨兵值或上限。
 
+    /// <summary>
+    /// 预定义的素数列表，用于快速查找。
+    /// 这些素数通常用作哈希表或其他需要素数容量的数据结构的容量。
+    /// </summary>
     private static int[] primeCapacities =
     {
-        //chunk #0
+        //块 #0
         largestPrime,
 
-        //chunk #1
+        //块 #1
         5,
         11,
         23,
@@ -43,7 +51,7 @@ public static class PrimeFinder
         842879579,
         1685759167,
 
-        //chunk #2
+        //块 #2
         433,
         877,
         1759,
@@ -68,7 +76,7 @@ public static class PrimeFinder
         927292699,
         1854585413,
 
-        //chunk #3
+        //块 #3
         953,
         1907,
         3821,
@@ -92,7 +100,7 @@ public static class PrimeFinder
         1002331963,
         2004663929,
 
-        //chunk #4
+        //块 #4
         1039,
         2081,
         4177,
@@ -115,7 +123,7 @@ public static class PrimeFinder
         548348231,
         1096696463,
 
-        //chunk #5
+        //块 #5
         31,
         67,
         137,
@@ -143,7 +151,7 @@ public static class PrimeFinder
         587742049,
         1175484103,
 
-        //chunk #6
+        //块 #6
         599,
         1201,
         2411,
@@ -167,7 +175,7 @@ public static class PrimeFinder
         635068283,
         1270136683,
 
-        //chunk #7
+        //块 #7
         311,
         631,
         1277,
@@ -192,7 +200,7 @@ public static class PrimeFinder
         672196673,
         1344393353,
 
-        //chunk #8
+        //块 #8
         3,
         7,
         17,
@@ -223,7 +231,7 @@ public static class PrimeFinder
         718678369,
         1437356741,
 
-        //chunk #9
+        //块 #9
         43,
         89,
         179,
@@ -251,7 +259,7 @@ public static class PrimeFinder
         759155483,
         1518310967,
 
-        //chunk #10
+        //块 #10
         379,
         761,
         1523,
@@ -277,23 +285,38 @@ public static class PrimeFinder
         1600153859
     };
 
-
+    /// <summary>
+    /// 初始化 PrimeFinder 类的静态资源。
+    /// 主要操作是对预定义的素数容量数组进行排序，以便进行有效的二分查找。
+    /// 此方法应在使用 <see cref="NextPrime"/> 之前调用一次。
+    /// </summary>
     public static void Init()
     {
         if (_init)
             return;
         _init = true;
-        // The above prime numbers are formatted for human readability.
-        // To find numbers fast, we sort them once and for all.
+        // 上述素数的格式是为了方便人工阅读。
+        // 为了快速查找数字，我们一次性将它们排序。
 
         Array.Sort(primeCapacities);
     }
 
+    /// <summary>
+    /// 查找并返回大于或等于指定期望容量的最小素数。
+    /// 该方法在预定义的素数列表中执行二分查找。
+    /// </summary>
+    /// <param name="desiredCapacity">期望的最小容量。</param>
+    /// <returns>大于或等于 <paramref name="desiredCapacity"/> 的最小素数。如果 <paramref name="desiredCapacity"/> 大于列表中的任何素数，则行为取决于 <see cref="Array.BinarySearch"/> 的结果和数组内容（可能抛出索引越界异常，或返回列表中的最大素数，具体取决于 <see cref="largestPrime"/> 的实际值和使用情况）。</returns>
     public static int NextPrime(int desiredCapacity)
     {
         var i = Array.BinarySearch(primeCapacities, desiredCapacity);
+        // 如果 BinarySearch 返回负数，它是所需值应插入位置的按位求补。
+        // (-i - 1) 将其转换回该索引。
         if (i < 0)
             i = -i - 1;
+        // 如果 i 超出数组边界（desiredCapacity 大于所有已知素数），则需要处理此情况。
+        // 当前实现可能会在 i 等于 primeCapacities.Length 时抛出 IndexOutOfRangeException。
+        // 实际应用中可能需要添加边界检查或返回一个错误/最大值。
         return primeCapacities[i];
     }
 }
