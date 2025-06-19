@@ -82,7 +82,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
             }
 
             stream.Insert(stream.Count, buf, 0, bytes);
-            while (stream != null && stream.Count > 0)
+            while (stream is { Count: > 0 })
             {
                 ushort len;
                 try
@@ -122,7 +122,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
                     }
                     else
                     {
-                        var packet = (LoginPacket)Activator.CreateInstance(classType);
+                        var packet = (LoginPacket)Activator.CreateInstance(classType)!;
                         packet.Connection = connection;
                         packet.Decode(stream2);
                     }

@@ -15,6 +15,6 @@ public class GLPlayerEnterPacket() : InternalPacket(GLOffsets.GLPlayerEnterPacke
         var result = stream.ReadByte();
 
         var connection = LoginConnectionTable.Instance.GetConnection(connectionId);
-        GameController.Instance.EnterWorld(connection, gsId, result);
+        GameController.Instance.EnterWorld(connection!, gsId, result);
     }
 }

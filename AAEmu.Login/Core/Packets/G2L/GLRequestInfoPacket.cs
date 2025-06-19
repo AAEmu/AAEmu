@@ -17,7 +17,7 @@ public class GLRequestInfoPacket() : InternalPacket(GLOffsets.GLRequestInfoPacke
         var characters = stream.ReadCollection<LoginCharacterInfo>();
 
         if (characters.Count > 0)
-            connection.AddCharacters(Connection.GameServer.Id, characters);
+            connection!.AddCharacters(Connection.GameServer!.Id, characters);
         RequestController.Instance.ReleaseId(requestId);
     }
 }

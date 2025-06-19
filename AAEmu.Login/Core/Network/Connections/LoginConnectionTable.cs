@@ -13,13 +13,13 @@ public class LoginConnectionTable : Singleton<LoginConnectionTable>
         _connections.TryAdd(con.Id, con);
     }
 
-    public LoginConnection GetConnection(ConnectionId id)
+    public LoginConnection? GetConnection(ConnectionId id)
     {
         _connections.TryGetValue(id, out var con);
         return con;
     }
 
-    public LoginConnection RemoveConnection(ConnectionId id)
+    public LoginConnection? RemoveConnection(ConnectionId id)
     {
         _connections.TryRemove(id, out var con);
         return con;

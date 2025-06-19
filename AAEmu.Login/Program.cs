@@ -14,9 +14,9 @@ namespace AAEmu.Login;
 public static class Program
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private static Thread _thread = Thread.CurrentThread;
+    private static readonly Thread _thread = Thread.CurrentThread;
     private static DateTime _startTime;
-    private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
+    private static string Name => Assembly.GetExecutingAssembly().GetName().Name ?? "AAEmu.Login";
     private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
 
     public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
@@ -48,11 +48,7 @@ public static class Program
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
                 config.AddEnvironmentVariables();
-
-                if (args != null)
-                {
-                    config.AddCommandLine(args);
-                }
+                config.AddCommandLine(args);
             })
             .ConfigureServices((hostContext, services) =>
             {
@@ -114,7 +110,7 @@ public static class Program
         }
     }
 
-    private static void Configuration(string[] args, string mainConfigJson)
+    private static void Configuration(string[] args, string? mainConfigJson)
     {
         var configJsonFile = Path.Combine(FileManager.AppPath, "Config.json");
         var configurationBuilder = new ConfigurationBuilder();
@@ -142,7 +138,7 @@ public static class Program
             .AddUserSecrets<LoginService>()
             .Build();
 
-        bool userSecretsDefined = config.AsEnumerable().Any();
+        var userSecretsDefined = config.AsEnumerable().Any();
         return userSecretsDefined;
     }
 }

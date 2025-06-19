@@ -11,7 +11,7 @@ public class InternalNetwork : Singleton<InternalNetwork>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Server _server;
+    private Server? _server;
     private readonly InternalProtocolHandler _handler;
 
     public InternalNetwork()
@@ -39,7 +39,7 @@ public class InternalNetwork : Singleton<InternalNetwork>
 
     public void Stop()
     {
-        if (_server.IsStarted)
+        if (_server?.IsStarted == true)
             _server.Stop();
 
         Logger.Info("InternalNetwork stoped");

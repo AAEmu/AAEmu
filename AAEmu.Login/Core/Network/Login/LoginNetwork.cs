@@ -11,7 +11,7 @@ public class LoginNetwork : Singleton<LoginNetwork>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Server _server;
+    private Server? _server;
     private readonly LoginProtocolHandler _handler;
 
     private LoginNetwork()

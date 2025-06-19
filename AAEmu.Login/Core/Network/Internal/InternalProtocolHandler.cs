@@ -38,6 +38,12 @@ public class InternalProtocolHandler : BaseProtocolHandler
     public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
         var connection = InternalConnectionTable.Instance.GetConnection(session.SessionId);
+        if (connection == null)
+        {
+            Logger.Error("Connection not found for session {0}", session.SessionId);
+            return;
+        }
+        
         var stream = new PacketStream();
         if (connection.LastPacket != null)
         {
@@ -88,7 +94,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
                 {
                     try
                     {
-                        var packet = (InternalPacket)Activator.CreateInstance(classType);
+                        var packet = (InternalPacket)Activator.CreateInstance(classType)!;
                         packet.Connection = connection;
                         packet.Decode(stream2);
                     }

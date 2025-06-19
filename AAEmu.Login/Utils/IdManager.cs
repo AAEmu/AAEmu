@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Exceptions;
+﻿using System.Diagnostics;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using NLog;
@@ -9,7 +10,7 @@ public class IdManager
 {
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private BitSet _freeIds;
+    private BitSet? _freeIds;
     private int _freeIdCount;
     private int _nextFreeId;
 
@@ -120,6 +121,11 @@ public class IdManager
 
     public virtual void ReleaseId(uint usedObjectId)
     {
+        if (_freeIds == null)
+        {
+            throw new InvalidOperationException("IdManager is not initialized.");
+        }
+        
         var objectId = (int)(usedObjectId - _firstId);
         if (objectId > -1)
         {
@@ -140,6 +146,11 @@ public class IdManager
 
     public uint GetNextId()
     {
+        if (_freeIds == null)
+        {
+            throw new InvalidOperationException("IdManager is not initialized.");
+        }
+        
         lock (_lock)
         {
             var newId = _nextFreeId;
@@ -175,6 +186,8 @@ public class IdManager
 
     private void IncreaseBitSetCapacity()
     {
+        Debug.Assert(_freeIds != null, "FreeIds should not be null");
+        
         var size = PrimeFinder.NextPrime(_freeIds.Count + _freeIdSize / 10);
         if (size > _freeIdSize)
             size = _freeIdSize;

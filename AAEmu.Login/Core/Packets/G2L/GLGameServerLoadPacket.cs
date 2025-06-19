@@ -8,6 +8,6 @@ public class GLGameServerLoadPacket() : InternalPacket(GLOffsets.GLGameServerLoa
 {
     public override void Read(PacketStream stream)
     {
-        Connection.GameServer.Load = (GSLoad)stream.ReadByte();
+        Connection.GameServer!.Load = (GSLoad)stream.ReadByte();
     }
 }

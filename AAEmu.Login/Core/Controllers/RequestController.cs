@@ -5,7 +5,7 @@ namespace AAEmu.Login.Core.Controllers;
 
 public class RequestController() : IdManager("RequestController", firstId, lastId, objTables, exclude)
 {
-    private static RequestController _instance;
+    private static RequestController? _instance;
     private const uint firstId = 0x00000001;
     private const uint lastId = 0x00FFFFFF;
     private static readonly uint[] exclude = [];

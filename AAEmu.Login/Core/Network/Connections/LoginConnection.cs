@@ -13,13 +13,13 @@ public class LoginConnection
 
     public ConnectionId Id => new ConnectionId(_session.SessionId);
     public IPAddress Ip => _session.Ip;
-    public InternalConnection InternalConnection { get; set; }
-    public PacketStream LastPacket { get; set; }
+    public InternalConnection? InternalConnection { get; set; }
+    public PacketStream? LastPacket { get; set; }
 
     public AccountId AccountId { get; set; }
-    public string AccountName { get; set; }
+    public string? AccountName { get; set; }
     public DateTime LastLogin { get; set; }
-    public IPAddress LastIp { get; set; }
+    public IPAddress? LastIp { get; set; }
     public bool IsLocallyConnected { get; private set; }
 
     public Dictionary<GameServerId, List<LoginCharacterInfo>> Characters { get; }
@@ -45,7 +45,7 @@ public class LoginConnection
 
     public void SendPacket(byte[] packet)
     {
-        _session?.SendPacket(packet);
+        _session.SendPacket(packet);
     }
 
     public static void OnConnect()
@@ -54,15 +54,16 @@ public class LoginConnection
 
     public void Shutdown()
     {
-        _session?.Close();
+        _session.Close();
     }
 
     public List<LoginCharacterInfo> GetCharacters()
     {
         var res = new List<LoginCharacterInfo>();
         foreach (var characters in Characters.Values)
-            if (characters != null)
-                res.AddRange(characters);
+        {
+            res.AddRange(characters);
+        }
         return res;
     }
 

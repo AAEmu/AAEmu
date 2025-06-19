@@ -10,9 +10,9 @@ public class InternalConnection(ISession session)
 {
     public uint Id => session.SessionId;
     public IPAddress Ip => session.Ip;
-    public GameServer GameServer { get; set; }
+    public GameServer? GameServer { get; set; }
     public bool Block { get; set; }
-    public PacketStream LastPacket { get; set; }
+    public PacketStream? LastPacket { get; set; }
 
     public static void OnConnect()
     {
