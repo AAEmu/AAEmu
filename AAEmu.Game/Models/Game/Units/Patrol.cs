@@ -101,7 +101,7 @@ public abstract class Patrol
             }
             ++Count;
             //++Seq;
-            Seq = (uint)Rand.Next(0, 10000);
+            Seq = (uint)Random.Shared.Next(0, 10000);
             Running = true;
             npc.Patrol = this;
             Execute(npc);
@@ -197,7 +197,7 @@ public abstract class Patrol
         {
             Count = 0;
             //Seq = 0;
-            Seq = (uint)Rand.Next(0, 10000);
+            Seq = (uint)Random.Shared.Next(0, 10000);
             Repeat(npc, LoopDelay);
         }
         else

@@ -71,16 +71,16 @@ public abstract class Behavior
             {
                 return res;
             }
-            var skillSelfId = skills[Rand.Next(skills.Count)].SkillId;
+            var skillSelfId = skills[Random.Shared.Next(skills.Count)].SkillId;
             var skillTemplateSelf = SkillManager.Instance.GetSkillTemplate(skillSelfId);
             var skillSelf = new Skill(skillTemplateSelf);
 
             var delay1 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
             if (Ai.Owner.Template.BaseSkillDelay == 0)
             {
-                const uint Delay1 = 10000u;
-                const uint Delay2 = 13000u;
-                delay1 = (int)Rand.Next(Delay1, Delay2);
+                const int Delay1 = 10000;
+                const int Delay2 = 13000;
+                delay1 = Random.Shared.Next(Delay1, Delay2);
             }
 
             if (this.CheckInterval(delay1))
@@ -95,7 +95,7 @@ public abstract class Behavior
         var pickedSkillId = (uint)Ai.Owner.Template.BaseSkillId;
         if (skills.Count > 0)
         {
-            pickedSkillId = skills[Rand.Next(skills.Count)].SkillId;
+            pickedSkillId = skills[Random.Shared.Next(skills.Count)].SkillId;
         }
 
         // Hackfix for Melee attack. Needs to look at the held weapon (if any) or default to 3m
@@ -111,9 +111,9 @@ public abstract class Behavior
         var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
         if (Ai.Owner.Template.BaseSkillDelay == 0)
         {
-            const uint Delay1 = 1500u;
-            const uint Delay2 = 1550u;
-            delay2 = (int)Rand.Next(Delay1, Delay2);
+            const int Delay1 = 1500;
+            const int Delay2 = 1550;
+            delay2 = Random.Shared.Next(Delay1, Delay2);
         }
 
         if (this.CheckInterval(delay2))

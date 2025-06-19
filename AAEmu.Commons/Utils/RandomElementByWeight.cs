@@ -10,7 +10,7 @@ public static class IEnumerableExtensions
     {
         float totalWeight = sequence.Sum(weightSelector);
         // The weight we are after...
-        float itemWeightIndex = Rand.NextSingle() * totalWeight;
+        float itemWeightIndex = Random.Shared.NextSingle() * totalWeight;
         float currentWeightIndex = 0.0f;
 
         foreach (var item in from weightedItem in sequence

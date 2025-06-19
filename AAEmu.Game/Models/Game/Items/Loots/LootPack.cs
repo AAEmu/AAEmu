@@ -70,7 +70,7 @@ public class LootPack
             {
                 hasLootGroup = true;
                 lootGradeDistributionId = lootGroup.ItemGradeDistributionId;
-                var dice = (long)Rand.Next(0, 10000000);
+                var dice = (long)Random.Shared.Next(0, 10000000);
 
                 // Use generic loot multiplier for the groups ?
                 dice = (long)Math.Floor(dice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
@@ -86,7 +86,7 @@ public class LootPack
             // If that group has a LootActGroup, roll the dice
             if (ActabilityGroups.TryGetValue(gIdx, out var actabilityGroup))
             {
-                var dice = (long)Rand.Next(0, 10000);
+                var dice = (long)Random.Shared.Next(0, 10000);
 
                 // Use generic loot multiplier for the ActGroups ?
                 dice = (long)Math.Floor(dice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
@@ -103,7 +103,7 @@ public class LootPack
                 continue;
 
             var uniqueItemDrop = loots[0].DropRate == 1;
-            var itemRoll = Rand.Next(0, 10000000);
+            var itemRoll = Random.Shared.Next(0, 10000000);
 
             // Apply multiplier for loot drop rate
             itemRoll = (int)Math.Round(itemRoll / lootDropRate);
@@ -149,8 +149,8 @@ public class LootPack
                     if (itemTemplate?.LootQuestId > 0 && !player.Quests.HasQuest(itemTemplate.LootQuestId))
                         continue;
                 }
-
-                var lootCount = Rand.Next(selectedPack.MinAmount, selectedPack.MaxAmount + 1);
+                
+                var lootCount = Random.Shared.Next(selectedPack.MinAmount, selectedPack.MaxAmount + 1);
 
                 var grade = selectedPack.GradeId;
                 if (lootGradeDistributionId > 0)
@@ -204,7 +204,7 @@ public class LootPack
 
                     // Roll each item
                     var requiresDice = (long)Math.Floor(loot.DropRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
-                    var dice = (long)Rand.Next(0, 10_000_000);
+                    var dice = (long)Random.Shared.Next(0, 10_000_000);
                     if ((dice < requiresDice) || loot.AlwaysDrop)
                     {
                         if (!selectedItemsByGroup.ContainsKey(loot.Group))
@@ -217,7 +217,7 @@ public class LootPack
             {
                 // Roll group
                 var requiresDice = (long)Math.Floor(10_000_000f * groupRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
-                var dice = (long)Rand.Next(0, 10_000_000);
+                var dice = (long)Random.Shared.Next(0, 10_000_000);
                 if (dice < requiresDice)
                 {
                     var tmpSelectedItemsByGroup = new Dictionary<uint, List<Loot>>();
@@ -246,7 +246,7 @@ public class LootPack
                             var actGroup = ActabilityGroups.Values.FirstOrDefault(g => g.GroupId == loot.Group);
                             if (actGroup != null)
                             {
-                                var actDice = (long)Rand.Next(0, 10_000);
+                                var actDice = (long)Random.Shared.Next(0, 10_000);
                                 // Use generic loot multiplier for the ActGroups ?
                                 actDice = (long)Math.Floor(actDice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
 
@@ -273,7 +273,7 @@ public class LootPack
                     if (tmpSelectedItemsByGroup.Count > 0)
                     {
                         var cumulativeRate = 0f;
-                        var roll = (long)Rand.Next(0, normalizedRate);
+                        var roll = (long)Random.Shared.Next(0, normalizedRate);
                         foreach (var loot in tmpSelectedItemsByGroup[groupNo])
                         {
                             var itemRate = loot.DropRate > 1 ? loot.DropRate / (float)normalizedRate : 1f;
@@ -351,7 +351,7 @@ public class LootPack
                 var actGroup = ActabilityGroups.Values.FirstOrDefault(g => g.GroupId == loot.Group);
                 if (actGroup != null)
                 {
-                    var actDice = (long)Rand.Next(0, 10_000);
+                    var actDice = (long)Random.Shared.Next(0, 10_000);
                     // Use generic loot multiplier for the ActGroups ?
                     actDice = (long)Math.Floor(actDice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
 
@@ -389,7 +389,7 @@ public class LootPack
 
                 var itemRate = loot.DropRate > 1 ? loot.DropRate / 10_000_000f : 1f;
                 var requiresDice = (long)Math.Floor(10_000_000f * groupRate * itemRate * lootDropRate);
-                var dice = (long)Rand.Next(0, 10000000);
+                var dice = (long)Random.Shared.Next(0, 10000000);
                 if (dice < requiresDice)
                 {
                     if (!selectedItemsByGroup.ContainsKey(loot.Group))
@@ -580,7 +580,7 @@ public class LootPack
         };
 
         var old = 0;
-        var gradeDrop = Rand.Next(0, 100);
+        var gradeDrop = Random.Shared.Next(0, 100);
         for (byte i = 0; i <= 11; i++)
         {
             if (gradeDrop <= array[i] + old)

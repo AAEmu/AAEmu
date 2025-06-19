@@ -39,8 +39,8 @@ public class TeleportToUnit : SpecialEffectAction
         // value3 is the minimum rotation in degrees relative to the target's orientation, and value4 is the maximum.
         // E.g. if rotationDegrees is 0, you will be placed in front of the target, and if rotationDegrees is 180 you will be placed behind the target.
 
-        var distance = Rand.Next(value1, value2);
-        var rotationDegrees = Rand.Next(value3, value4);
+        var distance = Random.Shared.Next(value1, value2);
+        var rotationDegrees = Random.Shared.Next(value3, value4);
 
         var targetPosition = target.Transform.World.Position;
         var (endX, endY) = MathUtil.AddDistanceToFrontDeg(distance / 1000f, targetPosition.X, targetPosition.Y, target.Transform.World.ToRollPitchYawDegrees().Z + 90 + rotationDegrees);

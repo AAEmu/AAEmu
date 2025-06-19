@@ -61,8 +61,8 @@ public class ItemCapScale : SpecialEffectAction
 
         var itemCapScale = ItemManager.Instance.GetItemCapScale(skill.Id);
 
-        var physicalScale = (ushort)Rand.Next(itemCapScale.ScaleMin, itemCapScale.ScaleMax);
-        var magicalScale = (ushort)Rand.Next(itemCapScale.ScaleMin, itemCapScale.ScaleMax);
+        var physicalScale = (ushort)Random.Shared.Next(itemCapScale.ScaleMin, itemCapScale.ScaleMax);
+        var magicalScale = (ushort)Random.Shared.Next(itemCapScale.ScaleMin, itemCapScale.ScaleMax);
 
         equipItem.TemperPhysical = physicalScale;
         equipItem.TemperMagical = magicalScale;

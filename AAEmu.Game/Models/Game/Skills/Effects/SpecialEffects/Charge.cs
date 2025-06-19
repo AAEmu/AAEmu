@@ -25,7 +25,7 @@ public class Charge : SpecialEffectAction
             var buff = caster.Buffs.GetEffectFromBuffId((uint)buffId);
             var template = SkillManager.Instance.GetBuffTemplate((uint)buffId);
 
-            var chargeDelta = Rand.Next(minCharge, maxCharge);
+            var chargeDelta = Random.Shared.Next(minCharge, maxCharge);
             var oldCharge = buff?.Charge ?? 0;
 
             var newEffect =

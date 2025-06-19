@@ -69,13 +69,13 @@ public class ItemConversion : SpecialEffectAction
             return;
         }
 
-        var productRoll = Rand.Next(0, 10000);
+        var productRoll = Random.Shared.Next(0, 10000);
         var productChance = product.ChanceRate;
         if (productRoll < productChance)
         {
             // give product
             // TODO: add in weights
-            int value = Rand.Next(product.MinOutput, product.MaxOutput + 1);
+            int value = Random.Shared.Next(product.MinOutput, product.MaxOutput + 1);
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, product.OuputItemId, value))
             {
                 skill.Cancelled = true;

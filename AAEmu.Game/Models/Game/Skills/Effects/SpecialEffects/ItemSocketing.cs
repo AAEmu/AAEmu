@@ -82,7 +82,7 @@ public class ItemSocketing : SpecialEffectAction
             }
 
             // Roll for Success
-            var gemRoll = Rand.Next(0, 10000);
+            var gemRoll = Random.Shared.Next(0, 10000);
             var gemChance = ItemManager.Instance.GetSocketChance(gemCount); // fetches chances from sqlite3
             // var gemChance = int.MaxValue; //gives 100% success rates
 

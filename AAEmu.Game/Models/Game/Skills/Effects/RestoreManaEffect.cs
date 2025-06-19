@@ -62,7 +62,7 @@ public class RestoreManaEffect : EffectTemplate
         // min += (int)((caster.MDps + caster.MDpsInc) * 0.001f * unk2 + 0.5f);
         // max += (int)((caster.MDps + caster.MDpsInc) * 0.001f * unk2 + 0.5f);
 
-        var value = Rand.Next(min, max);
+        var value = Random.Shared.Next(min, max);
         trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, trg.ObjId, HealType.Mana, HealHitType.HealHit, value), true);
         trg.Mp += value;
         trg.Mp = Math.Min(trg.Mp, trg.MaxMp);

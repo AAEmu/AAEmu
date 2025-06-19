@@ -646,7 +646,7 @@ public class Doodad : BaseUnit
         {
             if (phaseFunc == null) { continue; }
 
-            PhaseRatio = Rand.Next(0, 10000); // проверяем шанс для каждой фазовой функции
+            PhaseRatio = Random.Shared.Next(0, 10000); // проверяем шанс для каждой фазовой функции
 
             stop = phaseFunc.Use(caster, this);
             if (stop)

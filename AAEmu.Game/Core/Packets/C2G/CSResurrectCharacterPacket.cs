@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -35,8 +36,8 @@ public class CSResurrectCharacterPacket : GamePacket
             {
                 portal.WorldId = Connection.ActiveChar.Transform.WorldId;
                 portal.ZoneId = npc.Transform.ZoneId;
-                portal.X = npc.Transform.World.Position.X + Rand.Next(1, 3);
-                portal.Y = npc.Transform.World.Position.Y + Rand.Next(1, 3);
+                portal.X = npc.Transform.World.Position.X + Random.Shared.Next(1, 3);
+                portal.Y = npc.Transform.World.Position.Y + Random.Shared.Next(1, 3);
                 portal.Z = npc.Transform.World.Position.Z;
                 portal.ZRot = npc.Transform.World.Rotation.Z;
                 portal.Yaw = npc.Transform.World.Rotation.Z;

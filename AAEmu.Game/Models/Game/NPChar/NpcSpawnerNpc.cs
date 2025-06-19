@@ -96,7 +96,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
         }
 
         npc.Spawner = npcSpawner;
-        npc.Spawner.RespawnTime = (int)Rand.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
+        npc.Spawner.RespawnTime = (int)Random.Shared.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
         npc.Spawn();
 
         var world = WorldManager.Instance.GetWorld(npc.Transform.InstanceId);

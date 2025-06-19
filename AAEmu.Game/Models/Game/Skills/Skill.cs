@@ -593,7 +593,7 @@ public class Skill
             var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
 
             // Get a random number (from 0 to n)
-            var value = Rand.Next(0, 1);
+            var value = Random.Shared.Next(0, 1);
             // для skillId = 2 - for skillId = 2
             // 87 (35) - удар наотмаш, chr - overhead swing, chr
             // 2 (00) - удар сбоку, NPC - side strike, NPC
@@ -1003,7 +1003,7 @@ public class Skill
                 }
 
                 // Dice
-                if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
+                if (effect.Chance < 100 && Random.Shared.Next(100) > effect.Chance)
                 {
                     continue;
                 }
@@ -1357,21 +1357,21 @@ public class Skill
             if (!MathUtil.IsFront(attacker, target))
                 goto AlwaysHit;
 
-            if (Target != null && Rand.Next(0f, 100f) < Target.DodgeRate - bullsEyeMod)
+            if (Target != null && Random.Shared.Next(0f, 100f) < Target.DodgeRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeDodge;
                 if (damageType == DamageType.Ranged)
                     return SkillHitType.RangedDodge;
             }
-            if (Target != null && Rand.Next(0f, 100f) < Target.BlockRate - bullsEyeMod)
+            if (Target != null && Random.Shared.Next(0f, 100f) < Target.BlockRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeBlock;
                 if (damageType == DamageType.Ranged)
                     return SkillHitType.RangedBlock;
             }
-            if (Target != null && Rand.Next(0F, 100f) < Target.MeleeParryRate - bullsEyeMod)
+            if (Target != null && Random.Shared.Next(0F, 100f) < Target.MeleeParryRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeParry;
@@ -1382,7 +1382,7 @@ public class Skill
                     return SkillHitType.MeleeParry;
                 }
             }
-            if (Target != null && Rand.Next(0f, 100f) < Target.RangedParryRate - bullsEyeMod)
+            if (Target != null && Random.Shared.Next(0f, 100f) < Target.RangedParryRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Ranged)
                     return SkillHitType.RangedParry;
@@ -1393,15 +1393,15 @@ AlwaysHit:
         switch (damageType)
         {
             case DamageType.Melee:
-                if (Attacker != null && Rand.Next(0f, 100f) < Attacker.MeleeAccuracy)
+                if (Attacker != null && Random.Shared.Next(0f, 100f) < Attacker.MeleeAccuracy)
                     return SkillHitType.MeleeHit;
                 return SkillHitType.MeleeMiss;
             case DamageType.Magic:
-                if (Attacker != null && Rand.Next(0f, 100f) < Attacker.SpellAccuracy)
+                if (Attacker != null && Random.Shared.Next(0f, 100f) < Attacker.SpellAccuracy)
                     return SkillHitType.SpellHit;
                 return SkillHitType.SpellMiss;
             case DamageType.Ranged:
-                if (Attacker != null && Rand.Next(0f, 100f) < Attacker.RangedAccuracy)
+                if (Attacker != null && Random.Shared.Next(0f, 100f) < Attacker.RangedAccuracy)
                     return SkillHitType.RangedHit;
                 return SkillHitType.RangedMiss;
             case DamageType.Siege:

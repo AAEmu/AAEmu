@@ -402,7 +402,7 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public static void PlayerRoll(Character player, int max)
     {
-        var roll = Rand.Next(1, max);
+        var roll = Random.Shared.Next(1, max);
         player.BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"{player.Name} rolled {roll}."), true);
     }
 

@@ -27,7 +27,7 @@ public class ItemProc
         if (DateTime.UtcNow < LastProc.AddSeconds(Template.CooldownSec))
             return false;
 
-        if (ignoreRoll || Rand.Next(0, 100) > Template.ChanceRate)
+        if (ignoreRoll || Random.Shared.Next(0, 100) > Template.ChanceRate)
             return false;
 
         var caster = SkillCaster.GetByType(SkillCasterType.Unit);

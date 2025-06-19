@@ -32,7 +32,7 @@ public class BuffEffect : EffectTemplate
                 return;
             }
         }
-        if (Rand.Next(0, 101) > Chance)
+        if (Random.Shared.Next(0, 101) > Chance)
         {
             ((Unit)caster).ConditionChance = false;
             return;

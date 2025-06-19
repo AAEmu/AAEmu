@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Enums;
@@ -16,8 +17,8 @@ public static class AIUtils
     {
         var maxRoamingDistance = 6;
         var newPosition = new Vector3(
-            (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.X,
-            (Rand.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.Y,
+            (Random.Shared.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.X,
+            (Random.Shared.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.Y,
             ai.IdlePosition.Z);
 
         var terrainHeight = WorldManager.Instance.GetHeight(ai.Owner.Transform.ZoneId, newPosition.X, newPosition.Y);

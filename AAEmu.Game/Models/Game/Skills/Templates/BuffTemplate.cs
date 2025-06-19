@@ -227,7 +227,7 @@ public class BuffTemplate
         }
 
         if (buff.Charge == 0)
-            buff.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
+            buff.Charge = Random.Shared.Next(InitMinCharge, InitMaxCharge);
 
         if (!buff.Passive)
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);

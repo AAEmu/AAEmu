@@ -107,7 +107,7 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
     private BigMonsterCombatSkill PickSkill(List<BigMonsterCombatSkill> skills)
     {
         if (skills.Count > 0)
-            return skills[Rand.Next(0, skills.Count)];
+            return skills[Random.Shared.Next(0, skills.Count)];
 
         if (!Ai.Owner.Cooldowns.CheckCooldown((uint)Ai.Owner.Template.BaseSkillId))
             return new BigMonsterCombatSkill
