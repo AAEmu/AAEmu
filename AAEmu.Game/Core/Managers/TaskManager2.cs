@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Tasks;
 using NCrontab;
+using Task = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.Game.Core.Managers;
 

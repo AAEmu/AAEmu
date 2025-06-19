@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Mate;
+using Task = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.Game.Models.Game.Units;
 

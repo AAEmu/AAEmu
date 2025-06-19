@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Scripts.Commands;
+using Task = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.Game.Scripts.Commands;
 
