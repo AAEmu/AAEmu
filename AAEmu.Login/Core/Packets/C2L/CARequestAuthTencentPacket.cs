@@ -3,12 +3,8 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CARequestAuthTencentPacket : LoginPacket
+public class CARequestAuthTencentPacket() : LoginPacket(CLOffsets.CARequestAuthTencentPacket)
 {
-    public CARequestAuthTencentPacket() : base(CLOffsets.CARequestAuthTencentPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var pFrom = stream.ReadUInt32();

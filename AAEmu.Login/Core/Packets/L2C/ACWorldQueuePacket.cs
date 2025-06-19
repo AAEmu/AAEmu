@@ -3,12 +3,8 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
-public class ACWorldQueuePacket : LoginPacket
+public class ACWorldQueuePacket() : LoginPacket(LCOffsets.ACWorldQueuePacket)
 {
-    public ACWorldQueuePacket() : base(LCOffsets.ACWorldQueuePacket)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((byte)0); // diw -> world id

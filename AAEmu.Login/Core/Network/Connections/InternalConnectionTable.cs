@@ -5,12 +5,7 @@ namespace AAEmu.Login.Core.Network.Connections;
 
 public class InternalConnectionTable : Singleton<InternalConnectionTable>
 {
-    private ConcurrentDictionary<uint, InternalConnection> _connections;
-
-    private InternalConnectionTable()
-    {
-        _connections = new ConcurrentDictionary<uint, InternalConnection>();
-    }
+    private readonly ConcurrentDictionary<uint, InternalConnection> _connections = [];
 
     public void AddConnection(InternalConnection con)
     {

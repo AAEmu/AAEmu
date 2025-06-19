@@ -4,18 +4,11 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.L2G;
 
-public class LGRegisterGameServerPacket : InternalPacket
+public class LGRegisterGameServerPacket(GSRegisterResult result) : InternalPacket(LGOffsets.LGRegisterGameServerPacket)
 {
-    private readonly GSRegisterResult _result;
-
-    public LGRegisterGameServerPacket(GSRegisterResult result) : base(LGOffsets.LGRegisterGameServerPacket)
-    {
-        _result = result;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_result);
+        stream.Write((byte)result);
         return stream;
     }
 }

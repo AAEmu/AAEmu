@@ -3,12 +3,8 @@ using AAEmu.Login.Core.Network.Connections;
 
 namespace AAEmu.Login.Core.Network.Login;
 
-public abstract class LoginPacket : PacketBase<LoginConnection>
+public abstract class LoginPacket(ushort typeId) : PacketBase<LoginConnection>(typeId)
 {
-    protected LoginPacket(ushort typeId) : base(typeId)
-    {
-    }
-
     public override PacketStream Encode()
     {
         var ps = new PacketStream();

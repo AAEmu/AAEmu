@@ -6,6 +6,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
+using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Internal;
@@ -14,12 +15,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private ConcurrentDictionary<uint, Type> _packets;
-
-    public InternalProtocolHandler()
-    {
-        _packets = new ConcurrentDictionary<uint, Type>();
-    }
+    private readonly ConcurrentDictionary<uint, Type> _packets = [];
 
     public override void OnConnect(ISession session)
     {
@@ -35,7 +31,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
         Logger.Info("GameServer from {0} disconnected", session.Ip.ToString());
         var gsId = session.GetAttribute("gsId");
         if (gsId != null)
-            GameController.Instance.Remove((byte)gsId);
+            GameController.Instance.Remove((GameServerId)gsId);
         InternalConnectionTable.Instance.RemoveConnection(session.SessionId);
     }
 
@@ -50,7 +46,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
         }
 
         stream.Insert(stream.Count, buf, offset, bytes);
-        while (stream != null && stream.Count > 0)
+        while (stream is { Count: > 0 })
         {
             ushort len;
             try

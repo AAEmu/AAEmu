@@ -12,7 +12,7 @@ public class LoginNetwork : Singleton<LoginNetwork>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Server _server;
-    private LoginProtocolHandler _handler;
+    private readonly LoginProtocolHandler _handler;
 
     private LoginNetwork()
     {
@@ -45,7 +45,7 @@ public class LoginNetwork : Singleton<LoginNetwork>
 
     public void Stop()
     {
-        if ((_server != null) && (_server.IsStarted))
+        if (_server is { IsStarted: true })
             _server.Stop();
 
         Logger.Info("Network stopped");

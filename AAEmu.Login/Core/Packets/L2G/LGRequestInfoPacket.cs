@@ -1,26 +1,17 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Internal;
+using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.L2G;
 
-public class LGRequestInfoPacket : InternalPacket
+public class LGRequestInfoPacket(ConnectionId connectionId, uint requestId, AccountId accountId)
+    : InternalPacket(LGOffsets.LGRequestInfoPacket)
 {
-    private readonly uint _connectionId;
-    private readonly uint _requestId;
-    private readonly ulong _accountId;
-
-    public LGRequestInfoPacket(uint connectionId, uint requestId, uint accountId) : base(LGOffsets.LGRequestInfoPacket)
-    {
-        _connectionId = connectionId;
-        _requestId = requestId;
-        _accountId = accountId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_connectionId);
-        stream.Write(_requestId);
-        stream.Write(_accountId);
+        stream.Write(connectionId.Value);
+        stream.Write(requestId);
+        stream.Write((ulong)accountId.Value);
         return stream;
     }
 }

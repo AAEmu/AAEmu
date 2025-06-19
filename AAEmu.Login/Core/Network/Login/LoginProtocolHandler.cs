@@ -5,7 +5,7 @@ using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Connections;
-
+using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Login;
@@ -14,12 +14,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private ConcurrentDictionary<uint, Type> _packets;
-
-    public LoginProtocolHandler()
-    {
-        _packets = new ConcurrentDictionary<uint, Type>();
-    }
+    private readonly ConcurrentDictionary<uint, Type> _packets = [];
 
     public override void OnConnect(ISession session)
     {
@@ -46,9 +41,9 @@ public class LoginProtocolHandler : BaseProtocolHandler
         }
         try
         {
-            var con = LoginConnectionTable.Instance.GetConnection(session.SessionId);
+            var con = LoginConnectionTable.Instance.GetConnection(new ConnectionId(session.SessionId));
             if (con != null)
-                LoginConnectionTable.Instance.RemoveConnection(session.SessionId);
+                LoginConnectionTable.Instance.RemoveConnection(new ConnectionId(session.SessionId));
         }
         catch (Exception e)
         {
@@ -63,7 +58,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
     {
         try
         {
-            var connection = LoginConnectionTable.Instance.GetConnection(session.SessionId);
+            var connection = LoginConnectionTable.Instance.GetConnection(new ConnectionId(session.SessionId));
             if (connection == null)
                 return;
             OnReceive(connection, buf, offset, bytes);
@@ -159,7 +154,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
     {
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
-            dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
+            dump.Append($"{stream.Buffer[i]:x2} ");
         Logger.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", (object)type, (object)connection.Ip, (object)dump);
     }
 }

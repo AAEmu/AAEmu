@@ -20,7 +20,7 @@ public class IdManager
     private readonly int _freeIdSize;
     private readonly string[,] _objTables;
     private readonly bool _distinct;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, bool distinct = false)
     {
@@ -74,54 +74,48 @@ public class IdManager
     private uint[] ExtractUsedObjectIdTable()
     {
         if (_objTables.Length < 2)
-            return Array.Empty<uint>();
+            return [];
 
-        using (var connection = MySQL.CreateConnection())
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        var query = "SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[0, 1] + ", 0 AS i FROM " +
+                    _objTables[0, 0];
+        for (var i = 1; i < _objTables.Length / 2; i++)
+            query += " UNION SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[i, 1] + ", " + i +
+                     " FROM " + _objTables[i, 0];
+
+        command.CommandText = "SELECT COUNT(*), COUNT(DISTINCT " + _objTables[0, 1] + ") FROM ( " + query +
+                              " ) AS all_ids";
+        int count;
+        using (var reader = command.ExecuteReader())
         {
-            using (var command = connection.CreateCommand())
-            {
-                var query = "SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[0, 1] + ", 0 AS i FROM " +
-                            _objTables[0, 0];
-                for (var i = 1; i < _objTables.Length / 2; i++)
-                    query += " UNION SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[i, 1] + ", " + i +
-                             " FROM " + _objTables[i, 0];
-
-                command.CommandText = "SELECT COUNT(*), COUNT(DISTINCT " + _objTables[0, 1] + ") FROM ( " + query +
-                                      " ) AS all_ids";
-                command.Prepare();
-                int count;
-                using (var reader = command.ExecuteReader())
-                {
-                    if (!reader.Read())
-                        throw new GameException("IdManager: can't extract count ids");
-                    if (reader.GetInt32(0) != reader.GetInt32(1) && !_distinct)
-                        throw new GameException("IdManager: there are duplicates in object ids");
-                    count = reader.GetInt32(0);
-                }
-
-                if (count == 0)
-                    return Array.Empty<uint>();
-
-                var result = new uint[count];
-                Logger.Info("{0}: Extracting {1} used id's from data tables...", _name, count);
-
-                command.CommandText = query;
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    var idx = 0;
-                    while (reader.Read())
-                    {
-                        result[idx] = reader.GetUInt32(0);
-                        idx++;
-                    }
-
-                    Logger.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, idx);
-                }
-
-                return result;
-            }
+            if (!reader.Read())
+                throw new GameException("IdManager: can't extract count ids");
+            if (reader.GetInt32(0) != reader.GetInt32(1) && !_distinct)
+                throw new GameException("IdManager: there are duplicates in object ids");
+            count = reader.GetInt32(0);
         }
+
+        if (count == 0)
+            return [];
+
+        var result = new uint[count];
+        Logger.Info("{0}: Extracting {1} used id's from data tables...", _name, count);
+
+        command.CommandText = query;
+        using (var reader = command.ExecuteReader())
+        {
+            var idx = 0;
+            while (reader.Read())
+            {
+                result[idx] = reader.GetUInt32(0);
+                idx++;
+            }
+
+            Logger.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, idx);
+        }
+
+        return result;
     }
 
     public virtual void ReleaseId(uint usedObjectId)

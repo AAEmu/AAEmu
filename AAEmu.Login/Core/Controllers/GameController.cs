@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
@@ -13,21 +15,10 @@ namespace AAEmu.Login.Core.Controllers;
 public class GameController : Singleton<GameController>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<byte, GameServer> _gameServers;
-    private Dictionary<byte, byte> _mirrorsId;
+    private readonly ConcurrentDictionary<GameServerId, GameServer> _gameServers = [];
+    private readonly Dictionary<GameServerId, GameServerId> _mirrorsId = [];
 
-    public byte? GetParentId(byte gsId)
-    {
-        if (_mirrorsId.TryGetValue(gsId, out var id))
-            return id;
-        return null;
-    }
-
-    protected GameController()
-    {
-        _gameServers = [];
-        _mirrorsId = [];
-    }
+    public bool TryGetParentId(GameServerId gsId, out GameServerId id) => _mirrorsId.TryGetValue(gsId, out id);
 
     private static async Task SendPacketWithDelay(InternalConnection connection, int delay, InternalPacket message)
     {
@@ -40,17 +31,12 @@ public class GameController : Singleton<GameController>
         try
         {
             var parsedHost = Dns.GetHostEntry(host);
-            foreach (var ipAddress in parsedHost.AddressList)
+            var firstIPv4Address =
+                parsedHost.AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
+            if (firstIPv4Address != null)
             {
-                // For whatever reason, we can't just access the IsIPv4 property here
-                // if (ipAddress.IsIPv4)
-                //     return ipAddress.ToString();
-                var ipString = ipAddress.ToString();
-                if (ipString.Split('.').Length == 4)
-                {
-                    Logger.Debug($"Resolved {host} to {ipString}");
-                    return ipString;
-                }
+                Logger.Debug($"Resolved {host} to {firstIPv4Address}");
+                return firstIPv4Address.ToString();
             }
             Logger.Warn($"Unable to resolved {host}");
             return host;
@@ -65,42 +51,38 @@ public class GameController : Singleton<GameController>
 
     public void Load()
     {
-        using (var connection = MySQL.CreateConnection())
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM game_servers WHERE hidden = 0";
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
         {
-            using (var command = connection.CreateCommand())
+            var id = new GameServerId(reader.GetByte("id"));
+            var name = reader.GetString("name");
+            var loadedHost = reader.GetString("host");
+            var host = AppConfiguration.Instance.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
+            var port = reader.GetUInt16("port");
+            var gameServer = new GameServer(id, name, host, port);
+            if (!_gameServers.TryAdd(gameServer.Id, gameServer))
             {
-                command.CommandText = "SELECT * FROM game_servers WHERE hidden = 0";
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var id = reader.GetByte("id");
-                        var name = reader.GetString("name");
-                        var loadedHost = reader.GetString("host");
-                        var host = AppConfiguration.Instance.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
-                        var port = reader.GetUInt16("port");
-                        var gameServer = new GameServer(id, name, host, port);
-                        _gameServers.Add(gameServer.Id, gameServer);
-
-                        var extraInfo = host != loadedHost ? "from " + loadedHost :
-                            AppConfiguration.Instance.SkipHostResolve ? " (unresolved)" : "";
-                        Logger.Info($"Game Server {id}: {name} -> {host}:{port} {extraInfo}");
-                    }
-                }
+                Logger.Error("Game Server {id} ({name}) already exists in the game_servers table!", gameServer.Id.Value, gameServer.Name);
             }
 
-            if (_gameServers.Count <= 0)
-            {
-                Logger.Fatal("No servers have been defined in the game_servers table!");
-                return;
-            }
+            var extraInfo = host != loadedHost ? "from " + loadedHost :
+                AppConfiguration.Instance.SkipHostResolve ? " (unresolved)" : "";
+            Logger.Info($"Game Server {id.Value}: {name} -> {host}:{port} {extraInfo}");
+        }
+
+        if (_gameServers.IsEmpty)
+        {
+            Logger.Fatal("No servers have been defined in the game_servers table!");
+            return;
         }
 
         Logger.Info($"Loaded {_gameServers.Count} game server(s)");
     }
 
-    public void Add(byte gsId, List<byte> mirrorsId, InternalConnection connection)
+    public void Add(GameServerId gsId, List<GameServerId> mirrorsId, InternalConnection connection)
     {
         if (!_gameServers.TryGetValue(gsId, out var gameServer))
         {
@@ -125,7 +107,7 @@ public class GameController : Singleton<GameController>
         Logger.Info($"Registered GameServer {gameServer.Id} ({gameServer.Name}) from {connection.Ip}");
     }
 
-    public void Remove(byte gsId)
+    public void Remove(GameServerId gsId)
     {
         if (!_gameServers.TryGetValue(gsId, out var gameServer))
             return;
@@ -175,15 +157,12 @@ public class GameController : Singleton<GameController>
         connection.SendPacket(new ACWorldListPacket(gameServers, connection.GetCharacters()));
     }
 
-    public void SetLoad(byte gsId, byte load)
+    public void SetLoad(GameServerId gsId, byte load)
     {
-        lock (_gameServers)
-        {
-            _gameServers[gsId].Load = (GSLoad)load;
-        }
+        _gameServers[gsId].Load = (GSLoad)load;
     }
 
-    public void RequestEnterWorld(LoginConnection connection, byte gsId)
+    public void RequestEnterWorld(LoginConnection connection, GameServerId gsId)
     {
         if (!_gameServers.TryGetValue(gsId, out var gs))
             return;
@@ -192,26 +171,22 @@ public class GameController : Singleton<GameController>
         gs.SendPacket(new LGPlayerEnterPacket(connection.AccountId, connection.Id));
     }
 
-    public void EnterWorld(LoginConnection connection, byte gsId, byte result)
+    public void EnterWorld(LoginConnection connection, GameServerId gsId, byte result)
     {
-        if (result == 0)
+        switch (result)
         {
-            if (_gameServers.TryGetValue(gsId, out var server))
-            {
+            case 0 when _gameServers.TryGetValue(gsId, out var server):
                 connection.SendPacket(new ACWorldCookiePacket(connection, server));
-            }
-            else
-            {
+                break;
+            case 0:
                 // TODO ...
-            }
-        }
-        else if (result == 1)
-        {
-            connection.SendPacket(new ACEnterWorldDeniedPacket(0)); // TODO change reason
-        }
-        else
-        {
-            // TODO ...
+                break;
+            case 1:
+                connection.SendPacket(new ACEnterWorldDeniedPacket(0)); // TODO change reason
+                break;
+            default:
+                // TODO ...
+                break;
         }
     }
 }

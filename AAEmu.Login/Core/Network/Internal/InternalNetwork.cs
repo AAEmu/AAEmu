@@ -12,7 +12,7 @@ public class InternalNetwork : Singleton<InternalNetwork>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Server _server;
-    private InternalProtocolHandler _handler;
+    private readonly InternalProtocolHandler _handler;
 
     public InternalNetwork()
     {

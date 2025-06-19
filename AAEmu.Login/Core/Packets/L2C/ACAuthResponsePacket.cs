@@ -1,26 +1,18 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
+using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
-public class ACAuthResponsePacket : LoginPacket
+public class ACAuthResponsePacket(AccountId accountId, byte slotCount) : LoginPacket(LCOffsets.ACAuthResponsePacket)
 {
-    private readonly uint _accountId;
-    private readonly byte[] _wsk;
-    private readonly byte _slotCount;
-
-    public ACAuthResponsePacket(uint accountId, byte slotCount) : base(LCOffsets.ACAuthResponsePacket)
-    {
-        _accountId = accountId;
-        _wsk = new byte[32];
-        _slotCount = slotCount;
-    }
+    private readonly byte[] _wsk = new byte[32];
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_accountId);
+        stream.Write(accountId.Value);
         stream.Write(_wsk, true);
-        stream.Write(_slotCount);
+        stream.Write(slotCount);
 
         return stream;
     }

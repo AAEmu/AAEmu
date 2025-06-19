@@ -3,12 +3,8 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
-public class ACChallengePacket : LoginPacket
+public class ACChallengePacket() : LoginPacket(LCOffsets.ACChallengePacket)
 {
-    public ACChallengePacket() : base(LCOffsets.ACChallengePacket)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((uint)0); // salt
