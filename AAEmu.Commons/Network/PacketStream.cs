@@ -795,7 +795,7 @@ public class PacketStream : ICloneable, IComparable
     public List<T> ReadCollection<T>() where T : PacketMarshaler, new()
     {
         var count = ReadInt32();
-        var collection = new List<T>();
+        var collection = new List<T>(count);
         for (var i = 0; i < count; i++)
         {
             var t = new T();

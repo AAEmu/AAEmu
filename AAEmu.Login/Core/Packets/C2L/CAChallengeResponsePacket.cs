@@ -12,6 +12,10 @@ public class CAChallengeResponsePacket() : LoginPacket(CLOffsets.CAChallengeResp
             stream.ReadUInt32(); // responses
         var password = stream.ReadBytes(); // TODO or bytes? length 32
         var bytes = Convert.FromBase64String("jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI=");
+    }
+
+    public override void Execute()
+    {
         Connection.SendPacket(new ACLoginDeniedPacket(3));
     }
 }

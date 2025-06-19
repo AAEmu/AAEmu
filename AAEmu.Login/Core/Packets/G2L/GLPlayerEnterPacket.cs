@@ -8,13 +8,20 @@ namespace AAEmu.Login.Core.Packets.G2L;
 
 public class GLPlayerEnterPacket() : InternalPacket(GLOffsets.GLPlayerEnterPacket)
 {
+    private ConnectionId _connectionId;
+    private GameServerId _gsId;
+    private byte _result;
+    
     public override void Read(PacketStream stream)
     {
-        var connectionId = new ConnectionId(stream.ReadUInt32());
-        var gsId = new GameServerId(stream.ReadByte());
-        var result = stream.ReadByte();
+        _connectionId = new ConnectionId(stream.ReadUInt32());
+        _gsId = new GameServerId(stream.ReadByte());
+        _result = stream.ReadByte();
+    }
 
-        var connection = LoginConnectionTable.Instance.GetConnection(connectionId);
-        GameController.Instance.EnterWorld(connection!, gsId, result);
+    public override void Execute()
+    {
+        var connection = LoginConnectionTable.Instance.GetConnection(_connectionId);
+        GameController.Instance.EnterWorld(connection!, _gsId, _result);
     }
 }

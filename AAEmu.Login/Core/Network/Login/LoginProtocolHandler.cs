@@ -125,6 +125,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
                         var packet = (LoginPacket)Activator.CreateInstance(classType)!;
                         packet.Connection = connection;
                         packet.Decode(stream2);
+                        packet.Execute();
                     }
                 }
                 else

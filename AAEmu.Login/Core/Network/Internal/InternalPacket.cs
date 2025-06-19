@@ -35,4 +35,10 @@ public abstract class InternalPacket(ushort typeId) : PacketBase<InternalConnect
 
         return this;
     }
+    
+    /// <summary>
+    /// This is called after <see cref="Decode"/>.
+    /// The purpose is to separate packet data from packet behavior.
+    /// </summary>
+    public virtual void Execute() { }
 }

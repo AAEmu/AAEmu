@@ -8,6 +8,9 @@ namespace AAEmu.Login.Core.Packets.C2L;
 
 public class CARequestAuthTrionPacket() : LoginPacket(CLOffsets.CARequestAuthTrionPacket)
 {
+    private string? _username;
+    private string? _password;
+    
     public override void Read(PacketStream stream)
     {
         var pFrom = stream.ReadUInt32();
@@ -34,8 +37,14 @@ public class CARequestAuthTrionPacket() : LoginPacket(CLOffsets.CARequestAuthTri
             Logger.Error("RequestAuthTrion: username or password is empty or whitespace");
             return;
         }
+        
+        _username = username;
+        _password = password;
+    }
 
-        var token = Helpers.StringToByteArray(password);
-        LoginController.Login(Connection, username, token);
+    public override void Execute()
+    {
+        var token = Helpers.StringToByteArray(_password!);
+        LoginController.Login(Connection, _username!, token);
     }
 }

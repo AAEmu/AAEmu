@@ -97,6 +97,16 @@ public class InternalProtocolHandler : BaseProtocolHandler
                         var packet = (InternalPacket)Activator.CreateInstance(classType)!;
                         packet.Connection = connection;
                         packet.Decode(stream2);
+
+                        try
+                        {
+                            packet.Execute();
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Error("Error on execute packet {0}", type);
+                            Logger.Error(e);
+                        }
                     }
                     catch (Exception e)
                     {

@@ -7,12 +7,19 @@ namespace AAEmu.Login.Core.Packets.G2L;
 
 public class GLPlayerReconnectPacket() : InternalPacket(GLOffsets.GLPlayerReconnectPacket)
 {
+    private GameServerId _gsId;
+    private AccountId _accountId;
+    private uint _token;
+    
     public override void Read(PacketStream stream)
     {
-        var gsId = new GameServerId(stream.ReadByte());
-        var accountId = new AccountId(stream.ReadUInt32());
-        var token = stream.ReadUInt32();
+        _gsId = new GameServerId(stream.ReadByte());
+        _accountId = new AccountId(stream.ReadUInt32());
+        _token = stream.ReadUInt32();
+    }
 
-        LoginController.Instance.AddReconnectionToken(Connection, gsId, accountId, token);
+    public override void Execute()
+    {
+        LoginController.Instance.AddReconnectionToken(Connection, _gsId, _accountId, _token);
     }
 }

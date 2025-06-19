@@ -7,11 +7,16 @@ namespace AAEmu.Login.Core.Packets.C2L;
 
 public class CAEnterWorldPacket() : LoginPacket(CLOffsets.CAEnterWorldPacket)
 {
+    private GameServerId _gsId;
+    
     public override void Read(PacketStream stream)
     {
         var flag = stream.ReadUInt64();
-        var gsId = new GameServerId(stream.ReadByte());
+        _gsId = new GameServerId(stream.ReadByte());
+    }
 
-        GameController.Instance.RequestEnterWorld(Connection, gsId);
+    public override void Execute()
+    {
+        GameController.Instance.RequestEnterWorld(Connection, _gsId);
     }
 }
