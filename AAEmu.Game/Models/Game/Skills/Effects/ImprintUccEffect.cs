@@ -1,6 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;

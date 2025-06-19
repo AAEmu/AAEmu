@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Models.Game.Quests.Static;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace AAEmu.Game.Models.Game.Skills.Plots;
 
 public class PlotStep

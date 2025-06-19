@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Stream;
+﻿namespace AAEmu.Game.Models.Stream;
 
 public class UccUploadHandle
 {

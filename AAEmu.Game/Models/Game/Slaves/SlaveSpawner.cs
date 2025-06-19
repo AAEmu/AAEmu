@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using NLog;

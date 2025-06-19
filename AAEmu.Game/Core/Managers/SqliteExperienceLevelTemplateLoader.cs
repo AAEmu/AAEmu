@@ -1,8 +1,5 @@
 ﻿#nullable enable
 
-using System.Collections.Generic;
-using System.IO;
-
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Utils.DB;
 

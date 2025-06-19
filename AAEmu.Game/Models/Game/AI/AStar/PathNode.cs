@@ -1,8 +1,6 @@
 ﻿// https://lsreg.ru/realizaciya-algoritma-poiska-a-na-c/
 
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;

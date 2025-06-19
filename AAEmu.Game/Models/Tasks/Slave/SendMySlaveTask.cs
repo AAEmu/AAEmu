@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.World;
+﻿using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Tasks.Slave;
 

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 

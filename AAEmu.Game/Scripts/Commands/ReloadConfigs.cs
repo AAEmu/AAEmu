@@ -3,7 +3,6 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.Scripts;
 using NLog;
-using System;
 
 namespace AAEmu.Game.Scripts.Commands;
 

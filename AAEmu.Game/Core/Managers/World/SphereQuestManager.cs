@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
+﻿using System.Globalization;
 using System.Numerics;
-using System.Threading;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Char;

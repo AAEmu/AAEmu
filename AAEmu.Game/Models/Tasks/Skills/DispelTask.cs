@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Tasks.Skills;

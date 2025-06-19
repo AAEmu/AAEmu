@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-using AAEmu.Game.Models.Game.DoodadObj;
+﻿using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Indun.Actions;

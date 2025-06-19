@@ -4,12 +4,9 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers;
 using Microsoft.Extensions.Configuration;
-using System.IO;
 using AAEmu.Game.Models;
 using Xunit;
-using System.Threading.Tasks;
 using AAEmu.Game.Utils.DB;
-using System.Collections.Generic;
 
 namespace AAEmu.IntegrationTests.Core.Manager;
 

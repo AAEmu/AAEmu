@@ -1,6 +1,4 @@
 ﻿using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
 using AAEmu.Game.Models;
 using Microsoft.Extensions.Hosting;
 using NLog;

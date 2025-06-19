@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Managers.World;

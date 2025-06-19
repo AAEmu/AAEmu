@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Models.Game.Items.Actions;
+﻿using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;

@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Tasks;
 using Task = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.Game.Models.Game.FishSchools;

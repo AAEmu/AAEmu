@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-
-using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Core.Managers;
-using NLog.Fluent;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 

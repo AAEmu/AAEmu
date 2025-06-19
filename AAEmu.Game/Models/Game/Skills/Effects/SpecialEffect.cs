@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-
-using AAEmu.Game.Core.Packets;
+﻿using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 

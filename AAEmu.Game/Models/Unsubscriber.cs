@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace AAEmu.Game.Models;
 
 internal class Unsubscriber<T> : IDisposable

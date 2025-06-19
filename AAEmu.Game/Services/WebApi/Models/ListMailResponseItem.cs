@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using AAEmu.Game.Models.Game.Mails;
+﻿using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Services.WebApi.Models;
 

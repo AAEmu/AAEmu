@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Login.Core.Network.Connections;
+﻿using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 
 namespace AAEmu.Login.Models;

@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-
-namespace AAEmu.Game.Models.ClientData;
+﻿namespace AAEmu.Game.Models.ClientData;
 
 public class Hmap
 {

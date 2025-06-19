@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Taxations;
 using AAEmu.Game.Utils.DB;
 

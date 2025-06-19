@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using AAEmu.Commons.Utils.DB;
+﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;

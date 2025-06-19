@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;

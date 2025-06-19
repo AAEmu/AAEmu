@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace AAEmu.Commons.Utils;
+﻿namespace AAEmu.Commons.Utils;
 
 public static class IEnumerableExtensions
 {

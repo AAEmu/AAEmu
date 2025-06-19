@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Tasks;
-
 using NLog;
 
 using static System.String;

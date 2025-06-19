@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Models.Game.AI.AStar;
+﻿namespace AAEmu.Game.Models.Game.AI.AStar;
 
 public class AiNavigation
 {

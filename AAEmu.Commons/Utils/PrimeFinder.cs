@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Commons.Utils;
+﻿namespace AAEmu.Commons.Utils;
 
 public static class PrimeFinder
 {

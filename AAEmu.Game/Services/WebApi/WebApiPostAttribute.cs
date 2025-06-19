@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Services.WebApi;
+﻿namespace AAEmu.Game.Services.WebApi;
 
 /// <summary>
 /// Use this attribute in a method controller to flag it as a POST request handler

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Globalization;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Utils.DB;

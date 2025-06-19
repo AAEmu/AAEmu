@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-using AAEmu.Game.GameData;
+﻿using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Numerics;
 using AAEmu.Commons.Utils;
 using Newtonsoft.Json;

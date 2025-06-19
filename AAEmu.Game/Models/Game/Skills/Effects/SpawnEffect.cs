@@ -1,6 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Core.Packets;
+﻿using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Templates;

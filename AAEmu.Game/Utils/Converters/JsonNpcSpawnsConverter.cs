@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Models.Json;
+﻿using AAEmu.Game.Models.Json;
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Utils.Converters;

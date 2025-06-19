@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using AAEmu.Game.Utils;
+﻿using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World;
 public class AreaShape

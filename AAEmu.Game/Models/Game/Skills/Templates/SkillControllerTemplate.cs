@@ -1,4 +1,3 @@
-using System;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;

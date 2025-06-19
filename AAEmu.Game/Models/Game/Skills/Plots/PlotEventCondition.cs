@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+﻿using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
 

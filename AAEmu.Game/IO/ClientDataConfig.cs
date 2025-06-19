@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.IO;
+﻿namespace AAEmu.Game.IO;
 
 public class ClientDataConfig
 {

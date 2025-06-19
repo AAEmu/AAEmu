@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Commons.Utils;
 using Xunit;
 using Moq;

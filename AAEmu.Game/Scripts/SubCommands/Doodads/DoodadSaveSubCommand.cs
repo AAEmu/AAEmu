@@ -1,21 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.CommonFarm.Static;
-using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils;

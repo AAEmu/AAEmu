@@ -1,4 +1,3 @@
-using System;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Faction;

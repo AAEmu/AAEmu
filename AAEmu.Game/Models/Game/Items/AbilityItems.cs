@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.Items;
+﻿namespace AAEmu.Game.Models.Game.Items;
 
 public class AbilityItems
 {

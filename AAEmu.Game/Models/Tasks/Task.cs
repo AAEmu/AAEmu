@@ -1,6 +1,5 @@
 ﻿// Authors: Nikes, AAGene, ZeromusXYZ
-using System;
-using System.Threading.Tasks;
+
 using AAEmu.Game.Core.Managers;
 using NCrontab;
 

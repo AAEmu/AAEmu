@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Models.Game.Items.Loots;
+﻿namespace AAEmu.Game.Models.Game.Items.Loots;
 
 public class LootGroups : IComparable<LootGroups>
 {

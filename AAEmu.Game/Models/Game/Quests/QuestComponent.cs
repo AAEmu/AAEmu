@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Models.Game.Quests;

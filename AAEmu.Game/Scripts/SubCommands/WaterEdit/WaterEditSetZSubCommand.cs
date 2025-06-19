@@ -1,7 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
-using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;

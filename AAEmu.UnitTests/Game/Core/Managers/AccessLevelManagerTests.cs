@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Reflection;
-
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
 
 using Xunit;

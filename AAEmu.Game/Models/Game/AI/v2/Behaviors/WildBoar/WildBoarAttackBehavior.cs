@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 using AAEmu.Game.Models.Game.Models;

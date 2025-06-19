@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-
-namespace AAEmu.Commons.Utils.AAPak;
+﻿namespace AAEmu.Commons.Utils.AAPak;
 
 // Sources:
 // https://stackoverflow.com/questions/6949441/how-to-expose-a-sub-section-of-my-stream-to-a-user

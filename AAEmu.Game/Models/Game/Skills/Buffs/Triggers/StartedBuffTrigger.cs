@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Models.Game.Skills.Effects;
+﻿using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers;

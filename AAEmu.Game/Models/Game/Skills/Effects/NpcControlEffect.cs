@@ -1,6 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Core.Packets;
+﻿using AAEmu.Game.Core.Packets;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.NPChar;

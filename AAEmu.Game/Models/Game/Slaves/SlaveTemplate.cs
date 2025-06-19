@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Models.Game.Skills.Templates;
+﻿using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Slaves;

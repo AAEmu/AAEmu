@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.NPChar;
+﻿namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawnerTemplate
 {

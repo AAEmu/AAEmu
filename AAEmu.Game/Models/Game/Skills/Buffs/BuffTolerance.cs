@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace AAEmu.Game.Models.Game.Skills.Buffs;
 
 public class BuffTolerance

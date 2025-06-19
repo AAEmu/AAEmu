@@ -1,6 +1,4 @@
-﻿using System.Net.Http;
-using System.Threading.Tasks;
-using AAEmu.Game.Services.WebApi;
+﻿using AAEmu.Game.Services.WebApi;
 using AAEmu.Game.Services.WebApi.Controllers;
 using NetCoreServer;
 using Xunit;

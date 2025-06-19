@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Models.Game.Models;
+﻿using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;

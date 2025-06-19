@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Game.Models.Game.Taxations;
+﻿using AAEmu.Game.Models.Game.Taxations;
 
 namespace AAEmu.Game.Models.Game.Housing;
 

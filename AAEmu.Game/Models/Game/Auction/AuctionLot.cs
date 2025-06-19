@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
 using Newtonsoft.Json;
 

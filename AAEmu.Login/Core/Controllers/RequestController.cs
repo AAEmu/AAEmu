@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Threading.Tasks;
 using AAEmu.Login.Utils;
 
 namespace AAEmu.Login.Core.Controllers;

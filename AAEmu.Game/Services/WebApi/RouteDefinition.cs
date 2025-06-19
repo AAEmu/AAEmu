@@ -1,5 +1,4 @@
-﻿using System.Net.Http;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace AAEmu.Game.Services.WebApi;
 

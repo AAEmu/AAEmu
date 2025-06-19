@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Models.Account;
+﻿namespace AAEmu.Game.Models.Account;
 
 public struct AccountDetails
 {

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Utils.Converters;
+﻿namespace AAEmu.Game.Utils.Converters;
 
 public class ChatConverter
 {

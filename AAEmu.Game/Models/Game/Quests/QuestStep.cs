@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.GameData;
+﻿using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 

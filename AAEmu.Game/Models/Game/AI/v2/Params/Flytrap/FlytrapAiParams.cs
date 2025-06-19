@@ -1,6 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Models.Game.AI.V2.Params;
+﻿using AAEmu.Game.Models.Game.AI.V2.Params;
 using AAEmu.Game.Models.Game.AI.V2.Params.Flytrap;
 
 using NLua;

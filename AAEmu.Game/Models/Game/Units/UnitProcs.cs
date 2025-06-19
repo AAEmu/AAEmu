@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Procs;
 
 namespace AAEmu.Game.Models.Game.Units;

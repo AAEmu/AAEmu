@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Models;
+﻿using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;

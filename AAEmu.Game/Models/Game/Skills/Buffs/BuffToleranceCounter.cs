@@ -1,5 +1,3 @@
-using System;
-
 namespace AAEmu.Game.Models.Game.Skills.Buffs;
 
 public class BuffToleranceCounter

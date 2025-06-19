@@ -1,4 +1,3 @@
-using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;

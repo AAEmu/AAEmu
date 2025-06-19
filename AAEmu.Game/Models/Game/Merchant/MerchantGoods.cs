@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.Merchant;
+﻿namespace AAEmu.Game.Models.Game.Merchant;
 
 public class MerchantGoods
 {

@@ -1,4 +1,3 @@
-using System;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Connections;
 

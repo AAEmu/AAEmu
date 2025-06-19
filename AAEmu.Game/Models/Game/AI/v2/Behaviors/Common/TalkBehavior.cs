@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
+﻿namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
 public class TalkBehavior : BaseCombatBehavior
 {

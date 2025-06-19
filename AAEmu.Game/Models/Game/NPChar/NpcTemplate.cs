@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Game.Models.Game.AI.v2.Params;
+﻿using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;

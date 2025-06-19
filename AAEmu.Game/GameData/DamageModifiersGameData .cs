@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills.Effects;

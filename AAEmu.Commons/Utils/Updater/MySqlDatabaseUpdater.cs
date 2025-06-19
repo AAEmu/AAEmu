@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using AAEmu.Commons.IO;
+﻿using AAEmu.Commons.IO;
 using MySql.Data.MySqlClient;
 using NLog;
 

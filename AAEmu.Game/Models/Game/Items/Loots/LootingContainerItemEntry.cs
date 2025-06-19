@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Containers;
 
 namespace AAEmu.Game.Models.Game.Items.Loots;

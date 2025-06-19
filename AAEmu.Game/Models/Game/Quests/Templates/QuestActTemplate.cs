@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using NLog;
+﻿using NLog;
 
 using AAEmu.Game.Models.Game.Units;
 

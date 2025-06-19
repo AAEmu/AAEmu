@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
+﻿using System.Drawing;
 using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;

@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Mails;

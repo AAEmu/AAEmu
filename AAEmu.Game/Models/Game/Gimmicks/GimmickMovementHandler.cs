@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace AAEmu.Game.Models.Game.Gimmicks;
 

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-using NLua;
+﻿using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 

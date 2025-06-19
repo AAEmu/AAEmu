@@ -1,4 +1,3 @@
-using System;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 

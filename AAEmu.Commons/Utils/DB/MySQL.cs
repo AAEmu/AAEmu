@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Commons.Models;
+﻿using AAEmu.Commons.Models;
 using MySql.Data.MySqlClient;
 using NLog;
 

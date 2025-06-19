@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Models.Game.World.Transform;
+﻿using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Char.Templates;

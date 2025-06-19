@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Json;
+﻿namespace AAEmu.Game.Models.Json;
 
 public class JsonDoodadSpawns
 {

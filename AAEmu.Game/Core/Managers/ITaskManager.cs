@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Core.Managers;
+﻿namespace AAEmu.Game.Core.Managers;
 
 public interface ITaskManager
 {

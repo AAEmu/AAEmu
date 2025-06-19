@@ -1,7 +1,4 @@
-﻿using System;
-using System.Numerics;
-using System.Threading;
-
+﻿using System.Numerics;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;

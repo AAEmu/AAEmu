@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-namespace AAEmu.Game.Utils.Scripts.SubCommands;
+﻿namespace AAEmu.Game.Utils.Scripts.SubCommands;
 
 public class StringSubCommandParameter : SubCommandParameterBase
 {

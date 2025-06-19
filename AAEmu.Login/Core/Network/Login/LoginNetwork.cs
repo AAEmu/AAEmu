@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Packets.C2L;

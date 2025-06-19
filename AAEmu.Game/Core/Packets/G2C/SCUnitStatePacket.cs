@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;

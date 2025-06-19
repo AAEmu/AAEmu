@@ -1,6 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Duels;
 
 namespace AAEmu.Game.Models.Tasks.Duels;

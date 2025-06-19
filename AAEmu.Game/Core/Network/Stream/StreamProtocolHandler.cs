@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Text;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;

@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.Packets.L2C;
 

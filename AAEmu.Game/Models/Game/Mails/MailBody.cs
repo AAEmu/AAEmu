@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Mails;

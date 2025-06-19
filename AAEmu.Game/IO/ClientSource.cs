@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils.AAPak;
 
 namespace AAEmu.Game.IO;

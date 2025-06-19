@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.Indun.Actions;

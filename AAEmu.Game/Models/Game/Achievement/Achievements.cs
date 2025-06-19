@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-using AAEmu.Game.Models.Game.Items.Templates;
+﻿using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Achievement;
 

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace AAEmu.Game.Models.Game.World;
 
 public class ZoneConfig

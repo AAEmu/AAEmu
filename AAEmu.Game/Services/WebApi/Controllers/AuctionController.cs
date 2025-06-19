@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Auction;
 using NetCoreServer;
 using System.Text.Json;

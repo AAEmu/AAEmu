@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.World;
+﻿namespace AAEmu.Game.Models.Game.World;
 
 public class Point
 {

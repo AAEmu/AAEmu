@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Services.WebApi.Models;
 using NetCoreServer;
 

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Numerics;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using Newtonsoft.Json;

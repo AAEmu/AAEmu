@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.Units;
+﻿namespace AAEmu.Game.Models.Game.Units;
 
 //Yes the naming looks weird, ignore it please.
 [AttributeUsage(AttributeTargets.Property, Inherited = true)]

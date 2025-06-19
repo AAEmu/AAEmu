@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
@@ -27,7 +24,6 @@ using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 

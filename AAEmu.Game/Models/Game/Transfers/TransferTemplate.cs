@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.Transfers;
+﻿namespace AAEmu.Game.Models.Game.Transfers;
 
 public class TransferTemplate
 {

@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using System.IO;
 
 namespace AAEmu.Game.Core.Packets;
 

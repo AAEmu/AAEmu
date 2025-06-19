@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using AAEmu.Game.Models;
+﻿using AAEmu.Game.Models;
 using NLog;
 
 namespace AAEmu.Game.IO;

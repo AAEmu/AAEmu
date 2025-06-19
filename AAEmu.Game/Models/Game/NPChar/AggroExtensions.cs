@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Linq;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.NPChar;

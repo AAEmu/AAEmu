@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Models.Game.Achievement;
+﻿namespace AAEmu.Game.Models.Game.Achievement;
 
 public partial class AchievementInfo
 {

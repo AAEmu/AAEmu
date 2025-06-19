@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace AAEmu.Game.Models.Game.TowerDefs;
 
 public class TowerDefProg

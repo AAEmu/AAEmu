@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Stream;
 

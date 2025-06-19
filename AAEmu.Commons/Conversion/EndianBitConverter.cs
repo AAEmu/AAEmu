@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Commons.Conversion;
+﻿namespace AAEmu.Commons.Conversion;
 
 /// <summary>
 /// Equivalent of System.BitConverter, but with either endianness.

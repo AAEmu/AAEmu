@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.Models;
+﻿namespace AAEmu.Game.Models.Game.Models;
 
 public class ActorModel : Model
 {

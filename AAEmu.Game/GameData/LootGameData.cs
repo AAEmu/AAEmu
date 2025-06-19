@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Utils.DB;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;

@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Utils.DB;

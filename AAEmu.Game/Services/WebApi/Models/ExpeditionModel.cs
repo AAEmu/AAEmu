@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Services.WebApi.Models;
+﻿namespace AAEmu.Game.Services.WebApi.Models;
 
 public record ExpeditionModel(
     uint Id,

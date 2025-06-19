@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AAEmu.Game.Models.StaticValues;
+﻿namespace AAEmu.Game.Models.StaticValues;
 
 /// <summary>
 /// 0x02 = Is Moving

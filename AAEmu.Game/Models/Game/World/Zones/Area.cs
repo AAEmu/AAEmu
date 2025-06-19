@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AAEmu.Game.Models.Game.World.Zones;
+﻿namespace AAEmu.Game.Models.Game.World.Zones;
 
 public class Area
 {

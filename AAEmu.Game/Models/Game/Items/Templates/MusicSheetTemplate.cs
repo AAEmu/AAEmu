@@ -1,5 +1,3 @@
-using System;
-
 namespace AAEmu.Game.Models.Game.Items.Templates;
 
 public class MusicSheetTemplate : ItemTemplate

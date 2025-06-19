@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using AAEmu.Game.Models.Game.World.Transform;

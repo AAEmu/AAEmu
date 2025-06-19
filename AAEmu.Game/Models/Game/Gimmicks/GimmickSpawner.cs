@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text.Json.Serialization;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.NPChar;
