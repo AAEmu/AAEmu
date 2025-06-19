@@ -1,4 +1,5 @@
 ﻿using System;
+
 using Jitter2.Collision;
 using Jitter2.LinearMath;
 
@@ -10,7 +11,7 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
     public int NodePtr { get; set; }
     public Heightmap Heightmap { get; init; }
     public JVector Velocity => JVector.Zero;
-    public JBBox WorldBoundingBox { get; }
+    public JBoundingBox WorldBoundingBox { get; }
     public JVector WorldBoxSize { get; }
     public ulong MinIndex { get; }
 

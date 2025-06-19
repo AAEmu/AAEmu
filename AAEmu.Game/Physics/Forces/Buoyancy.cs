@@ -33,7 +33,7 @@ public class Buoyancy : ForceGenerator
     /// <summary>
     /// The axis aligned bounding box representing the fluid.
     /// </summary>
-    public JBBox FluidBox { get; set; }
+    public JBoundingBox FluidBox { get; set; }
 
     /// <summary>
     /// Density of the fluid. Default is 2.0.
@@ -243,8 +243,8 @@ public class Buoyancy : ForceGenerator
         const float DragCoefficient = 0.8f;
         var area = hullWidth * hullHeight;
         var drag = 0.5f * Density * DragCoefficient * area * speed * speed;
-        velocity.Normalize();
-        velocity.Negate();
+        JVector.NormalizeInPlace(ref velocity);
+        JVector.NegateInPlace(ref velocity);
         velocity *= drag;
         body.AddForce(velocity);
     }

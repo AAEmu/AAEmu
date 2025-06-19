@@ -13,10 +13,10 @@ public class Heightmap(float[,] heights)
 
     public float GetHeight(int x, int z) => RawHeights[x / 2, z / 2];
 
-    public JBBox GetBoundingBox()
+    public JBoundingBox GetBoundingBox()
     {
         var min = new JVector(0, MinHeight, 0);
         var max = new JVector(Width - 1, MaxHeight, Height - 1);
-        return new JBBox(min, max);
+        return new JBoundingBox(min, max);
     }
 }

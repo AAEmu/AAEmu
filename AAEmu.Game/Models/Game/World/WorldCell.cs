@@ -28,7 +28,7 @@ public class WorldCell
     /// <summary>
     /// Bounding box for use in Jitter
     /// </summary>
-    public JBBox BoundingBox { get; private set; }
+    public JBoundingBox BoundingBox { get; private set; }
 
     public WorldCell(int cellX, int cellY, WorldTemplate template)
     {
@@ -37,7 +37,7 @@ public class WorldCell
         Template = template;
         CellOffset = new Vector3(CellX * WorldManager.CELL_SIZE, CellY * WorldManager.CELL_SIZE, 0f);
         // Default bounding box
-        BoundingBox = new JBBox(
+        BoundingBox = new JBoundingBox(
             new JVector(CellOffset.X, 0f, CellOffset.Y), 
             new JVector(CellOffset.X + WorldManager.CELL_SIZE, 0f, CellOffset.Y + WorldManager.CELL_SIZE)
             );
@@ -128,7 +128,7 @@ public class WorldCell
         #endregion
 
         // Update bounding box
-        BoundingBox = new JBBox(
+        BoundingBox = new JBoundingBox(
             new JVector(CellOffset.X, MinHeight, CellOffset.Y), 
             new JVector(CellOffset.X + WorldManager.CELL_SIZE, MaxHeight, CellOffset.Y + WorldManager.CELL_SIZE)
         );

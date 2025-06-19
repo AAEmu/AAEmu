@@ -166,9 +166,6 @@ public class SpawnManager(WorldInstance parentWorld)
             }
         }
         Logger.Info($"{count} NPC spawners spawned in world {World} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
-
-        // Controls all spawners in the instance, updating their state and invoking spavin methods.
-        TickManager.Instance.OnTick.Subscribe(Update, TimeSpan.FromSeconds(1));
     }
 
     /// <summary>

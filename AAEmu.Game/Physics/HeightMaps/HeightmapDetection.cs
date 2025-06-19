@@ -55,11 +55,11 @@ public class HeightmapDetection : IBroadPhaseFilter
 
                 var normal = JVector.Normalize((triangle.C - triangle.A) % (triangle.B - triangle.A));
 
-                var hit = NarrowPhase.MPREPA(triangle, rbs, body.Orientation, body.Position, out var pointA, out var pointB, out _, out var penetration);
+                var hit = NarrowPhase.MprEpa(triangle, rbs, body.Orientation, body.Position, out var pointA, out var pointB, out _, out var penetration);
 
                 if (hit)
                 {
-                    _world.RegisterContact(rbs.ShapeId, _minIndex + index, _world.NullBody, rbs.RigidBody, pointA, pointB, normal, penetration);
+                    _world.RegisterContact(rbs.ShapeId, _minIndex + index, _world.NullBody, rbs.RigidBody, pointA, pointB, normal);//, penetration);
                 }
 
                 // Second triangle of the quad
@@ -71,11 +71,11 @@ public class HeightmapDetection : IBroadPhaseFilter
 
                 normal = JVector.Normalize((triangle.C - triangle.A) % (triangle.B - triangle.A));
 
-                hit = NarrowPhase.MPREPA(triangle, rbs, body.Orientation, body.Position, out pointA, out pointB, out _, out penetration);
+                hit = NarrowPhase.MprEpa(triangle, rbs, body.Orientation, body.Position, out pointA, out pointB, out _, out penetration);
 
                 if (hit)
                 {
-                    _world.RegisterContact(rbs.ShapeId, _minIndex + index, _world.NullBody, rbs.RigidBody, pointA, pointB, normal, penetration);
+                    _world.RegisterContact(rbs.ShapeId, _minIndex + index, _world.NullBody, rbs.RigidBody, pointA, pointB, normal);//, penetration);
                 }
             }
         }

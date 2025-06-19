@@ -80,7 +80,7 @@
   <ItemGroup>
     <PackageReference Include="Discord.Net" />
     <PackageReference Include="Jace" />
-    <PackageReference Include="Jitter.Core" />
+    <PackageReference Include="Jitter2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />

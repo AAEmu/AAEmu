@@ -75,7 +75,7 @@ public class PhysicsManager
         _physWorld.Gravity = new JVector(0, -9.81f, 0);
 
         _buoyancy = new Buoyancy(_physWorld) {
-            FluidBox = new JBBox(
+            FluidBox = new JBoundingBox(
                 new JVector(0, 0, 0), // Bottom
                 new JVector(SimulationWorld.Template.CellX * WorldManager.CELL_SIZE, SimulationWorld.Template.OceanLevel, SimulationWorld.Template.CellY * WorldManager.CELL_SIZE) // Surface
             )
