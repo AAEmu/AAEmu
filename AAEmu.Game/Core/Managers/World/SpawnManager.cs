@@ -1022,7 +1022,11 @@ public class SpawnManager(WorldInstance parentWorld)
                     if (obj.Respawn >= DateTime.UtcNow)
                         continue;
                     if (obj is Npc npc)
-                        npc.Spawner.Respawn(npc);
+                    {
+                        //npc.Spawner.Respawn(npc);
+                        npc.Spawner.SetSpawnScheduled(false); // in the Update() method, enable spawn
+                    }
+
                     if (obj is Doodad doodad)
                         doodad.Spawner.Respawn(doodad);
                     if (obj is Transfer transfer)
@@ -1079,15 +1083,16 @@ public class SpawnManager(WorldInstance parentWorld)
     /// </summary>
     public Dictionary<uint, List<NpcSpawner>> GetAllSpawners()
     {
+        Dictionary<uint, List<NpcSpawner>> temp;
         lock (_npcSpawners)
         {
-            var npcSpawners = _npcSpawners.ToDictionary(
+            temp = _npcSpawners.ToDictionary(
                 entry => entry.Key,
                 entry => entry.Value.ToList()
             );
-
-            return npcSpawners;
         }
+
+        return temp;
     }
 
     public List<NpcSpawner> GetNpcSpawner(uint spawnerId)
