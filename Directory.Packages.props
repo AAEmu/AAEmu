@@ -21,7 +21,7 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.0"/>
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0"/>
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0"/>
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0"/>
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.6"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0"/>
     <PackageVersion Include="NCrontab" Version="3.3.3"/>
     <PackageVersion Include="NLua" Version="1.7.3"/>
