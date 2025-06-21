@@ -6,15 +6,10 @@ namespace AAEmu.Login.Core.Packets.G2L;
 
 public class GLGameServerLoadPacket() : InternalPacket(GLOffsets.GLGameServerLoadPacket)
 {
-    private GSLoad _load;
-    
+    public GSLoad Load { get; private set; }
+
     public override void Read(PacketStream stream)
     {
-        _load = (GSLoad)stream.ReadByte();
-    }
-
-    public override void Execute()
-    {
-        Connection.GameServer!.Load = _load;
+        Load = (GSLoad)stream.ReadByte();
     }
 }

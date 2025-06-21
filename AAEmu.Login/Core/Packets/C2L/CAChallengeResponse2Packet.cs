@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
-using AAEmu.Login.Core.Packets.L2C;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
@@ -10,10 +9,5 @@ public class CAChallengeResponse2Packet() : LoginPacket(CLOffsets.CAChallengeRes
     {
         for (var i = 0; i < 8; i++)
             stream.ReadUInt32(); // hc
-    }
-
-    public override void Execute()
-    {
-        Connection.SendPacket(new ACLoginDeniedPacket(2));
     }
 }

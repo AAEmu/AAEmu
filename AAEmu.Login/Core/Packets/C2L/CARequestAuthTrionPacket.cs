@@ -1,16 +1,14 @@
 ﻿using System.Xml.Linq;
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
-using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
 public class CARequestAuthTrionPacket() : LoginPacket(CLOffsets.CARequestAuthTrionPacket)
 {
-    private string? _username;
-    private string? _password;
-    
+    public string? Username { get; private set; }
+    public string? Password { get; private set; }
+
     public override void Read(PacketStream stream)
     {
         var pFrom = stream.ReadUInt32();
@@ -38,13 +36,7 @@ public class CARequestAuthTrionPacket() : LoginPacket(CLOffsets.CARequestAuthTri
             return;
         }
         
-        _username = username;
-        _password = password;
-    }
-
-    public override void Execute()
-    {
-        var token = Helpers.StringToByteArray(_password!);
-        LoginController.Login(Connection, _username!, token);
+        Username = username;
+        Password = password;
     }
 }

@@ -1,6 +1,11 @@
 ﻿using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Login.Core.Controllers;
+using AAEmu.Login.Core.Network.Connections;
+using AAEmu.Login.Core.Network.Internal;
+using AAEmu.Login.Core.Network.Login;
+using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,19 +49,29 @@ public static class Program
             return;
         }
 
-        var builder = new HostBuilder()
-            .ConfigureAppConfiguration((hostingContext, config) =>
-            {
-                config.AddEnvironmentVariables();
-                config.AddCommandLine(args);
-            })
-            .ConfigureServices((hostContext, services) =>
-            {
-                services.AddOptions();
-                services.AddSingleton<IHostedService, LoginService>();
-            });
+        var builder = Host.CreateApplicationBuilder(args);
+        builder.Configuration.AddEnvironmentVariables();
 
-        await builder.RunConsoleAsync();
+        // Configure services
+        builder.Services.AddOptions();
+        builder.Services.AddHostedService<LoginService>();
+        
+        builder.Services.AddSingleton<IGameController, GameController>();
+        builder.Services.AddSingleton<ILoginController, LoginController>();
+        builder.Services.AddSingleton<IRequestController, RequestController>();
+
+        builder.Services.AddSingleton<IInternalProtocolHandler, InternalProtocolHandler>();
+        builder.Services.AddSingleton<IInternalConnectionTable, InternalConnectionTable>();
+        builder.Services.AddSingleton<IInternalNetwork, InternalNetwork>();
+        builder.Services.AddSingleton<ILoginProtocolHandler, LoginProtocolHandler>();
+        builder.Services.AddSingleton<ILoginConnectionTable, LoginConnectionTable>();
+        builder.Services.AddSingleton<ILoginNetwork, LoginNetwork>();
+
+        builder.Services.AddInternalPacketHandlers();
+        builder.Services.AddLoginPacketHandlers();
+        
+        var app = builder.Build();
+        await app.RunAsync();
     }
 
     private static bool LoadConfiguration(string[] args)

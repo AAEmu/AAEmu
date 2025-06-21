@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.L2C;
@@ -10,7 +9,7 @@ using NLog;
 
 namespace AAEmu.Login.Core.Controllers;
 
-public class LoginController : Singleton<LoginController>
+public class LoginController(IGameController gameController) : ILoginController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static readonly bool _autoAccount = AppConfiguration.Instance.AutoAccount;
@@ -21,7 +20,7 @@ public class LoginController : Singleton<LoginController>
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="username"></param>
-    public static void Login(LoginConnection connection, string username)
+    public void Login(LoginConnection connection, string username)
     {
         using var connect = MySQL.CreateConnection();
         using var command = connect.CreateCommand();
@@ -67,7 +66,7 @@ public class LoginController : Singleton<LoginController>
     /// <param name="connection"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
-    public static void Login(LoginConnection connection, string username, ReadOnlySpan<byte> password)
+    public void Login(LoginConnection connection, string username, ReadOnlySpan<byte> password)
     {
         using var connect = MySQL.CreateConnection();
         using var command = connect.CreateCommand();
@@ -130,7 +129,7 @@ public class LoginController : Singleton<LoginController>
         # endregion
     }
 
-    public static void CreateAndLoginInvalid(LoginConnection connection, string username, ReadOnlySpan<byte> password, MySqlConnection connect)
+    public void CreateAndLoginInvalid(LoginConnection connection, string username, ReadOnlySpan<byte> password, MySqlConnection connect)
     {
         var pass = Convert.ToBase64String(password);
 
@@ -166,7 +165,7 @@ public class LoginController : Singleton<LoginController>
     {
         if (!_tokens.ContainsKey(gsId))
         {
-            if (GameController.Instance.TryGetParentId(gsId, out var parentId))
+            if (gameController.TryGetParentId(gsId, out var parentId))
                 gsId = parentId;
             else
             {

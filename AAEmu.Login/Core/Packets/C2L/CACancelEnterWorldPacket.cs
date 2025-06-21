@@ -5,8 +5,10 @@ namespace AAEmu.Login.Core.Packets.C2L;
 
 public class CACancelEnterWorldPacket() : LoginPacket(CLOffsets.CACancelEnterWorldPacket)
 {
+    public byte WorldId { get; private set; }
+    
     public override void Read(PacketStream stream)
     {
-        var wId = stream.ReadByte(); // diw -> world id
+        WorldId = stream.ReadByte(); // diw -> world id
     }
 }

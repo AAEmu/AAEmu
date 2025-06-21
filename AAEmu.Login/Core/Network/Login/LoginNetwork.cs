@@ -1,36 +1,49 @@
 ﻿using System.Net;
 using AAEmu.Commons.Network.Core;
-using AAEmu.Commons.Utils;
+using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Core.Packets.C2L;
 using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Login;
 
-public class LoginNetwork : Singleton<LoginNetwork>
+public class LoginNetwork : ILoginNetwork
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Server? _server;
-    private readonly LoginProtocolHandler _handler;
+    private readonly ILoginProtocolHandler _handler;
 
-    private LoginNetwork()
+    public LoginNetwork(ILoginProtocolHandler protocolHandler,
+        ILoginPacketHandler<CARequestAuthPacket> requestAuthPacketHandler,
+        ILoginPacketHandler<CARequestAuthTencentPacket> requestAuthTencentPacket,
+        ILoginPacketHandler<CARequestAuthGameOnPacket> requestAuthGameOnPacket,
+        ILoginPacketHandler<CARequestAuthTrionPacket> requestAuthTrionPacket,
+        ILoginPacketHandler<CARequestAuthMailRuPacket> requestAuthMailRuPacket,
+        ILoginPacketHandler<CAChallengeResponsePacket> challengeResponsePacket,
+        ILoginPacketHandler<CAChallengeResponse2Packet> challengeResponse2Packet,
+        ILoginPacketHandler<CAOtpNumberPacket> otpNumberPacket,
+        ILoginPacketHandler<CAPcCertNumberPacket> pcCertNumberPacket,
+        ILoginPacketHandler<CAListWorldPacket> listWorldPacket,
+        ILoginPacketHandler<CAEnterWorldPacket> enterWorldPacket,
+        ILoginPacketHandler<CACancelEnterWorldPacket> cancelEnterWorldPacket,
+        ILoginPacketHandler<CARequestReconnectPacket> requestReconnectPacket)
     {
-        _handler = new LoginProtocolHandler();
+        _handler = protocolHandler;
 
-        RegisterPacket(CLOffsets.CARequestAuthPacket, typeof(CARequestAuthPacket));
-        RegisterPacket(CLOffsets.CARequestAuthTencentPacket, typeof(CARequestAuthTencentPacket));
-        RegisterPacket(CLOffsets.CARequestAuthGameOnPacket, typeof(CARequestAuthGameOnPacket));
-        RegisterPacket(CLOffsets.CARequestAuthTrionPacket, typeof(CARequestAuthTrionPacket));
-        RegisterPacket(CLOffsets.CARequestAuthMailRuPacket, typeof(CARequestAuthMailRuPacket));
-        RegisterPacket(CLOffsets.CAChallengeResponsePacket, typeof(CAChallengeResponsePacket));
-        RegisterPacket(CLOffsets.CAChallengeResponse2Packet, typeof(CAChallengeResponse2Packet));
-        RegisterPacket(CLOffsets.CAOtpNumberPacket, typeof(CAOtpNumberPacket));
-        RegisterPacket(CLOffsets.CAPcCertNumberPacket, typeof(CAPcCertNumberPacket));
-        RegisterPacket(CLOffsets.CAListWorldPacket, typeof(CAListWorldPacket));
-        RegisterPacket(CLOffsets.CAEnterWorldPacket, typeof(CAEnterWorldPacket));
-        RegisterPacket(CLOffsets.CACancelEnterWorldPacket, typeof(CACancelEnterWorldPacket));
-        RegisterPacket(CLOffsets.CARequestReconnectPacket, typeof(CARequestReconnectPacket));
+        RegisterPacket(CLOffsets.CARequestAuthPacket, requestAuthPacketHandler);
+        RegisterPacket(CLOffsets.CARequestAuthTencentPacket, requestAuthTencentPacket);
+        RegisterPacket(CLOffsets.CARequestAuthGameOnPacket, requestAuthGameOnPacket);
+        RegisterPacket(CLOffsets.CARequestAuthTrionPacket, requestAuthTrionPacket);
+        RegisterPacket(CLOffsets.CARequestAuthMailRuPacket, requestAuthMailRuPacket);
+        RegisterPacket(CLOffsets.CAChallengeResponsePacket, challengeResponsePacket);
+        RegisterPacket(CLOffsets.CAChallengeResponse2Packet, challengeResponse2Packet);
+        RegisterPacket(CLOffsets.CAOtpNumberPacket, otpNumberPacket);
+        RegisterPacket(CLOffsets.CAPcCertNumberPacket, pcCertNumberPacket);
+        RegisterPacket(CLOffsets.CAListWorldPacket, listWorldPacket);
+        RegisterPacket(CLOffsets.CAEnterWorldPacket, enterWorldPacket);
+        RegisterPacket(CLOffsets.CACancelEnterWorldPacket, cancelEnterWorldPacket);
+        RegisterPacket(CLOffsets.CARequestReconnectPacket, requestReconnectPacket);
     }
 
     public void Start()
@@ -51,8 +64,6 @@ public class LoginNetwork : Singleton<LoginNetwork>
         Logger.Info("Network stopped");
     }
 
-    private void RegisterPacket(uint type, Type classType)
-    {
-        _handler.RegisterPacket(type, classType);
-    }
+    private void RegisterPacket<TPacket>(uint type, ILoginPacketHandler<TPacket> packetHandler)
+        where TPacket : LoginPacket => _handler.RegisterPacket(type, packetHandler);
 }

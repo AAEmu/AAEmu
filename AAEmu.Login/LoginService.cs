@@ -9,7 +9,11 @@ using NLog;
 
 namespace AAEmu.Login;
 
-public sealed class LoginService : IHostedService, IDisposable
+public sealed class LoginService(
+    IGameController gameController,
+    IRequestController requestController,
+    IInternalNetwork internalNetwork,
+    ILoginNetwork loginNetwork) : IHostedService, IDisposable
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -19,25 +23,27 @@ public sealed class LoginService : IHostedService, IDisposable
         // Check for updates
         using (var connection = MySQL.CreateConnection())
         {
-            if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login", AppConfiguration.Instance.Connections.MySQLProvider.Database))
+            if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login",
+                    AppConfiguration.Instance.Connections.MySQLProvider.Database))
             {
                 Logger.Fatal("Failed up update database !");
                 Logger.Fatal("Press Ctrl+C to quit");
                 return Task.CompletedTask;
             }
         }
-        RequestController.Instance.Initialize();
-        GameController.Instance.Load();
-        LoginNetwork.Instance.Start();
-        InternalNetwork.Instance.Start();
+
+        requestController.Initialize();
+        gameController.Load();
+        loginNetwork.Start();
+        internalNetwork.Start();
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
         Logger.Info("Stopping daemon.");
-        LoginNetwork.Instance?.Stop();
-        InternalNetwork.Instance?.Stop();
+        loginNetwork.Stop();
+        internalNetwork.Stop();
         return Task.CompletedTask;
     }
 

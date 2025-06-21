@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
@@ -12,7 +11,7 @@ using NLog;
 
 namespace AAEmu.Login.Core.Controllers;
 
-public class GameController : Singleton<GameController>
+public class GameController(IRequestController requestController) : IGameController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly ConcurrentDictionary<GameServerId, GameServer> _gameServers = [];
@@ -130,20 +129,20 @@ public class GameController : Singleton<GameController>
         if (_gameServers.Values.Any(x => x.Active))
         {
             var (requestIds, creationTask) =
-                RequestController.Instance.Create(gameServers.Count, 20000); // TODO Request 20s
+                requestController.Create(gameServers.Count, 20000); // TODO Request 20s
             for (var i = 0; i < gameServers.Count; i++)
             {
                 var value = gameServers[i];
                 if (!value.Active)
                 {
-                    RequestController.Instance.ReleaseId(requestIds[i]);
+                    requestController.ReleaseId(requestIds[i]);
                     continue;
                 }
 
                 var loaded = connection.Characters.ContainsKey(value.Id);
                 if (loaded)
                 {
-                    RequestController.Instance.ReleaseId(requestIds[i]);
+                    requestController.ReleaseId(requestIds[i]);
                     continue;
                 }
 

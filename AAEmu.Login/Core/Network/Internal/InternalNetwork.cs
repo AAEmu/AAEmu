@@ -1,28 +1,33 @@
 ﻿using System.Net;
 using AAEmu.Commons.Network.Core;
-using AAEmu.Commons.Utils;
+using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Core.Packets.G2L;
 using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Internal;
 
-public class InternalNetwork : Singleton<InternalNetwork>
+public class InternalNetwork : IInternalNetwork
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Server? _server;
-    private readonly InternalProtocolHandler _handler;
+    private readonly IInternalProtocolHandler _handler;
 
-    public InternalNetwork()
+    public InternalNetwork(IInternalProtocolHandler protocolHandler,
+        IInternalPacketHandler<GLRegisterGameServerPacket> registerGameServerPacketHandler,
+        IInternalPacketHandler<GLPlayerEnterPacket> playerEnterPacketHandler,
+        IInternalPacketHandler<GLPlayerReconnectPacket> playerReconnectPacketHandler,
+        IInternalPacketHandler<GLRequestInfoPacket> requestInfoPacketHandler,
+        IInternalPacketHandler<GLGameServerLoadPacket> gameServerLoadPacketHandler)
     {
-        _handler = new InternalProtocolHandler();
+        _handler = protocolHandler;
 
-        RegisterPacket(GLOffsets.GLRegisterGameServerPacket, typeof(GLRegisterGameServerPacket));
-        RegisterPacket(GLOffsets.GLPlayerEnterPacket, typeof(GLPlayerEnterPacket));
-        RegisterPacket(GLOffsets.GLPlayerReconnectPacket, typeof(GLPlayerReconnectPacket));
-        RegisterPacket(GLOffsets.GLRequestInfoPacket, typeof(GLRequestInfoPacket));
-        RegisterPacket(GLOffsets.GLGameServerLoadPacket, typeof(GLGameServerLoadPacket));
+        RegisterPacket(GLOffsets.GLRegisterGameServerPacket, registerGameServerPacketHandler);
+        RegisterPacket(GLOffsets.GLPlayerEnterPacket, playerEnterPacketHandler);
+        RegisterPacket(GLOffsets.GLPlayerReconnectPacket, playerReconnectPacketHandler);
+        RegisterPacket(GLOffsets.GLRequestInfoPacket, requestInfoPacketHandler);
+        RegisterPacket(GLOffsets.GLGameServerLoadPacket, gameServerLoadPacketHandler);
     }
 
     public void Start()
@@ -45,8 +50,6 @@ public class InternalNetwork : Singleton<InternalNetwork>
         Logger.Info("InternalNetwork stoped");
     }
 
-    public void RegisterPacket(uint type, Type classType)
-    {
-        _handler.RegisterPacket(type, classType);
-    }
+    private void RegisterPacket<TPacket>(uint type, IInternalPacketHandler<TPacket> packetHandler)
+        where TPacket : InternalPacket => _handler.RegisterPacket(type, packetHandler);
 }

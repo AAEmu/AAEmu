@@ -1,9 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using AAEmu.Commons.Utils;
 
 namespace AAEmu.Login.Core.Network.Connections;
 
-public class InternalConnectionTable : Singleton<InternalConnectionTable>
+public class InternalConnectionTable : IInternalConnectionTable
 {
     private readonly ConcurrentDictionary<uint, InternalConnection> _connections = [];
 

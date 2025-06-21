@@ -1,10 +1,9 @@
 ﻿using System.Collections.Concurrent;
-using AAEmu.Commons.Utils;
 using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Network.Connections;
 
-public class LoginConnectionTable : Singleton<LoginConnectionTable>
+public class LoginConnectionTable : ILoginConnectionTable
 {
     private readonly ConcurrentDictionary<ConnectionId, LoginConnection> _connections = [];
 

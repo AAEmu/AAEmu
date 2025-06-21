@@ -5,16 +5,17 @@ using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Connections;
+using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Login;
 
-public class LoginProtocolHandler : BaseProtocolHandler
+public class LoginProtocolHandler(ILoginConnectionTable loginConnectionTable) : BaseProtocolHandler, ILoginProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly ConcurrentDictionary<uint, Type> _packets = [];
+    private readonly ConcurrentDictionary<uint, (Type Type, ILoginPacketHandler PacketHandler)> _packets = [];
 
     public override void OnConnect(ISession session)
     {
@@ -23,7 +24,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
         {
             var con = new LoginConnection(session);
             LoginConnection.OnConnect();
-            LoginConnectionTable.Instance.AddConnection(con);
+            loginConnectionTable.AddConnection(con);
         }
         catch (Exception e)
         {
@@ -41,9 +42,9 @@ public class LoginProtocolHandler : BaseProtocolHandler
         }
         try
         {
-            var con = LoginConnectionTable.Instance.GetConnection(new ConnectionId(session.SessionId));
+            var con = loginConnectionTable.GetConnection(new ConnectionId(session.SessionId));
             if (con != null)
-                LoginConnectionTable.Instance.RemoveConnection(new ConnectionId(session.SessionId));
+                loginConnectionTable.RemoveConnection(new ConnectionId(session.SessionId));
         }
         catch (Exception e)
         {
@@ -58,7 +59,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
     {
         try
         {
-            var connection = LoginConnectionTable.Instance.GetConnection(new ConnectionId(session.SessionId));
+            var connection = loginConnectionTable.GetConnection(new ConnectionId(session.SessionId));
             if (connection == null)
                 return;
             OnReceive(connection, buf, offset, bytes);
@@ -115,17 +116,26 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
                     stream2.ReadUInt16(); //len
                     var type = stream2.ReadUInt16();
-                    _packets.TryGetValue(type, out var classType);
-                    if (classType == null)
+                    if (!_packets.TryGetValue(type, out var tuple))
                     {
                         HandleUnknownPacket(connection, type, stream2);
                     }
                     else
                     {
+                        var (classType, packetHandler) = tuple;
                         var packet = (LoginPacket)Activator.CreateInstance(classType)!;
                         packet.Connection = connection;
                         packet.Decode(stream2);
-                        packet.Execute();
+                        
+                        try
+                        {
+                            packetHandler.Execute(packet, connection);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Error("Error on execute packet {0}", type);
+                            Logger.Error(e);
+                        }
                     }
                 }
                 else
@@ -143,12 +153,12 @@ public class LoginProtocolHandler : BaseProtocolHandler
         }
     }
 
-    public void RegisterPacket(uint type, Type classType)
+    public void RegisterPacket<TPacket>(uint type, ILoginPacketHandler<TPacket> packetHandler) where TPacket : LoginPacket
     {
-        if (_packets.ContainsKey(type))
-            _packets.TryRemove(type, out _);
-
-        _packets.TryAdd(type, classType);
+        _packets.AddOrUpdate(type,
+            addValueFactory: static (_, arg) => arg,
+            updateValueFactory: static (_, _, arg) => arg,
+            factoryArgument: (typeof(TPacket), packetHandler));
     }
 
     private static void HandleUnknownPacket(LoginConnection connection, uint type, PacketStream stream)

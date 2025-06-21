@@ -5,19 +5,13 @@ using NLog;
 
 namespace AAEmu.Commons.Network.Core;
 
-public class Server : TcpServer
+public class Server(IPAddress address, int port, IBaseProtocolHandler protocolHandler)
+    : TcpServer(address, port)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private BaseProtocolHandler _protocolHandler;
     private readonly HashSet<Session> _sessions = [];
 
-    public BaseProtocolHandler GetHandler() => _protocolHandler;
-
-    public Server(IPAddress address, int port, BaseProtocolHandler protocolHandler)
-        : base(address, port)
-    {
-        _protocolHandler = protocolHandler;
-    }
+    public IBaseProtocolHandler GetHandler() => protocolHandler;
 
     protected override TcpSession CreateSession() => new Session(this);
 

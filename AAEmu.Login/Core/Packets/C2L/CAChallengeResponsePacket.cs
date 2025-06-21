@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
-using AAEmu.Login.Core.Packets.L2C;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
@@ -12,10 +11,5 @@ public class CAChallengeResponsePacket() : LoginPacket(CLOffsets.CAChallengeResp
             stream.ReadUInt32(); // responses
         var password = stream.ReadBytes(); // TODO or bytes? length 32
         var bytes = Convert.FromBase64String("jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI=");
-    }
-
-    public override void Execute()
-    {
-        Connection.SendPacket(new ACLoginDeniedPacket(3));
     }
 }

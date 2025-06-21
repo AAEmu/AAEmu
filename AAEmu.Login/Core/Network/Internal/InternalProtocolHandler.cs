@@ -6,16 +6,18 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
+using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Internal;
 
-public class InternalProtocolHandler : BaseProtocolHandler
+public class InternalProtocolHandler(IGameController gameController, IInternalConnectionTable internalConnectionTable)
+    : BaseProtocolHandler, IInternalProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly ConcurrentDictionary<uint, Type> _packets = [];
+    private readonly ConcurrentDictionary<uint, (Type Type, IInternalPacketHandler PacketHandler)> _packets = [];
 
     public override void OnConnect(ISession session)
     {
@@ -23,21 +25,20 @@ public class InternalProtocolHandler : BaseProtocolHandler
             session.SessionId.ToString(CultureInfo.InvariantCulture));
         var con = new InternalConnection(session);
         InternalConnection.OnConnect();
-        InternalConnectionTable.Instance.AddConnection(con);
+        internalConnectionTable.AddConnection(con);
     }
 
     public override void OnDisconnect(ISession session)
     {
         Logger.Info("GameServer from {0} disconnected", session.Ip.ToString());
-        var gsId = session.GetAttribute("gsId");
-        if (gsId != null)
-            GameController.Instance.Remove((GameServerId)gsId);
-        InternalConnectionTable.Instance.RemoveConnection(session.SessionId);
+        if (session.GetAttribute("gsId") is { } gsId)
+            gameController.Remove((GameServerId)gsId);
+        internalConnectionTable.RemoveConnection(session.SessionId);
     }
 
     public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
-        var connection = InternalConnectionTable.Instance.GetConnection(session.SessionId);
+        var connection = internalConnectionTable.GetConnection(session.SessionId);
         if (connection == null)
         {
             Logger.Error("Connection not found for session {0}", session.SessionId);
@@ -85,13 +86,13 @@ public class InternalProtocolHandler : BaseProtocolHandler
 
                 stream2.ReadUInt16();
                 var type = stream2.ReadUInt16();
-                _packets.TryGetValue(type, out var classType);
-                if (classType == null)
+                if (!_packets.TryGetValue(type, out var tuple))
                 {
-                    HandleUnknownPacket(session, type, stream2);
+                    HandleUnknownPacket(session, type, stream2); 
                 }
                 else
                 {
+                    var (classType, packetHandler) = tuple;
                     try
                     {
                         var packet = (InternalPacket)Activator.CreateInstance(classType)!;
@@ -100,7 +101,7 @@ public class InternalProtocolHandler : BaseProtocolHandler
 
                         try
                         {
-                            packet.Execute();
+                            packetHandler.Execute(packet, connection);
                         }
                         catch (Exception e)
                         {
@@ -124,12 +125,12 @@ public class InternalProtocolHandler : BaseProtocolHandler
         }
     }
 
-    public void RegisterPacket(uint type, Type classType)
+    public void RegisterPacket<TPacket>(uint type, IInternalPacketHandler<TPacket> packetHandler) where TPacket : InternalPacket
     {
-        if (_packets.ContainsKey(type))
-            _packets.TryRemove(type, out _);
-
-        _packets.TryAdd(type, classType);
+        _packets.AddOrUpdate(type,
+            addValueFactory: static (_, arg) => arg,
+            updateValueFactory: static (_, _, arg) => arg,
+            factoryArgument: (typeof(TPacket), packetHandler));
     }
 
     private static void HandleUnknownPacket(ISession session, uint type, PacketStream stream)

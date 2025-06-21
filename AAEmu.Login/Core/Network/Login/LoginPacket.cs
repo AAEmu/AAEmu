@@ -35,10 +35,4 @@ public abstract class LoginPacket(ushort typeId) : PacketBase<LoginConnection>(t
 
         return this;
     }
-    
-    /// <summary>
-    /// This is called after <see cref="Decode"/>.
-    /// The purpose is to separate packet data from packet behavior.
-    /// </summary>
-    public virtual void Execute() { }
 }

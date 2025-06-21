@@ -20,7 +20,7 @@ public class Session : TcpSession, ISession
 {
     private readonly Dictionary<string, object> _attributes = [];
 
-    public BaseProtocolHandler ProtocolHandler { get; private set; }
+    public IBaseProtocolHandler ProtocolHandler { get; private set; }
     public IPEndPoint RemoteEndPoint { get; private set; }
     public uint SessionId { get; private set; }
     public IPAddress Ip { get; private set; }
