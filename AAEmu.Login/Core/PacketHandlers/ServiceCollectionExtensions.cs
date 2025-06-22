@@ -1,4 +1,4 @@
-﻿using AAEmu.Login.Core.Network;
+﻿using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.PacketHandlers.G2L;
@@ -12,11 +12,12 @@ public static class ServiceCollectionExtensions
 {
     public static void AddInternalPacketHandlers(this IServiceCollection services)
     {
-        services.AddSingleton<IInternalPacketHandler<GLRegisterGameServerPacket>, GLRegisterGameServerPacketHandler>();
-        services.AddSingleton<IInternalPacketHandler<GLRequestInfoPacket>, GLRequestInfoPacketHandler>();
-        services.AddSingleton<IInternalPacketHandler<GLPlayerReconnectPacket>, GLPlayerReconnectPacketHandler>();
-        services.AddSingleton<IInternalPacketHandler<GLPlayerEnterPacket>, GLPlayerEnterPacketHandler>();
-        services.AddSingleton<IInternalPacketHandler<GLGameServerLoadPacket>, GLGameServerLoadPacketHandler>();
+        services
+            .AddInternalPacket<GLRegisterGameServerPacket, GLRegisterGameServerPacketHandler>()
+            .AddInternalPacket<GLRequestInfoPacket, GLRequestInfoPacketHandler>()
+            .AddInternalPacket<GLPlayerReconnectPacket, GLPlayerReconnectPacketHandler>()
+            .AddInternalPacket<GLPlayerEnterPacket, GLPlayerEnterPacketHandler>()
+            .AddInternalPacket<GLGameServerLoadPacket, GLGameServerLoadPacketHandler>();
     }
 
     public static void AddLoginPacketHandlers(this IServiceCollection services)
@@ -36,7 +37,7 @@ public static class ServiceCollectionExtensions
             .AddLoginPacket<CARequestAuthTrionPacket, CARequestAuthTrionPacketHandler>()
             .AddLoginPacket<CARequestReconnectPacket, CARequestReconnectPacketHandler>();
     }
-    
+
     private static IServiceCollection AddLoginPacket<TPacket, TPacketHandler>(
         this IServiceCollection services)
         where TPacket : LoginPacket, ILoginPacket, new()
@@ -47,6 +48,21 @@ public static class ServiceCollectionExtensions
         {
             var handler = sp.GetRequiredService<ILoginPacketHandler<TPacket>>();
             return new LoginPacketDescriptor<TPacket>(TPacket.TypeId, handler);
+        });
+
+        return services;
+    }
+
+    private static IServiceCollection AddInternalPacket<TPacket, TPacketHandler>(
+        this IServiceCollection services)
+        where TPacket : InternalPacket, IInternalPacket, new()
+        where TPacketHandler : class, IInternalPacketHandler<TPacket>
+    {
+        services.AddSingleton<IInternalPacketHandler<TPacket>, TPacketHandler>();
+        services.AddSingleton<IInternalPacketDescriptor>(sp =>
+        {
+            var handler = sp.GetRequiredService<IInternalPacketHandler<TPacket>>();
+            return new InternalPacketDescriptor<TPacket>(TPacket.TypeId, handler);
         });
 
         return services;

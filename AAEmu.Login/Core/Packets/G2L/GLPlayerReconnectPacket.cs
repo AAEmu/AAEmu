@@ -4,8 +4,10 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.G2L;
 
-public class GLPlayerReconnectPacket() : InternalPacket(GLOffsets.GLPlayerReconnectPacket)
+public class GLPlayerReconnectPacket() : InternalPacket(TypeId), IInternalPacket
 {
+    public new static ushort TypeId => GLOffsets.GLPlayerReconnectPacket;
+    
     public GameServerId GsId { get; private set; }
     public AccountId AccountId { get; private set; }
     public uint Token { get; private set; }

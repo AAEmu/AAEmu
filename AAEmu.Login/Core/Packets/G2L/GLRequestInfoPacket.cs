@@ -5,8 +5,10 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.G2L;
 
-public class GLRequestInfoPacket() : InternalPacket(GLOffsets.GLRequestInfoPacket)
+public class GLRequestInfoPacket() : InternalPacket(TypeId), IInternalPacket
 {
+    public new static ushort TypeId => GLOffsets.GLRequestInfoPacket;
+    
     public ConnectionId ConnectionId { get; private set; }
     public uint RequestId { get; private set; }
     public List<LoginCharacterInfo>? Characters { get; private set; }

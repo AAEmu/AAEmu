@@ -6,18 +6,21 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
-using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Internal;
 
-public class InternalProtocolHandler(IGameController gameController, IInternalConnectionTable internalConnectionTable)
+public class InternalProtocolHandler(
+    IEnumerable<IInternalPacketDescriptor> packetDescriptors,
+    IGameController gameController,
+    IInternalConnectionTable internalConnectionTable)
     : BaseProtocolHandler, IInternalProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly ConcurrentDictionary<uint, (Type Type, IInternalPacketHandler PacketHandler)> _packets = [];
+    private readonly ConcurrentDictionary<ushort, IInternalPacketDescriptor> _packets =
+        new(packetDescriptors.ToDictionary(d => d.TypeId));
 
     public override void OnConnect(ISession session)
     {
@@ -44,7 +47,7 @@ public class InternalProtocolHandler(IGameController gameController, IInternalCo
             Logger.Error("Connection not found for session {0}", session.SessionId);
             return;
         }
-        
+
         var stream = new PacketStream();
         if (connection.LastPacket != null)
         {
@@ -86,33 +89,19 @@ public class InternalProtocolHandler(IGameController gameController, IInternalCo
 
                 stream2.ReadUInt16();
                 var type = stream2.ReadUInt16();
-                if (!_packets.TryGetValue(type, out var tuple))
+                if (!_packets.TryGetValue(type, out var packetDescriptor))
                 {
-                    HandleUnknownPacket(session, type, stream2); 
+                    HandleUnknownPacket(session, type, stream2);
                 }
                 else
                 {
-                    var (classType, packetHandler) = tuple;
                     try
                     {
-                        var packet = (InternalPacket)Activator.CreateInstance(classType)!;
-                        packet.Connection = connection;
-                        packet.Decode(stream2);
-
-                        try
-                        {
-                            packetHandler.Execute(packet, connection);
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Error("Error on execute packet {0}", type);
-                            Logger.Error(e);
-                        }
+                        packetDescriptor.Dispatch(stream2, connection);
                     }
                     catch (Exception e)
                     {
-                        Logger.Error("Error on decode packet {0}", type);
-                        Logger.Error(e);
+                        Logger.Error(e, "Error on packet dispatch {0}", type);
                     }
                 }
             }
@@ -125,19 +114,11 @@ public class InternalProtocolHandler(IGameController gameController, IInternalCo
         }
     }
 
-    public void RegisterPacket<TPacket>(uint type, IInternalPacketHandler<TPacket> packetHandler) where TPacket : InternalPacket
-    {
-        _packets.AddOrUpdate(type,
-            addValueFactory: static (_, arg) => arg,
-            updateValueFactory: static (_, _, arg) => arg,
-            factoryArgument: (typeof(TPacket), packetHandler));
-    }
-
     private static void HandleUnknownPacket(ISession session, uint type, PacketStream stream)
     {
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
-            dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
+            dump.Append($"{stream.Buffer[i]:x2} ");
         Logger.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", type, session.Ip, dump);
     }
 }

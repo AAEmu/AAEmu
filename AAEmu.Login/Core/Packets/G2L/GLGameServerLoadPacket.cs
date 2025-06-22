@@ -4,8 +4,10 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.G2L;
 
-public class GLGameServerLoadPacket() : InternalPacket(GLOffsets.GLGameServerLoadPacket)
+public class GLGameServerLoadPacket() : InternalPacket(TypeId), IInternalPacket
 {
+    public new static ushort TypeId => GLOffsets.GLGameServerLoadPacket;
+    
     public GSLoad Load { get; private set; }
 
     public override void Read(PacketStream stream)

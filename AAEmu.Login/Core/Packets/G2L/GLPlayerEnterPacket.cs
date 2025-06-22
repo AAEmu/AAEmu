@@ -4,8 +4,10 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.G2L;
 
-public class GLPlayerEnterPacket() : InternalPacket(GLOffsets.GLPlayerEnterPacket)
+public class GLPlayerEnterPacket() : InternalPacket(TypeId), IInternalPacket
 {
+    public new static ushort TypeId => GLOffsets.GLPlayerEnterPacket;
+    
     public ConnectionId ConnectionId { get; private set; }
     public GameServerId GsId { get; private set; }
     public byte Result { get; private set; }
