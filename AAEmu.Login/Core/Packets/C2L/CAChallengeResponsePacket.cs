@@ -3,8 +3,10 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CAChallengeResponsePacket() : LoginPacket(CLOffsets.CAChallengeResponsePacket)
+public class CAChallengeResponsePacket() : LoginPacket(TypeId), ILoginPacket
 {
+    public new static ushort TypeId => CLOffsets.CAChallengeResponsePacket;
+    
     public override void Read(PacketStream stream)
     {
         for (var i = 0; i < 4; i++)

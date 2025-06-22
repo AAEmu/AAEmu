@@ -4,8 +4,10 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CARequestReconnectPacket() : LoginPacket(CLOffsets.CARequestReconnectPacket)
+public class CARequestReconnectPacket() : LoginPacket(TypeId), ILoginPacket
 {
+    public new static ushort TypeId => CLOffsets.CARequestReconnectPacket;
+    
     public GameServerId GsId { get; private set; }
     public AccountId AccountId { get; private set; }
     public uint Cookie { get; private set; }

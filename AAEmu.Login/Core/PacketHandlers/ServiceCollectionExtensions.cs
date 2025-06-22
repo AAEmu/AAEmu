@@ -1,4 +1,6 @@
-﻿using AAEmu.Login.Core.PacketHandlers.C2L;
+﻿using AAEmu.Login.Core.Network;
+using AAEmu.Login.Core.Network.Login;
+using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.PacketHandlers.G2L;
 using AAEmu.Login.Core.Packets.C2L;
 using AAEmu.Login.Core.Packets.G2L;
@@ -16,21 +18,37 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IInternalPacketHandler<GLPlayerEnterPacket>, GLPlayerEnterPacketHandler>();
         services.AddSingleton<IInternalPacketHandler<GLGameServerLoadPacket>, GLGameServerLoadPacketHandler>();
     }
-    
+
     public static void AddLoginPacketHandlers(this IServiceCollection services)
     {
-        services.AddSingleton<ILoginPacketHandler<CACancelEnterWorldPacket>, CACancelEnterWorldPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CAChallengeResponse2Packet>, CAChallengeResponse2PacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CAChallengeResponsePacket>, CAChallengeResponsePacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CAEnterWorldPacket>, CAEnterWorldPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CAListWorldPacket>, CAListWorldPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CAOtpNumberPacket>, CAOtpNumberPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CAPcCertNumberPacket>, CAPcCertNumberPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CARequestAuthGameOnPacket>, CARequestAuthGameOnPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CARequestAuthMailRuPacket>, CARequestAuthMailRuPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CARequestAuthPacket>, CARequestAuthPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CARequestAuthTencentPacket>, CARequestAuthTencentPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CARequestAuthTrionPacket>, CARequestAuthTrionPacketHandler>();
-        services.AddSingleton<ILoginPacketHandler<CARequestReconnectPacket>, CARequestReconnectPacketHandler>();
+        services
+            .AddLoginPacket<CACancelEnterWorldPacket, CACancelEnterWorldPacketHandler>()
+            .AddLoginPacket<CAChallengeResponse2Packet, CAChallengeResponse2PacketHandler>()
+            .AddLoginPacket<CAChallengeResponsePacket, CAChallengeResponsePacketHandler>()
+            .AddLoginPacket<CAEnterWorldPacket, CAEnterWorldPacketHandler>()
+            .AddLoginPacket<CAListWorldPacket, CAListWorldPacketHandler>()
+            .AddLoginPacket<CAOtpNumberPacket, CAOtpNumberPacketHandler>()
+            .AddLoginPacket<CAPcCertNumberPacket, CAPcCertNumberPacketHandler>()
+            .AddLoginPacket<CARequestAuthGameOnPacket, CARequestAuthGameOnPacketHandler>()
+            .AddLoginPacket<CARequestAuthMailRuPacket, CARequestAuthMailRuPacketHandler>()
+            .AddLoginPacket<CARequestAuthPacket, CARequestAuthPacketHandler>()
+            .AddLoginPacket<CARequestAuthTencentPacket, CARequestAuthTencentPacketHandler>()
+            .AddLoginPacket<CARequestAuthTrionPacket, CARequestAuthTrionPacketHandler>()
+            .AddLoginPacket<CARequestReconnectPacket, CARequestReconnectPacketHandler>();
+    }
+    
+    private static IServiceCollection AddLoginPacket<TPacket, TPacketHandler>(
+        this IServiceCollection services)
+        where TPacket : LoginPacket, ILoginPacket, new()
+        where TPacketHandler : class, ILoginPacketHandler<TPacket>
+    {
+        services.AddSingleton<ILoginPacketHandler<TPacket>, TPacketHandler>();
+        services.AddSingleton<ILoginPacketDescriptor>(sp =>
+        {
+            var handler = sp.GetRequiredService<ILoginPacketHandler<TPacket>>();
+            return new LoginPacketDescriptor<TPacket>(TPacket.TypeId, handler);
+        });
+
+        return services;
     }
 }

@@ -3,8 +3,10 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CARequestAuthPacket() : LoginPacket(CLOffsets.CARequestAuthPacket)
+public class CARequestAuthPacket() : LoginPacket(TypeId), ILoginPacket
 {
+    public new static ushort TypeId => CLOffsets.CARequestAuthPacket;
+    
     public string? Account { get; private set; }
 
     public override void Read(PacketStream stream)

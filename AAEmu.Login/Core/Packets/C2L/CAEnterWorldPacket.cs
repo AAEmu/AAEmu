@@ -4,8 +4,10 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CAEnterWorldPacket() : LoginPacket(CLOffsets.CAEnterWorldPacket)
+public class CAEnterWorldPacket() : LoginPacket(TypeId), ILoginPacket
 {
+    public new static ushort TypeId => CLOffsets.CAEnterWorldPacket;
+    
     public ulong Flag { get; private set; }
     public GameServerId GsId { get; private set; }
 

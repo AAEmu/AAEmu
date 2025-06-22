@@ -3,8 +3,10 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CAOtpNumberPacket() : LoginPacket(CLOffsets.CAOtpNumberPacket)
+public class CAOtpNumberPacket() : LoginPacket(TypeId), ILoginPacket
 {
+    public new static ushort TypeId => CLOffsets.CAOtpNumberPacket;
+    
     public override void Read(PacketStream stream)
     {
         var num = stream.ReadString(); // TODO but on old client length const 8

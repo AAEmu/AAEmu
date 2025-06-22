@@ -3,8 +3,10 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CARequestAuthMailRuPacket() : LoginPacket(CLOffsets.CARequestAuthMailRuPacket)
+public class CARequestAuthMailRuPacket() : LoginPacket(TypeId), ILoginPacket
 {
+    public new static ushort TypeId => CLOffsets.CARequestAuthMailRuPacket;
+    
     public string? Id { get; private set; }
     public byte[]? Token { get; private set; }
 

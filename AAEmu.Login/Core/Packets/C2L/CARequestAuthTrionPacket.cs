@@ -4,8 +4,10 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
-public class CARequestAuthTrionPacket() : LoginPacket(CLOffsets.CARequestAuthTrionPacket)
+public class CARequestAuthTrionPacket() : LoginPacket(TypeId), ILoginPacket
 {
+    public new static ushort TypeId => CLOffsets.CARequestAuthTrionPacket;
+    
     public string? Username { get; private set; }
     public string? Password { get; private set; }
 

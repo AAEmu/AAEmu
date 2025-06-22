@@ -5,17 +5,19 @@ using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Connections;
-using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Login;
 
-public class LoginProtocolHandler(ILoginConnectionTable loginConnectionTable) : BaseProtocolHandler, ILoginProtocolHandler
+public class LoginProtocolHandler(
+    IEnumerable<ILoginPacketDescriptor> packetDescriptors,
+    ILoginConnectionTable loginConnectionTable) : BaseProtocolHandler, ILoginProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly ConcurrentDictionary<uint, (Type Type, ILoginPacketHandler PacketHandler)> _packets = [];
+    private readonly ConcurrentDictionary<ushort, ILoginPacketDescriptor> _packets =
+        new(packetDescriptors.ToDictionary(d => d.TypeId));
 
     public override void OnConnect(ISession session)
     {
@@ -40,6 +42,7 @@ public class LoginProtocolHandler(ILoginConnectionTable loginConnectionTable) : 
             Logger.Error("Unexpected null Session");
             return;
         }
+
         try
         {
             var con = loginConnectionTable.GetConnection(new ConnectionId(session.SessionId));
@@ -116,25 +119,19 @@ public class LoginProtocolHandler(ILoginConnectionTable loginConnectionTable) : 
 
                     stream2.ReadUInt16(); //len
                     var type = stream2.ReadUInt16();
-                    if (!_packets.TryGetValue(type, out var tuple))
+                    if (!_packets.TryGetValue(type, out var packetDescriptor))
                     {
                         HandleUnknownPacket(connection, type, stream2);
                     }
                     else
                     {
-                        var (classType, packetHandler) = tuple;
-                        var packet = (LoginPacket)Activator.CreateInstance(classType)!;
-                        packet.Connection = connection;
-                        packet.Decode(stream2);
-                        
                         try
                         {
-                            packetHandler.Execute(packet, connection);
+                            packetDescriptor.Dispatch(stream2, connection);
                         }
                         catch (Exception e)
                         {
-                            Logger.Error("Error on execute packet {0}", type);
-                            Logger.Error(e);
+                            Logger.Error(e, "Error on packet dispatch {0}", type);
                         }
                     }
                 }
@@ -148,17 +145,9 @@ public class LoginProtocolHandler(ILoginConnectionTable loginConnectionTable) : 
         }
         catch (Exception e)
         {
-            connection?.Shutdown();
+            connection.Shutdown();
             Logger.Error(e);
         }
-    }
-
-    public void RegisterPacket<TPacket>(uint type, ILoginPacketHandler<TPacket> packetHandler) where TPacket : LoginPacket
-    {
-        _packets.AddOrUpdate(type,
-            addValueFactory: static (_, arg) => arg,
-            updateValueFactory: static (_, _, arg) => arg,
-            factoryArgument: (typeof(TPacket), packetHandler));
     }
 
     private static void HandleUnknownPacket(LoginConnection connection, uint type, PacketStream stream)

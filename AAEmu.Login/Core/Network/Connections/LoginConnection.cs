@@ -11,7 +11,7 @@ public class LoginConnection
 {
     private readonly ISession _session;
 
-    public ConnectionId Id => new ConnectionId(_session.SessionId);
+    public ConnectionId Id => new(_session.SessionId);
     public IPAddress Ip => _session.Ip;
     public InternalConnection? InternalConnection { get; set; }
     public PacketStream? LastPacket { get; set; }
