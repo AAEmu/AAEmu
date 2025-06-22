@@ -49,7 +49,7 @@ public class LoginController : Singleton<LoginController>
         #region update account
         command.Parameters.Clear();
         command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
-        command.Parameters.AddWithValue("@id", connection.AccountId);
+        command.Parameters.AddWithValue("@id", connection.AccountId.Value);
         command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
@@ -118,7 +118,7 @@ public class LoginController : Singleton<LoginController>
         #region update account
         command.Parameters.Clear();
         command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
-        command.Parameters.AddWithValue("@id", connection.AccountId);
+        command.Parameters.AddWithValue("@id", connection.AccountId.Value);
         command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
