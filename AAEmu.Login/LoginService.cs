@@ -4,6 +4,8 @@ using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
+using AAEmu.Login.Models.Database;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NLog;
@@ -15,11 +17,12 @@ public sealed class LoginService(
     IRequestController requestController,
     IInternalNetwork internalNetwork,
     ILoginNetwork loginNetwork,
-    IOptions<AppConfiguration> appConfig) : IHostedService, IDisposable
+    IOptions<AppConfiguration> appConfig,
+    IDbContextFactory<LoginDbContext> dbContextFactory) : IHostedService, IDisposable
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         Logger.Info("Starting daemon: AAEmu.Login");
         // Check for updates
@@ -30,15 +33,23 @@ public sealed class LoginService(
             {
                 Logger.Fatal("Failed up update database !");
                 Logger.Fatal("Press Ctrl+C to quit");
-                return Task.CompletedTask;
+                return;
             }
         }
+
+        // Apply EF Core migrations after the old-style updates
+        Logger.Debug("Performing EF Core migrations...");
+        await using (var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken))
+        {
+            // Ensure database is created and migrations are applied
+            await dbContext.Database.MigrateAsync(cancellationToken: cancellationToken);
+        }
+        Logger.Debug("EF Core migrations done");
 
         requestController.Initialize();
         gameController.Load();
         loginNetwork.Start();
         internalNetwork.Start();
-        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
