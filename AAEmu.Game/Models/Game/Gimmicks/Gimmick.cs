@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -32,15 +33,16 @@ public class Gimmick : Unit
     /// MoveZ
     /// </summary>
     public bool MoveDown { get; set; }
+    public bool isMoving { get; set; }
     public DateTime WaitTime { get; set; }
     public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
     public TimeSpan TotalLifeTime { get; set; } = TimeSpan.Zero;
     private TimeSpan LastLifeTime { get; set; } = TimeSpan.Zero;
-    private Vector3 LastPos { get; set; } = Vector3.Zero;
-    private Vector3 LastRot { get; set; } = Vector3.Zero;
+    internal Vector3 LastPos { get; set; } = Vector3.Zero;
+    internal Vector3 LastRot { get; set; } = Vector3.Zero;
     private bool SkillStarted { get; set; }
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
-    private readonly object _skillStartedLock = new(); 
+    private readonly object _skillStartedLock = new();
     public GimmickMovementHandler MovementHandler { get; set; }
 
     public void SetScale(float scale)
@@ -130,7 +132,7 @@ public class Gimmick : Unit
             return;
         DoGimmickSkill(Template?.SkillId ?? 0);
     }
-    
+
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCGimmicksCreatedPacket([this]));
@@ -177,41 +179,41 @@ public class Gimmick : Unit
         TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, skillCaster, this, skillCastTarget, skillObject), TimeSpan.FromMilliseconds(0));
         // var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
         // var skillResult = skill.Use(caster, skillCaster, skillCastTarget, null, true, out _);
-        
+
         BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"Gimmick {ObjId} used skill {skillId}"), false);
     }
-    
+
     public void GimmickTick(TimeSpan delta)
     {
         LastLifeTime = TotalLifeTime;
         TotalLifeTime += delta;
         if (TimeLeft > 0)
             return;
-        
+
         MovementHandler?.Tick(delta);
-        
+
         // Handle Delayed Skills
         if ((Template?.SkillDelay > 0) && (!SkillStarted) && (LastLifeTime.TotalMilliseconds < Template.SkillDelay) && (TotalLifeTime.TotalMilliseconds >= Template.SkillDelay))
         {
             DoGimmickSkill(Template.SkillId);
         }
-        
+
         // TODO: Skill on collision (requires physics engine rewrite)
 
         var deltaTime = (float)delta.TotalSeconds;
         var deltaPosition = Transform.World.Position - LastPos;
         Vel = deltaPosition * deltaTime;
         AngVel = new Vector3(0f, 0f, 0f);
-        
+
         // Time += (uint)delta.Milliseconds;
         Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
         BroadcastPacket(new SCGimmickMovementPacket(this), false);
-        
+
         LastPos = Transform.World.Position;
         LastRot = Transform.World.Rotation;
 
-        MovementHandler?.AfterMove(delta, deltaPosition); 
+        MovementHandler?.AfterMove(delta, deltaPosition);
 
         // Check LifeTime and apply despawn time if needed
         if ((Template?.LifeTime > 0) && (Despawn <= DateTime.MinValue) && (TotalLifeTime.TotalMilliseconds >= Template.LifeTime))// && (LastLifeTime.TotalMilliseconds < Template.LifeTime))
@@ -241,11 +243,13 @@ public class Gimmick : Unit
         {
             position.Z += movingDistance;
             gimmick.Vel = gimmick.Vel with { Z = velocityZ };
+            gimmick.isMoving = true;
         }
         else
         {
             position.Z = target.Z;
             gimmick.Vel = Vector3.Zero;
+            gimmick.isMoving = false;
         }
     }
 }

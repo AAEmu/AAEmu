@@ -28,8 +28,7 @@ public class GimmickMovementElevator(Gimmick owner) : GimmickMovementHandler(own
             if (position.Z < owner.Spawner.MiddleZ && owner.Vel.Z >= 0 && !isMovingDown)
                 owner.MoveAlongZAxis(owner, ref position, middleTarget, MaxVelocity, deltaTime, ref velocityZ, ref isMovingDown);
             else if (position.Z < owner.Spawner.TopZ && owner.Vel.Z >= 0 && !isMovingDown)
-                owner.MoveAlongZAxis(owner, ref position, topTarget, MaxVelocity, deltaTime, ref velocityZ,
-                    ref isMovingDown);
+                owner.MoveAlongZAxis(owner, ref position, topTarget, MaxVelocity, deltaTime, ref velocityZ, ref isMovingDown);
             else if (position.Z > owner.Spawner.MiddleZ && owner.Vel.Z <= 0 && isMovingDown)
                 owner.MoveAlongZAxis(owner, ref position, middleTarget, MaxVelocity, deltaTime, ref velocityZ, ref isMovingDown);
             else
@@ -38,8 +37,7 @@ public class GimmickMovementElevator(Gimmick owner) : GimmickMovementHandler(own
         else
         {
             if (position.Z < owner.Spawner.TopZ && owner.Vel.Z >= 0)
-                owner.MoveAlongZAxis(owner, ref position, topTarget, MaxVelocity, deltaTime, ref velocityZ,
-                    ref isMovingDown);
+                owner.MoveAlongZAxis(owner, ref position, topTarget, MaxVelocity, deltaTime, ref velocityZ, ref isMovingDown);
             else
                 owner.MoveAlongZAxis(owner, ref position, bottomTarget, MaxVelocity, deltaTime, ref velocityZ, ref isMovingDown);
         }
@@ -50,12 +48,17 @@ public class GimmickMovementElevator(Gimmick owner) : GimmickMovementHandler(own
     public override void AfterMove(TimeSpan delta, Vector3 deltaPosition)
     {
         base.AfterMove(delta, deltaPosition);
-        if (deltaPosition.Length() > 0.01f)
+        if (owner.isMoving)
         {
             return;
         }
 
         owner.WaitTime = DateTime.UtcNow.AddSeconds(owner.Spawner.WaitTime);
-        owner.MoveDown = !owner.MoveDown;
+        if (owner.LastPos.Z > owner.Spawner.BottomZ && owner.MoveDown)
+            owner.MoveDown = true;
+        else if (owner.LastPos.Z < owner.Spawner.TopZ && !owner.MoveDown)
+            owner.MoveDown = false;
+        else
+            owner.MoveDown = !owner.MoveDown;
     }
 }
