@@ -41,7 +41,7 @@ public static class Program
         SetupLogging(builder.Logging);
 
         builder.Configuration
-            .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"), optional: true, reloadOnChange: true)
+            .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "Config.json"), optional: true, reloadOnChange: true)
             .AddUserSecrets<LoginService>()
             .AddEnvironmentVariables()
             .AddCommandLine(args);
@@ -85,7 +85,7 @@ public static class Program
     private static void SetupLogging(ILoggingBuilder builder)
     {
         LogManager.ThrowConfigExceptions = false;
-        LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
+        LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(AppContext.BaseDirectory, "NLog.config"));
 
         builder
             .ClearProviders()
