@@ -33,7 +33,7 @@ public class Gimmick : Unit
     /// MoveZ
     /// </summary>
     public bool MoveDown { get; set; }
-    public bool isMoving { get; set; }
+    public bool IsMoving { get; set; }
     public DateTime WaitTime { get; set; }
     public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
     public TimeSpan TotalLifeTime { get; set; } = TimeSpan.Zero;
@@ -243,13 +243,13 @@ public class Gimmick : Unit
         {
             position.Z += movingDistance;
             gimmick.Vel = gimmick.Vel with { Z = velocityZ };
-            gimmick.isMoving = true;
+            gimmick.IsMoving = true;
         }
         else
         {
             position.Z = target.Z;
             gimmick.Vel = Vector3.Zero;
-            gimmick.isMoving = false;
+            gimmick.IsMoving = false;
         }
     }
 }

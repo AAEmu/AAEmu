@@ -48,7 +48,7 @@ public class GimmickMovementElevator(Gimmick owner) : GimmickMovementHandler(own
     public override void AfterMove(TimeSpan delta, Vector3 deltaPosition)
     {
         base.AfterMove(delta, deltaPosition);
-        if (owner.isMoving)
+        if (owner.IsMoving)
         {
             return;
         }
