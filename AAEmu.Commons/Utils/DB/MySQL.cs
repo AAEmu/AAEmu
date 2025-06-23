@@ -39,9 +39,12 @@ public static class MySQL
         connection.Close();
     }
 
-    public static void SetConfiguration(MySqlConnectionSettings mySqlConnectionSettings)
+    public static void SetConfiguration(MySqlConnectionSettings mySqlConnectionSettings) =>
+        s_connectionString = GetConnectionString(mySqlConnectionSettings);
+
+    public static string GetConnectionString(MySqlConnectionSettings mySqlConnectionSettings)
     {
-        var builder = new MySqlConnectionStringBuilder()
+        var builder = new MySqlConnectionStringBuilder
         {
             Server = mySqlConnectionSettings?.Host ?? "localhost",
             Port = mySqlConnectionSettings?.Port ?? 3306,
@@ -58,6 +61,6 @@ public static class MySQL
             DefaultCommandTimeout = 180,
             SslMode = MySqlSslMode.Prefered
         };
-        s_connectionString = builder.ConnectionString;
+        return builder.ConnectionString;
     }
 }
