@@ -1,18 +1,23 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
+using AAEmu.Login.Models.Database;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NLog;
+using GameServer = AAEmu.Login.Models.GameServer;
 
 namespace AAEmu.Login.Core.Controllers;
 
-public class GameController(IRequestController requestController, IOptions<AppConfiguration> appConfig)
+public class GameController(
+    IRequestController requestController,
+    IOptions<AppConfiguration> appConfig,
+    IDbContextFactory<LoginDbContext> dbFactory)
     : IGameController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -53,27 +58,25 @@ public class GameController(IRequestController requestController, IOptions<AppCo
 
     public void Load()
     {
-        using var connection = MySQL.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM game_servers WHERE hidden = 0";
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
+        using var dbContext = dbFactory.CreateDbContext();
+        var gameServers = dbContext.GameServers
+            .AsNoTracking()
+            .Where(gs => !gs.Hidden)
+            .ToList();
+        
+        foreach (var dbGameServer in gameServers)
         {
-            var id = new GameServerId(reader.GetByte("id"));
-            var name = reader.GetString("name");
-            var loadedHost = reader.GetString("host");
-            var host = appConfig.Value.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
-            var port = reader.GetUInt16("port");
-            var gameServer = new GameServer(id, name, host, port);
+            var host = appConfig.Value.SkipHostResolve ? dbGameServer.Host : ResolveHostName(dbGameServer.Host);
+            var gameServer = new GameServer(dbGameServer.Id, dbGameServer.Name, host, dbGameServer.Port);
             if (!_gameServers.TryAdd(gameServer.Id, gameServer))
             {
                 Logger.Error("Game Server {id} ({name}) already exists in the game_servers table!", gameServer.Id.Value,
                     gameServer.Name);
             }
 
-            var extraInfo = host != loadedHost ? "from " + loadedHost :
+            var extraInfo = host != dbGameServer.Host ? "from " + dbGameServer.Host :
                 appConfig.Value.SkipHostResolve ? " (unresolved)" : "";
-            Logger.Info($"Game Server {id.Value}: {name} -> {host}:{port} {extraInfo}");
+            Logger.Info($"Game Server {dbGameServer.Id.Value}: {dbGameServer.Name} -> {host}:{dbGameServer.Port} {extraInfo}");
         }
 
         if (_gameServers.IsEmpty)

@@ -1,15 +1,19 @@
 ﻿using System.Reflection;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
+using AAEmu.Login.Models.Database;
 using AAEmu.Login.Utils;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NLog;
 using NLog.Config;
 using OSVersionExtension;
@@ -45,6 +49,15 @@ public static class Program
         builder.Services.AddOptionsWithValidateOnStart<AppConfiguration>()
             .BindConfiguration("")
             .ValidateDataAnnotations();
+
+        builder.Services.AddDbContextFactory<LoginDbContext>((sp, options) =>
+        {
+            var appConfig = sp.GetRequiredService<IOptions<AppConfiguration>>().Value;
+            var connectionString = MySQL.GetConnectionString(appConfig.Connections.MySQLProvider);
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        });
+
+        builder.Services.AddSingleton(TimeProvider.System);
 
         builder.Services.AddHostedService<MySqlInitializer>();
         builder.Services.AddHostedService<LoginService>();
