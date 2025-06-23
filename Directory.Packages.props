@@ -23,8 +23,8 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="MySql.Data" Version="9.1.0" />
     <PackageVersion Include="NCrontab" Version="3.3.3" />
-    <PackageVersion Include="NLog" Version="5.3.4" />
-    <PackageVersion Include="NLog.Extensions.Logging" Version="5.3.4" />
+    <PackageVersion Include="NLog" Version="6.0.0" />
+    <PackageVersion Include="NLog.Extensions.Logging" Version="6.0.0" />
     <PackageVersion Include="NLua" Version="1.7.3" />
     <PackageVersion Include="NetCoreServer" Version="8.0.7" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
