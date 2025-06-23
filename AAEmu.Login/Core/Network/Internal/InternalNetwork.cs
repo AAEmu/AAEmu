@@ -1,11 +1,13 @@
 ﻿using System.Net;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Models;
+using Microsoft.Extensions.Options;
 using NLog;
 
 namespace AAEmu.Login.Core.Network.Internal;
 
-public class InternalNetwork(IInternalProtocolHandler protocolHandler) : IInternalNetwork
+public class InternalNetwork(IInternalProtocolHandler protocolHandler, IOptions<AppConfiguration> appConfig)
+    : IInternalNetwork
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -13,7 +15,7 @@ public class InternalNetwork(IInternalProtocolHandler protocolHandler) : IIntern
 
     public void Start()
     {
-        var config = AppConfiguration.Instance.InternalNetwork;
+        var config = appConfig.Value.InternalNetwork;
         var host =
             new IPEndPoint(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port);
 

@@ -4,16 +4,20 @@ using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
+using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Login.Core.Controllers;
 
-public class LoginController(IGameController gameController) : ILoginController
+public class LoginController(IGameController gameController, IOptions<AppConfiguration> appConfig) : ILoginController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private static readonly bool _autoAccount = AppConfiguration.Instance.AutoAccount;
-    private readonly ConcurrentDictionary<GameServerId, ConcurrentDictionary<uint, AccountId>> _tokens = []; // gsId, [token, accountId]
+
+    private readonly bool _autoAccount = appConfig.Value.AutoAccount;
+
+    private readonly ConcurrentDictionary<GameServerId, ConcurrentDictionary<uint, AccountId>>
+        _tokens = []; // gsId, [token, accountId]
 
     /// <summary>
     /// Kr Method Auth
@@ -46,8 +50,10 @@ public class LoginController(IGameController gameController) : ILoginController
         reader.Close();
 
         #region update account
+
         command.Parameters.Clear();
-        command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+        command.CommandText =
+            "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
         command.Parameters.AddWithValue("@id", connection.AccountId.Value);
         command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
@@ -57,6 +63,7 @@ public class LoginController(IGameController gameController) : ILoginController
         {
             Logger.Warn("Database update failed, error occurred while updating account login IP and time");
         }
+
         # endregion
     }
 
@@ -115,8 +122,10 @@ public class LoginController(IGameController gameController) : ILoginController
         reader.Close();
 
         #region update account
+
         command.Parameters.Clear();
-        command.CommandText = "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+        command.CommandText =
+            "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
         command.Parameters.AddWithValue("@id", connection.AccountId.Value);
         command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
@@ -126,10 +135,12 @@ public class LoginController(IGameController gameController) : ILoginController
         {
             Logger.Warn("Database update failed, error occurred while updating account login IP and time");
         }
+
         # endregion
     }
 
-    public void CreateAndLoginInvalid(LoginConnection connection, string username, ReadOnlySpan<byte> password, MySqlConnection connect)
+    public void CreateAndLoginInvalid(LoginConnection connection, string username, ReadOnlySpan<byte> password,
+        MySqlConnection connect)
     {
         var pass = Convert.ToBase64String(password);
 

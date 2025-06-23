@@ -7,11 +7,13 @@ using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
+using Microsoft.Extensions.Options;
 using NLog;
 
 namespace AAEmu.Login.Core.Controllers;
 
-public class GameController(IRequestController requestController) : IGameController
+public class GameController(IRequestController requestController, IOptions<AppConfiguration> appConfig)
+    : IGameController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly ConcurrentDictionary<GameServerId, GameServer> _gameServers = [];
@@ -37,6 +39,7 @@ public class GameController(IRequestController requestController) : IGameControl
                 Logger.Debug($"Resolved {host} to {firstIPv4Address}");
                 return firstIPv4Address.ToString();
             }
+
             Logger.Warn($"Unable to resolved {host}");
             return host;
         }
@@ -59,16 +62,17 @@ public class GameController(IRequestController requestController) : IGameControl
             var id = new GameServerId(reader.GetByte("id"));
             var name = reader.GetString("name");
             var loadedHost = reader.GetString("host");
-            var host = AppConfiguration.Instance.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
+            var host = appConfig.Value.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
             var port = reader.GetUInt16("port");
             var gameServer = new GameServer(id, name, host, port);
             if (!_gameServers.TryAdd(gameServer.Id, gameServer))
             {
-                Logger.Error("Game Server {id} ({name}) already exists in the game_servers table!", gameServer.Id.Value, gameServer.Name);
+                Logger.Error("Game Server {id} ({name}) already exists in the game_servers table!", gameServer.Id.Value,
+                    gameServer.Name);
             }
 
             var extraInfo = host != loadedHost ? "from " + loadedHost :
-                AppConfiguration.Instance.SkipHostResolve ? " (unresolved)" : "";
+                appConfig.Value.SkipHostResolve ? " (unresolved)" : "";
             Logger.Info($"Game Server {id.Value}: {name} -> {host}:{port} {extraInfo}");
         }
 
@@ -87,7 +91,8 @@ public class GameController(IRequestController requestController) : IGameControl
         {
             Logger.Error($"GameServer connection from {connection.Ip} is requesting an invalid WorldId {gsId}");
 
-            Task.Run(() => SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
+            Task.Run(() =>
+                SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
             // connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
             return;
         }
@@ -103,6 +108,7 @@ public class GameController(IRequestController requestController) : IGameControl
             _gameServers[mirrorId].Connection = connection;
             _mirrorsId.Add(mirrorId, gsId);
         }
+
         Logger.Info($"Registered GameServer {gameServer.Id} ({gameServer.Name}) from {connection.Ip}");
     }
 
@@ -147,12 +153,13 @@ public class GameController(IRequestController requestController) : IGameControl
                 }
 
                 value.SendPacket(
-                       new LGRequestInfoPacket(connection.Id, requestIds[i], connection.AccountId));
+                    new LGRequestInfoPacket(connection.Id, requestIds[i], connection.AccountId));
 
             }
 
             await creationTask;
         }
+
         connection.SendPacket(new ACWorldListPacket(gameServers, connection.GetCharacters()));
     }
 

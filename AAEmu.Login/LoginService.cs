@@ -5,6 +5,7 @@ using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NLog;
 
 namespace AAEmu.Login;
@@ -13,7 +14,8 @@ public sealed class LoginService(
     IGameController gameController,
     IRequestController requestController,
     IInternalNetwork internalNetwork,
-    ILoginNetwork loginNetwork) : IHostedService, IDisposable
+    ILoginNetwork loginNetwork,
+    IOptions<AppConfiguration> appConfig) : IHostedService, IDisposable
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -24,7 +26,7 @@ public sealed class LoginService(
         using (var connection = MySQL.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login",
-                    AppConfiguration.Instance.Connections.MySQLProvider.Database))
+                    appConfig.Value.Connections.MySQLProvider.Database))
             {
                 Logger.Fatal("Failed up update database !");
                 Logger.Fatal("Press Ctrl+C to quit");
