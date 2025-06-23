@@ -112,7 +112,7 @@ public class GameController(
             _mirrorsId.Add(mirrorId, gsId);
         }
 
-        Logger.Info($"Registered GameServer {gameServer.Id} ({gameServer.Name}) from {connection.Ip}");
+        Logger.Info($"Registered GameServer {gameServer.Id.Value} ({gameServer.Name}) from {connection.Ip}");
     }
 
     public void Remove(GameServerId gsId)

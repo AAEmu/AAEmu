@@ -13,9 +13,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NLog;
 using NLog.Config;
+using NLog.Extensions.Logging;
 using OSVersionExtension;
 
 namespace AAEmu.Login;
@@ -34,9 +36,9 @@ public static class Program
     {
         Initialization();
 
-        LoadConfiguration();
-
         var builder = Host.CreateApplicationBuilder(args);
+
+        SetupLogging(builder.Logging);
 
         builder.Configuration
             .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"), optional: true, reloadOnChange: true)
@@ -80,10 +82,14 @@ public static class Program
         await app.RunAsync();
     }
 
-    private static void LoadConfiguration()
+    private static void SetupLogging(ILoggingBuilder builder)
     {
         LogManager.ThrowConfigExceptions = false;
         LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
+
+        builder
+            .ClearProviders()
+            .AddNLog();
     }
 
     /// <summary>
