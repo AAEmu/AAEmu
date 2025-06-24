@@ -70,17 +70,17 @@ public class LoginController(
     /// <param name="connection"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
-    public void Login(LoginConnection connection, string username, ReadOnlySpan<byte> password)
+    public async Task LoginAsync(LoginConnection connection, string username, ReadOnlyMemory<byte> password)
     {
-        using var dbContext = dbFactory.CreateDbContext();
-        var user = dbContext.Users
-            .FirstOrDefault(u => u.Username == username);
+        await using var dbContext = await dbFactory.CreateDbContextAsync();
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(u => u.Username == username);
 
         if (user == null)
         {
             if (_autoAccount)
             {
-                user = CreateAndLoginInvalid(dbContext, connection, username, password);
+                user = await CreateAndLoginInvalid(dbContext, connection, username, password);
                 
                 // Failed to create account
                 if (user == null)
@@ -96,7 +96,7 @@ public class LoginController(
         }
 
         var expectedPassword = Convert.FromBase64String(user.Password);
-        if (!password.SequenceEqual(expectedPassword))
+        if (!password.Span.SequenceEqual(expectedPassword))
         {
             connection.SendPacket(new ACLoginDeniedPacket(2));
             return;
@@ -123,7 +123,7 @@ public class LoginController(
 
         try
         {
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
         }
         catch (DbUpdateException ex)
         {
@@ -131,10 +131,10 @@ public class LoginController(
         }
     }
 
-    private User? CreateAndLoginInvalid(LoginDbContext dbContext, LoginConnection connection, string username,
-        ReadOnlySpan<byte> password)
+    private async Task<User?> CreateAndLoginInvalid(LoginDbContext dbContext, LoginConnection connection, string username,
+        ReadOnlyMemory<byte> password)
     {
-        var pass = Convert.ToBase64String(password);
+        var pass = Convert.ToBase64String(password.Span);
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var newUser = new User
@@ -151,7 +151,7 @@ public class LoginController(
 
         try
         {
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {

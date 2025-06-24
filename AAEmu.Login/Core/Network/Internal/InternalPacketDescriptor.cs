@@ -10,10 +10,10 @@ public class InternalPacketDescriptor<TPacket>(ushort packetId, IInternalPacketH
 {
     public ushort TypeId { get; } = packetId;
 
-    public void Dispatch(PacketStream stream, InternalConnection connection)
+    public async Task DispatchAsync(PacketStream stream, InternalConnection connection)
     {
         var packet = new TPacket { Connection = connection };
         packet.Decode(stream);
-        handler.Execute(packet, connection);
+        await handler.ExecuteAsync(packet, connection);
     }
 }

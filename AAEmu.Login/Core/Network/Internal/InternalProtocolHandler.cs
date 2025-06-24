@@ -95,14 +95,7 @@ public class InternalProtocolHandler(
                 }
                 else
                 {
-                    try
-                    {
-                        packetDescriptor.Dispatch(stream2, connection);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e, "Error on packet dispatch {0}", type);
-                    }
+                    Dispatch(packetDescriptor, stream2, connection);
                 }
             }
             else
@@ -110,6 +103,25 @@ public class InternalProtocolHandler(
                 stream.Rollback();
                 connection.LastPacket = stream;
                 stream = null;
+            }
+        }
+    }
+
+    private void Dispatch(IInternalPacketDescriptor packetDescriptor, PacketStream stream,
+        InternalConnection connection)
+    {
+        _ = DispatchAsync();
+        return;
+
+        async Task DispatchAsync()
+        {
+            try
+            {
+                await packetDescriptor.DispatchAsync(stream, connection);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Error on packet dispatch {0}", packetDescriptor.TypeId);
             }
         }
     }

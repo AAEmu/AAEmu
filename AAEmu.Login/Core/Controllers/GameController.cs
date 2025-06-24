@@ -56,13 +56,13 @@ public class GameController(
         }
     }
 
-    public void Load()
+    public async Task LoadAsync()
     {
-        using var dbContext = dbFactory.CreateDbContext();
-        var gameServers = dbContext.GameServers
+        await using var dbContext = await dbFactory.CreateDbContextAsync();
+        var gameServers = await dbContext.GameServers
             .AsNoTracking()
             .Where(gs => !gs.Hidden)
-            .ToList();
+            .ToListAsync();
         
         foreach (var dbGameServer in gameServers)
         {

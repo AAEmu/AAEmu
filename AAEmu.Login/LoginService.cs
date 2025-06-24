@@ -47,7 +47,7 @@ public sealed class LoginService(
         Logger.Debug("EF Core migrations done");
 
         requestController.Initialize();
-        gameController.Load();
+        await gameController.LoadAsync();
         loginNetwork.Start();
         internalNetwork.Start();
     }

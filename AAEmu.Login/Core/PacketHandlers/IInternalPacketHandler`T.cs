@@ -8,6 +8,6 @@ public interface IInternalPacketHandler<in TPacket> : IPacketHandler<TPacket, In
 {
     void IInternalPacketHandler.Execute(InternalPacket packet, InternalConnection connection)
     {
-        Execute((TPacket)packet, connection);
+        ExecuteAsync((TPacket)packet, connection);
     }
 }

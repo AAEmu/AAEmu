@@ -6,7 +6,7 @@ namespace AAEmu.Login.Core.Controllers;
 public interface IGameController
 {
     bool TryGetParentId(GameServerId gsId, out GameServerId id);
-    void Load();
+    Task LoadAsync();
     void Add(GameServerId gsId, List<GameServerId> mirrorsId, InternalConnection connection);
     void Remove(GameServerId gsId);
     Task RequestWorldListAsync(LoginConnection connection);

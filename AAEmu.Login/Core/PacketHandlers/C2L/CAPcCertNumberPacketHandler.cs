@@ -6,7 +6,5 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 public class CAPcCertNumberPacketHandler
     : ILoginPacketHandler<CAPcCertNumberPacket>
 {
-    public void Execute(CAPcCertNumberPacket packet, LoginConnection connection)
-    {
-    }
+    public Task ExecuteAsync(CAPcCertNumberPacket packet, LoginConnection connection) => Task.CompletedTask;
 }

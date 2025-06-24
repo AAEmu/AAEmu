@@ -21,5 +21,5 @@ public interface ILoginController
     /// <param name="connection"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
-    void Login(LoginConnection connection, string username, ReadOnlySpan<byte> password);
+    Task LoginAsync(LoginConnection connection, string username, ReadOnlyMemory<byte> password);
 }

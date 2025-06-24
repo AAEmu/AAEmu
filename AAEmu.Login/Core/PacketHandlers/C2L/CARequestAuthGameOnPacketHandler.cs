@@ -6,7 +6,5 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 public class CARequestAuthGameOnPacketHandler
     : ILoginPacketHandler<CARequestAuthGameOnPacket>
 {
-    public void Execute(CARequestAuthGameOnPacket packet, LoginConnection connection)
-    {
-    }
+    public Task ExecuteAsync(CARequestAuthGameOnPacket packet, LoginConnection connection) => Task.CompletedTask;
 }

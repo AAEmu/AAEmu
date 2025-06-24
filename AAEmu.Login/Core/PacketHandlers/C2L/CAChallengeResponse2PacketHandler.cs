@@ -7,8 +7,9 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 public class CAChallengeResponse2PacketHandler
     : ILoginPacketHandler<CAChallengeResponse2Packet>
 {
-    public void Execute(CAChallengeResponse2Packet packet, LoginConnection connection)
+    public Task ExecuteAsync(CAChallengeResponse2Packet packet, LoginConnection connection)
     {
         connection.SendPacket(new ACLoginDeniedPacket(2));
+        return Task.CompletedTask;
     }
 }
