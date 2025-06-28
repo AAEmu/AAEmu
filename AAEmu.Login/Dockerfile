@@ -5,6 +5,7 @@ ARG FRAMEWORK
 
 WORKDIR app
 COPY ./Directory.Build.props .
+COPY ./Directory.Packages.props .
 COPY ./AAEmu.Commons ./AAEmu.Commons
 COPY ./AAEmu.Login ./AAEmu.Login
 RUN dotnet publish ./AAEmu.Login/AAEmu.Login.csproj -c $CONFIGURATION -r $RUNTIME --self-contained true -f $FRAMEWORK

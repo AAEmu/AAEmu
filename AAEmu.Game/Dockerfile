@@ -8,6 +8,7 @@ RUN apk add --no-cache xz
 
 WORKDIR app
 COPY ./Directory.Build.props .
+COPY ./Directory.Packages.props .
 COPY ./AAEmu.Commons ./AAEmu.Commons
 COPY ./AAEmu.Game ./AAEmu.Game
 RUN dotnet publish ./AAEmu.Game/AAEmu.Game.csproj -c $CONFIGURATION -r $RUNTIME --self-contained true -f $FRAMEWORK
