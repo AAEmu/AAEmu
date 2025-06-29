@@ -240,7 +240,7 @@ public class PhysicsManager
                                 if (flowDirection.Length() > 0f)
                                 {
                                     // We are in moving water, apply force
-                                    var multiplier = slave.RigidBody.Mass * 3.15f;
+                                    var multiplier = slave.RigidBody.Mass / TargetPhysicsTickTime;
                                     slave.RigidBody.AddForce(new JVector(flowDirection.X * multiplier, flowDirection.Z * multiplier, flowDirection.Y * multiplier));
                                     // slaveRigidBody.LinearVelocity += new JVector(flowDirection.X * 0.1f,flowDirection.Z * 0.1f, flowDirection.Y * 0.1f);
                                 }

@@ -214,12 +214,19 @@ public class Buoyancy : ForceGenerator
                 continue;
             }
 
-            var depth = WaterSurfaceLevel - body.Position.Y;
+            var waterSurfaceLevel = WaterSurfaceLevel;
+            var centerPosition = body.Position;
+            if (_fluidArea != null && _fluidArea(ref centerPosition))
+            {
+                waterSurfaceLevel = slave.CachedWaterSurface;
+            }
+
+            var depth = waterSurfaceLevel - body.Position.Y;
             if (depth <= 0) continue;
             
             ApplyDrag(body, slave.ShipController.ShipModel.MassBoxSizeX, slave.ShipController.ShipModel.MassBoxSizeY, slave.ShipController.ShipModel.MassBoxSizeZ);
             // Calculate submerged depth and buoyancy force
-            var submergedDepth = Math.Max(0, WaterSurfaceLevel - body.Position.Y);
+            var submergedDepth = Math.Max(0, waterSurfaceLevel - body.Position.Y);
             var isOnWater = submergedDepth > 0;
 
             if (isOnWater)
