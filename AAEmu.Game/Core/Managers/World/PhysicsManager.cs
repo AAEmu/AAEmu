@@ -152,7 +152,7 @@ public class PhysicsManager
     {
         try
         {
-            Logger.Debug($"Start: {Thread.CurrentThread.Name}");
+            Logger.Debug($"Start: {Thread.CurrentThread.Name}, targetting {TargetPhysicsTps} TPS");
 
             var lastTick = TimeSpan.FromMilliseconds(Environment.TickCount64);
             var accumulatedTime = TimeSpan.Zero;
@@ -234,15 +234,15 @@ public class PhysicsManager
                                 continue;
 
                             // TODO: move this
-                            var underPos = slave.Transform.World.Position + (Vector3.UnitZ * -2f);
+                            var underPos = slave.Transform.World.Position + ((Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f) * slave.Scale);
                             if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
                             {
                                 if (flowDirection.Length() > 0f)
                                 {
                                     // We are in moving water, apply force
-                                    var multiplier = slave.RigidBody.Mass / TargetPhysicsTickTime;
-                                    slave.RigidBody.AddForce(new JVector(flowDirection.X * multiplier, flowDirection.Z * multiplier, flowDirection.Y * multiplier));
-                                    // slaveRigidBody.LinearVelocity += new JVector(flowDirection.X * 0.1f,flowDirection.Z * 0.1f, flowDirection.Y * 0.1f);
+                                    // var multiplier = slave.RigidBody.Mass / TargetPhysicsTickTime;
+                                    // slave.RigidBody.AddForce(new JVector(flowDirection.X * multiplier, flowDirection.Z * multiplier, flowDirection.Y * multiplier));
+                                    slave.RigidBody.Position += new JVector(flowDirection.X * (float)physicsTotalDelta.TotalSeconds,flowDirection.Z * (float)physicsTotalDelta.TotalSeconds, flowDirection.Y * (float)physicsTotalDelta.TotalSeconds);
                                 }
                             }
 
