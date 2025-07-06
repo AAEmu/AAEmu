@@ -300,16 +300,16 @@ public class MailManager : Singleton<MailManager>
                   x.Value.Header.SenderId == characterId)
                  ).
             ToDictionary(x => x.Key, x => x.Value);
-        character?.Mails.unreadMailCount.ResetReceived();
+        character?.Mails.UnreadMailCount.ResetReceived();
         foreach (var mail in tempMails)
         {
             //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
             if (mail.Value.Header.Status != MailStatus.Read)
             {
-                character?.Mails.unreadMailCount.UpdateReceived(mail.Value.MailType, 1);
+                character?.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
                 var addBody = (mail.Value.MailType == MailType.Charged);
 
-                character?.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, addBody ? mail.Value.Body : null));
+                character?.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
                 mail.Value.IsDelivered = true;
             }
         }
@@ -327,9 +327,9 @@ public class MailManager : Singleton<MailManager>
             {
                 // TODO: Mia mail stuff
                 var addBody = (m.MailType == MailType.Charged);
-                player.Mails.unreadMailCount.UpdateReceived(m.MailType, 1);
+                player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
 
-                player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.unreadMailCount, false, addBody ? m.Body : null));
+                player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, false, addBody ? m.Body : null));
                 m.IsDelivered = true;
                 return true;
             }
@@ -344,8 +344,8 @@ public class MailManager : Singleton<MailManager>
         if (player != null)
         {
             if (m.Header.Status != MailStatus.Read)
-                player.Mails.unreadMailCount.UpdateReceived(m.MailType, -1);
-            player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.unreadMailCount));
+                player.Mails.UnreadMailCount.UpdateReceived(m.MailType, -1);
+            player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.UnreadMailCount));
             return true;
         }
         return false;
@@ -456,11 +456,11 @@ public class MailManager : Singleton<MailManager>
             if (mail.Header.Status != MailStatus.Read)
             {
                 mail.Header.Status = MailStatus.Read;
-                character.Mails.unreadMailCount.UpdateReceived(mail.MailType, -1);
+                character.Mails.UnreadMailCount.UpdateReceived(mail.MailType, -1);
             }
 
             character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
-            character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.unreadMailCount));
+            character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.UnreadMailCount));
             DeleteMail(mail);
             character.Mails.SendUnreadMailCount();
         }

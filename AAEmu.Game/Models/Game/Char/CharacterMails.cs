@@ -9,18 +9,18 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterMails
 {
-    public Character Self { get; set; }
-    public CountUnreadMail unreadMailCount;
+    private Character Self { get; set; }
+    public CountUnreadMail UnreadMailCount { get; set; }
 
     public CharacterMails(Character self)
     {
         Self = self;
 
-        unreadMailCount = new CountUnreadMail
+        UnreadMailCount = new CountUnreadMail
         {
             Sent = 0,
         };
-        unreadMailCount.ResetReceived();
+        UnreadMailCount.ResetReceived();
     }
 
     public void OpenMailbox()
@@ -53,12 +53,12 @@ public class CharacterMails
         {
             if ((mail.Header.Status == MailStatus.Unread) && !isSent)
             {
-                unreadMailCount.UpdateReceived(mail.MailType, -1);
+                UnreadMailCount.UpdateReceived(mail.MailType, -1);
                 mail.OpenDate = DateTime.UtcNow;
                 mail.Header.Status = MailStatus.Read;
                 mail.IsDelivered = true;
             }
-            Self.SendPacket(new SCMailBodyPacket(false, isSent, mail.Body, true, unreadMailCount));
+            Self.SendPacket(new SCMailBodyPacket(false, isSent, mail.Body, true, UnreadMailCount));
             Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, mail.Header.Status));
             SendUnreadMailCount();
         }
@@ -66,7 +66,7 @@ public class CharacterMails
 
     public void SendUnreadMailCount()
     {
-        Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
+        Self.SendPacket(new SCCountUnreadMailPacket(UnreadMailCount));
     }
 
     public MailResult SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(SlotType, byte)> itemSlots)
@@ -77,17 +77,20 @@ public class CharacterMails
             return MailResult.UnableToFindRecipient;
         }
 
-        var mail = new MailPlayerToPlayer(Self, receiverName);
-
-        mail.MailType = mailType;
-        mail.Title = title;
-
-        mail.Header.Attachments = attachments;
-        mail.Header.Extra = extra;
-
-        mail.Body.Text = text;
-        mail.Body.SendDate = DateTime.UtcNow;
-        mail.Body.RecvDate = DateTime.UtcNow;
+        var mail = new MailPlayerToPlayer(Self, receiverName) {
+            MailType = mailType,
+            Title = title,
+            Header = {
+                Attachments = attachments,
+                Extra = extra
+                },
+            Body =
+            {
+                Text = text,
+                SendDate = DateTime.UtcNow,
+                RecvDate = DateTime.UtcNow
+            }
+        };
 
         mail.AttachMoney(money0, money1, money2);
 
@@ -132,7 +135,7 @@ public class CharacterMails
         var res = true;
         if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
         {
-            bool tookMoney = false;
+            var tookMoney = false;
             if ((thisMail.MailType == MailType.AucOffSuccess) && (thisMail.Body.CopperCoins > 0) && takeMoney)
             {
                 if (Self.LaborPower < 1)
@@ -171,7 +174,7 @@ public class CharacterMails
                         if (Self.Inventory.Bag.SpaceLeftForItem(itemAttachment, out var foundItems) >= itemAttachment.Count)
                         {
                             Item stackItem = null;
-                            // Check if we can stack the item onto a existing one
+                            // Check if we can stack the item onto an existing one
                             if ((itemAttachment.Template.MaxCount > 1) && (foundItems.Count > 0))
                             {
                                 foreach (var fi in foundItems)
@@ -184,15 +187,17 @@ public class CharacterMails
                                 }
                             }
 
-                            var iial = new ItemIdAndLocation();
-                            iial.Id = itemAttachment.Id;
-                            iial.SlotType = itemAttachment.SlotType;
-                            iial.Slot = (byte)itemAttachment.Slot;
+                            var itemIdAndLocation = new ItemIdAndLocation
+                            {
+                                Id = itemAttachment.Id,
+                                SlotType = itemAttachment.SlotType,
+                                Slot = (byte)itemAttachment.Slot
+                            };
 
                             // Move item to player inventory
-                            if (Self.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment, stackItem != null ? stackItem.Slot : -1))
+                            if (Self.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment, stackItem?.Slot ?? -1))
                             {
-                                itemSlotList.Add(iial);
+                                itemSlotList.Add(itemIdAndLocation);
                                 thisMail.Header.Attachments -= 1;
                                 toRemove.Add(itemAttachment);
                             }
@@ -212,7 +217,10 @@ public class CharacterMails
                 }
                 // Removed those marked to be taken
                 foreach (var ia in toRemove)
+                {
                     thisMail.Body.Attachments.Remove(ia);
+                    thisMail.IsDirty = true;
+                }
 
             }
             // Mark taken items
@@ -222,6 +230,7 @@ public class CharacterMails
             if (tookMoney)
             {
                 Self.SendPacket(new SCAttachmentTakenPacket(mailId, true, false, takeAllSelected, []));
+                thisMail.IsDirty = true;
             }
 
             // Items
@@ -230,7 +239,7 @@ public class CharacterMails
                 // Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, itemSlotList));
                 /* 
                  * ZeromusXYZ:
-                 * Splitting this packet up to be sent one by one fixes delivery issue in cases where not everything is deliverd at once,
+                 * Splitting this packet up to be sent one by one fixes delivery issue in cases where not everything is delivered at once,
                  * like full bag, manual item grabbing.
                  * It's kind of silly, but I don't have a better solution for it 
                 */
@@ -241,6 +250,7 @@ public class CharacterMails
                         iSlot
                     };
                     Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, dummyItemSlotList));
+                    thisMail.IsDirty = true;
                 }
             }
 
@@ -248,9 +258,10 @@ public class CharacterMails
             if ((thisMail.Header.Status == MailStatus.Unread) && (tookMoney || (itemSlotList.Count > 0)))
             {
                 thisMail.Header.Status = MailStatus.Read;
-                unreadMailCount.UpdateReceived(thisMail.MailType, -1);
+                UnreadMailCount.UpdateReceived(thisMail.MailType, -1);
                 Self.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
                 SendUnreadMailCount();
+                thisMail.IsDirty = true;
             }
 
             // TODO: Make sure attachment settings and mail info is sent back correctly 
@@ -268,13 +279,17 @@ public class CharacterMails
         {
             if (MailManager.Instance._allPlayerMails[id].Header.Attachments <= 0)
             {
+                // ReSharper disable ConditionIsAlwaysTrueOrFalse
                 if (MailManager.Instance._allPlayerMails[id].Header.Status != MailStatus.Read)
                 {
-                    unreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
-                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, unreadMailCount));
+                    UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
+                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, UnreadMailCount));
                 }
                 else
-                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, unreadMailCount));
+                {
+                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, UnreadMailCount));
+                }
+                // ReSharper enable ConditionIsAlwaysTrueOrFalse
                 MailManager.Instance.DeleteMail(id);
             }
         }
@@ -288,10 +303,9 @@ public class CharacterMails
             for (var i = 0; i < MailBody.MaxMailAttachments; i++)
             {
                 var item = ItemManager.Instance.GetItemByItemId(thisMail.Body.Attachments[i].Id);
-                if (item.SlotType == SlotType.None)
-                    itemSlots.Add((0, 0));
-                else
-                    itemSlots.Add((item.SlotType, (byte)item.Slot));
+                itemSlots.Add(item.SlotType == SlotType.None
+                    ? ((SlotType slotType, byte slot))(0, 0)
+                    : (item.SlotType, (byte)item.Slot));
             }
 
             SendMailToPlayer(thisMail.Header.Type, thisMail.Header.SenderName, thisMail.Header.Title, thisMail.Body.Text,
