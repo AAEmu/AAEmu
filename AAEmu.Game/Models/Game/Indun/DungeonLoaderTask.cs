@@ -30,6 +30,8 @@ public class DungeonLoaderTask(WorldTemplate worldTemplate, Dungeon dungeon, uin
         // Spawn all world elements for this dungeon
         Logger.Debug($"[{dungeon.World})] Spawning game objects Npc, Doodad, Slave, Gimmick...");
         dungeon.World.SpawnManager.SpawnAll();
+        // Wait for spawns to finish
+        System.Threading.Tasks.Task.WhenAll(dungeon.World.SpawnManager.SpawnTasks);
         Logger.Debug($"[{dungeon.World})] Finished spawning game objects Npc, Doodad, Slave, Gimmick...");
 
         // Register events

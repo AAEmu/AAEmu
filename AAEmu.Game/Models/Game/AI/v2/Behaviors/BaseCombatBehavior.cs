@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -138,7 +138,7 @@ public abstract class BaseCombatBehavior : Behavior
             // TODO Find path to abuser only if target coordinates have changed
             if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
             {
-                if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+                if (!Ai.PathNode.Pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
@@ -155,7 +155,7 @@ public abstract class BaseCombatBehavior : Behavior
 
             if (target != null && Ai.PathNode != null)
             {
-                if (Ai.PathNode.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
+                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath[0].Equals(Point.Zero))
                 {
                     // TODO Take the destination point we're moving toward
                     var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
@@ -168,14 +168,14 @@ public abstract class BaseCombatBehavior : Behavior
                     {
                         // TODO Get the next destination point we're moving toward
                         Ai.PathNode.Current++;
-                        if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
+                        if (Ai.PathNode.Current >= Ai.PathNode.FoundPath.Count)
                         {
                             Ai.Owner.StopMovement();
-                            Ai.PathNode.findPath = [];
+                            Ai.PathNode.FoundPath = [];
                             return;
                         }
 
-                        Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
+                        Ai.PathNode.Position = Ai.PathNode.FoundPath[(int)Ai.PathNode.Current];
                     }
                 }
                 else

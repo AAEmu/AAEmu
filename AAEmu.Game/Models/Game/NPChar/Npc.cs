@@ -1400,18 +1400,18 @@ public partial class Npc : Unit
 
     public void FindPath(Unit abuser)
     {
-        Ai.PathNode.pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-        Ai.PathNode.pos2 = new Point(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+        Ai.PathNode.Pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
+        Ai.PathNode.Pos2 = new Point(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
 
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-        Ai.PathNode.findPath = Ai.PathNode.FindPath(Ai.PathNode.pos1, Ai.PathNode.pos2);
+        Ai.PathNode.FoundPath = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.Pos1, Ai.PathNode.Pos2);
 
-        Logger.Trace($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
-        if (Ai.PathNode.findPath != null)
+        Logger.Trace($"AStar: points found Total: {Ai.PathNode.FoundPath?.Count ?? 0}");
+        if (Ai.PathNode.FoundPath != null)
         {
-            for (var i = 0; i < Ai.PathNode.findPath.Count; i++)
+            for (var i = 0; i < Ai.PathNode.FoundPath.Count; i++)
             {
-                Logger.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
+                Logger.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.FoundPath[i].X}, Y:{Ai.PathNode.FoundPath[i].Y}, Z:{Ai.PathNode.FoundPath[i].Z}");
             }
         }
     }
@@ -1424,13 +1424,13 @@ public partial class Npc : Unit
     public Vector3 GetClosestPoint(BaseUnit unit)
     {
         // TODO взять точку к которой движемся
-        if (Ai.PathNode.findPath == null)
+        if (Ai.PathNode.FoundPath == null)
             return Vector3.Zero;
 
         var pos = new Point(unit.Transform.World.Position.X, unit.Transform.World.Position.Y, unit.Transform.World.Position.Z);
-        Ai.PathNode.Current = AiGeoDataManager.FindClosestIndexPoint(Ai.PathNode.findPath, pos);
+        Ai.PathNode.Current = AiGeoDataManager.FindClosestIndexPoint(Ai.PathNode.FoundPath, pos);
 
-        return new Vector3(Ai.PathNode.findPath[(int)Ai.PathNode.Current].X, Ai.PathNode.findPath[(int)Ai.PathNode.Current].Y, Ai.PathNode.findPath[(int)Ai.PathNode.Current].Z);
+        return new Vector3(Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].X, Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].Y, Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].Z);
     }
 
     public void DoDespawn(Npc npc)

@@ -46,8 +46,8 @@ public class AStarEndPositionSubCommand : SubCommandBase
         var y = GetOptionalParameterValue(parameters, "y", character.Transform.World.Position.Y);
         var z = GetOptionalParameterValue(parameters, "z", character.Transform.World.Position.Z);
 
-        npc.Ai.PathNode.pos2 = new Point(x, y, z);
+        npc.Ai.PathNode.Pos2 = new Point(x, y, z);
 
-        messageOutput.SendMessage($"AStar: the endpoint is set X:{npc.Ai.PathNode.pos2.X}, Y:{npc.Ai.PathNode.pos2.Y}, Z:{npc.Ai.PathNode.pos2.Z}");
+        messageOutput.SendMessage($"AStar: the endpoint is set X:{npc.Ai.PathNode.Pos2.X}, Y:{npc.Ai.PathNode.Pos2.Y}, Z:{npc.Ai.PathNode.Pos2.Z}");
     }
 }

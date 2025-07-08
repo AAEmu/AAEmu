@@ -28,17 +28,17 @@ public class AStarPathFindingSubCommand : SubCommandBase
         }
 
         //if (PathNode.pos1.X > 0 && PathNode.pos1.Y > 0 && PathNode.pos2.X > 0 && PathNode.pos2.Y > 0)
-        if (npc.Ai.PathNode.pos1 != null && npc.Ai.PathNode.pos2 != null)
+        if (npc.Ai.PathNode.Pos1 != null && npc.Ai.PathNode.Pos2 != null)
         {
             npc.Ai.PathNode.ZoneKey = character.Transform.ZoneId;
-            npc.Ai.PathNode.findPath = npc.Ai.PathNode.FindPath(npc.Ai.PathNode.pos1, npc.Ai.PathNode.pos2);
+            npc.Ai.PathNode.FoundPath = npc.Ai.PathNode.FindPath(npc.ParentWorld, npc.Ai.PathNode.Pos1, npc.Ai.PathNode.Pos2);
 
-            character.SendMessage($"AStar: points found Total: {npc.Ai.PathNode.findPath?.Count ?? 0}");
-            if (npc.Ai.PathNode.findPath != null)
+            character.SendMessage($"AStar: points found Total: {npc.Ai.PathNode.FoundPath?.Count ?? 0}");
+            if (npc.Ai.PathNode.FoundPath != null)
             {
-                for (var i = 0; i < npc.Ai.PathNode.findPath.Count; i++)
+                for (var i = 0; i < npc.Ai.PathNode.FoundPath.Count; i++)
                 {
-                    character.SendMessage($"AStar: point {i} coordinates X:{npc.Ai.PathNode.findPath[i].X}, Y:{npc.Ai.PathNode.findPath[i].Y}, Z:{npc.Ai.PathNode.findPath[i].Z}");
+                    character.SendMessage($"AStar: point {i} coordinates X:{npc.Ai.PathNode.FoundPath[i].X}, Y:{npc.Ai.PathNode.FoundPath[i].Y}, Z:{npc.Ai.PathNode.FoundPath[i].Z}");
                 }
             }
         }

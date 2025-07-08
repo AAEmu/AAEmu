@@ -20,23 +20,27 @@ public class BuffEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
+        var casterUnit = caster as Unit;
         if (target is Unit trg)
         {
-            var hitType = SkillHitType.Invalid;
-            if ((source.Skill?.HitTypes.TryGetValue(trg.ObjId, out hitType) ?? false)
+            if ((source.Skill?.HitTypes.TryGetValue(trg.ObjId, out var hitType) ?? false)
                 && (source.Skill?.SkillMissed(trg.ObjId) ?? false))
             {
                 return;
             }
         }
-        if (Random.Shared.Next(0, 101) > Chance)
+
+        if (casterUnit != null)
         {
-            ((Unit)caster).ConditionChance = false;
-            return;
-        }
-        else
-        {
-            ((Unit)caster).ConditionChance = true;
+            if (Random.Shared.Next(0, 101) > Chance)
+            {
+                casterUnit.ConditionChance = false;
+                return;
+            }
+            else
+            {
+                casterUnit.ConditionChance = true;
+            }
         }
 
         if (Buff.RequireBuffId > 0 && !target.Buffs.CheckBuff(Buff.RequireBuffId))
@@ -51,7 +55,7 @@ public class BuffEffect : EffectTemplate
             if (source.Skill != null)
             {
                 var template = source.Skill.Template;
-                var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                var abilityLevel = character.GetAbLevel(source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
                     abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
                 else
@@ -82,11 +86,11 @@ public class BuffEffect : EffectTemplate
 
         if (Buff.Kind == BuffKind.Bad &&
             (target is not Npc) &&
-            caster.GetRelationStateTo(target) == RelationState.Friendly &&
+            caster?.GetRelationStateTo(target) == RelationState.Friendly &&
             caster != target &&
             !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
         {
-            ((Unit)caster).SetCriminalState(true, target);
+            casterUnit?.SetCriminalState(true, target);
         }
     }
 }

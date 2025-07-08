@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
@@ -89,6 +90,11 @@ public class WorldTemplate
     /// List of housing zones in this world (zoneId, list)
     /// </summary>
     public Dictionary<uint, List<Area>> HousingZones { get; set; } = []; 
+
+    /// <summary>
+    /// Handles navmesh data
+    /// </summary>
+    public AiGeoDataManager GeoData { get; set; }
 
     /// <summary>
     /// Gets heightmap height at target position (not smoothened)

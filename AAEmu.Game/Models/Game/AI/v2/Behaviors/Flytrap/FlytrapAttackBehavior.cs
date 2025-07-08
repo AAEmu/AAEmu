@@ -89,19 +89,19 @@ public class FlytrapAttackBehavior : Behavior
         if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
         {
             // we will find the path to the abuser only if the target coordinates have changed
-            if (Ai.PathNode?.findPath?.Count == 0 && target != null && Ai.PathNode?.pos2 != null)
+            if (Ai.PathNode?.FoundPath?.Count == 0 && target != null && Ai.PathNode?.Pos2 != null)
             {
                 //if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
                     // let's find the path to the abuser
                     Ai.Owner.FindPath((Unit)target);
                     // remember the new target coordinates
-                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.Pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                     gimmick.Target = target.Transform.World.Position;
                 }
             }
             // moving along the route points
-            if (Ai.PathNode?.findPath?.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
+            if (Ai.PathNode?.FoundPath?.Count > 0 && !Ai.PathNode.FoundPath[0].Equals(Point.Zero))
             {
                 // take the point to which we are moving
                 var routePoint = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
@@ -115,14 +115,14 @@ public class FlytrapAttackBehavior : Behavior
                 {
                     // take the next point to which we are moving
                     Ai.PathNode.Current++;
-                    if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
+                    if (Ai.PathNode.Current >= Ai.PathNode.FoundPath.Count)
                     {
                         gimmick.StopMovement();
-                        Ai.PathNode.findPath = [];
+                        Ai.PathNode.FoundPath = [];
                         return;
                     }
 
-                    Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
+                    Ai.PathNode.Position = Ai.PathNode.FoundPath[(int)Ai.PathNode.Current];
                 }
             }
             else // we move straight to the final point

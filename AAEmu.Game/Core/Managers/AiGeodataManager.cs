@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
-using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -16,44 +15,40 @@ using Point = AAEmu.Game.Models.Game.AI.AStar.Point;
 namespace AAEmu.Game.Core.Managers;
 
 // GeoData AiNavigation
-public class AiGeoDataManager : Singleton<AiGeoDataManager>
+public class AiGeoDataManager(WorldTemplate worldTemplate)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<byte, Dictionary<uint, List<AiNavigation>>> _aiNavigation;
-    private Dictionary<byte, Dictionary<uint, string>> _areasMission;
-    private Dictionary<byte, Dictionary<uint, List<Point>>> _forbiddenArea;
-    private Dictionary<byte, Dictionary<uint, List<Point>>> _aiPath;
-    private Dictionary<byte, Dictionary<uint, List<Point>>> _aiNavigationModifier;
+    private Dictionary<uint, List<AiNavigation>> _aiNavigation;
+    private Dictionary<uint, string> _areasMission;
+    private Dictionary<uint, List<Point>> _forbiddenArea;
+    private Dictionary<uint, List<Point>> _aiPath;
+    private Dictionary<uint, List<Point>> _aiNavigationModifier;
 
     public List<AiNavigation> GetAvailablePoints(uint zoneKey, uint point)
     {
-        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
-
-        var ret = new List<AiNavigation>();
-        _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
-        aiNavigation?.TryGetValue(point, out ret);
-
+        var ret = _aiNavigation.GetValueOrDefault(point) ?? [];
         return ret;
     }
 
     #region A point in a polygon
 
-    public bool CheckImpossibleWalk(uint zoneKey, Point point)
+    /// <summary>
+    /// Checks if point is inside a forbidden zone area
+    /// </summary>
+    /// <param name="point"></param>
+    /// <returns></returns>
+    public bool CheckImpossibleWalk(Point point)
     {
-        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
-
         var res = new List<bool>();
-        _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
-
-        if (forbiddenArea != null && forbiddenArea.Count <= 1)
+        if (_forbiddenArea.Count <= 1)
         {
             return false; // consider that we are inside the zone (i.e. limitation outside)
         }
 
-        if (forbiddenArea != null)
+        if (_forbiddenArea != null)
         {
-            foreach (var fa in forbiddenArea.Values)
+            foreach (var fa in _forbiddenArea.Values)
             {
                 res.Add(IsInPolygon(point, fa));
             }
@@ -91,7 +86,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
     }
 
     /// <summary>
-    /// получить центр треугольника (пересечение медиан)
+    /// Get the center of the triangle (intersection of the medians)
     /// </summary>
     /// <param name="point1"></param>
     /// <param name="point2"></param>
@@ -118,7 +113,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
 
         var firstPointIndex = 0;
         var lastPointIndex = points.Count - 1;
-        var pointIndexsToKeep = new List<int>();
+        var pointIndexesToKeep = new List<int>();
 
         //The first and the last point cannot be the same
         while (points[firstPointIndex].Equals(points[lastPointIndex]))
@@ -127,14 +122,14 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         }
 
         //Add the first and last index to the keepers
-        pointIndexsToKeep.Add(firstPointIndex);
-        pointIndexsToKeep.Add(lastPointIndex);
+        pointIndexesToKeep.Add(firstPointIndex);
+        pointIndexesToKeep.Add(lastPointIndex);
 
-        DouglasPeuckerReduction(points, firstPointIndex, lastPointIndex, tolerance, ref pointIndexsToKeep);
+        DouglasPeuckerReduction(points, firstPointIndex, lastPointIndex, tolerance, ref pointIndexesToKeep);
 
         var returnPoints = new List<Point>();
-        pointIndexsToKeep.Sort();
-        foreach (var index in pointIndexsToKeep)
+        pointIndexesToKeep.Sort();
+        foreach (var index in pointIndexesToKeep)
         {
             returnPoints.Add(points[index]);
         }
@@ -143,14 +138,14 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
     }
 
     /// <summary>
-    /// Douglases the peucker reduction.
+    /// Douglas-Peucker reduction.
     /// </summary>
     /// <param name="points">The points.</param>
     /// <param name="firstPointIndex">The first point.</param>
     /// <param name="lastPointIndex">The last point.</param>
     /// <param name="tolerance">The tolerance.</param>
-    /// <param name="pointIndexsToKeep">The point index to keep.</param>
-    private static void DouglasPeuckerReduction(List<Point> points, int firstPointIndex, int lastPointIndex, double tolerance, ref List<int> pointIndexsToKeep)
+    /// <param name="pointIndexesToKeep">The point index to keep.</param>
+    private static void DouglasPeuckerReduction(List<Point> points, int firstPointIndex, int lastPointIndex, double tolerance, ref List<int> pointIndexesToKeep)
     {
         double maxDistance = 0;
         var indexFarthest = 0;
@@ -170,10 +165,10 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             if (maxDistance > tolerance && indexFarthest != firstPointIndex) // CHANGE: condition was wrong.
             {
                 //Add the largest point that exceeds the tolerance
-                pointIndexsToKeep.Add(indexFarthest);
+                pointIndexesToKeep.Add(indexFarthest);
 
-                DouglasPeuckerReduction(points, firstPointIndex, indexFarthest, tolerance, ref pointIndexsToKeep);
-                DouglasPeuckerReduction(points, indexFarthest, lastPointIndex, tolerance, ref pointIndexsToKeep);
+                DouglasPeuckerReduction(points, firstPointIndex, indexFarthest, tolerance, ref pointIndexesToKeep);
+                DouglasPeuckerReduction(points, indexFarthest, lastPointIndex, tolerance, ref pointIndexesToKeep);
             }
         }
     }
@@ -208,18 +203,12 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         var index = 0u;
         var point = new Point();
 
-        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
-
-        _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
-        if (aiNavigation != null)
+        foreach (var closest in _aiNavigation.Values.Select(lpf => lpf
+                     .OrderBy(x => DistanceBetweenPoints(pos, x.Position))
+                     .First()))
         {
-            foreach (var closest in aiNavigation.Values.Select(lpf => lpf
-                         .OrderBy(x => DistanceBetweenPoints(pos, x.Position))
-                         .First()))
-            {
-                index = closest.StartPoint;
-                point = closest.Position;
-            }
+            index = closest.StartPoint;
+            point = closest.Position;
         }
 
         Logger.Warn($"# Found near position index: {index}...");
@@ -234,41 +223,40 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         var index = 0u;
         var point = new Point();
         var minDist = 99999.0f;
-        var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
 
-        _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
-        if (aiNavigation != null)
+        foreach (var lpf in _aiNavigation.Values)
         {
-            foreach (var lpf in aiNavigation.Values)
+            foreach (var pf in lpf)
             {
-                foreach (var pf in lpf)
-                {
-                    var dx = posX - pf.Position.X;
-                    var dy = posY - pf.Position.Y;
+                var dx = posX - pf.Position.X;
+                var dy = posY - pf.Position.Y;
 
-                    var distance = dx * dx + dy * dy;
-                    if (!(distance < minDist)) { continue; }
+                var distance = dx * dx + dy * dy;
+                if (!(distance < minDist)) { continue; }
 
-                    index = pf.StartPoint;
-                    point = pf.Position;
-                    minDist = distance;
-                }
+                index = pf.StartPoint;
+                point = pf.Position;
+                minDist = distance;
             }
         }
+
 
         // Logger.Warn($"# Found near position index: {index}...");
         return (index, point);
     }
 
-    public float GetHeight(uint zoneKey, Vector3 pos)
+    /// <summary>
+    /// Gets height using navmesh data
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <returns></returns>
+    public float GetHeight(Vector3 pos)
     {
-        var rrr = 0f;
+        float res;
         //var stopWatch = new Stopwatch();
         //stopWatch.Start();
         try
         {
-            var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
-
             var posX = pos.X;
             var posY = pos.Y;
 
@@ -278,60 +266,50 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             var minDistN = 99999.0f;
             var minDistFa = 99999.0f;
 
-            _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
-            if (aiNavigation != null)
+
+            foreach (var lpf in _aiNavigation.Values)
             {
-                foreach (var lpf in aiNavigation.Values)
+                foreach (var pf in lpf)
                 {
-                    foreach (var pf in lpf)
-                    {
-                        var dx = posX - pf.Position.X;
-                        var dy = posY - pf.Position.Y;
+                    var dx = posX - pf.Position.X;
+                    var dy = posY - pf.Position.Y;
 
-                        var distance = dx * dx + dy * dy;
-                        if (!(distance < minDistN)) { continue; }
+                    var distance = dx * dx + dy * dy;
+                    if (!(distance < minDistN)) { continue; }
 
-                        pointN = pf.Position;
-                        minDistN = distance;
-                    }
+                    pointN = pf.Position;
+                    minDistN = distance;
                 }
             }
 
-            _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
-            if (forbiddenArea != null)
+
+            foreach (var lfa in _forbiddenArea.Values)
             {
-                foreach (var lfa in forbiddenArea.Values)
+                foreach (var pf in lfa)
                 {
-                    foreach (var pf in lfa)
-                    {
-                        var dx = posX - pf.X;
-                        var dy = posY - pf.Y;
+                    var dx = posX - pf.X;
+                    var dy = posY - pf.Y;
 
-                        var distance = dx * dx + dy * dy;
-                        if (!(distance < minDistFa)) { continue; }
+                    var distance = dx * dx + dy * dy;
+                    if (!(distance < minDistFa)) { continue; }
 
-                        pointFa = pf;
-                        minDistFa = distance;
-                    }
+                    pointFa = pf;
+                    minDistFa = distance;
                 }
             }
+
 
             //Logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
-            rrr = minDistFa < minDistN ? pointFa.Z : pointN.Z;
+            res = minDistFa < minDistN ? pointFa.Z : pointN.Z;
         }
         catch
         {
-            rrr = 0f;
+            res = 0f;
         }
         //stopWatch.Stop();
         //Logger.Info($"GetHeight took {stopWatch.Elapsed}");
 
-        return rrr;
-    }
-
-    public float GetHeight(uint zoneKey, WorldSpawnPosition pos)
-    {
-        return GetHeight(zoneKey, pos.AsPositionVector());
+        return res;
     }
 
     private static float DistanceBetweenPoints(Vector3 point, Point compareTo)
@@ -346,7 +324,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
                (compareTo.Y - point.Y) * (compareTo.Y - point.Y);
     }
 
-    public static Point FindClosest(List<AiNavigation> searchIn, Point compareTo)
+    private static Point FindClosest(List<AiNavigation> searchIn, Point compareTo)
     {
         return searchIn
             .Select(p => new { point = p.Position, distance = DistanceBetweenPoints(p.Position, compareTo) })
@@ -354,7 +332,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
             .First().point;
     }
 
-    public static Point FindClosest(List<Point> searchIn, Point compareTo)
+    private static Point FindClosest(List<Point> searchIn, Point compareTo)
     {
         return searchIn
             .Select(p => new { point = p, distance = DistanceBetweenPoints(p, compareTo) })
@@ -388,41 +366,27 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
 
     public float GetHeight2(uint zoneKey, Vector3 pos)
     {
-        var rrr = 0f;
+        float res;
         var position = new Point(pos.X, pos.Y, pos.Z);
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         try
         {
-            var point = new Point();
-            var res = new List<Point>();
-
-            var worldId = WorldManager.Instance.GetWorldIdByZoneKey(zoneKey);
-
-            _aiNavigation.TryGetValue((byte)worldId, out var aiNavigation);
-            if (aiNavigation != null)
-            {
-                res.AddRange(aiNavigation.Values.Select(nav => FindClosest(nav, position)));
-            }
-
-            _forbiddenArea.TryGetValue((byte)worldId, out var forbiddenArea);
-            if (forbiddenArea != null)
-            {
-                res.AddRange(forbiddenArea.Values.Select(fa => FindClosest(fa, position)));
-            }
-
-            point = res.OrderBy(p => DistanceBetweenPoints(pos, p)).First();
+            var pointsList = new List<Point>();
+            pointsList.AddRange(_aiNavigation.Values.Select(nav => FindClosest(nav, position)));
+            pointsList.AddRange(_forbiddenArea.Values.Select(fa => FindClosest(fa, position)));
+            var point = pointsList.OrderBy(p => DistanceBetweenPoints(pos, p)).First();
             //Logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
-            rrr = point.Z;
+            res = point.Z;
         }
         catch
         {
-            rrr = 0f;
+            res = 0f;
         }
 
         stopWatch.Stop();
         Logger.Info($"GetHeight2 took {stopWatch.Elapsed}");
-        return rrr;
+        return res;
     }
 
     #endregion Finding the closest point
@@ -431,7 +395,7 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
 
     public void Load()
     {
-        Logger.Info("Loading AI GeoData...");
+        Logger.Info($"Loading AI GeoData for {worldTemplate} ...");
 
         _aiNavigation = [];
         _areasMission = [];
@@ -439,167 +403,151 @@ public class AiGeoDataManager : Singleton<AiGeoDataManager>
         _aiPath = [];
         _aiNavigationModifier = [];
 
-        var worlds = WorldManager.Instance.GetWorlds();
-        foreach (var world in worlds)
+        var worldPath = Path.Combine("Data", "AiGeoData", worldTemplate.Name);
+        var worldPathToFile = Path.Combine(worldPath, "server_ai_geo_data.sqlite3");
+        if (!File.Exists(worldPathToFile))
         {
-            _aiNavigation = [];
-            _areasMission = [];
-            _forbiddenArea = [];
-            _aiPath = [];
-            _aiNavigationModifier = [];
+            Logger.Info($"World {worldTemplate.Name} is missing {Path.GetFileName(worldPathToFile)}");
         }
-
-        foreach (var world in worlds)
+        else
         {
-            // TODO добавить в worlds => Geodata
-            var aiNavigation = new Dictionary<uint, List<AiNavigation>>();
-            var areasMission = new Dictionary<uint, string>();
-            var forbiddenArea = new Dictionary<uint, List<Point>>();
-            var aiPath = new Dictionary<uint, List<Point>>();
-            var aiNavigationModifier = new Dictionary<uint, List<Point>>();
-
-            var worldPath = Path.Combine("Data", "AiGeoData", world.Template.Name);
-            var worldPathToFile = Path.Combine(worldPath, "server_ai_geo_data.sqlite3");
-            if (!File.Exists(worldPathToFile))
+            using var connection = SQLite.CreateConnection(worldPath, "server_ai_geo_data.sqlite3");
+            Logger.Info("Loading ai_navigation...");
+            using (var command = connection.CreateCommand())
             {
-                Logger.Info($"World {world.Template.Name} is missing {Path.GetFileName(worldPathToFile)}");
-            }
-            else
-            {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                using (var connection = SQLite.CreateConnection(worldPath, "server_ai_geo_data.sqlite3"))
+                command.CommandText = "SELECT * FROM ai_navigation";
+                command.Prepare();
+                using (var sqliteDataReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
                 {
-                    Logger.Info("Loading ai_navigation...");
-                    using (var command = connection.CreateCommand())
+                    while (reader.Read())
                     {
-                        command.CommandText = "SELECT * FROM ai_navigation";
-                        command.Prepare();
-                        using (var sqliteDataReader = command.ExecuteReader())
-                        using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                        var template = new AiNavigation
                         {
-                            while (reader.Read())
+                            Id = reader.GetUInt32("id"),
+                            ZoneKey = reader.GetUInt32("zone_key"),
+                            StartPoint = reader.GetUInt32("start_point"),
+                            EndPoint = reader.GetUInt32("end_point"),
+                            Position = new Point
                             {
-                                var template = new AiNavigation();
-                                template.Id = reader.GetUInt32("id");
-                                template.ZoneKey = reader.GetUInt32("zone_key");
-                                template.StartPoint = reader.GetUInt32("start_point");
-                                template.EndPoint = reader.GetUInt32("end_point");
-                                template.Position = new Point();
-                                template.Position.X = reader.GetFloat("x");
-                                template.Position.Y = reader.GetFloat("y");
-                                template.Position.Z = reader.GetFloat("z");
-
-                                // convert coordinates from local to world, immediately when reading the path from the file
-                                var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
-                                var vec = ZoneManager.ConvertToWorldCoordinates(template.ZoneKey, xyz);
-                                template.Position.X = vec.X;
-                                template.Position.Y = vec.Y;
-                                template.Position.Z = vec.Z;
-
-                                if (aiNavigation.TryGetValue(template.StartPoint, out var value))
-                                {
-                                    value.Add(template);
-                                }
-                                else
-                                {
-                                    aiNavigation.Add(template.StartPoint, [template]);
-                                }
+                                X = reader.GetFloat("x"),
+                                Y = reader.GetFloat("y"),
+                                Z = reader.GetFloat("z")
                             }
+                        };
+
+                        // convert coordinates from local to world, immediately when reading the path from the file
+                        var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
+                        var vec = ZoneManager.ConvertToWorldCoordinates(template.ZoneKey, xyz);
+                        template.Position.X = vec.X;
+                        template.Position.Y = vec.Y;
+                        template.Position.Z = vec.Z;
+
+                        if (_aiNavigation.TryGetValue(template.StartPoint, out var value))
+                        {
+                            value.Add(template);
                         }
-                    }
-
-                    Logger.Info("Loading areas_mission...");
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = "SELECT * FROM areas_mission";
-                        command.Prepare();
-                        using (var sqliteDataReader = command.ExecuteReader())
-                        using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                        else
                         {
-                            while (reader.Read())
-                            {
-                                var template = new AreasMission();
-                                template.Id = reader.GetUInt32("id");
-                                template.ZoneKey = reader.GetUInt32("zone_key");
-                                template.Name = reader.GetString("name");
-                                template.Type = reader.GetString("type");
-                                template.PointCount = reader.GetUInt32("point_count");
-
-                                areasMission.Add(template.Id, template.Type);
-                            }
-                        }
-                    }
-
-                    Logger.Info("Loading areas_mission_points...");
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = "SELECT * FROM areas_mission_points";
-                        command.Prepare();
-                        using (var sqliteDataReader = command.ExecuteReader())
-                        using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                        {
-                            while (reader.Read())
-                            {
-                                var template = new AreasMissionPoints();
-                                template.Id = reader.GetUInt32("id");
-                                template.ZoneKey = reader.GetUInt32("zone_key");
-                                template.Position = new Point();
-                                template.Position.X = reader.GetFloat("x");
-                                template.Position.Y = reader.GetFloat("y");
-                                template.Position.Z = reader.GetFloat("z");
-
-                                // convert coordinates from local to world, immediately when reading the path from the file
-                                var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
-                                var vec = ZoneManager.ConvertToWorldCoordinates(template.ZoneKey, xyz);
-                                template.Position.X = vec.X;
-                                template.Position.Y = vec.Y;
-                                template.Position.Z = vec.Z;
-
-                                var type = areasMission[template.Id];
-                                switch (type)
-                                {
-                                    case "ForbiddenArea":
-                                        if (forbiddenArea.TryGetValue(template.Id, out var value))
-                                        {
-                                            value.Add(template.Position);
-                                        }
-                                        else
-                                        {
-                                            forbiddenArea.Add(template.Id, [template.Position]);
-                                        }
-                                        break;
-                                    case "AINavigationModifier":
-                                        if (aiNavigationModifier.TryGetValue(template.Id, out var value1))
-                                        {
-                                            value1.Add(template.Position);
-                                        }
-                                        else
-                                        {
-                                            aiNavigationModifier.Add(template.Id, [template.Position]);
-                                        }
-                                        break;
-                                    case "AIPath":
-                                        if (aiPath.TryGetValue(template.Id, out var value2))
-                                        {
-                                            value2.Add(template.Position);
-                                        }
-                                        else
-                                        {
-                                            aiPath.Add(template.Id, [template.Position]);
-                                        }
-                                        break;
-                                }
-                            }
+                            _aiNavigation.Add(template.StartPoint, [template]);
                         }
                     }
                 }
-#pragma warning restore CA2000 // Dispose objects before losing scope
             }
-            _aiNavigation[(byte)world.Id] = aiNavigation;
-            _areasMission[(byte)world.Id] = areasMission;
-            _forbiddenArea[(byte)world.Id] = forbiddenArea;
-            _aiNavigationModifier[(byte)world.Id] = aiNavigationModifier;
-            _aiPath[(byte)world.Id] = aiPath;
+
+            Logger.Info($"Loading areas_mission for {worldTemplate} ...");
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM areas_mission";
+                command.Prepare();
+                using (var sqliteDataReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new AreasMission
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ZoneKey = reader.GetUInt32("zone_key"),
+                            Name = reader.GetString("name"),
+                            Type = reader.GetString("type"),
+                            PointCount = reader.GetUInt32("point_count")
+                        };
+
+                        _areasMission.Add(template.Id, template.Type);
+                    }
+                }
+            }
+
+            Logger.Info($"Loading areas_mission_points for {worldTemplate} ...");
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM areas_mission_points";
+                command.Prepare();
+                using (var sqliteDataReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new AreasMissionPoints
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ZoneKey = reader.GetUInt32("zone_key"),
+                            Position = new Point
+                            {
+                                X = reader.GetFloat("x"),
+                                Y = reader.GetFloat("y"),
+                                Z = reader.GetFloat("z")
+                            }
+                        };
+
+                        // convert coordinates from local to world, immediately when reading the path from the file
+                        var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
+                        var vec = ZoneManager.ConvertToWorldCoordinates(template.ZoneKey, xyz);
+                        template.Position.X = vec.X;
+                        template.Position.Y = vec.Y;
+                        template.Position.Z = vec.Z;
+
+                        var type = _areasMission[template.Id];
+                        switch (type)
+                        {
+                            case "ForbiddenArea":
+                                if (_forbiddenArea.TryGetValue(template.Id, out var value))
+                                {
+                                    value.Add(template.Position);
+                                }
+                                else
+                                {
+                                    _forbiddenArea.Add(template.Id, [template.Position]);
+                                }
+
+                                break;
+                            case "AINavigationModifier":
+                                if (_aiNavigationModifier.TryGetValue(template.Id, out var value1))
+                                {
+                                    value1.Add(template.Position);
+                                }
+                                else
+                                {
+                                    _aiNavigationModifier.Add(template.Id, [template.Position]);
+                                }
+
+                                break;
+                            case "AIPath":
+                                if (_aiPath.TryGetValue(template.Id, out var value2))
+                                {
+                                    value2.Add(template.Position);
+                                }
+                                else
+                                {
+                                    _aiPath.Add(template.Id, [template.Position]);
+                                }
+
+                                break;
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -23,6 +23,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class WorldManager : Singleton<WorldManager>, IWorldManager
 {
     /// <summary>
@@ -164,7 +165,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
             var npcSpawners = world.SpawnManager.GetAllSpawners();
 
-            // Фильтрация спавнеров
+            // Spawner filtering
             if (sw.ElapsedMilliseconds > 50)
             {
                 Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
@@ -174,7 +175,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 .Where(spawner => spawner.Template != null && IsSpawnerActive(spawner))
                 .ToList();
 
-            // Последовательная обработка спавнеров
+            // Consistent processing of spawners
             if (sw.ElapsedMilliseconds > 50)
             {
                 Logger.Debug($"Processed {activeSpawners.Count} active spawners...");
@@ -189,7 +190,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         sw.Stop();
         if (sw.ElapsedMilliseconds > 100)
         {
-            Logger.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+            Logger.Warn($"ActiveRegionTick took {sw.ElapsedMilliseconds} ms");
         }
     }
 
@@ -518,6 +519,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             _zoneKeysByWorldId[worldTemplate.Id].Add(zoneKey);
         }
 
+        // Navmesh data
+        worldTemplate.GeoData = new AiGeoDataManager(worldTemplate);
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            worldTemplate.GeoData.Load();
+        }
+
         // Mark "main_world" as the DefaultWorldId
         if (worldName == "main_world")
             DefaultWorldTemplateId = worldTemplate.Id; // prefer to do it like this, in case we change order or IDs later on
@@ -676,7 +684,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (AppConfiguration.Instance.World.GeoDataMode && world.Id > 0)
         {
             var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneKey, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
-            height = AiGeoDataManager.Instance.GetHeight(zoneKey, position);
+            height = world.GeoData.GetHeight(position.AsPositionVector());
         }
 
         // check, as there is no geodata for main_world yet
@@ -708,20 +716,25 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
+        var world = GetWorld(transform.InstanceId);
+        if (world == null)
+        {
+            return height;
+        }
         if (AppConfiguration.Instance.World.GeoDataMode && transform.WorldId > 0)
         {
-            height = AiGeoDataManager.Instance.GetHeight(transform.ZoneId, transform.World.Position);
+            height = world.Template.GeoData?.GetHeight(transform.World.Position) ?? 0f;
         }
 
         // check, as there is no geodata for main_world yet
-        if (height == 0)
+        if (height == 0f)
         {
             if (AppConfiguration.Instance.HeightMapsEnable)
             {
                 try
                 {
-                    var world = GetWorld(transform.InstanceId);
-                    height = world?.GetHeight(transform.World.Position.X, transform.World.Position.Y) ?? transform.World.Position.Z;
+                    
+                    height = world.GetHeight(transform.World.Position.X, transform.World.Position.Y);
                 }
                 catch
                 {
@@ -1141,7 +1154,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_worlds is not null)
         {
-            foreach (var (worldId, world) in _worlds)
+            foreach (var world in _worlds.Values)
             {
                 Logger.Info($"Shutting down {world}");
                 world.Physics?.Stop();
