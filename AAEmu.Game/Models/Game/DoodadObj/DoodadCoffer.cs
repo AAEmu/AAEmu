@@ -25,7 +25,8 @@ public class DoodadCoffer : Doodad
 
     public override void Delete()
     {
-        ItemContainer?.Delete();
+        if (IsPersistent)
+            ItemContainer?.Delete();
         base.Delete();
     }
 

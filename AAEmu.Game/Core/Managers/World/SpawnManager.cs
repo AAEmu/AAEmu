@@ -207,6 +207,7 @@ public class SpawnManager(WorldInstance parentWorld)
                 }
                 else
                 {
+                    doodad.IsPersistent = false; // Don't force additional deletes by detaching the doodad from the save system
                     doodad.Delete();
                 }
 
