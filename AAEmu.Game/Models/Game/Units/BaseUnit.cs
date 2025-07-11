@@ -35,6 +35,8 @@ public class BaseUnit : GameObject, IBaseUnit
     /// </summary>
     public LootingContainer LootingContainer { get; init; }
 
+    public bool ConditionChance { get; set; }
+
     public BaseUnit()
     {
         Buffs = new Buffs(this);

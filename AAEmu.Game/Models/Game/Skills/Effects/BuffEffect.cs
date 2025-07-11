@@ -20,26 +20,26 @@ public class BuffEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        var casterUnit = caster as Unit;
         if (target is Unit trg)
         {
-            if ((source.Skill?.HitTypes.TryGetValue(trg.ObjId, out var hitType) ?? false)
+            var hitType = SkillHitType.Invalid;
+            if ((source.Skill?.HitTypes.TryGetValue(trg.ObjId, out hitType) ?? false)
                 && (source.Skill?.SkillMissed(trg.ObjId) ?? false))
             {
                 return;
             }
         }
 
-        if (casterUnit != null)
+        if (caster != null)
         {
             if (Random.Shared.Next(0, 101) > Chance)
             {
-                casterUnit.ConditionChance = false;
+                caster.ConditionChance = false;
                 return;
             }
             else
             {
-                casterUnit.ConditionChance = true;
+                caster.ConditionChance = true;
             }
         }
 
@@ -55,7 +55,7 @@ public class BuffEffect : EffectTemplate
             if (source.Skill != null)
             {
                 var template = source.Skill.Template;
-                var abilityLevel = character.GetAbLevel(source.Skill.Template.AbilityId);
+                var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
                     abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
                 else
@@ -84,13 +84,13 @@ public class BuffEffect : EffectTemplate
 
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
 
-        if (Buff.Kind == BuffKind.Bad &&
-            (target is not Npc) &&
-            caster?.GetRelationStateTo(target) == RelationState.Friendly &&
-            caster != target &&
+        // Check if a bad buff was applied to a friendly faction (bloodlust)
+        var relationToTarget = caster?.GetRelationStateTo(target) ?? RelationState.Neutral;
+        if (Buff.Kind == BuffKind.Bad && (target is not Npc) && 
+            relationToTarget == RelationState.Friendly && caster != target &&
             !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
         {
-            casterUnit?.SetCriminalState(true, target);
+            (caster as Unit)?.SetCriminalState(true, target);
         }
     }
 }
