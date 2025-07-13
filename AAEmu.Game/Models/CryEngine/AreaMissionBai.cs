@@ -1,21 +1,17 @@
-using System.Diagnostics;
 using System.Numerics;
 using System.Text;
+using NLog;
 using AAEmu.Commons.Exceptions;
 
 namespace AAEmu.Game.Models.CryEngine;
 
-public class AreaMissionBai
+public class AreaMissionBai(uint zoneKey)
 {
-    public uint ZoneKey { get; set; }
+    private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
+    public uint ZoneKey { get; init; } = zoneKey;
     public uint Version { get; set; }
     public uint NodeCount { get; set; }
     public List<AreaMissionNode> Nodes { get; set; } = new();
-
-    public AreaMissionBai(uint zoneKey)
-    {
-        ZoneKey = zoneKey;
-    }
 
     public void Parse(BinaryReader br)
     {
@@ -28,11 +24,11 @@ public class AreaMissionBai
         {
             nodeGroup++;
             var aNodeCount = br.ReadUInt32();
-            //Debug.WriteLine($"Nodes({nodeGroup}), Count:{aNodeCount}, Zone: {ZoneKey}, Type: {nodeType}");
+            // Logger.Debug($"Nodes({nodeGroup}), Count:{aNodeCount}, Zone: {ZoneKey}, Type: {nodeType}");
             // Areas
             for (var i = 0; i < aNodeCount; i++)
             {
-                //Debug.WriteLine($"Reading Node {i}/{aNodeCount} of Group {nodeGroup}({Nodes.Count}) @{br.BaseStream.Position}");
+                // Logger.Debug($"Reading Node {i}/{aNodeCount} of Group {nodeGroup}({Nodes.Count}) @{br.BaseStream.Position}");
                 try
                 {
                     var node = new AreaMissionNode();
@@ -55,8 +51,7 @@ public class AreaMissionBai
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(
-                        $"AreaMissionBai Pos:{br.BaseStream.Position}, Group {nodeGroup}, Index {i}, Exception: {ex}");
+                    Logger.Debug($"AreaMissionBai Pos:{br.BaseStream.Position}, Group {nodeGroup}, Index {i}, Exception: {ex}");
                     return;
                 }
             }
@@ -71,6 +66,7 @@ public class AreaMissionBai
 
 public class AreaMissionNode
 {
+    private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public int AreaNameSize { get; set; }
     public string AreaName { get; set; } = string.Empty;
     public uint VerticesCount { get; set; }
@@ -125,13 +121,13 @@ public class AreaMissionNode
         VerticesCount = br.ReadUInt32();
         if (VerticesCount > 4096)
         {
-            //Debug.WriteLine("Something is fishy here");
+            // Logger.Debug("Something is fishy here");
             // return;
         }
 
         if (VerticesCount <= 0)
         {
-            Debug.WriteLine("No points ?");
+            Logger.Debug("No points ?");
             // return;
         }
 
@@ -162,7 +158,7 @@ public class AreaMissionNode
         VerticesCount = br.ReadUInt32();
         if (VerticesCount > 2048)
         {
-            Debug.WriteLine("Something is fishy here");
+            Logger.Debug("Something is fishy here");
             return;
         }
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Numerics;
+using NLog;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmuGeoData.Scripts.CryEngine.Mission;
@@ -9,6 +9,7 @@ namespace AAEmu.Game.Models.CryEngine.Readers;
 
 internal class AreasMissionReader : BaiReader
 {
+    private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public static int BaiAreasFileVersion = 21;
 
     public List<AiShape> ForbiddenAreasList { get; } = new();
@@ -71,8 +72,7 @@ internal class AreasMissionReader : BaiReader
         if (ZoneId == 0)
         {
             if (Reader.BaseStream.Position != Reader.BaseStream.Length)
-                Debug.WriteLine(
-                    $"Reader ended before end of file at {Reader.BaseStream.Position}/{Reader.BaseStream.Length}");
+                Logger.Debug($"Reader ended before end of file at {Reader.BaseStream.Position}/{Reader.BaseStream.Length}");
             return;
         }
 

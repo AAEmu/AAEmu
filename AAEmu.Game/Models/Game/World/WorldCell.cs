@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.ClientData;
+using AAEmu.Game.Models.CryEngine.Loaders;
 using Jitter2.LinearMath;
 using NLog;
 
@@ -15,7 +12,7 @@ public class WorldCell
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private WorldTemplate Template { get; init; }
+    public WorldTemplate Template { get; init; }
     public int CellX { get; init; }
     public int CellY { get; init; }
     public bool Loaded { get; private set; }
@@ -24,6 +21,8 @@ public class WorldCell
     internal ushort[,] HeightMap { get; private set; }
     private float MinHeight { get; set; }
     private float MaxHeight { get; set; }
+    
+    public BaseBaiLoader BaiLoader { get; init; }
 
     /// <summary>
     /// Bounding box for use in Jitter
@@ -41,8 +40,34 @@ public class WorldCell
             new JVector(CellOffset.X, 0f, CellOffset.Y), 
             new JVector(CellOffset.X + WorldManager.CELL_SIZE, 0f, CellOffset.Y + WorldManager.CELL_SIZE)
             );
+        BaiLoader = new BaseBaiLoader(this);
     }
 
+    private void LoadBais()
+    {
+        if (!AppConfiguration.Instance.World.GeoDataMode)
+            return; // Don't load navmesh if GeoDataMode is disabled
+
+        if (Template.Name != "main_world")
+        {
+            // When not in main world, we load bai data from the zone folder to get everything in one go.
+            if (Template.ZoneKeys.Count != 0)
+                BaiLoader.LoadBais(Template.ZoneKeys.First().ToString(), false);
+        }
+        else
+        {
+            // Load the 4x4 grid of path folders into this cell
+            for (var y = 0; y < 4; y++)
+            {
+                for (var x = 0; x < 4; x++)
+                {
+                    var pathFolder = $"{((CellX * 4) + x):000}_{((CellY * 4) + y):000}";
+                    // Only clear when loading the first chunk
+                    BaiLoader.LoadBais(pathFolder, (x != 0 || y != 0));
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Checks if the cell is loaded and loads it if it hasn't 
@@ -59,6 +84,7 @@ public class WorldCell
             // Assign heightmap array
             HeightMap = new ushort[WorldManager.CELL_HMAP_RESOLUTION, WorldManager.CELL_HMAP_RESOLUTION];
             // Load data
+            LoadBais();
             Loaded = LoadCellHeightMapFromClientData();
             Loading = false;
         }

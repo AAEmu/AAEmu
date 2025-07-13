@@ -1,12 +1,13 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text;
+using NLog;
 using AAEmu.Commons.Exceptions;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
 internal abstract class BaiReader : IDisposable
 {
+    private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public System.IO.Stream RawStream { get; set; }
     public BinaryReader Reader { get; set; }
     public uint ZoneId { get; }
@@ -44,7 +45,7 @@ internal abstract class BaiReader : IDisposable
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Exception Pos: {Reader?.BaseStream.Position}");
+            Logger.Debug($"Exception Pos: {Reader?.BaseStream.Position}");
             throw new GameException(ex.Message);
         }
         finally
