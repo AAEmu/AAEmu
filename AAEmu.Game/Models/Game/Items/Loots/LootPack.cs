@@ -259,7 +259,7 @@ public class LootPack
                                     continue;
                                 }
                             }
-                            normalizedRate += loot.AlwaysDrop ? loot.DropRate : 10_000_000;
+                            normalizedRate += loot.AlwaysDrop ? 10_000_000 : loot.DropRate;
                             if (!tmpSelectedItemsByGroup.ContainsKey(groupNo))
                                 tmpSelectedItemsByGroup.Add(groupNo, []);
                             tmpSelectedItemsByGroup[groupNo].Add(loot);
