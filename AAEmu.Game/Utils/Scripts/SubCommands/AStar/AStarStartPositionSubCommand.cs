@@ -1,9 +1,9 @@
 ﻿using System.Drawing;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
-using Point = AAEmu.Game.Models.Game.AI.AStar.Point;
 
 namespace AAEmu.Game.Utils.Scripts.SubCommands.AStar;
 
@@ -47,7 +47,7 @@ public class AStarStartPositionSubCommand : SubCommandBase
         var y = GetOptionalParameterValue(parameters, "y", character.Transform.World.Position.Y);
         var z = GetOptionalParameterValue(parameters, "z", character.Transform.World.Position.Z);
 
-        npc.Ai.PathNode.Pos1 = new Point(x, y, z);
+        npc.Ai.PathNode.Pos1 = new AiPoint(x, y, z);
 
         messageOutput.SendMessage($"AStar: the starting point is set X:{npc.Ai.PathNode.Pos1.X}, Y:{npc.Ai.PathNode.Pos1.Y}, Z:{npc.Ai.PathNode.Pos1.Z}");
     }

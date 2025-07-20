@@ -27,22 +27,22 @@ public class PathNode
     /// <summary>
     /// Coordinates of the start point on the map (for the script).
     /// </summary>
-    public Point Pos1 { get; set; }
+    public AiPoint Pos1 { get; set; }
 
     /// <summary>
     /// Coordinates of the end point on the map (for the script).
     /// </summary>
-    public Point Pos2 { get; set; }
+    public AiPoint Pos2 { get; set; }
 
     /// <summary>
     /// List of found points (for the script).
     /// </summary>
-    public List<Point> FoundPath { get; set; } = [];
+    public List<AiPoint> FoundPath { get; set; } = [];
 
     /// <summary>
     /// The coordinates of the point on the map. And the coordinates of the point on the map where the Npc goes.
     /// </summary>
-    public Point Position { get; set; }
+    public AiPoint Position { get; set; }
 
     /// <summary>
     /// Path length from the start (G).
@@ -71,7 +71,7 @@ public class PathNode
     /// <param name="start"></param>
     /// <param name="goal"></param>
     /// <returns></returns>
-    public List<Point> FindPath(WorldInstance world, Point start, Point goal)
+    public List<AiPoint> FindPath(WorldInstance world, AiPoint start, AiPoint goal)
     {
         // Step 0
         FoundPath = [];
@@ -152,7 +152,7 @@ public class PathNode
     /// </summary>
     /// <param name="to"></param>
     /// <returns></returns>
-    private float GetDistanceFromStart(Point to)
+    private float GetDistanceFromStart(AiPoint to)
     {
         var fromVector = new Vector3(Pos1.X, Pos1.Y, Pos1.Z);
         var toVector = new Vector3(to.X, to.Y, to.Z);
@@ -164,7 +164,7 @@ public class PathNode
     /// </summary>
     /// <param name="from"></param>
     /// <returns></returns>
-    private float GetHeuristicPathLength(Point from)
+    private float GetHeuristicPathLength(AiPoint from)
     {
         // point-to-point distance
         var fromVector = new Vector3(from.X, from.Y, from.Z);
@@ -216,9 +216,9 @@ public class PathNode
     /// </summary>
     /// <param name="pathNode"></param>
     /// <returns></returns>
-    private static List<Point> GetPathForNode(PathNode pathNode)
+    private static List<AiPoint> GetPathForNode(PathNode pathNode)
     {
-        var result = new List<Point>();
+        var result = new List<AiPoint>();
         var currentNode = pathNode;
         while (currentNode != null)
         {

@@ -8,7 +8,7 @@ public class AreasMissionPoints
 
     public AreasMissionPoints(uint id, uint zoneKey, uint startPoint, uint endPoint, float x, float y, float z)
     {
-        Position = new Point();
+        Position = new AiPoint();
         Position.X = x;
         Position.Y = y;
         Position.Z = z;
@@ -18,7 +18,7 @@ public class AreasMissionPoints
 
     public AreasMissionPoints(float x, float y, float z)
     {
-        Position = new Point();
+        Position = new AiPoint();
         Position.X = x;
         Position.Y = y;
         Position.Z = z;
@@ -28,5 +28,5 @@ public class AreasMissionPoints
 
     public uint Id { get; set; }
     public uint ZoneKey { get; set; }
-    public Point Position { get; set; }
+    public AiPoint Position { get; set; }
 }

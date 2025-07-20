@@ -138,7 +138,7 @@ public abstract class BaseCombatBehavior : Behavior
             // TODO Find path to abuser only if target coordinates have changed
             if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
             {
-                if (!Ai.PathNode.Pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+                if (!Ai.PathNode.Pos2.Equals(new AiPoint(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
@@ -155,7 +155,7 @@ public abstract class BaseCombatBehavior : Behavior
 
             if (target != null && Ai.PathNode != null)
             {
-                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath[0].Equals(Point.Zero))
+                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath[0].Equals(AiPoint.Zero))
                 {
                     // TODO Take the destination point we're moving toward
                     var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
