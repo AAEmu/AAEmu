@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class WaypointSurfaceNavigation
+public class WaypointSurfaceNavigation
 {
     public uint ZoneId { get; }
     public List<LinkRecord> LinkedVolumeRecords { get; set; } = new();

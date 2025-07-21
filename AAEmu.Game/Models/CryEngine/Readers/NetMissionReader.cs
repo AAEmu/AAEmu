@@ -4,7 +4,7 @@ using AAEmu.Game.Models.CryEngine.Entities;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-internal class NetMissionReader : BaiReader
+public class NetMissionReader : BaiReader
 {
     public static int BaiTriangulationFileVersion = 55;
 

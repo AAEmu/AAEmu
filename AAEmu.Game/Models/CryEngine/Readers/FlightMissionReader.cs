@@ -5,7 +5,7 @@ using AAEmuGeoData.Scripts.CryEngine.Mission;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-internal class FlightMissionReader : BaiReader
+public class FlightMissionReader : BaiReader
 {
     public static int BaiFlightNavFileVersionRead = 9;
 

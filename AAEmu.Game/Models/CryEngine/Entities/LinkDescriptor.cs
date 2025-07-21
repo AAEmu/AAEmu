@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class LinkDescriptor
+public class LinkDescriptor
 {
     public long SourceNode { get; set; }
     public long TargetNode { get; set; }

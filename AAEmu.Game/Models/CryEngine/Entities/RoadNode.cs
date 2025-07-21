@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class RoadNode
+public class RoadNode
 {
     public Vector3 Pos { get; set; } = Vector3.Zero;
     public double Width { get; set; }

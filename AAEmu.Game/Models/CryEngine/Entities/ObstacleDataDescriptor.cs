@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class ObstacleDataDescriptor
+public class ObstacleDataDescriptor
 {
     public uint ZoneId { get; }
     public Vector3 Pos { get; set; } = Vector3.Zero;

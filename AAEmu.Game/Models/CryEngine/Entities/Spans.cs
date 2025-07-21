@@ -1,7 +1,7 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
 // Actual name should be Span, but called it Spans to avoid syntax errors.
-internal class Spans
+public class Spans
 {
     public double X { get; set; }
     public double Y { get; set; }

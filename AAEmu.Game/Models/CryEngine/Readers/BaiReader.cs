@@ -5,7 +5,7 @@ using AAEmu.Commons.Exceptions;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-internal abstract class BaiReader : IDisposable
+public abstract class BaiReader : IDisposable
 {
     private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public System.IO.Stream RawStream { get; set; }

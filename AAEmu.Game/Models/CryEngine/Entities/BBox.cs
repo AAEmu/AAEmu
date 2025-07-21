@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class BBox
+public class BBox
 {
     public Vector3 Min { get; set; } = Vector3.Zero;
     public Vector3 Max { get; set; } = Vector3.Zero;

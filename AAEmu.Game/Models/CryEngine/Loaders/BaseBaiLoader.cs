@@ -11,10 +11,10 @@ public class BaseBaiLoader(WorldCell parentCell)
 {
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger(); 
     public WorldCell ParentCell { get; init; } = parentCell;
-    private List<AreasMissionReader> AreasMissionReaders { get; set; } = new();
-    private List<NetMissionReader> NetMissionReaders { get; set; } = new();
-    private List<VertexMissionReader> VertexMissionReaders { get; set; } = new();
-    private List<NetMissionReader> HideMissionReaders { get; set; } = new();
+    public List<AreasMissionReader> AreasMissionReaders { get; set; } = new();
+    public List<NetMissionReader> NetMissionReaders { get; set; } = new();
+    public List<VertexMissionReader> VertexMissionReaders { get; set; } = new();
+    public List<NetMissionReader> HideMissionReaders { get; set; } = new();
 
     /// <summary>
     /// Loads .bai file data from a given zone or path folder

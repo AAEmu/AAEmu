@@ -3,7 +3,7 @@ using AAEmu.Game.Models.CryEngine.Entities;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-internal class VertexMissionReader : BaiReader
+public class VertexMissionReader : BaiReader
 {
     public static int BaiVertexFileVersion = 2;
 

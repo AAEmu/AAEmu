@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.Char;
@@ -46,7 +47,7 @@ public class AStarEndPositionSubCommand : SubCommandBase
         var y = GetOptionalParameterValue(parameters, "y", character.Transform.World.Position.Y);
         var z = GetOptionalParameterValue(parameters, "z", character.Transform.World.Position.Z);
 
-        npc.Ai.PathNode.Pos2 = new AiPoint(x, y, z);
+        npc.Ai.PathNode.Pos2 = new Vector3(x, y, z);
 
         messageOutput.SendMessage($"AStar: the endpoint is set X:{npc.Ai.PathNode.Pos2.X}, Y:{npc.Ai.PathNode.Pos2.Y}, Z:{npc.Ai.PathNode.Pos2.Z}");
     }

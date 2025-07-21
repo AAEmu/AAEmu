@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class NodeDescriptor
+public class NodeDescriptor
 {
     public int Id { get; set; }
     public Vector3 Dir { get; set; } = Vector3.Zero;

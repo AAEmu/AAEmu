@@ -3,7 +3,7 @@ using AAEmu.Game.Models.CryEngine.Entities;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-internal class RoadMissionReader : BaiReader
+public class RoadMissionReader : BaiReader
 {
     public static int BaiRoadsFileVersion = 2;
 

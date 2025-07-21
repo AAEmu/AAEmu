@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class Road
+public class Road
 {
     public uint ZoneId { get; }
     public string Name { get; set; } = string.Empty;

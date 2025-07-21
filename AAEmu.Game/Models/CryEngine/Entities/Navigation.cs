@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class Navigation
+public class Navigation
 {
     public Navigation(uint zoneId)
     {

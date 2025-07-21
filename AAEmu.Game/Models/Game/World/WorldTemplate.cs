@@ -187,4 +187,17 @@ public class WorldTemplate
     {
         return sectorX >= 0 && sectorX < CellX * WorldManager.SECTORS_PER_CELL && sectorY >= 0 && sectorY < CellY * WorldManager.SECTORS_PER_CELL;
     }
+
+    /// <summary>
+    /// Gets target cell
+    /// </summary>
+    /// <param name="cellX"></param>
+    /// <param name="cellY"></param>
+    /// <returns>Returns the cell, or null if the given index is out of bounds for this world</returns>
+    public WorldCell GetCell(int cellX, int cellY)
+    {
+        if ((cellX < 0) || cellX > CellX || cellY < 0 || cellY > CellY)
+            return null;
+        return Cells[cellX, cellY];
+    }
 }

@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.CryEngine.Mission;
 
-internal class FlightNavRegion : Mission
+public class FlightNavRegion : Mission
 {
     public int HeightFieldOriginX { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class FlightLinkDescriptor
+public class FlightLinkDescriptor
 {
     public int IndexFirst { get; set; }
     public int IndexSecond { get; set; }

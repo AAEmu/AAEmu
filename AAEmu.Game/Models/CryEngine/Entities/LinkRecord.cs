@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-internal class LinkRecord
+public class LinkRecord
 {
     public int NodeIndex { get; set; }
     public double RadiusOut { get; set; }

@@ -1400,8 +1400,8 @@ public partial class Npc : Unit
 
     public void FindPath(Unit abuser)
     {
-        Ai.PathNode.Pos1 = new AiPoint(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-        Ai.PathNode.Pos2 = new AiPoint(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+        Ai.PathNode.Pos1 = new Vector3(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
+        Ai.PathNode.Pos2 = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
 
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
         Ai.PathNode.FoundPath = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.Pos1, Ai.PathNode.Pos2);
@@ -1427,7 +1427,7 @@ public partial class Npc : Unit
         if (Ai.PathNode.FoundPath == null)
             return Vector3.Zero;
 
-        var pos = new AiPoint(unit.Transform.World.Position.X, unit.Transform.World.Position.Y, unit.Transform.World.Position.Z);
+        var pos = new Vector3(unit.Transform.World.Position.X, unit.Transform.World.Position.Y, unit.Transform.World.Position.Z);
         Ai.PathNode.Current = AiGeoDataManager.FindClosestIndexPoint(Ai.PathNode.FoundPath, pos);
 
         return new Vector3(Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].X, Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].Y, Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].Z);

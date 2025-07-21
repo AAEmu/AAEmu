@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Mission;
 
-internal abstract class Mission
+public abstract class Mission
 {
     public uint ZoneId { get; }
     public string Name { get; set; } = string.Empty;

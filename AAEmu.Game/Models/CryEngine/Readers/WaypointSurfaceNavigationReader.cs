@@ -3,7 +3,7 @@ using AAEmu.Game.Models.CryEngine.Entities;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-internal class WaypointSurfaceNavigationReader : BaiReader
+public class WaypointSurfaceNavigationReader : BaiReader
 {
     public int BaiWayPoint3DSurfaceFileVersion = 1;
 

@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.AI.AStar;
+﻿using System.Numerics;
+
+namespace AAEmu.Game.Models.Game.AI.AStar;
 
 public class AiNavigation
 {
@@ -9,12 +11,7 @@ public class AiNavigation
 
     public AiNavigation(uint id, uint zoneKey, uint startPoint, uint endPoint, float x, float y, float z)
     {
-        Position = new AiPoint
-        {
-            X = x,
-            Y = y,
-            Z = z
-        };
+        Position = new Vector3(x, y, z);
         Id = id;
         ZoneKey = zoneKey;
         StartPoint = startPoint;
@@ -23,12 +20,7 @@ public class AiNavigation
 
     public AiNavigation(float x, float y, float z)
     {
-        Position = new AiPoint
-        {
-            X = x,
-            Y = y,
-            Z = z
-        };
+        Position = new Vector3(x, y, z);
         Id = 0;
         ZoneKey = 0;
         StartPoint = 0;
@@ -39,5 +31,5 @@ public class AiNavigation
     public uint ZoneKey { get; set; }
     public uint StartPoint { get; set; }
     public uint EndPoint { get; set; }
-    public AiPoint Position { get; set; }
+    public Vector3 Position { get; set; }
 }

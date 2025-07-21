@@ -2,8 +2,10 @@
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -19,9 +21,9 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
 
     private Dictionary<uint, List<AiNavigation>> _aiNavigation;
     private Dictionary<uint, string> _areasMission;
-    private Dictionary<uint, List<AiPoint>> _forbiddenArea;
-    private Dictionary<uint, List<AiPoint>> _aiPath;
-    private Dictionary<uint, List<AiPoint>> _aiNavigationModifier;
+    private Dictionary<uint, List<Vector3>> _forbiddenArea;
+    private Dictionary<uint, List<Vector3>> _aiPath;
+    private Dictionary<uint, List<Vector3>> _aiNavigationModifier;
 
     public List<AiNavigation> GetAvailablePoints(uint zoneKey, uint point)
     {
@@ -34,9 +36,9 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <summary>
     /// Checks if point is inside a forbidden zone area
     /// </summary>
-    /// <param name="aiPoint"></param>
+    /// <param name="point"></param>
     /// <returns></returns>
-    public bool CheckImpossibleWalk(AiPoint aiPoint)
+    public bool CheckImpossibleWalk(Vector3 point)
     {
         var res = new List<bool>();
         if (_forbiddenArea.Count <= 1)
@@ -48,34 +50,34 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         {
             foreach (var fa in _forbiddenArea.Values)
             {
-                res.Add(IsInPolygon(aiPoint, fa));
+                res.Add(IsInPolygon(point, fa));
             }
         }
 
         return res.Any(b => b);
     }
 
-    private static bool IsInPolygon(AiPoint aiPoint, List<AiPoint> polygon)
+    private static bool IsInPolygon(Vector3 point, List<Vector3> polygon)
     {
         var result = false;
         var a = polygon.Last();
         foreach (var b in polygon)
         {
-            if (b.X.Equals(aiPoint.X) && b.Y.Equals(aiPoint.Y))
+            if (b.X.Equals(point.X) && b.Y.Equals(point.Y))
                 return true;
 
-            if (b.Y.Equals(a.Y) && aiPoint.Y.Equals(a.Y))
+            if (b.Y.Equals(a.Y) && point.Y.Equals(a.Y))
             {
-                if (a.X <= aiPoint.X && aiPoint.X <= b.X)
+                if (a.X <= point.X && point.X <= b.X)
                     return true;
 
-                if (b.X <= aiPoint.X && aiPoint.X <= a.X)
+                if (b.X <= point.X && point.X <= a.X)
                     return true;
             }
 
-            if (b.Y < aiPoint.Y && a.Y >= aiPoint.Y || a.Y < aiPoint.Y && b.Y >= aiPoint.Y)
+            if (b.Y < point.Y && a.Y >= point.Y || a.Y < point.Y && b.Y >= point.Y)
             {
-                if (b.X + (aiPoint.Y - b.Y) / (a.Y - b.Y) * (a.X - b.X) <= aiPoint.X)
+                if (b.X + (point.Y - b.Y) / (a.Y - b.Y) * (a.X - b.X) <= point.X)
                     result = !result;
             }
             a = b;
@@ -90,7 +92,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="point2"></param>
     /// <param name="point3"></param>
     /// <returns></returns>
-    public static Vector3 TriangleCenter(AiPoint point1, AiPoint point2, AiPoint point3)
+    public static Vector3 TriangleCenter(Vector3 point1, Vector3 point2, Vector3 point3)
     {
         var x = (point1.X + point2.X + point3.X) / 3;
         var y = (point1.Y + point2.Y + point3.Y) / 3;
@@ -104,7 +106,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     #region Path smoothing
 
     // https://www.codeproject.com/Articles/18936/A-C-Implementation-of-Douglas-Peucker-Line-Appro
-    public static List<AiPoint> DouglasPeuckerReduction(List<AiPoint> points, double tolerance)
+    public static List<Vector3> DouglasPeuckerReduction(List<Vector3> points, double tolerance)
     {
         if (points == null || points.Count < 3)
             return points;
@@ -125,7 +127,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
 
         DouglasPeuckerReduction(points, firstPointIndex, lastPointIndex, tolerance, ref pointIndexesToKeep);
 
-        var returnPoints = new List<AiPoint>();
+        var returnPoints = new List<Vector3>();
         pointIndexesToKeep.Sort();
         foreach (var index in pointIndexesToKeep)
         {
@@ -143,7 +145,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="lastPointIndex">The last point.</param>
     /// <param name="tolerance">The tolerance.</param>
     /// <param name="pointIndexesToKeep">The point index to keep.</param>
-    private static void DouglasPeuckerReduction(List<AiPoint> points, int firstPointIndex, int lastPointIndex, double tolerance, ref List<int> pointIndexesToKeep)
+    private static void DouglasPeuckerReduction(List<Vector3> points, int firstPointIndex, int lastPointIndex, double tolerance, ref List<int> pointIndexesToKeep)
     {
         double maxDistance = 0;
         var indexFarthest = 0;
@@ -176,16 +178,16 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// </summary>
     /// <param name="point1">The point1.</param>
     /// <param name="point2">The point2.</param>
-    /// <param name="aiPoint">The point.</param>
+    /// <param name="targetPoint">The point.</param>
     /// <returns></returns>
-    private static double PerpendicularDistance(AiPoint point1, AiPoint point2, AiPoint aiPoint)
+    private static double PerpendicularDistance(Vector3 point1, Vector3 point2, Vector3 targetPoint)
     {
         //Area = |(1/2)(x1y2 + x2y3 + x3y1 - x2y1 - x3y2 - x1y3)|   *Area of triangle
         //Base = v((x1-x2)²+(x1-x2)²)                               *Base of Triangle*
         //Area = .5*Base*H                                          *Solve for height
         //Height = Area/.5/Base
 
-        var area = Math.Abs(.5 * (point1.X * point2.Y + point2.X * aiPoint.Y + aiPoint.X * point1.Y - point2.X * point1.Y - aiPoint.X * point2.Y - point1.X * aiPoint.Y));
+        var area = Math.Abs(.5 * (point1.X * point2.Y + point2.X * targetPoint.Y + targetPoint.X * point1.Y - point2.X * point1.Y - targetPoint.X * point2.Y - point1.X * targetPoint.Y));
         var bottom = Math.Sqrt(Math.Pow(point1.X - point2.X, 2) + Math.Pow(point1.Y - point2.Y, 2));
         var height = area / bottom * 2;
 
@@ -196,10 +198,10 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
 
     #region Finding the closest point
 
-    public (uint, AiPoint) FindСlosestToTheCurrent2(uint zoneKey, Vector3 pos)
+    public (uint, Vector3) FindСlosestToTheCurrent2(uint zoneKey, Vector3 pos)
     {
         var index = 0u;
-        var point = new AiPoint();
+        var point = new Vector3();
 
         foreach (var closest in _aiNavigation.Values.Select(lpf => lpf
                      .OrderBy(x => DistanceBetweenPoints(pos, x.Position))
@@ -213,31 +215,40 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         return (index, point);
     }
 
-    public (uint, AiPoint) FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
+    public (long, Vector3) FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
     {
         var posX = pos.X;
         var posY = pos.Y;
 
-        var index = 0u;
-        var point = new AiPoint();
+        long index = 0u;
+        NodeDescriptor closestPointFound = null;
+        var point = new Vector3();
         var minDist = 99999.0f;
+        
+        var (sourceCellX, sourceCellY) = pos.ToCellIndex();
+        var cell = worldTemplate.GetCell(sourceCellX, sourceCellY);
+        if (cell == null)
+            return (index, point);
 
-        foreach (var lpf in _aiNavigation.Values)
+        foreach (var netMission in cell.BaiLoader.NetMissionReaders)
         {
-            foreach (var pf in lpf)
+            foreach (var (nodeIndex, nodeDescriptor) in netMission.NodeDescriptorList)
             {
-                var dx = posX - pf.Position.X;
-                var dy = posY - pf.Position.Y;
+                var dx = posX - nodeDescriptor.Pos.X;
+                var dy = posY - nodeDescriptor.Pos.Y;
 
                 var distance = dx * dx + dy * dy;
-                if (!(distance < minDist)) { continue; }
-
-                index = pf.StartPoint;
-                point = pf.Position;
-                minDist = distance;
+                if (distance < minDist)
+                {
+                    index = nodeIndex;
+                    closestPointFound = nodeDescriptor;
+                    minDist = distance;
+                }
             }
         }
 
+        if (closestPointFound != null)
+            point = closestPointFound.Pos;
 
         // Logger.Warn($"# Found near position index: {index}...");
         return (index, point);
@@ -258,8 +269,8 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
             var posX = pos.X;
             var posY = pos.Y;
 
-            var pointN = new AiPoint();
-            var pointFa = new AiPoint();
+            var pointN = new Vector3();
+            var pointFa = new Vector3();
 
             var minDistN = 99999.0f;
             var minDistFa = 99999.0f;
@@ -310,19 +321,13 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         return res;
     }
 
-    private static float DistanceBetweenPoints(Vector3 point, AiPoint compareTo)
+    private static float DistanceBetweenPoints(Vector3 point, Vector3 compareTo)
     {
         return (compareTo.X - point.X) * (compareTo.X - point.X) +
                (compareTo.Y - point.Y) * (compareTo.Y - point.Y);
     }
 
-    private static float DistanceBetweenPoints(AiPoint aiPoint, AiPoint compareTo)
-    {
-        return (compareTo.X - aiPoint.X) * (compareTo.X - aiPoint.X) +
-               (compareTo.Y - aiPoint.Y) * (compareTo.Y - aiPoint.Y);
-    }
-
-    private static AiPoint FindClosest(List<AiNavigation> searchIn, AiPoint compareTo)
+    private static Vector3 FindClosest(List<AiNavigation> searchIn, Vector3 compareTo)
     {
         return searchIn
             .Select(p => new { point = p.Position, distance = DistanceBetweenPoints(p.Position, compareTo) })
@@ -330,7 +335,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
             .First().point;
     }
 
-    private static AiPoint FindClosest(List<AiPoint> searchIn, AiPoint compareTo)
+    private static Vector3 FindClosest(List<Vector3> searchIn, Vector3 compareTo)
     {
         return searchIn
             .Select(p => new { point = p, distance = DistanceBetweenPoints(p, compareTo) })
@@ -344,7 +349,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="searchIn"></param>
     /// <param name="compareTo"></param>
     /// <returns>returns the index of the found point</returns>
-    public static uint FindClosestIndexPoint(List<AiPoint> searchIn, AiPoint compareTo)
+    public static uint FindClosestIndexPoint(List<Vector3> searchIn, Vector3 compareTo)
     {
         var minDistance = 0f;
         var pointN = 0u;
@@ -365,12 +370,12 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     public float GetHeight2(uint zoneKey, Vector3 pos)
     {
         float res;
-        var position = new AiPoint(pos.X, pos.Y, pos.Z);
+        var position = new Vector3(pos.X, pos.Y, pos.Z);
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         try
         {
-            var pointsList = new List<AiPoint>();
+            var pointsList = new List<Vector3>();
             pointsList.AddRange(_aiNavigation.Values.Select(nav => FindClosest(nav, position)));
             pointsList.AddRange(_forbiddenArea.Values.Select(fa => FindClosest(fa, position)));
             var point = pointsList.OrderBy(p => DistanceBetweenPoints(pos, p)).First();
@@ -426,7 +431,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                             ZoneKey = reader.GetUInt32("zone_key"),
                             StartPoint = reader.GetUInt32("start_point"),
                             EndPoint = reader.GetUInt32("end_point"),
-                            Position = new AiPoint
+                            Position = new Vector3()
                             {
                                 X = reader.GetFloat("x"),
                                 Y = reader.GetFloat("y"),
@@ -437,9 +442,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                         // convert coordinates from local to world, immediately when reading the path from the file
                         var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
                         var vec = ZoneManager.ConvertToWorldCoordinates(template.ZoneKey, xyz);
-                        template.Position.X = vec.X;
-                        template.Position.Y = vec.Y;
-                        template.Position.Z = vec.Z;
+                        template.Position = vec;
 
                         if (_aiNavigation.TryGetValue(template.StartPoint, out var value))
                         {
@@ -491,7 +494,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                         {
                             Id = reader.GetUInt32("id"),
                             ZoneKey = reader.GetUInt32("zone_key"),
-                            Position = new AiPoint
+                            Position = new Vector3()
                             {
                                 X = reader.GetFloat("x"),
                                 Y = reader.GetFloat("y"),
@@ -502,9 +505,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                         // convert coordinates from local to world, immediately when reading the path from the file
                         var xyz = new Vector3(template.Position.X, template.Position.Y, template.Position.Z);
                         var vec = ZoneManager.ConvertToWorldCoordinates(template.ZoneKey, xyz);
-                        template.Position.X = vec.X;
-                        template.Position.Y = vec.Y;
-                        template.Position.Z = vec.Z;
+                        template.Position = vec;
 
                         var type = _areasMission[template.Id];
                         switch (type)
