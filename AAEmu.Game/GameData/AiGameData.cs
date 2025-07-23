@@ -21,6 +21,8 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
     private Dictionary<uint, AiParams> _aiParams;
     private Dictionary<uint, List<AiCommands>> _aiCommands;
     private Dictionary<uint, AiCommandSets> _aiCommandSets;
+    private readonly Dictionary<int, NpcChatBubble> _npcChatBubbles = new();
+    private readonly Dictionary<int, List<AiEvent>> _aiEventsByNpc = new();
 
     public AiParams GetAiParamsForId(uint id)
     {
@@ -144,6 +146,81 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                 }
             }
         }
+
+        LoadNpcChatBubbles(connection);
+        LoadAiEvents(connection);
+    }
+
+    private void LoadNpcChatBubbles(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM npc_chat_bubbles";
+        command.Prepare();
+
+        using var sqliteReader = command.ExecuteReader();
+        using var reader = new SQLiteWrapperReader(sqliteReader);
+
+        while (reader.Read())
+        {
+            var bubble = new NpcChatBubble();
+            bubble.Id = reader.GetInt32("id");
+            bubble.AiEventId = reader.GetInt32("ai_event_id");
+            bubble.Bubble = reader.GetString("bubble");
+            _npcChatBubbles[bubble.AiEventId] = bubble;
+        }
+
+        Logger.Info($"Загружено {_npcChatBubbles.Count} записей из npc_chat_bubbles.");
+    }
+
+    private void LoadAiEvents(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM ai_events";
+        command.Prepare();
+
+        using var sqliteReader = command.ExecuteReader();
+        using var reader = new SQLiteWrapperReader(sqliteReader);
+
+        while (reader.Read())
+        {
+            var aiEvent = new AiEvent();
+            aiEvent.Id = reader.GetInt32("id");
+            aiEvent.IgnoreCategoryId = reader.GetInt32("ignore_category_id");
+            aiEvent.Weight = reader.GetFloat("ignore_time", 0f);
+            aiEvent.EventName = reader.GetString("name");
+            aiEvent.NpcId = reader.GetInt32("npc_id");
+            aiEvent.OrUnitReqs = reader.GetBoolean("or_unit_reqs", false);
+            aiEvent.SkillId = reader.IsDBNull("skill_id") ? 0 : reader.GetInt32("skill_id");
+
+            if (!_aiEventsByNpc.ContainsKey(aiEvent.NpcId))
+                _aiEventsByNpc[aiEvent.NpcId] = [];
+            _aiEventsByNpc[aiEvent.NpcId].Add(aiEvent);
+        }
+
+        Logger.Info($"Загружено {_aiEventsByNpc.Count} записей из ai_events.");
+    }
+
+    public bool TryGet(int id, out NpcChatBubble bubble) => _npcChatBubbles.TryGetValue(id, out bubble);
+
+    /// <summary>
+    /// Get all NPC events by event name
+    /// </summary>
+    /// <param name="npcId"></param>
+    /// <param name="eventName"></param>
+    /// <returns></returns>
+    public List<AiEvent> GetEvents(int npcId, string eventName)
+    {
+        if (_aiEventsByNpc.TryGetValue(npcId, out var list))
+            return list.FindAll(e => e.EventName.Equals(eventName, StringComparison.OrdinalIgnoreCase));
+        return [];
+    }
+
+    public AiEvent GetEvent(int npcId, string eventName, float weight)
+    {
+        if (_aiEventsByNpc.TryGetValue(npcId, out var list))
+            return list.Find(e => e.EventName.Equals(eventName, StringComparison.OrdinalIgnoreCase) && e.Weight >= weight);
+
+        return null;
     }
 
     public void PostLoad()
