@@ -16,9 +16,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 public class TalkBehavior : BaseCombatBehavior
 {
     // -------------------- configurable --------------------
-    private const float GreetTimer = 5f;      // minutes
-    private const float GreetRange = 5f;      // metres
-    private const float SpyglassDist = 1.5f;    // metres
+    private const float GreetTimer = 5f;     // minutes
+    private const float GreetRange = 5f;     // metres
+    private const float SpyglassDist = 1.5f; // metres
     private const double GreetFov = 0.6667;  // 120° / 180°
     private const uint VehicleNickId = 22;
     private const uint SpyglassId = 6129;
@@ -63,7 +63,7 @@ public class TalkBehavior : BaseCombatBehavior
             .ToList();
         toRemove.ForEach(id => _greeted.Remove(id));
 
-        if (!playersInRange.Any())
+        if (playersInRange.Count == 0)
             Ai.GoToDefaultBehavior();
     }
 

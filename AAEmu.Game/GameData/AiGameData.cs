@@ -108,7 +108,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                     template.Id = reader.GetUInt32("id");
                     if (tempListId.Contains(template.Id))
                     {
-                        continue; // в таблице есть дубли
+                        continue; // The table contains duplicates.
                     }
 
                     tempListId.Add(template.Id);
@@ -169,7 +169,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
             _npcChatBubbles[bubble.AiEventId] = bubble;
         }
 
-        Logger.Info($"Загружено {_npcChatBubbles.Count} записей из npc_chat_bubbles.");
+        Logger.Info($"Loaded {_npcChatBubbles.Count} entries from npc_chat_bubbles.");
     }
 
     private void LoadAiEvents(SqliteConnection connection)
@@ -197,7 +197,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
             _aiEventsByNpc[aiEvent.NpcId].Add(aiEvent);
         }
 
-        Logger.Info($"Загружено {_aiEventsByNpc.Count} записей из ai_events.");
+        Logger.Info($"Loaded {_aiEventsByNpc.Count} records from ai_events.");
     }
 
     public bool TryGet(int id, out NpcChatBubble bubble) => _npcChatBubbles.TryGetValue(id, out bubble);

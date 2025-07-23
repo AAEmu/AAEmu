@@ -102,7 +102,7 @@ public abstract class Behavior
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
         var skill = new Skill(skillTemplate);
 
-        SetWeaponRange(skill, target); // установим максимальную дистанцию для атаки скиллом
+        SetWeaponRange(skill, target); // set the maximum distance for the skill attack
 
         var delay2 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
         if (Ai.Owner.Template.BaseSkillDelay == 0)

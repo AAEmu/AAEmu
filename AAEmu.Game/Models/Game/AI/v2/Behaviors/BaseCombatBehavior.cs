@@ -135,20 +135,20 @@ public abstract class BaseCombatBehavior : Behavior
 
         if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
         {
-            // TODO найдем путь к abuser, только если координаты цели изменились
+            // TODO Find path to abuser only if target coordinates have changed
             if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
             {
                 if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
-                    // TODO найдем путь к abuser
+                    // TODO Find path to abuser
                     Ai.Owner.FindPath((Unit)target);
                     stopWatch.Stop();
                     // Toss warning if it took a long time
                     if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
                         Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
-                    // запомним новые координаты цели
+                    // Save the target's new coordinates
                     Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                 }
             }
@@ -157,7 +157,7 @@ public abstract class BaseCombatBehavior : Behavior
             {
                 if (Ai.PathNode.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
                 {
-                    // TODO взять точку к которой движемся
+                    // TODO Take the destination point we're moving toward
                     var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
                     distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
                     if (distanceToTarget > range)
@@ -166,7 +166,7 @@ public abstract class BaseCombatBehavior : Behavior
                     }
                     else
                     {
-                        // TODO взять следующую точку к которой движемся
+                        // TODO Get the next destination point we're moving toward
                         Ai.PathNode.Current++;
                         if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
                         {
@@ -251,14 +251,14 @@ public abstract class BaseCombatBehavior : Behavior
             }
 
             if (Ai.Owner.CurrentTarget == null)
-                return true; // нет цели, возвращаемся
+                return true; // no target, returning
 
             var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.Owner.CurrentTarget.Transform.World.Position, true);
             var distanceToIdlePosition = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition, true);
 
             var res = distanceToTarget > returnDistance || distanceToIdlePosition > returnDistance;
             if (res)
-                res = distanceToIdlePosition <= absoluteReturnDistance; // если больше, то нужен телепорт на место спавна
+                res = distanceToIdlePosition <= absoluteReturnDistance; // if it's greater, then we need a teleport to the spawn point
             return res;
         }
     }
@@ -284,13 +284,12 @@ public abstract class BaseCombatBehavior : Behavior
 
             if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
             {
-                // включена геодата и не основной мир
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
                     if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargeted)
                     {
-                        // TODO найдем путь к abuser
+                        // TODO: find the path to abuser
                         Ai.Owner.FindPath(abuser);
                     }
                     Ai.Owner.CurrentAggroTarget = abuser;

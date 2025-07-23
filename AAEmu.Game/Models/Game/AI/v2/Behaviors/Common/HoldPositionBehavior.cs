@@ -11,18 +11,18 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 public class HoldPositionBehavior : BaseCombatBehavior
 {
     // -------------------- configurable --------------------
-    private const float SkillCheckInterval  = 1.0f;  // 1 s between idle-skill tries
-    private const float GreetTimer = 5f;         // minutes
-    private const float GreetRange = 5f;         // metres
-    private const double GreetFovScale = 0.6667; // 120.0 / 180.0 for IsFront
+    private const float SkillCheckInterval = 1.0f; // 1 s between idle-skill tries
+    private const float GreetTimer = 5f;           // minutes
+    private const float GreetRange = 5f;           // metres
+    private const double GreetFovScale = 0.6667;   // 120.0 / 180.0 for IsFront
     // ------------------------------------------------------
     private static readonly TimeSpan GreetCooldown = TimeSpan.FromMinutes(GreetTimer);
     private readonly Dictionary<uint, DateTime> _greeted = new();
     // ------------------------------------------------------
 
     private DateTime _lastSkillCheck;
-    private bool     _isInitialized;
-    private bool     _isFollowingNpc;
+    private bool _isInitialized;
+    private bool _isFollowingNpc;
 
     public override void Enter()
     {
@@ -36,15 +36,15 @@ public class HoldPositionBehavior : BaseCombatBehavior
     private void InitializeHoldPosition()
     {
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
-        Ai.Owner.CurrentAlertness  = MoveTypeAlertness.Idle;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
 
         Ai.Owner.InterruptSkills();
         Ai.Owner.StopMovement();
         Ai.Owner.CurrentTarget = Ai.Owner;
 
         //_lastTick        = DateTime.UtcNow;
-        _lastSkillCheck  = DateTime.UtcNow;
-        _isFollowingNpc  = false;
+        _lastSkillCheck = DateTime.UtcNow;
+        _isFollowingNpc = false;
     }
 
     public override void Tick(TimeSpan delta)
@@ -101,10 +101,10 @@ public class HoldPositionBehavior : BaseCombatBehavior
             .ToList();
         toRemove.ForEach(id => _greeted.Remove(id));
 
-        if (playersInRange.Any())
+        if (playersInRange.Count != 0)
             Ai.GoToTalk();
     }
-    
+
     private bool CheckCombatStates()
     {
         if (CheckAggression())
@@ -148,7 +148,7 @@ public class HoldPositionBehavior : BaseCombatBehavior
         if (!_isInitialized || Ai?.Owner == null)
             return;
 
-        _isInitialized    = false;
-        _isFollowingNpc   = false;
+        _isInitialized = false;
+        _isFollowingNpc = false;
     }
 }
