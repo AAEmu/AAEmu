@@ -183,9 +183,10 @@ public class TalkBehavior : BaseCombatBehavior
             UnitId = SpyglassId,
             Position = pos.CloneAsSpawnPosition()
         };
+        spawner.ParentWorld = Ai.Owner.ParentWorld;
         spawner.Position.Yaw = yaw;
         spawner.Position.Pitch = 0;
         spawner.Position.Roll = 0;
-        _ = spawner.Spawn(0, 0, Ai.Owner.ObjId);
+        _ = spawner.Spawn(0);
     }
 }

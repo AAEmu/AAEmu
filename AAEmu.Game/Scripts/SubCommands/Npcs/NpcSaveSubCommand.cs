@@ -2,9 +2,8 @@
 using System.Drawing;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
-using AAEmu.Commons.Utils.Creatures;
-//using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
@@ -20,7 +19,6 @@ namespace AAEmu.Game.Scripts.SubCommands.Npcs;
 
 public class NpcSaveSubCommand : SubCommandBase
 {
-    private static Dictionary<uint, Creature> _creatures;
     private bool _isSavingInProgress;
     private readonly object _saveLock = new();
 
@@ -82,7 +80,6 @@ public class NpcSaveSubCommand : SubCommandBase
 
         try
         {
-            _creatures = Creature.GetAllCreatures();
             var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.InstanceId);
             var npcsInWorld = WorldManager.Instance.GetAllNpcsFromWorld(currentWorld.Id);
             var npcSpawnersFromFile = LoadNpcsFromFileByWorld(currentWorld);
@@ -90,7 +87,7 @@ public class NpcSaveSubCommand : SubCommandBase
 
             for (var i = 0; i < npcSpawnersToFile.Count; i++)
             {
-                npcSpawnersToFile[i].Title = GetSpawnName(npcSpawnersToFile[i].UnitId); // обновим Title
+                npcSpawnersToFile[i].Title = NpcManager.GetSpawnName(npcSpawnersToFile[i].UnitId); // обновим Title
                 if (npcSpawnersToFile[i].Scale == 0f)
                     npcSpawnersToFile[i].Scale = 1f; // обновим Scale
 
@@ -155,7 +152,7 @@ public class NpcSaveSubCommand : SubCommandBase
                 {
                     Id = lastObjId++,
                     UnitId = npc.TemplateId,
-                    Title = GetSpawnName(npc.TemplateId), // обновим Title
+                    Title = NpcManager.GetSpawnName(npc.TemplateId), // обновим Title
                     Position = new JsonPosition
                     {
                         X = pos.Position.X,
@@ -211,7 +208,6 @@ public class NpcSaveSubCommand : SubCommandBase
 
     private void SaveById(ICharacter character, uint npcObjId, IMessageOutput messageOutput)
     {
-        _creatures = Creature.GetAllCreatures();
         //var spawners = new List<JsonNpcSpawns>();
         var npc = ((Character)character).ParentWorld.GetNpc(npcObjId);
         if (npc is null)
@@ -233,7 +229,7 @@ public class NpcSaveSubCommand : SubCommandBase
         {
             Id = npc.ObjId,
             UnitId = npc.TemplateId,
-            Title = GetSpawnName(npc.TemplateId), // обновим Title
+            Title = NpcManager.GetSpawnName(npc.TemplateId), // обновим Title
             Position = new JsonPosition
             {
                 X = npc.Transform.Local.Position.X,
@@ -297,10 +293,5 @@ public class NpcSaveSubCommand : SubCommandBase
         }
 
         return allNpcs;
-    }
-
-    private static string GetSpawnName(uint id)
-    {
-        return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
     }
 }

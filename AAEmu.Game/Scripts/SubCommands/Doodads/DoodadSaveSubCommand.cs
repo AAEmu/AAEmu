@@ -2,8 +2,8 @@
 using System.Drawing;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
-using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
@@ -19,7 +19,6 @@ namespace AAEmu.Game.Scripts.SubCommands.Doodads;
 
 public class DoodadSaveSubCommand : SubCommandBase
 {
-    private static Dictionary<uint, Creature> _creatures;
     private bool _isSavingInProgress;
     private readonly object _saveLock = new();
     public DoodadSaveSubCommand()
@@ -74,7 +73,6 @@ public class DoodadSaveSubCommand : SubCommandBase
 
         try
         {
-            _creatures = Creature.GetAllDoodads();
             var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.InstanceId);
             var doodadsInWorld = WorldManager.Instance.GetAllDoodadsFromWorld(currentWorld.Id);
             var doodadSpawnersFromFile = LoadDoodadsFromFileByWorld(currentWorld);
@@ -82,7 +80,7 @@ public class DoodadSaveSubCommand : SubCommandBase
 
             for (var i = 0; i < doodadSpawnersToFile.Count; i++)
             {
-                doodadSpawnersToFile[i].Title = GetSpawnName(doodadSpawnersToFile[i].UnitId);
+                doodadSpawnersToFile[i].Title = DoodadManager.GetSpawnName(doodadSpawnersToFile[i].UnitId);
                 if (doodadSpawnersToFile[i].Scale == 0f)
                     doodadSpawnersToFile[i].Scale = 1f;
             }
@@ -143,7 +141,7 @@ public class DoodadSaveSubCommand : SubCommandBase
                     {
                         Id = Interlocked.Increment(ref lastObjId) - 1, // Потокобезопасное увеличение
                         UnitId = doodad.TemplateId,
-                        Title = GetSpawnName(doodad.TemplateId),
+                        Title = DoodadManager.GetSpawnName(doodad.TemplateId),
                         Position = new JsonPosition
                         {
                             X = pos.Position.X,
@@ -218,7 +216,6 @@ public class DoodadSaveSubCommand : SubCommandBase
 
         try
         {
-            _creatures = Creature.GetAllDoodads();
             var currentWorld = WorldManager.Instance.GetWorld(((Character)character).Transform.InstanceId);
             var doodadsInWorld = WorldManager.Instance.GetAllDoodadsFromWorld(currentWorld.Id);
             var doodadSpawnersFromFile = LoadDoodadsFromFileByWorld(currentWorld);
@@ -226,7 +223,7 @@ public class DoodadSaveSubCommand : SubCommandBase
 
             for (var i = 0; i < doodadSpawnersToFile.Count; i++)
             {
-                doodadSpawnersToFile[i].Title = GetSpawnName(doodadSpawnersToFile[i].UnitId); // обновим Title
+                doodadSpawnersToFile[i].Title = DoodadManager.GetSpawnName(doodadSpawnersToFile[i].UnitId); // обновим Title
                 if (doodadSpawnersToFile[i].Scale == 0f)
                     doodadSpawnersToFile[i].Scale = 1f; // обновим Scale
             }
@@ -290,7 +287,7 @@ public class DoodadSaveSubCommand : SubCommandBase
                 {
                     Id = lastObjId++,
                     UnitId = doodad.TemplateId,
-                    Title = GetSpawnName(doodad.TemplateId), // обновим Title
+                    Title = DoodadManager.GetSpawnName(doodad.TemplateId), // обновим Title
                     Position = new JsonPosition
                     {
                         X = pos.Position.X,
@@ -347,7 +344,6 @@ public class DoodadSaveSubCommand : SubCommandBase
 
     private void SaveById(ICharacter character, uint doodadObjId, IMessageOutput messageOutput)
     {
-        _creatures = Creature.GetAllDoodads();
         var doodad = ((Character)character).ParentWorld.GetDoodad(doodadObjId);
         if (doodad is null)
         {
@@ -368,7 +364,7 @@ public class DoodadSaveSubCommand : SubCommandBase
         {
             Id = doodad.Id,
             UnitId = doodad.TemplateId,
-            Title = GetSpawnName(doodad.TemplateId), // обновим Title
+            Title = DoodadManager.GetSpawnName(doodad.TemplateId), // обновим Title
             Position = new JsonPosition
             {
                 X = doodad.Transform.Local.Position.X,
@@ -434,10 +430,5 @@ public class DoodadSaveSubCommand : SubCommandBase
         }
 
         return allDoodads;
-    }
-
-    private static string GetSpawnName(uint id)
-    {
-        return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
     }
 }

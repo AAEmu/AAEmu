@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -35,6 +36,12 @@ public class NpcManager : Singleton<NpcManager>
     public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerNpc;    // npcSpawnerId, nsn
     public Dictionary<uint, NpcSpawnerTemplate> _npcSpawners; // npcSpawnerId, template
     public Dictionary<uint, List<uint>> _npcMemberAndSpawnerId; // memberId, List<npcSpawnerId>
+    private static Dictionary<uint, Creature> _creatures = new();
+
+    public static string GetSpawnName(uint id)
+    {
+        return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
+    }
 
     public bool Exist(uint templateId)
     {
@@ -71,6 +78,7 @@ public class NpcManager : Singleton<NpcManager>
         var npc = new Npc();
         npc.ParentWorld = parentWorld;
         npc.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
+        npc.Name = GetSpawnName(id);
         npc.TemplateId = id; // duplicate Id
         npc.Id = id;
         npc.Template = template;
