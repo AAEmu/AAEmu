@@ -110,8 +110,11 @@ public abstract class NpcAi
 
     private void SetCurrentBehavior(Behavior behavior)
     {
-        Logger.Trace(
-            $"Npc {Owner.TemplateId}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
+        // Skip if behavior is already active
+        if (ReferenceEquals(_currentBehavior, behavior))
+            return;
+
+        Logger.Trace($"Npc {Owner.TemplateId}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
         _currentBehavior?.Exit();
         _currentBehavior = behavior;
         _currentBehavior?.Enter();
@@ -122,7 +125,7 @@ public abstract class NpcAi
         if (!_behaviors.TryGetValue(kind, out var value))
         {
             Logger.Trace(
-                $"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
+$"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is not valid. Missing behavior: {kind}");
             return;
         }
 

@@ -94,6 +94,7 @@ public class DoodadManager : Singleton<DoodadManager>
         }
 
         _doodadFuncConsumeChangerItem = [];
+        _creatures = Creature.GetAllCreatures();
 
         using (var connection = SQLite.CreateConnection())
         {

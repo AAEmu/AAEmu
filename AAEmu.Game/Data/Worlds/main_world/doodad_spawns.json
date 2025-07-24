@@ -59411,6 +59411,7 @@
       "Yaw": -88.3946
     }
   },
+  {
     "UnitId": 1671,
     "Position": {
       "X": 10977.45,
@@ -185476,7 +185477,7 @@
   },
   {
     "UnitId": 4894,
-	"Title": "Solis Modern Mirage Portal",
+    "Title": "Solis Modern Mirage Portal",
     "Position": {
       "X": 16758.89,
       "Y": 9042.344,
@@ -187164,6 +187165,7 @@
       "Yaw": 39.2591
     }
   },
+  {
     "UnitId": 5741,
     "Position": {
       "X": 16803.002,
@@ -207208,22 +207210,22 @@
     }
   },
   {
-	"UnitId": 2273,
-	"Position": {
-	  "X": 19922.6,
-	  "Y": 7540.9,
-	  "Z": 182.9,
-	  "Yaw": -48.9206
-	}
+    "UnitId": 2273,
+    "Position": {
+      "X": 19922.6,
+      "Y": 7540.9,
+      "Z": 182.9,
+      "Yaw": -48.9206
+    }
   },
   {
-	"UnitId": 5534,
-	"Position": {
-	  "X": 20058.553,
-	  "Y": 7592.282,
-	  "Z": 179.9769,
-	  "Yaw": -147.8655
-	}
+    "UnitId": 5534,
+    "Position": {
+      "X": 20058.553,
+      "Y": 7592.282,
+      "Z": 179.9769,
+      "Yaw": -147.8655
+    }
   },
   {
     "UnitId": 5373,
@@ -388129,7 +388131,7 @@
   },
   {
     "UnitId": 1636, // Crumbling Dahuta Statue
-	"RelatedIds": [1635],
+    "RelatedIds": [1635],
     "Position": {
       "X": 22922.07,
       "Y": 9493.238,
@@ -388156,7 +388158,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25809.918,
       "Y": 6509.937,
@@ -388166,7 +388168,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25808.766,
       "Y": 6511.7847,
@@ -388176,7 +388178,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25802.533,
       "Y": 6415.084,
@@ -388186,7 +388188,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25842.844,
       "Y": 6338.2026,
@@ -388196,7 +388198,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25917.55,
       "Y": 6434.5,
@@ -388206,7 +388208,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25954.682,
       "Y": 6479.6846,
@@ -388216,7 +388218,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25943.467,
       "Y": 6506.001,
@@ -388226,7 +388228,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25942.34,
       "Y": 6513.0947,
@@ -388236,7 +388238,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25964.723,
       "Y": 6480.1787,
@@ -388246,7 +388248,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25978.047,
       "Y": 6488.345,
@@ -388256,7 +388258,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25984.793,
       "Y": 6508.64,
@@ -388266,7 +388268,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25971.186,
       "Y": 6519.119,
@@ -388276,7 +388278,7 @@
   },
   {
     "UnitId": 3875,
-	"Title": "Savannah Elephant Bone",
+    "Title": "Savannah Elephant Bone",
     "Position": {
       "X": 25893.656,
       "Y": 6526.2397,

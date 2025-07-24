@@ -312,6 +312,7 @@ public class NpcManager : Singleton<NpcManager>
         _tccLookup = [];
         _totalCharacterCustoms = [];
         _itemBodyParts = [];
+        _creatures = Creature.GetAllCreatures();
 
         Logger.Info("Loading npc templates...");
         using (var connection = SQLite.CreateConnection())
