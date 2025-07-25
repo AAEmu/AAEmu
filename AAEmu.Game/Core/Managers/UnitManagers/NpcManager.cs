@@ -78,7 +78,6 @@ public class NpcManager : Singleton<NpcManager>
         var npc = new Npc();
         npc.ParentWorld = parentWorld;
         npc.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
-        npc.Name = "GetSpawnName(id)";
         npc.TemplateId = id; // duplicate Id
         npc.Id = id;
         npc.Template = template;
