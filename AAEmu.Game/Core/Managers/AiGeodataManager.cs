@@ -19,13 +19,13 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<uint, List<AiNavigation>> _aiNavigation;
-    private Dictionary<uint, string> _areasMission;
-    private Dictionary<uint, List<Vector3>> _forbiddenArea;
-    private Dictionary<uint, List<Vector3>> _aiPath;
-    private Dictionary<uint, List<Vector3>> _aiNavigationModifier;
+    private Dictionary<long, List<AiNavigation>> _aiNavigation;
+    private Dictionary<long, string> _areasMission;
+    private Dictionary<long, List<Vector3>> _forbiddenArea;
+    private Dictionary<long, List<Vector3>> _aiPath;
+    private Dictionary<long, List<Vector3>> _aiNavigationModifier;
 
-    public List<AiNavigation> GetAvailablePoints(uint zoneKey, uint point)
+    public List<AiNavigation> GetAvailablePoints(uint zoneKey, long point)
     {
         var ret = _aiNavigation.GetValueOrDefault(point) ?? [];
         return ret;
@@ -40,7 +40,6 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <returns></returns>
     public bool CheckImpossibleWalk(Vector3 point)
     {
-        var res = new List<bool>();
         if (_forbiddenArea.Count <= 1)
         {
             return false; // consider that we are inside the zone (i.e. limitation outside)
@@ -50,11 +49,12 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         {
             foreach (var fa in _forbiddenArea.Values)
             {
-                res.Add(IsInPolygon(point, fa));
+                if (IsInPolygon(point, fa))
+                    return true;
             }
         }
 
-        return res.Any(b => b);
+        return false;
     }
 
     private static bool IsInPolygon(Vector3 point, List<Vector3> polygon)

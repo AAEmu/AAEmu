@@ -22,7 +22,7 @@ public class PathNode
     /// <summary>
     /// The number of the current point on the map.
     /// </summary>
-    public uint Current { get; set; }
+    public long Current { get; set; }
 
     /// <summary>
     /// Coordinates of the start point on the map (for the script).
