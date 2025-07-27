@@ -52,7 +52,7 @@ public class Dungeon
     public Character GetCharacterOwner { get => _characterOwner; }
     public Team.Team GetOwnerTeam { get => _ownerTeam; }
     public uint GetZoneGroupId { get => _indunZone.ZoneGroupId; }
-    public bool IsSystem { get; set; }
+    public bool IsSystem { get; init; }
     public bool FinishedLoading { get; set; }
     private readonly DateTime _createTime = DateTime.UtcNow;
 
@@ -91,18 +91,17 @@ public class Dungeon
         }
         var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(zoneKeys[0]);
 
-        Logger.Info($"[Dungeon] Create system dungeon...");
-        // для zone_key: 260=arche_mall, 296=instance_library_1, 297=instance_library_2, 298=instance_library_3
-        // или
-        // для group_id: 49=arche_mall, 70=instance_library_1, 71=instance_library_2, 72=instance_library_3
-        Logger.Info($"[Dungeon] don't make a copy of the instance ...");
+        Logger.Info($"[Dungeon] Create system dungeon {worldTemplate?.Name} - channel {channelId}...");
         World = WorldManager.Instance.CreateWorldInstance(worldTemplate, channelId, overrideInstanceId, fixedInstanceId, character);
         World.DungeonInstance = this;
+        _zoneInstanceId = new ZoneInstanceId(zoneKeys.First(), World.Id);
+
         // If started by a character, enter them into queue
         if (character != null)
         {
             PlayersWithAccess.Add(character.Id);
-            EnterRequests.Add(character);
+            QueuePlayer(character);
+            // EnterRequests.Add(character);
         }
         // Add team members to allow access
         if (team != null)
@@ -114,7 +113,6 @@ public class Dungeon
                 PlayersWithAccess.Add(teamMember.Character.Id);
             }
         }
-        _zoneInstanceId = new ZoneInstanceId(zoneKeys.First(), World.Id);
 
         TickManager.Instance.OnTick.Subscribe(AreaClearTick, TimeSpan.FromSeconds(1), true);
 
@@ -145,9 +143,9 @@ public class Dungeon
     public bool QueuePlayer(Character character)
     {
         if (EnterRequests.Contains(character))
-            return false;
+            return true;
         
-        if (!IndunManager.Instance.CheckingAttempt(this))
+        if (!IndunManager.Instance.CheckEntryAttemptCount(character.Id, GetZoneGroupId, _indunZone, true))
         {
             Logger.Info($"[{World}] Player {character.Name} did too many dungeon attempts.");
             character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
@@ -258,7 +256,7 @@ public class Dungeon
     /// </summary>
     public bool DestroyDungeon()
     {
-        Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId}: Destroying dungeon...");
+        Logger.Info($"[Dungeon] instanceId={_zoneInstanceId?.InstanceId}, zoneId={_zoneInstanceId?.ZoneId}: Destroying dungeon...");
 
         TickManager.Instance.OnTick.UnSubscribe(AreaClearTick);
 
@@ -683,16 +681,5 @@ public class Dungeon
                 room.SetRoomPlayerCount(World.Id, (uint)radiusCount);
             }
         }
-    }
-
-    public void WaitingDungeonAccessAttemptsCleared(TimeSpan delta)
-    {
-        if (!IndunManager.Instance.GetWaitingDungeonAccess(this))
-        {
-            IndunManager.Instance.SetWaitingDungeonAccess(this, true);
-            return;
-        }
-        TickManager.Instance.OnTick.UnSubscribe(WaitingDungeonAccessAttemptsCleared);
-        IndunManager.Instance.ClearAttemts(this);
     }
 }

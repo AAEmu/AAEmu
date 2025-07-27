@@ -12,23 +12,19 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class IndunManager : Singleton<IndunManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    // ReSharper disable once InconsistentNaming
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - использовано попыток прохождения данжона
-    private const int FreeAttempts = 3;  // свободных попыток
-    // Unused private const int ExtraAttempts = 2; // дополнительных попыток
-    private Dictionary<uint, Dictionary<uint, bool>> _waitingDungeonAccessAttemptsCleared; // <ownerId, <zoneGroupId, waiting>>, откат 4 часа, + еще 4 часа, если израсходовали дополнительные попытки
-
+    private Dictionary<uint, Dictionary<uint, List<DateTime>>> EntryHistory { get; } = []; // <ownerId, <zoneGroupId, entry time>> - dungeon attempts used
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _lock = new();
 
     public void Initialize()
     {
-        TickManager.Instance.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(10), true);
-        _attempts ??= [];
-        _waitingDungeonAccessAttemptsCleared ??= [];
+        TickManager.Instance.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(30), true);
     }
 
     private void IndunInfoTick(TimeSpan delta)
@@ -100,7 +96,6 @@ public class IndunManager : Singleton<IndunManager>
     public bool RequestSystemInstance(Character character, uint zoneId, uint channelId, out Dungeon dungeon)
     {
         dungeon = null;
-        // TODO ZoneId=183 - Arche mall
         if (character == null)
         {
             Logger.Info("[IndunManager] Player offline.");
@@ -179,7 +174,7 @@ public class IndunManager : Singleton<IndunManager>
             return false;
         }
 
-        // 1 - Check if player is already a member of a active dungeon in this zone and re-enter it if they are
+        // 1 - Check if player is already a member of an active dungeon in this zone and re-enter it if they are
         var possibleTargetInstances = GetExistingDungeonsByZoneKey(targetZone.ZoneKey);
         foreach (var possibleTargetInstance in possibleTargetInstances)
         {
@@ -309,9 +304,9 @@ public class IndunManager : Singleton<IndunManager>
     private bool VerifyDungeonEnterRequirements(IndunZone dungeonZone, Character character, Team team)
     {
         // Check access count
-        if (GetWaitingDungeonAccess(character.Id, dungeonZone.ZoneGroupId))
+        if (!CheckEntryAttemptCount(character.Id, dungeonZone.ZoneGroupId, dungeonZone, false))
         {
-            Logger.Warn($"Requesting instance too many daily entries, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
+            
             character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
             return false;
         }
@@ -532,143 +527,39 @@ public class IndunManager : Singleton<IndunManager>
         }
     }
 
-    public void ClearAttemts(Dungeon dungeon)
+    public bool CheckEntryAttemptCount(uint characterId, uint zoneGroupId, IndunZone indunZone, bool addAsNewEnty)
     {
         lock (_lock)
         {
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
-            var zoneGroupId = dungeon.GetZoneGroupId;
-            if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
+            if (!EntryHistory.ContainsKey(characterId))
+                EntryHistory.Add(characterId, []);
+
+            var zoneAndEntries = EntryHistory.GetValueOrDefault(characterId);
+
+            if (!zoneAndEntries.ContainsKey(zoneGroupId))
+                zoneAndEntries.Add(zoneGroupId, []);
+
+            var entriesList = zoneAndEntries.GetValueOrDefault(zoneGroupId);
+
+            // Can customize this to your start of the day to make this daily entry count
+            var thresholdTime = DateTime.UtcNow.AddHours(-4);
+            var lastEntriesQuery = entriesList.Where(x => x >= thresholdTime).ToList();
+
+            if (lastEntriesQuery.Count >= indunZone.EnterCount)
             {
-                waitingDungeonAccess.Remove(zoneGroupId);
-            }
-        }
-    }
-
-    internal bool GetWaitingDungeonAccess(Dungeon dungeon)
-    {
-        lock (_lock)
-        {
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
-            var zoneGroupId = dungeon.GetZoneGroupId;
-
-            if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
-            {
-                if (waitingDungeonAccess.TryGetValue(zoneGroupId, out var wda))
-                {
-                    return wda;
-                }
-            }
-        }
-
-        return false;
-    }
-    internal bool GetWaitingDungeonAccess(uint characterId, uint zoneGroupId)
-    {
-        lock (_lock)
-        {
-            if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
-            {
-                if (waitingDungeonAccess.TryGetValue(zoneGroupId, out var wda))
-                {
-                    return wda;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    internal void SetWaitingDungeonAccess(uint characterId, uint zoneGroupId, bool value)
-    {
-        lock (_lock)
-        {
-            if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
-            {
-                if (waitingDungeonAccess.TryGetValue(zoneGroupId, out _))
-                {
-                    waitingDungeonAccess[zoneGroupId] = value;
-                }
-                else
-                {
-                    var w = new Dictionary<uint, bool>();
-                    w.TryAdd(zoneGroupId, value);
-                    _waitingDungeonAccessAttemptsCleared.TryAdd(characterId, w);
-                }
-            }
-        }
-    }
-    internal void SetWaitingDungeonAccess(Dungeon dungeon, bool value)
-    {
-        lock (_lock)
-        {
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
-            var zoneGroupId = dungeon.GetZoneGroupId;
-
-            if (_waitingDungeonAccessAttemptsCleared.TryGetValue(characterId, out var waitingDungeonAccess))
-            {
-                if (waitingDungeonAccess.TryGetValue(zoneGroupId, out _))
-                {
-                    waitingDungeonAccess[zoneGroupId] = value;
-                }
-                else
-                {
-                    var w = new Dictionary<uint, bool>();
-                    w.TryAdd(zoneGroupId, value);
-                    _waitingDungeonAccessAttemptsCleared.TryAdd(characterId, w);
-                }
-            }
-        }
-    }
-
-    public bool CheckingAttempt(Dungeon dungeon)
-    {
-        lock (_lock)
-        {
-            var res = false;
-            var characterId = dungeon.IsTeamOwned ? dungeon.GetOwnerTeam.OwnerId : dungeon.GetCharacterOwner?.Id ?? 0;
-            var zoneGroupId = dungeon.GetZoneGroupId;
-
-            if (GetWaitingDungeonAccess(dungeon))
-            {
+                // Max entries reached
+                Logger.Warn($"Requesting instance too many daily entries ({lastEntriesQuery.Count} / {indunZone.EnterCount}), characterId: {characterId}, zoneGroupId: {zoneGroupId}");
                 return false;
             }
 
-            if (_attempts.TryGetValue(characterId, out var cd))
+            // Add current entry attempt if requested
+            if (addAsNewEnty)
             {
-                if (cd.TryGetValue(zoneGroupId, out _))
-                {
-                    if (cd[zoneGroupId] >= FreeAttempts)
-                    {
-                        TickManager.Instance.OnTick.Subscribe(dungeon.WaitingDungeonAccessAttemptsCleared, TimeSpan.FromHours(4), true);
-                    }
-                    else
-                    {
-                        res = true;
-                        cd[zoneGroupId]++;
-                    }
-                }
-                else
-                {
-                    res = true;
-                    cd = [];
-                    cd.TryAdd(zoneGroupId, 1);
-                    _attempts.TryAdd(characterId, cd);
-
-                    SetWaitingDungeonAccess(characterId, zoneGroupId, false);
-                }
-            }
-            else
-            {
-                res = true;
-                cd = [];
-                cd.TryAdd(zoneGroupId, 1);
-                _attempts.TryAdd(characterId, cd);
-
-                SetWaitingDungeonAccess(characterId, zoneGroupId, false);
+                entriesList.Add(DateTime.UtcNow);
+                Logger.Warn($"Added entry for player {characterId} in zone {zoneGroupId}, Count is now {entriesList.Count}");
             }
 
-            return res; // true - еще можно сходить в данжон, false - израсходовали свободные попытки, израсходовали дополнительные попытки
+            return true; // true - you could also go to the dungeon, false - used up free attempts, used up extra attempts
         }
     }
 
@@ -676,17 +567,13 @@ public class IndunManager : Singleton<IndunManager>
     {
         lock (_lock)
         {
-            if (_attempts is { Count: > 0 })
+            if (EntryHistory is { Count: > 0 })
             {
-                foreach (var attempt in _attempts)
+                foreach (var (characterId, zoneAndEntries) in EntryHistory)
                 {
-                    _attempts.TryGetValue(attempt.Key, out var cds);
-                    if (cds != null)
+                    foreach (var (zoneGroupId, entriesList) in zoneAndEntries)
                     {
-                        foreach (var cd in cds)
-                        {
-                            Logger.Debug($"For player={attempt.Key}: {cd.Value} attempts in dungeon attemptId={cd.Key}");
-                        }
+                        Logger.Debug($"For player={characterId} ({WorldManager.Instance.GetCharacterById(characterId)?.Name}): {entriesList.Count} entries into dungeon zone group {zoneGroupId} ({ZoneManager.Instance.GetZoneGroupById(zoneGroupId)?.Name})");
                     }
                 }
             }

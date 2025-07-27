@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.Indun.Actions;
@@ -10,6 +11,7 @@ using Microsoft.Data.Sqlite;
 namespace AAEmu.Game.GameData;
 
 [GameData]
+// ReSharper disable once ClassNeverInstantiated.Global
 public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
 {
     private Dictionary<uint, IndunAction> _indunActions;
@@ -81,13 +83,15 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var action = new IndunActionChangeDoodadPhases();
-                    action.Id = reader.GetUInt32("id");
-                    action.DetailId = reader.GetUInt32("detail_id");
-                    action.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    action.NextActionId = reader.GetUInt32("next_action_id", 0);
-                    action.DoodadAlmightyId = reader.GetUInt32("doodad_almighty_id");
-                    action.DoodadFuncGroupId = reader.GetUInt32("doodad_func_group_id");
+                    var action = new IndunActionChangeDoodadPhases
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DetailId = reader.GetUInt32("detail_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        NextActionId = reader.GetUInt32("next_action_id", 0),
+                        DoodadAlmightyId = reader.GetUInt32("doodad_almighty_id"),
+                        DoodadFuncGroupId = reader.GetUInt32("doodad_func_group_id")
+                    };
 
                     _indunActions.Add(action.Id, action);
                 }
@@ -105,12 +109,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var action = new IndunActionRemoveTaggedNpcs();
-                    action.Id = reader.GetUInt32("id");
-                    action.DetailId = reader.GetUInt32("detail_id");
-                    action.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    action.NextActionId = reader.GetUInt32("next_action_id", 0);
-                    action.TagId = reader.GetUInt32("tag_id");
+                    var action = new IndunActionRemoveTaggedNpcs
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DetailId = reader.GetUInt32("detail_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        NextActionId = reader.GetUInt32("next_action_id", 0),
+                        TagId = reader.GetUInt32("tag_id")
+                    };
 
                     _indunActions.Add(action.Id, action);
                 }
@@ -128,12 +134,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var action = new IndunActionSetRoomCleareds();
-                    action.Id = reader.GetUInt32("id");
-                    action.DetailId = reader.GetUInt32("detail_id");
-                    action.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    action.NextActionId = reader.GetUInt32("next_action_id", 0);
-                    action.IndunRoomId = reader.GetUInt32("indun_room_id");
+                    var action = new IndunActionSetRoomCleareds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DetailId = reader.GetUInt32("detail_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        NextActionId = reader.GetUInt32("next_action_id", 0),
+                        IndunRoomId = reader.GetUInt32("indun_room_id")
+                    };
 
                     _indunActions.Add(action.Id, action);
                 }
@@ -149,11 +157,13 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var action = new IndunActionNpcSpawner();
-                    action.Id = reader.GetUInt32("id");
-                    action.DetailId = reader.GetUInt32("detail_id");
-                    action.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    action.NextActionId = reader.GetUInt32("next_action_id", 0);
+                    var action = new IndunActionNpcSpawner
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DetailId = reader.GetUInt32("detail_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        NextActionId = reader.GetUInt32("next_action_id", 0)
+                    };
 
                     _indunActions.Add(action.Id, action);
                 }
@@ -173,13 +183,15 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var indunEvent = new IndunEventDoodadSpawneds();
-                    indunEvent.Id = reader.GetUInt32("id");
-                    indunEvent.ConditionId = reader.GetUInt32("condition_id");
-                    indunEvent.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    indunEvent.StartActionId = reader.GetUInt32("start_action_id");
-                    indunEvent.DoodadAlmightyId = reader.GetUInt32("doodad_almighty_id");
-                    indunEvent.DoodadFuncGroupId = reader.GetUInt32("doodad_func_group_id");
+                    var indunEvent = new IndunEventDoodadSpawneds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id"),
+                        DoodadAlmightyId = reader.GetUInt32("doodad_almighty_id"),
+                        DoodadFuncGroupId = reader.GetUInt32("doodad_func_group_id")
+                    };
 
                     if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
                         _indunEvents.Add(indunEvent.ZoneGroupId, []);
@@ -200,12 +212,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var indunEvent = new IndunEventNoAliveChInRooms();
-                    indunEvent.Id = reader.GetUInt32("id");
-                    indunEvent.ConditionId = reader.GetUInt32("condition_id");
-                    indunEvent.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    indunEvent.StartActionId = reader.GetUInt32("start_action_id");
-                    indunEvent.RoomId = reader.GetUInt32("room_id");
+                    var indunEvent = new IndunEventNoAliveChInRooms
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id"),
+                        RoomId = reader.GetUInt32("room_id")
+                    };
 
                     if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
                         _indunEvents.Add(indunEvent.ZoneGroupId, []);
@@ -226,12 +240,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var indunEvent = new IndunEventNpcCombatEndeds();
-                    indunEvent.Id = reader.GetUInt32("id");
-                    indunEvent.ConditionId = reader.GetUInt32("condition_id");
-                    indunEvent.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    indunEvent.StartActionId = reader.GetUInt32("start_action_id");
-                    indunEvent.NpcId = reader.GetUInt32("npc_id");
+                    var indunEvent = new IndunEventNpcCombatEndeds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id"),
+                        NpcId = reader.GetUInt32("npc_id")
+                    };
 
                     if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
                         _indunEvents.Add(indunEvent.ZoneGroupId, []);
@@ -252,12 +268,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var indunEvent = new IndunEventNpcCombatStarteds();
-                    indunEvent.Id = reader.GetUInt32("id");
-                    indunEvent.ConditionId = reader.GetUInt32("condition_id");
-                    indunEvent.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    indunEvent.StartActionId = reader.GetUInt32("start_action_id");
-                    indunEvent.NpcId = reader.GetUInt32("npc_id");
+                    var indunEvent = new IndunEventNpcCombatStarteds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id"),
+                        NpcId = reader.GetUInt32("npc_id")
+                    };
 
                     if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
                         _indunEvents.Add(indunEvent.ZoneGroupId, []);
@@ -278,12 +296,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var indunEvent = new IndunEventNpcKilleds();
-                    indunEvent.Id = reader.GetUInt32("id");
-                    indunEvent.ConditionId = reader.GetUInt32("condition_id");
-                    indunEvent.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    indunEvent.StartActionId = reader.GetUInt32("start_action_id");
-                    indunEvent.NpcId = reader.GetUInt32("npc_id");
+                    var indunEvent = new IndunEventNpcKilleds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id"),
+                        NpcId = reader.GetUInt32("npc_id")
+                    };
 
                     if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
                         _indunEvents.Add(indunEvent.ZoneGroupId, []);
@@ -304,12 +324,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var indunEvent = new IndunEventNpcSpawneds();
-                    indunEvent.Id = reader.GetUInt32("id");
-                    indunEvent.ConditionId = reader.GetUInt32("condition_id");
-                    indunEvent.ZoneGroupId = reader.GetUInt16("zone_group_id");
-                    indunEvent.StartActionId = reader.GetUInt32("start_action_id");
-                    indunEvent.NpcId = reader.GetUInt32("npc_id");
+                    var indunEvent = new IndunEventNpcSpawneds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id"),
+                        NpcId = reader.GetUInt32("npc_id")
+                    };
 
                     if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
                         _indunEvents.Add(indunEvent.ZoneGroupId, []);
@@ -335,6 +357,9 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                     var indunZone = new IndunZone
                     {
                         ZoneGroupId = reader.GetUInt32("zone_group_id"),
+                        // EnterCount = reader.GetUInt32("enter_count"),
+                        Name = reader.GetString("name"),
+                        Comment = reader.GetString("comment"),
                         LevelMin = reader.GetUInt32("level_min"),
                         LevelMax = reader.GetUInt32("level_max"),
                         MaxPlayers = reader.GetUInt32("max_players"),
@@ -346,6 +371,11 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         ClientDriven = reader.GetBoolean("client_driven", true),
                         SelectChannel = reader.GetBoolean("select_channel", true)
                     };
+
+                    // Hack for earlier versions
+                    // Exception for Mirage and Library
+                    indunZone.EnterCount = indunZone.ZoneGroupId == 49 || indunZone.SelectChannel ? 1000u : 3u;
+                    indunZone.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", indunZone.ZoneGroupId, indunZone.Name);
 
                     _indunZones.Add(indunZone.ZoneGroupId, indunZone);
 
@@ -364,11 +394,13 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var room = new IndunRoom();
-                    room.Id = reader.GetUInt32("id");
-                    room.DoodadId = reader.GetUInt32("center_doodad_id");
-                    room.Radius = reader.GetUInt32("radius");
-                    room.ZoneGroupId = reader.GetUInt32("zone_group_id");
+                    var room = new IndunRoom
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DoodadId = reader.GetUInt32("center_doodad_id"),
+                        Radius = reader.GetUInt32("radius"),
+                        ZoneGroupId = reader.GetUInt32("zone_group_id")
+                    };
                     _indunRooms.Add(room.Id, room);
                 }
             }
