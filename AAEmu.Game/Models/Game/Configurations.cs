@@ -59,7 +59,7 @@ public class WorldConfig
     /// <summary>
     /// Number of days 1 week worth of tax pays for, set this to 3640 would make 1 tax payment last for about 10 years.
     /// </summary>
-    public uint DaysForTaxPayment { get; set; } = 7u; 
+    public uint DaysForTaxPayment { get; set; } = 7u;
 
     /// <summary>
     /// Set a minimum access-level that a character must have to ignore falling damage (for devs)
@@ -91,6 +91,11 @@ public class WorldConfig
     /// Target Ticks per Second to use for Physics threads
     /// </summary>
     public float TargetPhysicsTps { get; set; } = 25f;
+
+    /// <summary>
+    /// Server-side Actability Points multiplier (on top of buffs)
+    /// </summary>
+    public double ActabilityRate { get; set; } = 1.0;
 }
 
 public class DungeonLoadConfig
