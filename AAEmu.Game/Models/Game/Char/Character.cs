@@ -1488,7 +1488,7 @@ public partial class Character : Unit, ICharacter
         {
             // Get multiplier before adding points
             expMultiplier = Actability.Actabilities[(uint)actabilityId].GetExpMultiplier();
-            actabilityChange = Math.Abs(change);
+            actabilityChange = (int)(Math.Abs(change) * AppConfiguration.Instance.World.ActabilityRate);
             actabilityStep = Actability.Actabilities[(uint)actabilityId].Step;
             actabilityChange = Actability.AddPoint((uint)actabilityId, actabilityChange);
         }

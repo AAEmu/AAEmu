@@ -15,6 +15,7 @@
         "GeoDataMode": false,
         "PreLoadTerrain": false,
         "MaxInstances": 32,
-        "TargetPhysicsTps": 25.0
+        "TargetPhysicsTps": 25.0,
+        "ActabilityRate": 1.0
     }
 }
