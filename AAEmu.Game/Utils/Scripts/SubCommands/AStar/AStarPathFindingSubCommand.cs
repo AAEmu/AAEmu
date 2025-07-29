@@ -28,10 +28,10 @@ public class AStarPathFindingSubCommand : SubCommandBase
         }
 
         //if (PathNode.pos1.X > 0 && PathNode.pos1.Y > 0 && PathNode.pos2.X > 0 && PathNode.pos2.Y > 0)
-        if (npc.Ai.PathNode.Pos1 != null && npc.Ai.PathNode.Pos2 != null)
+        if (npc.Ai.PathNode.StartPointPos != null && npc.Ai.PathNode.EndPointPos != null)
         {
             npc.Ai.PathNode.ZoneKey = character.Transform.ZoneId;
-            npc.Ai.PathNode.FoundPath = npc.Ai.PathNode.FindPath(npc.ParentWorld, npc.Ai.PathNode.Pos1, npc.Ai.PathNode.Pos2);
+            npc.Ai.PathNode.FoundPath = npc.Ai.PathNode.FindPath(npc.ParentWorld, npc.Ai.PathNode.StartPointPos, npc.Ai.PathNode.EndPointPos);
 
             character.SendMessage($"AStar: points found Total: {npc.Ai.PathNode.FoundPath?.Count ?? 0}");
             if (npc.Ai.PathNode.FoundPath != null)

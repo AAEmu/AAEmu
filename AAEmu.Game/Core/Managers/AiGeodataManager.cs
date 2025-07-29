@@ -215,43 +215,40 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         return (index, point);
     }
 
-    public (long, Vector3) FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
+    public NodeDescriptor FindСlosestToTheCurrent(uint zoneKey, Vector3 pos)
     {
         var posX = pos.X;
         var posY = pos.Y;
 
-        long index = 0u;
         NodeDescriptor closestPointFound = null;
-        var point = new Vector3();
         var minDist = 99999.0f;
         
         var (sourceCellX, sourceCellY) = pos.ToCellIndex();
         var cell = worldTemplate.GetCell(sourceCellX, sourceCellY);
         if (cell == null)
-            return (index, point);
+            return null;
 
-        foreach (var netMission in cell.BaiLoader.NetMissionReaders)
+        foreach (var bLoader in cell.BaiLoader) // 4x4 chunks
         {
-            foreach (var (nodeIndex, nodeDescriptor) in netMission.NodeDescriptorList)
+            foreach (var netMission in bLoader.NetMissionReaders)
             {
-                var dx = posX - nodeDescriptor.Pos.X;
-                var dy = posY - nodeDescriptor.Pos.Y;
-
-                var distance = dx * dx + dy * dy;
-                if (distance < minDist)
+                foreach (var (_, nodeDescriptor) in netMission.NodeDescriptorList)
                 {
-                    index = nodeIndex;
-                    closestPointFound = nodeDescriptor;
-                    minDist = distance;
+                    var dx = posX - nodeDescriptor.Pos.X;
+                    var dy = posY - nodeDescriptor.Pos.Y;
+
+                    var distance = dx * dx + dy * dy;
+                    if (distance < minDist)
+                    {
+                        closestPointFound = nodeDescriptor;
+                        minDist = distance;
+                    }
                 }
             }
         }
 
-        if (closestPointFound != null)
-            point = closestPointFound.Pos;
-
         // Logger.Warn($"# Found near position index: {index}...");
-        return (index, point);
+        return closestPointFound;
     }
 
     /// <summary>

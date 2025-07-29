@@ -1400,11 +1400,11 @@ public partial class Npc : Unit
 
     public void FindPath(Unit abuser)
     {
-        Ai.PathNode.Pos1 = new Vector3(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-        Ai.PathNode.Pos2 = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+        Ai.PathNode.StartPointPos = new Vector3(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
+        Ai.PathNode.EndPointPos = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
 
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-        Ai.PathNode.FoundPath = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.Pos1, Ai.PathNode.Pos2);
+        Ai.PathNode.FoundPath = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
 
         Logger.Trace($"AStar: points found Total: {Ai.PathNode.FoundPath?.Count ?? 0}");
         if (Ai.PathNode.FoundPath != null)
@@ -1423,7 +1423,7 @@ public partial class Npc : Unit
     /// <returns>return coordinates and change the index of the current point</returns>
     public Vector3 GetClosestPoint(BaseUnit unit)
     {
-        // TODO взять точку к которой движемся
+        // TODO: Take the point we're moving to
         if (Ai.PathNode.FoundPath == null)
             return Vector3.Zero;
 

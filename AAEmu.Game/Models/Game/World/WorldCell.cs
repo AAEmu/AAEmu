@@ -21,8 +21,11 @@ public class WorldCell
     internal ushort[,] HeightMap { get; private set; }
     private float MinHeight { get; set; }
     private float MaxHeight { get; set; }
-    
-    public BaseBaiLoader BaiLoader { get; init; }
+
+    /// <summary>
+    /// Bai files data to use in this cell
+    /// </summary>
+    public BaseBaiLoader[,] BaiLoader { get; set; }
 
     /// <summary>
     /// Bounding box for use in Jitter
@@ -40,31 +43,60 @@ public class WorldCell
             new JVector(CellOffset.X, 0f, CellOffset.Y), 
             new JVector(CellOffset.X + WorldManager.CELL_SIZE, 0f, CellOffset.Y + WorldManager.CELL_SIZE)
             );
-        BaiLoader = new BaseBaiLoader(this);
+        BaiLoader = new BaseBaiLoader[4, 4]
+        {
+            { null, null, null, null },
+            { null, null, null, null },
+            { null, null, null, null },
+            { null, null, null, null }
+        };
     }
 
-    private void LoadBais()
+    /// <summary>
+    /// Load the *.bai files for this Cell if GeoDataMode is enabled 
+    /// </summary>
+    private void LoadBaiFiles()
     {
         if (!AppConfiguration.Instance.World.GeoDataMode)
             return; // Don't load navmesh if GeoDataMode is disabled
 
-        if (Template.Name != "main_world")
+        // If we already loaded zone bai data for this world template, then don't try to load the cell one
+        // Instead reference the zone bai directly
+        if (Template.ZoneBaiLoader.Count > 0)
         {
-            // When not in main world, we load bai data from the zone folder to get everything in one go.
-            if (Template.ZoneKeys.Count != 0)
-                BaiLoader.LoadBais(Template.ZoneKeys.First().ToString(), false);
-        }
-        else
-        {
-            // Load the 4x4 grid of path folders into this cell
-            for (var y = 0; y < 4; y++)
+            // This is zone grabbing is just an estimate, but should be good enough for this purpose
+            // Ideally you'd check all 256 sectors in the cell and take it's median, but feels like overkill here
+            var zoneKey = Template.ZoneKeyByRegions[CellX * WorldManager.SECTORS_PER_CELL, CellY * WorldManager.SECTORS_PER_CELL];
+            if (Template.ZoneBaiLoader.TryGetValue(zoneKey, out var parentZoneBaiLoader))
             {
-                for (var x = 0; x < 4; x++)
+                // Assign it for all paths in this cell
+                for (var y = 0; y < 4; y++)
                 {
-                    var pathFolder = $"{((CellX * 4) + x):000}_{((CellY * 4) + y):000}";
-                    // Only clear when loading the first chunk
-                    BaiLoader.LoadBais(pathFolder, (x != 0 || y != 0));
+                    for (var x = 0; x < 4; x++)
+                    {
+                        BaiLoader[x, y] = parentZoneBaiLoader;
+                    }
                 }
+            }
+            else
+            {
+                Logger.Warn($"WorldTemplate {Template.Name} has Zone bai files data loaded ({Template.ZoneBaiLoader.Count} zones), but could not find a matching file for this cell {zoneKey}");
+            }
+            return;
+        }
+
+        // Load the 4x4 grid of path folders into this cell
+        for (var y = 0; y < 4; y++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                var pathX = (uint)((CellX * 4) + x);
+                var pathY = (uint)((CellY * 4) + y);
+                var pathFolder = $"{pathX:000}_{pathY:000}";
+                var pathBaiLoader = new BaseBaiLoader(Template);
+                pathBaiLoader.LoadBaiFilesFromFolder(pathFolder); // (x != 0 || y != 0)
+                BaiLoader[x, y] = pathBaiLoader;
+                Template.PathBaiLoader.Add((pathX, pathY), pathBaiLoader);
             }
         }
     }
@@ -84,7 +116,7 @@ public class WorldCell
             // Assign heightmap array
             HeightMap = new ushort[WorldManager.CELL_HMAP_RESOLUTION, WorldManager.CELL_HMAP_RESOLUTION];
             // Load data
-            LoadBais();
+            LoadBaiFiles();
             Loaded = LoadCellHeightMapFromClientData();
             Loading = false;
         }

@@ -47,8 +47,8 @@ public class AStarStartPositionSubCommand : SubCommandBase
         var y = GetOptionalParameterValue(parameters, "y", character.Transform.World.Position.Y);
         var z = GetOptionalParameterValue(parameters, "z", character.Transform.World.Position.Z);
 
-        npc.Ai.PathNode.Pos1 = new Vector3(x, y, z);
+        npc.Ai.PathNode.StartPointPos = new Vector3(x, y, z);
 
-        messageOutput.SendMessage($"AStar: the starting point is set X:{npc.Ai.PathNode.Pos1.X}, Y:{npc.Ai.PathNode.Pos1.Y}, Z:{npc.Ai.PathNode.Pos1.Z}");
+        messageOutput.SendMessage($"AStar: the starting point is set X:{npc.Ai.PathNode.StartPointPos.X}, Y:{npc.Ai.PathNode.StartPointPos.Y}, Z:{npc.Ai.PathNode.StartPointPos.Z}");
     }
 }

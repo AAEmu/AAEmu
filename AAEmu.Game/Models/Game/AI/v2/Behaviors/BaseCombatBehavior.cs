@@ -4,7 +4,6 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
@@ -133,12 +132,13 @@ public abstract class BaseCombatBehavior : Behavior
 
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
-        if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)// && Ai.Owner.Transform.WorldId > 0)
         {
-            // TODO Find path to abuser only if target coordinates have changed
-            if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
+            // TODO: Find path to abuser only if target coordinates have changed
+            if (target != null && Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
             {
-                if (!Ai.PathNode.Pos2.Equals(new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+                // If not at target position (take 1cm error margin), then calculate new target route position
+                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) > 0.01f)
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
@@ -147,17 +147,18 @@ public abstract class BaseCombatBehavior : Behavior
                     stopWatch.Stop();
                     // Toss warning if it took a long time
                     if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
-                        Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
+                        Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
                     // Save the target's new coordinates
-                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos =  new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                 }
             }
 
+            // If there is a PathNode set, and we still have a target, then find the next point to move to
             if (target != null && Ai.PathNode != null)
             {
                 if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath[0].Equals(Vector3.Zero))
                 {
-                    // TODO Take the destination point we're moving toward
+                    // TODO: Take the destination point we're moving toward
                     var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
                     distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
                     if (distanceToTarget > range)
@@ -166,7 +167,7 @@ public abstract class BaseCombatBehavior : Behavior
                     }
                     else
                     {
-                        // TODO Get the next destination point we're moving toward
+                        // TODO: Get the next destination point we're moving toward
                         Ai.PathNode.Current++;
                         if (Ai.PathNode.Current >= Ai.PathNode.FoundPath.Count)
                         {

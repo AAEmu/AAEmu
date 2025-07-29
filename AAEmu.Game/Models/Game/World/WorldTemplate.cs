@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.IO;
+using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -95,6 +97,15 @@ public class WorldTemplate
     /// Handles navmesh data
     /// </summary>
     public AiGeoDataManager GeoData { get; set; }
+
+    /// <summary>
+    /// ZoneKey, BaiLoader
+    /// </summary>
+    public Dictionary<uint, BaseBaiLoader> ZoneBaiLoader { get; init; } = [];
+    /// <summary>
+    /// (PathX, PathY), BaiLoader
+    /// </summary>
+    public Dictionary<(uint, uint), BaseBaiLoader> PathBaiLoader { get; init; } = [];
 
     /// <summary>
     /// Gets heightmap height at target position (not smoothened)
@@ -199,5 +210,23 @@ public class WorldTemplate
         if ((cellX < 0) || cellX > CellX || cellY < 0 || cellY > CellY)
             return null;
         return Cells[cellX, cellY];
+    }
+
+    public void LoadZoneBaiFiles()
+    {
+        if (!AppConfiguration.Instance.World.GeoDataMode)
+            return; // Don't load navmesh if GeoDataMode is disabled
+
+        foreach (var zoneKey in ZoneKeys)
+        {
+            var worldFolder = Path.Combine("game", "worlds", Name, "zone", zoneKey.ToString());
+            var baiFilesList = ClientFileManager.GetFilesInDirectory(worldFolder, "*.bai", false).ToArray();
+            if (baiFilesList.Length <= 0)
+                continue;
+
+            var zoneBaiLoader = new BaseBaiLoader(this);
+            zoneBaiLoader.LoadBaiFilesFromFolder(zoneKey.ToString());
+            ZoneBaiLoader.Add(zoneKey, zoneBaiLoader);
+        }
     }
 }

@@ -21,6 +21,10 @@ public class CSStartSkillPacket : GamePacket
 
     public override void Read(PacketStream stream)
     {
+        // Ignore if there is no active character set
+        if (Connection.ActiveChar == null)
+            return;
+
         // Will delay for 150 Milliseconds to eliminate the hanging of the skill
         using var source = new CancellationTokenSource();
         var t = Task.Run(async delegate

@@ -576,6 +576,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             foreach (var worldTemplate in WorldTemplates.Values)
             {
                 Logger.Info($"Loading heightmap of {worldTemplate.Name}");
+                worldTemplate.LoadZoneBaiFiles();
                 if (LoadHeightMapFromClientData(worldTemplate))
                     loaded++;
             }

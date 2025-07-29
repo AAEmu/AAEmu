@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
@@ -20,19 +21,19 @@ public class PathNode
     public uint ZoneKey { get; set; }
 
     /// <summary>
-    /// The number of the current point on the map.
+    /// The current point on the map.
     /// </summary>
-    public long Current { get; set; }
+    public NodeDescriptor Current { get; set; }
 
     /// <summary>
     /// Coordinates of the start point on the map (for the script).
     /// </summary>
-    public Vector3 Pos1 { get; set; }
+    public Vector3 StartPointPos { get; set; }
 
     /// <summary>
     /// Coordinates of the end point on the map (for the script).
     /// </summary>
-    public Vector3 Pos2 { get; set; }
+    public Vector3 EndPointPos { get; set; }
 
     /// <summary>
     /// List of found points (for the script).
@@ -109,10 +110,10 @@ public class PathNode
                 // result[0] = pos1; // replace the first and the last point with the real one
                 // result[^1] = pos2;
                 // Let's add the target coordinates to the found points
-                result.Add(Pos2);
+                result.Add(EndPointPos);
                 result = AiGeoDataManager.DouglasPeuckerReduction(result, 2.0);
                 Position = result[0];
-                Current = 0;
+                Current = null;
                 return result;
             }
 
@@ -154,7 +155,7 @@ public class PathNode
     /// <returns></returns>
     private float GetDistanceFromStart(Vector3 to)
     {
-        var fromVector = new Vector3(Pos1.X, Pos1.Y, Pos1.Z);
+        var fromVector = new Vector3(StartPointPos.X, StartPointPos.Y, StartPointPos.Z);
         var toVector = new Vector3(to.X, to.Y, to.Z);
         return MathUtil.CalculateDistance(fromVector, toVector);
     }
@@ -168,7 +169,7 @@ public class PathNode
     {
         // point-to-point distance
         var fromVector = new Vector3(from.X, from.Y, from.Z);
-        var toVector = new Vector3(Pos2.X, Pos2.Y, Pos2.Z);
+        var toVector = new Vector3(EndPointPos.X, EndPointPos.Y, EndPointPos.Z);
         return MathUtil.CalculateDistance(fromVector, toVector);
     }
 

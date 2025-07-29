@@ -89,14 +89,14 @@ public class FlytrapAttackBehavior : Behavior
         if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
         {
             // we will find the path to the abuser only if the target coordinates have changed
-            if (Ai.PathNode?.FoundPath?.Count == 0 && target != null && Ai.PathNode?.Pos2 != null)
+            if (Ai.PathNode?.FoundPath?.Count == 0 && target != null && Ai.PathNode?.EndPointPos != null)
             {
                 //if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
                     // let's find the path to the abuser
                     Ai.Owner.FindPath((Unit)target);
                     // remember the new target coordinates
-                    Ai.PathNode.Pos2 = new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos = new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                     gimmick.Target = target.Transform.World.Position;
                 }
             }

@@ -7,29 +7,29 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.CryEngine.Loaders;
 
-public class BaseBaiLoader(WorldCell parentCell)
+public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
 {
-    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger(); 
-    public WorldCell ParentCell { get; init; } = parentCell;
-    public List<AreasMissionReader> AreasMissionReaders { get; set; } = new();
-    public List<NetMissionReader> NetMissionReaders { get; set; } = new();
-    public List<VertexMissionReader> VertexMissionReaders { get; set; } = new();
-    public List<NetMissionReader> HideMissionReaders { get; set; } = new();
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private WorldTemplate ParentWorldTemplate { get; } = parentWorldTemplate;
+    public List<AreasMissionReader> AreasMissionReaders { get; } = [];
+    public List<NetMissionReader> NetMissionReaders { get; } = [];
+    public List<VertexMissionReader> VertexMissionReaders { get; } = [];
+    public List<NetMissionReader> HideMissionReaders { get; } = [];
 
     /// <summary>
-    /// Loads .bai file data from a given zone or path folder
+    /// Loads .bai files data from a given zone or path folder
     /// </summary>
     /// <param name="zoneOrPathsFolder"></param>
     /// <param name="additiveLoad"></param>
     /// <exception cref="GameException"></exception>
-    public void LoadBais(string zoneOrPathsFolder, bool additiveLoad)
+    public void LoadBaiFilesFromFolder(string zoneOrPathsFolder, bool additiveLoad = false)
     {
-        var worldFolder = Path.Combine("game", "worlds", ParentCell.Template.Name);
+        var worldFolder = Path.Combine("game", "worlds", ParentWorldTemplate.Name);
 
         if (!additiveLoad)
             ClearData();
 
-        Logger.Debug($"LoadBais {zoneOrPathsFolder}");
+        Logger.Debug($"LoadBaiFilesFromFolder {zoneOrPathsFolder}");
         try
         {
             // AreasMission*.bai
@@ -221,7 +221,7 @@ public class BaseBaiLoader(WorldCell parentCell)
 
         Vector3 GetTargetOffsetByZoneOrPath(uint zoneKey, uint pathBlockX, uint pathBlockY)
         {
-            if ((zoneKey == 0) || !ParentCell.Template.XmlWorld.Zones.TryGetValue(zoneKey, out var xmlWorldZone))
+            if ((zoneKey == 0) || !ParentWorldTemplate.XmlWorld.Zones.TryGetValue(zoneKey, out var xmlWorldZone))
                 return new Vector3((pathBlockX * 256f), (pathBlockY * 256f), 0f);
             return new Vector3(xmlWorldZone.OriginX * 1024f, xmlWorldZone.OriginY * 1024f, 0f);
         }
