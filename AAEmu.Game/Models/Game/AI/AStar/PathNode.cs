@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
@@ -23,22 +22,22 @@ public class PathNode
     /// <summary>
     /// The current point on the map.
     /// </summary>
-    public NodeDescriptor Current { get; set; }
+    public Vector3 CurrentTargetPos { get; set; }
 
     /// <summary>
     /// Coordinates of the start point on the map (for the script).
     /// </summary>
-    public Vector3 StartPointPos { get; set; }
+    public Vector3 StartPointPos { get; set; } = Vector3.Zero;
 
     /// <summary>
     /// Coordinates of the end point on the map (for the script).
     /// </summary>
-    public Vector3 EndPointPos { get; set; }
+    public Vector3 EndPointPos { get; set; } = Vector3.Zero;
 
     /// <summary>
     /// List of found points (for the script).
     /// </summary>
-    public List<Vector3> FoundPath { get; set; } = [];
+    public Queue<Vector3> FoundPath { get; set; } = [];
 
     /// <summary>
     /// The coordinates of the point on the map. And the coordinates of the point on the map where the Npc goes.
@@ -58,12 +57,12 @@ public class PathNode
     /// <summary>
     /// Approximate distance to target (H).
     /// </summary>
-    private float HeuristicEstimatePathLength { get; init; }
+    private float PathLengthToEnd { get; init; }
 
     /// <summary>
     /// Expected total distance to target (F).
     /// </summary>
-    private float EstimateFullPathLength => PathLengthFromStart + HeuristicEstimatePathLength;
+    private float EstimateFullPathLength => PathLengthFromStart + PathLengthToEnd;
 
     /// <summary>
     /// Basic method of route calculation.
@@ -72,15 +71,16 @@ public class PathNode
     /// <param name="start"></param>
     /// <param name="goal"></param>
     /// <returns></returns>
-    public List<Vector3> FindPath(WorldInstance world, Vector3 start, Vector3 goal)
+    public Queue<Vector3> FindPath(WorldInstance world, Vector3 start, Vector3 goal)
     {
         // Step 0
         FoundPath = [];
         // Find the nearest point from the start point in the list of geodata points and start the search from it.
-        var (current, posStart) = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
-        start = posStart; // replace it with the nearest point from the geodata
-        var (_, posEnd) = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
-        goal = posEnd; // replace it with the nearest point from the geodata
+        var posStart = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
+        start = posStart.Pos; // replace it with the nearest point from the geodata
+        var posEnd = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
+        goal = posEnd.Pos; // replace it with the nearest point from the geodata
+        EndPointPos = goal;
 
         // Step 1.
         var closedSet = new Collection<PathNode>();
@@ -89,11 +89,12 @@ public class PathNode
         // Step 2.
         var startNode = new PathNode
         {
-            Current = current,
+            CurrentTargetPos = posStart.Pos,
             Position = start,
+            EndPointPos = goal,
             CameFrom = null,
             PathLengthFromStart = 0,
-            HeuristicEstimatePathLength = GetHeuristicPathLength(start)
+            PathLengthToEnd = GetHeuristicPathLength(start)
         };
         openSet.Add(startNode);
 
@@ -113,8 +114,8 @@ public class PathNode
                 result.Add(EndPointPos);
                 result = AiGeoDataManager.DouglasPeuckerReduction(result, 2.0);
                 Position = result[0];
-                Current = null;
-                return result;
+                CurrentTargetPos = Vector3.Zero;
+                return new Queue<Vector3>(result);
             }
 
             // Step 5.
@@ -122,7 +123,7 @@ public class PathNode
             closedSet.Add(currentNode);
 
             // Step 6.
-            foreach (var neighbourNode in GetNeighbours(world, ZoneKey, currentNode))
+            foreach (var neighbourNode in GetNeighbours(world, currentNode))
             {
                 // Step 7.
                 if (closedSet.Any(node => node.Position.Equals(neighbourNode.Position)))
@@ -177,20 +178,35 @@ public class PathNode
     /// Obtaining a list of neighbors
     /// </summary>
     /// <param name="world"></param>
-    /// <param name="zoneKey"></param>
     /// <param name="pathNode"></param>
     /// <returns></returns>
-    private Collection<PathNode> GetNeighbours(WorldInstance world, uint zoneKey, PathNode pathNode)
+    private Collection<PathNode> GetNeighbours(WorldInstance world, PathNode pathNode)
     {
         var result = new Collection<PathNode>();
 
-        // The adjacent points are the points where you can go.
-        var neighbourPoints = world.Template.GeoData.GetAvailablePoints(zoneKey, pathNode.Current);
+        // Check which navmesh file is valid at this position
+        var bai = world.Template.GetBaiByPos(pathNode.CurrentTargetPos);
+        if (bai == null)
+        {
+            return result;
+        }
 
-        foreach (var point in neighbourPoints)
+        // Find the nearest node
+        var nearestNode = bai.FindClosestNetMissionNode(pathNode.CurrentTargetPos);
+        if (nearestNode == null)
+        {
+            // Was not able to find a nearby node
+            // TODO: create a fall-back system
+            return result;
+        }
+
+        // The adjacent points are the points where you can go.
+        var neighbourPoints = world.Template.GeoData.GetAvailablePoints(nearestNode);
+
+        foreach (var linkDescriptor in neighbourPoints)
         {
             // Checking that the point falls within the forbidden area where it is not allowed to walk.
-            if (world.Template.GeoData.CheckImpossibleWalk(point.Position))
+            if (world.Template.GeoData.CheckImpossibleWalk(linkDescriptor.TargetNodeDescriptor.Pos))
             {
                 //ViewPoint(point.Position, 858u); // let's show the point for debugging purposes
                 continue;
@@ -199,11 +215,12 @@ public class PathNode
             // Fill in the data for the waypoint.
             var neighbourNode = new PathNode
             {
-                Current = point.EndPoint,
-                Position = point.Position,
+                CurrentTargetPos = linkDescriptor.TargetNodeDescriptor.Pos,
+                Position = linkDescriptor.TargetNodeDescriptor.Pos,
+                EndPointPos = pathNode.EndPointPos,
                 CameFrom = pathNode,
-                PathLengthFromStart = GetDistanceFromStart(point.Position),
-                HeuristicEstimatePathLength = GetHeuristicPathLength(point.Position)
+                PathLengthFromStart = (linkDescriptor.SourceNodeDescriptor.Pos - pathNode.EndPointPos).Length(), // GetDistanceFromStart(linkDescriptor.SourceNodeDescriptor.Pos),
+                PathLengthToEnd = (linkDescriptor.TargetNodeDescriptor.Pos - pathNode.EndPointPos).Length() // GetHeuristicPathLength(linkDescriptor.TargetNodeDescriptor.Pos)
             };
 
             result.Add(neighbourNode);

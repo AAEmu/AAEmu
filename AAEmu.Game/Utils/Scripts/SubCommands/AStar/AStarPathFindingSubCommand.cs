@@ -1,5 +1,5 @@
 ﻿using System.Drawing;
-
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -28,17 +28,18 @@ public class AStarPathFindingSubCommand : SubCommandBase
         }
 
         //if (PathNode.pos1.X > 0 && PathNode.pos1.Y > 0 && PathNode.pos2.X > 0 && PathNode.pos2.Y > 0)
-        if (npc.Ai.PathNode.StartPointPos != null && npc.Ai.PathNode.EndPointPos != null)
+        if (npc.Ai.PathNode.StartPointPos != Vector3.Zero && npc.Ai.PathNode.EndPointPos != Vector3.Zero)
         {
             npc.Ai.PathNode.ZoneKey = character.Transform.ZoneId;
             npc.Ai.PathNode.FoundPath = npc.Ai.PathNode.FindPath(npc.ParentWorld, npc.Ai.PathNode.StartPointPos, npc.Ai.PathNode.EndPointPos);
+            var resList = npc.Ai.PathNode.FoundPath?.ToList() ?? [];
 
-            character.SendMessage($"AStar: points found Total: {npc.Ai.PathNode.FoundPath?.Count ?? 0}");
-            if (npc.Ai.PathNode.FoundPath != null)
+            character.SendMessage($"AStar: points found Total: {resList?.Count ?? 0}");
+            if (resList != null)
             {
-                for (var i = 0; i < npc.Ai.PathNode.FoundPath.Count; i++)
+                for (var i = 0; i < resList.Count; i++)
                 {
-                    character.SendMessage($"AStar: point {i} coordinates X:{npc.Ai.PathNode.FoundPath[i].X}, Y:{npc.Ai.PathNode.FoundPath[i].Y}, Z:{npc.Ai.PathNode.FoundPath[i].Z}");
+                    character.SendMessage($"AStar: point {i} coordinates X:{resList[i].X}, Y:{resList[i].Y}, Z:{resList[i].Z}");
                 }
             }
         }

@@ -101,7 +101,7 @@ public class FlytrapAttackBehavior : Behavior
                 }
             }
             // moving along the route points
-            if (Ai.PathNode?.FoundPath?.Count > 0 && !Ai.PathNode.FoundPath[0].Equals(Vector3.Zero))
+            if (Ai.PathNode?.FoundPath?.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
             {
                 // take the point to which we are moving
                 var routePoint = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
@@ -114,15 +114,14 @@ public class FlytrapAttackBehavior : Behavior
                 else
                 {
                     // take the next point to which we are moving
-                    Ai.PathNode.Current++;
-                    if (Ai.PathNode.Current >= Ai.PathNode.FoundPath.Count)
+                    if (Ai.PathNode.FoundPath.Count <= 0)
                     {
-                        gimmick.StopMovement();
+                        Ai.Owner.StopMovement();
                         Ai.PathNode.FoundPath = [];
                         return;
                     }
 
-                    Ai.PathNode.Position = Ai.PathNode.FoundPath[(int)Ai.PathNode.Current];
+                    Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
                 }
             }
             else // we move straight to the final point

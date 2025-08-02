@@ -1405,34 +1405,22 @@ public partial class Npc : Unit
 
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
         Ai.PathNode.FoundPath = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
+        var resList = Ai.PathNode.FoundPath?.ToList() ?? [];
 
-        Logger.Trace($"AStar: points found Total: {Ai.PathNode.FoundPath?.Count ?? 0}");
-        if (Ai.PathNode.FoundPath != null)
+        Logger.Trace($"AStar: points found Total: {resList?.Count ?? 0}");
+        if (resList != null)
         {
-            for (var i = 0; i < Ai.PathNode.FoundPath.Count; i++)
+            for (var i = 0; i < resList.Count; i++)
             {
-                Logger.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.FoundPath[i].X}, Y:{Ai.PathNode.FoundPath[i].Y}, Z:{Ai.PathNode.FoundPath[i].Z}");
+                Logger.Trace($"AStar: point {i} coordinates X:{resList[i].X}, Y:{resList[i].Y}, Z:{resList[i].Z}");
             }
         }
     }
 
     /// <summary>
-    /// Find the nearest point
+    /// Runs parent spawner's DoDeSpawn
     /// </summary>
-    /// <param name="unit"></param>
-    /// <returns>return coordinates and change the index of the current point</returns>
-    public Vector3 GetClosestPoint(BaseUnit unit)
-    {
-        // TODO: Take the point we're moving to
-        if (Ai.PathNode.FoundPath == null)
-            return Vector3.Zero;
-
-        var pos = new Vector3(unit.Transform.World.Position.X, unit.Transform.World.Position.Y, unit.Transform.World.Position.Z);
-        Ai.PathNode.Current = AiGeoDataManager.FindClosestIndexPoint(Ai.PathNode.FoundPath, pos);
-
-        return new Vector3(Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].X, Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].Y, Ai.PathNode.FoundPath[(int)Ai.PathNode.Current].Z);
-    }
-
+    /// <param name="npc"></param>
     public void DoDespawn(Npc npc)
     {
         Spawner.DoDespawn(npc);

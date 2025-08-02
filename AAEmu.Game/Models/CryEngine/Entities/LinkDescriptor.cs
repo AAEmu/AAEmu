@@ -1,9 +1,11 @@
 ﻿using System.Numerics;
+using AAEmu.Game.Models.CryEngine.Readers;
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-public class LinkDescriptor
+public class LinkDescriptor(NetMissionReader baiReader)
 {
+    public NetMissionReader BaiReader { get; } = baiReader;
     public long SourceNode { get; set; }
     public long TargetNode { get; set; }
     public Vector3 EdgeCenter { get; set; } = Vector3.Zero;
@@ -16,6 +18,10 @@ public class LinkDescriptor
     public byte EndIndex { get; set; }
     public bool IsPureTriangularLink { get; set; }
     public bool SimplePassabilityCheck { get; set; }
+
+    // Helper references
+    public NodeDescriptor SourceNodeDescriptor { get; set; }
+    public NodeDescriptor TargetNodeDescriptor { get; set; }
 
     public bool Equals(LinkDescriptor other)
     {

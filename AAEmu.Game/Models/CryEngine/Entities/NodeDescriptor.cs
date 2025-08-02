@@ -1,9 +1,11 @@
 ﻿using System.Numerics;
+using AAEmu.Game.Models.CryEngine.Readers;
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-public class NodeDescriptor
+public class NodeDescriptor(NetMissionReader netMission)
 {
+    public NetMissionReader NetMission { get; } = netMission;
     public int Id { get; set; }
     public Vector3 Dir { get; set; } = Vector3.Zero;
     public Vector3 Up { get; set; } = Vector3.UnitZ;
@@ -33,5 +35,10 @@ public class NodeDescriptor
                Up.Equals(other.Up) &&
                Pos.Equals(other.Pos) &&
                Obstacle.SequenceEqual(other.Obstacle);
+    }
+
+    public override string ToString()
+    {
+        return $"Pos: {Pos}, Id: {Id}, Index: {Index}, Type: {Type}";
     }
 }

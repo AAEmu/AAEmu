@@ -2,6 +2,7 @@
 using AAEmu.Commons.Exceptions;
 using NLog;
 using AAEmu.Game.IO;
+using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Readers;
 using AAEmu.Game.Models.Game.World;
 
@@ -236,4 +237,34 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
         HideMissionReaders.Clear();
     }
 
+    public NodeDescriptor FindClosestNetMissionNode(Vector3 pos)
+    {
+        NodeDescriptor nearestNode = null;
+        var nearestDistance = float.MaxValue;
+        foreach (var netMissionReader in NetMissionReaders)
+        {
+            foreach (var (index, nodeDescriptor) in netMissionReader.NodeDescriptorList)
+            {
+                if (nearestNode == null)
+                {
+                    nearestNode = nodeDescriptor;
+                    nearestDistance = (nearestNode.Pos - pos).Length();
+                    continue;
+                }
+                var thisDistance = (pos - nodeDescriptor.Pos).Length();
+                if (thisDistance < nearestDistance)
+                {
+                    nearestNode = nodeDescriptor;
+                    nearestDistance = thisDistance;
+                }
+
+                if (nearestDistance <= 0.0001f)
+                {
+                    return nearestNode;
+                }
+            }
+            
+        }
+        return nearestNode;
+    }
 }

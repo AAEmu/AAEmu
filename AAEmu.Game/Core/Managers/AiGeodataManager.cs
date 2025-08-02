@@ -3,6 +3,7 @@ using System.Numerics;
 
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.CryEngine.Entities;
+using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.World;
@@ -27,28 +28,9 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     private Dictionary<long, List<Vector3>> _aiPath;
     private Dictionary<long, List<Vector3>> _aiNavigationModifier;
 
-    public List<AiNavigation> GetAvailablePoints(uint zoneKey, NodeDescriptor point)
+    public List<LinkDescriptor> GetAvailablePoints(NodeDescriptor point)
     {
-        var bai = worldTemplate.GetBaiByPos(point.Pos);
-        bai.NetMissionReaders[0].LinkDescriptorList[0].
-        foreach (var areaReader in bai.AreasMissionReaders)
-        {
-            foreach (var navMod in areaReader.NavigationModifiers)
-            {
-                // Check if the navmesh is relevant for its type?
-                // if (navMod.MissionType != MissionType.TypeWaypointHuman) continue;
-                navMod.
-
-            }
-            foreach (var nodeDescriptor in r.)
-            {
-                if (nodeDescriptor.)
-            }
-        }
-
-        bai.NetMissionReaders
-        var ret = _aiNavigation.GetValueOrDefault(point) ?? [];
-        return ret;
+        return point.NetMission.LinkDescriptorList.Where(l => l.SourceNode == point.Id).ToList() ?? [];
     }
 
     #region A point in a polygon
@@ -248,8 +230,38 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         if (cell == null)
             return null;
 
-        foreach (var bLoader in cell.BaiLoader) // 4x4 chunks
+        List<BaseBaiLoader> toCheckChunkList = [];
+        if (cell.Template.ZoneBaiLoader.Count > 0)
         {
+            // If the zoneKey is actually the pre-defined one, then just use that
+            if (cell.Template.ZoneBaiLoader.TryGetValue(zoneKey, out var preDefined))
+            {
+                toCheckChunkList.Add(preDefined);
+            }
+            else
+            {
+                // Otherwise, check all of them
+                foreach (var (_, bai) in cell.Template.ZoneBaiLoader)
+                {
+                    toCheckChunkList.Add(bai);
+                }
+            }
+        }
+        else
+        {
+            // If no zone defined (main_world), the use the 4x4 chunk grid of the cell
+            foreach (var bai in cell.BaiLoader)
+            {
+                if (bai != null)
+                    toCheckChunkList.Add(bai);
+            }
+        }
+
+        // Check all eligible chunks
+        foreach (var bLoader in toCheckChunkList)
+        {
+            if (bLoader == null)
+                continue;
             foreach (var netMission in bLoader.NetMissionReaders)
             {
                 foreach (var (_, nodeDescriptor) in netMission.NodeDescriptorList)

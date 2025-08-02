@@ -235,7 +235,7 @@ public class WorldTemplate
     public BaseBaiLoader GetBaiByPos(Vector3 pos)
     {
         if (ZoneBaiLoader.Count > 0)
-            return ZoneBaiLoader[0]; // TODO: Pick the actually correct zone
+            return ZoneBaiLoader.Values.First(); // TODO: Pick the actually correct zone
 
         // First verify if target cell is loaded
         var cellPos = pos.ToCellIndex();

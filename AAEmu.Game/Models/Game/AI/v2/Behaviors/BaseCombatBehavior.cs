@@ -156,27 +156,26 @@ public abstract class BaseCombatBehavior : Behavior
             // If there is a PathNode set, and we still have a target, then find the next point to move to
             if (target != null && Ai.PathNode != null)
             {
-                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath[0].Equals(Vector3.Zero))
+                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
                 {
+                    var nextPathPoint = Ai.PathNode.FoundPath.Peek();
                     // TODO: Take the destination point we're moving toward
                     var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
-                    distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
+                    distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, nextPathPoint, true);
                     if (distanceToTarget > range)
                     {
-                        Ai.Owner.MoveTowards(position, (float)speed, moveFlags);
+                        Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags);
                     }
                     else
                     {
-                        // TODO: Get the next destination point we're moving toward
-                        Ai.PathNode.Current++;
-                        if (Ai.PathNode.Current >= Ai.PathNode.FoundPath.Count)
+                        if (Ai.PathNode.FoundPath.Count <= 0)
                         {
                             Ai.Owner.StopMovement();
                             Ai.PathNode.FoundPath = [];
                             return;
                         }
 
-                        Ai.PathNode.Position = Ai.PathNode.FoundPath[(int)Ai.PathNode.Current];
+                        Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
                     }
                 }
                 else
