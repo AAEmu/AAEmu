@@ -3,12 +3,14 @@ using System.Numerics;
 
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.CryEngine.Entities;
+using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
+using Org.BouncyCastle.Utilities.Bzip2;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 
@@ -25,8 +27,26 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     private Dictionary<long, List<Vector3>> _aiPath;
     private Dictionary<long, List<Vector3>> _aiNavigationModifier;
 
-    public List<AiNavigation> GetAvailablePoints(uint zoneKey, long point)
+    public List<AiNavigation> GetAvailablePoints(uint zoneKey, NodeDescriptor point)
     {
+        var bai = worldTemplate.GetBaiByPos(point.Pos);
+        bai.NetMissionReaders[0].LinkDescriptorList[0].
+        foreach (var areaReader in bai.AreasMissionReaders)
+        {
+            foreach (var navMod in areaReader.NavigationModifiers)
+            {
+                // Check if the navmesh is relevant for its type?
+                // if (navMod.MissionType != MissionType.TypeWaypointHuman) continue;
+                navMod.
+
+            }
+            foreach (var nodeDescriptor in r.)
+            {
+                if (nodeDescriptor.)
+            }
+        }
+
+        bai.NetMissionReaders
         var ret = _aiNavigation.GetValueOrDefault(point) ?? [];
         return ret;
     }

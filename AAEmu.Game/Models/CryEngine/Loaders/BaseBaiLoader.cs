@@ -55,7 +55,6 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 // Logger.Debug($"Areas File: {areaFile}");
 
                 // Load all .bai files for data
-                // var area = new AreaMissionBai(zoneKey);
                 using var fs = ClientFileManager.GetFileStream(areaFile);
                 // Ignore files that are too small
                 if (fs.Length <= 20)

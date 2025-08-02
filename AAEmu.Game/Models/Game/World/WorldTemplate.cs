@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
@@ -6,6 +7,7 @@ using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -228,5 +230,19 @@ public class WorldTemplate
             zoneBaiLoader.LoadBaiFilesFromFolder(zoneKey.ToString());
             ZoneBaiLoader.Add(zoneKey, zoneBaiLoader);
         }
+    }
+
+    public BaseBaiLoader GetBaiByPos(Vector3 pos)
+    {
+        if (ZoneBaiLoader.Count > 0)
+            return ZoneBaiLoader[0]; // TODO: Pick the actually correct zone
+
+        // First verify if target cell is loaded
+        var cellPos = pos.ToCellIndex();
+        var cell = Cells[cellPos.Item1, cellPos.Item2];
+        cell.VerifyCellLoaded();
+        // Return value from the main paths dictionary
+        var pathsPos = pos.ToPathsIndex();
+        return PathBaiLoader.GetValueOrDefault(((uint)pathsPos.Item1, (uint)pathsPos.Item2));
     }
 }
