@@ -337,7 +337,7 @@ public abstract class BaseCombatBehavior : Behavior
         if (_pipeName == "phase_dragon_ground" || _phaseType == 1) // "PHASE_DRAGON_GROUND = 1;"
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-            var updZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y, Ai.Owner.Transform.Local.Position.Z);
+            var updZ = Ai.Owner.ParentWorld.Template.GeoData.GetHeight(Ai.Owner.Transform.World.Position); // WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y, Ai.Owner.Transform.Local.Position.Z);
             Ai.Owner.Transform.Local.SetHeight(updZ);
         }
         else if (_pipeName == "phase_dragon_fly_hovering" || _phaseType == 2) // "PHASE_DRAGON_HOVERING = 2;"

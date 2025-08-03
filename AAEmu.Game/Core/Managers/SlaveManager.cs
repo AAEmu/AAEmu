@@ -423,7 +423,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 {
                     using var depthCheckPos = spawnPos.CloneDetached();
                     depthCheckPos.Local.AddDistanceToFront(inFront);
-                    var floorHeight = WorldManager.Instance.GetHeight(depthCheckPos);
+                    var floorHeight = World.Template.GeoData.GetHeight(depthCheckPos.World.Position);// WorldManager.Instance.GetHeight(depthCheckPos);
                     if (floorHeight > 0f)
                     {
                         var surfaceHeight = world.Water.GetWaterSurface(depthCheckPos.World.Position, out _);
@@ -445,7 +445,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             {
                 // If a land vehicle, put it a the ground level of it's target spawn location
                 // TODO: check for maximum height difference for summoning
-                var h = WorldManager.Instance.GetHeight(spawnPos);
+                var h = World.Template.GeoData.GetHeight(spawnPos.World.Position);// WorldManager.Instance.GetHeight(spawnPos);
                 if (h > 0f)
                     spawnPos.Local.SetHeight(h);
             }
