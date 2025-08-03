@@ -77,9 +77,11 @@ public class PathNode
         FoundPath = [];
         // Find the nearest point from the start point in the list of geodata points and start the search from it.
         var posStart = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
-        start = posStart.Pos; // replace it with the nearest point from the geodata
+        if (posStart != null)
+            start = posStart.Pos; // replace it with the nearest point from the geodata
         var posEnd = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
-        goal = posEnd.Pos; // replace it with the nearest point from the geodata
+        if (posEnd != null)
+            goal = posEnd.Pos;// replace it with the nearest point from the geodata
         EndPointPos = goal;
 
         // Step 1.
@@ -89,7 +91,7 @@ public class PathNode
         // Step 2.
         var startNode = new PathNode
         {
-            CurrentTargetPos = posStart.Pos,
+            CurrentTargetPos = posStart?.Pos ?? start,
             Position = start,
             EndPointPos = goal,
             CameFrom = null,

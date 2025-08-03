@@ -22,7 +22,7 @@ public class VertexMissionReader : BaiReader
         }
     }
 
-    public override void ReadFromFile()
+    protected override void ReadFromFile()
     {
         if (Reader == null)
             return;

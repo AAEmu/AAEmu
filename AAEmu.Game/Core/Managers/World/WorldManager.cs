@@ -692,7 +692,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             height = world?.GeoData.GetHeight(position) ?? height;
         }
 
-        // check, as there is no geodata for main_world yet
         if (height != 0f || !AppConfiguration.Instance.HeightMapsEnable)
         {
             return height;
@@ -771,15 +770,12 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
 
         // 2. For HoldPositionBehavior and IdleBehavior, the height is taken from the spawner.
-        if (ai != null)
+        switch (ai.GetCurrentBehavior())
         {
-            switch (ai.GetCurrentBehavior())
-            {
-                case HoldPositionBehavior:
-                case IdleBehavior:
-                    finalHeight = ai.Owner.Spawner.Position.Z;
-                    return finalHeight;
-            }
+            case HoldPositionBehavior:
+            case IdleBehavior:
+                finalHeight = ai.Owner.Spawner.Position.Z;
+                return finalHeight;
         }
 
         // 3. Terrain height retrieval

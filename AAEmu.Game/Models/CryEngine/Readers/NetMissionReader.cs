@@ -27,7 +27,7 @@ public class NetMissionReader : BaiReader
         }
     }
 
-    public override void ReadFromFile()
+    protected override void ReadFromFile()
     {
         if (Reader == null)
             return;

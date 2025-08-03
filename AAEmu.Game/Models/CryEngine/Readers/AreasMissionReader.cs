@@ -34,7 +34,7 @@ public class AreasMissionReader : BaiReader
             throw new GameException($"Wrong Areas BAI file version {version}, expected {BaiAreasFileVersion}");
     }
 
-    public override void ReadFromFile()
+    protected override void ReadFromFile()
     {
         if (Reader == null)
             return;

@@ -24,7 +24,7 @@ public class FlightMissionReader : BaiReader
         }
     }
 
-    public override void ReadFromFile()
+    protected override void ReadFromFile()
     {
         FlightNavRegion = new FlightNavRegion(ZoneId);
         if (Reader == null)

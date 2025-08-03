@@ -59,12 +59,12 @@ public abstract class BaiReader : IDisposable
         // Do nothing
     }
 
-    public virtual void ReadFromFile()
+    protected virtual void ReadFromFile()
     {
         throw new IOException();
     }
 
-    public virtual void Close()
+    protected virtual void Close()
     {
         Reader?.Dispose();
         Reader = null;
