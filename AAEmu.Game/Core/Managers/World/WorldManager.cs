@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Xml;
 
@@ -686,7 +686,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         if (AppConfiguration.Instance.World.GeoDataMode && world.Id > 0)
         {
-            var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneKey, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
+            var position = new WorldSpawnPosition { WorldId = world.Id, ZoneId = zoneKey, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
             height = world.GeoData.GetHeight(position.AsPositionVector());
         }
 
@@ -736,7 +736,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 try
                 {
-                    
+
                     height = world.GetHeight(transform.World.Position.X, transform.World.Position.Y);
                 }
                 catch
@@ -752,6 +752,48 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         return height;
     }
+
+    public float GetReferenceHeight(NpcAi ai, float x, float y, float z, uint zoneId)
+    {
+        float finalHeight;
+
+        // 0. Just in case.
+        if (ai == null)
+        {
+            finalHeight = GetHeight(zoneId, x, y);
+            return finalHeight;
+        }
+
+        // 1. If an NPC can fly, the height is taken from the spawner's position.
+        if (ai.Owner.CanFly)
+        {
+            finalHeight = ai.Owner.Spawner.Position.Z;
+            return finalHeight;
+        }
+
+        // 2. For HoldPositionBehavior and IdleBehavior, the height is taken from the spawner.
+        if (ai != null)
+        {
+            switch (ai.GetCurrentBehavior())
+            {
+                case HoldPositionBehavior:
+                case IdleBehavior:
+                    finalHeight = ai.Owner.Spawner.Position.Z;
+                    return finalHeight;
+            }
+        }
+
+        // 3. Terrain height retrieval
+        finalHeight = GetHeight(zoneId, x, y);
+        if (finalHeight != 0/* && Math.Abs(worldHeight - Spawner.Position.Z) <= 0.1f*/)
+        {
+            return finalHeight;
+        }
+
+        // 4. Take the default height
+        return ai.Owner.Spawner?.Position.Z ?? ai.Owner.Transform.World.Position.Z;
+    }
+
 
     /// <summary>
     /// Gets the root GameObject all the way up from the parent/child object tree
