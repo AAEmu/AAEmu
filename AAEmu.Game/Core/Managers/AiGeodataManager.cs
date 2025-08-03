@@ -266,10 +266,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
             {
                 foreach (var (_, nodeDescriptor) in netMission.NodeDescriptorList)
                 {
-                    var dx = posX - nodeDescriptor.Pos.X;
-                    var dy = posY - nodeDescriptor.Pos.Y;
-
-                    var distance = dx * dx + dy * dy;
+                    var distance = (nodeDescriptor.Pos - pos).Length();
                     if (distance < minDist)
                     {
                         closestPointFound = nodeDescriptor;
@@ -295,50 +292,64 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         //stopWatch.Start();
         try
         {
-            var posX = pos.X;
-            var posY = pos.Y;
+            var closestPoint = Vector3.Zero;
+            var closestDistance = float.MaxValue;
 
-            var pointN = new Vector3();
-            var pointFa = new Vector3();
-
-            var minDistN = 99999.0f;
-            var minDistFa = 99999.0f;
-
-
-            foreach (var lpf in _aiNavigation.Values)
+            // Try to get height from .bai files data
+            var bai = worldTemplate.GetBaiByPos(pos);
+            if (bai != null)
             {
-                foreach (var pf in lpf)
+                if (bai.NetMissionReaders.Count > 0)
                 {
-                    var dx = posX - pf.Position.X;
-                    var dy = posY - pf.Position.Y;
+                    foreach (var netMission in bai.NetMissionReaders)
+                    {
+                        foreach (var (_, nodeDescriptor) in netMission.NodeDescriptorList)
+                        {
+                            var dist = (nodeDescriptor.Pos - pos).Length();
+                            if (dist < closestDistance)
+                            {
+                                closestDistance = dist;
+                                closestPoint = nodeDescriptor.Pos;
+                                // Slightly optimize if very close to target point
+                                if (closestDistance < 0.01f)
+                                {
+                                    return closestPoint.Z;
+                                }
+                            }
+                        }
+                    }
+                }
 
-                    var distance = dx * dx + dy * dy;
-                    if (!(distance < minDistN)) { continue; }
-
-                    pointN = pf.Position;
-                    minDistN = distance;
+                if (bai.VertexMissionReaders.Count > 0)
+                {
+                    foreach (var vertexMission in bai.VertexMissionReaders)
+                    {
+                        foreach (var obstacleDataDescriptor in vertexMission.ObstacleDataDescriptorList)
+                        {
+                            var dist = (obstacleDataDescriptor.Pos - pos).Length();
+                            if (dist < closestDistance)
+                            {
+                                closestDistance = dist;
+                                closestPoint = obstacleDataDescriptor.Pos;
+                                // Slightly optimize if very close to target point
+                                if (closestDistance < 0.01f)
+                                {
+                                    return closestPoint.Z;
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-
-            foreach (var lfa in _forbiddenArea.Values)
+            
+            // Now compare to heightmap data
+            if (closestDistance >= float.MaxValue) 
             {
-                foreach (var pf in lfa)
-                {
-                    var dx = posX - pf.X;
-                    var dy = posY - pf.Y;
-
-                    var distance = dx * dx + dy * dy;
-                    if (!(distance < minDistFa)) { continue; }
-
-                    pointFa = pf;
-                    minDistFa = distance;
-                }
+                // Fall back to raw heightmap data
+                closestPoint = new Vector3(pos.X, pos.Y, worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y)));
             }
 
-
-            //Logger.Warn($"# Found near position aiNavigation, Z: {pointN.Z}...");
-            res = minDistFa < minDistN ? pointFa.Z : pointN.Z;
+            return closestPoint.Z;
         }
         catch
         {

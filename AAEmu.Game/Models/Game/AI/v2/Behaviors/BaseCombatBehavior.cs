@@ -132,7 +132,7 @@ public abstract class BaseCombatBehavior : Behavior
 
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
-        if (AppConfiguration.Instance.World.GeoDataMode)// && Ai.Owner.Transform.WorldId > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
             // TODO: Find path to abuser only if target coordinates have changed
             if (target != null && Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
@@ -164,7 +164,7 @@ public abstract class BaseCombatBehavior : Behavior
                     distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, nextPathPoint, true);
                     if (distanceToTarget > range)
                     {
-                        Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags);
+                        Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags, range);
                     }
                     else
                     {
@@ -181,7 +181,7 @@ public abstract class BaseCombatBehavior : Behavior
                 else
                 {
                     if (distanceToTarget > range)
-                        Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
+                        Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags, range);
                     else
                         Ai.Owner.StopMovement();
                 }
@@ -282,7 +282,7 @@ public abstract class BaseCombatBehavior : Behavior
         {
             //Ai.Owner.LookTowards(abuser.Transform.World.Position); // Prevents archers from escaping (they spin around all the time)
 
-            if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
@@ -337,7 +337,7 @@ public abstract class BaseCombatBehavior : Behavior
         if (_pipeName == "phase_dragon_ground" || _phaseType == 1) // "PHASE_DRAGON_GROUND = 1;"
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-            var updZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y);
+            var updZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y, Ai.Owner.Transform.Local.Position.Z);
             Ai.Owner.Transform.Local.SetHeight(updZ);
         }
         else if (_pipeName == "phase_dragon_fly_hovering" || _phaseType == 2) // "PHASE_DRAGON_HOVERING = 2;"

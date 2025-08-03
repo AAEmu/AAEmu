@@ -87,7 +87,7 @@ public class DuelManager : Singleton<DuelManager>
                 _combatFlag.Position.X = duel.Challenger.Transform.World.Position.X - (duel.Challenger.Transform.World.Position.X - duel.Challenged.Transform.World.Position.X) / 2;
                 _combatFlag.Position.Y = duel.Challenger.Transform.World.Position.Y - (duel.Challenger.Transform.World.Position.Y - duel.Challenged.Transform.World.Position.Y) / 2;
                 _combatFlag.Position.Z = AppConfiguration.Instance.HeightMapsEnable
-                    ? WorldManager.Instance.GetHeight(_combatFlag.Position.ZoneId, _combatFlag.Position.X, _combatFlag.Position.Y)
+                    ? WorldManager.Instance.GetHeight(_combatFlag.Position.ZoneId, _combatFlag.Position.X, _combatFlag.Position.Y, _combatFlag.Position.Z)
                     : duel.Challenger.Transform.World.Position.Z - (duel.Challenger.Transform.World.Position.Z - duel.Challenged.Transform.World.Position.Z) / 2;
 
                 duel.DuelFlag = _combatFlag.Spawn(0); // set CombatFlag

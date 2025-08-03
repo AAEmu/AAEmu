@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.Exceptions;
@@ -677,34 +678,33 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="zoneKey">ZoneId used to find which world it needs to look in</param>
     /// <param name="x"></param>
     /// <param name="y"></param>
+    /// <param name="z">reference starting height to be used to calculate floor height</param>
     /// <returns></returns>
-    public float GetHeight(uint zoneKey, float x, float y)
+    public float GetHeight(uint zoneKey, float x, float y, float z)
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
         var world = GetWorldTemplateByZoneKey(zoneKey);
 
-        if (AppConfiguration.Instance.World.GeoDataMode && world.Id > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            var position = new WorldSpawnPosition { WorldId = world.Id, ZoneId = zoneKey, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
-            height = world.GeoData.GetHeight(position.AsPositionVector());
+            var position = new Vector3(x, y, z);
+            height = world?.GeoData.GetHeight(position) ?? height;
         }
 
         // check, as there is no geodata for main_world yet
-        if (height == 0)
+        if (height != 0f || !AppConfiguration.Instance.HeightMapsEnable)
         {
-            if (AppConfiguration.Instance.HeightMapsEnable)
-            {
-                try
-                {
-                    //var world = GetWorldByZone(zoneId);
-                    height = world?.GetHeight(x, y) ?? 0f;
-                }
-                catch
-                {
-                    height = 0f;
-                }
-            }
+            return height;
+        }
+
+        try
+        {
+            height = world?.GetHeight(x, y) ?? 0f;
+        }
+        catch
+        {
+            height = 0f;
         }
 
         return height;
@@ -724,7 +724,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             return height;
         }
-        if (AppConfiguration.Instance.World.GeoDataMode && transform.WorldId > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
             height = world.Template.GeoData?.GetHeight(transform.World.Position) ?? 0f;
         }
@@ -736,7 +736,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 try
                 {
-
                     height = world.GetHeight(transform.World.Position.X, transform.World.Position.Y);
                 }
                 catch
@@ -760,7 +759,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // 0. Just in case.
         if (ai == null)
         {
-            finalHeight = GetHeight(zoneId, x, y);
+            finalHeight = GetHeight(zoneId, x, y, z);
             return finalHeight;
         }
 
@@ -784,7 +783,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
 
         // 3. Terrain height retrieval
-        finalHeight = GetHeight(zoneId, x, y);
+        finalHeight = GetHeight(zoneId, x, y, z);
         if (finalHeight != 0/* && Math.Abs(worldHeight - Spawner.Position.Z) <= 0.1f*/)
         {
             return finalHeight;

@@ -54,7 +54,7 @@ public class LeapSkillController : SkillController
         {
             End();
             return;
-        };
+        }
         MoveTowards(_calculatedSpeed * (float)(delta.TotalMilliseconds / 1000f));
     }
 
@@ -117,7 +117,7 @@ public class LeapSkillController : SkillController
 
         // TODO: Implement Transform.World to do proper movement
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-        var updZ = WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, newX, newY);
+        var updZ = WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, newX, newY, newZ);
         if (Math.Abs(newZ - updZ) < 1f)
         {
             Owner.Transform.Local.SetHeight(updZ);

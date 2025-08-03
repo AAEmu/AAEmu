@@ -1243,11 +1243,19 @@ public partial class Npc : Unit
         */
     }
 
-    public void MoveTowards(Vector3 other, float distance, byte actorFlags = 4)
+    /// <summary>
+    /// Moves towards the target position
+    /// </summary>
+    /// <param name="other">Target position</param>
+    /// <param name="distance">Maximum distance to move (before multipliers)</param>
+    /// <param name="actorFlags">ActorFlags to use for the movement packet</param>
+    /// <param name="rangeTolerance">Makes the function return true if target distance is less than or equil to this value</param>
+    /// <returns>True if withing rangeTolerance of other</returns>
+    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
     {
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
-            return;
+            return false;
 
         if (Buffs.HasEffectsMatchingCondition(e =>
                 e.Template.Stun
@@ -1258,23 +1266,23 @@ public partial class Npc : Unit
             || Ai.Owner.IsDead)
         {
             //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
-            return;
+            return false;
         }
 
         if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
             Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
         {
-            return;
+            return false;
         }
 
         if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
-            return;
+            return false;
 
         var oldPosition = Transform.Local.ClonePosition();
 
         var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
-        if (targetDist <= 1f)
-            return;
+        if (targetDist <= rangeTolerance)
+            return true;
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
@@ -1313,6 +1321,7 @@ public partial class Npc : Unit
         CheckMovedPosition(oldPosition);
         //SetPosition(Position);
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        return false;
     }
 
     public void LookTowards(Vector3 other, byte flags = 4)

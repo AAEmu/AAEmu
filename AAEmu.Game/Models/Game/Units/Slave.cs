@@ -806,7 +806,7 @@ public class Slave : Unit
                 doodad.Transform.Local.SetPosition(pos);
                 if (dropDoodad.OnWater == false)
                 {
-                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, pos.X, pos.Y));
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, pos.X, pos.Y, pos.Z));
                 }
                 else
                 {

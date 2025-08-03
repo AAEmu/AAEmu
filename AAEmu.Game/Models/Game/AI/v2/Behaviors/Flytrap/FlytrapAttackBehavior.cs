@@ -86,7 +86,7 @@ public class FlytrapAttackBehavior : Behavior
         var moveDistanceZ = gimmick.Template.Gravity * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = MathUtil.CalculateDistance(gimmickPosition, gimmick.Target, true);
 
-        if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
             // we will find the path to the abuser only if the target coordinates have changed
             if (Ai.PathNode?.FoundPath?.Count == 0 && target != null && Ai.PathNode?.EndPointPos != null)
@@ -153,7 +153,7 @@ public class FlytrapAttackBehavior : Behavior
             if (Ai.AlreadyTargeted)
                 return true;
 
-            if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
                 // включена геодата и не основной мир
                 // geodata enabled and not the main world

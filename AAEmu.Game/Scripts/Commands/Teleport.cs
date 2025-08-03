@@ -628,8 +628,7 @@ public class Teleport : ICommand
                 }
                 else
                 {
-                    var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId,
-                        character.LocalPingPosition.X, character.LocalPingPosition.Y);
+                    var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y, character.LocalPingPosition.Z);
                     if (height == 0f)
                     {
                         CommandManager.SendNormalText(this,
