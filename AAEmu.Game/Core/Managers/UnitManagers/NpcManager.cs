@@ -130,7 +130,7 @@ public class NpcManager : Singleton<NpcManager>
 
         if (npc.Template.AiFileId > 0)
         {
-            var ai = AIUtils.GetAiByType((AiParamType)npc.Template.AiFileId, npc);
+            var ai = AiUtils.GetAiByType((AiParamType)npc.Template.AiFileId, npc);
             if (ai == null)
                 return npc;
 
