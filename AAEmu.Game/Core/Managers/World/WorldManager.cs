@@ -1252,45 +1252,4 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         return _worlds.Values.Where(w => w.Template.Id == templateId).ToList();
     }
-
-    public float GetReferenceHeight(NpcAi ai, float x, float y, float z, uint zoneId)
-    {
-        float finalHeight;
-
-        // 0. Just in case.
-        if (ai == null)
-        {
-            finalHeight = GetHeight(zoneId, x, y);
-            return finalHeight;
-        }
-
-        // 1. If an NPC can fly, the height is taken from the spawner's position.
-        if (ai.Owner.CanFly)
-        {
-            finalHeight = ai.Owner.Spawner.Position.Z;
-            return finalHeight;
-        }
-
-        // 2. For HoldPositionBehavior and IdleBehavior, the height is taken from the spawner.
-        if (ai != null)
-        {
-            switch (ai.GetCurrentBehavior())
-            {
-                case HoldPositionBehavior:
-                case IdleBehavior:
-                    finalHeight = ai.Owner.Spawner.Position.Z;
-                    return finalHeight;
-            }
-        }
-
-        // 3. Terrain height retrieval
-        finalHeight = GetHeight(zoneId, x, y);
-        if (finalHeight != 0/* && Math.Abs(worldHeight - Spawner.Position.Z) <= 0.1f*/)
-        {
-            return finalHeight;
-        }
-
-        // 4. Take the default height
-        return ai.Owner.Spawner?.Position.Z ?? ai.Owner.Transform.World.Position.Z;
-    }
 }
