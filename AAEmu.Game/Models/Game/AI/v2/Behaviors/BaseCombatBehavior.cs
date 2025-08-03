@@ -138,7 +138,7 @@ public abstract class BaseCombatBehavior : Behavior
             if (target != null && Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
             {
                 // If not at target position (take 1cm error margin), then calculate new target route position
-                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) > 0.01f)
+                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
