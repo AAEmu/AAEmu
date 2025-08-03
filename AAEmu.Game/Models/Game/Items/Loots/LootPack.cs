@@ -194,7 +194,7 @@ public class LootPack
                     if ((itemTemplate?.LootQuestId > 0) && (player != null))
                     {
                         // Skip item if player does not have quest
-                        if (player.Quests.HasQuest(itemTemplate.LootQuestId))
+                        if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
                             continue;
                     }
 
@@ -367,7 +367,7 @@ public class LootPack
 
                 // Check for Quest loot drops
                 var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
-                if (itemTemplate?.LootQuestId > 0)
+                if ((itemTemplate?.LootQuestId > 0) && (player != null))
                 {
                     if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
                         continue;
