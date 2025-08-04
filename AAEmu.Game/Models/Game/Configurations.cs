@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Text.Json.Serialization;
+using AAEmu.Commons.Network;
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace AAEmu.Game.Models.Game;
@@ -207,6 +208,15 @@ public class SpecialtyConfig
     /// Time in minutes before a traded pack is no longer counted towards the trade rate calculation
     /// </summary>
     public double RatioRegenTickMinutes { get; set; } = 60f;
+
+    /// <summary>
+    /// Time in minutes to delay trade pack reward mail delivery. Default is 8 hours.
+    /// </summary>
+    /// <remarks>
+    /// The default value is 8 hours. This setting controls how long after delivery 
+    /// a player must wait before receiving their trade pack reward via mail.
+    /// </remarks>
+    public double TradePackMailDelayInMinutes { get; set; } = 480f;
 }
 
 public class ScriptsConfig

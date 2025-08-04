@@ -5,6 +5,7 @@
 		"RatioDecreasePerPack": 0.5,
 		"RatioDecreaseTickMinutes": 1.0,
 		"RatioIncreasePerTick": 5.0,
-		"RatioRegenTickMinutes": 60.0
+		"RatioRegenTickMinutes": 60.0,
+		"TradePackMailDelayInMinutes": 480.0
 	}
 }

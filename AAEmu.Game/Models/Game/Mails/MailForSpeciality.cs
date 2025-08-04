@@ -20,7 +20,6 @@ public class MailForSpeciality : BaseMail
     private bool _sellerIsCrafter;
     // unused private int _itemCountTotal;
 
-    private static TimeSpan TradePackMailDelay = TimeSpan.FromHours(8); // Default is 8 hours
     private static string TradeDeliveryName = ".sellBackpack";
     private static string TradeDeliveryTitle = "Speciality Payment";
     private static string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
@@ -94,7 +93,7 @@ public class MailForSpeciality : BaseMail
 
         MailType = MailType.SysSellBackpack;
 
-        Body.RecvDate = DateTime.UtcNow + TradePackMailDelay;
+        Body.RecvDate = DateTime.UtcNow.AddMinutes(AppConfiguration.Instance.Specialty.TradePackMailDelayInMinutes);
     }
 
     /// <summary>
