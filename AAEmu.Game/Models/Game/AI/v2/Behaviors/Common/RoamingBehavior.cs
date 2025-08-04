@@ -63,6 +63,6 @@ public class RoamingBehavior : BaseCombatBehavior
     private void UpdateRoaming()
     {
         // TODO : Group member handling
-        _targetRoamPosition = AIUtils.CalcNextRoamingPosition(Ai);
+        _targetRoamPosition = AiUtils.CalcNextRoamingPosition(Ai);
     }
 }

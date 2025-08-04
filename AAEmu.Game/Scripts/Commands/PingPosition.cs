@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Numerics;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
@@ -35,8 +36,10 @@ public class PingPosition : ICommand
         }
         else
         {
-            var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X,
-                character.LocalPingPosition.Y);
+            var height = character.ParentWorld.Template.GeoData.GetHeight(new Vector3(
+                character.LocalPingPosition.X,
+                character.LocalPingPosition.Y,
+                5000f)); // WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y, character.LocalPingPosition.Z);
             if (height == 0f)
             {
                 CommandManager.SendNormalText(this, messageOutput,

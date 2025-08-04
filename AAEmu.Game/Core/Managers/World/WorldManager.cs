@@ -1,5 +1,6 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Numerics;
 using System.Xml;
 
 using AAEmu.Commons.Exceptions;
@@ -10,6 +11,8 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
+using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Indun;
@@ -23,6 +26,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class WorldManager : Singleton<WorldManager>, IWorldManager
 {
     /// <summary>
@@ -164,7 +168,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
             var npcSpawners = world.SpawnManager.GetAllSpawners();
 
-            // Фильтрация спавнеров
+            // Spawner filtering
             if (sw.ElapsedMilliseconds > 50)
             {
                 Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
@@ -174,7 +178,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
                 .Where(spawner => spawner.Template != null && IsSpawnerActive(spawner))
                 .ToList();
 
-            // Последовательная обработка спавнеров
+            // Consistent processing of spawners
             if (sw.ElapsedMilliseconds > 50)
             {
                 Logger.Debug($"Processed {activeSpawners.Count} active spawners...");
@@ -189,7 +193,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         sw.Stop();
         if (sw.ElapsedMilliseconds > 100)
         {
-            Logger.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
+            Logger.Warn($"ActiveRegionTick took {sw.ElapsedMilliseconds} ms");
         }
     }
 
@@ -518,6 +522,13 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             _zoneKeysByWorldId[worldTemplate.Id].Add(zoneKey);
         }
 
+        // Navmesh data
+        worldTemplate.GeoData = new AiGeoDataManager(worldTemplate);
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            worldTemplate.GeoData.Load();
+        }
+
         // Mark "main_world" as the DefaultWorldId
         if (worldName == "main_world")
             DefaultWorldTemplateId = worldTemplate.Id; // prefer to do it like this, in case we change order or IDs later on
@@ -568,6 +579,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             foreach (var worldTemplate in WorldTemplates.Values)
             {
                 Logger.Info($"Loading heightmap of {worldTemplate.Name}");
+                worldTemplate.LoadZoneBaiFiles();
                 if (LoadHeightMapFromClientData(worldTemplate))
                     loaded++;
             }
@@ -666,34 +678,32 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="zoneKey">ZoneId used to find which world it needs to look in</param>
     /// <param name="x"></param>
     /// <param name="y"></param>
+    /// <param name="z">reference starting height to be used to calculate floor height</param>
     /// <returns></returns>
-    public float GetHeight(uint zoneKey, float x, float y)
+    public float GetHeight(uint zoneKey, float x, float y, float z)
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
         var world = GetWorldTemplateByZoneKey(zoneKey);
 
-        if (AppConfiguration.Instance.World.GeoDataMode && world.Id > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            var position = new WorldSpawnPosition { WorldId = 0, ZoneId = zoneKey, X = x, Y = y, Z = 0, Yaw = 0, Pitch = 0, Roll = 0 };
-            height = AiGeoDataManager.Instance.GetHeight(zoneKey, position);
+            var position = new Vector3(x, y, z);
+            height = world?.GeoData.GetHeight(position) ?? height;
         }
 
-        // check, as there is no geodata for main_world yet
-        if (height == 0)
+        if (height != 0f || !AppConfiguration.Instance.HeightMapsEnable)
         {
-            if (AppConfiguration.Instance.HeightMapsEnable)
-            {
-                try
-                {
-                    //var world = GetWorldByZone(zoneId);
-                    height = world?.GetHeight(x, y) ?? 0f;
-                }
-                catch
-                {
-                    height = 0f;
-                }
-            }
+            return height;
+        }
+
+        try
+        {
+            height = world?.GetHeight(x, y) ?? 0f;
+        }
+        catch
+        {
+            height = 0f;
         }
 
         return height;
@@ -708,20 +718,24 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
         var height = 0f;
-        if (AppConfiguration.Instance.World.GeoDataMode && transform.WorldId > 0)
+        var world = GetWorld(transform.InstanceId);
+        if (world == null)
         {
-            height = AiGeoDataManager.Instance.GetHeight(transform.ZoneId, transform.World.Position);
+            return height;
+        }
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            height = world.Template.GeoData?.GetHeight(transform.World.Position) ?? 0f;
         }
 
         // check, as there is no geodata for main_world yet
-        if (height == 0)
+        if (height == 0f)
         {
             if (AppConfiguration.Instance.HeightMapsEnable)
             {
                 try
                 {
-                    var world = GetWorld(transform.InstanceId);
-                    height = world?.GetHeight(transform.World.Position.X, transform.World.Position.Y) ?? transform.World.Position.Z;
+                    height = world.GetHeight(transform.World.Position.X, transform.World.Position.Y);
                 }
                 catch
                 {
@@ -736,6 +750,45 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         return height;
     }
+
+    public float GetReferenceHeight(NpcAi ai, float x, float y, float z, uint zoneId)
+    {
+        float finalHeight;
+
+        // 0. Just in case.
+        if (ai == null)
+        {
+            finalHeight = GetHeight(zoneId, x, y, z);
+            return finalHeight;
+        }
+
+        // 1. If an NPC can fly, the height is taken from the spawner's position.
+        if (ai.Owner.CanFly)
+        {
+            finalHeight = ai.Owner.Spawner.Position.Z;
+            return finalHeight;
+        }
+
+        // 2. For HoldPositionBehavior and IdleBehavior, the height is taken from the spawner.
+        switch (ai.GetCurrentBehavior())
+        {
+            case HoldPositionBehavior:
+            case IdleBehavior:
+                finalHeight = ai.Owner.Spawner.Position.Z;
+                return finalHeight;
+        }
+
+        // 3. Terrain height retrieval
+        finalHeight = GetHeight(zoneId, x, y, z);
+        if (finalHeight != 0/* && Math.Abs(worldHeight - Spawner.Position.Z) <= 0.1f*/)
+        {
+            return finalHeight;
+        }
+
+        // 4. Take the default height
+        return ai.Owner.Spawner?.Position.Z ?? ai.Owner.Transform.World.Position.Z;
+    }
+
 
     /// <summary>
     /// Gets the root GameObject all the way up from the parent/child object tree
@@ -1141,7 +1194,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     {
         if (_worlds is not null)
         {
-            foreach (var (worldId, world) in _worlds)
+            foreach (var world in _worlds.Values)
             {
                 Logger.Info($"Shutting down {world}");
                 world.Physics?.Stop();

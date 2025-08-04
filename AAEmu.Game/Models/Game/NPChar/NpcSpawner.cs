@@ -29,9 +29,11 @@ public class NpcSpawner : Spawner<Npc>
     private int _scheduledCount;
     // Вычисляемое свойство, возвращающее текущее количество NPC из SpawnedNpcs для данного SpawnerId.
     private int CurrentSpawnCount => SpawnedNpcs.TryGetValue(SpawnerId, out var list) ? list.Count : 0;
-    private bool IsSpawnScheduled;
-    private bool IsDespawnScheduled;
-    private bool RespawnDenied;
+    private bool IsSpawnScheduled { get; set; }
+    private bool IsDespawnScheduled { get; set; }
+    private bool RespawnDenied { get; set; }
+    // ReSharper disable once InconsistentNaming
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private static readonly object _spawnLock = new(); // Lock for thread safety
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]

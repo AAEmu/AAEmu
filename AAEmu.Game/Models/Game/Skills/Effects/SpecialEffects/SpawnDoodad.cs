@@ -69,7 +69,8 @@ public class SpawnDoodad : SpecialEffectAction
                 break;
         }
         var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
-        doodad.SetPosition(xx, yy, WorldManager.Instance.GetHeight(doodad.Transform), rpy.X, rpy.Y, rpy.Z);
+        var zz = doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position); // WorldManager.Instance.GetHeight(doodad.Transform);
+        doodad.SetPosition(xx, yy, zz, rpy.X, rpy.Y, rpy.Z);
         doodad.InitDoodad();
         if (delay > 0)
             Thread.Sleep(delay);

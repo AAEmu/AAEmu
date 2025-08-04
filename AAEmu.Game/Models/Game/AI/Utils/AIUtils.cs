@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Models.Game.AI.Utils;
 
-public static class AIUtils
+public static class AiUtils
 {
 
     // This is taken from x2ai.lua
@@ -19,30 +19,11 @@ public static class AIUtils
             (Random.Shared.NextSingle() - 0.5f) * maxRoamingDistance * 2 + ai.IdlePosition.Y,
             ai.IdlePosition.Z);
 
-        var terrainHeight = WorldManager.Instance.GetHeight(ai.Owner.Transform.ZoneId, newPosition.X, newPosition.Y);
-        // Handles disabled heightmaps
-        if (terrainHeight <= 0.0f || ai.Owner.CanFly)
-            terrainHeight = newPosition.Z;
-
-        if (newPosition.Z < terrainHeight && terrainHeight - maxRoamingDistance < newPosition.Z)
-            newPosition.Z = terrainHeight;
+        // Get terrain height at new position
+        newPosition.Z = WorldManager.Instance.GetReferenceHeight(ai, newPosition.X, newPosition.Y, newPosition.Z, ai.Owner.Transform.ZoneId);
 
         return newPosition;
     }
-
-    //public static bool IsOutOfIdleArea(AbstractAI AI)
-    //{
-    //    var distToIdlePos = AAEmu.Game.Utils.MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position);
-    //    var range = 15;
-
-    //    // if (isGroupMember)
-    //    //     then
-    //    //         range = 50;
-    //    // end
-    //    if (distToIdlePos > range)
-    //        return true;
-    //    return false;
-    //}
 
     public static NpcAi GetAiByType(AiParamType type, Npc owner)
     {

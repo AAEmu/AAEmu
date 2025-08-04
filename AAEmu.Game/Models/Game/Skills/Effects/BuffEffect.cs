@@ -29,14 +29,18 @@ public class BuffEffect : EffectTemplate
                 return;
             }
         }
-        if (Random.Shared.Next(0, 101) > Chance)
+
+        if (caster != null)
         {
-            ((Unit)caster).ConditionChance = false;
-            return;
-        }
-        else
-        {
-            ((Unit)caster).ConditionChance = true;
+            if (Random.Shared.Next(0, 101) > Chance)
+            {
+                caster.ConditionChance = false;
+                return;
+            }
+            else
+            {
+                caster.ConditionChance = true;
+            }
         }
 
         if (Buff.RequireBuffId > 0 && !target.Buffs.CheckBuff(Buff.RequireBuffId))
@@ -80,13 +84,13 @@ public class BuffEffect : EffectTemplate
 
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
 
-        if (Buff.Kind == BuffKind.Bad &&
-            (target is not Npc) &&
-            caster.GetRelationStateTo(target) == RelationState.Friendly &&
-            caster != target &&
+        // Check if a bad buff was applied to a friendly faction (bloodlust)
+        var relationToTarget = caster?.GetRelationStateTo(target) ?? RelationState.Neutral;
+        if (Buff.Kind == BuffKind.Bad && (target is not Npc) && 
+            relationToTarget == RelationState.Friendly && caster != target &&
             !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
         {
-            ((Unit)caster).SetCriminalState(true, target);
+            (caster as Unit)?.SetCriminalState(true, target);
         }
     }
 }

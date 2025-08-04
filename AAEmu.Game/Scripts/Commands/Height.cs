@@ -33,9 +33,8 @@ public class Height : ICommand
             targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
         }
 
-        var height = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId,
-            targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y);
-        CommandManager.SendNormalText(this, messageOutput,
-            $"{targetPlayer.Name} Z-Pos: {character.Transform.World.Position.Z} - Floor: {height}");
+        var floorHeight = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);
+        var navMeshHeight = targetPlayer.ParentWorld.Template.GeoData.GetHeight(targetPlayer.Transform.World.Position); // WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);
+        CommandManager.SendNormalText(this, messageOutput, $"{targetPlayer.Name} Z-Pos: {character.Transform.World.Position.Z} - Floor: {floorHeight}, NavMeshHeight: {navMeshHeight}");
     }
 }

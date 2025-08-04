@@ -63,7 +63,7 @@ public partial class Character
 
                 doodad.IsPersistent = true;
                 doodad.Transform = Transform.CloneDetached(doodad);
-                doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform));
+                doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position)); //WorldManager.Instance.GetHeight(doodad.Transform)));
                 doodad.AttachPoint = AttachPointKind.None;
                 doodad.ItemId = item.Id;
                 doodad.ItemTemplateId = item.Template.Id;

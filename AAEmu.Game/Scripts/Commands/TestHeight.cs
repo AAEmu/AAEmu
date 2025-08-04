@@ -73,8 +73,7 @@ public class TestHeight : ICommand
                     doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                     doodadSpawner.Position.X = x;
                     doodadSpawner.Position.Y = y;
-                    doodadSpawner.Position.Z =
-                        WorldManager.Instance.GetWorldTemplateByZoneKey(targetPlayer.Transform.ZoneId).GetHeight(x, y);
+                    doodadSpawner.Position.Z = targetPlayer.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
                     doodadSpawner.Position.Yaw = 0;
                     doodadSpawner.Position.Pitch = 0;
                     doodadSpawner.Position.Roll = 0;
@@ -106,8 +105,7 @@ public class TestHeight : ICommand
                 doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                 doodadSpawner.Position.X = x;
                 doodadSpawner.Position.Y = rY;
-                doodadSpawner.Position.Z =
-                    WorldManager.Instance.GetWorldTemplateByZoneKey(targetPlayer.Transform.ZoneId).GetHeight(x, rY);
+                doodadSpawner.Position.Z = character.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;
@@ -128,8 +126,7 @@ public class TestHeight : ICommand
                 doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                 doodadSpawner.Position.X = rX;
                 doodadSpawner.Position.Y = y;
-                doodadSpawner.Position.Z =
-                    WorldManager.Instance.GetWorldTemplateByZoneKey(targetPlayer.Transform.ZoneId).GetHeight(rX, y);
+                doodadSpawner.Position.Z = character.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;

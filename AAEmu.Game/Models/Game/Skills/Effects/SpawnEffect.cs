@@ -64,12 +64,6 @@ public class SpawnEffect : EffectTemplate
 
                     var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, positionRelativeToUnit.Transform.World.Position.X, positionRelativeToUnit.Transform.World.Position.Y, PosAngle);
 
-                    // TODO: Not sure if this is needed.
-                    //var zz = WorldManager.Instance.GetHeight(target.Transform.ZoneId, xx, yy);
-                    //if (zz == 0) {
-                    //	zz = target.Transform.World.Position.Z;
-                    //}
-
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
                     spawner.Position.Z = positionRelativeToUnit.Transform.World.Position.Z;

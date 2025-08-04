@@ -731,8 +731,10 @@ public class Slave : Unit
                         newDoodad.IsPersistent = true;
                         newDoodad.Transform = doodad.Transform.CloneDetached();
                         // Add a bit of randomness to the dropped doodad
-                        newDoodad.Transform.Local.Translate((Random.Shared.NextSingle() * 2f) - 1f,
-                            (Random.Shared.NextSingle() * 2f) - 1f, 0);
+                        newDoodad.Transform.Local.Translate(
+                            (Random.Shared.NextSingle() * 2f) - 1f,
+                            (Random.Shared.NextSingle() * 2f) - 1f,
+                            0f);
                         newDoodad.AttachPoint = AttachPointKind.None;
                         newDoodad.ItemId = droppedItem.Id;
                         newDoodad.ItemTemplateId = droppedItem.TemplateId;
@@ -741,7 +743,7 @@ public class Slave : Unit
                         newDoodad.PlantTime = DateTime.UtcNow;
                         newDoodad.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
 
-                        var floor = WorldManager.Instance.GetHeight(newDoodad.Transform);
+                        var floor = ParentWorld.Template.GeoData.GetHeight(newDoodad.Transform.World.Position); // WorldManager.Instance.GetHeight(newDoodad.Transform);
                         var surface = WorldManager.Instance.GetWorld(doodad.Transform.InstanceId)?.Water?.GetWaterSurface(newDoodad.Transform.World.Position, out _) ?? 0f;
                         var depth = surface - floor;
 
@@ -806,7 +808,7 @@ public class Slave : Unit
                 doodad.Transform.Local.SetPosition(pos);
                 if (dropDoodad.OnWater == false)
                 {
-                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, pos.X, pos.Y));
+                    doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position)); //WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, pos.X, pos.Y, pos.Z));
                 }
                 else
                 {

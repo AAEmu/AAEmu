@@ -86,22 +86,22 @@ public class FlytrapAttackBehavior : Behavior
         var moveDistanceZ = gimmick.Template.Gravity * (delta.Milliseconds / 1000.0f);
         var distanceToTarget = MathUtil.CalculateDistance(gimmickPosition, gimmick.Target, true);
 
-        if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
             // we will find the path to the abuser only if the target coordinates have changed
-            if (Ai.PathNode?.findPath?.Count == 0 && target != null && Ai.PathNode?.pos2 != null)
+            if (Ai.PathNode?.FoundPath?.Count == 0 && target != null && Ai.PathNode?.EndPointPos != null)
             {
                 //if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
                 {
                     // let's find the path to the abuser
                     Ai.Owner.FindPath((Unit)target);
                     // remember the new target coordinates
-                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos = new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                     gimmick.Target = target.Transform.World.Position;
                 }
             }
             // moving along the route points
-            if (Ai.PathNode?.findPath?.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
+            if (Ai.PathNode?.FoundPath?.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
             {
                 // take the point to which we are moving
                 var routePoint = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
@@ -114,15 +114,14 @@ public class FlytrapAttackBehavior : Behavior
                 else
                 {
                     // take the next point to which we are moving
-                    Ai.PathNode.Current++;
-                    if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
+                    if (Ai.PathNode.FoundPath.Count <= 0)
                     {
-                        gimmick.StopMovement();
-                        Ai.PathNode.findPath = [];
+                        Ai.Owner.StopMovement();
+                        Ai.PathNode.FoundPath = [];
                         return;
                     }
 
-                    Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
+                    Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
                 }
             }
             else // we move straight to the final point
@@ -154,7 +153,7 @@ public class FlytrapAttackBehavior : Behavior
             if (Ai.AlreadyTargeted)
                 return true;
 
-            if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
                 // включена геодата и не основной мир
                 // geodata enabled and not the main world

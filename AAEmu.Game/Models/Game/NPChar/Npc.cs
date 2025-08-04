@@ -1243,11 +1243,19 @@ public partial class Npc : Unit
         */
     }
 
-    public void MoveTowards(Vector3 other, float distance, byte actorFlags = 4)
+    /// <summary>
+    /// Moves towards the target position
+    /// </summary>
+    /// <param name="other">Target position</param>
+    /// <param name="distance">Maximum distance to move (before multipliers)</param>
+    /// <param name="actorFlags">ActorFlags to use for the movement packet</param>
+    /// <param name="rangeTolerance">Makes the function return true if target distance is less than or equil to this value</param>
+    /// <returns>True if withing rangeTolerance of other</returns>
+    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
     {
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
-            return;
+            return false;
 
         if (Buffs.HasEffectsMatchingCondition(e =>
                 e.Template.Stun
@@ -1258,23 +1266,23 @@ public partial class Npc : Unit
             || Ai.Owner.IsDead)
         {
             //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
-            return;
+            return false;
         }
 
         if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
             Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
         {
-            return;
+            return false;
         }
 
         if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
-            return;
+            return false;
 
         var oldPosition = Transform.Local.ClonePosition();
 
         var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
-        if (targetDist <= 1f)
-            return;
+        if (targetDist <= rangeTolerance)
+            return true;
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
@@ -1282,18 +1290,8 @@ public partial class Npc : Unit
 
         // TODO: Implement proper use for Transform.World.AddDistanceToFront
         var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
-        Transform.Local.SetPosition(newX, newY, newZ);
-
-        // TODO: Implement Transform.World to do proper movement
-        if (!CanFly)
-        {
-            // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-            var updZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY);
-            if (Math.Abs(newZ - updZ) < 1f)
-            {
-                Transform.Local.SetHeight(updZ);
-            }
-        }
+        var targetPositionZ = WorldManager.Instance.GetReferenceHeight(Ai, newX, newY, newZ, Transform.ZoneId);
+        Transform.Local.SetPosition(newX, newY, targetPositionZ);
 
         var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
         var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
@@ -1323,11 +1321,14 @@ public partial class Npc : Unit
         CheckMovedPosition(oldPosition);
         //SetPosition(Position);
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        return false;
     }
 
     public void LookTowards(Vector3 other, byte flags = 4)
     {
         var oldPosition = Transform.Local.ClonePosition();
+        oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        Transform.Local.SetPosition(oldPosition);
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
@@ -1365,6 +1366,10 @@ public partial class Npc : Unit
 
     public void StopMovement()
     {
+        var oldPosition = Transform.Local.ClonePosition();
+        oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        Transform.Local.SetPosition(oldPosition);
+
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
         moveType.X = Transform.Local.Position.X;
         moveType.Y = Transform.Local.Position.Y;
@@ -1400,39 +1405,27 @@ public partial class Npc : Unit
 
     public void FindPath(Unit abuser)
     {
-        Ai.PathNode.pos1 = new Point(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-        Ai.PathNode.pos2 = new Point(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+        Ai.PathNode.StartPointPos = new Vector3(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
+        Ai.PathNode.EndPointPos = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
 
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-        Ai.PathNode.findPath = Ai.PathNode.FindPath(Ai.PathNode.pos1, Ai.PathNode.pos2);
+        Ai.PathNode.FoundPath = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
+        var resList = Ai.PathNode.FoundPath?.ToList() ?? [];
 
-        Logger.Trace($"AStar: points found Total: {Ai.PathNode.findPath?.Count ?? 0}");
-        if (Ai.PathNode.findPath != null)
+        Logger.Trace($"AStar: points found Total: {resList?.Count ?? 0}");
+        if (resList != null)
         {
-            for (var i = 0; i < Ai.PathNode.findPath.Count; i++)
+            for (var i = 0; i < resList.Count; i++)
             {
-                Logger.Trace($"AStar: point {i} coordinates X:{Ai.PathNode.findPath[i].X}, Y:{Ai.PathNode.findPath[i].Y}, Z:{Ai.PathNode.findPath[i].Z}");
+                Logger.Trace($"AStar: point {i} coordinates X:{resList[i].X}, Y:{resList[i].Y}, Z:{resList[i].Z}");
             }
         }
     }
 
     /// <summary>
-    /// Find the nearest point
+    /// Runs parent spawner's DoDeSpawn
     /// </summary>
-    /// <param name="unit"></param>
-    /// <returns>return coordinates and change the index of the current point</returns>
-    public Vector3 GetClosestPoint(BaseUnit unit)
-    {
-        // TODO взять точку к которой движемся
-        if (Ai.PathNode.findPath == null)
-            return Vector3.Zero;
-
-        var pos = new Point(unit.Transform.World.Position.X, unit.Transform.World.Position.Y, unit.Transform.World.Position.Z);
-        Ai.PathNode.Current = AiGeoDataManager.FindClosestIndexPoint(Ai.PathNode.findPath, pos);
-
-        return new Vector3(Ai.PathNode.findPath[(int)Ai.PathNode.Current].X, Ai.PathNode.findPath[(int)Ai.PathNode.Current].Y, Ai.PathNode.findPath[(int)Ai.PathNode.Current].Z);
-    }
-
+    /// <param name="npc"></param>
     public void DoDespawn(Npc npc)
     {
         Spawner.DoDespawn(npc);

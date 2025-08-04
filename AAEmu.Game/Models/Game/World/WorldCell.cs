@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.ClientData;
+using AAEmu.Game.Models.CryEngine.Loaders;
 using Jitter2.LinearMath;
 using NLog;
 
@@ -15,7 +12,7 @@ public class WorldCell
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private WorldTemplate Template { get; init; }
+    public WorldTemplate Template { get; init; }
     public int CellX { get; init; }
     public int CellY { get; init; }
     public bool Loaded { get; private set; }
@@ -24,6 +21,11 @@ public class WorldCell
     internal ushort[,] HeightMap { get; private set; }
     private float MinHeight { get; set; }
     private float MaxHeight { get; set; }
+
+    /// <summary>
+    /// Bai files data to use in this cell
+    /// </summary>
+    public BaseBaiLoader[,] BaiLoader { get; set; }
 
     /// <summary>
     /// Bounding box for use in Jitter
@@ -41,8 +43,63 @@ public class WorldCell
             new JVector(CellOffset.X, 0f, CellOffset.Y), 
             new JVector(CellOffset.X + WorldManager.CELL_SIZE, 0f, CellOffset.Y + WorldManager.CELL_SIZE)
             );
+        BaiLoader = new BaseBaiLoader[4, 4]
+        {
+            { null, null, null, null },
+            { null, null, null, null },
+            { null, null, null, null },
+            { null, null, null, null }
+        };
     }
 
+    /// <summary>
+    /// Load the *.bai files for this Cell if GeoDataMode is enabled 
+    /// </summary>
+    private void LoadBaiFiles()
+    {
+        if (!AppConfiguration.Instance.World.GeoDataMode)
+            return; // Don't load navmesh if GeoDataMode is disabled
+
+        // If we already loaded zone bai data for this world template, then don't try to load the cell one
+        // Instead reference the zone bai directly
+        if (Template.ZoneBaiLoader.Count > 0)
+        {
+            // This is zone grabbing is just an estimate, but should be good enough for this purpose
+            // Ideally you'd check all 256 sectors in the cell and take it's median, but feels like overkill here
+            var zoneKey = Template.ZoneKeyByRegions[CellX * WorldManager.SECTORS_PER_CELL, CellY * WorldManager.SECTORS_PER_CELL];
+            if (Template.ZoneBaiLoader.TryGetValue(zoneKey, out var parentZoneBaiLoader))
+            {
+                // Assign it for all paths in this cell
+                for (var y = 0; y < 4; y++)
+                {
+                    for (var x = 0; x < 4; x++)
+                    {
+                        BaiLoader[x, y] = parentZoneBaiLoader;
+                    }
+                }
+            }
+            else
+            {
+                Logger.Warn($"WorldTemplate {Template.Name} has Zone bai files data loaded ({Template.ZoneBaiLoader.Count} zones), but could not find a matching file for this cell {zoneKey}");
+            }
+            return;
+        }
+
+        // Load the 4x4 grid of path folders into this cell
+        for (var y = 0; y < 4; y++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                var pathX = (uint)((CellX * 4) + x);
+                var pathY = (uint)((CellY * 4) + y);
+                var pathFolder = $"{pathX:000}_{pathY:000}";
+                var pathBaiLoader = new BaseBaiLoader(Template);
+                pathBaiLoader.LoadBaiFilesFromFolder(pathFolder); // (x != 0 || y != 0)
+                BaiLoader[x, y] = pathBaiLoader;
+                Template.PathBaiLoader.Add((pathX, pathY), pathBaiLoader);
+            }
+        }
+    }
 
     /// <summary>
     /// Checks if the cell is loaded and loads it if it hasn't 
@@ -59,6 +116,7 @@ public class WorldCell
             // Assign heightmap array
             HeightMap = new ushort[WorldManager.CELL_HMAP_RESOLUTION, WorldManager.CELL_HMAP_RESOLUTION];
             // Load data
+            LoadBaiFiles();
             Loaded = LoadCellHeightMapFromClientData();
             Loading = false;
         }

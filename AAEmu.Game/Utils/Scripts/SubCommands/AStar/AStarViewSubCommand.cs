@@ -47,7 +47,7 @@ public class AStarViewSubCommand : SubCommandBase
             UnitId = unitTemplateId
         };
 
-        foreach (var point in npc.Ai.PathNode.findPath)
+        foreach (var point in npc.Ai.PathNode.FoundPath)
         {
             doodadSpawner.Position = charPos.CloneAsSpawnPosition();
 

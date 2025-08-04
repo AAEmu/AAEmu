@@ -19,7 +19,7 @@ public class DoodadFuncRespawn : DoodadPhaseFuncTemplate
         {
             using var spawnPos = character.Transform.Clone();
             spawnPos.Local.AddDistanceToFront(1f);
-            spawnPos.Local.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
+            spawnPos.Local.SetHeight(caster.ParentWorld.Template.GeoData.GetHeight(spawnPos.World.Position)); // WorldManager.Instance.GetHeight(spawnPos));
             var doodad = new DoodadSpawner
             {
                 ParentWorld = character.ParentWorld,

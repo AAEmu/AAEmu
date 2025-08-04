@@ -262,8 +262,6 @@ public class Unit : BaseUnit, IUnit
 
     public UnitProcs Procs { get; protected set; }
 
-    public bool ConditionChance { get; set; }
-
     public Unit()
     {
         Events = new UnitEvents();

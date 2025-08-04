@@ -1,10 +1,9 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
@@ -133,12 +132,13 @@ public abstract class BaseCombatBehavior : Behavior
 
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
-        if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            // TODO Find path to abuser only if target coordinates have changed
-            if (target != null && Ai.PathNode?.pos2 != null && Ai.PathNode != null)
+            // TODO: Find path to abuser only if target coordinates have changed
+            if (target != null && Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
             {
-                if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+                // If not at target position (take 1cm error margin), then calculate new target route position
+                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
@@ -147,41 +147,41 @@ public abstract class BaseCombatBehavior : Behavior
                     stopWatch.Stop();
                     // Toss warning if it took a long time
                     if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
-                        Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId}");
+                        Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
                     // Save the target's new coordinates
-                    Ai.PathNode.pos2 = new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos =  new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                 }
             }
 
+            // If there is a PathNode set, and we still have a target, then find the next point to move to
             if (target != null && Ai.PathNode != null)
             {
-                if (Ai.PathNode.findPath.Count > 0 && !Ai.PathNode.findPath[0].Equals(Point.Zero))
+                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
                 {
-                    // TODO Take the destination point we're moving toward
+                    var nextPathPoint = Ai.PathNode.FoundPath.Peek();
+                    // TODO: Take the destination point we're moving toward
                     var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
-                    distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, position, true);
+                    distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, nextPathPoint, true);
                     if (distanceToTarget > range)
                     {
-                        Ai.Owner.MoveTowards(position, (float)speed, moveFlags);
+                        Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags, range);
                     }
                     else
                     {
-                        // TODO Get the next destination point we're moving toward
-                        Ai.PathNode.Current++;
-                        if (Ai.PathNode.Current >= Ai.PathNode.findPath.Count)
+                        if (Ai.PathNode.FoundPath.Count <= 0)
                         {
                             Ai.Owner.StopMovement();
-                            Ai.PathNode.findPath = [];
+                            Ai.PathNode.FoundPath = [];
                             return;
                         }
 
-                        Ai.PathNode.Position = Ai.PathNode.findPath[(int)Ai.PathNode.Current];
+                        Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
                     }
                 }
                 else
                 {
                     if (distanceToTarget > range)
-                        Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
+                        Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags, range);
                     else
                         Ai.Owner.StopMovement();
                 }
@@ -282,7 +282,7 @@ public abstract class BaseCombatBehavior : Behavior
         {
             //Ai.Owner.LookTowards(abuser.Transform.World.Position); // Prevents archers from escaping (they spin around all the time)
 
-            if (AppConfiguration.Instance.World.GeoDataMode && Ai.Owner.Transform.WorldId > 0)
+            if (AppConfiguration.Instance.World.GeoDataMode)
             {
                 // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
@@ -337,7 +337,7 @@ public abstract class BaseCombatBehavior : Behavior
         if (_pipeName == "phase_dragon_ground" || _phaseType == 1) // "PHASE_DRAGON_GROUND = 1;"
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-            var updZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y);
+            var updZ = Ai.Owner.ParentWorld.Template.GeoData.GetHeight(Ai.Owner.Transform.World.Position); // WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y, Ai.Owner.Transform.Local.Position.Z);
             Ai.Owner.Transform.Local.SetHeight(updZ);
         }
         else if (_pipeName == "phase_dragon_fly_hovering" || _phaseType == 2) // "PHASE_DRAGON_HOVERING = 2;"

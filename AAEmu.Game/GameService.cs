@@ -153,7 +153,6 @@ public sealed class GameService : IHostedService, IDisposable
         CashShopManager.Instance.EnabledShop();
         UccManager.Instance.Load();
         MusicManager.Instance.Load();
-        AiGeoDataManager.Instance.Load();
 
         if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
         {
