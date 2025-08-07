@@ -61,7 +61,7 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 if (fs.Length <= 20)
                     continue;
 
-                using var area = new AreasMissionReader(fs, zoneKey);
+                var area = new AreasMissionReader(fs, zoneKey);
                 try
                 {
                     area.ReaderPointOffset = targetOffset;
@@ -94,7 +94,7 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 // Logger.Debug($"Net File: {netFile}");
 
                 using var fs = ClientFileManager.GetFileStream(netFile);
-                using var net = new NetMissionReader(fs, zoneKey);
+                var net = new NetMissionReader(fs, zoneKey);
                 try
                 {
                     net.ReaderPointOffset = targetOffset;
@@ -127,7 +127,7 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 // Logger.Debug($"Vertex File: {vertexFile}");
 
                 using var fs = ClientFileManager.GetFileStream(vertexFile);
-                using var vertex = new VertexMissionReader(fs, zoneKey);
+                var vertex = new VertexMissionReader(fs, zoneKey);
                 try
                 {
                     vertex.ReaderPointOffset = targetOffset;
@@ -160,7 +160,7 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 // Logger.Debug($"Hide File: {hideFile}");
 
                 using var fs = ClientFileManager.GetFileStream(hideFile);
-                using var hide = new NetMissionReader(fs, zoneKey);
+                var hide = new NetMissionReader(fs, zoneKey);
                 try
                 {
                     hide.ReaderPointOffset = targetOffset;
