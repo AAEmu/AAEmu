@@ -47,5 +47,11 @@ public class TestNavMesh : ICommand
         {
             messageOutput.SendMessage($"-> {v3}");
         }
+        messageOutput.SendMessage($"Reduced:");
+        var reducedPath = world.Template.GeoData.ReducePath(foundPath.ToList(), 5);
+        foreach (var v3 in reducedPath)
+        {
+            messageOutput.SendMessage($"=> {v3}");
+        }
     }
 }

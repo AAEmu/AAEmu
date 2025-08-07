@@ -383,4 +383,93 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     {
         // Nothing to load here anymore, everything
     }
+
+    public Queue<Vector3> ReducePath(List<Vector3> foundPath, int maxNodeSkipCount)
+    {
+        var res = new Queue<Vector3>();
+        // Check for all node
+        for (var startNodeIndex = 0; startNodeIndex < foundPath.Count; startNodeIndex++)
+        {
+            var startNode = foundPath[startNodeIndex];
+            res.Enqueue(startNode);
+            // Check nodes further in the path, starting at the furthest node defined by max skip (and getting closer with each loop)
+            for (var endNodeIndex = startNodeIndex + maxNodeSkipCount; endNodeIndex > startNodeIndex; endNodeIndex--)
+            {
+                // Check if still in total range
+                if (endNodeIndex >= foundPath.Count)
+                    continue;
+                var endNode = foundPath[endNodeIndex];
+                // Check if there's a direct line between the two nodes that is allowed
+                if (LinePassesThroughForbiddenArea(startNode, endNode) == false)
+                {
+                    // If clear, directly put this point as next, and move the check index
+                    res.Enqueue(endNode);
+                    startNodeIndex = endNodeIndex;
+                    break;
+                }
+            }
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// Check if a given line passes any of the defined ForbiddenAreas nearby (in 2D space)
+    /// </summary>
+    /// <param name="startNode"></param>
+    /// <param name="endNode"></param>
+    /// <returns></returns>
+    private bool LinePassesThroughForbiddenArea(Vector3 startNode, Vector3 endNode)
+    {
+        // It should be enough to grab the starting node's bai data. Forbidden zones are even defined if even part of the zone falls within the area
+        var sourceBai = worldTemplate.GetBaiByPos(startNode);
+        foreach (var areaMission in sourceBai.AreasMissionReaders)
+        {
+            // Loop forbidden areas shape
+            foreach (var aiShape in areaMission.ForbiddenAreasList)
+            {
+                // TODO: Optimize with bounding box check
+                for (var index = 0; index < aiShape.Points.Count; index++)
+                {
+                    if (FindLineIntersection(startNode, endNode, aiShape.Points[index], aiShape.Points[index + 1]) !=
+                        Vector3.Zero)
+                    {
+                        // TODO: Additional check for Z height difference
+                        // If the height offset is too far away from the poly side, then ignore (likely on another floor) 
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if two lines intersect with given starting and ending point in 2D space (Z is ignored here)
+    /// </summary>
+    /// <param name="start1"></param>
+    /// <param name="end1"></param>
+    /// <param name="start2"></param>
+    /// <param name="end2"></param>
+    /// <returns>Returns the intersection point of line 1 in 2D space, or Zero if none was found</returns>
+    /// <remarks>Based on the answer of https://stackoverflow.com/questions/1119451/how-to-tell-if-a-line-intersects-a-polygon-in-c#1120126</remarks>
+    private static Vector3 FindLineIntersection(Vector3 start1, Vector3 end1, Vector3 start2, Vector3 end2)
+    {
+        var denominator = ((end1.X - start1.X) * (end2.Y - start2.Y)) - ((end1.Y - start1.Y) * (end2.X - start2.X));
+
+        // AB & CD are parallel 
+        if (denominator == 0)
+            return Vector3.Zero;
+
+        var numerator1 = ((start1.Y - start2.Y) * (end2.X - start2.X)) - ((start1.X - start2.X) * (end2.Y - start2.Y));
+        var r = numerator1 / denominator;
+        var numerator2 = ((start1.Y - start2.Y) * (end1.X - start1.X)) - ((start1.X - start2.X) * (end1.Y - start1.Y));
+        var s = numerator2 / denominator;
+
+        if ((r < 0 || r > 1) || (s < 0 || s > 1))
+            return Vector3.Zero;
+
+        // Find intersection point
+        return new Vector3(start1.X + (r * (end1.X - start1.X)), start1.Y + (r * (end1.Y - start1.Y)), start1.Z + (r * (end1.Z - start1.Z)));
+    }
 }
