@@ -399,6 +399,11 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                 if (endNodeIndex >= foundPath.Count)
                     continue;
                 var endNode = foundPath[endNodeIndex];
+                // Skip this node if the height offset is too much
+                var delta = (endNode - startNode);
+                var angleRate = delta.Length() > 0 ? delta.Z / delta.Length() : 0f;
+                if (angleRate >= 0.2f || angleRate <= -0.5f)
+                    continue;
                 // Check if there's a direct line between the two nodes that is allowed
                 if (LinePassesThroughForbiddenArea(startNode, endNode) == false)
                 {
@@ -429,7 +434,22 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
             foreach (var aiShape in areaMission.ForbiddenAreasList)
             {
                 // TODO: Optimize with bounding box check
-                for (var index = 0; index < aiShape.Points.Count; index++)
+                for (var index = 0; index < aiShape.Points.Count-1; index++)
+                {
+                    if (FindLineIntersection(startNode, endNode, aiShape.Points[index], aiShape.Points[index + 1]) !=
+                        Vector3.Zero)
+                    {
+                        // TODO: Additional check for Z height difference
+                        // If the height offset is too far away from the poly side, then ignore (likely on another floor) 
+                        return true;
+                    }
+                }
+            }
+
+            foreach (var aiShape in areaMission.ForbiddenBoundariesList)
+            {
+                // TODO: Optimize with bounding box check
+                for (var index = 0; index < aiShape.Points.Count-1; index++)
                 {
                     if (FindLineIntersection(startNode, endNode, aiShape.Points[index], aiShape.Points[index + 1]) !=
                         Vector3.Zero)
