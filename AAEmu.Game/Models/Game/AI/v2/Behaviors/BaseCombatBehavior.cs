@@ -55,6 +55,7 @@ public abstract class BaseCombatBehavior : Behavior
         var moveFlags = Ai.GetRealMovementFlags(speed);
         speed *= (delta.Milliseconds / 1000.0);
 
+        // Fish overrides
         if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Fish)))
         {
             // Sports fish movement logic
@@ -116,8 +117,7 @@ public abstract class BaseCombatBehavior : Behavior
             Ai.Owner.StopMovement();
             return;
         }
-        //Ai.Owner.Template.AttackStartRangeScale * 4,
-        //var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
+
         var range = Ai.Owner.Template.AttackStartRangeScale;
         if (Ai.Owner.Template.UseRangeMod)
         {
@@ -132,17 +132,15 @@ public abstract class BaseCombatBehavior : Behavior
 
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
 
-        if (AppConfiguration.Instance.World.GeoDataMode)
+        if (AppConfiguration.Instance.World.GeoDataMode && target != null)
         {
-            // TODO: Find path to abuser only if target coordinates have changed
-            if (target != null && Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
+            if (Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
             {
-                // If not at target position (take 1cm error margin), then calculate new target route position
+                // If not at target position (take model size error margin), then calculate new target route position
                 if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
-                    // TODO Find path to abuser
                     Ai.Owner.FindPath((Unit)target);
                     stopWatch.Stop();
                     // Toss warning if it took a long time
@@ -154,13 +152,11 @@ public abstract class BaseCombatBehavior : Behavior
             }
 
             // If there is a PathNode set, and we still have a target, then find the next point to move to
-            if (target != null && Ai.PathNode != null)
+            if (Ai.PathNode != null)
             {
                 if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
                 {
                     var nextPathPoint = Ai.PathNode.FoundPath.Peek();
-                    // TODO: Take the destination point we're moving toward
-                    var position = new Vector3(Ai.PathNode.Position.X, Ai.PathNode.Position.Y, Ai.PathNode.Position.Z);
                     distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, nextPathPoint, true);
                     if (distanceToTarget > range)
                     {
@@ -188,7 +184,7 @@ public abstract class BaseCombatBehavior : Behavior
             }
             else
             {
-                if (distanceToTarget > range && target != null)
+                if (distanceToTarget > range)
                     Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
                 else
                     Ai.Owner.StopMovement();
@@ -284,7 +280,6 @@ public abstract class BaseCombatBehavior : Behavior
 
             if (AppConfiguration.Instance.World.GeoDataMode)
             {
-                // geodata enabled and not the main world
                 if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
                     if (Ai.Owner.CurrentAggroTarget != abuser && !Ai.AlreadyTargeted)
@@ -295,7 +290,6 @@ public abstract class BaseCombatBehavior : Behavior
                     Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
-
                     return true;
                 }
             }

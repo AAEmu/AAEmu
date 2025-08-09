@@ -92,6 +92,7 @@ public class FlytrapAttackBehavior : Behavior
             if (Ai.PathNode?.FoundPath?.Count == 0 && target != null && Ai.PathNode?.EndPointPos != null)
             {
                 //if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
+                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
                 {
                     // let's find the path to the abuser
                     Ai.Owner.FindPath((Unit)target);
@@ -162,7 +163,6 @@ public class FlytrapAttackBehavior : Behavior
                     Ai.Owner.CurrentAggroTarget = abuser;
                     Ai.Owner.SetTarget(abuser);
                     UpdateAggroHelp(abuser);
-                    // TODO найдем путь к abuser
                     Ai.Owner.FindPath(abuser);
                     return true;
                 }

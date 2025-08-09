@@ -492,4 +492,31 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
         // Find intersection point
         return new Vector3(start1.X + (r * (end1.X - start1.X)), start1.Y + (r * (end1.Y - start1.Y)), start1.Z + (r * (end1.Z - start1.Z)));
     }
+
+    /// <summary>
+    /// Changes Z positions if they are above the floor
+    /// </summary>
+    /// <param name="pointsList"></param>
+    /// <returns></returns>
+    public List<Vector3> StickToFloor(List<Vector3> pointsList)
+    {
+        var res = new List<Vector3>();
+        foreach (var point in pointsList)
+        {
+            var floor = worldTemplate.GetHeight(point.X, point.Y);
+            if (floor < point.Z)
+                res.Add(point with { Z = floor });
+            else
+                res.Add(point);
+        }
+        return res;
+    }
+
+    public Vector3 StickToFloor(Vector3 point)
+    {
+        var floor = worldTemplate.GetHeight(point.X, point.Y);
+        if (floor < point.Z)
+            return point with { Z = floor };
+        return point;
+    }
 }

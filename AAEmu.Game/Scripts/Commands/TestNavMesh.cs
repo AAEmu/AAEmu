@@ -59,12 +59,14 @@ public class TestNavMesh : ICommand
         var stonePostDoodad = 5622u; // Stone Post
         var crescentThroneFlagDoodad = 4763u; // Crescent Throne Flag 
         
+        ClearMarkers();
         if (character.CurrentTarget is not Npc npc)
         {
-            messageOutput.SendMessage("You need to have a target selected.");
+            var closestNodePos = character.ParentWorld.Template.GeoData.FindСlosestToTheCurrent(character.Transform.ZoneId, character.Transform.World.Position);
+            messageOutput.SendMessage($"Your closest node is: {closestNodePos}");
+            AddDoodadMarker(character.ParentWorld, closestNodePos.Pos, crescentThroneFlagDoodad);
             return;
         }
-        ClearMarkers();
         var world = character.ParentWorld;
         var pos = world.Template.GeoData.FindСlosestToTheCurrent(npc.Transform.ZoneId, npc.Transform.World.Position);
         messageOutput.SendMessage($"Closest to {npc.Transform.World.Position} -> {pos}");
