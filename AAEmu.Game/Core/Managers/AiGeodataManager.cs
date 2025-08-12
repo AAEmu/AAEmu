@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Loaders;
+using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
@@ -419,6 +420,31 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     }
 
     /// <summary>
+    /// Checks if a line passes through at least one of the edges of a AiShape
+    /// </summary>
+    /// <param name="startPos"></param>
+    /// <param name="endPos"></param>
+    /// <param name="shape"></param>
+    /// <param name="closedLoop">Is the shape a closed loop</param>
+    /// <param name="maxHeightOffset">Maximum height difference required for the intersection to count as valid</param>
+    /// <returns></returns>
+    private bool LinePassesThroughAiShape(Vector3 startPos, Vector3 endPos, AiShape shape, bool closedLoop, float maxHeightOffset)
+    {
+        for (var index = 0; index < shape.Points.Count + (closedLoop ? 0 : -1); index++)
+        {
+            var lineStart = shape.Points[index];
+            var lineEnd = index < shape.Points.Count-1 ? shape.Points[index + 1] : shape.Points[0];
+            var intersectionPoint = FindLineIntersection(startPos, endPos, lineStart, lineEnd); 
+            if (intersectionPoint != Vector3.Zero)
+            {
+                if (maxHeightOffset == 0f || MathF.Abs(intersectionPoint.Z - startPos.Z) <= maxHeightOffset || MathF.Abs(intersectionPoint.Z - endPos.Z) <= maxHeightOffset)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Check if a given line passes any of the defined ForbiddenAreas nearby (in 2D space)
     /// </summary>
     /// <param name="startNode"></param>
@@ -426,39 +452,27 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <returns></returns>
     private bool LinePassesThroughForbiddenArea(Vector3 startNode, Vector3 endNode)
     {
-        // It should be enough to grab the starting node's bai data. Forbidden zones are even defined if even part of the zone falls within the area
+        // It should be enough to grab the starting node's bai data. Forbidden zones are defined if even part of the zone falls within the area
         var sourceBai = worldTemplate.GetBaiByPos(startNode);
         foreach (var areaMission in sourceBai.AreasMissionReaders)
         {
             // Loop forbidden areas shape
             foreach (var aiShape in areaMission.ForbiddenAreasList)
             {
-                // TODO: Optimize with bounding box check
-                for (var index = 0; index < aiShape.Points.Count-1; index++)
-                {
-                    if (FindLineIntersection(startNode, endNode, aiShape.Points[index], aiShape.Points[index + 1]) !=
-                        Vector3.Zero)
-                    {
-                        // TODO: Additional check for Z height difference
-                        // If the height offset is too far away from the poly side, then ignore (likely on another floor) 
-                        return true;
-                    }
-                }
+                if (LinePassesThroughAiShape(startNode, endNode, aiShape, true, 8f))
+                    return true;
             }
 
             foreach (var aiShape in areaMission.ForbiddenBoundariesList)
             {
-                // TODO: Optimize with bounding box check
-                for (var index = 0; index < aiShape.Points.Count-1; index++)
-                {
-                    if (FindLineIntersection(startNode, endNode, aiShape.Points[index], aiShape.Points[index + 1]) !=
-                        Vector3.Zero)
-                    {
-                        // TODO: Additional check for Z height difference
-                        // If the height offset is too far away from the poly side, then ignore (likely on another floor) 
-                        return true;
-                    }
-                }
+                if (LinePassesThroughAiShape(startNode, endNode, aiShape, true, 8f))
+                    return true;
+            }
+
+            foreach (var aiShape in areaMission.DesignerForbiddenAreasList)
+            {
+                if (LinePassesThroughAiShape(startNode, endNode, aiShape, true, 8f))
+                    return true;
             }
         }
         return false;
