@@ -343,7 +343,8 @@ public class PortalManager : Singleton<PortalManager>
             Faction = owner.Faction, // INFO - FactionManager.Instance.GetFaction(template.FactionId)
             Level = template.Level,
             Name = portalInfo.Name,
-            TeleportPosition = portalPointDestination
+            TeleportPosition = portalPointDestination,
+            Transform = { ZoneId = portalInfo.ZoneId }
         };
 
         if (isExit)

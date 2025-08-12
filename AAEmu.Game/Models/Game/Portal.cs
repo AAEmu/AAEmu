@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Numerics;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.StaticValues;
 
@@ -24,7 +25,7 @@ public class Portal : PacketMarshaler
         stream.Write(Id);
         stream.Write(Name); // TODO max length 128
         stream.Write(ZoneId);
-        var origin = ZoneManager.GetZoneOriginCell(ZoneId);
+        var origin = ZoneId != 0 ? ZoneManager.GetZoneOriginCell(ZoneId) : Vector2.Zero;
         var offX = X - origin.X * 1024f;
         var offY = Y - origin.Y * 1024f;
         stream.Write(offX);
