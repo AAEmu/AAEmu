@@ -5,7 +5,7 @@ using AAEmu.Commons.Exceptions;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public abstract class BaiReader : IDisposable
+public abstract class BaiReader// : IDisposable
 {
     private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public System.IO.Stream RawStream { get; set; }
@@ -66,18 +66,12 @@ public abstract class BaiReader : IDisposable
 
     protected virtual void Close()
     {
-        Reader?.Dispose();
         Reader = null;
     }
 
     public virtual void PrepareExport()
     {
         // Do nothing
-    }
-
-    public void Dispose()
-    {
-        Close();
     }
 
     /// <summary>

@@ -93,6 +93,7 @@ public class PhysicsManager
         // Add terrain shape based on height map
         // if (SimulationWorld.Id != WorldManager.DefaultInstanceId) { return; }
 
+        Logger.Debug($"{SimulationWorld.Template.Name} initializing terrain.");
         try
         {
             var dataX = SimulationWorld.Template.CellX * WorldManager.CELL_HMAP_RESOLUTION;
@@ -132,7 +133,7 @@ public class PhysicsManager
             Logger.Error(e);
         }
 
-        Logger.Info($"{SimulationWorld.Template.Name} initialized Terrain.");
+        Logger.Info($"{SimulationWorld.Template.Name} initialized terrain.");
     }
 
     /// <summary>

@@ -551,7 +551,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
         if (!AppConfiguration.Instance.World.PreLoadTerrain)
         {
-            Logger.Info($"PreLoadTerrain disabled, heightmaps for {worldTemplate.Name} will get loaded on demand.");
+            Logger.Debug($"PreLoadTerrain disabled, heightmaps for {worldTemplate.Name} will get loaded on demand.");
             return true;
         }
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -1409,15 +1410,16 @@ public partial class Npc : Unit
         Ai.PathNode.EndPointPos = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
 
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-        Ai.PathNode.FoundPath = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
-        var resList = Ai.PathNode.FoundPath?.ToList() ?? [];
-
-        Logger.Trace($"AStar: points found Total: {resList?.Count ?? 0}");
-        if (resList != null)
+        var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
+        resList.Add(abuser.Transform.World.Position);
+        var reducedPath = ParentWorld.Template.GeoData.ReducePath(resList, 10);
+        Ai.PathNode.FoundPath = reducedPath;
+        if (abuser is Character player)
         {
-            for (var i = 0; i < resList.Count; i++)
+            player.SendMessage($"Aggro from {Ai.Owner.ObjId}, getting attack path in {Ai.PathNode.FoundPath.Count}/{resList.Count} steps");
+            foreach (var v3 in Ai.PathNode.FoundPath)
             {
-                Logger.Trace($"AStar: point {i} coordinates X:{resList[i].X}, Y:{resList[i].Y}, Z:{resList[i].Z}");
+                player.SendMessage($"Path step -> {v3}");
             }
         }
     }

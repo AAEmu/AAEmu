@@ -71,10 +71,8 @@ public class PathNode
     /// <param name="start"></param>
     /// <param name="goal"></param>
     /// <returns></returns>
-    public Queue<Vector3> FindPath(WorldInstance world, Vector3 start, Vector3 goal)
+    public List<Vector3> FindPath(WorldInstance world, Vector3 start, Vector3 goal)
     {
-        // Step 0
-        FoundPath = [];
         // Find the nearest point from the start point in the list of geodata points and start the search from it.
         var posStart = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
         if (posStart != null)
@@ -83,6 +81,7 @@ public class PathNode
         if (posEnd != null)
             goal = posEnd.Pos;// replace it with the nearest point from the geodata
         EndPointPos = goal;
+        var rawDistance = Vector3.Distance(start, goal);
 
         // Step 1.
         var closedSet = new Collection<PathNode>();
@@ -100,13 +99,16 @@ public class PathNode
         };
         openSet.Add(startNode);
 
+        var maxLoopsLeft = (int)MathF.Ceiling(rawDistance * 10) + 50; // This is to prevent the pathfinder from traveling too far off
         while (openSet.Count > 0)
         {
+            maxLoopsLeft--;
+
             // Step 3.
             var currentNode = openSet.OrderBy(node => node.EstimateFullPathLength).First();
 
             // Step 4.
-            if (currentNode.Position.Equals(goal))
+            if (currentNode.Position.Equals(goal) || maxLoopsLeft <= 0)
             {
                 var result = GetPathForNode(currentNode);
                 // Leave the nearest point taken from geodata instead of the point from where we are going
@@ -117,7 +119,7 @@ public class PathNode
                 result = AiGeoDataManager.DouglasPeuckerReduction(result, 2.0);
                 Position = result[0];
                 CurrentTargetPos = Vector3.Zero;
-                return new Queue<Vector3>(result);
+                return result;
             }
 
             // Step 5.

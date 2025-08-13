@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Loaders;
+using AAEmu.Game.Models.CryEngine.Mission;
 using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
@@ -382,5 +383,154 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     public void Load()
     {
         // Nothing to load here anymore, everything
+    }
+
+    public Queue<Vector3> ReducePath(List<Vector3> foundPath, int maxNodeSkipCount)
+    {
+        var res = new Queue<Vector3>();
+        // Check for all node
+        for (var startNodeIndex = 0; startNodeIndex < foundPath.Count; startNodeIndex++)
+        {
+            var startNode = foundPath[startNodeIndex];
+            res.Enqueue(startNode);
+            // Check nodes further in the path, starting at the furthest node defined by max skip (and getting closer with each loop)
+            for (var endNodeIndex = startNodeIndex + maxNodeSkipCount; endNodeIndex > startNodeIndex; endNodeIndex--)
+            {
+                // Check if still in total range
+                if (endNodeIndex >= foundPath.Count)
+                    continue;
+                var endNode = foundPath[endNodeIndex];
+                // Skip this node if the height offset is too much
+                var delta = (endNode - startNode);
+                var angleRate = delta.Length() > 0 ? delta.Z / delta.Length() : 0f;
+                if (angleRate >= 0.2f || angleRate <= -0.5f)
+                    continue;
+                // Check if there's a direct line between the two nodes that is allowed
+                if (LinePassesThroughForbiddenArea(startNode, endNode) == false)
+                {
+                    // If clear, directly put this point as next, and move the check index
+                    res.Enqueue(endNode);
+                    startNodeIndex = endNodeIndex;
+                    break;
+                }
+            }
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// Checks if a line passes through at least one of the edges of a AiShape
+    /// </summary>
+    /// <param name="startPos"></param>
+    /// <param name="endPos"></param>
+    /// <param name="shape"></param>
+    /// <param name="closedLoop">Is the shape a closed loop</param>
+    /// <param name="maxHeightOffset">Maximum height difference required for the intersection to count as valid</param>
+    /// <returns></returns>
+    private bool LinePassesThroughAiShape(Vector3 startPos, Vector3 endPos, AiShape shape, bool closedLoop, float maxHeightOffset)
+    {
+        for (var index = 0; index < shape.Points.Count + (closedLoop ? 0 : -1); index++)
+        {
+            var lineStart = shape.Points[index];
+            var lineEnd = index < shape.Points.Count-1 ? shape.Points[index + 1] : shape.Points[0];
+            var intersectionPoint = FindLineIntersection(startPos, endPos, lineStart, lineEnd); 
+            if (intersectionPoint != Vector3.Zero)
+            {
+                if (maxHeightOffset == 0f || MathF.Abs(intersectionPoint.Z - startPos.Z) <= maxHeightOffset || MathF.Abs(intersectionPoint.Z - endPos.Z) <= maxHeightOffset)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Check if a given line passes any of the defined ForbiddenAreas nearby (in 2D space)
+    /// </summary>
+    /// <param name="startNode"></param>
+    /// <param name="endNode"></param>
+    /// <returns></returns>
+    private bool LinePassesThroughForbiddenArea(Vector3 startNode, Vector3 endNode)
+    {
+        // It should be enough to grab the starting node's bai data. Forbidden zones are defined if even part of the zone falls within the area
+        var sourceBai = worldTemplate.GetBaiByPos(startNode);
+        foreach (var areaMission in sourceBai.AreasMissionReaders)
+        {
+            // Loop forbidden areas shape
+            foreach (var aiShape in areaMission.ForbiddenAreasList)
+            {
+                if (LinePassesThroughAiShape(startNode, endNode, aiShape, true, 8f))
+                    return true;
+            }
+
+            foreach (var aiShape in areaMission.ForbiddenBoundariesList)
+            {
+                if (LinePassesThroughAiShape(startNode, endNode, aiShape, true, 8f))
+                    return true;
+            }
+
+            foreach (var aiShape in areaMission.DesignerForbiddenAreasList)
+            {
+                if (LinePassesThroughAiShape(startNode, endNode, aiShape, true, 8f))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if two lines intersect with given starting and ending point in 2D space (Z is ignored here)
+    /// </summary>
+    /// <param name="start1"></param>
+    /// <param name="end1"></param>
+    /// <param name="start2"></param>
+    /// <param name="end2"></param>
+    /// <returns>Returns the intersection point of line 1 in 2D space, or Zero if none was found</returns>
+    /// <remarks>Based on the answer of https://stackoverflow.com/questions/1119451/how-to-tell-if-a-line-intersects-a-polygon-in-c#1120126</remarks>
+    private static Vector3 FindLineIntersection(Vector3 start1, Vector3 end1, Vector3 start2, Vector3 end2)
+    {
+        var denominator = ((end1.X - start1.X) * (end2.Y - start2.Y)) - ((end1.Y - start1.Y) * (end2.X - start2.X));
+
+        // AB & CD are parallel 
+        if (denominator == 0)
+            return Vector3.Zero;
+
+        var numerator1 = ((start1.Y - start2.Y) * (end2.X - start2.X)) - ((start1.X - start2.X) * (end2.Y - start2.Y));
+        var r = numerator1 / denominator;
+        var numerator2 = ((start1.Y - start2.Y) * (end1.X - start1.X)) - ((start1.X - start2.X) * (end1.Y - start1.Y));
+        var s = numerator2 / denominator;
+
+        if ((r < 0 || r > 1) || (s < 0 || s > 1))
+            return Vector3.Zero;
+
+        // Find intersection point
+        return new Vector3(start1.X + (r * (end1.X - start1.X)), start1.Y + (r * (end1.Y - start1.Y)), start1.Z + (r * (end1.Z - start1.Z)));
+    }
+
+    /// <summary>
+    /// Changes Z positions if they are above the floor
+    /// </summary>
+    /// <param name="pointsList"></param>
+    /// <returns></returns>
+    public List<Vector3> StickToFloor(List<Vector3> pointsList)
+    {
+        var res = new List<Vector3>();
+        foreach (var point in pointsList)
+        {
+            var floor = worldTemplate.GetHeight(point.X, point.Y);
+            if (floor < point.Z)
+                res.Add(point with { Z = floor });
+            else
+                res.Add(point);
+        }
+        return res;
+    }
+
+    public Vector3 StickToFloor(Vector3 point)
+    {
+        var floor = worldTemplate.GetHeight(point.X, point.Y);
+        if (floor < point.Z)
+            return point with { Z = floor };
+        return point;
     }
 }
