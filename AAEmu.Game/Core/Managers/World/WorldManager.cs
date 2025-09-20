@@ -896,61 +896,77 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     }
 
     /// <summary>
-    /// Adds or updates a GameObject of its region object list
+    /// Adds a <see cref="GameObject"/> to its region or updates its region if it has moved.
     /// </summary>
-    /// <param name="obj"></param>
+    /// <param name="obj">The game object to add or update.</param>
     public void AddVisibleObject(GameObject obj)
     {
         if (obj == null)
             return;
-        var region = GetRegion(obj); // Get region of an Object or its Root object if it has one
-        var currentRegion = obj.Region; // Current Region this object is in
 
-        // If region didn't change, ignore
+        var region = GetRegion(obj); // Target region of the object or its root
+        var currentRegion = obj.Region; // Current region of the object
+
+        // Ignore if region did not change
         if (region == null || currentRegion != null && currentRegion.Equals(region))
             return;
 
         if (currentRegion == null)
         {
-            // If no currentRegion, add it (happens on new spawns)
-            foreach (var neighbor in region.GetNeighbors())
-                neighbor.AddToCharacters(obj);
-
+            // First-time placement (e.g. new spawn)
             region.AddObject(obj);
             obj.Region = region;
+
+            // Make object visible in its region and all neighboring regions
+            region.AddToCharacters(obj);
+            foreach (var neighbor in region.GetNeighbors())
+                neighbor.AddToCharacters(obj);
         }
         else
         {
-            // No longer in the same region, update things
-            // Remove visibility from oldNeighbors
+            // Region changed: update visibility and membership
+
+            // Remove from characters in regions no longer visible
             var diffs = currentRegion.FindDifferenceBetweenRegions(region);
             if (diffs != null)
                 foreach (var diff in diffs)
                     diff?.RemoveFromCharacters(obj);
 
-            // Add visibility to newNeighbours
+            // Add to characters in newly visible regions
             diffs = region.FindDifferenceBetweenRegions(currentRegion);
             if (diffs != null)
                 foreach (var diff in diffs)
                     if (obj.IsVisible)
                         diff?.AddToCharacters(obj);
 
-            // Add this obj to the new region
+            // Move the object to the new region
             region.AddObject(obj);
-            // Update its region
             obj.Region = region;
-
-            // remove the obj from the old region
             currentRegion.RemoveObject(obj);
+
+            // --- IMPORTANT ---
+            // Recursively update regions of all children,
+            // since their world position changed with the parent.
+            if (obj.Transform?.Children?.Count > 0)
+            {
+                foreach (var child in obj.Transform.Children)
+                {
+                    if (child?.GameObject != null)
+                        AddVisibleObject(child.GameObject);
+                }
+            }
+            // --- END ---
         }
 
-        // Also show children
+        // Ensure children are added on initial spawn
         if (obj.Transform?.Children?.Count > 0)
+        {
             foreach (var child in obj.Transform.Children)
+            {
                 if (child != null)
                     AddVisibleObject(child.GameObject);
-
-        //Logger.Warn($" objects={_objects.Count}, doodads={_doodads.Count}, npcs={_npcs.Count}, characters={_characters.Count}");
+            }
+        }
     }
 
     /// <summary>

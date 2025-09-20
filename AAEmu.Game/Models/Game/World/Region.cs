@@ -134,7 +134,7 @@ public class Region
                 // Ignore doodads here, as we have a special packet for those
                 if (go is Doodad)
                     continue;
-                
+
                 if (go is Gimmick)
                     continue;
 
@@ -183,9 +183,10 @@ public class Region
         if (_objects == null)
             return;
 
-        // remove all visible objects in the region from the player
+        // Special handling for characters (players)
         if (obj is Character character1)
         {
+            // Existing logic for sending SCUnitsRemovedPacket, SCDoodadsRemovedPacket, etc. remains unchanged.
             var unitIds = GetListId<Unit>([], character1.ObjId).ToArray();
             var units = GetList(new List<Unit>(), character1.ObjId);
             foreach (var t in units)
@@ -195,7 +196,6 @@ public class Region
                     npc.Ai.ShouldTick = false;
                 }
             }
-
             for (var offset = 0; offset < unitIds.Length; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
             {
                 var length = unitIds.Length - offset;
@@ -215,7 +215,7 @@ public class Region
                 Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                 character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));
             }
-            
+
             var gimmickIds = GetList<Gimmick>([], character1.ObjId).Select(g => g.ObjId).ToArray();
             for (var offset = 0; offset < gimmickIds.Length; offset += SCGimmicksRemovedPacket.MaxCountPerPacket)
             {
@@ -231,12 +231,44 @@ public class Region
                 character1.CurrentTarget = null;
                 character1.SendPacket(new SCTargetChangedPacket(character1.ObjId, 0));
             }
-            // TODO ... others types...
         }
+        // Special handling for non-player objects (NPCs, vehicles, doodads, etc.)
+        else
+        {
+            // Get all characters in this region that should receive a removal packet
+            var charactersInRegion = GetList(new List<Character>(), obj.ObjId);
 
-        // remove the object from all players in the region
-        foreach (var character in GetList(new List<Character>(), obj.ObjId))
-            obj.RemoveVisibleObject(character);
+            // --- IMPORTANT FIX ---
+            // Filter the list: keep only players who are NOT in the object's new region or its neighbors.
+            // This prevents sending "false" removal packets to players who should still see the object.
+            var charactersToRemoveFrom = new List<Character>();
+            foreach (var character in charactersInRegion)
+            {
+                // Check if the player is in the object's region or one of its neighboring regions.
+                // If yes, the player should still see the object, so no packet is sent.
+                var objRegion = WorldManager.Instance.GetRegion(obj); // Get the current region of the object
+                if (objRegion != null)
+                {
+                    var objNeighbors = objRegion.GetNeighbors();
+                    var characterRegion = WorldManager.Instance.GetRegion(character); // Get the region of the player
+
+                    // If the player's region matches the object's region or one of its neighbors, skip this player.
+                    if (characterRegion != null && (characterRegion.Equals(objRegion) || objNeighbors.Contains(characterRegion)))
+                    {
+                        continue; // Skip, do not send packet to this player
+                    }
+                }
+                // If the player is outside the object's visibility range, add them to the removal list
+                charactersToRemoveFrom.Add(character);
+            }
+            // --- END OF FIX ---
+
+            // Send the removal packet ONLY to the filtered list of players
+            foreach (var character in charactersToRemoveFrom)
+            {
+                obj.RemoveVisibleObject(character);
+            }
+        }
     }
 
     public Region[] GetNeighbors()
