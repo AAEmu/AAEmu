@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 
@@ -6,7 +6,7 @@ public class DespawningBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {
-        if (Ai.Owner is { } npc)
+        if (Ai.Owner is { } npc && npc.Events != null)
         {
             npc.Events.OnDespawn(this, new OnDespawnArgs { Npc = npc });
         }

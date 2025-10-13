@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
@@ -14,24 +14,27 @@ public class AlertBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        Ai.Owner.InterruptSkills();
-
-        CheckPipeName();
-        Ai.Owner.StopMovement();
-        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
-        if (Ai.Owner.CurrentTarget != null)
+        if (Ai.Owner != null)
         {
-            _oldRotation = Ai.Owner.Transform.Local.Rotation;
-            Ai.Owner.LookTowards(Ai.Owner.CurrentTarget.Transform.World.Position);
-        }
+            Ai.Owner.InterruptSkills();
 
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Alert;
+            CheckPipeName();
+            Ai.Owner.StopMovement();
+            Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+            if (Ai.Owner.CurrentTarget != null)
+            {
+                _oldRotation = Ai.Owner.Transform.Local.Rotation;
+                Ai.Owner.LookTowards(Ai.Owner.CurrentTarget.Transform.World.Position);
+            }
 
-        if (Ai.Owner is { } npc)
-        {
-            // npc.Events.OnAlert(this, new OnAlertArgs { Npc = npc, Target = npc.CurrentTarget});
-            npc.Events.InAlert(this, new InAlertArgs { Npc = npc });
+            Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Alert;
+
+            if (Ai.Owner is { } npc)
+            {
+                // npc.Events.OnAlert(this, new OnAlertArgs { Npc = npc, Target = npc.CurrentTarget});
+                npc.Events.InAlert(this, new InAlertArgs { Npc = npc });
+            }
         }
 
         _pipeName = "phase_dragon_ground";

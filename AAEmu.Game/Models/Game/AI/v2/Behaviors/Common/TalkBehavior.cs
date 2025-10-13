@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;

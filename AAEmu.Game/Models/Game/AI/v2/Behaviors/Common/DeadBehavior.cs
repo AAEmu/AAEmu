@@ -9,20 +9,23 @@ public class DeadBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        Ai.Owner.InterruptSkills();
-        Ai.Owner.StopMovement();
-        Ai.Owner.ClearAllAggro();
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
-        if (Ai.Owner is { } npc)
+        if (Ai.Owner != null)
         {
-            npc.Events.OnDeath(this, new OnDeathArgs { Killer = npc, Victim = npc });
+            Ai.Owner.InterruptSkills();
+            Ai.Owner.StopMovement();
+            Ai.Owner.ClearAllAggro();
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
+            if (Ai.Owner is { } npc)
+            {
+                npc.Events.OnDeath(this, new OnDeathArgs { Killer = npc, Victim = npc });
+            }
         }
         _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
-        if (!_enter)
+        if (!_enter || Ai.Owner == null)
             return; // not initialized yet Enter()
 
         if (Ai.Owner.Hp == 0)

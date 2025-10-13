@@ -2,7 +2,7 @@
     "World": {
         "MOTD": "Welcome to AAEmu!",
         "LogoutMessage": "Hope to see you soon.",
-        "AutoSaveInterval": 5.0,
+        "AutoSaveInterval": 0.5,
         "ExpRate": 1.0,
         "HonorRate": 1.0,
         "VocationRate": 1.0,

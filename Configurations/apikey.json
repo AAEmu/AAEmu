@@ -1,0 +1,41 @@
+{
+  "aiChat": {
+    "enabled": false,
+    "apiKey": "",
+    "apiUrl": "https://api.deepseek.com/v1/chat/completions",
+    "model": "deepseek-chat",
+    "maxTokens": 500,
+    "temperature": 0.7,
+    "advanced": {
+      "contextWindow": 10,
+      "memoryEnabled": true,
+      "emotionEnabled": false,
+      "cacheEnabled": false,
+      "responseDelay": 100,
+      "sessionTimeout": 30,
+      "requestTimeout": 60,
+      "search": {
+        "searchEnabled": true,
+        "searchApiUrl": "",
+        "searchApiKey": "",
+        "maxSearchResults": 3,
+        "searchTimeout": 15
+      },
+      "smartContext": {
+        "enabled": true,
+        "maxTopicKeywords": 5,
+        "topicRelevanceThreshold": 1,
+        "importantMessageLength": 100,
+        "enableTopicTracking": true,
+        "enableMemoryCompression": true
+      },
+      "gameContent": {
+        "enabled": true,
+        "maxGameResults": 5,
+        "enableQuestInfo": true,
+        "enableItemInfo": true,
+        "enableNpcInfo": true
+      }
+    }
+  }
+}

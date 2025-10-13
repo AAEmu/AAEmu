@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.Almighty;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
@@ -15,18 +15,21 @@ public class SpawningBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
-        if (Ai.Owner is { } npc)
+        if (Ai.Owner != null)
         {
-            npc.Events.OnSpawn(this, new OnSpawnArgs { Npc = npc });
-        }
+            Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
+            if (Ai.Owner is { } npc)
+            {
+                npc.Events.OnSpawn(this, new OnSpawnArgs { Npc = npc });
+            }
 
-        // TODO 
-        var _aiParams = Ai.Owner.Template.AiParams as AlmightyNpcAiParams;
-        if (_aiParams != null && _aiParams.AlertToAttack && _aiParams.AlertDuration == 0)
-        {
-            CheckAggression();
+            // TODO 
+            var _aiParams = Ai.Owner.Template.AiParams as AlmightyNpcAiParams;
+            if (_aiParams != null && _aiParams.AlertToAttack && _aiParams.AlertDuration == 0)
+            {
+                CheckAggression();
+            }
         }
         _enter = true;
     }

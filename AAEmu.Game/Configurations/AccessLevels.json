@@ -75,6 +75,9 @@
         "wipeauctionhouse": 100,
         "zonestate": 100,
         
+        // AI Chat
+        "ai": 100,
+        
         // Disabled
         "testtransfer": 999
     }

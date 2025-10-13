@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
@@ -9,14 +9,17 @@ public class FollowUnitBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
+        if (Ai.Owner != null)
+        {
+            Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
+        }
         _enter = true;
     }
 
     public override void Tick(TimeSpan delta)
     {
-        if (!_enter)
+        if (!_enter || Ai.Owner == null)
             return;
 
         if (!UpdateTarget())

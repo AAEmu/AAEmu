@@ -211,6 +211,8 @@ public abstract class BaseCombatBehavior : Behavior
     {
         get
         {
+            if (Ai.Owner == null)
+                return false;
             return Ai.Owner.SkillTask != null || Ai.Owner.ActivePlotState != null;
         }
     }
@@ -221,11 +223,13 @@ public abstract class BaseCombatBehavior : Behavior
         {
             if (IsUsingSkill)
                 return false;
-            if ((Ai.Owner?.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+            if (Ai.Owner == null)
                 return false;
-            if (Ai.Owner != null && Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep || e.Template.Silence))
+            if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
                 return false;
-            return Ai.Owner != null && DateTime.UtcNow >= _delayEnd && !Ai.Owner.IsGlobalCooldownDone;
+            if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep || e.Template.Silence))
+                return false;
+            return DateTime.UtcNow >= _delayEnd && !Ai.Owner.IsGlobalCooldownDone;
         }
     }
 
@@ -234,6 +238,9 @@ public abstract class BaseCombatBehavior : Behavior
     {
         get
         {
+            if (Ai.Owner == null)
+                return false;
+            
             var returnDistance = 50f;
             var absoluteReturnDistance = 200f;
 
@@ -396,9 +403,9 @@ public abstract class BaseCombatBehavior : Behavior
                     if (targetDist >= template.MinRange && targetDist <= template.MaxRange || template.TargetType == SkillTargetType.Self)
                     {
                         Logger.Info($"RefreshSkillQueue: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, trgDist={targetDist}, rangeDist=[{template.MinRange}.{template.MaxRange}], skill={skill.SkillId}");
-                        _skillQueue.Enqueue(skill);
-                    }
-                    Logger.Info($"RefreshSkillQueue: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, skill={skill.SkillId}");
+                    _skillQueue.Enqueue(skill);
+                }
+                Logger.Info($"RefreshSkillQueue: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, skill={skill.SkillId}");
                 }
             }
 

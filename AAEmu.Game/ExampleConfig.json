@@ -33,5 +33,5 @@
     "HeightMapsEnable": true,
     "DebugInfo": true,
     "DebugInfoLevel": 100,
-	"DefaultLanguage" : "en_us"
+	"DefaultLanguage" : "zh_cn"
 }

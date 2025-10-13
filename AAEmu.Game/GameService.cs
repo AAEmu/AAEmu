@@ -136,6 +136,7 @@ public sealed class GameService : IHostedService, IDisposable
         ModelManager.Instance.Load();
 
         AIManager.Instance.Initialize();
+        AIChatManager.Instance.Initialize();
 
         GameScheduleManager.Instance.Load();
         NpcManager.Instance.Load();

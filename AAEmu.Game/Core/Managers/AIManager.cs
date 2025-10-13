@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 
 using NLog;
@@ -35,18 +35,37 @@ public class AIManager : Singleton<AIManager>
 
     public void Tick(TimeSpan delta)
     {
-        lock (_aiLock)
+        if (_npcAis.Count == 0)
+            return;
+
+        var now = DateTime.UtcNow;
+        // Create a copy of the list to avoid collection modification during iteration
+        var npcsToTick = new List<NpcAi>(_npcAis);
+        foreach (var npcai in npcsToTick)
         {
-            foreach (var npcai in _npcAis.ToList())
+            // Remove AI instances with null Owner from the list immediately
+            if (npcai.Owner == null || npcai.ShouldTick == false)
             {
-                try
+                lock (_npcAis)
                 {
-                    if (npcai.Owner != null)
-                        npcai.Tick(delta);
+                    if (_npcAis.Contains(npcai))
+                        _npcAis.Remove(npcai);
                 }
-                catch (Exception e)
+                continue;
+            }
+            
+            try
+            {
+                npcai.Tick(delta);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("AIManager - " + ex.ToString());
+                // Optionally remove the problematic AI to prevent repeated errors
+                lock (_npcAis)
                 {
-                    Logger.Error(e);
+                    if (_npcAis.Contains(npcai))
+                        _npcAis.Remove(npcai);
                 }
             }
         }

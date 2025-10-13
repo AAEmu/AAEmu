@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Movements;
@@ -16,30 +16,33 @@ public class ReturnStateBehavior : BaseCombatBehavior
     {
         // TODO : Autodisable
 
-        if (!Ai.Owner.AggroTable.IsEmpty)
-            Ai.Owner.ClearAllAggro();
-
-        Ai.Owner.SetTarget(null);
-        // TODO: Ai.Owner.DisableAggro();
-
-        Ai.Owner.IsInBattle = false;
-        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
-        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
-
-        // Ai.AiPathPointsRemaining.Clear(); // Remove whatever path we're on
-        // Ai.Owner.Simulation.TargetPosition = Vector3.Zero; // And reset expected target
-
-        //var needRestorationOnReturn = true; // TODO: Use params & alertness values
-        //if (needRestorationOnReturn)
-        // StartSkill RETURN SKILL TYPE
-        Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NpcReturn, Ai.Owner);
-        if (Ai.Param == null || Ai.Param.RestorationOnReturn)
+        if (Ai.Owner != null)
         {
-            Ai.Owner.PostUpdateCurrentHp(Ai.Owner, Ai.Owner.Hp, Ai.Owner.MaxHp, KillReason.Unknown);
-            Ai.Owner.Hp = Ai.Owner.MaxHp;
-            Ai.Owner.Mp = Ai.Owner.MaxMp;
-            Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
+            if (!Ai.Owner.AggroTable.IsEmpty)
+                Ai.Owner.ClearAllAggro();
+
+            Ai.Owner.SetTarget(null);
+            // TODO: Ai.Owner.DisableAggro();
+
+            Ai.Owner.IsInBattle = false;
+            Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
+            Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+
+            // Ai.AiPathPointsRemaining.Clear(); // Remove whatever path we're on
+            // Ai.Owner.Simulation.TargetPosition = Vector3.Zero; // And reset expected target
+
+            //var needRestorationOnReturn = true; // TODO: Use params & alertness values
+            //if (needRestorationOnReturn)
+            // StartSkill RETURN SKILL TYPE
+            Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NpcReturn, Ai.Owner);
+            if (Ai.Param == null || Ai.Param.RestorationOnReturn)
+            {
+                Ai.Owner.PostUpdateCurrentHp(Ai.Owner, Ai.Owner.Hp, Ai.Owner.MaxHp, KillReason.Unknown);
+                Ai.Owner.Hp = Ai.Owner.MaxHp;
+                Ai.Owner.Mp = Ai.Owner.MaxMp;
+                Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
+            }
         }
 
         //var alwaysTeleportOnReturn = false; // TODO: get from params

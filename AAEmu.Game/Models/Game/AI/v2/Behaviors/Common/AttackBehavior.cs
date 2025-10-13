@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -13,15 +13,18 @@ public class AttackBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        Ai.Owner.InterruptSkills();
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
-        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
-
-        Ai.Owner.IsInBattle = true;
-        if (Ai.Owner is { } npc)
+        if (Ai.Owner != null)
         {
-            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
+            Ai.Owner.InterruptSkills();
+            Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+            Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+
+            Ai.Owner.IsInBattle = true;
+            if (Ai.Owner is { } npc)
+            {
+                npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
+            }
         }
         _enter = true;
     }

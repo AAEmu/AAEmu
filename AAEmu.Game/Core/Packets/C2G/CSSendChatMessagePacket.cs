@@ -1,10 +1,12 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Scripts.Commands;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -31,6 +33,20 @@ public class CSSendChatMessagePacket : GamePacket
         {
             if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim(), out _))
                 return;
+        }
+
+        // 检查是否处于AI对话模式
+        if (type == ChatType.White && AIChatManager.Instance.IsAIChatEnabled())
+        {
+            var aiSession = AIChatManager.Instance.GetSession(Connection.ActiveChar.Id);
+            if (aiSession != null && Connection.ActiveChar.CurrentTarget is Npc npc)
+            {
+                // 如果有活跃的AI会话且目标是NPC，则将普通聊天消息作为AI对话处理
+                var aiChatCommand = new AIChat();
+                var messageOutput = new AAEmu.Game.Utils.Scripts.CharacterMessageOutput(Connection.ActiveChar);
+                aiChatCommand.ProcessChatMessage(Connection.ActiveChar, npc, message, messageOutput);
+                return;
+            }
         }
 
         // Sidenote: Trino mixed up /faction and /nation back then, it was supposed to be the other way around

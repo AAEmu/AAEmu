@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -18,19 +18,23 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
 
     public override void Enter()
     {
-        Ai.Owner.InterruptSkills();
         _skillQueue = new Queue<AiSkill>();
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
-        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
-
-        _combatStartTime = DateTime.UtcNow;
-
-        if (Ai.Owner is { IsInBattle: false } npc)
+        
+        if (Ai.Owner != null)
         {
-            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
+            Ai.Owner.InterruptSkills();
+            Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+            Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+
+            _combatStartTime = DateTime.UtcNow;
+
+            if (Ai.Owner is { IsInBattle: false } npc)
+            {
+                npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
+            }
+            Ai.Param = Ai.Owner.Template.AiParams;
         }
-        Ai.Param = Ai.Owner.Template.AiParams;
         _enter = true;
     }
 

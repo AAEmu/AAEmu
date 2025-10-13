@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2.Params.Archer;
 using AAEmu.Game.Models.Game.Models;
@@ -29,17 +29,21 @@ public class ArcherAttackBehavior : BaseCombatBehavior
          */
         Phase = "base";
         MakeAGapCount = 0;
-        Ai.Owner.InterruptSkills();
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
-        Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
-
-        Ai.Owner.IsInBattle = true;
-        if (Ai.Owner is { } npc)
+        
+        if (Ai.Owner != null)
         {
-            npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
+            Ai.Owner.InterruptSkills();
+            Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+            Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
+
+            Ai.Owner.IsInBattle = true;
+            if (Ai.Owner is { } npc)
+            {
+                npc.Events.OnCombatStarted(this, new OnCombatStartedArgs { Owner = npc, Target = npc });
+            }
+            Ai.Param = Ai.Owner.Template.AiParams;
         }
-        Ai.Param = Ai.Owner.Template.AiParams;
         _enter = true;
     }
 

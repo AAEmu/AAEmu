@@ -15,8 +15,11 @@ public class RunCommandSetBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        if (Ai.Owner != null)
+        {
+            Ai.Owner.CurrentGameStance = GameStanceType.Combat;
+            Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        }
     }
 
     public override void Tick(TimeSpan delta)
@@ -72,34 +75,43 @@ public class RunCommandSetBehavior : BaseCombatBehavior
             return;
         }
 
-        Logger.Debug($"{Ai.Owner.ObjId} ({Ai.Owner.TemplateId}) executing AI Command: {aiCommand.CmdId}, CommandSet: {aiCommand.CmdSetId}, P1: {aiCommand.Param1}, P2: {aiCommand.Param2}");
+        if (Ai.Owner != null)
+            Logger.Debug($"{Ai.Owner.ObjId} ({Ai.Owner.TemplateId}) executing AI Command: {aiCommand.CmdId}, CommandSet: {aiCommand.CmdSetId}, P1: {aiCommand.Param1}, P2: {aiCommand.Param2}");
+        else
+            Logger.Debug($"NPC (owner null) executing AI Command: {aiCommand.CmdId}, CommandSet: {aiCommand.CmdSetId}, P1: {aiCommand.Param1}, P2: {aiCommand.Param2}");
         // Execute command
         switch (aiCommand.CmdId)
         {
             case AiCommandCategory.FollowUnit:
-                Logger.Warn($"AI Command: {aiCommand.CmdId} not implemented, NPC {Ai.Owner.ObjId} ({Ai.Owner.TemplateId}), CommandSet {aiCommand.CmdSetId}, P1 {aiCommand.Param1}, P2 {aiCommand.Param2}");
+                if (Ai.Owner != null)
+                    Logger.Warn($"AI Command: {aiCommand.CmdId} not implemented, NPC {Ai.Owner.ObjId} ({Ai.Owner.TemplateId}), CommandSet {aiCommand.CmdSetId}, P1 {aiCommand.Param1}, P2 {aiCommand.Param2}");
+                else
+                    Logger.Warn($"AI Command: {aiCommand.CmdId} not implemented, NPC (owner null), CommandSet {aiCommand.CmdSetId}, P1 {aiCommand.Param1}, P2 {aiCommand.Param2}");
                 break;
             case AiCommandCategory.FollowPath:
-                Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == 1);
-                if (aiCommand.Param1 == 1)
+                if (Ai.Owner != null)
                 {
-                    Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint() { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
-                }
-                Ai.GoToFollowPath();
-                if (aiCommand.Param1 == 1)
-                {
-                    Ai.AiFileName = aiCommand.Param2;
-                }
-                else
-                {
-                    Ai.AiFileName2 = aiCommand.Param2;
+                    Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == 1);
+                    if (aiCommand.Param1 == 1)
+                    {
+                        Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint() { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
+                    }
+                    Ai.GoToFollowPath();
+                    if (aiCommand.Param1 == 1)
+                    {
+                        Ai.AiFileName = aiCommand.Param2;
+                    }
+                    else
+                    {
+                        Ai.AiFileName2 = aiCommand.Param2;
+                    }
                 }
 
                 break;
             case AiCommandCategory.UseSkill:
                 Ai.AiSkillId = aiCommand.Param1;
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(Ai.AiSkillId);
-                if (skillTemplate != null && Ai.Owner.UseSkill(Ai.AiSkillId, Ai.Owner.CurrentTarget as Unit ?? Ai.Owner) == SkillResult.Success)
+                if (skillTemplate != null && Ai.Owner != null && Ai.Owner.UseSkill(Ai.AiSkillId, Ai.Owner.CurrentTarget as Unit ?? Ai.Owner) == SkillResult.Success)
                 {
                     var coolDown = SkillManager.GetAttackDelay(skillTemplate, Ai.Owner, false, 0.0);
                     Ai.AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(coolDown);
