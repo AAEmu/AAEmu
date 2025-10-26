@@ -8,27 +8,20 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World;
 
-public class Region
+public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
 {
-    private readonly WorldInstance _worldInstance;
+    private readonly WorldInstance _worldInstance = worldInstance;
+    // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _objectsLock = new();
     private GameObject[] _objects;
     private int _objectsSize, _charactersSize;
     private Region[] _neighbors;
     private int _playerCount;
 
-    public int X { get; }
-    public int Y { get; }
+    private int X { get; } = x;
+    private int Y { get; } = y;
     public int Id => Y + (1024 * X);
-    public uint ZoneKey { get; set; }
-
-    public Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
-    {
-        _worldInstance = worldInstance;
-        X = x;
-        Y = y;
-        ZoneKey = zoneKey;
-    }
+    public uint ZoneKey { get; init; } = zoneKey;
 
     public void AddObject(GameObject obj)
     {
@@ -139,7 +132,7 @@ public class Region
                     continue;
 
                 // turn on the motion of the visible NPC
-                if (go is Npc npc && npc.Ai != null)
+                if (go is Npc { Ai: not null } npc)
                     npc.Ai.ShouldTick = true;
 
                 go.AddVisibleObject(objectAsCharacter);
@@ -191,7 +184,7 @@ public class Region
             var units = GetList(new List<Unit>(), character1.ObjId);
             foreach (var t in units)
             {
-                if (t is Npc npc && npc.Ai != null)
+                if (t is Npc { Ai: not null } npc)
                 {
                     npc.Ai.ShouldTick = false;
                 }
@@ -242,11 +235,11 @@ public class Region
             // Filter the list: keep only players who are NOT in the object's new region or its neighbors.
             // This prevents sending "false" removal packets to players who should still see the object.
             var charactersToRemoveFrom = new List<Character>();
+            var objRegion = obj.IsVisible ? WorldManager.Instance.GetRegion(obj) : null; // Get the current region of the object
             foreach (var character in charactersInRegion)
             {
                 // Check if the player is in the object's region or one of its neighboring regions.
                 // If yes, the player should still see the object, so no packet is sent.
-                var objRegion = WorldManager.Instance.GetRegion(obj); // Get the current region of the object
                 if (objRegion != null)
                 {
                     var objNeighbors = objRegion.GetNeighbors();
@@ -295,7 +288,7 @@ public class Region
         return true;
     }
 
-    public bool IsEmpty()
+    private bool IsEmpty()
     {
         return _charactersSize <= 0;
     }
@@ -339,7 +332,7 @@ public class Region
         return result;
     }
 
-    public List<uint> GetListId<T>(List<uint> result, uint exclude) where T : class
+    private List<uint> GetListId<T>(List<uint> result, uint exclude) where T : class
     {
         GameObject[] temp;
         lock (_objectsLock)
@@ -370,8 +363,7 @@ public class Region
 
         foreach (var obj in temp)
         {
-            var item = obj as T;
-            if (item != null && obj.ObjId != exclude)
+            if (obj is T item && obj.ObjId != exclude)
                 result.Add(item);
         }
 
@@ -395,17 +387,17 @@ public class Region
             if (item == null || obj.ObjId == exclude)
                 continue;
 
-            var finalrad = sqrad;
+            var finalRad = sqrad;
             if (useModelSize)
-                finalrad += obj.ModelSize * obj.ModelSize;
+                finalRad += obj.ModelSize * obj.ModelSize;
 
             var dx = obj.Transform.World.Position.X - x;
             dx *= dx;
-            if (dx > finalrad)
+            if (dx > finalRad)
                 continue;
             var dy = obj.Transform.World.Position.Y - y;
             dy *= dy;
-            if (dx + dy < finalrad)
+            if (dx + dy < finalRad)
                 result.Add(item);
         }
 
