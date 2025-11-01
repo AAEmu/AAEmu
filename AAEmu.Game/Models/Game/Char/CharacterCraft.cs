@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -112,10 +113,14 @@ public class CharacterCraft(Character owner)
         var speedMultiplier = 1f;
         if (craft.AcId > 0)
         {
-            var actAbility = owner.Actability.Actabilities.GetValueOrDefault(craft.AcId);
-            if (actAbility != null)
+            var actAbilityId = CharacterManager.Instance.GetActabilityIdByCategoryId(craft.AcId);
+            if (actAbilityId > 0)
             {
-                speedMultiplier *= actAbility.GetProductionTimeMultiplier();
+                var actAbility = owner.Actability.Actabilities.GetValueOrDefault(actAbilityId);
+                if (actAbility != null)
+                {
+                    speedMultiplier *= actAbility.GetProductionTimeMultiplier();
+                }
             }
         }
         skill.CastTimeMultiplier = speedMultiplier;
