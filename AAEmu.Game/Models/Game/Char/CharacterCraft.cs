@@ -109,6 +109,16 @@ public class CharacterCraft(Character owner)
 
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
         ConsumeLaborPower = skill.Template.ConsumeLaborPower;
+        var speedMultiplier = 1f;
+        if (craft.AcId > 0)
+        {
+            var actAbility = owner.Actability.Actabilities.GetValueOrDefault(craft.AcId);
+            if (actAbility != null)
+            {
+                speedMultiplier *= actAbility.GetProductionTimeMultiplier();
+            }
+        }
+        skill.CastTimeMultiplier = speedMultiplier;
         skill.Use(Owner, caster, target, null, false, out _);
     }
 

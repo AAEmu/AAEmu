@@ -47,6 +47,11 @@ public class Skill
     public bool Cancelled { get; set; } = false;
     public Action Callback { get; set; }
 
+    /// <summary>
+    /// Multiplier that can be added as an additional modifier to casting times
+    /// </summary>
+    public float CastTimeMultiplier { get; set; } = 1f;
+
     //public bool isAutoAttack;
     //public SkillTask autoAttackTask;
 
@@ -293,6 +298,7 @@ public class Skill
         var castTime = 0;
         if (Template.CastingTime > 0)
             castTime = (int)(unit.CastTimeMul * unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime));
+        castTime = (int)Math.Round((float)castTime * CastTimeMultiplier);
 
         /*
         // TODO: Replace Old code
