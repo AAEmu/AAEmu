@@ -37,6 +37,7 @@ public class CharacterManager : Singleton<CharacterManager>
     private readonly Dictionary<int, List<Expand>> _expands;
     private readonly Dictionary<uint, AppellationTemplate> _appellations;
     private readonly Dictionary<uint, ActabilityTemplate> _actabilities;
+    private readonly Dictionary<uint, ActabilityCategoriesTemplate> _actabilitiesCategories;
     private readonly Dictionary<int, ExpertLimit> _expertLimits;
     private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits;
 
@@ -47,6 +48,7 @@ public class CharacterManager : Singleton<CharacterManager>
         _expands = [];
         _appellations = [];
         _actabilities = [];
+        _actabilitiesCategories = [];
         _expertLimits = [];
         _expandExpertLimits = [];
     }
@@ -71,6 +73,15 @@ public class CharacterManager : Singleton<CharacterManager>
     public ActabilityTemplate GetActability(uint id)
     {
         return _actabilities[id];
+    }
+
+    public uint GetActabilityIdByCategoryId(uint id)
+    {
+        if (_actabilitiesCategories.TryGetValue(id, out var actabilityCategory))
+        {
+            return _actabilities.GetValueOrDefault(actabilityCategory.GroupId)?.Id ?? 0;
+        }
+        return 0;
     }
 
     public ExpertLimit GetExpertLimit(int step)
@@ -308,6 +319,25 @@ public class CharacterManager : Singleton<CharacterManager>
                         template.Name = reader.GetString("name");
                         template.UnitAttributeId = reader.GetInt32("unit_attr_id");
                         _actabilities.Add(template.Id, template);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM actability_categories";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new ActabilityCategoriesTemplate();
+                        template.Id = reader.GetUInt32("id");
+                        template.Name = reader.GetString("name");
+                        template.GroupId = reader.GetUInt32("group_id");
+                        template.VisibleUi = reader.GetBoolean("visible_ui", true);
+                        template.VisibleOrder = reader.GetInt32("visible_order");
+                        _actabilitiesCategories.Add(template.Id, template);
                     }
                 }
             }

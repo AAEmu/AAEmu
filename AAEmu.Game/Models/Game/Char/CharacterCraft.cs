@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -109,6 +110,20 @@ public class CharacterCraft(Character owner)
 
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
         ConsumeLaborPower = skill.Template.ConsumeLaborPower;
+        var speedMultiplier = 1f;
+        if (craft.AcId > 0)
+        {
+            var actAbilityId = CharacterManager.Instance.GetActabilityIdByCategoryId(craft.AcId);
+            if (actAbilityId > 0)
+            {
+                var actAbility = owner.Actability.Actabilities.GetValueOrDefault(actAbilityId);
+                if (actAbility != null)
+                {
+                    speedMultiplier *= actAbility.GetProductionTimeMultiplier();
+                }
+            }
+        }
+        skill.CastTimeMultiplier = speedMultiplier;
         skill.Use(Owner, caster, target, null, false, out _);
     }
 
