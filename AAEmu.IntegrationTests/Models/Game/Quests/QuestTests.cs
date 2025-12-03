@@ -4,7 +4,6 @@ using System.Text;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -624,17 +623,17 @@ public class QuestTests
                 command.CommandText = $@"select 
                                                 qc.quest_context_id, qa.act_detail_type, qaNot.act_detail_type
                                             from 
-	                                            quest_contexts qcx
-	                                            inner join quest_components qc
-		                                            on qcx.id = qc.quest_context_id 
+                                                quest_contexts qcx
+                                                inner join quest_components qc
+                                                    on qcx.id = qc.quest_context_id 
                                                 inner join quest_acts qa 
                                                     on qc.id = qa.quest_component_id and qa.act_detail_type = 'QuestActConAcceptNpc'
                                                 left join quest_acts qaNot
-    	                                            on qc.id = qaNot.quest_component_id and qaNot.act_detail_type <> 'QuestActConAcceptNpc'
+                                                    on qc.id = qaNot.quest_component_id and qaNot.act_detail_type <> 'QuestActConAcceptNpc'
                                             where 
-	                                            qc.component_kind_id = 2 and qaNot.act_detail_type is null
+                                                qc.component_kind_id = 2 and qaNot.act_detail_type is null
                                             group by
-	                                            qc.quest_context_id, qa.act_detail_type
+                                                qc.quest_context_id, qa.act_detail_type
                                             order by 
                                                 quest_context_id";
                 command.Prepare();

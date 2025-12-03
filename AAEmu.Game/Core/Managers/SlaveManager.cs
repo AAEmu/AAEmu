@@ -1,7 +1,7 @@
 using System.Numerics;
 
 using AAEmu.Commons.Utils.DB;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;

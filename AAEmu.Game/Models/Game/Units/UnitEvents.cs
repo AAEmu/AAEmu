@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
@@ -321,6 +322,8 @@ public class OnUnmountArgs : EventArgs
 public class OnKillArgs : EventArgs
 {
     public Unit Target { get; set; }
+    public Unit Killer { get; set; }
+    public Unit Victim { get; set; }
 }
 
 public class OnDamagedCollisionArgs : EventArgs

@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
@@ -212,7 +212,7 @@ public class Unit : BaseUnit, IUnit
     public BaseUnit CurrentTarget { get; set; }
     public BaseUnit CurrentInteractionObject { get; set; }
     public virtual byte RaceGender => 0;
-    public UnitCustomModelParams ModelParams { get; set; } = new ();
+    public UnitCustomModelParams ModelParams { get; set; } = new();
     public byte ActiveWeapon { get; set; }
     public bool IdleStatus { get; set; }
     public bool ForceAttack { get; set; }
@@ -430,7 +430,12 @@ public class Unit : BaseUnit, IUnit
     {
         InterruptSkills();
 
+        IsInBattle = false;
+
         Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
+        ParentWorld.Events.OnUnitKilled(ParentWorld, new OnUnitKilledArgs { Killer = (Unit)killer, Victim = this });
+        ((Unit)killer).Events.OnKill(this, new OnKillArgs { Killer = (Unit)killer, Victim = this });
+
         Buffs.RemoveEffectsOnDeath();
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
         if (killer == this)
@@ -674,7 +679,7 @@ public class Unit : BaseUnit, IUnit
                 continue;
             value += bonus.Value;
         }
-        
+
         // Percent Values
         foreach (var bonus in bonuses)
         {
@@ -1398,15 +1403,15 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-     /// <summary>
-     /// Call regeneration function of the unit
-     /// </summary>
-     /// <param name="delta"></param>
-     protected virtual void RegenTick(TimeSpan delta)
-     {
-         // Do nothing
-     }
-   
+    /// <summary>
+    /// Call regeneration function of the unit
+    /// </summary>
+    /// <param name="delta"></param>
+    protected virtual void RegenTick(TimeSpan delta)
+    {
+        // Do nothing
+    }
+
     /// <summary>
     /// Tick called for Units in active player regions about once per second
     /// </summary>

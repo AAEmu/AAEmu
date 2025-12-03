@@ -4,11 +4,9 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Utils.DB;
 
-namespace AAEmu.Game.Core.Managers
-{
-    namespace AAEmu.Game.Core.Managers
-    {
-        public class ModelManager : Singleton<ModelManager>
+namespace AAEmu.Game.Core.Managers;
+
+public class ModelManager : Singleton<ModelManager>
         {
 
             private Dictionary<string, Dictionary<uint, Model>> _models;
@@ -244,5 +242,3 @@ namespace AAEmu.Game.Core.Managers
                 _loaded = true;
             }
         }
-    }
-}
