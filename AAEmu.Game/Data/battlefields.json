@@ -1,0 +1,32 @@
+[
+	{
+		"BattlefieldId": 11,
+		"Corps1Spawn": {
+			"ZoneId": 302,
+			"X": 575,
+			"Y": 606,
+			"Z": 266
+		},
+		"Corps2Spawn": {
+			"ZoneId": 302,
+			"X": 575,
+			"Y": 406,
+			"Z": 266
+		}
+	},
+	{
+		"BattlefieldId": 7,
+		"Corps1Spawn": {
+			"ZoneId": 198,
+			"X": 1101.1,
+			"Y": 401.5,
+			"Z": 199
+		},
+		"Corps2Spawn": {
+			"ZoneId": 198,
+			"X": 1229,
+			"Y": 530,
+			"Z": 199
+		}
+	}
+]

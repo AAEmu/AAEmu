@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Data;
 using System.Drawing;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -28,6 +29,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
+
 using Task = System.Threading.Tasks.Task;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -172,6 +174,11 @@ public partial class Character : Unit, ICharacter
     /// Helper to keep track of what cinema is supposed to play
     /// </summary>
     public uint CurrentlyPlayingCinemaId { get; set; }
+
+    /// <summary>
+    /// Current instant game (arena/battlefield) the character is in
+    /// </summary>
+    public InstantGame.InstantGame CurrentInstantGame { get; set; }
 
     public override bool IsUnderWater
     {

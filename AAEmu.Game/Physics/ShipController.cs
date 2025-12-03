@@ -1,8 +1,6 @@
 ﻿#nullable enable
 
-using System;
-
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;
@@ -96,7 +94,7 @@ public class ShipController
 
         if (slave is { Throttle: < 0, Speed: > -1f })
             slave.Speed = -1f;
-        
+
         var throttleNorm = slave.Throttle * 0.00787401575f; // sbyte -> float
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
 

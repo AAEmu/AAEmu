@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
+
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -167,11 +167,12 @@ public sealed class GameService : IHostedService, IDisposable
 
         TimeManager.Instance.Start();
         TaskManager.Instance.Start();
-        
+
         // LaborPowerManager.Initialize();
         TimedRewardsManager.Instance.Initialize();
 
         DuelManager.Initialize();
+        InstantGameManager.Instance.Initialize();
         SaveManager.Instance.Initialize();
         AreaTriggerManager.Instance.Initialize();
         SpecialtyManager.Initialize();

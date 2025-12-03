@@ -1,12 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
@@ -884,7 +881,7 @@ public partial class Npc : Unit
             QuestManager.Instance.DoOnMonsterHuntEvents(characterKiller, this); // No eligible owner, but the killer is a character.
             characterKiller.AddExp(KillExp, true);
             var mateList = characterKiller.ParentWorld.MateManager.GetActiveMates(characterKiller.Id);
-            foreach(var mate in mateList)
+            foreach (var mate in mateList)
             {
                 mate.AddExp(KillExp);
                 // TODO: Proper message?
@@ -979,7 +976,7 @@ public partial class Npc : Unit
 
                     pl.AddExp(plKillXp, true);
                     var mateList = pl.ParentWorld.MateManager.GetActiveMates(pl.Id);
-                    foreach(var mate in mateList)
+                    foreach (var mate in mateList)
                     {
                         mate.AddExp(mateKillXp);
                         // TODO: Proper message?
@@ -1488,7 +1485,8 @@ public partial class Npc : Unit
         // Stat bonus effects
         foreach (var bonusTemplate in Template.Bonuses)
         {
-            var bonus = new Bonus {
+            var bonus = new Bonus
+            {
                 Template = bonusTemplate,
                 Value = bonusTemplate.Value // TODO using LinearLevelBonus
             };
