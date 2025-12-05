@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Runtime.InteropServices;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
@@ -12,22 +13,18 @@ namespace AAEmu.Game.Core.Managers;
 
 public class InstantGameManager : Singleton<InstantGameManager>
 {
-    private Dictionary<uint, List<MatchmakingApplicant>> _matchmakingQueue;
-
-    private List<InstantGame> _instantGames;
-
-    private List<InstantGame> _queueList;
-
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+
+    private readonly Dictionary<uint, List<MatchmakingApplicant>> _matchmakingQueue = [];
+
+    private readonly List<InstantGame> _instantGames = [];
+
+    private readonly List<InstantGame> _queueList = [];
 
     private readonly Lock _lock = new();
 
     public void Initialize()
     {
-        _matchmakingQueue = new Dictionary<uint, List<MatchmakingApplicant>>();
-        _instantGames = [];
-        _queueList = [];
-
         // 15 seconds between each matchmaking query
         TickManager.Instance.OnTick.Subscribe(BattlefieldTick, TimeSpan.FromSeconds(15));
     }
@@ -36,19 +33,35 @@ public class InstantGameManager : Singleton<InstantGameManager>
     {
         lock (_lock)
         {
-            if (!_matchmakingQueue.ContainsKey(battlefieldId))
+            ref var applicants =
+                ref CollectionsMarshal.GetValueRefOrAddDefault(_matchmakingQueue, battlefieldId, out var exists);
+
+            if (!exists)
             {
-                var bf = BattlefieldGameData.Instance.GetBattlefield(battlefieldId);
-                if (bf != null) _matchmakingQueue.Add(bf.Id, []);
+                if (BattlefieldGameData.Instance.GetBattlefield(battlefieldId) is not null)
+                {
+                    applicants = [];
+                }
+                else
+                {
+                    _log.Warn(
+                        "[Matchmaking] Failed to add player {0} to matchmaking queue for battlefield {1}; battlefield does not exist",
+                        character.Name, battlefieldId);
+                    _matchmakingQueue.Remove(battlefieldId);
+                    return;
+                }
             }
 
-            if (_matchmakingQueue[battlefieldId].Any(applicant => applicant.CharObj == character))
+            if (applicants.Any(applicant => applicant.CharObj == character))
             {
                 return;
             }
-            _matchmakingQueue[battlefieldId].Add(new MatchmakingApplicant(character));
+
+            applicants.Add(new MatchmakingApplicant(character));
         }
-        _log.Trace("[Matchmaking] Added player " + character.Name + " to matchmaking queue for battlefield " + battlefieldId);
+
+        _log.Trace("[Matchmaking] Added player " + character.Name + " to matchmaking queue for battlefield " +
+                   battlefieldId);
 
         character.SendPacket(new SCAppliedToInstantGamePacket(battlefieldId, corps));
     }
@@ -63,15 +76,15 @@ public class InstantGameManager : Singleton<InstantGameManager>
 
         lock (_lock)
         {
-            foreach (var chars in _matchmakingQueue.Values)
+            foreach (var applicants in _matchmakingQueue.Values)
             {
-                if (chars != null)
+                if (applicants != null)
                 {
-                    foreach (var player in chars)
+                    foreach (var player in applicants)
                     {
                         if (player.CharObj == character)
                         {
-                            chars.Remove(player);
+                            applicants.Remove(player);
                             _log.Trace("[Matchmaking] Removing " + character.Name + " from matchmaking.");
                             return;
                         }
@@ -100,23 +113,22 @@ public class InstantGameManager : Singleton<InstantGameManager>
     {
         InstantGame game;
         var games = _queueList.Where(o => o.BattlefieldId == bfId).ToList();
-        // Remove offline players in the queue list
-        if (_matchmakingQueue.ContainsKey(bfId))
+        if (!_matchmakingQueue.TryGetValue(bfId, out var applicants))
         {
-            var offlinePlayers = _matchmakingQueue[bfId].Where(a => a.CharObj == null).ToList();
-            if (offlinePlayers != null)
+            return;
+        }
+
+        // Remove offline players in the queue list
+        var offlinePlayers = applicants.Where(a => a.CharObj == null).ToList();
+        if (offlinePlayers.Count > 0)
+        {
+            foreach (var players in offlinePlayers)
             {
-                if (offlinePlayers.Count > 0)
-                {
-                    foreach (var players in offlinePlayers)
-                    {
-                        _matchmakingQueue[bfId].Remove(players);
-                    }
-                }
+                applicants.Remove(players);
             }
         }
 
-        _log.Trace("[Matchmaking] Running matchmaking for battlefield " + bfId + "... Queue: " + _matchmakingQueue[bfId].Count);
+        _log.Trace("[Matchmaking] Running matchmaking for battlefield " + bfId + "... Queue: " + applicants.Count);
         // Check if there are enough players to matchmake a game.
         if (MissingPlayersToStart(bfId, games.Count))
         {
@@ -133,23 +145,22 @@ public class InstantGameManager : Singleton<InstantGameManager>
             game = new InstantGame(BattlefieldGameData.Instance.GetBattlefield(bfId));
 
         // Loop through the matchmaking list to fill current and new games.
-        var queueCount = _matchmakingQueue[bfId].Count;
+        var queueCount = applicants.Count;
         for (var i = 0; i < queueCount; i++)
         {
             if (game.IsFull)
             {
                 _log.Trace("[Matchmaking] Game is full.");
-                if (_queueList.Contains(game))
+                if (_queueList.Remove(game))
                 {
-                    _queueList.Remove(game);
                     _log.Trace("[Matchmaking] Removing queued game from queueList.");
                 }
                 break; // Matchmaking complete if game is full. 
             }
 
             // Obtain character of player matchmaking and remove them from queue to add them into a game.
-            var playerCharacter = WorldManager.Instance.GetCharacterById(_matchmakingQueue[bfId][0].CharObj.Id);
-            _matchmakingQueue[bfId].Remove(_matchmakingQueue[bfId][0]);
+            var playerCharacter = WorldManager.Instance.GetCharacterById(applicants[0].CharObj.Id);
+            applicants.Remove(applicants[0]);
 
             // Add player and invite to instant game                        
             if (playerCharacter != null)
@@ -171,9 +182,8 @@ public class InstantGameManager : Singleton<InstantGameManager>
         if (game.IsFull)
         {
             _log.Trace("[Matchmaking] Game is full.");
-            if (_queueList.Contains(game))
+            if (_queueList.Remove(game))
             {
-                _queueList.Remove(game);
                 _log.Trace("[Matchmaking] Removing queued game from queueList.");
             }
         }
