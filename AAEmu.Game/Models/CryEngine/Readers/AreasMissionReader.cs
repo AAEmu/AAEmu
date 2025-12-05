@@ -161,7 +161,7 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
         aiShape.Points.Clear();
         ;
         var pointsSize = Reader.ReadUInt32();
-        for (int i = 0; i < pointsSize; i++)
+        for (var i = 0; i < pointsSize; i++)
         {
             aiShape.Points.Add(ReadVector3());
         }

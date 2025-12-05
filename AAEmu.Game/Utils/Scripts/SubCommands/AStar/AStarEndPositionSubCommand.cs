@@ -22,7 +22,7 @@ public class AStarEndPositionSubCommand : SubCommandBase
     public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Npc npc;
-        if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId))
+        if (parameters.TryGetValue("ObjId", out var npcObjId))
         {
             npc = ((Character)character).ParentWorld.GetNpc(npcObjId);
             if (npc is null)

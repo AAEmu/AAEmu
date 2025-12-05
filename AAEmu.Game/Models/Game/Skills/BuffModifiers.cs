@@ -13,7 +13,7 @@ public class BuffModifiers
 
     public double ApplyModifiers(BuffTemplate buff, BuffAttribute attribute, double baseValue)
     {
-        double endValue = baseValue;
+        var endValue = baseValue;
 
         var modifiers = GetModifiersForBuffIdWithAttribute(buff.Id, attribute).OrderBy(mod => mod.UnitModifierType).ToList();
 

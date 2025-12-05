@@ -140,7 +140,7 @@ public abstract class SubCommandBase : ICommandV2
         foreach (var parameterPrefix in _parameters.Where(p => p.Prefix is not null))
         {
             string foundPrefixArgument = null;
-            bool duplicatedPrefixValue = false;
+            var duplicatedPrefixValue = false;
             foreach (var argument in prefixArguments)
             {
                 if (parameterPrefix.MatchPrefix(argument))

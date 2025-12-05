@@ -53,7 +53,7 @@ public class ChatConverter
 
         var templateIdBytes = BitConverter.GetBytes(templateId);
 
-        string encryptedItem = Encrypt(192, 384,
+        var encryptedItem = Encrypt(192, 384,
         [
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         templateIdBytes[0], templateIdBytes[1], //template id 

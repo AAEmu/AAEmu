@@ -174,7 +174,7 @@ public static class Program
             .AddUserSecrets<GameService>()
             .Build();
 
-        bool userSecretsDefined = config.AsEnumerable().Any();
+        var userSecretsDefined = config.AsEnumerable().Any();
         return userSecretsDefined;
     }
 

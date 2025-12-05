@@ -27,7 +27,7 @@ public class TestFSets : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        foreach (Feature fObj in Enum.GetValues<Feature>())
+        foreach (var fObj in Enum.GetValues<Feature>())
         {
             if (FeaturesManager.Fsets.Check(fObj))
             {

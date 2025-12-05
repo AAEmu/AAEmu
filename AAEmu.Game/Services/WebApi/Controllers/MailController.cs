@@ -62,7 +62,7 @@ internal class MailController : BaseController
         {
             case RecipientType.Expedition:
                 {
-                    foreach (uint recipient in mailRequest.Recipients)
+                    foreach (var recipient in mailRequest.Recipients)
                     {
                         var expedition = ExpeditionManager.Instance.GetExpedition((FactionsEnum)recipient);
                         if (expedition == null || expedition.isDisbanded)
@@ -87,7 +87,7 @@ internal class MailController : BaseController
                 break;
             case RecipientType.Family:
                 {
-                    foreach (uint recipient in mailRequest.Recipients)
+                    foreach (var recipient in mailRequest.Recipients)
                     {
                         var family = FamilyManager.Instance.GetFamily(recipient);
                         if (family == null)
@@ -140,7 +140,7 @@ internal class MailController : BaseController
             case RecipientType.Character:
             default:
                 {
-                    foreach (uint recipient in mailRequest.Recipients)
+                    foreach (var recipient in mailRequest.Recipients)
                     {
                         var character = WorldManager.Instance.GetCharacterById(recipient) ??
                                         Character.Load(recipient);

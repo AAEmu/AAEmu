@@ -23,9 +23,9 @@ public class SetVariable : SpecialEffectAction
         // TODO ...
         if (caster is Character) { Logger.Debug("Special effects: SetVariable index {0}, value {1}, operation {2}, value4 {3}", value1, value2, value3, value4); }
 
-        int index = value1;
-        int value = value2;
-        int operation = value3;
+        var index = value1;
+        var value = value2;
+        var operation = value3;
         //value 4 unused
 
         //There is a high chance this is not implemented correctly..

@@ -707,7 +707,7 @@ public class Teleport : ICommand
             }
 
             var sb = new List<string>();
-            foreach (TeleportCommandRegions r in System.Enum.GetValues<TeleportCommandRegions>())
+            foreach (var r in System.Enum.GetValues<TeleportCommandRegions>())
             {
                 sb.Add($"|cFFFFFFFF{r}|r: ");
             }

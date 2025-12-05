@@ -68,8 +68,8 @@ public class Point
     // 2 --> Counterclockwise
     internal static int FindTripletOrientation(Point p, Point q, Point r)
     {
-        float val = (q.Y - p.Y) * (r.X - q.X) -
-                (q.X - p.X) * (r.Y - q.Y);
+        var val = (q.Y - p.Y) * (r.X - q.X) -
+                  (q.X - p.X) * (r.Y - q.Y);
 
         if (val == 0.0f)
         {
@@ -86,10 +86,10 @@ public class Point
     {
         // Find the four orientations needed for
         // general and special cases
-        int o1 = FindTripletOrientation(line1.p, line1.q, line2.p);
-        int o2 = FindTripletOrientation(line1.p, line1.q, line2.q);
-        int o3 = FindTripletOrientation(line2.p, line2.q, line1.p);
-        int o4 = FindTripletOrientation(line2.p, line2.q, line1.q);
+        var o1 = FindTripletOrientation(line1.p, line1.q, line2.p);
+        var o2 = FindTripletOrientation(line1.p, line1.q, line2.q);
+        var o3 = FindTripletOrientation(line2.p, line2.q, line1.p);
+        var o4 = FindTripletOrientation(line2.p, line2.q, line1.q);
 
         // General case
         if (o1 != o2 && o3 != o4)
@@ -148,7 +148,7 @@ public class Point
         int count = 0, i = 0;
         do
         {
-            int next = (i + 1) % n;
+            var next = (i + 1) % n;
 
             // Check if the line segment from 'p' to
             // 'extreme' intersects with the line

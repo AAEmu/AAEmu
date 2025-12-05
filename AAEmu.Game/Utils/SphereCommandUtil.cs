@@ -204,7 +204,7 @@ public class SphereCommandUtil
 
     public static void RemoveQuestSphere(Character character, uint jsonId)
     {
-        bool found = false;
+        var found = false;
 
         var worlds = WorldManager.Instance.GetWorlds();
 
@@ -283,7 +283,7 @@ public class SphereCommandUtil
             {
                 if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
                 {
-                    bool found = false;
+                    var found = false;
                     foreach (var sphere in spheres)
                     {
                         if (sphere.Id == jsonId)

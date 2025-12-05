@@ -41,7 +41,7 @@ public class WaterEditGoToSubCommand : SubCommandBase
         }
             
         var pos = WaterEditCmd.SelectedWater.GetCenter(true);
-        Character chara = character as Character; 
+        var chara = character as Character; 
         chara.ForceDismount();
         chara.DisabledSetPosition = true;
         character.SendPacket(new SCTeleportUnitPacket(0, 0, pos.X + 1f, pos.Y + 1f, pos.Z + 3f, 0));

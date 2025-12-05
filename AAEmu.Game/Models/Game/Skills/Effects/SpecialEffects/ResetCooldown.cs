@@ -24,9 +24,9 @@ public class ResetCooldown : SpecialEffectAction
         // TODO ...
         if (caster is Character) { Logger.Debug("Special effects: ResetCooldown skillId {0}, tagId {1}, gcd {2}, value4 {3}", value1, value2, value3, value4); }
 
-        uint skillId = (uint)value1;
-        uint tagId = (uint)value2;
-        bool gcd = value3 == 1;
+        var skillId = (uint)value1;
+        var tagId = (uint)value2;
+        var gcd = value3 == 1;
         if (caster is Character character)
         {
             if (value1 != 0)

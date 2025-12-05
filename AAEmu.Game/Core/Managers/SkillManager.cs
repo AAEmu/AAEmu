@@ -115,7 +115,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
     public List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId)
     {
-        if (_buffTriggers.TryGetValue(buffId, out List<BuffTriggerTemplate> triggers))
+        if (_buffTriggers.TryGetValue(buffId, out var triggers))
         {
             return triggers;
         }

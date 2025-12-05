@@ -478,7 +478,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             owner.SendErrorMessage(ErrorMessageType.OnlyExpeditionOwner);
             return false;
         }
-        for (int i = guild.Members.Count - 1; i >= 0; i--)
+        for (var i = guild.Members.Count - 1; i >= 0; i--)
         {
             var c = WorldManager.Instance.GetCharacterById(guild.Members[i].CharacterId);
             if (c != null)
@@ -504,7 +504,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         character.SendPacket(new SCExpeditionRolePolicyListPacket(character.Expedition.Policies));
 
-        for (int i = 0; i < members.Count; i += 20)
+        for (var i = 0; i < members.Count; i += 20)
         {
             var block = members.Skip(i).Take(20).ToList();
             character.SendPacket(new SCExpeditionMemberListPacket(total, (uint)id, block));

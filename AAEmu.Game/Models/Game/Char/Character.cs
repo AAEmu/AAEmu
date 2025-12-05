@@ -506,7 +506,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0d;
+            var res = 0d;
             res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
             res = res / 1000;
             res = 1 + res;
@@ -519,7 +519,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0d;
+            var res = 0d;
             res = CalculateWithBonuses(res, UnitAttribute.IncomingMeleeDamageMul);
             res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
             res = res / 1000;
@@ -533,7 +533,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0d;
+            var res = 0d;
             res = CalculateWithBonuses(res, UnitAttribute.IncomingRangedDamageMul);
             res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
             res = res / 1000;
@@ -547,7 +547,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0d;
+            var res = 0d;
             res = CalculateWithBonuses(res, UnitAttribute.IncomingSpellDamageMul);
             res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
             res = res / 1000;
@@ -561,7 +561,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0d;
+            var res = 0d;
             res = CalculateWithBonuses(res, UnitAttribute.CastingTimeMul);
             res = (res + 1000.00000000) / 1000;
             return (float)Math.Max(res, 0f);
@@ -1283,7 +1283,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0.0;
+            var res = 0.0;
             res = CalculateWithBonuses(res, UnitAttribute.LivingPointGain);
             return (float)res;
         }
@@ -1294,7 +1294,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0.0;
+            var res = 0.0;
             res = CalculateWithBonuses(res, UnitAttribute.LivingPointGainMul);
             return (float)res;
         }
@@ -1305,7 +1305,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0.0;
+            var res = 0.0;
             res = CalculateWithBonuses(res, UnitAttribute.DropRateMul);
             return (float)res;
         }
@@ -1316,7 +1316,7 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0.0;
+            var res = 0.0;
             res = CalculateWithBonuses(res, UnitAttribute.LootGoldMul);
             return (float)res;
         }
@@ -1868,7 +1868,7 @@ public partial class Character : Unit, ICharacter
     public void DoRepair(List<Item> items)
     {
         var tasks = new List<ItemTask>();
-        int repairCost = 0;
+        var repairCost = 0;
 
         foreach (var item in items)
         {
@@ -1912,7 +1912,7 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
-            int currentRepairCost = equipItem.RepairCost;
+            var currentRepairCost = equipItem.RepairCost;
 
             if (Money < currentRepairCost)
             {

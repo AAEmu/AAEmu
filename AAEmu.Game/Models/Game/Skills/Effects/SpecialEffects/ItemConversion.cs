@@ -72,7 +72,7 @@ public class ItemConversion : SpecialEffectAction
         {
             // give product
             // TODO: add in weights
-            int value = Random.Shared.Next(product.MinOutput, product.MaxOutput + 1);
+            var value = Random.Shared.Next(product.MinOutput, product.MaxOutput + 1);
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, product.OuputItemId, value))
             {
                 skill.Cancelled = true;

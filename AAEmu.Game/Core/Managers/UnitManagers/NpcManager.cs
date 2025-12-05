@@ -116,7 +116,7 @@ public class NpcManager : Singleton<NpcManager>
 
         for (var i = 0; i < 7; i++)
         {
-            EquipmentItemSlot slot = (EquipmentItemSlot)(i + 19);
+            var slot = (EquipmentItemSlot)(i + 19);
             if ((slot == EquipmentItemSlot.Hair) && (template.ModelParams != null))
                 SetEquipItemTemplate(npc, template.HairId, EquipmentItemSlot.Hair);
             else
@@ -352,7 +352,7 @@ public class NpcManager : Singleton<NpcManager>
                             RightPupilColor = reader.GetUInt32("right_pupil_color"),
                             EyebrowColor = reader.GetUInt32("eyebrow_color")
                         };
-                        object blob = reader.GetValue("modifier");
+                        var blob = reader.GetValue("modifier");
                         if (blob != null)
                             custom.Modifier = (byte[])blob;
                         custom.OwnerTypeId = reader.GetUInt32("owner_type_id");

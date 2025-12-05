@@ -95,32 +95,32 @@ internal class AuctionController : BaseController, IController
             // Apply filters
             if (queryParams["ItemId"] != null)
             {
-                uint itemId = uint.Parse(queryParams["ItemId"]);
+                var itemId = uint.Parse(queryParams["ItemId"]);
                 query = query.Where(item => item.Item.TemplateId == itemId);
             }
             if (queryParams["ClientName"] != null)
             {
-                string clientName = queryParams["ClientName"];
+                var clientName = queryParams["ClientName"];
                 query = query.Where(item => item.ClientName.Equals(clientName, StringComparison.OrdinalIgnoreCase));
             }
             if (queryParams["StackSize"] != null)
             {
-                uint stackSize = uint.Parse(queryParams["StackSize"]);
+                var stackSize = uint.Parse(queryParams["StackSize"]);
                 query = query.Where(item => item.Item.Count == stackSize);
             }
             if (queryParams["DirectMoney"] != null)
             {
-                int directMoney = int.Parse(queryParams["DirectMoney"]);
+                var directMoney = int.Parse(queryParams["DirectMoney"]);
                 query = query.Where(item => item.DirectMoney == directMoney);
             }
             if (queryParams["BidMoney"] != null)
             {
-                int bidMoney = int.Parse(queryParams["BidMoney"]);
+                var bidMoney = int.Parse(queryParams["BidMoney"]);
                 query = query.Where(item => item.BidMoney == bidMoney);
             }
             if (queryParams["BidderName"] != null)
             {
-                string bidderName = queryParams["BidderName"];
+                var bidderName = queryParams["BidderName"];
                 query = query.Where(item => item.BidderName.Equals(bidderName, StringComparison.OrdinalIgnoreCase));
             }
 

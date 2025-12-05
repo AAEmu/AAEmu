@@ -134,7 +134,7 @@ public partial class NameManager(CharacterManager characterManager = null) : Sin
 
         if (!_characterNames.TryAdd(normalizedName, characterId))
         {
-            uint oldId = _characterNames.GetValueOrDefault(normalizedName);
+            var oldId = _characterNames.GetValueOrDefault(normalizedName);
             if (characterId != oldId)
                 Logger.Error($"AddCharacterName, failed to register id for {name} ({characterId}), Account {accountId}, OldId {oldId}");
         }

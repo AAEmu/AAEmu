@@ -92,7 +92,7 @@ public class PlotNode
             else
                 targetPlotObj = new PlotObject(targetInfo.Target);
 
-            byte targetCount = (byte)targetInfo.EffectedTargets.Count;
+            var targetCount = (byte)targetInfo.EffectedTargets.Count;
 
             var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
                 targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);

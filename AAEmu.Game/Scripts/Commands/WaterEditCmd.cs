@@ -177,7 +177,7 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
                 var dividers = MathF.Ceiling(SelectedWater.Depth / 5f);
                 dividers = MathF.Max(dividers, 2f);
 
-                for (int i = 1; i < dividers; i++)
+                for (var i = 1; i < dividers; i++)
                 {
                     var h = SelectedWater.Depth / dividers * i;
                     var middleDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, middleDoodadId);
@@ -258,13 +258,13 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
         {
             SelectedWater.UpdateBounds();
 
-            RectangleF bb = SelectedWater.BoundingBox;
+            var bb = SelectedWater.BoundingBox;
             bb.Inflate(1f, 1f);
             var rr = new Rectangle((int)MathF.Round(bb.Left), (int)MathF.Round(bb.Top),
                 (int)MathF.Round(bb.Width), (int)MathF.Round(bb.Height));
                 
             for(var y = rr.Top; y <= rr.Bottom; y += 2)
-            for (int x = rr.Left; x <= rr.Right; x += 2)
+            for (var x = rr.Left; x <= rr.Right; x += 2)
             {
                 var p = new Vector3(x, y, SelectedWater.Highest);
                 if (SelectedWater.GetSurface(p, out var surfacePoint, out _))

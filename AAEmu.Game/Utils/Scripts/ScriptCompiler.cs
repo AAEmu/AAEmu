@@ -72,7 +72,7 @@ public static class ScriptCompiler
     {
         var references = new List<MetadataReference>();
 
-        foreach (AssemblyName assemblyName in Assembly.GetEntryAssembly().GetReferencedAssemblies())
+        foreach (var assemblyName in Assembly.GetEntryAssembly().GetReferencedAssemblies())
             references.Add(MetadataReference.CreateFromFile(Assembly.Load(assemblyName).Location));
 
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies().Where(p => !p.IsDynamic && !string.IsNullOrEmpty(p.Location)))
@@ -170,7 +170,7 @@ public static class ScriptCompiler
 
     private static bool Display(ImmutableArray<Diagnostic> diagnostics, List<SyntaxTree> syntaxTrees)
     {
-        bool res = true;
+        var res = true;
         if (diagnostics.Length == 0)
         {
             Logger.Info("Compile done (0 errors, 0 warnings)");

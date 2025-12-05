@@ -11,9 +11,9 @@ public class SkillModifiers
 
     public double ApplyModifiers(Skill skill, SkillAttribute attribute, double baseValue)
     {
-        double endValue = baseValue;
+        var endValue = baseValue;
 
-        List<SkillModifier> modifiers = GetModifiersForSkillIdWithAttribute(skill.Template.Id, attribute).OrderBy(mod => mod.UnitModifierType).ToList();
+        var modifiers = GetModifiersForSkillIdWithAttribute(skill.Template.Id, attribute).OrderBy(mod => mod.UnitModifierType).ToList();
 
         foreach (var tag in SkillManager.Instance.GetSkillTags(skill.Template.Id))
         {

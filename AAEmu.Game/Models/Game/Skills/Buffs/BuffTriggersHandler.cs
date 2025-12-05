@@ -11,7 +11,7 @@ public class BuffTriggersHandler(Buff buff)
 
     public void SubscribeEvents()
     {
-        uint buffId = buff.Template.BuffId;
+        var buffId = buff.Template.BuffId;
 
         var triggerTemplates = SkillManager.Instance.GetBuffTriggerTemplates(buffId);
 

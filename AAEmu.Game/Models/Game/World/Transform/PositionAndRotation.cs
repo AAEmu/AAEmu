@@ -109,9 +109,9 @@ public class PositionAndRotation
     
     public (sbyte, sbyte, sbyte) ToRollPitchYawSBytesMovement()
     {
-        sbyte roll = MathUtil.ConvertRadianToDirection(Rotation.X - TwoPi);
-        sbyte pitch = MathUtil.ConvertRadianToDirection(Rotation.Y - TwoPi);
-        sbyte yaw = MathUtil.ConvertRadianToDirection(Rotation.Z - TwoPi);
+        var roll = MathUtil.ConvertRadianToDirection(Rotation.X - TwoPi);
+        var pitch = MathUtil.ConvertRadianToDirection(Rotation.Y - TwoPi);
+        var yaw = MathUtil.ConvertRadianToDirection(Rotation.Z - TwoPi);
         /*
         sbyte roll = (sbyte)(vec3.X / (Math.PI * 2) / ToSByteDivider);
         sbyte pitch = (sbyte)(vec3.Y / (Math.PI * 2) / ToSByteDivider);

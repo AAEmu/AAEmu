@@ -94,7 +94,7 @@ public class HealEffect : EffectTemplate
             }
         }
 
-        bool criticalHeal = Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
+        var criticalHeal = Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
 
         var value = (int)Random.Shared.Next(min, max);
 

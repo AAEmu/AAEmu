@@ -38,7 +38,7 @@ public class WebApiSession(WebApiServer server) : HttpSession(server)
                 }
             }
 
-            object[] args = parameters.ToArray();
+            var args = parameters.ToArray();
 
             var activate = Activator.CreateInstance(foundRoute.TargetMethod.DeclaringType);
             response = (HttpResponse)foundRoute.TargetMethod.Invoke(activate, args);

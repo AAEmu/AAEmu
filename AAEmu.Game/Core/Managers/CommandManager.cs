@@ -64,7 +64,7 @@ public partial class CommandManager : Singleton<CommandManager>
             _commands.Remove(names[0].ToLower());
         _commands.Add(names[0].ToLower(), command);
 
-        for (int i = 1; i < names.Length; i++)
+        for (var i = 1; i < names.Length; i++)
         {
             if (_commandAliases.ContainsKey(names[i].ToLower()))
                 _commandAliases.Remove(names[i].ToLower());
