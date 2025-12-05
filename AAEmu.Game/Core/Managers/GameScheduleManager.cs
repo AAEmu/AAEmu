@@ -198,9 +198,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
         foreach (var gameScheduleId in _gameScheduleIds)
         {
-            if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
-
-            var gameSchedules = _gameSchedules[gameScheduleId];
+            if (!_gameSchedules.TryGetValue(gameScheduleId, out var gameSchedules)) { continue; }
 
             try
             {
@@ -226,9 +224,7 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
         foreach (var gameScheduleId in value)
         {
-            if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
-
-            var gameSchedules = _gameSchedules[gameScheduleId];
+            if (!_gameSchedules.TryGetValue(gameScheduleId, out var gameSchedules)) { continue; }
 
             cronExpression = start ? GetCronExpression(gameSchedules, true) : GetCronExpression(gameSchedules, false);
         }
@@ -247,9 +243,8 @@ public class GameScheduleManager : Singleton<GameScheduleManager>
 
         foreach (var gameScheduleId in value)
         {
-            if (!_gameSchedules.ContainsKey(gameScheduleId)) { continue; }
+            if (!_gameSchedules.TryGetValue(gameScheduleId, out var gameSchedules)) { continue; }
 
-            var gameSchedules = _gameSchedules[gameScheduleId];
             var timeSpan = start ? GetRemainingTimeStart(gameSchedules) : GetRemainingTimeEnd(gameSchedules);
             if (timeSpan <= remainingTime)
             {

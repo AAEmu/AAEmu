@@ -73,10 +73,9 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                 while (reader.Read())
                 {
                     var id = reader.GetUInt32("id");
-                    if (!fileTypeToId.ContainsKey(id))
+                    if (!fileTypeToId.TryGetValue(id, out var fileType))
                         continue;
 
-                    var fileType = fileTypeToId[id];
                     try
                     {
                         var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");

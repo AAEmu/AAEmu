@@ -698,9 +698,8 @@ public class NpcManager : Singleton<NpcManager>
                     while (reader.Read())
                     {
                         var npcId = reader.GetUInt32("owner_id");
-                        if (!_templates.ContainsKey(npcId))
+                        if (!_templates.TryGetValue(npcId, out var npc))
                             continue;
-                        var npc = _templates[npcId];
                         var template = new BonusTemplate
                         {
                             Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
@@ -722,9 +721,8 @@ public class NpcManager : Singleton<NpcManager>
                     {
                         var id = reader.GetUInt32("npc_id");
                         var buffId = reader.GetUInt32("buff_id");
-                        if (!_templates.ContainsKey(id))
+                        if (!_templates.TryGetValue(id, out var template))
                             continue;
-                        var template = _templates[id];
                         template.Buffs.Add(buffId);
                     }
                 }
@@ -739,9 +737,8 @@ public class NpcManager : Singleton<NpcManager>
                     while (reader.Read())
                     {
                         var id = reader.GetUInt32("npc_id");
-                        if (!_templates.ContainsKey(id))
+                        if (!_templates.TryGetValue(id, out var template))
                             continue;
-                        var template = _templates[id];
                         template.MerchantPackId = reader.GetUInt32("merchant_pack_id");
                     }
                 }

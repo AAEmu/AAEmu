@@ -730,9 +730,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     while (reader.Read())
                     {
                         var buffId = reader.GetUInt32("owner_id");
-                        if (!_buffs.ContainsKey(buffId))
+                        if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
-                        var buff = _buffs[buffId];
                         var template = new BonusTemplate
                         {
                             Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
@@ -752,9 +751,8 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                     while (reader.Read())
                     {
                         var buffId = reader.GetUInt32("buff_id");
-                        if (!_buffs.ContainsKey(buffId))
+                        if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
-                        var buff = _buffs[buffId];
                         var template = new DynamicBonusTemplate
                         {
                             Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),

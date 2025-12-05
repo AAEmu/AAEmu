@@ -107,9 +107,9 @@ public class CraftManager : Singleton<CraftManager>
                     while (reader.Read())
                     {
                         var craftId = reader.GetUInt32("craft_id");
-                        if (!_crafts.ContainsKey(craftId))
+                        if (!_crafts.TryGetValue(craftId, out var craft))
                             continue;
-                        _crafts[craftId].IsPack = true;
+                        craft.IsPack = true;
                     }
                 }
             }
