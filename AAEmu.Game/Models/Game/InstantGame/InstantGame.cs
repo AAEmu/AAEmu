@@ -11,256 +11,255 @@ using AAEmu.Game.Utils;
 
 using NLog;
 
-namespace AAEmu.Game.Models.Game.InstantGame
+namespace AAEmu.Game.Models.Game.InstantGame;
+
+public partial class InstantGame
 {
-    public partial class InstantGame
+    private static Logger _log = LogManager.GetCurrentClassLogger();
+
+    private readonly List<Character> _players;
+    private readonly Dictionary<uint, List<Character>> _corps;
+    private readonly Dictionary<Character, InstantCorps> _characterCorps;
+
+    private readonly InstantGameTeamResult _corps1Result;
+    private readonly InstantGameTeamResult _corps2Result;
+    private readonly Dictionary<Character, InstantGameTeamMember> _members;
+
+    private readonly WorldInstance _world;
+    private readonly Battlefield _battlefield;
+    private readonly ZoneInstanceId _zoneInstanceId;
+
+    private readonly CancellationTokenSource _endGameTokenSource;
+
+    public InstantGame(Battlefield battlefield)
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        _battlefield = battlefield;
+        _players = new List<Character>();
 
-        private readonly List<Character> _players;
-        private readonly Dictionary<uint, List<Character>> _corps;
-        private readonly Dictionary<Character, InstantCorps> _characterCorps;
+        _members = new Dictionary<Character, InstantGameTeamMember>();
+        _corps1Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps1FactionId);
+        _corps2Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps2FactionId);
 
-        private readonly InstantGameTeamResult _corps1Result;
-        private readonly InstantGameTeamResult _corps2Result;
-        private readonly Dictionary<Character, InstantGameTeamMember> _members;
-
-        private readonly WorldInstance _world;
-        private readonly Battlefield _battlefield;
-        private readonly ZoneInstanceId _zoneInstanceId;
-
-        private readonly CancellationTokenSource _endGameTokenSource;
-
-        public InstantGame(Battlefield battlefield)
+        _corps = new Dictionary<uint, List<Character>>
         {
-            _battlefield = battlefield;
-            _players = new List<Character>();
+            {_battlefield.RuleSet.Corps1FactionId, new List<Character>()},
+            {_battlefield.RuleSet.Corps2FactionId, new List<Character>()}
+        };
 
-            _members = new Dictionary<Character, InstantGameTeamMember>();
-            _corps1Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps1FactionId);
-            _corps2Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps2FactionId);
+        _characterCorps = new Dictionary<Character, InstantCorps>();
 
-            _corps = new Dictionary<uint, List<Character>>
-            {
-                {_battlefield.RuleSet.Corps1FactionId, new List<Character>()},
-                {_battlefield.RuleSet.Corps2FactionId, new List<Character>()}
-            };
+        var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(_battlefield.ZoneKey);
+        _world = WorldManager.Instance.CreateWorldInstance(worldTemplate, 0);
+        _zoneInstanceId = new ZoneInstanceId(_battlefield.ZoneKey, _world.Id);
 
-            _characterCorps = new Dictionary<Character, InstantCorps>();
+        _endGameTokenSource = new CancellationTokenSource();
+    }
 
-            var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(_battlefield.ZoneKey);
-            _world = WorldManager.Instance.CreateWorldInstance(worldTemplate, 0);
-            _zoneInstanceId = new ZoneInstanceId(_battlefield.ZoneKey, _world.Id);
-
-            _endGameTokenSource = new CancellationTokenSource();
-        }
-
-        public void AddPlayer(Character character, InstantCorps corps)
+    public void AddPlayer(Character character, InstantCorps corps)
+    {
+        if (_players.Contains(character))
         {
-            if (_players.Contains(character))
-            {
-                // Player already exists in game, remove for correction
-                RemovePlayer(character);
-            }
-            _players.Add(character);
-            var factionId = corps == InstantCorps.Corps1 ? _battlefield.RuleSet.Corps1FactionId : _battlefield.RuleSet.Corps2FactionId;
-            _corps[factionId].Add(character);
-            _characterCorps.Add(character, corps);
-
-            character.SendPacket(new SCInviteToInstantGamePacket(_zoneInstanceId, _battlefield.RuleSet.Id, corps, 1));
-            character.CurrentInstantGame = this;
-        }
-
-        public bool RemovePlayer(Character character)
-        {
-            if (character == null)
-                return false;
-
-            if (!_players.Contains(character))
-                return false;
-
-            _players.Remove(character);
-
-            if (_corps.TryGetValue((uint)InstantCorps.Corps1, out var charsInCorps1))
-                charsInCorps1.Remove(character);
-
-            if (_corps.TryGetValue((uint)InstantCorps.Corps2, out var charsInCorps2))
-                charsInCorps2.Remove(character);
-
-            _characterCorps.Remove(character);
-            character.CurrentInstantGame = null;
-            return true;
-        }
-
-        public bool IsFull => _players.Count == _battlefield.RuleSet.CorpsSize * 2;
-
-        public uint BattlefieldId => _battlefield.Id;
-
-        public InstantCorps GetCorps()
-        {
-            if (_battlefield.Id == (uint)InstantGameType.Gladiator)
-            {
-                if (!_characterCorps.ContainsValue(InstantCorps.Corps1))
-                    return InstantCorps.Corps1;
-                if (!_characterCorps.ContainsValue(InstantCorps.Corps2))
-                    return InstantCorps.Corps2;
-                return InstantCorps.Invalid;
-            }
-
-            var a = _characterCorps.Count(o => o.Value == InstantCorps.Corps1);
-            var b = _characterCorps.Count(o => o.Value == InstantCorps.Corps2);
-            return b > a ? InstantCorps.Corps1 : InstantCorps.Corps2;
-
-        }
-
-        public void PlayerInviteResponse(Character character, bool joins, ulong qualifierId)
-        {
-            if (!joins)
-            {
-                // Next room, remove from current game then readd to requeue
-                InstantGameManager.Instance.WithdrawFromBattlefield(character);
-                InstantGameManager.Instance.ApplyToBattlefield(_battlefield.Id, InstantCorps.Any, character);
-                return;
-            }
-
-            var corps = _characterCorps[character];
-            var spawn = corps == InstantCorps.Corps1 ? _battlefield.Spawns.Corps1Spawn : _battlefield.Spawns.Corps2Spawn;
-            MoveCharacterToWorld(character, _battlefield.ZoneKey, spawn.X, spawn.Y, spawn.Z);
-        }
-
-        public void OnEnterWorld(Character character, ulong qualifierId)
-        {
-            var corps = _characterCorps[character];
-            character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, corps, _battlefield.RuleSet));
-
-            if (corps == InstantCorps.Corps1)
-                character.SetFaction((FactionsEnum)_battlefield.RuleSet.Corps1FactionId);
-            else
-                character.SetFaction((FactionsEnum)_battlefield.RuleSet.Corps2FactionId);
-
-            character.Events.OnKill += OnKill;
-
-            var member = new InstantGameTeamMember() { Character = character };
-            _members.Add(character, member);
-
-            var result = corps == InstantCorps.Corps1 ? _corps1Result : _corps2Result;
-            result.Members.Add(member);
-            member.Corps = result;
-
-            // TODO: This can be done better.
-            // TODO: Game expire after 60 seconds if not enough players
-            if (_members.Count == _battlefield.RuleSet.CorpsSize * 2)
-                Start();
-        }
-
-        public void Start()
-        {
-            var now = (uint)(Environment.TickCount & int.MaxValue);
-            var start = now + 20000;
-            BroadcastPacket(new SCInstantGameStartPacket(_zoneInstanceId, start, now));
-
-            // Reset players on Start
-            Task.Run(async () =>
-            {
-                await Task.Delay(3000);
-                foreach (var player in _characterCorps)
-                {
-                    // Reset HP and MP
-                    if (player.Key != null)
-                    {
-                        // Reset HP
-                        player.Key.Hp = player.Key.MaxHp;
-                        player.Key.Mp = player.Key.MaxMp;
-                        player.Key.BroadcastPacket(new SCUnitPointsPacket(player.Key.ObjId, player.Key.Hp, player.Key.Mp), true);
-                        // Reset Buffs
-                        player.Key.Buffs.RemoveAllEffects();
-                        // Reset Cooldowns
-                        player.Key.ResetAllSkillCooldowns(false);
-                    }
-
-                }
-            });
-            Task.Run(async () =>
-            {
-                await Task.Delay(_battlefield.RuleSet.TimePlaying * 60 * 1000, _endGameTokenSource.Token);
-                await EndGame();
-            }, _endGameTokenSource.Token);
-        }
-
-        public async Task EndGame()
-        {
-            SendResult();
-            await Task.Delay(_battlefield.RuleSet.TimeEnding * 60 * 1000);
-            DestroyInstantGame();
-        }
-
-        private void SendResult()
-        {
-            BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, BattlefieldEndingReason.AchievementScore,
-                _corps1Result,
-                _corps2Result));
-        }
-
-        private void DestroyInstantGame()
-        {
-            foreach (var character in _players.ToList())
-            {
-                LeaveInstantGame(character);
-            }
-
-            // TODO: Unbind all events from characters
-            WorldManager.Instance.RemoveWorld(_world.Id);
-            InstantGameManager.Instance.RemoveGame(this);
-        }
-
-        public void LeaveInstantGame(Character character)
-        {
-            // Warning: Null exception exists if player does not exist in the world when this is ran (Most likely from disconnecting or character select)
-
+            // Player already exists in game, remove for correction
             RemovePlayer(character);
-            character.SetFaction(character.OriginFaction.Id);
-            character.Events.OnKill -= OnKill;
-            character.DisabledSetPosition = true;
+        }
+        _players.Add(character);
+        var factionId = corps == InstantCorps.Corps1 ? _battlefield.RuleSet.Corps1FactionId : _battlefield.RuleSet.Corps2FactionId;
+        _corps[factionId].Add(character);
+        _characterCorps.Add(character, corps);
 
-            if (character.MainWorldPosition == null)
-            {
-                _log.Warn($"Character {character.Name} ({character.Id}) does not have MainWorldPosition when leaving instant game!");
-                return;
-            }
+        character.SendPacket(new SCInviteToInstantGamePacket(_zoneInstanceId, _battlefield.RuleSet.Id, corps, 1));
+        character.CurrentInstantGame = this;
+    }
 
-            character.Transform = character.MainWorldPosition.Clone();
-            character.Transform.InstanceId = WorldManager.DefaultInstanceId;
-            character.SendPacket(
-                new SCLoadInstancePacket(
-                    character.MainWorldPosition.WorldId,
-                    character.MainWorldPosition.ZoneId,
-                    character.MainWorldPosition.World.Position.X,
-                    character.MainWorldPosition.World.Position.Y,
-                    character.MainWorldPosition.World.Position.Z,
-                    character.MainWorldPosition.World.Rotation.X.DegToRad(),
-                    character.MainWorldPosition.World.Rotation.Y.DegToRad(),
-                    character.MainWorldPosition.World.Rotation.Z.DegToRad()
-                )
-            );
+    public bool RemovePlayer(Character character)
+    {
+        if (character == null)
+            return false;
+
+        if (!_players.Contains(character))
+            return false;
+
+        _players.Remove(character);
+
+        if (_corps.TryGetValue((uint)InstantCorps.Corps1, out var charsInCorps1))
+            charsInCorps1.Remove(character);
+
+        if (_corps.TryGetValue((uint)InstantCorps.Corps2, out var charsInCorps2))
+            charsInCorps2.Remove(character);
+
+        _characterCorps.Remove(character);
+        character.CurrentInstantGame = null;
+        return true;
+    }
+
+    public bool IsFull => _players.Count == _battlefield.RuleSet.CorpsSize * 2;
+
+    public uint BattlefieldId => _battlefield.Id;
+
+    public InstantCorps GetCorps()
+    {
+        if (_battlefield.Id == (uint)InstantGameType.Gladiator)
+        {
+            if (!_characterCorps.ContainsValue(InstantCorps.Corps1))
+                return InstantCorps.Corps1;
+            if (!_characterCorps.ContainsValue(InstantCorps.Corps2))
+                return InstantCorps.Corps2;
+            return InstantCorps.Invalid;
         }
 
-        private void MoveCharacterToWorld(Character character, uint zoneId, float x, float y, float z)
+        var a = _characterCorps.Count(o => o.Value == InstantCorps.Corps1);
+        var b = _characterCorps.Count(o => o.Value == InstantCorps.Corps2);
+        return b > a ? InstantCorps.Corps1 : InstantCorps.Corps2;
+
+    }
+
+    public void PlayerInviteResponse(Character character, bool joins, ulong qualifierId)
+    {
+        if (!joins)
         {
-            character.DisabledSetPosition = true;
-            if (character.MainWorldPosition == null)
-            {
-                character.MainWorldPosition = character.Transform.CloneDetached(character);
-            }
-            character.Transform.ApplyWorldSpawnPosition(new WorldSpawnPosition { ZoneId = zoneId, X = x, Y = y, Z = z }, _world.Id);
-            character.SendPacket(new SCLoadInstancePacket(_world.Id, zoneId, x, y, z, 0, 0, 0));
+            // Next room, remove from current game then readd to requeue
+            InstantGameManager.Instance.WithdrawFromBattlefield(character);
+            InstantGameManager.Instance.ApplyToBattlefield(_battlefield.Id, InstantCorps.Any, character);
+            return;
         }
 
-        public void BroadcastPacket(GamePacket packet)
+        var corps = _characterCorps[character];
+        var spawn = corps == InstantCorps.Corps1 ? _battlefield.Spawns.Corps1Spawn : _battlefield.Spawns.Corps2Spawn;
+        MoveCharacterToWorld(character, _battlefield.ZoneKey, spawn.X, spawn.Y, spawn.Z);
+    }
+
+    public void OnEnterWorld(Character character, ulong qualifierId)
+    {
+        var corps = _characterCorps[character];
+        character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, corps, _battlefield.RuleSet));
+
+        if (corps == InstantCorps.Corps1)
+            character.SetFaction((FactionsEnum)_battlefield.RuleSet.Corps1FactionId);
+        else
+            character.SetFaction((FactionsEnum)_battlefield.RuleSet.Corps2FactionId);
+
+        character.Events.OnKill += OnKill;
+
+        var member = new InstantGameTeamMember() { Character = character };
+        _members.Add(character, member);
+
+        var result = corps == InstantCorps.Corps1 ? _corps1Result : _corps2Result;
+        result.Members.Add(member);
+        member.Corps = result;
+
+        // TODO: This can be done better.
+        // TODO: Game expire after 60 seconds if not enough players
+        if (_members.Count == _battlefield.RuleSet.CorpsSize * 2)
+            Start();
+    }
+
+    public void Start()
+    {
+        var now = (uint)(Environment.TickCount & int.MaxValue);
+        var start = now + 20000;
+        BroadcastPacket(new SCInstantGameStartPacket(_zoneInstanceId, start, now));
+
+        // Reset players on Start
+        Task.Run(async () =>
         {
-            foreach (var player in _players)
+            await Task.Delay(3000);
+            foreach (var player in _characterCorps)
             {
-                player.SendPacket(packet);
+                // Reset HP and MP
+                if (player.Key != null)
+                {
+                    // Reset HP
+                    player.Key.Hp = player.Key.MaxHp;
+                    player.Key.Mp = player.Key.MaxMp;
+                    player.Key.BroadcastPacket(new SCUnitPointsPacket(player.Key.ObjId, player.Key.Hp, player.Key.Mp), true);
+                    // Reset Buffs
+                    player.Key.Buffs.RemoveAllEffects();
+                    // Reset Cooldowns
+                    player.Key.ResetAllSkillCooldowns(false);
+                }
+
             }
+        });
+        Task.Run(async () =>
+        {
+            await Task.Delay(_battlefield.RuleSet.TimePlaying * 60 * 1000, _endGameTokenSource.Token);
+            await EndGame();
+        }, _endGameTokenSource.Token);
+    }
+
+    public async Task EndGame()
+    {
+        SendResult();
+        await Task.Delay(_battlefield.RuleSet.TimeEnding * 60 * 1000);
+        DestroyInstantGame();
+    }
+
+    private void SendResult()
+    {
+        BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, BattlefieldEndingReason.AchievementScore,
+            _corps1Result,
+            _corps2Result));
+    }
+
+    private void DestroyInstantGame()
+    {
+        foreach (var character in _players.ToList())
+        {
+            LeaveInstantGame(character);
+        }
+
+        // TODO: Unbind all events from characters
+        WorldManager.Instance.RemoveWorld(_world.Id);
+        InstantGameManager.Instance.RemoveGame(this);
+    }
+
+    public void LeaveInstantGame(Character character)
+    {
+        // Warning: Null exception exists if player does not exist in the world when this is ran (Most likely from disconnecting or character select)
+
+        RemovePlayer(character);
+        character.SetFaction(character.OriginFaction.Id);
+        character.Events.OnKill -= OnKill;
+        character.DisabledSetPosition = true;
+
+        if (character.MainWorldPosition == null)
+        {
+            _log.Warn($"Character {character.Name} ({character.Id}) does not have MainWorldPosition when leaving instant game!");
+            return;
+        }
+
+        character.Transform = character.MainWorldPosition.Clone();
+        character.Transform.InstanceId = WorldManager.DefaultInstanceId;
+        character.SendPacket(
+            new SCLoadInstancePacket(
+                character.MainWorldPosition.WorldId,
+                character.MainWorldPosition.ZoneId,
+                character.MainWorldPosition.World.Position.X,
+                character.MainWorldPosition.World.Position.Y,
+                character.MainWorldPosition.World.Position.Z,
+                character.MainWorldPosition.World.Rotation.X.DegToRad(),
+                character.MainWorldPosition.World.Rotation.Y.DegToRad(),
+                character.MainWorldPosition.World.Rotation.Z.DegToRad()
+            )
+        );
+    }
+
+    private void MoveCharacterToWorld(Character character, uint zoneId, float x, float y, float z)
+    {
+        character.DisabledSetPosition = true;
+        if (character.MainWorldPosition == null)
+        {
+            character.MainWorldPosition = character.Transform.CloneDetached(character);
+        }
+        character.Transform.ApplyWorldSpawnPosition(new WorldSpawnPosition { ZoneId = zoneId, X = x, Y = y, Z = z }, _world.Id);
+        character.SendPacket(new SCLoadInstancePacket(_world.Id, zoneId, x, y, z, 0, 0, 0));
+    }
+
+    public void BroadcastPacket(GamePacket packet)
+    {
+        foreach (var player in _players)
+        {
+            player.SendPacket(packet);
         }
     }
 }

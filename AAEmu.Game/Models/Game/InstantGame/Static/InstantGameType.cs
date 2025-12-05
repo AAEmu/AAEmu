@@ -1,8 +1,7 @@
-﻿namespace AAEmu.Game.Models.Game.InstantGame.Static
+﻿namespace AAEmu.Game.Models.Game.InstantGame.Static;
+
+public enum InstantGameType
 {
-    public enum InstantGameType
-    {
-        DrillCamp = 7,
-        Gladiator = 11,
-    }
+    DrillCamp = 7,
+    Gladiator = 11,
 }
