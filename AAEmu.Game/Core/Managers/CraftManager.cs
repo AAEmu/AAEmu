@@ -27,20 +27,20 @@ public class CraftManager : Singleton<CraftManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new Craft();
-                        template.Id = reader.GetUInt32("id");
-                        template.CastDelay = reader.GetInt32("cast_delay");
-                        template.ToolId = reader.GetUInt32("tool_id", 0);
-                        template.SkillId = reader.GetUInt32("skill_id", 0);
-                        template.WiId = reader.GetUInt32("wi_id");
-                        template.MilestoneId = reader.GetUInt32("milestone_id", 0);
-                        template.ReqDoodadId = reader.GetUInt32("req_doodad_id", 0);
-                        template.NeedBind = reader.GetBoolean("need_bind");
-                        template.AcId = reader.GetUInt32("ac_id", 0);
-                        template.ActabilityLimit = reader.GetInt32("actability_limit");
-                        template.ShowUpperCraft = reader.GetBoolean("show_upper_crafts");
-                        template.RecommendLevel = reader.GetInt32("recommend_level");
-                        template.VisibleOrder = reader.GetInt32("visible_order");
+                        var template = new Craft
+                        {
+                            Id = reader.GetUInt32("id"), CastDelay = reader.GetInt32("cast_delay"), ToolId = reader.GetUInt32("tool_id", 0),
+                            SkillId = reader.GetUInt32("skill_id", 0),
+                            WiId = reader.GetUInt32("wi_id"),
+                            MilestoneId = reader.GetUInt32("milestone_id", 0),
+                            ReqDoodadId = reader.GetUInt32("req_doodad_id", 0),
+                            NeedBind = reader.GetBoolean("need_bind"),
+                            AcId = reader.GetUInt32("ac_id", 0),
+                            ActabilityLimit = reader.GetInt32("actability_limit"),
+                            ShowUpperCraft = reader.GetBoolean("show_upper_crafts"),
+                            RecommendLevel = reader.GetInt32("recommend_level"),
+                            VisibleOrder = reader.GetInt32("visible_order")
+                        };
                         _crafts.Add(template.Id, template);
                     }
                 }
@@ -59,15 +59,15 @@ public class CraftManager : Singleton<CraftManager>
                         if (!_crafts.ContainsKey(craftId))
                             continue;
 
-                        var template = new CraftProduct();
-                        template.Id = reader.GetUInt32("id");
-                        template.CraftId = reader.GetUInt32("craft_id");
-                        template.ItemId = reader.GetUInt32("item_id");
-                        template.Amount = reader.GetInt32("amount", 1); //We always want to produce at least 1 item ?
-                        template.Rate = reader.GetInt32("rate");
-                        template.ShowLowerCrafts = reader.GetBoolean("show_lower_crafts");
-                        template.UseGrade = reader.GetBoolean("use_grade");
-                        template.ItemGradeId = reader.GetUInt32("item_grade_id");
+                        var template = new CraftProduct
+                        {
+                            Id = reader.GetUInt32("id"), CraftId = reader.GetUInt32("craft_id"), ItemId = reader.GetUInt32("item_id"),
+                            Amount = reader.GetInt32("amount", 1), //We always want to produce at least 1 item ?
+                            Rate = reader.GetInt32("rate"),
+                            ShowLowerCrafts = reader.GetBoolean("show_lower_crafts"),
+                            UseGrade = reader.GetBoolean("use_grade"),
+                            ItemGradeId = reader.GetUInt32("item_grade_id")
+                        };
 
                         _crafts[template.CraftId].CraftProducts.Add(template);
                     }
@@ -87,12 +87,11 @@ public class CraftManager : Singleton<CraftManager>
                         if (!_crafts.ContainsKey(craftId))
                             continue;
 
-                        var template = new CraftMaterial();
-                        template.Id = reader.GetUInt32("id");
-                        template.CraftId = craftId;
-                        template.ItemId = reader.GetUInt32("item_id");
-                        template.Amount = reader.GetInt32("amount", 1); //We always want to cost at least 1 item ?
-                        template.MainGrade = reader.GetBoolean("main_grade");
+                        var template = new CraftMaterial
+                        {
+                            Id = reader.GetUInt32("id"), CraftId = craftId, ItemId = reader.GetUInt32("item_id"), Amount = reader.GetInt32("amount", 1), //We always want to cost at least 1 item ?
+                            MainGrade = reader.GetBoolean("main_grade")
+                        };
 
                         _crafts[craftId].CraftMaterials.Add(template);
                     }

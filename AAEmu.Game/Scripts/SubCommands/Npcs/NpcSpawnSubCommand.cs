@@ -33,10 +33,7 @@ public class NpcSpawnSubCommand : SubCommandBase
 
         var selfCharacter = (Character)character;
 
-        var npcSpawner = new NpcSpawner();
-        npcSpawner.ParentWorld = ((Character)character).ParentWorld;
-        npcSpawner.Id = 0;
-        npcSpawner.UnitId = npcTemplateId;
+        var npcSpawner = new NpcSpawner { ParentWorld = ((Character)character).ParentWorld, Id = 0, UnitId = npcTemplateId };
         using var charPos = selfCharacter.Transform.CloneDetached();
         charPos.Local.AddDistanceToFront(3f);
         npcSpawner.Position = charPos.CloneAsSpawnPosition();

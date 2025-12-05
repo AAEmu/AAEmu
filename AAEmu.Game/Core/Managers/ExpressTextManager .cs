@@ -30,9 +30,7 @@ public class ExpressTextManager : Singleton<ExpressTextManager>, IExpressTextMan
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
         while (reader.Read())
         {
-            var template = new ExpressText();
-            template.Id = reader.GetUInt32("id");
-            template.AnimId = reader.GetUInt32("anim_id");
+            var template = new ExpressText { Id = reader.GetUInt32("id"), AnimId = reader.GetUInt32("anim_id") };
 
             if (!_expressTexts.ContainsKey(template.Id))
             {

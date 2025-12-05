@@ -84,24 +84,26 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new NpcSpawnerTemplate();
-                template.Id = reader.GetUInt32("id"); // matches NpcSpawnerTemplateId
-                template.NpcSpawnerCategoryId = (NpcSpawnerCategory)reader.GetUInt32("npc_spawner_category_id");
-                template.Name = reader.GetString("name");
-                template.Comment = reader.GetString("comment", "");
-                template.MaxPopulation = reader.GetUInt32("maxPopulation");
-                template.StartTime = reader.GetFloat("startTime");
-                template.EndTime = reader.GetFloat("endTime");
-                template.DestroyTime = reader.GetFloat("destroyTime");
-                template.SpawnDelayMin = reader.GetFloat("spawn_delay_min");
-                template.ActivationState = reader.GetBoolean("activation_state", true);
-                template.SaveIndun = reader.GetBoolean("save_indun", true);
-                template.MinPopulation = reader.GetUInt32("min_population");
-                template.TestRadiusNpc = reader.GetFloat("test_radius_npc");
-                template.TestRadiusPc = reader.GetFloat("test_radius_pc");
-                template.SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count");
-                template.SpawnDelayMax = reader.GetFloat("spawn_delay_max");
-                template.Npcs = [];
+                var template = new NpcSpawnerTemplate
+                {
+                    Id = reader.GetUInt32("id"), // matches NpcSpawnerTemplateId
+                    NpcSpawnerCategoryId = (NpcSpawnerCategory)reader.GetUInt32("npc_spawner_category_id"),
+                    Name = reader.GetString("name"),
+                    Comment = reader.GetString("comment", ""),
+                    MaxPopulation = reader.GetUInt32("maxPopulation"),
+                    StartTime = reader.GetFloat("startTime"),
+                    EndTime = reader.GetFloat("endTime"),
+                    DestroyTime = reader.GetFloat("destroyTime"),
+                    SpawnDelayMin = reader.GetFloat("spawn_delay_min"),
+                    ActivationState = reader.GetBoolean("activation_state", true),
+                    SaveIndun = reader.GetBoolean("save_indun", true),
+                    MinPopulation = reader.GetUInt32("min_population"),
+                    TestRadiusNpc = reader.GetFloat("test_radius_npc"),
+                    TestRadiusPc = reader.GetFloat("test_radius_pc"),
+                    SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count"),
+                    SpawnDelayMax = reader.GetFloat("spawn_delay_max"),
+                    Npcs = []
+                };
                 _npcSpawnerTemplates.Add(template.Id, template);
             }
         }
@@ -114,12 +116,14 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var nsn = new NpcSpawnerNpc();
-                nsn.Id = reader.GetUInt32("id");
-                nsn.NpcSpawnerTemplateId = reader.GetUInt32("npc_spawner_id");
-                nsn.MemberId = reader.GetUInt32("member_id");
-                nsn.MemberType = reader.GetString("member_type");
-                nsn.Weight = reader.GetFloat("weight");
+                var nsn = new NpcSpawnerNpc
+                {
+                    Id = reader.GetUInt32("id"),
+                    NpcSpawnerTemplateId = reader.GetUInt32("npc_spawner_id"),
+                    MemberId = reader.GetUInt32("member_id"),
+                    MemberType = reader.GetString("member_type"),
+                    Weight = reader.GetFloat("weight")
+                };
 
                 _npcSpawnerTemplateNpcs.Add(nsn.Id, nsn);
                 _npcSpawnerTemplates[nsn.NpcSpawnerTemplateId].Npcs.Add(nsn);

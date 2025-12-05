@@ -43,13 +43,13 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         using var reader = new SQLiteWrapperReader(sqliteReader);
         while (reader.Read())
         {
-            var t = new UnitReqs();
-            t.Id = reader.GetUInt32("id");
-            t.OwnerId = reader.GetUInt32("owner_id");
-            t.OwnerType = reader.GetString("owner_type");
-            t.KindType = (UnitReqsKindType)reader.GetUInt32("kind_id");
-            t.Value1 = reader.GetUInt32("value1");
-            t.Value2 = reader.GetUInt32("value2");
+            var t = new UnitReqs
+            {
+                Id = reader.GetUInt32("id"), OwnerId = reader.GetUInt32("owner_id"), OwnerType = reader.GetString("owner_type"),
+                KindType = (UnitReqsKindType)reader.GetUInt32("kind_id"),
+                Value1 = reader.GetUInt32("value1"),
+                Value2 = reader.GetUInt32("value2")
+            };
 
             _unitReqs.TryAdd(t.Id, t);
             if (!_unitReqsByOwnerType.ContainsKey(t.OwnerType))

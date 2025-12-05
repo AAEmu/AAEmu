@@ -47,22 +47,21 @@ public class CashShopManager : Singleton<CashShopManager>
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                var entry = new IcsSku();
-
-                entry.Sku = reader.GetUInt32("sku");
-                entry.ShopId = reader.GetUInt32("shop_id");
-                entry.Position = reader.GetInt32("position");
-                entry.ItemId = reader.GetUInt32("item_id");
-                entry.ItemCount = reader.GetUInt32("item_count");
-                entry.SelectType = reader.GetByte("select_type");
-                entry.IsDefault = reader.GetBoolean("is_default");
-                entry.EventType = reader.GetByte("event_type");
-                entry.EventEndDate = reader.IsDBNull(reader.GetOrdinal("event_end_date")) ? DateTime.MinValue : reader.GetDateTime("event_end_date");
-                entry.Currency = (CashShopCurrencyType)reader.GetByte("currency");
-                entry.Price = reader.GetUInt32("price");
-                entry.DiscountPrice = reader.GetUInt32("discount_price");
-                entry.BonusItemId = reader.GetUInt32("bonus_item_id");
-                entry.BonusItemCount = reader.GetUInt32("bonus_item_count");
+                var entry = new IcsSku
+                {
+                    Sku = reader.GetUInt32("sku"), ShopId = reader.GetUInt32("shop_id"), Position = reader.GetInt32("position"),
+                    ItemId = reader.GetUInt32("item_id"),
+                    ItemCount = reader.GetUInt32("item_count"),
+                    SelectType = reader.GetByte("select_type"),
+                    IsDefault = reader.GetBoolean("is_default"),
+                    EventType = reader.GetByte("event_type"),
+                    EventEndDate = reader.IsDBNull(reader.GetOrdinal("event_end_date")) ? DateTime.MinValue : reader.GetDateTime("event_end_date"),
+                    Currency = (CashShopCurrencyType)reader.GetByte("currency"),
+                    Price = reader.GetUInt32("price"),
+                    DiscountPrice = reader.GetUInt32("discount_price"),
+                    BonusItemId = reader.GetUInt32("bonus_item_id"),
+                    BonusItemCount = reader.GetUInt32("bonus_item_count")
+                };
 
                 if (!SKUs.TryAdd(entry.Sku, entry))
                     Logger.Error($"Duplicate SKU {entry.Sku}");
@@ -77,23 +76,24 @@ public class CashShopManager : Singleton<CashShopManager>
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                var entry = new IcsItem();
-
-                entry.ShopId = reader.GetUInt32("shop_id");
-                entry.DisplayItemId = reader.GetUInt32("display_item_id");
-                entry.Name = reader.IsDBNull(reader.GetOrdinal("name")) ? "" : reader.GetString("name");
-                entry.LimitedType = (CashShopLimitType)reader.GetByte("limited_type");
-                entry.LimitedStockMax = reader.GetUInt16("limited_stock_max");
-                entry.LevelMin = reader.GetByte("level_min");
-                entry.LevelMax = reader.GetByte("level_max");
-                entry.BuyRestrictType = (CashShopRestrictSaleType)reader.GetByte("buy_restrict_type");
-                entry.BuyRestrictId = reader.GetUInt32("buy_restrict_id");
-                entry.IsSale = reader.GetBoolean("is_sale");
-                entry.IsHidden = reader.GetBoolean("is_hidden");
-                entry.SaleStart = reader.IsDBNull(reader.GetOrdinal("sale_start")) ? DateTime.MinValue : reader.GetDateTime("sale_start");
-                entry.SaleEnd = reader.IsDBNull(reader.GetOrdinal("sale_end")) ? DateTime.MinValue : reader.GetDateTime("sale_end");
-                entry.Remaining = reader.GetInt32("remaining");
-                entry.ShopButtons = (CashShopCmdUiType)reader.GetByte("shop_buttons");
+                var entry = new IcsItem
+                {
+                    ShopId = reader.GetUInt32("shop_id"),
+                    DisplayItemId = reader.GetUInt32("display_item_id"),
+                    Name = reader.IsDBNull(reader.GetOrdinal("name")) ? "" : reader.GetString("name"),
+                    LimitedType = (CashShopLimitType)reader.GetByte("limited_type"),
+                    LimitedStockMax = reader.GetUInt16("limited_stock_max"),
+                    LevelMin = reader.GetByte("level_min"),
+                    LevelMax = reader.GetByte("level_max"),
+                    BuyRestrictType = (CashShopRestrictSaleType)reader.GetByte("buy_restrict_type"),
+                    BuyRestrictId = reader.GetUInt32("buy_restrict_id"),
+                    IsSale = reader.GetBoolean("is_sale"),
+                    IsHidden = reader.GetBoolean("is_hidden"),
+                    SaleStart = reader.IsDBNull(reader.GetOrdinal("sale_start")) ? DateTime.MinValue : reader.GetDateTime("sale_start"),
+                    SaleEnd = reader.IsDBNull(reader.GetOrdinal("sale_end")) ? DateTime.MinValue : reader.GetDateTime("sale_end"),
+                    Remaining = reader.GetInt32("remaining"),
+                    ShopButtons = (CashShopCmdUiType)reader.GetByte("shop_buttons")
+                };
 
                 if (!ShopItems.TryAdd(entry.ShopId, entry))
                     Logger.Error($"Duplicate ShopItem {entry.ShopId}");
@@ -139,12 +139,12 @@ public class CashShopManager : Singleton<CashShopManager>
                     continue;
                 }
 
-                var entry = new IcsMenu();
-                entry.Id = reader.GetInt64("id");
-                entry.MainTab = reader.GetByte("main_tab");
-                entry.SubTab = reader.GetByte("sub_tab");
-                entry.TabPos = reader.GetUInt16("tab_pos");
-                entry.ShopItem = shopItem;
+                var entry = new IcsMenu
+                {
+                    Id = reader.GetInt64("id"), MainTab = reader.GetByte("main_tab"), SubTab = reader.GetByte("sub_tab"),
+                    TabPos = reader.GetUInt16("tab_pos"),
+                    ShopItem = shopItem
+                };
 
                 // Note that this List should technically always be in order by main, sub and position
                 MenuItems.Add(entry);
@@ -242,18 +242,19 @@ public class CashShopManager : Singleton<CashShopManager>
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                var entry = new AuditIcsSale();
-
-                entry.BuyerAccount = reader.GetUInt32("buyer_account");
-                entry.BuyerChar = reader.GetUInt32("buyer_char");
-                entry.TargetAccount = reader.GetUInt32("target_account");
-                entry.TargetChar = reader.GetUInt32("target_char");
-                entry.SaleDate = reader.IsDBNull(reader.GetOrdinal("sale_date")) ? DateTime.MinValue : reader.GetDateTime("sale_date");
-                entry.ShopItemId = reader.GetUInt32("shop_item_id");
-                entry.Sku = reader.GetUInt32("sku"); // The SKU Id can be used to get the exact amount of items sold
-                entry.SaleCost = reader.GetInt32("sale_cost");
-                entry.SaleCurrency = (CashShopCurrencyType)(reader.GetByte("sale_currency"));
-                entry.Description = reader.GetString("description");
+                var entry = new AuditIcsSale
+                {
+                    BuyerAccount = reader.GetUInt32("buyer_account"),
+                    BuyerChar = reader.GetUInt32("buyer_char"),
+                    TargetAccount = reader.GetUInt32("target_account"),
+                    TargetChar = reader.GetUInt32("target_char"),
+                    SaleDate = reader.IsDBNull(reader.GetOrdinal("sale_date")) ? DateTime.MinValue : reader.GetDateTime("sale_date"),
+                    ShopItemId = reader.GetUInt32("shop_item_id"),
+                    Sku = reader.GetUInt32("sku"), // The SKU Id can be used to get the exact amount of items sold
+                    SaleCost = reader.GetInt32("sale_cost"),
+                    SaleCurrency = (CashShopCurrencyType)(reader.GetByte("sale_currency")),
+                    Description = reader.GetString("description")
+                };
 
                 res.Add(entry);
             }

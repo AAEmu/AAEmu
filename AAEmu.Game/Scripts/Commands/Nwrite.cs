@@ -192,11 +192,11 @@ public class Nwrite : ICommand
 
                                         var pos = npcs[i].Transform.World;
 
-                                        var newEntry = new JsonNpcSpawns();
-                                        newEntry.Position = new JsonPosition();
-                                        //newEntry.Count = 1;
-                                        newEntry.Id = newId;
-                                        newEntry.UnitId = npcs[i].TemplateId;
+                                        var newEntry = new JsonNpcSpawns
+                                        {
+                                            Position = new JsonPosition(), //newEntry.Count = 1;
+                                            Id = newId, UnitId = npcs[i].TemplateId
+                                        };
                                         newEntry.Position.X = pos.Position.X;
                                         newEntry.Position.Y = pos.Position.Y;
                                         newEntry.Position.Z = pos.Position.Z;
@@ -273,13 +273,14 @@ public class Nwrite : ICommand
                                     var newId = spawners[^1].Id + 1;
                                     var pos = npc.Transform.World;
 
-                                    var newEntry = new JsonNpcSpawns();
-                                    //newEntry.Count = 1;
-                                    newEntry.Id = newId;
-                                    newEntry.UnitId = npc.TemplateId;
-                                    newEntry.Position.X = pos.Position.X;
-                                    newEntry.Position.Y = pos.Position.Y;
-                                    newEntry.Position.Z = pos.Position.Z;
+                                    var newEntry = new JsonNpcSpawns
+                                    {
+                                        //newEntry.Count = 1;
+                                        Id = newId, UnitId = npc.TemplateId, Position =
+                                        {
+                                            X = pos.Position.X, Y = pos.Position.Y, Z = pos.Position.Z
+                                        }
+                                    };
                                     //var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
                                     //newEntry.Position.RotationX = rx;
                                     //newEntry.Position.RotationY = ry;

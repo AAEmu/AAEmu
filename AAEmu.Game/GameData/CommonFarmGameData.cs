@@ -29,9 +29,7 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new FarmGroup();
-                template.Id = reader.GetUInt32("id");
-                template.Count = reader.GetUInt32("count");
+                var template = new FarmGroup { Id = reader.GetUInt32("id"), Count = reader.GetUInt32("count") };
 
                 _farmGroup.TryAdd(template.Id, template);
             }
@@ -45,11 +43,13 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new FarmGroupDoodads();
-                template.Id = reader.GetUInt32("id");
-                template.FarmGroupId = (FarmType)reader.GetUInt32("farm_group_id");
-                template.DoodadId = reader.GetUInt32("doodad_id");
-                template.ItemId = reader.GetUInt32("item_id");
+                var template = new FarmGroupDoodads
+                {
+                    Id = reader.GetUInt32("id"),
+                    FarmGroupId = (FarmType)reader.GetUInt32("farm_group_id"),
+                    DoodadId = reader.GetUInt32("doodad_id"),
+                    ItemId = reader.GetUInt32("item_id")
+                };
 
                 _farmGroupDoodads.TryAdd(template.Id, template);
             }
@@ -63,11 +63,13 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new DoodadGroups();
-                template.Id = reader.GetUInt32("id");
-                template.GuardOnFieldTime = reader.GetUInt32("guard_on_field_time");
-                template.IsExport = reader.GetBoolean("is_export");
-                template.RemovedByHouse = reader.GetBoolean("removed_by_house");
+                var template = new DoodadGroups
+                {
+                    Id = reader.GetUInt32("id"),
+                    GuardOnFieldTime = reader.GetUInt32("guard_on_field_time"),
+                    IsExport = reader.GetBoolean("is_export"),
+                    RemovedByHouse = reader.GetBoolean("removed_by_house")
+                };
 
                 _doodadGroups.TryAdd(template.Id, template);
             }

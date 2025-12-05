@@ -54,10 +54,10 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 
             foreach (var sphereQuest in sphereQuestList)
             {
-                var newSphere = new SphereQuestStarter();
-                newSphere.Sphere = sphereQuest;
-                newSphere.QuestTemplateId = questComponent.ParentQuestTemplate.Id;
-                newSphere.SphereId = sphereIdToAdd;
+                var newSphere = new SphereQuestStarter
+                {
+                    Sphere = sphereQuest, QuestTemplateId = questComponent.ParentQuestTemplate.Id, SphereId = sphereIdToAdd
+                };
                 _questSpheresBasic.Add(newSphere);
 
                 foreach (var actTemplate in questComponent.ActTemplates)
@@ -276,11 +276,13 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
                 {
                     try
                     {
-                        var sphere = new SphereQuest();
-                        sphere.WorldId = worldTemplate.Name;
-                        sphere.ZoneId = zoneId;
-                        sphere.QuestId = uint.Parse(l1.Substring(6));
-                        sphere.ComponentId = uint.Parse(l2.Substring(6));
+                        var sphere = new SphereQuest
+                        {
+                            WorldId = worldTemplate.Name,
+                            ZoneId = zoneId,
+                            QuestId = uint.Parse(l1.Substring(6)),
+                            ComponentId = uint.Parse(l2.Substring(6))
+                        };
                         var subLine = l3.Substring(4).Replace("(", "").Replace(")", "").Replace("x", "")
                             .Replace("y", "").Replace("z", "").Replace(" ", "");
                         var posString = subLine.Split(',');

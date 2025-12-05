@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -407,10 +407,10 @@ public abstract class BaseCombatBehavior : Behavior
 
         if (Ai.Owner.Template.BaseSkillId == 0) { return false; }
 
-        var item = new AiSkill();
-        item.SkillId = (uint)Ai.Owner.Template.BaseSkillId;
-        item.Strafe = Ai.Owner.Template.BaseSkillStrafe;
-        item.Delay = Ai.Owner.Template.BaseSkillDelay;
+        var item = new AiSkill
+        {
+            SkillId = (uint)Ai.Owner.Template.BaseSkillId, Strafe = Ai.Owner.Template.BaseSkillStrafe, Delay = Ai.Owner.Template.BaseSkillDelay
+        };
         Logger.Info($"RefreshSkillQueue: Use BaseSkill: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, skill={item.SkillId}");
         _skillQueue.Enqueue(item);
 

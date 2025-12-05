@@ -96,9 +96,9 @@ public class HousingManager : Singleton<HousingManager>
             TemplateId = template.Id, // duplicate Id
             Id = template.Id,
             Faction = FactionManager.Instance.GetFaction(factionId),
-            Name = LocalizationManager.Instance.Get("housings", "name", template.Id)
+            Name = LocalizationManager.Instance.Get("housings", "name", template.Id),
+            Transform = { InstanceId = worldInstance.Id }
         };
-        house.Transform.InstanceId = worldInstance.Id;
         house.Hp = house.MaxHp;
         // Force public on always public properties on create
         if (template.AlwaysPublic)

@@ -390,11 +390,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                 Logger.Trace($"LoadQuestActs: ActId {actId} references quest ComponentId {componentId} that does not exist");
                 continue;
             }
-            var template = new QuestActTemplate(questComponentTemplate);
-
-            template.ActId = actId;
-            template.DetailId = reader.GetUInt32("act_detail_id");
-            template.DetailType = reader.GetString("act_detail_type");
+            var template = new QuestActTemplate(questComponentTemplate)
+            {
+                ActId = actId, DetailId = reader.GetUInt32("act_detail_id"), DetailType = reader.GetString("act_detail_type")
+            };
 
             // Populate _actsByComponent
             if (!_actsByComponent.TryGetValue(template.ParentComponent.Id, out var actInComponentList))
@@ -424,11 +423,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
         while (reader.Read())
         {
-            var template = new QuestSupplies();
-            template.Id = reader.GetUInt32("id");
-            template.Level = reader.GetByte("level");
-            template.Exp = reader.GetInt32("exp");
-            template.Copper = reader.GetInt32("copper");
+            var template = new QuestSupplies
+            {
+                Id = reader.GetUInt32("id"), Level = reader.GetByte("level"), Exp = reader.GetInt32("exp"), Copper = reader.GetInt32("copper")
+            };
             _supplies.Add(template.Level, template);
         }
     }
@@ -449,22 +447,24 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             if (!_questTemplates.TryGetValue(questId, out var questTemplate))
                 continue;
 
-            var template = new QuestComponentTemplate(questTemplate);
-            template.Id = reader.GetUInt32("id");
-            template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
-            template.NextComponent = reader.GetUInt32("next_component", 0);
-            template.NpcAiId = (QuestNpcAiName)reader.GetUInt32("npc_ai_id", 0);
-            template.NpcId = reader.GetUInt32("npc_id", 0);
-            template.SkillId = reader.GetUInt32("skill_id", 0);
-            template.SkillSelf = reader.GetBoolean("skill_self", true);
-            template.AiPathName = reader.GetString("ai_path_name", string.Empty);
-            template.AiPathTypeId = (PathType)reader.GetUInt32("ai_path_type_id");
-            template.NpcSpawnerId = reader.GetUInt32("npc_spawner_id", 0);
-            template.PlayCinemaBeforeBubble = reader.GetBoolean("play_cinema_before_bubble", true);
-            template.AiCommandSetId = reader.GetUInt32("ai_command_set_id", 0);
-            template.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
-            template.CinemaId = reader.GetUInt32("cinema_id", 0);
-            template.BuffId = reader.GetUInt32("buff_id", 0);
+            var template = new QuestComponentTemplate(questTemplate)
+            {
+                Id = reader.GetUInt32("id"),
+                KindId = (QuestComponentKind)reader.GetByte("component_kind_id"),
+                NextComponent = reader.GetUInt32("next_component", 0),
+                NpcAiId = (QuestNpcAiName)reader.GetUInt32("npc_ai_id", 0),
+                NpcId = reader.GetUInt32("npc_id", 0),
+                SkillId = reader.GetUInt32("skill_id", 0),
+                SkillSelf = reader.GetBoolean("skill_self", true),
+                AiPathName = reader.GetString("ai_path_name", string.Empty),
+                AiPathTypeId = (PathType)reader.GetUInt32("ai_path_type_id"),
+                NpcSpawnerId = reader.GetUInt32("npc_spawner_id", 0),
+                PlayCinemaBeforeBubble = reader.GetBoolean("play_cinema_before_bubble", true),
+                AiCommandSetId = reader.GetUInt32("ai_command_set_id", 0),
+                OrUnitReqs = reader.GetBoolean("or_unit_reqs", true),
+                CinemaId = reader.GetUInt32("cinema_id", 0),
+                BuffId = reader.GetUInt32("buff_id", 0)
+            };
             _componentTemplates.Add(template.Id, template);
 
             questTemplate.Components.Add(template.Id, template);
@@ -483,26 +483,26 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
         while (reader.Read())
         {
-            var template = new QuestTemplate();
-            template.Id = reader.GetUInt32("id");
-            template.Repeatable = reader.GetBoolean("repeatable", true);
-            template.Level = reader.GetByte("level", 0);
-            template.Selective = reader.GetBoolean("selective", true);
-            template.Successive = reader.GetBoolean("successive", true);
-            template.RestartOnFail = reader.GetBoolean("restart_on_fail", true);
-            template.ChapterIdx = reader.GetUInt32("chapter_idx", 0);
-            template.QuestIdx = reader.GetUInt32("quest_idx", 0);
-            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
-            template.LetItDone = reader.GetBoolean("let_it_done", true);
-            template.DetailId = (QuestDetail)reader.GetUInt32("detail_id");
-            template.ZoneId = reader.GetUInt32("zone_id");
-            template.CategoryId = reader.GetUInt32("category_id");
-            template.Degree = reader.GetInt32("degree", 0);
-            template.UseQuestCamera = reader.GetBoolean("use_quest_camera", true);
-            template.Score = reader.GetInt32("score", 0);
-            template.UseAcceptMessage = reader.GetBoolean("use_accept_message", true);
-            template.UseCompleteMessage = reader.GetBoolean("use_complete_message", true);
-            template.GradeId = reader.GetUInt32("grade_id", 0);
+            var template = new QuestTemplate
+            {
+                Id = reader.GetUInt32("id"), Repeatable = reader.GetBoolean("repeatable", true), Level = reader.GetByte("level", 0),
+                Selective = reader.GetBoolean("selective", true),
+                Successive = reader.GetBoolean("successive", true),
+                RestartOnFail = reader.GetBoolean("restart_on_fail", true),
+                ChapterIdx = reader.GetUInt32("chapter_idx", 0),
+                QuestIdx = reader.GetUInt32("quest_idx", 0),
+                MilestoneId = reader.GetUInt32("milestone_id", 0),
+                LetItDone = reader.GetBoolean("let_it_done", true),
+                DetailId = (QuestDetail)reader.GetUInt32("detail_id"),
+                ZoneId = reader.GetUInt32("zone_id"),
+                CategoryId = reader.GetUInt32("category_id"),
+                Degree = reader.GetInt32("degree", 0),
+                UseQuestCamera = reader.GetBoolean("use_quest_camera", true),
+                Score = reader.GetInt32("score", 0),
+                UseAcceptMessage = reader.GetBoolean("use_accept_message", true),
+                UseCompleteMessage = reader.GetBoolean("use_complete_message", true),
+                GradeId = reader.GetUInt32("grade_id", 0)
+            };
             _questTemplates.Add(template.Id, template);
         }
     }
@@ -538,9 +538,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActCheckCompleteComponent", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActCheckCompleteComponent(parentComponent);
-                    template.DetailId = actId;
-                    template.CompleteComponent = reader.GetUInt32("complete_component");
+                    var template = new QuestActCheckCompleteComponent(parentComponent)
+                    {
+                        DetailId = actId, CompleteComponent = reader.GetUInt32("complete_component")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -557,11 +558,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActCheckDistance", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActCheckDistance(parentComponent);
-                    template.DetailId = actId;
-                    template.WithIn = reader.GetBoolean("within", true);
-                    template.NpcId = reader.GetUInt32("npc_id");
-                    template.Distance = reader.GetInt32("distance");
+                    var template = new QuestActCheckDistance(parentComponent)
+                    {
+                        DetailId = actId, WithIn = reader.GetBoolean("within", true), NpcId = reader.GetUInt32("npc_id"),
+                        Distance = reader.GetInt32("distance")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -578,9 +579,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActCheckGuard", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActCheckGuard(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
+                    var template = new QuestActCheckGuard(parentComponent) { DetailId = actId, NpcId = reader.GetUInt32("npc_id") };
                     AddActTemplate(template);
                 }
             }
@@ -597,9 +596,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActCheckSphere", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActCheckSphere(parentComponent);
-                    template.DetailId = actId;
-                    template.SphereId = reader.GetUInt32("sphere_id");
+                    var template = new QuestActCheckSphere(parentComponent) { DetailId = actId, SphereId = reader.GetUInt32("sphere_id") };
                     AddActTemplate(template);
                 }
             }
@@ -616,18 +613,18 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActCheckTimer", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActCheckTimer(parentComponent);
-                    template.DetailId = actId;
-                    template.LimitTime = reader.GetInt32("limit_time");
-                    template.ForceChangeComponent = reader.GetBoolean("force_change_component", true);
-                    template.NextComponent = reader.GetUInt32("next_component");
-                    template.PlaySkill = reader.GetBoolean("play_skill", true);
-                    template.SkillId = reader.GetUInt32("skill_id", 0);
-                    template.CheckBuff = reader.GetBoolean("check_buf", true);
-                    template.BuffId = reader.GetUInt32("buff_id", 0);
-                    template.SustainBuff = reader.GetBoolean("sustain_buf", true);
-                    template.TimerNpcId = reader.GetUInt32("timer_npc_id", 0);
-                    template.IsSkillPlayer = reader.GetBoolean("is_skill_player", true);
+                    var template = new QuestActCheckTimer(parentComponent)
+                    {
+                        DetailId = actId, LimitTime = reader.GetInt32("limit_time"), ForceChangeComponent = reader.GetBoolean("force_change_component", true),
+                        NextComponent = reader.GetUInt32("next_component"),
+                        PlaySkill = reader.GetBoolean("play_skill", true),
+                        SkillId = reader.GetUInt32("skill_id", 0),
+                        CheckBuff = reader.GetBoolean("check_buf", true),
+                        BuffId = reader.GetUInt32("buff_id", 0),
+                        SustainBuff = reader.GetBoolean("sustain_buf", true),
+                        TimerNpcId = reader.GetUInt32("timer_npc_id", 0),
+                        IsSkillPlayer = reader.GetBoolean("is_skill_player", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -644,9 +641,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptBuff", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptBuff(parentComponent);
-                    template.DetailId = actId;
-                    template.BuffId = reader.GetUInt32("buff_id");
+                    var template = new QuestActConAcceptBuff(parentComponent) { DetailId = actId, BuffId = reader.GetUInt32("buff_id") };
                     AddActTemplate(template);
                 }
             }
@@ -663,9 +658,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptComponent", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptComponent(parentComponent);
-                    template.DetailId = actId;
-                    template.QuestContextId = reader.GetUInt32("quest_context_id");
+                    var template = new QuestActConAcceptComponent(parentComponent)
+                    {
+                        DetailId = actId, QuestContextId = reader.GetUInt32("quest_context_id")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -682,9 +678,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptDoodad", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptDoodad(parentComponent);
-                    template.DetailId = actId;
-                    template.DoodadId = reader.GetUInt32("doodad_id");
+                    var template = new QuestActConAcceptDoodad(parentComponent) { DetailId = actId, DoodadId = reader.GetUInt32("doodad_id") };
                     AddActTemplate(template);
                 }
             }
@@ -701,9 +695,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptItemEquip", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptItemEquip(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
+                    var template = new QuestActConAcceptItemEquip(parentComponent) { DetailId = actId, ItemId = reader.GetUInt32("item_id") };
                     AddActTemplate(template);
                 }
             }
@@ -720,10 +712,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptItemGain", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptItemGain(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Count = reader.GetInt32("count");
+                    var template = new QuestActConAcceptItemGain(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -740,12 +732,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptItem", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptItem(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Cleanup = reader.GetBoolean("cleanup", true);
-                    template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
-                    template.DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true);
+                    var template = new QuestActConAcceptItem(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Cleanup = reader.GetBoolean("cleanup", true),
+                        DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true),
+                        DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -762,9 +754,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptLevelUp", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptLevelUp(parentComponent);
-                    template.DetailId = actId;
-                    template.Level = reader.GetByte("level");
+                    var template = new QuestActConAcceptLevelUp(parentComponent) { DetailId = actId, Level = reader.GetByte("level") };
                     AddActTemplate(template);
                 }
             }
@@ -781,10 +771,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptNpcEmotion", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptNpcEmotion(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
-                    template.Emotion = reader.GetString("emotion");
+                    var template = new QuestActConAcceptNpcEmotion(parentComponent)
+                    {
+                        DetailId = actId, NpcId = reader.GetUInt32("npc_id"), Emotion = reader.GetString("emotion")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -801,9 +791,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptNpcKill", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptNpcKill(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
+                    var template = new QuestActConAcceptNpcKill(parentComponent) { DetailId = actId, NpcId = reader.GetUInt32("npc_id") };
                     AddActTemplate(template);
                 }
             }
@@ -820,9 +808,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptNpc", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptNpc(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
+                    var template = new QuestActConAcceptNpc(parentComponent) { DetailId = actId, NpcId = reader.GetUInt32("npc_id") };
                     AddActTemplate(template);
                 }
             }
@@ -839,9 +825,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptSkill", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptSkill(parentComponent);
-                    template.DetailId = actId;
-                    template.SkillId = reader.GetUInt32("skill_id");
+                    var template = new QuestActConAcceptSkill(parentComponent) { DetailId = actId, SkillId = reader.GetUInt32("skill_id") };
                     AddActTemplate(template);
                 }
             }
@@ -858,9 +842,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptSphere", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptSphere(parentComponent);
-                    template.DetailId = actId;
-                    template.SphereId = reader.GetUInt32("sphere_id");
+                    var template = new QuestActConAcceptSphere(parentComponent) { DetailId = actId, SphereId = reader.GetUInt32("sphere_id") };
                     AddActTemplate(template);
                 }
             }
@@ -877,8 +859,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConAutoComplete", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAutoComplete(parentComponent);
-                    template.DetailId = actId;
+                    var template = new QuestActConAutoComplete(parentComponent) { DetailId = actId };
                     AddActTemplate(template);
                 }
             }
@@ -895,9 +876,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConFail", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConFail(parentComponent);
-                    template.DetailId = actId;
-                    template.ForceChangeComponent = reader.GetBoolean("force_change_component", true);
+                    var template = new QuestActConFail(parentComponent)
+                    {
+                        DetailId = actId, ForceChangeComponent = reader.GetBoolean("force_change_component", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -914,11 +896,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConReportDoodad", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConReportDoodad(parentComponent);
-                    template.DetailId = actId;
-                    template.DoodadId = reader.GetUInt32("doodad_id");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
+                    var template = new QuestActConReportDoodad(parentComponent)
+                    {
+                        DetailId = actId, DoodadId = reader.GetUInt32("doodad_id"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -935,8 +917,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConReportJournal", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConReportJournal(parentComponent);
-                    template.DetailId = actId;
+                    var template = new QuestActConReportJournal(parentComponent) { DetailId = actId };
                     AddActTemplate(template);
                 }
             }
@@ -953,11 +934,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActConReportNpc", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConReportNpc(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActConReportNpc(parentComponent)
+                    {
+                        DetailId = actId, NpcId = reader.GetUInt32("npc_id"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -974,12 +955,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActEtcItemObtain", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActEtcItemObtain(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Count = reader.GetInt32("count");
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.Cleanup = reader.GetBoolean("cleanup", true);
+                    var template = new QuestActEtcItemObtain(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count"),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        Cleanup = reader.GetBoolean("cleanup", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -996,12 +977,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjAbilityLevel", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjAbilityLevel(parentComponent);
-                    template.DetailId = actId;
-                    template.AbilityId = (AbilityType)reader.GetByte("ability_id");
-                    template.Level = reader.GetByte("level");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjAbilityLevel(parentComponent)
+                    {
+                        DetailId = actId, AbilityId = (AbilityType)reader.GetByte("ability_id"), Level = reader.GetByte("level"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1019,20 +1000,20 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjAggro", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjAggro(parentComponent);
-                    template.DetailId = actId;
-                    template.Range = reader.GetInt32("range");
-                    template.Rank1 = reader.GetInt32("rank1", 0);
-                    template.Rank1Ratio = reader.GetInt32("rank1_ratio", 0);
-                    template.Rank1Item = reader.GetBoolean("rank1_item", true);
-                    template.Rank2 = reader.GetInt32("rank2", 0);
-                    template.Rank2Ratio = reader.GetInt32("rank2_ratio", 0);
-                    template.Rank2Item = reader.GetBoolean("rank2_item", true);
-                    template.Rank3 = reader.GetInt32("rank3", 0);
-                    template.Rank3Ratio = reader.GetInt32("rank3_ratio", 0);
-                    template.Rank3Item = reader.GetBoolean("rank3_item", true);
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
+                    var template = new QuestActObjAggro(parentComponent)
+                    {
+                        DetailId = actId, Range = reader.GetInt32("range"), Rank1 = reader.GetInt32("rank1", 0),
+                        Rank1Ratio = reader.GetInt32("rank1_ratio", 0),
+                        Rank1Item = reader.GetBoolean("rank1_item", true),
+                        Rank2 = reader.GetInt32("rank2", 0),
+                        Rank2Ratio = reader.GetInt32("rank2_ratio", 0),
+                        Rank2Item = reader.GetBoolean("rank2_item", true),
+                        Rank3 = reader.GetInt32("rank3", 0),
+                        Rank3Ratio = reader.GetInt32("rank3_ratio", 0),
+                        Rank3Item = reader.GetBoolean("rank3_item", true),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1050,11 +1031,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjCinema", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjCinema(parentComponent);
-                    template.DetailId = actId;
-                    template.CinemaId = reader.GetUInt32("cinema_id");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjCinema(parentComponent)
+                    {
+                        DetailId = actId, CinemaId = reader.GetUInt32("cinema_id"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1072,12 +1053,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjCompleteQuest", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjCompleteQuest(parentComponent);
-                    template.DetailId = actId;
-                    template.QuestId = reader.GetUInt32("quest_id");
-                    template.AcceptWith = reader.GetBoolean("accept_with", true);
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjCompleteQuest(parentComponent)
+                    {
+                        DetailId = actId, QuestId = reader.GetUInt32("quest_id"), AcceptWith = reader.GetBoolean("accept_with", true),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1095,12 +1076,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjCondition", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjCondition(parentComponent);
-                    template.DetailId = actId;
-                    template.ConditionId = reader.GetUInt32("condition_id");
-                    template.QuestContextId = reader.GetUInt32("quest_context_id");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjCondition(parentComponent)
+                    {
+                        DetailId = actId, ConditionId = reader.GetUInt32("condition_id"), QuestContextId = reader.GetUInt32("quest_context_id"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1118,14 +1099,14 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjCraft", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjCraft(parentComponent);
-                    template.DetailId = actId;
-                    template.CraftId = reader.GetUInt32("craft_id");
-                    template.Count = reader.GetInt32("count");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                    var template = new QuestActObjCraft(parentComponent)
+                    {
+                        DetailId = actId, CraftId = reader.GetUInt32("craft_id"), Count = reader.GetInt32("count"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id"),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1) // TODO phase = 0?
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1143,14 +1124,14 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjDistance", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjDistance(parentComponent);
-                    template.DetailId = actId;
-                    template.WithIn = reader.GetBoolean("within", true);
-                    template.NpcId = reader.GetUInt32("npc_id");
-                    template.Distance = reader.GetInt32("distance");
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjDistance(parentComponent)
+                    {
+                        DetailId = actId, WithIn = reader.GetBoolean("within", true), NpcId = reader.GetUInt32("npc_id"),
+                        Distance = reader.GetInt32("distance"),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1168,13 +1149,13 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjDoodadPhaseCheck", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjDoodadPhaseCheck(parentComponent);
-                    template.DetailId = actId;
-                    template.DoodadId = reader.GetUInt32("doodad_id");
-                    template.Phase1 = reader.GetUInt32("phase1", 0);
-                    template.Phase2 = reader.GetUInt32("phase2", 0);
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjDoodadPhaseCheck(parentComponent)
+                    {
+                        DetailId = actId, DoodadId = reader.GetUInt32("doodad_id"), Phase1 = reader.GetUInt32("phase1", 0),
+                        Phase2 = reader.GetUInt32("phase2", 0),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1192,12 +1173,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjDoodadPhaseCheck", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjEffectFire(parentComponent);
-                    template.DetailId = actId;
-                    template.EffectId = reader.GetUInt32("effect_id");
-                    template.Count = reader.GetInt32("count");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjEffectFire(parentComponent)
+                    {
+                        DetailId = actId, EffectId = reader.GetUInt32("effect_id"), Count = reader.GetInt32("count"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1215,13 +1196,13 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjExpressFire", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjExpressFire(parentComponent);
-                    template.DetailId = actId;
-                    template.ExpressKeyId = reader.GetUInt32("express_key_id");
-                    template.NpcGroupId = reader.GetUInt32("npc_group_id");
-                    template.Count = reader.GetInt32("count");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjExpressFire(parentComponent)
+                    {
+                        DetailId = actId, ExpressKeyId = reader.GetUInt32("express_key_id"), NpcGroupId = reader.GetUInt32("npc_group_id"),
+                        Count = reader.GetInt32("count"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1239,17 +1220,17 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjInteraction", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjInteraction(parentComponent);
-                    template.DetailId = actId;
-                    template.WorldInteractionId = (WorldInteractionType)reader.GetInt32("wi_id");
-                    template.Count = reader.GetInt32("count");
-                    template.DoodadId = reader.GetUInt32("doodad_id", 0);
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.TeamShare = reader.GetBoolean("team_share", true);
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.Phase = reader.GetUInt32("phase", 0);
+                    var template = new QuestActObjInteraction(parentComponent)
+                    {
+                        DetailId = actId, WorldInteractionId = (WorldInteractionType)reader.GetInt32("wi_id"), Count = reader.GetInt32("count"),
+                        DoodadId = reader.GetUInt32("doodad_id", 0),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        TeamShare = reader.GetBoolean("team_share", true),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        Phase = reader.GetUInt32("phase", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1267,17 +1248,17 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjItemGather", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjItemGather(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Count = reader.GetInt32("count");
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.Cleanup = reader.GetBoolean("cleanup", true);
-                    template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
-                    template.DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true);
+                    var template = new QuestActObjItemGather(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count"),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        Cleanup = reader.GetBoolean("cleanup", true),
+                        DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true),
+                        DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1295,17 +1276,17 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjItemGroupGather", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjItemGroupGather(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemGroupId = reader.GetUInt32("item_group_id");
-                    template.Count = reader.GetInt32("count");
-                    template.Cleanup = reader.GetBoolean("cleanup", true);
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
-                    template.DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true);
+                    var template = new QuestActObjItemGroupGather(parentComponent)
+                    {
+                        DetailId = actId, ItemGroupId = reader.GetUInt32("item_group_id"), Count = reader.GetInt32("count"),
+                        Cleanup = reader.GetBoolean("cleanup", true),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true),
+                        DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1323,15 +1304,15 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjItemGroupUse", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjItemGroupUse(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemGroupId = reader.GetUInt32("item_group_id");
-                    template.Count = reader.GetInt32("count");
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
+                    var template = new QuestActObjItemGroupUse(parentComponent)
+                    {
+                        DetailId = actId, ItemGroupId = reader.GetUInt32("item_group_id"), Count = reader.GetInt32("count"),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1348,15 +1329,15 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjItemUse", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjItemUse(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Count = reader.GetInt32("count");
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
+                    var template = new QuestActObjItemUse(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count"),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1373,11 +1354,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjLevel", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjLevel(parentComponent);
-                    template.DetailId = actId;
-                    template.Level = reader.GetByte("level");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjLevel(parentComponent)
+                    {
+                        DetailId = actId, Level = reader.GetByte("level"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1395,13 +1376,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjLevel", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjMateLevel(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Level = reader.GetByte("level");
-                    template.Cleanup = reader.GetBoolean("cleanup", true);
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjMateLevel(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Level = reader.GetByte("level"), Cleanup = reader.GetBoolean("cleanup", true),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1419,14 +1399,14 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjMonsterGroupHunt", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjMonsterGroupHunt(parentComponent);
-                    template.DetailId = actId;
-                    template.QuestMonsterGroupId = reader.GetUInt32("quest_monster_group_id");
-                    template.Count = reader.GetInt32("count");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                    var template = new QuestActObjMonsterGroupHunt(parentComponent)
+                    {
+                        DetailId = actId, QuestMonsterGroupId = reader.GetUInt32("quest_monster_group_id"), Count = reader.GetInt32("count"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1) // TODO phase = 0?
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1443,14 +1423,13 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjMonsterHunt", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjMonsterHunt(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
-                    template.Count = reader.GetInt32("count");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                    var template = new QuestActObjMonsterHunt(parentComponent)
+                    {
+                        DetailId = actId, NpcId = reader.GetUInt32("npc_id"), Count = reader.GetInt32("count"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1) // TODO phase = 0?
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1468,16 +1447,16 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjSendMail", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjSendMail(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId1 = reader.GetUInt32("item1_id", 0);
-                    template.Count1 = reader.GetInt32("count1");
-                    template.ItemId2 = reader.GetUInt32("item2_id", 0);
-                    template.Count2 = reader.GetInt32("count2");
-                    template.ItemId3 = reader.GetUInt32("item3_id", 0);
-                    template.Count3 = reader.GetInt32("count3");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjSendMail(parentComponent)
+                    {
+                        DetailId = actId, ItemId1 = reader.GetUInt32("item1_id", 0), Count1 = reader.GetInt32("count1"),
+                        ItemId2 = reader.GetUInt32("item2_id", 0),
+                        Count2 = reader.GetInt32("count2"),
+                        ItemId3 = reader.GetUInt32("item3_id", 0),
+                        Count3 = reader.GetInt32("count3"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1495,14 +1474,14 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjSphere", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjSphere(parentComponent);
-                    template.DetailId = actId;
-                    template.SphereId = reader.GetUInt32("sphere_id");
-                    template.NpcId = reader.GetUInt32("npc_id", 0);
-                    template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                    template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjSphere(parentComponent)
+                    {
+                        DetailId = actId, SphereId = reader.GetUInt32("sphere_id"), NpcId = reader.GetUInt32("npc_id", 0),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1520,11 +1499,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjTalkNpcGroup", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjTalkNpcGroup(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcGroupId = reader.GetUInt32("npc_group_id");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjTalkNpcGroup(parentComponent)
+                    {
+                        DetailId = actId, NpcGroupId = reader.GetUInt32("npc_group_id"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1542,13 +1521,13 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjTalk", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjTalk(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
-                    template.TeamShare = reader.GetBoolean("team_share", true);
-                    template.ItemId = reader.GetUInt32("item_id", 0);
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjTalk(parentComponent)
+                    {
+                        DetailId = actId, NpcId = reader.GetUInt32("npc_id"), TeamShare = reader.GetBoolean("team_share", true),
+                        ItemId = reader.GetUInt32("item_id", 0),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1566,10 +1545,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjZoneKill", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjZoneKill(parentComponent);
-                    template.DetailId = actId;
-                    template.CountPlayerKill = reader.GetInt32("count_pk");
-                    template.CountNpc = reader.GetInt32("count_npc");
+                    var template = new QuestActObjZoneKill(parentComponent)
+                    {
+                        DetailId = actId, CountPlayerKill = reader.GetInt32("count_pk"), CountNpc = reader.GetInt32("count_npc")
+                    };
                     template.Count = Math.Max(template.CountNpc, template.CountPlayerKill); // Exception since we have 2 possible values here
                     template.ZoneId = reader.GetUInt32("zone_id", 0);
                     template.TeamShare = reader.GetBoolean("team_share", true);
@@ -1601,12 +1580,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjZoneMonsterHunt", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjZoneMonsterHunt(parentComponent);
-                    template.DetailId = actId;
-                    template.ZoneId = reader.GetUInt32("zone_id");
-                    template.Count = reader.GetInt32("count");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjZoneMonsterHunt(parentComponent)
+                    {
+                        DetailId = actId, ZoneId = reader.GetUInt32("zone_id"), Count = reader.GetInt32("count"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1624,11 +1603,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjZoneNpcTalk", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjZoneNpcTalk(parentComponent);
-                    template.DetailId = actId;
-                    template.NpcId = reader.GetUInt32("npc_id");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjZoneNpcTalk(parentComponent)
+                    {
+                        DetailId = actId, NpcId = reader.GetUInt32("npc_id"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1646,12 +1625,12 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActObjZoneQuestComplete", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActObjZoneQuestComplete(parentComponent);
-                    template.DetailId = actId;
-                    template.ZoneId = reader.GetUInt32("zone_id");
-                    template.Count = reader.GetInt32("count");
-                    template.UseAlias = reader.GetBoolean("use_alias", true);
-                    template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                    var template = new QuestActObjZoneQuestComplete(parentComponent)
+                    {
+                        DetailId = actId, ZoneId = reader.GetUInt32("zone_id"), Count = reader.GetInt32("count"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1669,9 +1648,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyAaPoint", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyAaPoint(parentComponent);
-                    template.DetailId = actId;
-                    template.Point = reader.GetInt32("point");
+                    var template = new QuestActSupplyAaPoint(parentComponent) { DetailId = actId, Point = reader.GetInt32("point") };
                     AddActTemplate(template);
                 }
             }
@@ -1688,9 +1665,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyAppellation", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyAppellation(parentComponent);
-                    template.DetailId = actId;
-                    template.AppellationId = reader.GetUInt32("appellation_id");
+                    var template = new QuestActSupplyAppellation(parentComponent)
+                    {
+                        DetailId = actId, AppellationId = reader.GetUInt32("appellation_id")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1708,9 +1686,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyCopper", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyCopper(parentComponent);
-                    template.DetailId = actId;
-                    template.Amount = reader.GetInt32("amount");
+                    var template = new QuestActSupplyCopper(parentComponent) { DetailId = actId, Amount = reader.GetInt32("amount") };
                     AddActTemplate(template);
                 }
             }
@@ -1728,9 +1704,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyCrimePoint", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyCrimePoint(parentComponent);
-                    template.DetailId = actId;
-                    template.Point = reader.GetInt32("point");
+                    var template = new QuestActSupplyCrimePoint(parentComponent) { DetailId = actId, Point = reader.GetInt32("point") };
                     AddActTemplate(template);
                 }
             }
@@ -1748,9 +1722,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyExp", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyExp(parentComponent);
-                    template.DetailId = actId;
-                    template.Exp = reader.GetInt32("exp");
+                    var template = new QuestActSupplyExp(parentComponent) { DetailId = actId, Exp = reader.GetInt32("exp") };
                     AddActTemplate(template);
                 }
             }
@@ -1767,9 +1739,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyHonorPoint", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyHonorPoint(parentComponent);
-                    template.DetailId = actId;
-                    template.Point = reader.GetInt32("point");
+                    var template = new QuestActSupplyHonorPoint(parentComponent) { DetailId = actId, Point = reader.GetInt32("point") };
                     AddActTemplate(template);
                 }
             }
@@ -1787,9 +1757,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyInteraction", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyInteraction(parentComponent);
-                    template.DetailId = actId;
-                    template.WiId = (WorldInteractionType)reader.GetUInt32("wi_id");
+                    var template = new QuestActSupplyInteraction(parentComponent) { DetailId = actId, WiId = (WorldInteractionType)reader.GetUInt32("wi_id") };
                     AddActTemplate(template);
                 }
             }
@@ -1807,15 +1775,15 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyItem", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyItem(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Count = reader.GetInt32("count");
-                    template.GradeId = reader.GetByte("grade_id");
-                    template.ShowActionBar = reader.GetBoolean("show_action_bar", true);
-                    template.Cleanup = reader.GetBoolean("cleanup", true);
-                    template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
-                    template.DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true);
+                    var template = new QuestActSupplyItem(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count"),
+                        GradeId = reader.GetByte("grade_id"),
+                        ShowActionBar = reader.GetBoolean("show_action_bar", true),
+                        Cleanup = reader.GetBoolean("cleanup", true),
+                        DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true),
+                        DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1833,9 +1801,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyJuryPoint", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyJuryPoint(parentComponent);
-                    template.DetailId = actId;
-                    template.Point = reader.GetInt32("point");
+                    var template = new QuestActSupplyJuryPoint(parentComponent) { DetailId = actId, Point = reader.GetInt32("point") };
                     AddActTemplate(template);
                 }
             }
@@ -1852,9 +1818,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyLivingPoint", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyLivingPoint(parentComponent);
-                    template.DetailId = actId;
-                    template.Point = reader.GetInt32("point");
+                    var template = new QuestActSupplyLivingPoint(parentComponent) { DetailId = actId, Point = reader.GetInt32("point") };
                     AddActTemplate(template);
                 }
             }
@@ -1872,9 +1836,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyLp", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyLp(parentComponent);
-                    template.DetailId = actId;
-                    template.LaborPower = reader.GetInt32("lp");
+                    var template = new QuestActSupplyLp(parentComponent) { DetailId = actId, LaborPower = reader.GetInt32("lp") };
                     AddActTemplate(template);
                 }
             }
@@ -1892,10 +1854,10 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyRemoveItem", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyRemoveItem(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Count = reader.GetInt32("count");
+                    var template = new QuestActSupplyRemoveItem(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1913,11 +1875,11 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplySelectiveItem", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplySelectiveItem(parentComponent);
-                    template.DetailId = actId;
-                    template.ItemId = reader.GetUInt32("item_id");
-                    template.Count = reader.GetInt32("count");
-                    template.GradeId = reader.GetByte("grade_id");
+                    var template = new QuestActSupplySelectiveItem(parentComponent)
+                    {
+                        DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count"),
+                        GradeId = reader.GetByte("grade_id")
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1935,9 +1897,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                     var parentComponent = GetComponentByActTemplate("QuestActSupplySkill", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplySkill(parentComponent);
-                    template.DetailId = actId;
-                    template.SkillId = reader.GetUInt32("skill_id");
+                    var template = new QuestActSupplySkill(parentComponent) { DetailId = actId, SkillId = reader.GetUInt32("skill_id") };
                     AddActTemplate(template);
                 }
             }

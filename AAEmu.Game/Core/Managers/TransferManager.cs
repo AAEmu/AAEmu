@@ -90,8 +90,7 @@ public class TransferManager
         }
 
         // create a wagon cabin
-        var owner = new Transfer();
-        owner.ParentWorld = parentWorld;
+        var owner = new Transfer { ParentWorld = parentWorld };
         var carriage = TransferGameData.Instance.GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
         owner.Name = carriage.Name;
         owner.TlId = (ushort)TlIdManager.Instance.GetNextId();
@@ -125,21 +124,21 @@ public class TransferManager
         if (carriage.TransferBindings.Count <= 0) { return owner; }
 
         var boardingPart = TransferGameData.Instance.GetTransferTemplate(carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
-        var transfer = new Transfer();
-        transfer.ParentWorld = parentWorld;
-        transfer.Name = boardingPart.Name;
-        transfer.TlId = owner.TlId; // (ushort)TlIdManager.Instance.GetNextId();
-        transfer.ObjId = ObjectIdManager.Instance.GetNextId();
-        transfer.OwnerId = owner.ObjId;
-        transfer.Spawner = owner.Spawner;
-        transfer.TemplateId = boardingPart.Id;
-        transfer.Id = boardingPart.Id;
-        transfer.ModelId = boardingPart.ModelId;
-        transfer.Template = boardingPart;
-        transfer.Level = 1;
-        // Attach it to master
-        transfer.AttachPointId = owner.Template.TransferBindings[0].AttachPointId;
-        transfer.BondingObjId = owner.ObjId;
+        var transfer = new Transfer
+        {
+            ParentWorld = parentWorld, Name = boardingPart.Name, TlId = owner.TlId, // (ushort)TlIdManager.Instance.GetNextId();
+            ObjId = ObjectIdManager.Instance.GetNextId(),
+            OwnerId = owner.ObjId,
+            Spawner = owner.Spawner,
+            TemplateId = boardingPart.Id,
+            Id = boardingPart.Id,
+            ModelId = boardingPart.ModelId,
+            Template = boardingPart,
+            Level = 1,
+            // Attach it to master
+            AttachPointId = owner.Template.TransferBindings[0].AttachPointId,
+            BondingObjId = owner.ObjId
+        };
         transfer.Hp = transfer.MaxHp;
         transfer.Mp = transfer.MaxMp;
         transfer.Transform.ApplyWorldSpawnPosition(spawner.Position);

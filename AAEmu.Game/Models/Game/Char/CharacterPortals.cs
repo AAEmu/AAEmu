@@ -57,10 +57,10 @@ public class CharacterPortals(Character owner)
         {
             if (!VisitedDistricts.ContainsKey(subZoneId))
             {
-                var newVisitedDistrict = new VisitedDistrict();
-                newVisitedDistrict.Id = VisitedSubZoneIdManager.Instance.GetNextId();
-                newVisitedDistrict.SubZone = subZoneId;
-                newVisitedDistrict.Owner = Owner.Id;
+                var newVisitedDistrict = new VisitedDistrict
+                {
+                    Id = VisitedSubZoneIdManager.Instance.GetNextId(), SubZone = subZoneId, Owner = Owner.Id
+                };
                 VisitedDistricts.Add(subZoneId, newVisitedDistrict);
             }
             PopulateDistrictPortals();

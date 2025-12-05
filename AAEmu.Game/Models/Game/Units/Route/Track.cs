@@ -142,9 +142,7 @@ internal class Track : Patrol
                 // Stop moving to prepare for attack if it is smaller than the gap
                 if (Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z)) <= distance)
                 {
-                    var combat = new Combat();
-                    combat.LastPatrol = LastPatrol;
-                    combat.LoopDelay = 2900;
+                    var combat = new Combat { LastPatrol = LastPatrol, LoopDelay = 2900 };
                     combat.Pause(npc);
                     LastPatrol = combat;
                 }
@@ -169,12 +167,10 @@ internal class Track : Patrol
         {
             // 创建直线巡航回归上次巡航暂停点
             // Create a straight cruise to return to the last cruise pause
-            var line = new Line();
-            // 不可中断，不受外力及攻击影响 类似于处于脱战状态
-            // Uninterruptible, unaffected by external forces and attacks Similar to being in an off-war situation
-            line.Interrupt = true;
-            line.Loop = false;
-            line.Abandon = false;
+            var line = new Line {
+                // 不可中断，不受外力及攻击影响 类似于处于脱战状态
+                // Uninterruptible, unaffected by external forces and attacks Similar to being in an off-war situation
+                Interrupt = true, Loop = false, Abandon = false };
             line.Pause(npc);
             LastPatrol = line;
         }

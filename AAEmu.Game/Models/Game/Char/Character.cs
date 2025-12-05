@@ -2040,18 +2040,17 @@ public partial class Character : Unit, ICharacter
                     var modelParams = new UnitCustomModelParams();
                     modelParams.Read(stream);
 
-                    character = new Character(modelParams);
-                    character.AccountId = accountId;
-                    character.Id = reader.GetUInt32("id");
-                    character.Name = reader.GetString("name");
-                    character.AccessLevel = reader.GetInt32("access_level");
-                    character.Race = (Race)reader.GetByte("race");
-                    character.Gender = (Gender)reader.GetByte("gender");
-                    character.Level = reader.GetByte("level");
-                    character.Experience = reader.GetInt32("experience");
-                    character.RecoverableExp = reader.GetInt32("recoverable_exp");
-                    character.Hp = reader.GetInt32("hp");
-                    character.Mp = reader.GetInt32("mp");
+                    character = new Character(modelParams)
+                    {
+                        AccountId = accountId, Id = reader.GetUInt32("id"), Name = reader.GetString("name"), AccessLevel = reader.GetInt32("access_level"),
+                        Race = (Race)reader.GetByte("race"),
+                        Gender = (Gender)reader.GetByte("gender"),
+                        Level = reader.GetByte("level"),
+                        Experience = reader.GetInt32("experience"),
+                        RecoverableExp = reader.GetInt32("recoverable_exp"),
+                        Hp = reader.GetInt32("hp"),
+                        Mp = reader.GetInt32("mp")
+                    };
                     character._savedHp = character.Hp; // save for later
                     character._savedMp = character.Mp;
                     // character.LaborPower = reader.GetInt16("labor_power");
@@ -2156,9 +2155,7 @@ public partial class Character : Unit, ICharacter
                     var modelParams = new UnitCustomModelParams();
                     modelParams.Read(stream);
 
-                    character = new Character(modelParams);
-                    character.Id = reader.GetUInt32("id");
-                    character.AccountId = reader.GetUInt32("account_id");
+                    character = new Character(modelParams) { Id = reader.GetUInt32("id"), AccountId = reader.GetUInt32("account_id") };
 
                     var accountDetails = AccountManager.Instance.GetAccountDetails(character.AccountId);
 

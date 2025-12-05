@@ -134,27 +134,31 @@ public class MailManager : Singleton<MailManager>
                 {
                     while (reader.Read())
                     {
-                        var tempMail = new BaseMail();
-                        tempMail.Id = reader.GetInt32("id");
-                        tempMail.Title = reader.GetString("title");
-                        tempMail.MailType = (MailType)reader.GetInt32("type");
-                        tempMail.ReceiverName = reader.GetString("receiver_name");
-                        tempMail.OpenDate = reader.GetDateTime("open_date");
-
-                        tempMail.Header.Status = (MailStatus)reader.GetInt32("status");
-                        tempMail.Header.SenderId = reader.GetUInt32("sender_id");
-                        tempMail.Header.SenderName = reader.GetString("sender_name");
-                        tempMail.Header.Attachments = (byte)reader.GetInt32("attachment_count");
-                        tempMail.Header.ReceiverId = reader.GetUInt32("receiver_id");
-                        tempMail.Header.Returned = (reader.GetInt32("returned") != 0);
-                        tempMail.Header.Extra = reader.GetInt64("extra");
-
-                        tempMail.Body.Text = reader.GetString("text");
-                        tempMail.Body.CopperCoins = reader.GetInt32("money_amount_1");
-                        tempMail.Body.BillingAmount = reader.GetInt32("money_amount_2");
-                        tempMail.Body.MoneyAmount2 = reader.GetInt32("money_amount_3");
-                        tempMail.Body.SendDate = reader.GetDateTime("send_date");
-                        tempMail.Body.RecvDate = reader.GetDateTime("received_date");
+                        var tempMail = new BaseMail
+                        {
+                            Id = reader.GetInt32("id"), Title = reader.GetString("title"), MailType = (MailType)reader.GetInt32("type"),
+                            ReceiverName = reader.GetString("receiver_name"),
+                            OpenDate = reader.GetDateTime("open_date"),
+                            Header =
+                            {
+                                Status = (MailStatus)reader.GetInt32("status"),
+                                SenderId = reader.GetUInt32("sender_id"),
+                                SenderName = reader.GetString("sender_name"),
+                                Attachments = (byte)reader.GetInt32("attachment_count"),
+                                ReceiverId = reader.GetUInt32("receiver_id"),
+                                Returned = (reader.GetInt32("returned") != 0),
+                                Extra = reader.GetInt64("extra")
+                            },
+                            Body =
+                            {
+                                Text = reader.GetString("text"),
+                                CopperCoins = reader.GetInt32("money_amount_1"),
+                                BillingAmount = reader.GetInt32("money_amount_2"),
+                                MoneyAmount2 = reader.GetInt32("money_amount_3"),
+                                SendDate = reader.GetDateTime("send_date"),
+                                RecvDate = reader.GetDateTime("received_date")
+                            }
+                        };
 
                         // Read/Load Items
                         tempMail.Body.Attachments.Clear();
@@ -548,16 +552,14 @@ public class MailManager : Singleton<MailManager>
         {
             if ((mail == null) || (mail.Body.Attachments.Count >= 10))
             {
-                mail = new MailPlayerToPlayer(character, character.Name);
-                mail.Header.SenderId = 0;
-                mail.Header.SenderName = ".questReward";
-                mail.MailType = MailType.SysExpress;
-                // NOTE: On newer versions, this uses the .title / .body format, but this doesn't seem to work on 1.2
-                // mail.Title = $".title('{questName}')";
-                // mail.Body.Text = $".body('{questName}')";
-                mail.Title = questName;
-                mail.Body.Text = $"Reward for quest {questName}.";
-                mail.Body.CopperCoins = mailCopper;
+                mail = new MailPlayerToPlayer(character, character.Name)
+                {
+                    Header = { SenderId = 0, SenderName = ".questReward" }, MailType = MailType.SysExpress, // NOTE: On newer versions, this uses the .title / .body format, but this doesn't seem to work on 1.2
+                    // mail.Title = $".title('{questName}')";
+                    // mail.Body.Text = $".body('{questName}')";
+                    Title = questName,
+                    Body = { Text = $"Reward for quest {questName}.", CopperCoins = mailCopper }
+                };
                 mailCopper = 0;
                 resultList.Add(mail);
             }

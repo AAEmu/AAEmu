@@ -24,14 +24,11 @@ public class CSCreateShipyardPacket() : GamePacket(CSOffsets.CSCreateShipyardPac
         var mAABBmxZ = stream.ReadSingle();
         var autoUseAAPoint = stream.ReadBoolean();
 
-        var shipyardData = new ShipyardData();
-        shipyardData.TemplateId = id;
-        shipyardData.X = x;
-        shipyardData.Y = y;
-        shipyardData.Z = z;
-        shipyardData.zRot = zRot;
-        shipyardData.Id = designItem;
-        shipyardData.Step = 0;
+        var shipyardData = new ShipyardData { TemplateId = id, X = x, Y = y, Z = z,
+            zRot = zRot,
+            Id = designItem,
+            Step = 0
+        };
 
         Logger.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
         ShipyardManager.Instance.Create(Connection.ActiveChar, shipyardData);

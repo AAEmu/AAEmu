@@ -25,8 +25,7 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
         using var reader = new SQLiteWrapperReader(sqliteReader);
         while (reader.Read())
         {
-            var template = new FishDetails();
-            template.Id = reader.GetInt32("id");
+            var template = new FishDetails { Id = reader.GetInt32("id") };
             template.Name = LocalizationManager.Instance.Get("fish_details", "name", template.Id, reader.GetString("name"));
             template.ItemId = reader.GetUInt32("item_id");
             template.MinWeight = reader.GetInt32("min_weight");
@@ -66,8 +65,7 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
             return null;
         }
 
-        var fish = new BigFish(item.Id, template, 1);
-        fish.CreateTime = DateTime.UtcNow;
+        var fish = new BigFish(item.Id, template, 1) { CreateTime = DateTime.UtcNow };
         (fish.Length, fish.Weight) = GetFishSize(item.MadeUnitId);
 
         var byteArray = new byte[16];

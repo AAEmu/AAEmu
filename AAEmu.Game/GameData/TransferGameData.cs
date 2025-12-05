@@ -44,15 +44,14 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new TransferTemplate();
-
-                    template.Id = reader.GetUInt32("id"); // OwnerId
-                    template.Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"),
-                        reader.GetString("comment"));
-                    template.ModelId = reader.GetUInt32("model_id");
-                    template.WaitTime = reader.GetFloat("wait_time");
-                    template.Cyclic = reader.GetBoolean("cyclic", true);
-                    template.PathSmoothing = reader.GetFloat("path_smoothing");
+                    var template = new TransferTemplate { Id = reader.GetUInt32("id"), // OwnerId
+                        Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"),
+                        reader.GetString("comment")),
+                        ModelId = reader.GetUInt32("model_id"),
+                        WaitTime = reader.GetFloat("wait_time"),
+                        Cyclic = reader.GetBoolean("cyclic", true),
+                        PathSmoothing = reader.GetFloat("path_smoothing")
+                    };
 
                     _templates.Add(template.Id, template);
                 }

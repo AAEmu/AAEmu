@@ -540,8 +540,7 @@ public class Skill
 
     private static BaseUnit SetInitialTarget(BaseUnit caster, SkillCastTarget targetCaster)
     {
-        var positionUnit = new BaseUnit();
-        positionUnit.ObjId = uint.MaxValue;
+        var positionUnit = new BaseUnit { ObjId = uint.MaxValue };
         positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
         switch (targetCaster)
         {

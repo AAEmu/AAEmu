@@ -28,10 +28,10 @@ public class TaxationsManager : Singleton<TaxationsManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new Taxation();
-                        template.Id = reader.GetUInt32("id");
-                        template.Tax = reader.GetUInt32("tax");
-                        template.Show = reader.GetBoolean("show", true);
+                        var template = new Taxation
+                        {
+                            Id = reader.GetUInt32("id"), Tax = reader.GetUInt32("tax"), Show = reader.GetBoolean("show", true)
+                        };
                         taxations.Add(template.Id, template);
                     }
                 }

@@ -53,36 +53,34 @@ public class ShipyardManager : Singleton<ShipyardManager>
 
         var objId = ObjectIdManager.Instance.GetNextId();
         var shipId = ShipyardIdManager.Instance.GetNextId();
-        var shipyard = new Shipyard();
-        shipyard.Transform.InstanceId = owner.ParentWorld.Id;
-        shipyard.TemplateId = shipyardData.TemplateId; // duplicate Id
-        shipyard.Id = shipyardData.TemplateId;
-        shipyard.ObjId = objId;
-        shipyard.Template = template;
-        shipyard.Faction = owner.Faction;
-        shipyard.Level = 30;
+        var shipyard = new Shipyard
+        {
+            Transform = { InstanceId = owner.ParentWorld.Id }, TemplateId = shipyardData.TemplateId, // duplicate Id
+            Id = shipyardData.TemplateId,
+            ObjId = objId,
+            Template = template,
+            Faction = owner.Faction,
+            Level = 30
+        };
         shipyard.Hp = shipyard.MaxHp;
         shipyard.Name = owner.Name;
         shipyard.ModelId = template.ShipyardSteps[shipyardData.Step].ModelId;
         shipyard.Transform.ApplyWorldSpawnPosition(pos);
 
-        shipyard.ShipyardData = new ShipyardData();
-        shipyard.ShipyardData.Id = shipId;
-        shipyard.ShipyardData.TemplateId = template.Id;
-        shipyard.ShipyardData.X = pos.X;
-        shipyard.ShipyardData.Y = pos.Y;
-        shipyard.ShipyardData.Z = pos.Z;
-        shipyard.ShipyardData.zRot = pos.Yaw;
-        shipyard.ShipyardData.MoneyAmount = 0;
-        shipyard.ShipyardData.Actions = shipyardData.Step;
-        shipyard.ShipyardData.Type = template.OriginItemId;
-        shipyard.ShipyardData.OwnerName = owner.Name;
-        shipyard.ShipyardData.Type2 = owner.Id;
-        shipyard.ShipyardData.Type3 = owner.Faction.Id;
-        shipyard.ShipyardData.Spawned = DateTime.UtcNow;
-        shipyard.ShipyardData.ObjId = objId;
-        shipyard.ShipyardData.Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100;
-        shipyard.ShipyardData.Step = shipyardData.Step;
+        shipyard.ShipyardData = new ShipyardData { Id = shipId, TemplateId = template.Id, X = pos.X, Y = pos.Y,
+            Z = pos.Z,
+            zRot = pos.Yaw,
+            MoneyAmount = 0,
+            Actions = shipyardData.Step,
+            Type = template.OriginItemId,
+            OwnerName = owner.Name,
+            Type2 = owner.Id,
+            Type3 = owner.Faction.Id,
+            Spawned = DateTime.UtcNow,
+            ObjId = objId,
+            Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100,
+            Step = shipyardData.Step
+        };
 
         // we will make checks for the availability of money and items to create a shipyard
         // and remove from the inventory items and money necessary for the construction of the shipyard
@@ -199,8 +197,7 @@ public class ShipyardManager : Singleton<ShipyardManager>
     {
         var character = WorldManager.Instance.GetCharacter(shipyard.ShipyardData.OwnerName);
         character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Shipyard, shipyard.Template.ItemId, 1, 0);
-        var shipyardCompleteTask = new ShipyardCompleteTask();
-        shipyardCompleteTask._shipyard = shipyard;
+        var shipyardCompleteTask = new ShipyardCompleteTask { _shipyard = shipyard };
 
         shipyard.ShipyardData.Step = 1000; // last step, the ceremony of launching the ship
         character.BroadcastPacket(new SCShipyardStatePacket(shipyard.ShipyardData), true);

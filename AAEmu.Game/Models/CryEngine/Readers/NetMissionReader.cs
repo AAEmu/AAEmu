@@ -38,14 +38,13 @@ public class NetMissionReader : BaiReader
         var nodeCount = Reader.ReadInt32();
         for (var i = 0; i < nodeCount; i++)
         {
-            var nodeDescriptor = new NodeDescriptor(this);
-            nodeDescriptor.Id = Reader.ReadInt32();
-            nodeDescriptor.Dir = ReadVector3(true);
-            nodeDescriptor.Up = ReadVector3(true);
-            nodeDescriptor.Pos = ReadVector3();
-            nodeDescriptor.Index = Reader.ReadInt32();
+            var nodeDescriptor = new NodeDescriptor(this)
+            {
+                Id = Reader.ReadInt32(), Dir = ReadVector3(true), Up = ReadVector3(true), Pos = ReadVector3(),
+                Index = Reader.ReadInt32(),
+                Obstacle = new int[3]
+            };
 
-            nodeDescriptor.Obstacle = new int[3];
             for (var j = 0; j < nodeDescriptor.Obstacle.Length; j++)
             {
                 nodeDescriptor.Obstacle[j] = Reader.ReadInt32();
@@ -64,19 +63,19 @@ public class NetMissionReader : BaiReader
         var edgeCount = Reader.ReadInt32();
         for (var i = 0; i < edgeCount; i++)
         {
-            var linkDescriptor = new LinkDescriptor(this);
-            linkDescriptor.SourceNode = Reader.ReadUInt32();
-            linkDescriptor.TargetNode = Reader.ReadUInt32();
-            linkDescriptor.EdgeCenter = ReadVector3();
-            linkDescriptor.MaxPassRadius = Reader.ReadSingle();
-            linkDescriptor.Exposure = Reader.ReadSingle();
-            linkDescriptor.Length = Reader.ReadSingle();
-            linkDescriptor.MaxWaterDepth = Reader.ReadSingle();
-            linkDescriptor.MinWaterDepth = Reader.ReadSingle();
-            linkDescriptor.StartIndex = Reader.ReadByte();
-            linkDescriptor.EndIndex = Reader.ReadByte();
-            linkDescriptor.IsPureTriangularLink = (Reader.ReadByte() == 1);
-            linkDescriptor.SimplePassabilityCheck = (Reader.ReadByte() == 1);
+            var linkDescriptor = new LinkDescriptor(this)
+            {
+                SourceNode = Reader.ReadUInt32(), TargetNode = Reader.ReadUInt32(), EdgeCenter = ReadVector3(),
+                MaxPassRadius = Reader.ReadSingle(),
+                Exposure = Reader.ReadSingle(),
+                Length = Reader.ReadSingle(),
+                MaxWaterDepth = Reader.ReadSingle(),
+                MinWaterDepth = Reader.ReadSingle(),
+                StartIndex = Reader.ReadByte(),
+                EndIndex = Reader.ReadByte(),
+                IsPureTriangularLink = (Reader.ReadByte() == 1),
+                SimplePassabilityCheck = (Reader.ReadByte() == 1)
+            };
             // Cache source and target nodes
             linkDescriptor.SourceNodeDescriptor = this.NodeDescriptorList.GetValueOrDefault(linkDescriptor.SourceNode);
             linkDescriptor.TargetNodeDescriptor = this.NodeDescriptorList.GetValueOrDefault(linkDescriptor.TargetNode);

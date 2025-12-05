@@ -18,9 +18,7 @@ public class MerchantGoods(uint id)
     {
         if (SellsItem(itemTemplateId))
             return;
-        var newItem = new MerchantGoodsItem();
-        newItem.ItemTemplateId = itemTemplateId;
-        newItem.Grade = itemGrade;
+        var newItem = new MerchantGoodsItem { ItemTemplateId = itemTemplateId, Grade = itemGrade };
 
         Items.Add(newItem);
     }

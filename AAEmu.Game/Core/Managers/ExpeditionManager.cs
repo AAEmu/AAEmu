@@ -29,18 +29,18 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
     public static Expedition Create(string name, Character owner)
     {
-        var expedition = new Expedition();
-        expedition.Id = (FactionsEnum)ExpeditionIdManager.Instance.GetNextId();
-        expedition.MotherId = owner.Faction.Id;
-        expedition.Name = name;
-        expedition.OwnerId = owner.Id;
-        expedition.OwnerName = owner.Name;
-        expedition.UnitOwnerType = 0;
-        expedition.PoliticalSystem = 1;
-        expedition.Created = DateTime.UtcNow;
-        expedition.AggroLink = false;
-        expedition.DiplomacyTarget = false;
-        expedition.Members = [];
+        var expedition = new Expedition
+        {
+            Id = (FactionsEnum)ExpeditionIdManager.Instance.GetNextId(), MotherId = owner.Faction.Id, Name = name,
+            OwnerId = owner.Id,
+            OwnerName = owner.Name,
+            UnitOwnerType = 0,
+            PoliticalSystem = 1,
+            Created = DateTime.UtcNow,
+            AggroLink = false,
+            DiplomacyTarget = false,
+            Members = []
+        };
         expedition.Policies = GetDefaultPolicies(expedition.Id);
 
         var member = GetMemberFromCharacter(expedition, owner, true);
@@ -65,17 +65,19 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                 {
                     while (reader.Read())
                     {
-                        var expedition = new Expedition();
-                        expedition.Id = (FactionsEnum)reader.GetUInt32("id");
-                        expedition.MotherId = (FactionsEnum)reader.GetUInt32("mother");
-                        expedition.Name = reader.GetString("name");
-                        expedition.OwnerId = reader.GetUInt32("owner");
-                        expedition.OwnerName = reader.GetString("owner_name");
-                        expedition.UnitOwnerType = 0;
-                        expedition.PoliticalSystem = 1;
-                        expedition.Created = reader.GetDateTime("created_at");
-                        expedition.AggroLink = false;
-                        expedition.DiplomacyTarget = false;
+                        var expedition = new Expedition
+                        {
+                            Id = (FactionsEnum)reader.GetUInt32("id"),
+                            MotherId = (FactionsEnum)reader.GetUInt32("mother"),
+                            Name = reader.GetString("name"),
+                            OwnerId = reader.GetUInt32("owner"),
+                            OwnerName = reader.GetString("owner_name"),
+                            UnitOwnerType = 0,
+                            PoliticalSystem = 1,
+                            Created = reader.GetDateTime("created_at"),
+                            AggroLink = false,
+                            DiplomacyTarget = false
+                        };
 
                         _expeditions.Add(expedition.Id, expedition);
                     }
@@ -93,20 +95,21 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                     {
                         while (reader.Read())
                         {
-                            var member = new ExpeditionMember();
-                            member.CharacterId = reader.GetUInt32("character_id");
-                            member.ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id");
-                            member.Role = reader.GetByte("role");
-                            member.Memo = reader.GetString("memo");
-                            member.LastWorldLeaveTime = reader.GetDateTime("last_leave_time");
-                            member.Name = reader.GetString("name");
-                            member.Level = reader.GetByte("level");
-                            member.Abilities =
-                            [
-                                reader.GetByte("ability1"), reader.GetByte("ability2"), reader.GetByte("ability3")
-                            ];
-                            member.IsOnline = false;
-                            member.InParty = false;
+                            var member = new ExpeditionMember
+                            {
+                                CharacterId = reader.GetUInt32("character_id"), ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id"),
+                                Role = reader.GetByte("role"),
+                                Memo = reader.GetString("memo"),
+                                LastWorldLeaveTime = reader.GetDateTime("last_leave_time"),
+                                Name = reader.GetString("name"),
+                                Level = reader.GetByte("level"),
+                                Abilities =
+                                [
+                                    reader.GetByte("ability1"), reader.GetByte("ability2"), reader.GetByte("ability3")
+                                ],
+                                IsOnline = false,
+                                InParty = false
+                            };
                             expedition.Members.Add(member);
                         }
                     }
@@ -122,19 +125,20 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                     {
                         while (reader.Read())
                         {
-                            var policy = new ExpeditionRolePolicy();
-                            policy.ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id");
-                            policy.Role = reader.GetByte("role");
-                            policy.Name = reader.GetString("name");
-                            policy.DominionDeclare = reader.GetBoolean("dominion_declare");
-                            policy.Invite = reader.GetBoolean("invite");
-                            policy.Expel = reader.GetBoolean("expel");
-                            policy.Promote = reader.GetBoolean("promote");
-                            policy.Dismiss = reader.GetBoolean("dismiss");
-                            policy.Chat = reader.GetBoolean("chat");
-                            policy.ManagerChat = reader.GetBoolean("manager_chat");
-                            policy.SiegeMaster = reader.GetBoolean("siege_master");
-                            policy.JoinSiege = reader.GetBoolean("join_siege");
+                            var policy = new ExpeditionRolePolicy
+                            {
+                                ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id"), Role = reader.GetByte("role"),
+                                Name = reader.GetString("name"),
+                                DominionDeclare = reader.GetBoolean("dominion_declare"),
+                                Invite = reader.GetBoolean("invite"),
+                                Expel = reader.GetBoolean("expel"),
+                                Promote = reader.GetBoolean("promote"),
+                                Dismiss = reader.GetBoolean("dismiss"),
+                                Chat = reader.GetBoolean("chat"),
+                                ManagerChat = reader.GetBoolean("manager_chat"),
+                                SiegeMaster = reader.GetBoolean("siege_master"),
+                                JoinSiege = reader.GetBoolean("join_siege")
+                            };
                             expedition.Policies.Add(policy);
                         }
                     }
@@ -519,18 +523,17 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
     public static ExpeditionMember GetMemberFromCharacter(Expedition expedition, Character character, bool owner)
     {
-        var member = new ExpeditionMember();
-        member.IsOnline = true;
-        member.Name = character.Name;
-        member.Level = character.Level;
-        member.Role = (byte)(owner ? 255 : 0);
-        member.Memo = "";
-        member.Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z);
-        member.ZoneId = character.Transform.ZoneId;
-        member.Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3];
-        member.ExpeditionId = expedition.Id;
-        member.CharacterId = character.Id;
-        member.LastWorldLeaveTime = DateTime.UtcNow;
+        var member = new ExpeditionMember
+        {
+            IsOnline = true, Name = character.Name, Level = character.Level, Role = (byte)(owner ? 255 : 0),
+            Memo = "",
+            Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z),
+            ZoneId = character.Transform.ZoneId,
+            Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3],
+            ExpeditionId = expedition.Id,
+            CharacterId = character.Id,
+            LastWorldLeaveTime = DateTime.UtcNow
+        };
 
         return member;
     }

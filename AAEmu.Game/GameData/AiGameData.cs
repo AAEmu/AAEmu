@@ -104,8 +104,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                 var tempListId = new List<uint>();
                 while (reader.Read())
                 {
-                    var template = new AiCommands();
-                    template.Id = reader.GetUInt32("id");
+                    var template = new AiCommands { Id = reader.GetUInt32("id") };
                     if (tempListId.Contains(template.Id))
                     {
                         continue; // The table contains duplicates.
@@ -137,10 +136,10 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new AiCommandSets();
-                    template.Id = reader.GetUInt32("id");
-                    template.Name = reader.GetString("name");
-                    template.CanInteract = reader.GetBoolean("can_interact");
+                    var template = new AiCommandSets
+                    {
+                        Id = reader.GetUInt32("id"), Name = reader.GetString("name"), CanInteract = reader.GetBoolean("can_interact")
+                    };
 
                     _aiCommandSets.TryAdd(template.Id, template);
                 }
@@ -162,10 +161,10 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
 
         while (reader.Read())
         {
-            var bubble = new NpcChatBubble();
-            bubble.Id = reader.GetInt32("id");
-            bubble.AiEventId = reader.GetInt32("ai_event_id");
-            bubble.Bubble = reader.GetString("bubble");
+            var bubble = new NpcChatBubble
+            {
+                Id = reader.GetInt32("id"), AiEventId = reader.GetInt32("ai_event_id"), Bubble = reader.GetString("bubble")
+            };
             _npcChatBubbles[bubble.AiEventId] = bubble;
         }
 
@@ -183,14 +182,14 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
 
         while (reader.Read())
         {
-            var aiEvent = new AiEvent();
-            aiEvent.Id = reader.GetInt32("id");
-            aiEvent.IgnoreCategoryId = reader.GetInt32("ignore_category_id");
-            aiEvent.Weight = reader.GetFloat("ignore_time", 0f);
-            aiEvent.EventName = reader.GetString("name");
-            aiEvent.NpcId = reader.GetInt32("npc_id");
-            aiEvent.OrUnitReqs = reader.GetBoolean("or_unit_reqs", false);
-            aiEvent.SkillId = reader.IsDBNull("skill_id") ? 0 : reader.GetInt32("skill_id");
+            var aiEvent = new AiEvent
+            {
+                Id = reader.GetInt32("id"), IgnoreCategoryId = reader.GetInt32("ignore_category_id"), Weight = reader.GetFloat("ignore_time", 0f),
+                EventName = reader.GetString("name"),
+                NpcId = reader.GetInt32("npc_id"),
+                OrUnitReqs = reader.GetBoolean("or_unit_reqs", false),
+                SkillId = reader.IsDBNull("skill_id") ? 0 : reader.GetInt32("skill_id")
+            };
 
             if (!_aiEventsByNpc.ContainsKey(aiEvent.NpcId))
                 _aiEventsByNpc[aiEvent.NpcId] = [];

@@ -158,9 +158,10 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         if (skillResult != SkillResult.Success)
         {
             // It actually sends a skill started packet, but not a skill fired or stopped
-            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject);
-            scSkillStartedPacket.RealCastTimeDiv10 = 0;
-            scSkillStartedPacket.BaseCastTimeDiv10 = 0;
+            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
+            {
+                RealCastTimeDiv10 = 0, BaseCastTimeDiv10 = 0
+            };
             // ExtraData at the end of the packet is used to mark a use error
             scSkillStartedPacket.SetSkillResult(skillResult);
             scSkillStartedPacket.SetResultUInt(skillResultErrorValue);

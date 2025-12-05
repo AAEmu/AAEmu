@@ -44,8 +44,7 @@ public class AnimationManager : Singleton<AnimationManager>
             if (spaceCount == 0)
             {
                 // Start of new model section
-                lastCombatSyncEvent = new AnimCombatSyncEvent();
-                lastCombatSyncEvent.ModelName = line.Trim('"');
+                lastCombatSyncEvent = new AnimCombatSyncEvent { ModelName = line.Trim('"') };
                 res.Add(lastCombatSyncEvent);
                 lastAnimDuration = null;
             }

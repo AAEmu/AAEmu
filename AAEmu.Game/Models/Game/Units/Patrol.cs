@@ -173,15 +173,12 @@ public abstract class Patrol
             {
                 // 创建直线巡航回归上次巡航暂停点
                 // Create a straight cruise to return to the last cruise pause
-                var line = new Line();
-                // 不可中断，不受外力及攻击影响 类似于处于脱战状态
-                // Uninterrupted, unaffected by external forces and attacks
-                line.Interrupt = true;
-                line.Loop = false;
-                line.LastPatrol = LastPatrol;
-                // 指定目标Point
-                // Specify target point
-                line.Position = LastPatrol.PausePosition;
+                var line = new Line {
+                    // 不可中断，不受外力及攻击影响 类似于处于脱战状态
+                    // Uninterrupted, unaffected by external forces and attacks
+                    Interrupt = true, Loop = false, LastPatrol = LastPatrol, // 指定目标Point
+                    // Specify target point
+                    Position = LastPatrol.PausePosition };
                 // 恢复上次巡航
                 // Resume last cruise
                 Repeat(npc, 500, line);

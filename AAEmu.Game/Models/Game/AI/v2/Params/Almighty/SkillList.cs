@@ -38,10 +38,12 @@ public class SkillList
                 if (skill is not LuaTable skillTable)
                     continue;
 
-                var aiSkill = new AiSkill();
-                aiSkill.SkillId = Convert.ToUInt32(skillTable["skillType"]);
-                aiSkill.Delay = Convert.ToSingle(skillTable["delay"]);
-                aiSkill.Strafe = Convert.ToBoolean(skillTable["strafe"]);
+                var aiSkill = new AiSkill
+                {
+                    SkillId = Convert.ToUInt32(skillTable["skillType"]),
+                    Delay = Convert.ToSingle(skillTable["delay"]),
+                    Strafe = Convert.ToBoolean(skillTable["strafe"])
+                };
 
                 Skills.Add(aiSkill);
             }

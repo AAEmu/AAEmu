@@ -181,9 +181,9 @@ public class TalkBehavior : BaseCombatBehavior
         {
             Id = 0,
             UnitId = SpyglassId,
-            Position = pos.CloneAsSpawnPosition()
+            Position = pos.CloneAsSpawnPosition(),
+            ParentWorld = Ai.Owner.ParentWorld
         };
-        spawner.ParentWorld = Ai.Owner.ParentWorld;
         spawner.Position.Yaw = yaw;
         spawner.Position.Pitch = 0;
         spawner.Position.Roll = 0;

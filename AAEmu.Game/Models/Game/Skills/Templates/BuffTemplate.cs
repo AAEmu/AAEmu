@@ -208,9 +208,7 @@ public class BuffTemplate
     {
         foreach (var template in Bonuses)
         {
-            var bonus = new Bonus();
-            bonus.Template = template;
-            bonus.Value = (int)Math.Round(template.Value + (template.LinearLevelBonus * (buff.AbLevel / 100f)));
+            var bonus = new Bonus { Template = template, Value = (int)Math.Round(template.Value + (template.LinearLevelBonus * (buff.AbLevel / 100f))) };
             owner.AddBonus(buff.Index, bonus);
         }
 

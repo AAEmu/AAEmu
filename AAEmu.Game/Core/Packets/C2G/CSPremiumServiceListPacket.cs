@@ -13,12 +13,9 @@ public class CSPremiumServiceListPacket() : GamePacket(CSOffsets.CSPremiumServic
 
         Logger.Warn("PremiumServiceList");
 
-        var detail = new PremiumDetail();
-        detail.CId = 8000001;
-        detail.CName = "Премиум-подпиcка (30 дней)";
-        detail.PId = 1;
-        detail.PTime = 720; // hours
-        detail.Price = 300;
+        var detail = new PremiumDetail { CId = 8000001, CName = "Премиум-подпиcка (30 дней)", PId = 1, PTime = 720, // hours
+            Price = 300
+        };
 
         Connection.SendPacket(new SCPremiumServiceListPacket(true, 1, detail, 0));
     }

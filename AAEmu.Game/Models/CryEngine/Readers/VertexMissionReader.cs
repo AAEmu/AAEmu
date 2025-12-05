@@ -27,14 +27,13 @@ public class VertexMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiR
         var count = Reader.ReadInt32();
         for (var i = 0; i < count; i++)
         {
-            var obstacleDataDescriptor = new ObstacleDataDescriptor(ZoneId);
-            obstacleDataDescriptor.Pos = ReadVector3();
-            obstacleDataDescriptor.Dir = ReadVector3(true);
-            obstacleDataDescriptor.ApproxRadius = Reader.ReadSingle();
-            obstacleDataDescriptor.Flags = Reader.ReadByte();
-            obstacleDataDescriptor.ApproxHeight = Reader.ReadByte();
-            obstacleDataDescriptor.Unk1 = Reader.ReadByte();
-            obstacleDataDescriptor.Unk2 = Reader.ReadByte();
+            var obstacleDataDescriptor = new ObstacleDataDescriptor(ZoneId)
+            {
+                Pos = ReadVector3(), Dir = ReadVector3(true), ApproxRadius = Reader.ReadSingle(), Flags = Reader.ReadByte(),
+                ApproxHeight = Reader.ReadByte(),
+                Unk1 = Reader.ReadByte(),
+                Unk2 = Reader.ReadByte()
+            };
 
             ObstacleDataDescriptorList.Add(obstacleDataDescriptor);
         }
