@@ -3,16 +3,13 @@ using AAEmu.Game.Models.CryEngine.Entities;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public class VertexMissionReader : BaiReader
+public class VertexMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiReader(rawStream, zoneId)
 {
     public static int BaiVertexFileVersion = 2;
 
     public List<ObstacleDataDescriptor> ObstacleDataDescriptorList { get; set; } = [];
 
-    public VertexMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
-    {
-        //
-    }
+    //
 
     public override void CheckVersion(int version)
     {

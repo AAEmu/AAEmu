@@ -22,8 +22,8 @@ public class Craft
     public int RecommendLevel { get; set; }
     public int VisibleOrder { get; set; }
 
-    public List<CraftProduct> CraftProducts { get; set; }
-    public List<CraftMaterial> CraftMaterials { get; set; }
+    public List<CraftProduct> CraftProducts { get; set; } = [];
+    public List<CraftMaterial> CraftMaterials { get; set; } = [];
     public bool IsPack { get; set; }
 
     public bool ResultsInBackpack
@@ -33,11 +33,5 @@ public class Craft
             return CraftProducts.Select(product => ItemManager.Instance.GetTemplate(product.ItemId))
                 .OfType<BackpackTemplate>().Any();
         }
-    }
-
-    public Craft()
-    {
-        CraftProducts = [];
-        CraftMaterials = [];
     }
 }

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeAppellationPacket : GamePacket
+public class CSChangeAppellationPacket() : GamePacket(CSOffsets.CSChangeAppellationPacket, 1)
 {
-    public CSChangeAppellationPacket() : base(CSOffsets.CSChangeAppellationPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

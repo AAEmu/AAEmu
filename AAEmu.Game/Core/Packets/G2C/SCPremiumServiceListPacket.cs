@@ -4,27 +4,15 @@ using AAEmu.Game.Models.Game.CashShop;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCPremiumServiceListPacket : GamePacket
+public class SCPremiumServiceListPacket(bool isEnd, byte size, PremiumDetail detail, int exchangeRatio)
+    : GamePacket(SCOffsets.SCPremiumServiceListPacket, 1)
 {
-    private readonly bool _isEnd;
-    private readonly byte _size;
-    private readonly PremiumDetail _detail;
-    private readonly int _exchangeRatio;
-
-    public SCPremiumServiceListPacket(bool isEnd, byte size, PremiumDetail detail, int exchangeRatio) : base(SCOffsets.SCPremiumServiceListPacket, 1)
-    {
-        _isEnd = isEnd;
-        _size = size;
-        _detail = detail;
-        _exchangeRatio = exchangeRatio;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_isEnd);
-        stream.Write(_size);
-        stream.Write(_detail);
-        stream.Write(_exchangeRatio);
+        stream.Write(isEnd);
+        stream.Write(size);
+        stream.Write(detail);
+        stream.Write(exchangeRatio);
         return stream;
     }
 }

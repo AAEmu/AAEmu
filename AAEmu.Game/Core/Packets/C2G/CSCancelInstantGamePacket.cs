@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCancelInstantGamePacket : GamePacket
+public class CSCancelInstantGamePacket() : GamePacket(CSOffsets.CSCancelInstantGamePacket, 1)
 {
-    public CSCancelInstantGamePacket() : base(CSOffsets.CSCancelInstantGamePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Empty struct

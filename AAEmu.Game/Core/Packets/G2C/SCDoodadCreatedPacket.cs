@@ -4,17 +4,10 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDoodadCreatedPacket : GamePacket
+public class SCDoodadCreatedPacket(Doodad doodad) : GamePacket(SCOffsets.SCDoodadCreatedPacket, 1)
 {
-    private readonly Doodad _doodad;
-
-    public SCDoodadCreatedPacket(Doodad doodad) : base(SCOffsets.SCDoodadCreatedPacket, 1)
-    {
-        _doodad = doodad;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        return _doodad.Write(stream);
+        return doodad.Write(stream);
     }
 }

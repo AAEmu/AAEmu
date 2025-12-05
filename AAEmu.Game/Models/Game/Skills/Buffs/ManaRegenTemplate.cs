@@ -5,21 +5,13 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs;
 
-public class ManaRegenTemplate
+public class ManaRegenTemplate(Character owner, double tick, double tickLevelManaCost, int level)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    public Character Owner { get; set; }
-    private double Tick { get; set; } // Buff tick interval in milliseconds
-    private double TickLevelManaCost { get; set; } // Mana cost multiplier per tick for the used formula 
-    private int Level { get; set; } // Character level
-
-    public ManaRegenTemplate(Character owner, double tick, double tickLevelManaCost, int level)
-    {
-        Owner = owner;
-        Tick = tick;
-        TickLevelManaCost = tickLevelManaCost;
-        Level = level;
-    }
+    public Character Owner { get; set; } = owner;
+    private double Tick { get; set; } = tick; // Buff tick interval in milliseconds
+    private double TickLevelManaCost { get; set; } = tickLevelManaCost; // Mana cost multiplier per tick for the used formula 
+    private int Level { get; set; } = level; // Character level
 
     // Calculation of mana consumption per tick depending on level
     private double CalculateManaCostPerTick()

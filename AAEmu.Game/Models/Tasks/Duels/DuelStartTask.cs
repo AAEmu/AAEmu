@@ -2,13 +2,9 @@
 
 namespace AAEmu.Game.Models.Tasks.Duels;
 
-public class DuelStartTask : Task
+public class DuelStartTask(uint challengerId) : Task
 {
-    protected uint _challengerId;
-    public DuelStartTask(uint challengerId)
-    {
-        _challengerId = challengerId;
-    }
+    protected uint _challengerId = challengerId;
 
     public override void Execute()
     {

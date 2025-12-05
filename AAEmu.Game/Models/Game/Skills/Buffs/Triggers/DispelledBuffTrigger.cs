@@ -2,7 +2,7 @@
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
-public class DispelledBuffTrigger : BuffTrigger
+public class DispelledBuffTrigger(Buff owner, BuffTriggerTemplate template) : BuffTrigger(owner, template)
 {
     public override void Execute(object sender, EventArgs eventArgs)
     {
@@ -31,10 +31,5 @@ public class DispelledBuffTrigger : BuffTrigger
         Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
             new EffectSource(), // TODO : EffectSource Type trigger 
             null, DateTime.UtcNow);
-    }
-
-    public DispelledBuffTrigger(Buff owner, BuffTriggerTemplate template) : base(owner, template)
-    {
-
     }
 }

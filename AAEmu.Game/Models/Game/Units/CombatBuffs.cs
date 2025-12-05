@@ -5,17 +5,10 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Units;
 
-public class CombatBuffs
+public class CombatBuffs(BaseUnit owner)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly BaseUnit _owner;
-    private readonly Dictionary<SkillHitType, List<CombatBuffTemplate>> _cbuffsByHitType;
-
-    public CombatBuffs(BaseUnit owner)
-    {
-        _owner = owner;
-        _cbuffsByHitType = [];
-    }
+    private readonly Dictionary<SkillHitType, List<CombatBuffTemplate>> _cbuffsByHitType = [];
 
     public void AddCombatBuffs(uint buffId)
     {
@@ -44,7 +37,7 @@ public class CombatBuffs
     {
         if (!_cbuffsByHitType.TryGetValue(type, out var buffs))
             return;
-        if (!(_owner is Unit unit))
+        if (!(owner is Unit unit))
             return;
         foreach (var cb in buffs)
         {
@@ -77,10 +70,10 @@ public class CombatBuffs
                 continue;
 
             // If BTS and we're not attacking, doesn't apply
-            if (cb.BuffToSource && _owner != attacker)
+            if (cb.BuffToSource && owner != attacker)
                 continue;
             // If not BTS and we're attacking, doesn't apply
-            if (!cb.BuffToSource && _owner == attacker)
+            if (!cb.BuffToSource && owner == attacker)
                 continue;
 
             var target = unit;
@@ -90,8 +83,8 @@ public class CombatBuffs
 
             var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
             //if (cb.BuffToSource)
-            if (!_owner.Buffs.CheckBuffImmune(cb.BuffId))
-                _owner.Buffs.AddBuff(new Buff(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.UtcNow));
+            if (!owner.Buffs.CheckBuffImmune(cb.BuffId))
+                owner.Buffs.AddBuff(new Buff(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.UtcNow));
         }
     }
 }

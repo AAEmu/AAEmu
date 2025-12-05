@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSReadMailPacket : GamePacket
+public class CSReadMailPacket() : GamePacket(CSOffsets.CSReadMailPacket, 1)
 {
-    public CSReadMailPacket() : base(CSOffsets.CSReadMailPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var isSent = stream.ReadBoolean();

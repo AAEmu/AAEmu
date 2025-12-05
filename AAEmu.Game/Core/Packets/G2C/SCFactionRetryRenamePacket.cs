@@ -3,24 +3,14 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFactionRetryRenamePacket : GamePacket
+public class SCFactionRetryRenamePacket(bool xpdt, short errorMessage, string name)
+    : GamePacket(SCOffsets.SCFactionRetryRenamePacket, 1)
 {
-    private readonly bool _xpdt;
-    private readonly short _errorMessage;
-    private readonly string _name;
-
-    public SCFactionRetryRenamePacket(bool xpdt, short errorMessage, string name) : base(SCOffsets.SCFactionRetryRenamePacket, 1)
-    {
-        _xpdt = xpdt;
-        _errorMessage = errorMessage;
-        _name = name;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_xpdt);
-        stream.Write(_errorMessage);
-        stream.Write(_name);
+        stream.Write(xpdt);
+        stream.Write(errorMessage);
+        stream.Write(name);
         return stream;
     }
 }

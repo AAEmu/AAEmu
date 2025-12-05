@@ -1,15 +1,9 @@
 ﻿namespace AAEmu.Game.Models.Game.Merchant;
 
-public class MerchantGoods
+public class MerchantGoods(uint id)
 {
-    public uint Id { get; set; }
-    public List<MerchantGoodsItem> Items { get; set; }
-
-    public MerchantGoods(uint id)
-    {
-        Id = id;
-        Items = [];
-    }
+    public uint Id { get; set; } = id;
+    public List<MerchantGoodsItem> Items { get; set; } = [];
 
     // NOTE: If there is ever a case where one itemTemplate is sold at multiple grades, then this code needs a rework
     public bool SellsItem(uint itemTemplateId)

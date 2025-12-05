@@ -32,11 +32,6 @@ public class HousingTemplate
     public bool HeavyTax { get; set; }
     public bool AlwaysPublic { get; set; }
 
-    public Dictionary<int, HousingBuildStep> BuildSteps { get; set; }
+    public Dictionary<int, HousingBuildStep> BuildSteps { get; set; } = [];
     public HousingBindingDoodad[] HousingBindingDoodad { get; set; }
-
-    public HousingTemplate()
-    {
-        BuildSteps = [];
-    }
 }

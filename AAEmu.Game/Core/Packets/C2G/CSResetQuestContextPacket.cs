@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSResetQuestContextPacket : GamePacket
+public class CSResetQuestContextPacket() : GamePacket(CSOffsets.CSResetQuestContextPacket, 1)
 {
-    public CSResetQuestContextPacket() : base(CSOffsets.CSResetQuestContextPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var questId = stream.ReadUInt32();

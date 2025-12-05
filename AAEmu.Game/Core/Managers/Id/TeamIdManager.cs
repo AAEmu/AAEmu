@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class TeamIdManager : IdManager
+public class TeamIdManager() : IdManager("TeamIdManager", FirstId, LastId, ObjTables, Exclude)
 {
     private static TeamIdManager _instance;
     private const uint FirstId = 0x00000001;
@@ -11,8 +11,4 @@ public class TeamIdManager : IdManager
     private static readonly string[,] ObjTables = { { } };
 
     public static TeamIdManager Instance => _instance ?? (_instance = new TeamIdManager());
-
-    public TeamIdManager() : base("TeamIdManager", FirstId, LastId, ObjTables, Exclude)
-    {
-    }
 }

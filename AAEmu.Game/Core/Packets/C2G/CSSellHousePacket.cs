@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSellHousePacket : GamePacket
+public class CSSellHousePacket() : GamePacket(CSOffsets.CSSellHousePacket, 1)
 {
-    public CSSellHousePacket() : base(CSOffsets.CSSellHousePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var tl = stream.ReadUInt16();

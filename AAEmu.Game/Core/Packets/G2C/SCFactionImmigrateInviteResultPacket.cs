@@ -3,24 +3,14 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFactionImmigrateInviteResultPacket : GamePacket
+public class SCFactionImmigrateInviteResultPacket(uint id, string charName, bool answer)
+    : GamePacket(SCOffsets.SCFactionImmigrateInviteResultPacket, 1)
 {
-    private readonly uint _id;
-    private readonly string _charName;
-    private readonly bool _answer;
-
-    public SCFactionImmigrateInviteResultPacket(uint id, string charName, bool answer) : base(SCOffsets.SCFactionImmigrateInviteResultPacket, 1)
-    {
-        _id = id;
-        _charName = charName;
-        _answer = answer;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);
-        stream.Write(_charName);
-        stream.Write(_answer);
+        stream.Write(id);
+        stream.Write(charName);
+        stream.Write(answer);
         return stream;
     }
 }

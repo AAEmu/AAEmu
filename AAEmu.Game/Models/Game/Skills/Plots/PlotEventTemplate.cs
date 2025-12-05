@@ -22,22 +22,13 @@ public class PlotEventTemplate
     public int TargetUpdateMethodParam9 { get; set; }
     public int Tickets { get; set; }
     public bool AoeDiminishing { get; set; }
-    public LinkedList<PlotEventCondition> Conditions { get; set; }
-    public LinkedList<PlotAoeCondition> AoeConditions { get; set; }
-    public LinkedList<PlotEventEffect> Effects { get; set; }
-    public LinkedList<PlotNextEvent> NextEvents { get; set; }
+    public LinkedList<PlotEventCondition> Conditions { get; set; } = [];
+    public LinkedList<PlotAoeCondition> AoeConditions { get; set; } = [];
+    public LinkedList<PlotEventEffect> Effects { get; set; } = [];
+    public LinkedList<PlotNextEvent> NextEvents { get; set; } = [];
 
-    private bool _computedHasSpecialEffects;
+    private bool _computedHasSpecialEffects = false;
     private bool _hasSpecialEffects;
-
-    public PlotEventTemplate()
-    {
-        Conditions = [];
-        AoeConditions = [];
-        Effects = [];
-        NextEvents = [];
-        _computedHasSpecialEffects = false;
-    }
 
     // TODO : Find better way of doing this. Tried doing it in the PlotManager, but SkillManager had not loaded at the time. Could use an event on SkillManager load like it is done for trade packs iirc.
     public bool HasSpecialEffects()

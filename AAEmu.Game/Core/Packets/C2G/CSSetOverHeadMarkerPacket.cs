@@ -6,12 +6,8 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSetOverHeadMarkerPacket : GamePacket
+public class CSSetOverHeadMarkerPacket() : GamePacket(CSOffsets.CSSetOverHeadMarkerPacket, 1)
 {
-    public CSSetOverHeadMarkerPacket() : base(CSOffsets.CSSetOverHeadMarkerPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

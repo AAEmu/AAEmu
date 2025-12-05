@@ -7,18 +7,11 @@ namespace AAEmu.Game.Models.Game.Items.Procs;
 /// <summary>
 /// Instance of ItemProcTemplate. Keeps track of cooldown, "owner" item
 /// </summary>
-public class ItemProc
+public class ItemProc(uint templateId)
 {
-    public uint TemplateId { get; set; }
-    public ItemProcTemplate Template { get; set; }
-    public DateTime LastProc { get; set; }
-
-    public ItemProc(uint templateId)
-    {
-        TemplateId = templateId;
-        Template = ItemManager.Instance.GetItemProcTemplate(templateId);
-        LastProc = DateTime.MinValue;
-    }
+    public uint TemplateId { get; set; } = templateId;
+    public ItemProcTemplate Template { get; set; } = ItemManager.Instance.GetItemProcTemplate(templateId);
+    public DateTime LastProc { get; set; } = DateTime.MinValue;
 
     public bool Apply(Unit owner, bool ignoreRoll = false)
     {

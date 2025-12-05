@@ -4,11 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSUsePortalPacket : GamePacket
+public class CSUsePortalPacket() : GamePacket(CSOffsets.CSUsePortalPacket, 1)
 {
-    public CSUsePortalPacket() : base(CSOffsets.CSUsePortalPacket, 1) // 0x0da
-    {
-    }
+    // 0x0da
 
     public override void Read(PacketStream stream)
     {

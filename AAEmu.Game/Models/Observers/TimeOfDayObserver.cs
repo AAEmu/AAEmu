@@ -3,15 +3,8 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Observers;
 
-public class TimeOfDayObserver : IObserver<float>
+public class TimeOfDayObserver(Character owner) : IObserver<float>
 {
-    private readonly Character _owner;
-
-    public TimeOfDayObserver(Character owner)
-    {
-        _owner = owner;
-    }
-
     public void OnCompleted()
     {
         throw new NotImplementedException();
@@ -24,6 +17,6 @@ public class TimeOfDayObserver : IObserver<float>
 
     public void OnNext(float value)
     {
-        _owner.SendPacket(new SCTimeOfDayPacket(value));
+        owner.SendPacket(new SCTimeOfDayPacket(value));
     }
 }

@@ -8,13 +8,9 @@ namespace AAEmu.Game.GameData.Framework;
 public class GameDataManager : Singleton<GameDataManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly List<IGameDataLoader> _loaders;
+    private readonly List<IGameDataLoader> _loaders = [];
     private bool _loadedGameData = false;
     private bool _postLoadedGameData = false;
-    public GameDataManager()
-    {
-        _loaders = [];
-    }
 
     public void LoadGameData()
     {

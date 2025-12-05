@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCInitialConfigPacket : GamePacket
+public class SCInitialConfigPacket() : GamePacket(SCOffsets.SCInitialConfigPacket, 1)
 {
-    public SCInitialConfigPacket() : base(SCOffsets.SCInitialConfigPacket, 1)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write("aaemu.local"); // host

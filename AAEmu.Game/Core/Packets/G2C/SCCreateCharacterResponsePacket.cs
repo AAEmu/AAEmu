@@ -4,17 +4,11 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCreateCharacterResponsePacket : GamePacket
+public class SCCreateCharacterResponsePacket(Character character)
+    : GamePacket(SCOffsets.SCCreateCharacterResponsePacket, 1)
 {
-    private readonly Character _character;
-
-    public SCCreateCharacterResponsePacket(Character character) : base(SCOffsets.SCCreateCharacterResponsePacket, 1)
-    {
-        _character = character;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        return _character.Write(stream);
+        return character.Write(stream);
     }
 }

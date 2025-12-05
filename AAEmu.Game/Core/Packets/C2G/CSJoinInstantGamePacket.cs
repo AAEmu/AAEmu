@@ -3,14 +3,10 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSJoinInstantGamePacket : GamePacket
+public class CSJoinInstantGamePacket() : GamePacket(CSOffsets.CSJoinInstantGamePacket, 1)
 {
     private bool _join;
     private ulong _qualifiedId;
-
-    public CSJoinInstantGamePacket() : base(CSOffsets.CSJoinInstantGamePacket, 1)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

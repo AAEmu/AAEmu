@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSTeleportEndedPacket : GamePacket
+public class CSTeleportEndedPacket() : GamePacket(CSOffsets.CSTeleportEndedPacket, 1)
 {
-    public CSTeleportEndedPacket() : base(CSOffsets.CSTeleportEndedPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var x = Helpers.ConvertLongX(stream.ReadInt64());

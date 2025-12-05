@@ -4,24 +4,14 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeamMemberRoleChangedPacket : GamePacket
+public class SCTeamMemberRoleChangedPacket(uint teamId, uint memberId, MemberRole role)
+    : GamePacket(SCOffsets.SCTeamMemberRoleChangedPacket, 1)
 {
-    private readonly uint _teamId;
-    private readonly uint _memberId;
-    private readonly MemberRole _role;
-
-    public SCTeamMemberRoleChangedPacket(uint teamId, uint memberId, MemberRole role) : base(SCOffsets.SCTeamMemberRoleChangedPacket, 1)
-    {
-        _teamId = teamId;
-        _memberId = memberId;
-        _role = role;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_teamId);
-        stream.Write(_memberId);
-        stream.Write((byte)_role);
+        stream.Write(teamId);
+        stream.Write(memberId);
+        stream.Write((byte)role);
         return stream;
     }
 }

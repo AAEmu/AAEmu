@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSListSoldItemPacket : GamePacket
+public class CSListSoldItemPacket() : GamePacket(CSOffsets.CSListSoldItemPacket, 1)
 {
-    public CSListSoldItemPacket() : base(CSOffsets.CSListSoldItemPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();

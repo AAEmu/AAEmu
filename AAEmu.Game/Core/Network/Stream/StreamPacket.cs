@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.S2C;
 
 namespace AAEmu.Game.Core.Network.Stream;
 
-public abstract class StreamPacket : PacketBase<StreamConnection>
+public abstract class StreamPacket(ushort typeId) : PacketBase<StreamConnection>(typeId)
 {
-    protected StreamPacket(ushort typeId) : base(typeId)
-    {
-    }
-
     public override PacketStream Encode()
     {
         var ps = new PacketStream();

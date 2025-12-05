@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCleanupLogicLinkPacket : GamePacket
+public class CSCleanupLogicLinkPacket() : GamePacket(CSOffsets.CSCleanupLogicLinkPacket, 1)
 {
-    public CSCleanupLogicLinkPacket() : base(CSOffsets.CSCleanupLogicLinkPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var objId = stream.ReadBc();

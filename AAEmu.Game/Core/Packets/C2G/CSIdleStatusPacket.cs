@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSIdleStatusPacket : GamePacket
+public class CSIdleStatusPacket() : GamePacket(CSOffsets.CSIdleStatusPacket, 1)
 {
-    public CSIdleStatusPacket() : base(CSOffsets.CSIdleStatusPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         Connection.ActiveChar.IdleStatus = stream.ReadBoolean();

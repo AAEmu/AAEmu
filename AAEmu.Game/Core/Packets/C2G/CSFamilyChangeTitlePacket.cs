@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSFamilyChangeTitlePacket : GamePacket
+public class CSFamilyChangeTitlePacket() : GamePacket(CSOffsets.CSFamilyChangeTitlePacket, 1)
 {
-    public CSFamilyChangeTitlePacket() : base(CSOffsets.CSFamilyChangeTitlePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var memberId = stream.ReadUInt32();

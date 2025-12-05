@@ -1,15 +1,10 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-public class WaypointSurfaceNavigation
+public class WaypointSurfaceNavigation(uint zoneId)
 {
-    public uint ZoneId { get; }
+    public uint ZoneId { get; } = zoneId;
     public List<LinkRecord> LinkedVolumeRecords { get; set; } = [];
     public List<LinkRecord> LinkedFlightRecords { get; set; } = [];
-
-    public WaypointSurfaceNavigation(uint zoneId)
-    {
-        ZoneId = zoneId;
-    }
 
     public bool Equals(WaypointSurfaceNavigation other)
     {

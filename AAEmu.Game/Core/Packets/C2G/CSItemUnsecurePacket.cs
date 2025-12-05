@@ -4,12 +4,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSItemUnsecurePacket : GamePacket
+public class CSItemUnsecurePacket() : GamePacket(CSOffsets.CSItemUnsecurePacket, 1)
 {
-    public CSItemUnsecurePacket() : base(CSOffsets.CSItemUnsecurePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         stream.ReadByte();

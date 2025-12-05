@@ -5,7 +5,7 @@ using AAEmu.Game.Models.CryEngine.Mission;
 
 namespace AAEmuGeoData.Scripts.CryEngine.Mission;
 
-public class SpecialArea : AAEmu.Game.Models.CryEngine.Mission.Mission
+public class SpecialArea(uint zoneId) : AAEmu.Game.Models.CryEngine.Mission.Mission(zoneId)
 {
     public MissionType MissionType { get; set; }
     public WaypointConnections WaypointConnections { get; set; } = new();
@@ -17,10 +17,6 @@ public class SpecialArea : AAEmu.Game.Models.CryEngine.Mission.Mission
     public int BuildingId { get; set; }
     public AiLightLevel AiLightLevel { get; set; } = AiLightLevel.None;
     public List<Vector3> Points { get; set; } = [];
-        
-    public SpecialArea(uint zoneId) : base(zoneId)
-    {
-    }
 
     public override bool Equals(AAEmu.Game.Models.CryEngine.Mission.Mission other)
     {

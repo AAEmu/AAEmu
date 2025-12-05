@@ -7,20 +7,13 @@ using AAEmu.Game.Models;
 
 namespace AAEmu.Game.Core.Network.Connections;
 
-public class LoginConnection
+public class LoginConnection(ISession session)
 {
-    private readonly ISession _session;
-
-    public uint Id => _session.SessionId;
-    public IPAddress Ip => _session.Ip;
+    public uint Id => session.SessionId;
+    public IPAddress Ip => session.Ip;
 
     public bool Block { get; set; }
     public PacketStream LastPacket { get; set; }
-
-    public LoginConnection(ISession session)
-    {
-        _session = session;
-    }
 
     public void OnConnect()
     {
@@ -36,11 +29,11 @@ public class LoginConnection
             return;
         packet.Connection = this;
         byte[] buf = packet.Encode();
-        _session.SendPacket(buf);
+        session.SendPacket(buf);
     }
 
     public void Close()
     {
-        _session.Close();
+        session.Close();
     }
 }

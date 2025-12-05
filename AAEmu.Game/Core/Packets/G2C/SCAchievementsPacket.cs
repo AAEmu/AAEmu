@@ -4,19 +4,12 @@ using AAEmu.Game.Models.Game.Achievement;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAchievementsPacket : GamePacket
+public class SCAchievementsPacket(List<AchievementInfo> achievements) : GamePacket(SCOffsets.SCAchievementsPacket, 1)
 {
-    private readonly List<AchievementInfo> _achievements;
-
-    public SCAchievementsPacket(List<AchievementInfo> achievements) : base(SCOffsets.SCAchievementsPacket, 1)
-    {
-        _achievements = achievements;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_achievements.Count); // count // больше 50 не посылаем
-        foreach (var achievement in _achievements)
+        stream.Write(achievements.Count); // count // больше 50 не посылаем
+        foreach (var achievement in achievements)
         {
             stream.Write(achievement.Id);       // type
             stream.Write(achievement.Amount);   // amount

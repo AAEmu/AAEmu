@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class AuctionIdManager : IdManager
+public class AuctionIdManager() : IdManager("AuctionIdManager", FirstId, LastId, ObjTables, Exclude)
 {
     private static AuctionIdManager _instance;
     private const uint FirstId = 0x00000001;
@@ -11,8 +11,4 @@ public class AuctionIdManager : IdManager
     private static readonly string[,] ObjTables = { { "auction_house", "id" } };
 
     public static AuctionIdManager Instance => _instance ?? (_instance = new AuctionIdManager());
-
-    public AuctionIdManager() : base("AuctionIdManager", FirstId, LastId, ObjTables, Exclude)
-    {
-    }
 }

@@ -1,16 +1,11 @@
 ﻿using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.NPChar;
-public class Aggro
+public class Aggro(Unit owner)
 {
     private readonly object _lock = new();
 
-    public Unit Owner { get; }
-
-    public Aggro(Unit owner)
-    {
-        Owner = owner;
-    }
+    public Unit Owner { get; } = owner;
 
     //Considering using interlocked methods instead of a lock, need to research how they work..
     private int _damageAggro;

@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSStopCastingPacket : GamePacket
+public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1)
 {
-    public CSStopCastingPacket() : base(CSOffsets.CSStopCastingPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var tlId = stream.ReadUInt16(); // sid

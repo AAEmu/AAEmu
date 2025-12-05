@@ -10,12 +10,8 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSResurrectCharacterPacket : GamePacket
+public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectCharacterPacket, 1)
 {
-    public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var inPlace = stream.ReadBoolean();

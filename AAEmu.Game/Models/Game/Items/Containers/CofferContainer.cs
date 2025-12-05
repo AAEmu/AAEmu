@@ -3,16 +3,13 @@ using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
 
-public class CofferContainer : ItemContainer
+public class CofferContainer(uint ownerId, bool createWithNewId)
+    : ItemContainer(ownerId, SlotType.Trade, createWithNewId, null)
 {
-    public byte CofferPermission { get; set; }
+    public byte CofferPermission { get; set; } = 0;
     public ChestType CofferType { get; set; }
 
-    public CofferContainer(uint ownerId, bool createWithNewId) : base(ownerId, SlotType.Trade, createWithNewId, null)
-    {
-        // Coffers are considered trade windows in the item manipulation code
-        CofferPermission = 0;
-    }
+    // Coffers are considered trade windows in the item manipulation code
 
     private bool CanAcceptTemplate(ItemTemplate itemTemplate)
     {

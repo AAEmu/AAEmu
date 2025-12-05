@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSetTeamOfficerPacket : GamePacket
+public class CSSetTeamOfficerPacket() : GamePacket(CSOffsets.CSSetTeamOfficerPacket, 1)
 {
-    public CSSetTeamOfficerPacket() : base(CSOffsets.CSSetTeamOfficerPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

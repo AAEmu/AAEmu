@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Models.CryEngine.Mission;
 
-public class FlightNavRegion : Mission
+public class FlightNavRegion(uint zoneId) : Mission(zoneId)
 {
     public int HeightFieldOriginX { get; set; }
 
@@ -31,10 +31,6 @@ public class FlightNavRegion : Mission
     public List<Spans> SpanList { get; set; } = [];
 
     public List<FlightLinkDescriptor> FlightLinkDescriptorList { get; set; } = [];
-
-    public FlightNavRegion(uint zoneId) : base(zoneId)
-    {
-    }
 
     public override bool Equals(Mission other)
     {

@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSellBackpackGoodsPacket : GamePacket
+public class CSSellBackpackGoodsPacket() : GamePacket(CSOffsets.CSSellBackpackGoodsPacket, 1)
 {
-    public CSSellBackpackGoodsPacket() : base(CSOffsets.CSSellBackpackGoodsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var objId = stream.ReadBc();

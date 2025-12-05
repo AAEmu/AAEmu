@@ -6,12 +6,8 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSellItemsPacket : GamePacket
+public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
 {
-    public CSSellItemsPacket() : base(CSOffsets.CSSellItemsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();

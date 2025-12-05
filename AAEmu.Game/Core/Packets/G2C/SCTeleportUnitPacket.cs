@@ -4,32 +4,17 @@ using AAEmu.Game.Models.Game.Teleport;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeleportUnitPacket : GamePacket
+public class SCTeleportUnitPacket(TeleportReason reason, short errorMessage, float x, float y, float z, float z2)
+    : GamePacket(SCOffsets.SCTeleportUnitPacket, 1)
 {
-    private readonly byte _reason;
-    private readonly short _errorMessage;
-    private readonly float _x;
-    private readonly float _y;
-    private readonly float _z;
-    private readonly float _z2;
-
-    public SCTeleportUnitPacket(TeleportReason reason, short errorMessage, float x, float y, float z, float z2)
-        : base(SCOffsets.SCTeleportUnitPacket, 1)
-    {
-        _reason = (byte)reason;
-        _errorMessage = errorMessage;
-        _x = x;
-        _y = y;
-        _z = z;
-        _z2 = z2;
-    }
+    private readonly byte _reason = (byte)reason;
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_reason);
-        stream.Write(_errorMessage);
-        stream.WritePosition(_x, _y, _z);
-        stream.Write(_z2);
+        stream.Write(errorMessage);
+        stream.WritePosition(x, y, z);
+        stream.Write(z2);
         return stream;
     }
 }

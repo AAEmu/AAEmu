@@ -3,11 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCRefreshInCharacterListPacket : GamePacket
+public class SCRefreshInCharacterListPacket() : GamePacket(SCOffsets.SCRefreshInCharacterListPacket, 1)
 {
-    public SCRefreshInCharacterListPacket() : base(SCOffsets.SCRefreshInCharacterListPacket, 1) // TODO ... SCRaceCongestionPacket?!?!?!
-    {
-    }
+    // TODO ... SCRaceCongestionPacket?!?!?!
 
     public override PacketStream Write(PacketStream stream)
     {

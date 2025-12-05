@@ -4,18 +4,11 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Team;
 
-public class TeamMember : PacketMarshaler
+public class TeamMember(Character character = null) : PacketMarshaler
 {
-    public Character Character { get; set; }
-    public MemberRole Role { get; set; }
-    public bool HasGoneRoundRobin { get; set; }
-
-    public TeamMember(Character character = null)
-    {
-        Character = character;
-        Role = MemberRole.Undecided;
-        HasGoneRoundRobin = false;
-    }
+    public Character Character { get; set; } = character;
+    public MemberRole Role { get; set; } = MemberRole.Undecided;
+    public bool HasGoneRoundRobin { get; set; } = false;
 
     public override PacketStream Write(PacketStream stream)
     {

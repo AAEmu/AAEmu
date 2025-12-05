@@ -11,12 +11,7 @@ public class VehicleMoveType : MoveType
     public float AngVelY { get; set; }
     public float AngVelZ { get; set; }
     public float Steering { get; set; }
-    public List<float> WheelAngVel { get; set; }
-
-    public VehicleMoveType()
-    {
-        WheelAngVel = [];
-    }
+    public List<float> WheelAngVel { get; set; } = [];
 
     public override void Read(PacketStream stream)
     {

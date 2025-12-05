@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSPremiumServiceBuyPacket : GamePacket
+public class CSPremiumServiceBuyPacket() : GamePacket(CSOffsets.CSPremiumServiceBuyPacket, 1)
 {
-    public CSPremiumServiceBuyPacket() : base(CSOffsets.CSPremiumServiceBuyPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var cid = stream.ReadInt32();

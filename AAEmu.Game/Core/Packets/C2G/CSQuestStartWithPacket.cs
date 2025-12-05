@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSQuestStartWithPacket : GamePacket
+public class CSQuestStartWithPacket() : GamePacket(CSOffsets.CSQuestStartWithPacket, 1)
 {
-    public CSQuestStartWithPacket() : base(CSOffsets.CSQuestStartWithPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // TODO find unk

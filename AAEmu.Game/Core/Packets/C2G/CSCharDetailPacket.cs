@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCharDetailPacket : GamePacket
+public class CSCharDetailPacket() : GamePacket(CSOffsets.CSCharDetailPacket, 1)
 {
-    public CSCharDetailPacket() : base(CSOffsets.CSCharDetailPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();

@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSplitCofferItemPacket : GamePacket
+public class CSSplitCofferItemPacket() : GamePacket(CSOffsets.CSSplitCofferItemPacket, 1)
 {
-    public CSSplitCofferItemPacket() : base(CSOffsets.CSSplitCofferItemPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var count = stream.ReadInt32();

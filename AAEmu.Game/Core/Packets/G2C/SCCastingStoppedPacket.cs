@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCastingStoppedPacket : GamePacket
+public class SCCastingStoppedPacket(ushort tlId, uint duration) : GamePacket(SCOffsets.SCCastingStoppedPacket, 1)
 {
-    private readonly ushort _tlId;
-    private readonly uint _duration;
-
-    public SCCastingStoppedPacket(ushort tlId, uint duration) : base(SCOffsets.SCCastingStoppedPacket, 1)
-    {
-        _tlId = tlId;
-        _duration = duration;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_tlId);
-        stream.Write(_duration);
+        stream.Write(tlId);
+        stream.Write(duration);
         return stream;
     }
 }

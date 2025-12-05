@@ -5,18 +5,11 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterBlocked
+public class CharacterBlocked(Character owner)
 {
-    public Character Owner { get; set; }
-    public Dictionary<uint, BlockedTemplate> BlockedList { get; set; } // bvId, Template
-    private readonly List<uint> _removedBlocked; // blockedId
-
-    public CharacterBlocked(Character owner)
-    {
-        Owner = owner;
-        BlockedList = [];
-        _removedBlocked = [];
-    }
+    public Character Owner { get; set; } = owner;
+    public Dictionary<uint, BlockedTemplate> BlockedList { get; set; } = []; // bvId, Template
+    private readonly List<uint> _removedBlocked = []; // blockedId
 
     public static List<Blocked> GetBlockedInfo(List<uint> ids)
     {

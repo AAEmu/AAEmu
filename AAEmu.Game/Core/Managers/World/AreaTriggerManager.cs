@@ -8,19 +8,12 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly List<AreaTrigger> _areaTriggers;
-    private List<AreaTrigger> _addQueue;
-    private List<AreaTrigger> _removeQueue;
+    private readonly List<AreaTrigger> _areaTriggers = [];
+    private List<AreaTrigger> _addQueue = [];
+    private List<AreaTrigger> _removeQueue = [];
 
     private readonly object _addLock = new();
     private readonly object _remLock = new();
-
-    public AreaTriggerManager()
-    {
-        _areaTriggers = [];
-        _addQueue = [];
-        _removeQueue = [];
-    }
 
     public void Initialize()
     {

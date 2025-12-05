@@ -3,13 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class UpdatePhysicsTimePacket : GamePacket
+public class UpdatePhysicsTimePacket() : GamePacket(PPOffsets.UpdatePhysicsTimePacket, 2)
 {
     private long _tm;
-
-    public UpdatePhysicsTimePacket() : base(PPOffsets.UpdatePhysicsTimePacket, 2)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

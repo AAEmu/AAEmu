@@ -2,10 +2,5 @@
 public class EquipItemSet
 {
     public uint Id { get; set; }
-    public List<EquipItemSetBonus> Bonuses { get; }
-
-    public EquipItemSet()
-    {
-        Bonuses = [];
-    }
+    public List<EquipItemSetBonus> Bonuses { get; } = [];
 }

@@ -2,16 +2,9 @@
 
 namespace AAEmu.Game.Models.Game.Units;
 
-public class UnitReqsValidationResult
+public class UnitReqsValidationResult(SkillResultKeys result, ushort uShort, uint uInt)
 {
-    public SkillResultKeys ResultKey { get; set; }
-    public ushort ResultUShort { get; set; }
-    public uint ResultUInt { get; set; }
-
-    public UnitReqsValidationResult(SkillResultKeys result, ushort uShort, uint uInt)
-    {
-        ResultKey = result;
-        ResultUShort = uShort;
-        ResultUInt = uInt;
-    }
+    public SkillResultKeys ResultKey { get; set; } = result;
+    public ushort ResultUShort { get; set; } = uShort;
+    public uint ResultUInt { get; set; } = uInt;
 }

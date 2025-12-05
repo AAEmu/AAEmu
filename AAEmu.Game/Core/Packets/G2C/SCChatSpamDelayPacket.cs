@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCChatSpamDelayPacket : GamePacket
+public class SCChatSpamDelayPacket() : GamePacket(SCOffsets.SCChatSpamDelayPacket, 1)
 {
-    public SCChatSpamDelayPacket() : base(SCOffsets.SCChatSpamDelayPacket, 1)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((byte)0); // version

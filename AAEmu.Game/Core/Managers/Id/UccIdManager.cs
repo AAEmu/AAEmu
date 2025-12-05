@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class UccIdManager : IdManager
+public class UccIdManager() : IdManager("UccIdManager", FirstId, LastId, ObjTables, Exclude)
 {
     private static UccIdManager _instance;
     private const uint FirstId = 0x00000001;
@@ -11,8 +11,4 @@ public class UccIdManager : IdManager
     private static readonly string[,] ObjTables = { { "uccs", "id" } };
 
     public static UccIdManager Instance => _instance ?? (_instance = new UccIdManager());
-
-    public UccIdManager() : base("UccIdManager", FirstId, LastId, ObjTables, Exclude)
-    {
-    }
 }

@@ -5,14 +5,10 @@ using AAEmu.Game.Models.Game.InstantGame.Static;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSApplyToInstantGamePacket : GamePacket
+public class CSApplyToInstantGamePacket() : GamePacket(CSOffsets.CSApplyToInstantGamePacket, 1)
 {
     private uint _instanceId;
     private InstantCorps _corps;
-
-    public CSApplyToInstantGamePacket() : base(CSOffsets.CSApplyToInstantGamePacket, 1)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

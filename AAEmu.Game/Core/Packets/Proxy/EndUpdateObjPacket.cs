@@ -2,10 +2,7 @@
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class EndUpdateObjPacket : GamePacket
+public class EndUpdateObjPacket() : GamePacket(PPOffsets.EndUpdateObjPacket, 2)
 {
     // TODO Only command without body...
-    public EndUpdateObjPacket() : base(PPOffsets.EndUpdateObjPacket, 2)
-    {
-    }
 }

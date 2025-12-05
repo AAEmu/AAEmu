@@ -2,17 +2,10 @@
 
 namespace AAEmu.Game.Models.Tasks.World;
 
-public class KillPortalTask : Task
+public class KillPortalTask(Portal portal) : Task
 {
-    private readonly Portal _portal;
-
-    public KillPortalTask(Portal portal)
-    {
-        _portal = portal;
-    }
-
     public override void Execute()
     {
-        _portal.Delete();
+        portal.Delete();
     }
 }

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSaveUIDataPacket : GamePacket
+public class CSSaveUIDataPacket() : GamePacket(CSOffsets.CSSaveUIDataPacket, 1)
 {
-    public CSSaveUIDataPacket() : base(CSOffsets.CSSaveUIDataPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var uiDataType = stream.ReadUInt16();

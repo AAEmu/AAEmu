@@ -3,21 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCMailReceiverOpenedPacket : GamePacket
+public class SCMailReceiverOpenedPacket(long mainId, DateTime openDate)
+    : GamePacket(SCOffsets.SCMailReceiverOpenedPacket, 1)
 {
-    private readonly long _mainId;
-    private readonly DateTime _openDate;
-
-    public SCMailReceiverOpenedPacket(long mainId, DateTime openDate) : base(SCOffsets.SCMailReceiverOpenedPacket, 1)
-    {
-        _mainId = mainId;
-        _openDate = openDate;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_mainId);
-        stream.Write(_openDate);
+        stream.Write(mainId);
+        stream.Write(openDate);
         return stream;
     }
 }

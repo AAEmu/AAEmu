@@ -4,24 +4,14 @@ using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAuctionBidPacket : GamePacket
+public class SCAuctionBidPacket(AuctionBid bid, bool isBuyout, uint itemId)
+    : GamePacket(SCOffsets.SCAuctionBidPacket, 1)
 {
-    private readonly AuctionBid _bid;
-    private readonly bool _isBuyout;
-    private readonly uint _itemId;
-
-    public SCAuctionBidPacket(AuctionBid bid, bool isBuyout, uint itemId) : base(SCOffsets.SCAuctionBidPacket, 1)
-    {
-        _bid = bid;
-        _isBuyout = isBuyout;
-        _itemId = itemId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_bid);
-        stream.Write(_isBuyout);
-        stream.Write(_itemId);
+        stream.Write(bid);
+        stream.Write(isBuyout);
+        stream.Write(itemId);
 
         return stream;
     }

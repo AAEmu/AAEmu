@@ -5,12 +5,9 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRequestSpecialtyCurrentPacket : GamePacket
+public class CSRequestSpecialtyCurrentPacket() : GamePacket(CSOffsets.CSRequestSpecialtyCurrentPacket, 1)
 {
-    public CSRequestSpecialtyCurrentPacket() : base(CSOffsets.CSRequestSpecialtyCurrentPacket, 1)
-    {
-        //
-    }
+    //
 
     public override void Read(PacketStream stream)
     {

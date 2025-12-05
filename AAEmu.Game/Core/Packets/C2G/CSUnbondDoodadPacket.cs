@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSUnbondDoodadPacket : GamePacket
+public class CSUnbondDoodadPacket() : GamePacket(CSOffsets.CSUnbondDoodadPacket, 1)
 {
-    public CSUnbondDoodadPacket() : base(CSOffsets.CSUnbondDoodadPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var characterObjId = stream.ReadBc();

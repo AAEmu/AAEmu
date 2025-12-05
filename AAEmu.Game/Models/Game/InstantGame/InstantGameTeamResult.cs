@@ -3,10 +3,10 @@ using AAEmu.Game.Models.Game.InstantGame.Static;
 
 namespace AAEmu.Game.Models.Game.InstantGame;
 
-public class InstantGameTeamResult : PacketMarshaler
+public class InstantGameTeamResult(VictoryState state, uint factionId) : PacketMarshaler
 {
-    public VictoryState State { get; set; }
-    public uint FactionId { get; set; }
+    public VictoryState State { get; set; } = state;
+    public uint FactionId { get; set; } = factionId;
 
     public int Score
     {
@@ -32,14 +32,7 @@ public class InstantGameTeamResult : PacketMarshaler
         }
     }
 
-    public List<InstantGameTeamMember> Members { get; set; }
-
-    public InstantGameTeamResult(VictoryState state, uint factionId)
-    {
-        State = state;
-        FactionId = factionId;
-        Members = [];
-    }
+    public List<InstantGameTeamMember> Members { get; set; } = [];
 
     public override PacketStream Write(PacketStream stream)
     {

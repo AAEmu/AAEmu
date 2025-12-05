@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCToggleBeautyshopResponsePacket : GamePacket
+public class SCToggleBeautyshopResponsePacket(byte state) : GamePacket(SCOffsets.SCToggleBeautyshopResponsePacket, 1)
 {
-    private readonly byte _state;
-
-    public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyshopResponsePacket, 1)
-    {
-        _state = state;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_state);
+        stream.Write(state);
         return stream;
     }
 }

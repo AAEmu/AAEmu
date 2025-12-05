@@ -5,12 +5,13 @@ using AAEmu.Commons.Exceptions;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public abstract class BaiReader// : IDisposable
+public abstract class BaiReader // : IDisposable
+    (System.IO.Stream rawStream, uint zoneId)
 {
     private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
-    public System.IO.Stream RawStream { get; set; }
+    public System.IO.Stream RawStream { get; set; } = rawStream;
     public BinaryReader Reader { get; set; }
-    public uint ZoneId { get; }
+    public uint ZoneId { get; } = zoneId;
 
     /// <summary>
     /// This Vector3 gets added to every point read
@@ -18,12 +19,6 @@ public abstract class BaiReader// : IDisposable
     public Vector3 ReaderPointOffset { get; set; } = Vector3.Zero;
 
     public static bool IgnoreDuplicateAreaNames { get; set; } = true;
-
-    protected BaiReader(System.IO.Stream rawStream, uint zoneId)
-    {
-        RawStream = rawStream;
-        ZoneId = zoneId;
-    }
 
     public virtual void InitReaderUtil()
     {

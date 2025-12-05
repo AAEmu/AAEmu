@@ -4,13 +4,9 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTContinuePacket : StreamPacket
+public class CTContinuePacket() : StreamPacket(CTOffsets.CTContinuePacket)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
-
-    public CTContinuePacket() : base(CTOffsets.CTContinuePacket)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

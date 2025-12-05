@@ -3,19 +3,12 @@ using AAEmu.Game.Models.Game.Items.Procs;
 
 namespace AAEmu.Game.Models.Game.Units;
 
-public class UnitProcs
+public class UnitProcs(Unit owner)
 {
-    private readonly List<ItemProc> _procs;
-    private readonly Dictionary<ProcChanceKind, List<ItemProc>> _procsByChanceKind;
+    private readonly List<ItemProc> _procs = [];
+    private readonly Dictionary<ProcChanceKind, List<ItemProc>> _procsByChanceKind = [];
 
-    public Unit Owner { get; set; }
-
-    public UnitProcs(Unit owner)
-    {
-        Owner = owner;
-        _procsByChanceKind = [];
-        _procs = [];
-    }
+    public Unit Owner { get; set; } = owner;
 
     public void AddProc(uint procId)
     {

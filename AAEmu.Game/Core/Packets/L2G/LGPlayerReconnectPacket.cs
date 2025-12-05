@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.L2G;
 
-public class LGPlayerReconnectPacket : LoginPacket
+public class LGPlayerReconnectPacket() : LoginPacket(LGOffsets.LGPlayerReconnectPacket)
 {
-    public LGPlayerReconnectPacket() : base(LGOffsets.LGPlayerReconnectPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var accountId = stream.ReadUInt32();

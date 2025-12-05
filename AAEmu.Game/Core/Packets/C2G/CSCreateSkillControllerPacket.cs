@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCreateSkillControllerPacket : GamePacket
+public class CSCreateSkillControllerPacket() : GamePacket(CSOffsets.CSCreateSkillControllerPacket, 1)
 {
-    public CSCreateSkillControllerPacket() : base(CSOffsets.CSCreateSkillControllerPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var objId = stream.ReadBc();

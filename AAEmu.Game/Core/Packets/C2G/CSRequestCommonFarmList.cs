@@ -5,14 +5,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRequestCommonFarmList : GamePacket
+public class CSRequestCommonFarmList() : GamePacket(CSOffsets.CSRequestCommonFarmList, 1)
 {
-
-    public CSRequestCommonFarmList() : base(CSOffsets.CSRequestCommonFarmList, 1)
-    {
-
-    }
-
     public override void Read(PacketStream stream)
     {
         Logger.Debug("CSRequestCommonFarmList");

@@ -3,16 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSTryQuestCompleteAsLetItDonePacket : GamePacket
+public class CSTryQuestCompleteAsLetItDonePacket() : GamePacket(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 1)
 {
     private uint _id;
     private uint _objId;
     private int _selected;
 
-    public CSTryQuestCompleteAsLetItDonePacket() : base(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 1)
-    {
-        //
-    }
+    //
 
     public override void Read(PacketStream stream)
     {

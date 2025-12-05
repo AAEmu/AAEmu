@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTJoinPacket : StreamPacket
+public class CTJoinPacket() : StreamPacket(CTOffsets.CTJoinPacket)
 {
-    public CTJoinPacket() : base(CTOffsets.CTJoinPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var accountId = stream.ReadUInt32();

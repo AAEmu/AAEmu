@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRepairSlaveItemsPacket : GamePacket
+public class CSRepairSlaveItemsPacket() : GamePacket(CSOffsets.CSRepairSlaveItemsPacket, 1)
 {
-    public CSRepairSlaveItemsPacket() : base(CSOffsets.CSRepairSlaveItemsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var npcId = stream.ReadBc();

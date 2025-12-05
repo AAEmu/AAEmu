@@ -6,12 +6,8 @@ using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCreateShipyardPacket : GamePacket
+public class CSCreateShipyardPacket() : GamePacket(CSOffsets.CSCreateShipyardPacket, 1)
 {
-    public CSCreateShipyardPacket() : base(CSOffsets.CSCreateShipyardPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

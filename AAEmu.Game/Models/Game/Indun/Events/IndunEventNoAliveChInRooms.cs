@@ -7,14 +7,8 @@ namespace AAEmu.Game.Models.Game.Indun.Events;
 internal class IndunEventNoAliveChInRooms : IndunEvent
 {
     public uint RoomId { get; set; }
-    private readonly Dictionary<uint, uint> _playerRoomCount;
-    private readonly Dictionary<uint, Doodad> _doodads;
-
-    public IndunEventNoAliveChInRooms()
-    {
-        _playerRoomCount = [];
-        _doodads = [];
-    }
+    private readonly Dictionary<uint, uint> _playerRoomCount = [];
+    private readonly Dictionary<uint, Doodad> _doodads = [];
 
     public override void Subscribe(WorldInstance worldInstance)
     {

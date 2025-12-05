@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSUnknownInstancePacket : GamePacket
+public class CSUnknownInstancePacket() : GamePacket(CSOffsets.CSUnknownInstancePacket, 1)
 {
-    public CSUnknownInstancePacket() : base(CSOffsets.CSUnknownInstancePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var type = stream.ReadUInt16();

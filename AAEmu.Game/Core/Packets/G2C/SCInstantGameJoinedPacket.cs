@@ -6,33 +6,22 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCInstantGameJoinedPacket : GamePacket
+public class SCInstantGameJoinedPacket(ZoneInstanceId zoneInstanceId, InstantCorps corps, GameRuleSet ruleSet)
+    : GamePacket(SCOffsets.SCInstantGameJoinedPacket, 1)
 {
-    private readonly ZoneInstanceId _zoneInstanceId;
-    private readonly InstantCorps _corps;
-    private readonly GameRuleSet _ruleSet;
-
-    public SCInstantGameJoinedPacket(ZoneInstanceId zoneInstanceId, InstantCorps corps, GameRuleSet ruleSet)
-        : base(SCOffsets.SCInstantGameJoinedPacket, 1)
-    {
-        _zoneInstanceId = zoneInstanceId;
-        _corps = corps;
-        _ruleSet = ruleSet;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_zoneInstanceId);
-        stream.Write((byte)_corps);
+        stream.Write(zoneInstanceId);
+        stream.Write((byte)corps);
 
-        stream.Write(_ruleSet.VictoryScore); // victoryScore
+        stream.Write(ruleSet.VictoryScore); // victoryScore
         stream.Write((ushort)0); // victoryKillCount
         stream.Write((uint)0); // victoryKillCorpsHead (npc template ID, it seems?)
-        stream.Write(_ruleSet.TimeOpening * 60 * 1000); // opening time
-        stream.Write(_ruleSet.TimePlaying * 60 * 1000); // playing time
-        stream.Write(_ruleSet.TimeEnding * 60 * 1000); // ending time
-        stream.Write(_ruleSet.Corps1FactionId); // corpsId[0]
-        stream.Write(_ruleSet.Corps2FactionId); // corpsId[1]
+        stream.Write(ruleSet.TimeOpening * 60 * 1000); // opening time
+        stream.Write(ruleSet.TimePlaying * 60 * 1000); // playing time
+        stream.Write(ruleSet.TimeEnding * 60 * 1000); // ending time
+        stream.Write(ruleSet.Corps1FactionId); // corpsId[0]
+        stream.Write(ruleSet.Corps2FactionId); // corpsId[1]
 
         for (var i = 0; i < 24; i++)
         {

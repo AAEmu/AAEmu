@@ -4,24 +4,14 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTradeItemPutupPacket : GamePacket
+public class SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount)
+    : GamePacket(SCOffsets.SCTradeItemPutupPacket, 1)
 {
-    private readonly SlotType _slotType;
-    private readonly byte _slot;
-    private readonly int _amount;
-
-    public SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount) : base(SCOffsets.SCTradeItemPutupPacket, 1)
-    {
-        _slotType = slotType;
-        _slot = slot;
-        _amount = amount;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_slotType); // type
-        stream.Write(_slot); // index
-        stream.Write(_amount); // amount
+        stream.Write((byte)slotType); // type
+        stream.Write(slot); // index
+        stream.Write(amount); // amount
         return stream;
     }
 

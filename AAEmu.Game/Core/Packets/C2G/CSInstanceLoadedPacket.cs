@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSInstanceLoadedPacket : GamePacket
+public class CSInstanceLoadedPacket() : GamePacket(CSOffsets.CSInstanceLoadedPacket, 1)
 {
-    public CSInstanceLoadedPacket() : base(CSOffsets.CSInstanceLoadedPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Empty struct

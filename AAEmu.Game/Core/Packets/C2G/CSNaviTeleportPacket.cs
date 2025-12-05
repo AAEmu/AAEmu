@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSNaviTeleportPacket : GamePacket
+public class CSNaviTeleportPacket() : GamePacket(CSOffsets.CSNaviTeleportPacket, 1)
 {
-    public CSNaviTeleportPacket() : base(CSOffsets.CSNaviTeleportPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var objId = stream.ReadBc();

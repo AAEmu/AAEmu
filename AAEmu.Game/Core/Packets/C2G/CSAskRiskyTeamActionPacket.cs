@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSAskRiskyTeamActionPacket : GamePacket
+public class CSAskRiskyTeamActionPacket() : GamePacket(CSOffsets.CSAskRiskyTeamActionPacket, 1)
 {
-    public CSAskRiskyTeamActionPacket() : base(CSOffsets.CSAskRiskyTeamActionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

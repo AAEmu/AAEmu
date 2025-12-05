@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSJoinUserChatChannelPacket : GamePacket
+public class CSJoinUserChatChannelPacket() : GamePacket(CSOffsets.CSJoinUserChatChannelPacket, 1)
 {
-    public CSJoinUserChatChannelPacket() : base(CSOffsets.CSJoinUserChatChannelPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();

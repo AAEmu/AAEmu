@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCICSSyncGoodPacket : GamePacket
+public class SCICSSyncGoodPacket(int cashShopId, int remainCount) : GamePacket(SCOffsets.SCICSSyncGoodPacket, 1)
 {
-    private readonly int _cashShopId;
-    private readonly int _remainCount;
-
-    public SCICSSyncGoodPacket(int cashShopId, int remainCount) : base(SCOffsets.SCICSSyncGoodPacket, 1)
-    {
-        _cashShopId = cashShopId;
-        _remainCount = remainCount;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_cashShopId);
-        stream.Write(_remainCount);
+        stream.Write(cashShopId);
+        stream.Write(remainCount);
         return stream;
     }
 }

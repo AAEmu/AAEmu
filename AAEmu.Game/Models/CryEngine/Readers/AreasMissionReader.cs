@@ -7,7 +7,7 @@ using AAEmuGeoData.Scripts.CryEngine.Mission;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public class AreasMissionReader : BaiReader
+public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiReader(rawStream, zoneId)
 {
     private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public static int BaiAreasFileVersion = 21;
@@ -23,10 +23,7 @@ public class AreasMissionReader : BaiReader
     // Helpers to remove duplicates
     public static ConcurrentBag<string> UsedAreaNames { get; set; } = [];
 
-    public AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
-    {
-        //
-    }
+    //
 
     public override void CheckVersion(int version)
     {

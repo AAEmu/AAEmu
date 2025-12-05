@@ -6,12 +6,8 @@ using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSetPingPosPacket : GamePacket
+public class CSSetPingPosPacket() : GamePacket(CSOffsets.CSSetPingPosPacket, 1)
 {
-    public CSSetPingPosPacket() : base(CSOffsets.CSSetPingPosPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

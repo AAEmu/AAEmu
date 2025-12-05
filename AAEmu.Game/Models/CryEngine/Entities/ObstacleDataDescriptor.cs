@@ -2,9 +2,9 @@
 
 namespace AAEmu.Game.Models.CryEngine.Entities;
 
-public class ObstacleDataDescriptor
+public class ObstacleDataDescriptor(uint zoneId)
 {
-    public uint ZoneId { get; }
+    public uint ZoneId { get; } = zoneId;
     public Vector3 Pos { get; set; } = Vector3.Zero;
     public Vector3 Dir { get; set; } = Vector3.Zero;
     public double ApproxRadius { get; set; }
@@ -12,11 +12,6 @@ public class ObstacleDataDescriptor
     public byte ApproxHeight { get; set; }
     public byte Unk1 { get; set; }
     public byte Unk2 { get; set; }
-
-    public ObstacleDataDescriptor(uint zoneId)
-    {
-        ZoneId = zoneId;
-    }
 
     public bool Equals(ObstacleDataDescriptor other)
     {

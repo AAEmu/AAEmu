@@ -6,17 +6,11 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterActability
+public class CharacterActability(Character owner)
 {
-    public Dictionary<uint, Actability> Actabilities { get; set; }
+    public Dictionary<uint, Actability> Actabilities { get; set; } = [];
 
-    public Character Owner { get; set; }
-
-    public CharacterActability(Character owner)
-    {
-        Owner = owner;
-        Actabilities = [];
-    }
+    public Character Owner { get; set; } = owner;
 
     /// <summary>
     /// Adds points to a specific ActAbility (life skill)

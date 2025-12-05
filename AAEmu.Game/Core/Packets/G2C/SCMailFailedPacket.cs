@@ -5,29 +5,19 @@ using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCMailFailedPacket : GamePacket
+public class SCMailFailedPacket(MailResult err, (SlotType slotType, byte slot)[] items, bool money)
+    : GamePacket(SCOffsets.SCMailFailedPacket, 1)
 {
-    private readonly MailResult _err;
-    private readonly (SlotType slotType, byte slot)[] _items;
-    private readonly bool _money;
-
-    public SCMailFailedPacket(MailResult err, (SlotType slotType, byte slot)[] items, bool money) : base(SCOffsets.SCMailFailedPacket, 1)
-    {
-        _err = err;
-        _items = items;
-        _money = money;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_err);
-        foreach (var (slotType, slot) in _items) // TODO 10 items
+        stream.Write((byte)err);
+        foreach (var (slotType, slot) in items) // TODO 10 items
         {
             stream.Write((byte)slotType);
             stream.Write(slot);
         }
 
-        stream.Write(_money);
+        stream.Write(money);
         return stream;
     }
 }

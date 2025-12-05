@@ -4,19 +4,13 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCScheduleItemUpdatePacket : GamePacket
+public class SCScheduleItemUpdatePacket(List<ScheduleItem> scheduleItems)
+    : GamePacket(SCOffsets.SCScheduleItemUpdatePacket, 1)
 {
-    private readonly List<ScheduleItem> _scheduleItems;
-
-    public SCScheduleItemUpdatePacket(List<ScheduleItem> scheduleItems) : base(SCOffsets.SCScheduleItemUpdatePacket, 1)
-    {
-        _scheduleItems = scheduleItems;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_scheduleItems.Count);
-        foreach (var item in _scheduleItems)
+        stream.Write(scheduleItems.Count);
+        foreach (var item in scheduleItems)
         {
             stream.Write(item);
         }

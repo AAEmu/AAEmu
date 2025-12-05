@@ -4,19 +4,12 @@ using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCQuestsPacket : GamePacket
+public class SCQuestsPacket(Quest[] quests) : GamePacket(SCOffsets.SCQuestsPacket, 1)
 {
-    private readonly Quest[] _quests;
-
-    public SCQuestsPacket(Quest[] quests) : base(SCOffsets.SCQuestsPacket, 1)
-    {
-        _quests = quests;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_quests.Length); // count // TODO max 20
-        foreach (var quest in _quests)
+        stream.Write(quests.Length); // count // TODO max 20
+        foreach (var quest in quests)
             stream.Write(quest);
         return stream;
     }

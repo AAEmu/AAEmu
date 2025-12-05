@@ -7,12 +7,12 @@ namespace AAEmu.Game.Models.Game.World.Zones;
 
 #pragma warning disable IDE0052 // Remove unread private members
 
-public class ZoneConflict
+public class ZoneConflict(ZoneGroup owner)
 {
-    private ZoneGroup _owner;
+    private ZoneGroup _owner = owner;
     public ushort ZoneGroupId { get; set; }
-    public int[] NumKills { get; }
-    public int[] NoKillMin { get; }
+    public int[] NumKills { get; } = new int[5];
+    public int[] NoKillMin { get; } = new int[5];
 
     public int ConflictMin { get; set; }
     public int WarMin { get; set; }
@@ -23,23 +23,11 @@ public class ZoneConflict
     public uint HariharaReturnPointId { get; set; }
     public uint WarTowerDefId { get; set; }
     // TODO 1.2 // public uint PeaceTowerDefId { get; set; }
-    public bool Closed { get; set; }
+    public bool Closed { get; set; } = false;
 
-    public ZoneConflictType CurrentZoneState { get; protected set; }
-    public DateTime NextStateTime { get; protected set; }
+    public ZoneConflictType CurrentZoneState { get; protected set; } = ZoneConflictType.Tension;
+    public DateTime NextStateTime { get; protected set; } = DateTime.MinValue;
     public uint KillCount { get; protected set; }
-
-    public ZoneConflict(ZoneGroup owner)
-    {
-        _owner = owner;
-
-        NumKills = new int[5];
-        NoKillMin = new int[5];
-
-        CurrentZoneState = ZoneConflictType.Tension;
-        NextStateTime = DateTime.MinValue;
-        Closed = false;
-    }
 
     /// <summary>
     /// Call this function if a PvP kill happens in a zone

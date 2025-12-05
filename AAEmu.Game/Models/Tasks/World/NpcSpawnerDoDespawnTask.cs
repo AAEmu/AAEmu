@@ -2,16 +2,10 @@
 
 namespace AAEmu.Game.Models.Tasks.World;
 
-public class NpcSpawnerDoDespawnTask : Task
+public class NpcSpawnerDoDespawnTask(Npc npc) : Task
 {
-    private readonly Npc _npc;
-
-    public NpcSpawnerDoDespawnTask(Npc npc)
-    {
-        _npc = npc;
-    }
     public override void Execute()
     {
-        _npc?.Spawner?.DoDespawn(_npc);
+        npc?.Spawner?.DoDespawn(npc);
     }
 }

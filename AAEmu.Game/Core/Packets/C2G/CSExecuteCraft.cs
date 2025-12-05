@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSExecuteCraft : GamePacket
+public class CSExecuteCraft() : GamePacket(CSOffsets.CSExecuteCraft, 1)
 {
-    public CSExecuteCraft() : base(CSOffsets.CSExecuteCraft, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var craftId = stream.ReadUInt32();

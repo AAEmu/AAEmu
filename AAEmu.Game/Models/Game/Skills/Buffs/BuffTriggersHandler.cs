@@ -4,21 +4,14 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs;
 
-public class BuffTriggersHandler
+public class BuffTriggersHandler(Buff buff)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly Buff _owner;
-    private readonly List<BuffTrigger> _triggers;
-
-    public BuffTriggersHandler(Buff buff)
-    {
-        _triggers = [];
-        _owner = buff;
-    }
+    private readonly List<BuffTrigger> _triggers = [];
 
     public void SubscribeEvents()
     {
-        uint buffId = _owner.Template.BuffId;
+        uint buffId = buff.Template.BuffId;
 
         var triggerTemplates = SkillManager.Instance.GetBuffTriggerTemplates(buffId);
 
@@ -28,57 +21,57 @@ public class BuffTriggersHandler
             switch (triggerTemplate.Kind)
             {
                 case Buffs.BuffEventTriggerKind.Attack:
-                    trigger = new BuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnAttack += trigger.Execute;
+                    trigger = new BuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnAttack += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.Attacked:
                     break;
                 case Buffs.BuffEventTriggerKind.Damage:
-                    trigger = new BuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnDamage += trigger.Execute;
+                    trigger = new BuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnDamage += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.Damaged:
-                    trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnDamaged += trigger.Execute;
+                    trigger = new DamagedBuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnDamaged += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.Dispelled:
-                    trigger = new BuffTrigger(_owner, triggerTemplate);
-                    _owner.Events.OnDispelled += trigger.Execute;
+                    trigger = new BuffTrigger(buff, triggerTemplate);
+                    buff.Events.OnDispelled += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.Timeout:
-                    trigger = new BuffTrigger(_owner, triggerTemplate);
-                    _owner.Events.OnTimeout += trigger.Execute;
+                    trigger = new BuffTrigger(buff, triggerTemplate);
+                    buff.Events.OnTimeout += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedMelee:
-                    trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnDamagedMelee += trigger.Execute;
+                    trigger = new DamagedBuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnDamagedMelee += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedRanged:
-                    trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnDamagedRanged += trigger.Execute;
+                    trigger = new DamagedBuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnDamagedRanged += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedSpell:
-                    trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnDamagedSpell += trigger.Execute;
+                    trigger = new DamagedBuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnDamagedSpell += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedSiege:
-                    trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnDamagedSiege += trigger.Execute;
+                    trigger = new DamagedBuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnDamagedSiege += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.Landing:
                     break;
                 case Buffs.BuffEventTriggerKind.Started:
-                    trigger = new BuffTrigger(_owner, triggerTemplate);
-                    _owner.Events.OnBuffStarted += trigger.Execute;
+                    trigger = new BuffTrigger(buff, triggerTemplate);
+                    buff.Events.OnBuffStarted += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.RemoveOnMove:
@@ -88,8 +81,8 @@ public class BuffTriggersHandler
                 case Buffs.BuffEventTriggerKind.RemoveOnDamage:
                     break;
                 case Buffs.BuffEventTriggerKind.Death:
-                    trigger = new BuffTrigger(_owner, triggerTemplate);
-                    _owner.Caster.Events.OnDeath += trigger.Execute;
+                    trigger = new BuffTrigger(buff, triggerTemplate);
+                    buff.Caster.Events.OnDeath += trigger.Execute;
                     _triggers.Add(trigger);
                     break;
                 case Buffs.BuffEventTriggerKind.Unmount:
@@ -122,44 +115,44 @@ public class BuffTriggersHandler
         //TODO These invokes need to be moved to better locations
         //TODO: Make sure this is when buff time runs out?
         //Not sure if this is for expiration or for being dispelled aka Purged
-        _owner.Events.OnDispelled(_owner, new OnDispelledArgs());
+        buff.Events.OnDispelled(buff, new OnDispelledArgs());
         foreach (var trigger in _triggers)
         {
             switch (trigger.Template.Kind)
             {
                 case Buffs.BuffEventTriggerKind.Attack:
-                    _owner.Caster.Events.OnAttack -= trigger.Execute;
+                    buff.Caster.Events.OnAttack -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.Attacked:
                     break;
                 case Buffs.BuffEventTriggerKind.Damage:
-                    _owner.Caster.Events.OnDamage -= trigger.Execute;
+                    buff.Caster.Events.OnDamage -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.Damaged:
-                    _owner.Caster.Events.OnDamaged -= trigger.Execute;
+                    buff.Caster.Events.OnDamaged -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.Dispelled:
-                    _owner.Events.OnDispelled -= trigger.Execute;
+                    buff.Events.OnDispelled -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.Timeout:
-                    _owner.Events.OnTimeout -= trigger.Execute;
+                    buff.Events.OnTimeout -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedMelee:
-                    _owner.Caster.Events.OnDamagedMelee -= trigger.Execute;
+                    buff.Caster.Events.OnDamagedMelee -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedRanged:
-                    _owner.Caster.Events.OnDamagedRanged -= trigger.Execute;
+                    buff.Caster.Events.OnDamagedRanged -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedSpell:
-                    _owner.Caster.Events.OnDamagedSpell -= trigger.Execute;
+                    buff.Caster.Events.OnDamagedSpell -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.DamagedSiege:
-                    _owner.Caster.Events.OnDamagedSiege -= trigger.Execute;
+                    buff.Caster.Events.OnDamagedSiege -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.Landing:
                     break;
                 case Buffs.BuffEventTriggerKind.Started:
-                    _owner.Events.OnBuffStarted -= trigger.Execute;
+                    buff.Events.OnBuffStarted -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.RemoveOnMove:
                     break;
@@ -168,7 +161,7 @@ public class BuffTriggersHandler
                 case Buffs.BuffEventTriggerKind.RemoveOnDamage:
                     break;
                 case Buffs.BuffEventTriggerKind.Death:
-                    _owner.Caster.Events.OnDeath -= trigger.Execute;
+                    buff.Caster.Events.OnDeath -= trigger.Execute;
                     break;
                 case Buffs.BuffEventTriggerKind.Unmount:
                     break;

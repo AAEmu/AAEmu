@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSearchListPacket : GamePacket
+public class CSSearchListPacket() : GamePacket(CSOffsets.CSSearchListPacket, 1)
 {
-    public CSSearchListPacket() : base(CSOffsets.CSSearchListPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var zoneType = stream.ReadByte();

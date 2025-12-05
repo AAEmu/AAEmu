@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTEmblemStreamUploadStatusPacket : StreamPacket
+public class CTEmblemStreamUploadStatusPacket() : StreamPacket(CTOffsets.CTEmblemStreamUploadStatusPacket)
 {
-    public CTEmblemStreamUploadStatusPacket() : base(CTOffsets.CTEmblemStreamUploadStatusPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var status = stream.ReadByte();

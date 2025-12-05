@@ -4,12 +4,8 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSUpdateActionSlotPacket : GamePacket
+public class CSUpdateActionSlotPacket() : GamePacket(CSOffsets.CSUpdateActionSlotPacket, 1)
 {
-    public CSUpdateActionSlotPacket() : base(CSOffsets.CSUpdateActionSlotPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var slot = stream.ReadByte();

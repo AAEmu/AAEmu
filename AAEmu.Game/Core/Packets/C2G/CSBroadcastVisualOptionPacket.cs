@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSBroadcastVisualOptionPacket : GamePacket
+public class CSBroadcastVisualOptionPacket() : GamePacket(CSOffsets.CSBroadcastVisualOptionPacket, 1)
 {
-    public CSBroadcastVisualOptionPacket() : base(CSOffsets.CSBroadcastVisualOptionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         Connection.ActiveChar.VisualOptions.Read(stream);

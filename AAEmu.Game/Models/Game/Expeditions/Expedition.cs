@@ -10,20 +10,12 @@ namespace AAEmu.Game.Models.Game.Expeditions;
 
 public class Expedition : SystemFaction
 {
-    private readonly List<uint> _removedMembers;
+    private readonly List<uint> _removedMembers = [];
 
-    public List<ExpeditionMember> Members { get; set; }
-    public List<ExpeditionRolePolicy> Policies { get; set; }
+    public List<ExpeditionMember> Members { get; set; } = [];
+    public List<ExpeditionRolePolicy> Policies { get; set; } = [];
 
-    public bool isDisbanded { get; set; }
-
-    public Expedition()
-    {
-        _removedMembers = [];
-        Members = [];
-        Policies = [];
-        isDisbanded = false;
-    }
+    public bool isDisbanded { get; set; } = false;
 
     public void RemoveMember(ExpeditionMember member)
     {

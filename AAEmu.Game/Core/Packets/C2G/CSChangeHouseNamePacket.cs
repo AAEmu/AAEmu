@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeHouseNamePacket : GamePacket
+public class CSChangeHouseNamePacket() : GamePacket(CSOffsets.CSChangeHouseNamePacket, 1)
 {
-    public CSChangeHouseNamePacket() : base(CSOffsets.CSChangeHouseNamePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var tl = stream.ReadUInt16(); // houseId

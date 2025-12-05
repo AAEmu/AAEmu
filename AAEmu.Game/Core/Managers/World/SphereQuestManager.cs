@@ -11,34 +11,22 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class SphereQuestManager : ISphereQuestManager
+public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly WorldInstance _parent;
 
     private static Dictionary<uint, List<SphereQuest>> _sphereQuests;
 
-    private readonly List<SphereQuestTrigger> _sphereQuestTriggers;
-    private List<SphereQuestTrigger> _addQueue;
-    private List<SphereQuestTrigger> _removeQueue;
-    private readonly List<SphereQuestStarter> _questStartingSpheres;
-    private readonly List<SphereQuestStarter> _questSpheresBasic;
+    private readonly List<SphereQuestTrigger> _sphereQuestTriggers = [];
+    private List<SphereQuestTrigger> _addQueue = [];
+    private List<SphereQuestTrigger> _removeQueue = [];
+    private readonly List<SphereQuestStarter> _questStartingSpheres = [];
+    private readonly List<SphereQuestStarter> _questSpheresBasic = [];
     // PlayerId, Pos
-    private readonly Dictionary<uint, Vector3> _questStartingLastPositionChecks;
+    private readonly Dictionary<uint, Vector3> _questStartingLastPositionChecks = [];
 
     private readonly object _addLock = new();
     private readonly object _remLock = new();
-
-    public SphereQuestManager(WorldInstance parent)
-    {
-        _parent = parent;
-        _sphereQuestTriggers = [];
-        _addQueue = [];
-        _removeQueue = [];
-        _questStartingSpheres = [];
-        _questSpheresBasic = [];
-        _questStartingLastPositionChecks = [];
-    }
 
     public void Initialize()
     {
@@ -49,7 +37,7 @@ public class SphereQuestManager : ISphereQuestManager
     {
         // Load sphere data
         if (_sphereQuests == null)
-            _sphereQuests = LoadQuestSpheres(_parent.Template);
+            _sphereQuests = LoadQuestSpheres(parent.Template);
 
         // Link quest starters to spheres
         _questStartingSpheres.Clear();
@@ -183,7 +171,7 @@ public class SphereQuestManager : ISphereQuestManager
             foreach (var questStartingSphere in _questStartingSpheres)
             {
                 // Link the region if it hasn't been done yet
-                questStartingSphere.Region ??= _parent.GetRegionByPos(questStartingSphere.Sphere.Xyz);
+                questStartingSphere.Region ??= parent.GetRegionByPos(questStartingSphere.Sphere.Xyz);
 
                 if (!questStartingSphere.Region?.HasPlayerActivity() ?? true)
                     continue;

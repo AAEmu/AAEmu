@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSBeautyshopDataPacket : GamePacket
+public class CSBeautyshopDataPacket() : GamePacket(CSOffsets.CSBeautyshopDataPacket, 1)
 {
-    public CSBeautyshopDataPacket() : base(CSOffsets.CSBeautyshopDataPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         //Logger.Debug("BeautyshopData");

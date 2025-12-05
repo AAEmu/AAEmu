@@ -8,14 +8,14 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class NameManager : Singleton<NameManager>
+public partial class NameManager(CharacterManager characterManager = null) : Singleton<NameManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly CharacterManager _characterManager;
+    private readonly CharacterManager _characterManager = characterManager ?? CharacterManager.Instance;
     private Regex _characterNameRegex;
-    private Dictionary<uint, string> _characterIds;
-    private Dictionary<string, uint> _characterNames;
-    private Dictionary<uint, uint> _characterAccounts;
+    private Dictionary<uint, string> _characterIds = [];
+    private Dictionary<string, uint> _characterNames = [];
+    private Dictionary<uint, uint> _characterAccounts = [];
 
     public string GetCharacterName(uint characterId)
         => _characterIds.TryGetValue(characterId, out var characterName)
@@ -34,14 +34,6 @@ public partial class NameManager : Singleton<NameManager>
 
     public NameManager() : this(null)
     {
-    }
-
-    public NameManager(CharacterManager characterManager = null)
-    {
-        _characterIds = [];
-        _characterNames = [];
-        _characterAccounts = [];
-        _characterManager = characterManager ?? CharacterManager.Instance;
     }
 
     [GeneratedRegex("^[a-zA-Z0-9а-яА-Я]{1,18}$")]

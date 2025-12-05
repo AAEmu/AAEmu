@@ -156,16 +156,9 @@ public class BuffTemplate
     public bool CrowdHostile { get; set; }
     public bool OnActionTime => Tick > 0;
 
-    public List<TickEffect> TickEffects { get; set; }
-    public List<BonusTemplate> Bonuses { get; set; }
-    public List<DynamicBonusTemplate> DynamicBonuses { get; set; }
-
-    public BuffTemplate()
-    {
-        TickEffects = [];
-        Bonuses = [];
-        DynamicBonuses = [];
-    }
+    public List<TickEffect> TickEffects { get; set; } = [];
+    public List<BonusTemplate> Bonuses { get; set; } = [];
+    public List<DynamicBonusTemplate> DynamicBonuses { get; set; } = [];
 
     public void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,

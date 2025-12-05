@@ -4,16 +4,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCompleteQuestContextPacket : GamePacket
+public class CSCompleteQuestContextPacket() : GamePacket(CSOffsets.CSCompleteQuestContextPacket, 1)
 {
     private uint _questContextId;
     private uint _npcObjId;
     private uint _doodadObjId;
     private int _selected;
-
-    public CSCompleteQuestContextPacket() : base(CSOffsets.CSCompleteQuestContextPacket, 1)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

@@ -8,12 +8,8 @@ using AAEmu.Game.Models.Game.Chat;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSendChatMessagePacket : GamePacket
+public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessagePacket, 1)
 {
-    public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var type = (ChatType)stream.ReadInt16();

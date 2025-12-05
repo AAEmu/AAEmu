@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSUseTeleportPacket : GamePacket
+public class CSUseTeleportPacket() : GamePacket(CSOffsets.CSUseTeleportPacket, 1)
 {
-    public CSUseTeleportPacket() : base(CSOffsets.CSUseTeleportPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var returnPointId = stream.ReadUInt32();

@@ -2,18 +2,11 @@
 
 namespace AAEmu.Game.Models.Tasks.Npcs;
 
-public class NpcDeleteTask : Task
+public class NpcDeleteTask(Npc npc) : Task
 {
-    private readonly Npc _npc;
-
-    public NpcDeleteTask(Npc npc)
-    {
-        _npc = npc;
-    }
-
     public override void Execute()
     {
-        _npc.Simulation.NpcDeleteTask = null;
-        _npc.Spawner.DespawnWithRespawn(_npc);
+        npc.Simulation.NpcDeleteTask = null;
+        npc.Spawner.DespawnWithRespawn(npc);
     }
 }

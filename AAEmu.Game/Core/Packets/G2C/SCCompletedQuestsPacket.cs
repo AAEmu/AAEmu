@@ -4,19 +4,12 @@ using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCompletedQuestsPacket : GamePacket
+public class SCCompletedQuestsPacket(CompletedQuest[] quests) : GamePacket(SCOffsets.SCCompletedQuestsPacket, 1)
 {
-    private readonly CompletedQuest[] _quests;
-
-    public SCCompletedQuestsPacket(CompletedQuest[] quests) : base(SCOffsets.SCCompletedQuestsPacket, 1)
-    {
-        _quests = quests;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_quests.Length); // TODO max 200
-        foreach (var quest in _quests)
+        stream.Write(quests.Length); // TODO max 200
+        foreach (var quest in quests)
         {
             var body = new byte[8];
             quest.Body.CopyTo(body, 0);

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRequestCharBriefPacket : GamePacket
+public class CSRequestCharBriefPacket() : GamePacket(CSOffsets.CSRequestCharBriefPacket, 1)
 {
-    public CSRequestCharBriefPacket() : base(CSOffsets.CSRequestCharBriefPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

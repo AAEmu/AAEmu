@@ -9,12 +9,8 @@ using AAEmu.Game.Models.Tasks.CashShop;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSICSBuyGoodPacket : GamePacket
+public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
 {
-    public CSICSBuyGoodPacket() : base(CSOffsets.CSICSBuyGoodPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var buyer = Connection.ActiveChar;

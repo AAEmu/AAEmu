@@ -4,17 +4,10 @@ using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCHouseStatePacket : GamePacket
+public class SCHouseStatePacket(House house) : GamePacket(SCOffsets.SCHouseStatePacket, 1)
 {
-    private readonly House _house;
-
-    public SCHouseStatePacket(House house) : base(SCOffsets.SCHouseStatePacket, 1)
-    {
-        _house = house;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        return _house.Write(stream);
+        return house.Write(stream);
     }
 }

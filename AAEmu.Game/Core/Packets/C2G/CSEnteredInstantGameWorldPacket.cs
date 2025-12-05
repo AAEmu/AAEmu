@@ -3,13 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSEnteredInstantGameWorldPacket : GamePacket
+public class CSEnteredInstantGameWorldPacket() : GamePacket(CSOffsets.CSEnteredInstantGameWorldPacket, 1)
 {
     private ulong _qualifiedId;
-
-    public CSEnteredInstantGameWorldPacket() : base(CSOffsets.CSEnteredInstantGameWorldPacket, 1)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
 
-public class DamageBuffTrigger : BuffTrigger
+public class DamageBuffTrigger(Buff owner, BuffTriggerTemplate template) : BuffTrigger(owner, template)
 {
     public override void Execute(object sender, EventArgs eventArgs)
     {
@@ -24,10 +24,5 @@ public class DamageBuffTrigger : BuffTrigger
         Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
             new EffectSource(_buff.Template) { Amount = args?.Amount ?? 0 }, // TODO : EffectSource Type trigger 
             null, DateTime.UtcNow);
-    }
-
-    public DamageBuffTrigger(Buff owner, BuffTriggerTemplate template) : base(owner, template)
-    {
-
     }
 }

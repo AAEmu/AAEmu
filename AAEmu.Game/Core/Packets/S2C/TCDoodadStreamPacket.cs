@@ -4,27 +4,16 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
-public class TCDoodadStreamPacket : StreamPacket
+public class TCDoodadStreamPacket(int id, int next, Doodad[] doodads) : StreamPacket(TCOffsets.TCDoodadStreamPacket)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 
-    private readonly int _id;
-    private readonly int _next;
-    private readonly Doodad[] _doodads;
-
-    public TCDoodadStreamPacket(int id, int next, Doodad[] doodads) : base(TCOffsets.TCDoodadStreamPacket)
-    {
-        _id = id;
-        _next = next;
-        _doodads = doodads;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);
-        stream.Write(_next);
-        stream.Write(_doodads.Length);
-        foreach (var doodad in _doodads)
+        stream.Write(id);
+        stream.Write(next);
+        stream.Write(doodads.Length);
+        foreach (var doodad in doodads)
         {
             stream.WriteBc(doodad.ObjId);
             stream.Write(doodad.TemplateId);

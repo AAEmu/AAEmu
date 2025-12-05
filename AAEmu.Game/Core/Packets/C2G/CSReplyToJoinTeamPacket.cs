@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSReplyToJoinTeamPacket : GamePacket
+public class CSReplyToJoinTeamPacket() : GamePacket(CSOffsets.CSReplyToJoinTeamPacket, 1)
 {
-    public CSReplyToJoinTeamPacket() : base(CSOffsets.CSReplyToJoinTeamPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

@@ -2,7 +2,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class TaskIdManager : IdManager
+public class TaskIdManager() : IdManager("TaskIdManager", FirstId, LastId, ObjTables, Exclude)
 {
     private static TaskIdManager _instance;
     private const uint FirstId = 0x00000001;
@@ -11,10 +11,4 @@ public class TaskIdManager : IdManager
     private static readonly string[,] ObjTables = { { } };
 
     public static TaskIdManager Instance => _instance ?? (_instance = new TaskIdManager());
-
-    public TaskIdManager()
-        : base("TaskIdManager", FirstId, LastId, ObjTables, Exclude)
-    {
-
-    }
 }

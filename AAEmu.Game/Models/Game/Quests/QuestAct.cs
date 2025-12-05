@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
-public class QuestAct : IComparable<QuestAct>, IQuestAct
+public class QuestAct(QuestComponent parentComponent, QuestActTemplate template) : IComparable<QuestAct>, IQuestAct
 {
     /// <summary>
     /// Same as Template.ActId
@@ -13,8 +13,8 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
     public uint DetailId => Template?.DetailId ?? 0;
     public string DetailType { get; set; }
 
-    public QuestComponent QuestComponent { get; }
-    public QuestActTemplate Template { get; set; }
+    public QuestComponent QuestComponent { get; } = parentComponent;
+    public QuestActTemplate Template { get; set; } = template;
 
     #region objectives
 
@@ -31,12 +31,6 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
                 QuestComponent.OverrideObjectiveCompleted = true;
             RequestEvaluation();
         }
-    }
-
-    public QuestAct(QuestComponent parentComponent, QuestActTemplate template)
-    {
-        QuestComponent = parentComponent;
-        Template = template;
     }
 
     /// <summary>

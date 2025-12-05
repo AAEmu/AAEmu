@@ -3,23 +3,14 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCBuffRemovedPacket : GamePacket
+public class SCBuffRemovedPacket(uint objId, uint index) : GamePacket(SCOffsets.SCBuffRemovedPacket, 1)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 
-    private readonly uint _objId;
-    private readonly uint _index;
-
-    public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 1)
-    {
-        _objId = objId;
-        _index = index;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_objId);
-        stream.Write(_index);
+        stream.WriteBc(objId);
+        stream.Write(index);
         return stream;
     }
 }

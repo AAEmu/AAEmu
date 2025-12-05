@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Packets.G2L;
 
 namespace AAEmu.Game.Core.Packets.L2G;
 
-public class LGRequestInfoPacket : LoginPacket
+public class LGRequestInfoPacket() : LoginPacket(LGOffsets.LGRequestInfoPacket)
 {
-    public LGRequestInfoPacket() : base(LGOffsets.LGRequestInfoPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var connectionId = stream.ReadUInt32();

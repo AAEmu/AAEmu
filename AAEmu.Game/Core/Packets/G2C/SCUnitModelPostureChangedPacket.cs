@@ -5,25 +5,15 @@ using Unit = AAEmu.Game.Models.Game.Units.Unit;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCUnitModelPostureChangedPacket : GamePacket
+public class SCUnitModelPostureChangedPacket(Unit unit, uint animActionId, bool activateAnimation)
+    : GamePacket(SCOffsets.SCUnitModelPostureChangedPacket, 1)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
-    private readonly Unit _unit;
-    private readonly uint _animActionId;
-    private readonly bool _activateAnimation;
-
-    public SCUnitModelPostureChangedPacket(Unit unit, uint animActionId, bool activateAnimation) : base(SCOffsets.SCUnitModelPostureChangedPacket, 1)
-    {
-        _unit = unit;
-        _animActionId = animActionId;
-        _activateAnimation = activateAnimation;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_unit.ObjId);
-        Unit.ModelPosture(stream, _unit, _animActionId, _activateAnimation);
+        stream.WriteBc(unit.ObjId);
+        Unit.ModelPosture(stream, unit, animActionId, activateAnimation);
         return stream;
     }
 }

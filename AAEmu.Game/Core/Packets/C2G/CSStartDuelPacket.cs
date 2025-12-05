@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSStartDuelPacket : GamePacket
+public class CSStartDuelPacket() : GamePacket(CSOffsets.CSStartDuelPacket, 1)
 {
-    public CSStartDuelPacket() : base(CSOffsets.CSStartDuelPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var challengerId = stream.ReadUInt32();  // ID of the one who challenged us to a duel

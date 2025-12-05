@@ -14,15 +14,10 @@ public class PlotNode
     // Tree
     public PlotTree Tree;
     public PlotNode Parent;
-    public List<PlotNode> Children;
+    public List<PlotNode> Children = [];
     // Plots
     public PlotEventTemplate Event;
     public PlotNextEvent ParentNextEvent;
-
-    public PlotNode()
-    {
-        Children = [];
-    }
 
     private bool IsChannelStart()
     {

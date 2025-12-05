@@ -4,18 +4,12 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCharacterCreationFailedPacket : GamePacket
+public class SCCharacterCreationFailedPacket(CharacterCreateError reason)
+    : GamePacket(SCOffsets.SCCharacterCreationFailedPacket, 1)
 {
-    private readonly CharacterCreateError _reason;
-
-    public SCCharacterCreationFailedPacket(CharacterCreateError reason) : base(SCOffsets.SCCharacterCreationFailedPacket, 1)
-    {
-        _reason = reason;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_reason);
+        stream.Write((byte)reason);
         return stream;
     }
 }

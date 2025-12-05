@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSwapItemsPacket : GamePacket
+public class CSSwapItemsPacket() : GamePacket(CSOffsets.CSSwapItemsPacket, 1)
 {
-    public CSSwapItemsPacket() : base(CSOffsets.CSSwapItemsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var fromItemId = stream.ReadUInt64();

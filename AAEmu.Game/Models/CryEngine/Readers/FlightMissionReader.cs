@@ -5,16 +5,13 @@ using AAEmuGeoData.Scripts.CryEngine.Mission;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public class FlightMissionReader : BaiReader
+public class FlightMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiReader(rawStream, zoneId)
 {
     public static int BaiFlightNavFileVersionRead = 9;
 
     public FlightNavRegion FlightNavRegion { get; set; }
 
-    public FlightMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
-    {
-        //
-    }
+    //
 
     public override void CheckVersion(int version)
     {

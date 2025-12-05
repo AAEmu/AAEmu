@@ -4,18 +4,11 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCNotifyResurrectionPacket : GamePacket
+public class SCNotifyResurrectionPacket(SkillCaster skillCaster) : GamePacket(SCOffsets.SCNotifyResurrectionPacket, 1)
 {
-    private readonly SkillCaster _skillCaster;
-
-    public SCNotifyResurrectionPacket(SkillCaster skillCaster) : base(SCOffsets.SCNotifyResurrectionPacket, 1)
-    {
-        _skillCaster = skillCaster;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_skillCaster);
+        stream.Write(skillCaster);
         return stream;
     }
 }

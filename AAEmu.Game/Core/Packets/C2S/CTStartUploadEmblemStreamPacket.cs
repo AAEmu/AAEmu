@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTStartUploadEmblemStreamPacket : StreamPacket
+public class CTStartUploadEmblemStreamPacket() : StreamPacket(CTOffsets.CTStartUploadEmblemStreamPacket)
 {
-    public CTStartUploadEmblemStreamPacket() : base(CTOffsets.CTStartUploadEmblemStreamPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var bc = stream.ReadBc();

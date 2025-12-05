@@ -32,26 +32,14 @@ public class CharacterManager : Singleton<CharacterManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly Dictionary<byte, CharacterTemplate> _templates;
-    private readonly Dictionary<byte, AbilityItems> _abilityItems;
-    private readonly Dictionary<int, List<Expand>> _expands;
-    private readonly Dictionary<uint, AppellationTemplate> _appellations;
-    private readonly Dictionary<uint, ActabilityTemplate> _actabilities;
-    private readonly Dictionary<uint, ActabilityCategoriesTemplate> _actabilitiesCategories;
-    private readonly Dictionary<int, ExpertLimit> _expertLimits;
-    private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits;
-
-    public CharacterManager()
-    {
-        _templates = [];
-        _abilityItems = [];
-        _expands = [];
-        _appellations = [];
-        _actabilities = [];
-        _actabilitiesCategories = [];
-        _expertLimits = [];
-        _expandExpertLimits = [];
-    }
+    private readonly Dictionary<byte, CharacterTemplate> _templates = [];
+    private readonly Dictionary<byte, AbilityItems> _abilityItems = [];
+    private readonly Dictionary<int, List<Expand>> _expands = [];
+    private readonly Dictionary<uint, AppellationTemplate> _appellations = [];
+    private readonly Dictionary<uint, ActabilityTemplate> _actabilities = [];
+    private readonly Dictionary<uint, ActabilityCategoriesTemplate> _actabilitiesCategories = [];
+    private readonly Dictionary<int, ExpertLimit> _expertLimits = [];
+    private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits = [];
 
     public CharacterTemplate GetTemplate(Race race, Gender gender)
     {

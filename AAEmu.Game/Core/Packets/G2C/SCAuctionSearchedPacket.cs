@@ -4,36 +4,21 @@ using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAuctionSearchedPacket : GamePacket
+public class SCAuctionSearchedPacket(int page, int count, List<AuctionLot> lots, short errorMsg, DateTime serverTime)
+    : GamePacket(SCOffsets.SCAuctionSearchedPacket, 1)
 {
-    private readonly int _page;
-    private readonly int _count;
-    private readonly List<AuctionLot> _lots;
-    private readonly short _errorMsg;
-    private readonly DateTime _serverTime;
-
-    public SCAuctionSearchedPacket(int page, int count, List<AuctionLot> lots, short errorMsg, DateTime serverTime) :
-        base(SCOffsets.SCAuctionSearchedPacket, 1)
-    {
-        _page = page;
-        _count = count;
-        _lots = lots;
-        _errorMsg = errorMsg;
-        _serverTime = serverTime;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_page);
-        stream.Write(_count);
+        stream.Write(page);
+        stream.Write(count);
 
-        foreach (var lot in _lots) // TODO не более 9
+        foreach (var lot in lots) // TODO не более 9
         {
             stream.Write(lot);
         }
 
-        stream.Write(_errorMsg);
-        stream.Write(_serverTime);
+        stream.Write(errorMsg);
+        stream.Write(serverTime);
 
         return stream;
     }

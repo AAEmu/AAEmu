@@ -4,19 +4,12 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCharacterPortalsPacket : GamePacket
+public class SCCharacterPortalsPacket(Portal[] portals) : GamePacket(SCOffsets.SCCharacterPortalsPacket, 1)
 {
-    private readonly Portal[] _portals;
-
-    public SCCharacterPortalsPacket(Portal[] portals) : base(SCOffsets.SCCharacterPortalsPacket, 1)
-    {
-        _portals = portals;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_portals.Length);
-        foreach (var portal in _portals)
+        stream.Write(portals.Length);
+        foreach (var portal in portals)
             stream.Write(portal);
         return stream;
     }

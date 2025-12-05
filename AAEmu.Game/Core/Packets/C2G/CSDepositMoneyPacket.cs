@@ -4,12 +4,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSDepositMoneyPacket : GamePacket
+public class CSDepositMoneyPacket() : GamePacket(CSOffsets.CSDepositMoneyPacket, 1)
 {
-    public CSDepositMoneyPacket() : base(CSOffsets.CSDepositMoneyPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var amount = stream.ReadInt32();

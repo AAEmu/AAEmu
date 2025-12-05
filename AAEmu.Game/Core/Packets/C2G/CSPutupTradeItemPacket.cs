@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSPutupTradeItemPacket : GamePacket
+public class CSPutupTradeItemPacket() : GamePacket(CSOffsets.CSPutupTradeItemPacket, 1)
 {
-    public CSPutupTradeItemPacket() : base(CSOffsets.CSPutupTradeItemPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var slotType = (SlotType)stream.ReadByte();

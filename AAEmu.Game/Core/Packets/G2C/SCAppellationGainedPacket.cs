@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAppellationGainedPacket : GamePacket
+public class SCAppellationGainedPacket(uint appellationId) : GamePacket(SCOffsets.SCAppellationGainedPacket, 1)
 {
-    private readonly uint _appellationId;
-
-    public SCAppellationGainedPacket(uint appellationId) : base(SCOffsets.SCAppellationGainedPacket, 1)
-    {
-        _appellationId = appellationId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_appellationId);
+        stream.Write(appellationId);
         return stream;
     }
 }

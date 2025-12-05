@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCICSExchangeRatioPacket : GamePacket
+public class SCICSExchangeRatioPacket(int exchangeRatio) : GamePacket(SCOffsets.SCICSExchangeRatioPacket, 1)
 {
-    private readonly int _exchangeRatio;
-
-    public SCICSExchangeRatioPacket(int exchangeRatio) : base(SCOffsets.SCICSExchangeRatioPacket, 1)
-    {
-        _exchangeRatio = exchangeRatio;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_exchangeRatio);
+        stream.Write(exchangeRatio);
         return stream;
     }
 }

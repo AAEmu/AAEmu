@@ -3,19 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCQuestRewardedByMailPacket : GamePacket
+public class SCQuestRewardedByMailPacket(uint[] questList) : GamePacket(SCOffsets.SCQuestRewardedByMailPacket, 1)
 {
-    private readonly uint[] _questList;
-
-    public SCQuestRewardedByMailPacket(uint[] questList) : base(SCOffsets.SCQuestRewardedByMailPacket, 1)
-    {
-        _questList = questList;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_questList.Length);
-        foreach (var questId in _questList)
+        stream.Write((byte)questList.Length);
+        foreach (var questId in questList)
             stream.Write(questId);
         return stream;
     }

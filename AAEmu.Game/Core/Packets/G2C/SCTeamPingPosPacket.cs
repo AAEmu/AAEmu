@@ -4,26 +4,16 @@ using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeamPingPosPacket : GamePacket
+public class SCTeamPingPosPacket(bool hasPing, WorldSpawnPosition position, uint insId)
+    : GamePacket(SCOffsets.SCTeamPingPosPacket, 1)
 {
-    private readonly bool _hasPing;
-    private readonly WorldSpawnPosition _position;
-    private readonly uint _insId;
-
-    public SCTeamPingPosPacket(bool hasPing, WorldSpawnPosition position, uint insId) : base(SCOffsets.SCTeamPingPosPacket, 1)
-    {
-        _hasPing = hasPing;
-        _position = position;
-        _insId = insId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_hasPing);
-        stream.Write(_position.X);
-        stream.Write(_position.Y);
-        stream.Write(_position.Z);
-        stream.Write(_insId);
+        stream.Write(hasPing);
+        stream.Write(position.X);
+        stream.Write(position.Y);
+        stream.Write(position.Z);
+        stream.Write(insId);
         return stream;
     }
 }

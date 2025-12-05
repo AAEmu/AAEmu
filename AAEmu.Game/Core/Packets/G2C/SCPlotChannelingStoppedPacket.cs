@@ -3,25 +3,15 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCPlotChannelingStoppedPacket : GamePacket
+public class SCPlotChannelingStoppedPacket(ushort tl, uint duration, byte lastEvent)
+    : GamePacket(SCOffsets.SCPlotChannelingStoppedPacket, 1)
 {
-    private readonly ushort _tl;
-    private readonly uint _duration;
-    private readonly byte _lastEvent;
-
-    public SCPlotChannelingStoppedPacket(ushort tl, uint duration, byte lastEvent) : base(SCOffsets.SCPlotChannelingStoppedPacket, 1)
-    {
-        _tl = tl;
-        _duration = duration;
-        _lastEvent = lastEvent;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        Logger.Warn("SCPlotChannelingStoppedPacket: tl = {0} duration: {1} lastEvent: {2}", _tl, _duration, _lastEvent);
-        stream.Write(_tl);
-        stream.Write(_duration);
-        stream.Write(_lastEvent);
+        Logger.Warn("SCPlotChannelingStoppedPacket: tl = {0} duration: {1} lastEvent: {2}", tl, duration, lastEvent);
+        stream.Write(tl);
+        stream.Write(duration);
+        stream.Write(lastEvent);
 
         return stream;
     }

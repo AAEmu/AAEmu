@@ -4,25 +4,14 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCInstantGameStartPacket : GamePacket
+public class SCInstantGameStartPacket(ZoneInstanceId zoneInstanceId, uint start, uint now)
+    : GamePacket(SCOffsets.SCInstantGameStartPacket, 1)
 {
-    private readonly ZoneInstanceId _zoneInstanceId;
-    private readonly uint _start;
-    private readonly uint _now;
-
-    public SCInstantGameStartPacket(ZoneInstanceId zoneInstanceId, uint start, uint now)
-        : base(SCOffsets.SCInstantGameStartPacket, 1)
-    {
-        _zoneInstanceId = zoneInstanceId;
-        _start = start;
-        _now = now;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_zoneInstanceId);
-        stream.Write(_now);
-        stream.Write(_start);
+        stream.Write(zoneInstanceId);
+        stream.Write(now);
+        stream.Write(start);
         return stream;
     }
 }

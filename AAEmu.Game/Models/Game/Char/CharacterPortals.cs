@@ -8,26 +8,16 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterPortals
+public class CharacterPortals(Character owner)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; }
-    private readonly List<uint> _removedVisitedDistricts;
-    private readonly List<uint> _removedPrivatePortals;
+    private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; } = [];
+    private readonly List<uint> _removedVisitedDistricts = [];
+    private readonly List<uint> _removedPrivatePortals = [];
 
-    public Dictionary<uint, Portal> PrivatePortals { get; set; }
-    public Dictionary<uint, Portal> DistrictPortals { get; set; }
-    public Character Owner { get; set; }
-
-    public CharacterPortals(Character owner)
-    {
-        Owner = owner;
-        PrivatePortals = [];
-        DistrictPortals = [];
-        VisitedDistricts = [];
-        _removedVisitedDistricts = [];
-        _removedPrivatePortals = [];
-    }
+    public Dictionary<uint, Portal> PrivatePortals { get; set; } = [];
+    public Dictionary<uint, Portal> DistrictPortals { get; set; } = [];
+    public Character Owner { get; set; } = owner;
 
     public Portal GetPortalInfo(uint id)
     {

@@ -4,12 +4,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeItemLookPacket : GamePacket
+public class CSChangeItemLookPacket() : GamePacket(CSOffsets.CSChangeItemLookPacket, 1)
 {
-    public CSChangeItemLookPacket() : base(CSOffsets.CSChangeItemLookPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         stream.ReadByte();

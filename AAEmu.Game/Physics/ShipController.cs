@@ -13,22 +13,15 @@ using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics;
 
-public class ShipController
+public class ShipController(World world, ShipModelV1 shipModel, float waterLevel = 100f)
 {
-    private readonly World _world;
+    private readonly World _world = world ?? throw new ArgumentNullException(nameof(world));
 
     public RigidBody Hull { get; private set; } = null!;
-    public ShipModelV1 ShipModel { get; init; }
+    public ShipModelV1 ShipModel { get; init; } = shipModel ?? throw new ArgumentNullException(nameof(shipModel));
 
-    private readonly float _waterLevel;
+    private readonly float _waterLevel = waterLevel;
     private const float FluidDensity = 1025f; // kg/m³
-
-    public ShipController(World world, ShipModelV1 shipModel, float waterLevel = 100f)
-    {
-        _world = world ?? throw new ArgumentNullException(nameof(world));
-        _waterLevel = waterLevel;
-        ShipModel = shipModel ?? throw new ArgumentNullException(nameof(shipModel));
-    }
 
     ~ShipController()
     {

@@ -8,12 +8,8 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSendMailPacket : GamePacket
+public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
 {
-    public CSSendMailPacket() : base(CSOffsets.CSSendMailPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         Logger.Debug($"SendMail by {Connection.ActiveChar.Name}");

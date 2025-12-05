@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCompletedCinemaPacket : GamePacket
+public class CSCompletedCinemaPacket() : GamePacket(CSOffsets.CSCompletedCinemaPacket, 1)
 {
-    public CSCompletedCinemaPacket() : base(CSOffsets.CSCompletedCinemaPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Empty struct

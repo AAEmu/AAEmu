@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Items.Containers;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
-public class Tagging
+public class Tagging(Unit owner)
 {
     private readonly object _lock = new();
     private Dictionary<Character, int> _taggers = [];
@@ -14,12 +14,7 @@ public class Tagging
     private uint _tagTeam;
     // private int _totalDamage;
 
-    public Unit Owner { get; }
-
-    public Tagging(Unit owner)
-    {
-        Owner = owner;
-    }
+    public Unit Owner { get; } = owner;
 
     public Character Tagger
     {

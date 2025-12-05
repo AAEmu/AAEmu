@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSReplyInviteJuryPacket : GamePacket
+public class CSReplyInviteJuryPacket() : GamePacket(CSOffsets.CSReplyInviteJuryPacket, 1)
 {
-    public CSReplyInviteJuryPacket() : base(CSOffsets.CSReplyInviteJuryPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var accept = stream.ReadBoolean();

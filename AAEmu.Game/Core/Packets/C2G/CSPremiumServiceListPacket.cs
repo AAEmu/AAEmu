@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.CashShop;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSPremiumServiceListPacket : GamePacket
+public class CSPremiumServiceListPacket() : GamePacket(CSOffsets.CSPremiumServiceListPacket, 1)
 {
-    public CSPremiumServiceListPacket() : base(CSOffsets.CSPremiumServiceListPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Empty struct

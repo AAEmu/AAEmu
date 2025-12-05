@@ -3,24 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCHouseFarmPacket : GamePacket
+public class SCHouseFarmPacket(string name, int total, int harvestable) : GamePacket(SCOffsets.SCHouseFarmPacket, 1)
 {
-    private readonly string _name;
-    private readonly int _total;
-    private readonly int _harvestable;
-
-    public SCHouseFarmPacket(string name, int total, int harvestable) : base(SCOffsets.SCHouseFarmPacket, 1)
-    {
-        _name = name;
-        _total = total;
-        _harvestable = harvestable;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_name);
-        stream.Write(_total);
-        stream.Write(_harvestable);
+        stream.Write(name);
+        stream.Write(total);
+        stream.Write(harvestable);
         return stream;
     }
 }

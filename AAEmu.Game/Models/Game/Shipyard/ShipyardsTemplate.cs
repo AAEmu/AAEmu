@@ -14,10 +14,5 @@ public class ShipyardsTemplate
     public uint OriginItemId { get; set; }
     public int TaxationId { get; set; }
 
-    public Dictionary<int, ShipyardSteps> ShipyardSteps { get; set; }
-
-    public ShipyardsTemplate()
-    {
-        ShipyardSteps = [];
-    }
+    public Dictionary<int, ShipyardSteps> ShipyardSteps { get; set; } = [];
 }

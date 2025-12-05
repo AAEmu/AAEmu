@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Login;
 
 namespace AAEmu.Game.Core.Packets.L2G;
 
-public class LGPlayerEnterPacket : LoginPacket
+public class LGPlayerEnterPacket() : LoginPacket(LGOffsets.LGPlayerEnterPacket)
 {
-    public LGPlayerEnterPacket() : base(LGOffsets.LGPlayerEnterPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var accountId = stream.ReadUInt32();

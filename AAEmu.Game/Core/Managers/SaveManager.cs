@@ -16,17 +16,11 @@ public class SaveManager : Singleton<SaveManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private double Delay = 1;
-    private bool _enabled;
-    private bool _isSaving;
+    private bool _enabled = false;
+    private bool _isSaving = false;
     private readonly object _lock = new();
     private SaveTickStartTask saveTask;
     public ShutdownTask ShutdownTask { get; set; } = null;
-
-    public SaveManager()
-    {
-        _enabled = false;
-        _isSaving = false;
-    }
 
     public void Initialize()
     {

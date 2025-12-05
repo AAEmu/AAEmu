@@ -12,12 +12,8 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSBuyItemsPacket : GamePacket
+public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
 {
-    public CSBuyItemsPacket() : base(CSOffsets.CSBuyItemsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();

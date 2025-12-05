@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFactionImmigrateInvitePacket : GamePacket
+public class SCFactionImmigrateInvitePacket(uint id, uint id2) : GamePacket(SCOffsets.SCFactionImmigrateInvitePacket, 1)
 {
-    private readonly uint _id;
-    private readonly uint _id2;
-
-    public SCFactionImmigrateInvitePacket(uint id, uint id2) : base(SCOffsets.SCFactionImmigrateInvitePacket, 1)
-    {
-        _id = id;
-        _id2 = id2;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);
-        stream.Write(_id2);
+        stream.Write(id);
+        stream.Write(id2);
         return stream;
     }
 }

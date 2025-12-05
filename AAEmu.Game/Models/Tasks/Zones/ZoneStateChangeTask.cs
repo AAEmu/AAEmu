@@ -2,14 +2,9 @@
 
 namespace AAEmu.Game.Models.Tasks.Zones;
 
-public class ZoneStateChangeTask : Task
+public class ZoneStateChangeTask(ZoneConflict zc) : Task
 {
-    public ZoneConflict ZoneConflict;
-
-    public ZoneStateChangeTask(ZoneConflict zc)
-    {
-        ZoneConflict = zc;
-    }
+    public ZoneConflict ZoneConflict = zc;
 
     public override void Execute()
     {

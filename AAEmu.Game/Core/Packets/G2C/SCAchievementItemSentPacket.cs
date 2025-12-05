@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAchievementItemSentPacket : GamePacket
+public class SCAchievementItemSentPacket(uint id, bool byMail) : GamePacket(SCOffsets.SCAchievementItemSentPacket, 1)
 {
-    private readonly uint _id;
-    private readonly bool _byMail;
-
-    public SCAchievementItemSentPacket(uint id, bool byMail) : base(SCOffsets.SCAchievementItemSentPacket, 1)
-    {
-        _id = id;
-        _byMail = byMail;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);     // type
-        stream.Write(_byMail); // byMail
+        stream.Write(id);     // type
+        stream.Write(byMail); // byMail
 
         return stream;
     }

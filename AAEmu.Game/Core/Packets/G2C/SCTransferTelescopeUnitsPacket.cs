@@ -4,24 +4,16 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTransferTelescopeUnitsPacket : GamePacket
+public class SCTransferTelescopeUnitsPacket(bool last, Transfer[] transfers)
+    : GamePacket(SCOffsets.SCTransferTelescopeUnitsPacket, 1)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
-    private readonly bool _last;
-    private readonly Transfer[] _transfers;
-
-    public SCTransferTelescopeUnitsPacket(bool last, Transfer[] transfers) : base(SCOffsets.SCTransferTelescopeUnitsPacket, 1)
-    {
-        _last = last;
-        _transfers = transfers;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_last);
-        stream.Write((byte)_transfers.Length);
-        foreach (var transfer in _transfers)
+        stream.Write(last);
+        stream.Write((byte)transfers.Length);
+        foreach (var transfer in transfers)
         {
             transfer.WriteTelescopeUnit(stream);
         }

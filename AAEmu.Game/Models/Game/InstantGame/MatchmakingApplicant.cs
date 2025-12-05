@@ -2,14 +2,8 @@
 
 namespace AAEmu.Game.Models.Game.InstantGame;
 
-public class MatchmakingApplicant
+public class MatchmakingApplicant(Character charObj)
 {
-    public DateTime TimeApplied { get; }
-    public Character CharObj { get; }
-
-    public MatchmakingApplicant(Character charObj)
-    {
-        CharObj = charObj;
-        TimeApplied = DateTime.UtcNow;
-    }
+    public DateTime TimeApplied { get; } = DateTime.UtcNow;
+    public Character CharObj { get; } = charObj;
 }
