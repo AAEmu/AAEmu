@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace AAEmu.Game.Models.Game;

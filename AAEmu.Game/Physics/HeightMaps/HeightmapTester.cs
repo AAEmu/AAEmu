@@ -1,6 +1,4 @@
-﻿using System;
-
-using Jitter2.Collision;
+﻿using Jitter2.Collision;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics.HeightMaps;
