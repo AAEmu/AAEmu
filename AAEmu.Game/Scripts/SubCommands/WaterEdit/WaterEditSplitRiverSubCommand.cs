@@ -45,9 +45,9 @@ public class WaterEditSplitRiverSubCommand : SubCommandBase
             
         int startPoint = parameters["point"];
             
-        if ((startPoint <= 0) || (startPoint >= WaterEditCmd.SelectedWater.Points.Count - 1)) 
+        if (startPoint <= 0 || startPoint >= WaterEditCmd.SelectedWater.Points.Count - 1) 
         {
-            character.SendMessage($"|cFFFF0000[WaterEdit] The starting point must somewhere in the middle (1 ~ {(WaterEditCmd.SelectedWater.Points.Count - 2)})!|r");
+            character.SendMessage($"|cFFFF0000[WaterEdit] The starting point must somewhere in the middle (1 ~ {WaterEditCmd.SelectedWater.Points.Count - 2})!|r");
             return;
         }
             

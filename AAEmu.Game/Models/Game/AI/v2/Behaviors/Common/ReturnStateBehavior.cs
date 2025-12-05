@@ -68,7 +68,7 @@ public class ReturnStateBehavior : BaseCombatBehavior
 
         var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
         var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
-        moveSpeed *= (delta.Milliseconds / 1000.0);
+        moveSpeed *= delta.Milliseconds / 1000.0;
         Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
 
         var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Transform.World.Position);

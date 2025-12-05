@@ -169,7 +169,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddNationChannel(Race race, FactionsEnum factionDisplayId, string name)
     {
-        var mRace = (((byte)race - 1) & 0xFC);
+        var mRace = ((byte)race - 1) & 0xFC;
         var channel = new ChatChannel { ChatType = ChatType.Region, Faction = factionDisplayId, InternalId = mRace, InternalName = name };
         return NationChannels.TryAdd(mRace, channel);
     }
@@ -183,7 +183,7 @@ public class ChatManager : Singleton<ChatManager>
     {
         // some bit magic that makes raceId into some kind of birth continent id
         // If Fairy (for Nuia) and Returned (for Haranya) are ever added as a different faction, we'll need to go and write some proper code for this
-        var mRace = (((byte)race - 1) & 0xFC);
+        var mRace = ((byte)race - 1) & 0xFC;
         return NationChannels.GetValueOrDefault(mRace, NullChannel);
     }
 
@@ -334,11 +334,11 @@ public class ChatManager : Singleton<ChatManager>
         uint partyNumber = 0;
         for (uint i = 0; i < party.Members.Length; i++)
         {
-            if ((party.Members[i] == null) || (party.Members[i].Character == null))
+            if (party.Members[i] == null || party.Members[i].Character == null)
                 continue;
             if (party.Members[i].Character.Id == myChar.Id)
             {
-                partyNumber = (i / 5);
+                partyNumber = i / 5;
                 break;
             }
         }

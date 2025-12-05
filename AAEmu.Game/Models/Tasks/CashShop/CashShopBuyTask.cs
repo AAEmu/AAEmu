@@ -74,7 +74,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             }
 
             // Check Event Date
-            if ((sku.EventEndDate > DateTime.MinValue) && (DateTime.UtcNow >= sku.EventEndDate))
+            if (sku.EventEndDate > DateTime.MinValue && DateTime.UtcNow >= sku.EventEndDate)
             {
                 buyer.SendErrorMessage(ErrorMessageType.IngameShopExpiredSellByDate);
                 buyer.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetPlayer.Name, 0));
@@ -82,7 +82,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             }
 
             // Check Sale Start Date
-            if ((shopItem.SaleStart > DateTime.MinValue) && (DateTime.UtcNow <= shopItem.SaleStart))
+            if (shopItem.SaleStart > DateTime.MinValue && DateTime.UtcNow <= shopItem.SaleStart)
             {
                 buyer.SendErrorMessage(ErrorMessageType.IngameShopExpiredSellByDate);
                 buyer.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetPlayer.Name, 0));
@@ -90,7 +90,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             }
 
             // Check Sale End Date
-            if ((shopItem.SaleEnd > DateTime.MinValue) && (DateTime.UtcNow >= shopItem.SaleEnd))
+            if (shopItem.SaleEnd > DateTime.MinValue && DateTime.UtcNow >= shopItem.SaleEnd)
             {
                 buyer.SendErrorMessage(ErrorMessageType.IngameShopExpiredSellByDate);
                 buyer.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetPlayer.Name, 0));
@@ -98,7 +98,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             }
 
             // Check Minimum Level
-            if ((shopItem.LevelMin > 0) && (buyer.Level < shopItem.LevelMin))
+            if (shopItem.LevelMin > 0 && buyer.Level < shopItem.LevelMin)
             {
                 buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyLowLevel);
                 buyer.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetPlayer.Name, 0));
@@ -106,7 +106,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             }
 
             // Check Maximum Level
-            if ((shopItem.LevelMax > 0) && (buyer.Level > shopItem.LevelMax))
+            if (shopItem.LevelMax > 0 && buyer.Level > shopItem.LevelMax)
             {
                 buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyLowLevel); // Likely not the correct one, but don't see a shop one for max level
                 buyer.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetPlayer.Name, 0));
@@ -114,7 +114,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             }
 
             // Check Minimum Level by Restriction Type
-            if ((shopItem.BuyRestrictType == CashShopRestrictSaleType.Level) && (buyer.Level < shopItem.BuyRestrictId))
+            if (shopItem.BuyRestrictType == CashShopRestrictSaleType.Level && buyer.Level < shopItem.BuyRestrictId)
             {
                 buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyLowLevel);
                 buyer.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetPlayer.Name, 0));
@@ -122,7 +122,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             }
 
             // Check Quest by Restriction Type
-            if ((shopItem.BuyRestrictType == CashShopRestrictSaleType.Quest) && !buyer.Quests.HasQuestCompleted(shopItem.BuyRestrictId))
+            if (shopItem.BuyRestrictType == CashShopRestrictSaleType.Quest && !buyer.Quests.HasQuestCompleted(shopItem.BuyRestrictId))
             {
                 buyer.SendErrorMessage(ErrorMessageType.IngameShopBuyQuestIncomplete);
                 buyer.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetPlayer.Name, 0));
@@ -253,12 +253,12 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
                 ? shopItem.Name
                 : LocalizationManager.Instance.Get("items", "name", sku.ItemId);
 
-            items.Add(ItemManager.Instance.Create(sku.ItemId, (int)(sku.ItemCount), itemTemplate.FixedGrade >= 0 ? (byte)itemTemplate.FixedGrade : (byte)0, true));
+            items.Add(ItemManager.Instance.Create(sku.ItemId, (int)sku.ItemCount, itemTemplate.FixedGrade >= 0 ? (byte)itemTemplate.FixedGrade : (byte)0, true));
 
-            if ((sku.BonusItemId > 0) && (sku.BonusItemCount > 0))
+            if (sku.BonusItemId > 0 && sku.BonusItemCount > 0)
             {
                 var bonusItemTemplate = ItemManager.Instance.GetTemplate(sku.BonusItemId);
-                items.Add(ItemManager.Instance.Create(sku.BonusItemId, (int)(sku.BonusItemCount), bonusItemTemplate.FixedGrade >= 0 ? (byte)bonusItemTemplate.FixedGrade : (byte)0, true));
+                items.Add(ItemManager.Instance.Create(sku.BonusItemId, (int)sku.BonusItemCount, bonusItemTemplate.FixedGrade >= 0 ? (byte)bonusItemTemplate.FixedGrade : (byte)0, true));
             }
 
             var mail = new CommercialMail(targetPlayer.Id, targetPlayer.Name, buyer.Name, items, targetPlayer.Id != buyer.Id, false, useName);
@@ -273,7 +273,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
 
             Logger.Info($"ICSBuyGood {buyer.Name} -> {targetPlayer.Name} - {useName} x {sku.ItemCount}, SKU:{sku.Sku}");
             if (!CashShopManager.Instance.LogSale(buyer.AccountId, buyer.Id, targetPlayer.AccountId,
-                    targetPlayer.Id, DateTime.UtcNow, shopItem.ShopId, sku.Sku, (sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price), sku.Currency, string.Empty))
+                    targetPlayer.Id, DateTime.UtcNow, shopItem.ShopId, sku.Sku, sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price, sku.Currency, string.Empty))
                 Logger.Error(
                     $"ICSBuyGood {buyer.Name} -> {targetPlayer.Name} - {useName} x {sku.ItemCount}, SKU:{sku.Sku}, save failed!");
         }

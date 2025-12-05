@@ -37,7 +37,7 @@ public class QuestActConReportDoodad(QuestComponentTemplate parentComponent) : Q
 
     public override void OnReportDoodad(QuestAct questAct, object sender, OnReportDoodadArgs args)
     {
-        if ((questAct.Id != ActId) || (args.DoodadId != DoodadId))
+        if (questAct.Id != ActId || args.DoodadId != DoodadId)
             return;
 
         // This check is needed so that turning in a quest at a Doodad doesn't complete all active quests that

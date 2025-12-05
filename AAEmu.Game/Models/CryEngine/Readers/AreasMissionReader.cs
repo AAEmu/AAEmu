@@ -108,7 +108,7 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
         polygonArea.Height = Reader.ReadSingle();
         polygonArea.AiLightLevel = (AiLightLevel)Reader.ReadInt32();
 
-        if ((IgnoreDuplicateAreaNames == false) || !UsedAreaNames.Contains(polygonArea.Name))
+        if (IgnoreDuplicateAreaNames == false || !UsedAreaNames.Contains(polygonArea.Name))
         {
             DesignerPathsList.Add(polygonArea);
             UsedAreaNames.Add(polygonArea.Name);
@@ -123,7 +123,7 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
         specialArea.Name = ReadName();
         specialArea.MissionType = (MissionType)Reader.ReadInt32();
         specialArea.WaypointConnections = (WaypointConnections)Reader.ReadInt32();
-        specialArea.Altered = (Reader.ReadByte() != 0);
+        specialArea.Altered = Reader.ReadByte() != 0;
 
         _ = Reader.ReadSingle(); // junk?
         _ = Reader.ReadSingle(); // junk?
@@ -144,7 +144,7 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
         }
 
         ReadPoints(specialArea.Points);
-        if ((IgnoreDuplicateAreaNames == false) || !UsedAreaNames.Contains(specialArea.Name))
+        if (IgnoreDuplicateAreaNames == false || !UsedAreaNames.Contains(specialArea.Name))
         {
             NavigationModifiers.Add(specialArea);
             UsedAreaNames.Add(specialArea.Name);

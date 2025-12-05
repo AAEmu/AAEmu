@@ -35,7 +35,7 @@ public class WaterEditRecordCurrentSubCommand : SubCommandBase
         }
         */
 
-        if ((WaterEditCmd.RecordingTask != null) && (WaterEditCmd.RecordingTask.IsRecording()))
+        if (WaterEditCmd.RecordingTask != null && WaterEditCmd.RecordingTask.IsRecording())
         {
             // Stop recording
             WaterEditCmd.RecordingTask.StopRecording();

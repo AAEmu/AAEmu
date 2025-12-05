@@ -145,7 +145,7 @@ public class MateManager(WorldInstance parentWorldInstance)
         if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
         {
             // If first seat, check if it's the owner
-            if ((attachPoint == AttachPointKind.Driver) && (mateInfo.OwnerObjId != character.ObjId))
+            if (attachPoint == AttachPointKind.Driver && mateInfo.OwnerObjId != character.ObjId)
             {
                 Logger.Warn($"MountMate. Non-owner {character.Name} ({character.ObjId}) tried to take the first seat on mount {mateInfo.Name} ({mateInfo.ObjId})");
                 return;

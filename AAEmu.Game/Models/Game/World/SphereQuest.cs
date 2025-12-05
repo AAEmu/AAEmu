@@ -99,7 +99,7 @@ public class SphereQuestTrigger
     /// <param name="delta"></param>
     public void Tick(TimeSpan delta)
     {
-        if ((TickRate > 0) && (DateTime.UtcNow - LastTick).TotalMilliseconds > TickRate)
+        if (TickRate > 0 && (DateTime.UtcNow - LastTick).TotalMilliseconds > TickRate)
         {
             var triggerActive = Sphere.DbSphere == null || UnitRequirementsGameData.Instance.CanTriggerSphere(Sphere.DbSphere, (BaseUnit)Owner);
 

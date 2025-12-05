@@ -41,7 +41,7 @@ public class QuestActObjCraft(QuestComponentTemplate parentComponent) : QuestAct
 
     public override void OnCraft(QuestAct questAct, object sender, OnCraftArgs e)
     {
-        if ((questAct.Template.ActId == ActId) && (e.CraftId == CraftId))
+        if (questAct.Template.ActId == ActId && e.CraftId == CraftId)
         {
             Logger.Debug($"{QuestActTemplateName}({DetailId}).OnCraft: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), CraftId {CraftId}");
             AddObjective(questAct.QuestComponent.Parent.Parent, 1);

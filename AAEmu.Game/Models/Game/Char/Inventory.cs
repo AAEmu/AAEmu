@@ -152,7 +152,7 @@ public class Inventory
     public int ConsumeItem(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
     {
         SlotType[] containerList;
-        if ((containersToCheck != null) && (containersToCheck.Length > 0))
+        if (containersToCheck != null && containersToCheck.Length > 0)
             containerList = containersToCheck;
         else
             containerList = [SlotType.Inventory, SlotType.Equipment, SlotType.Bank];

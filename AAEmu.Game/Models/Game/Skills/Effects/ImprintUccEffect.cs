@@ -31,7 +31,7 @@ public class ImprintUccEffect : EffectTemplate
 
         // TODO: Check if items are owned by caster
 
-        if ((stampItem != null) && (targetItem != null))
+        if (stampItem != null && targetItem != null)
         {
             //var oldFlags = targetItem.ItemFlags;
             UccManager.ApplyStamp(stampItem, targetItem);

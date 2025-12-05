@@ -45,7 +45,7 @@ public class IdManager
     /// <returns></returns>
     public bool Initialize(bool forceReset = false)
     {
-        if (_initialized && (forceReset == false))
+        if (_initialized && forceReset == false)
             return true;
 
         try

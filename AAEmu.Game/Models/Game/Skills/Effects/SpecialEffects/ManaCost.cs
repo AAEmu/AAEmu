@@ -28,7 +28,7 @@ public class ManaCost : SpecialEffectAction
         {
             // TODO: Value1 is used by Mana Stars, value2 is used by other skills. They are never used both at once.
             // I think value1 is fixed, and value2 is based on skill level somehow.
-            var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + (value2) / 6.35);
+            var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + value2 / 6.35);
             character.ReduceCurrentMp(null, (int)manaCost);
 
             character.LastCast = DateTime.UtcNow;

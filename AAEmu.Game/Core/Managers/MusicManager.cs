@@ -93,7 +93,7 @@ public class MusicManager : Singleton<MusicManager>
     public bool CreateSheetMusic(Character player, Item sourceItem)
     {
         // Check if a valid owned item
-        if ((sourceItem == null) || (sourceItem._holdingContainer.OwnerId != player.Id))
+        if (sourceItem == null || sourceItem._holdingContainer.OwnerId != player.Id)
         {
             Logger.Warn("Player {0} ({1}) does not own the used source item", player.Name, player.Id);
             return false;

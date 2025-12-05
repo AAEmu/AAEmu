@@ -81,7 +81,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             var slave = caster as Slave;
             var mountAttachedSkill = 0u;
 
-            if ((mate != null) || (slave != null))
+            if (mate != null || slave != null)
             {
                 // check if it's a mate or slave skill and return its rider/operator related skill
                 mountAttachedSkill = MateGameData.Instance.GetMountAttachedSkills(skillId, Connection.ActiveChar?.AttachedPoint ?? AttachPointKind.None);
@@ -114,7 +114,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
-            if ((skillResult == SkillResult.Success) && (skillId < 5000) && (skillCaster.ObjId == Connection.ActiveChar.ObjId))
+            if (skillResult == SkillResult.Success && skillId < 5000 && skillCaster.ObjId == Connection.ActiveChar.ObjId)
             {
                 // All basic combat skills are below ID 5000, only 2 (melee),3 (offhand) and 4 (ranged) exist, next actual skill used is 5001
                 Connection.ActiveChar.IsAutoAttack = true;

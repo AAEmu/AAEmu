@@ -33,7 +33,7 @@ public class WaterEditRecordTask : Task
         {
             lock (Lock)
             {
-                if ((_character == null) || (!_character.IsOnline))
+                if (_character == null || !_character.IsOnline)
                 {
                     Recording = false;
                     continue;

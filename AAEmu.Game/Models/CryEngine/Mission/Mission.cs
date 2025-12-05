@@ -13,7 +13,7 @@ public abstract class Mission(uint zoneId)
         if (other == null)
             return false;
 
-        return (ZoneId.Equals(other.ZoneId) &&
-                Name.Equals(other.Name));
+        return ZoneId.Equals(other.ZoneId) &&
+               Name.Equals(other.Name);
     }
 }

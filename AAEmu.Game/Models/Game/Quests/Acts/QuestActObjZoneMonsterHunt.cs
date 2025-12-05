@@ -38,7 +38,7 @@ public class QuestActObjZoneMonsterHunt(QuestComponentTemplate parentComponent) 
 
     public override void OnZoneKill(QuestAct questAct, object sender, OnZoneKillArgs args)
     {
-        if ((questAct.Id != ActId) || (args.ZoneGroupId != ZoneId))
+        if (questAct.Id != ActId || args.ZoneGroupId != ZoneId)
             return;
 
         if (args.Victim is not Npc npc)

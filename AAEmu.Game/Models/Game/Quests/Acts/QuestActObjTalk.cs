@@ -43,7 +43,7 @@ public class QuestActObjTalk(QuestComponentTemplate parentComponent) : QuestActT
 
     public override void OnTalkMade(QuestAct questAct, object sender, OnTalkMadeArgs args)
     {
-        if ((questAct.Id != ActId) || (args.NpcId != NpcId))
+        if (questAct.Id != ActId || args.NpcId != NpcId)
             return;
 
         var player = questAct.QuestComponent.Parent.Parent.Owner;

@@ -66,7 +66,7 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             }
             
             // Find the closest return portal (in the world) for the player if none has been found yet
-            if ((usePortalId == 0) || (portal == null))
+            if (usePortalId == 0 || portal == null)
             {
                 portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
             }

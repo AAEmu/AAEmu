@@ -117,7 +117,7 @@ public class NpcManager : Singleton<NpcManager>
         for (var i = 0; i < 7; i++)
         {
             var slot = (EquipmentItemSlot)(i + 19);
-            if ((slot == EquipmentItemSlot.Hair) && (template.ModelParams != null))
+            if (slot == EquipmentItemSlot.Hair && template.ModelParams != null)
                 SetEquipItemTemplate(npc, template.HairId, EquipmentItemSlot.Hair);
             else
                 SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, slot, 0, template.BodyItems[i].NpcOnly);
@@ -187,19 +187,19 @@ public class NpcManager : Singleton<NpcManager>
         var modelType = ModelManager.Instance.GetModelType(template.ModelId);
 
         // choose randomly from the list totalCustomId
-        if ((modelParamsId != 0) && (modelType != null) && (modelType.SubType == "ActorModel"))
+        if (modelParamsId != 0 && modelType != null && modelType.SubType == "ActorModel")
         {
             // Get all possible hair item_ids that match this model
             var hairsForThisModel = new List<uint>();
             foreach (var item in ItemManager.Instance.GetAllItems())
-                if ((item is BodyPartTemplate bpt) && (bpt.ModelId == template.ModelId) && (bpt.SlotTypeId == (uint)EquipmentItemSlotType.Hair))
+                if (item is BodyPartTemplate bpt && bpt.ModelId == template.ModelId && bpt.SlotTypeId == (uint)EquipmentItemSlotType.Hair)
                     hairsForThisModel.Add(bpt.ItemId);
 
             if (hairsForThisModel.Count > 0)
             {
                 // TODO: Slow, but I don't know of a better way to do this atm
                 var possibleTotalCustoms = (from tc in _totalCharacterCustoms
-                                            where (tc.Value.ModelId == modelParamsId) && (hairsForThisModel.Contains(tc.Value.HairId))
+                                            where tc.Value.ModelId == modelParamsId && hairsForThisModel.Contains(tc.Value.HairId)
                                             select tc.Value.Id).ToList();
 
                 // If anything in result, pick something random from it
@@ -582,7 +582,7 @@ public class NpcManager : Singleton<NpcManager>
                             }
                         }
 
-                        if ((template.TotalCustomId > 0) && _totalCharacterCustoms.TryGetValue(template.TotalCustomId, out var tc))
+                        if (template.TotalCustomId > 0 && _totalCharacterCustoms.TryGetValue(template.TotalCustomId, out var tc))
                         {
                             template.HairId = tc.HairId;
 

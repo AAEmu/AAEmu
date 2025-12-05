@@ -62,7 +62,7 @@ public class GradeEnchant : SpecialEffectAction
         if (skillObject is SkillObjectItemGradeEnchantingSupport)
         {
             charm = (SkillObjectItemGradeEnchantingSupport)skillObject;
-            if ((charm != null) && (charm.SupportItemId != 0))
+            if (charm != null && charm.SupportItemId != 0)
             {
                 useCharm = true;
             }
@@ -265,6 +265,6 @@ public class GradeEnchant : SpecialEffectAction
 
     private static int GetCharmChance(int baseChance, int charmRatio, int charmMul)
     {
-        return (baseChance + charmRatio) + (int)(baseChance * (charmMul / 100.0));
+        return baseChance + charmRatio + (int)(baseChance * (charmMul / 100.0));
     }
 }

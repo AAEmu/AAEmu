@@ -99,7 +99,7 @@ public class AiPathHandler(NpcAi aiOwner)
         {
             var moveSpeed = Owner.GetRealMovementSpeed(AiPathSpeed);
             // var moveFlags = Owner.GetRealMovementFlags(moveSpeed);
-            moveSpeed *= (delta.Milliseconds / 1000.0);
+            moveSpeed *= delta.Milliseconds / 1000.0;
             Owner.Owner.MoveTowards(TargetPosition, (float)moveSpeed, AiPathActorFlags);
             // Owner.Owner.MoveTowards(TargetPosition, AiPathSpeed * Owner.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), AiPathStanceFlags);
 

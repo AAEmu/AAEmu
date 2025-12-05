@@ -29,7 +29,7 @@ public class WaterEditCreateFromRecordingSubCommand : SubCommandBase
             return;
         }
             
-        if ((WaterEditCmd.RecordingTask != null) && (WaterEditCmd.RecordingTask.IsRecording()))
+        if (WaterEditCmd.RecordingTask != null && WaterEditCmd.RecordingTask.IsRecording())
         {
             character.SendMessage($"|cFFFFFF00[WaterEdit] Cannot be used while still recording!|r");
             return;

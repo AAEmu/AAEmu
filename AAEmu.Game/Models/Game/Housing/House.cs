@@ -105,7 +105,7 @@ public sealed class House : Unit
     public HousingPermission Permission
     {
         get => _permission;
-        set { _permission = ((_template != null) && (_template.AlwaysPublic)) ? HousingPermission.Public : value; _isDirty = true; }
+        set { _permission = _template != null && _template.AlwaysPublic ? HousingPermission.Public : value; _isDirty = true; }
     }
 
     public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
@@ -240,7 +240,7 @@ public sealed class House : Unit
     {
         if (!IsDirty)
             return false;
-        if ((AccountId <= 0) || (OwnerId <= 0))
+        if (AccountId <= 0 || OwnerId <= 0)
             return false; // recently destroyed/expired house
         using (var command = connection.CreateCommand())
         {
@@ -341,8 +341,8 @@ public sealed class House : Unit
                 if (player.Id == OwnerId)
                     return base.AllowedToInteract(player);
                 var ownerAccount = NameManager.Instance.GetCharacterAccount(OwnerId);
-                return (player.AccountId == ownerAccount) && base.AllowedToInteract(player);
-            case HousingPermission.Family when (player.Family > 0):
+                return player.AccountId == ownerAccount && base.AllowedToInteract(player);
+            case HousingPermission.Family when player.Family > 0:
                 return FamilyManager.Instance.GetFamily(player.Family).Members.Any(x => x.Id == OwnerId);
             case HousingPermission.Guild when (player.Expedition?.Id > 0):
                 return player.Expedition.Members.Any(x => x.CharacterId == OwnerId);

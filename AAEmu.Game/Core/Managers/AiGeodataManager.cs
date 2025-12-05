@@ -401,7 +401,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                     continue;
                 var endNode = foundPath[endNodeIndex];
                 // Skip this node if the height offset is too much
-                var delta = (endNode - startNode);
+                var delta = endNode - startNode;
                 var angleRate = delta.Length() > 0 ? delta.Z / delta.Length() : 0f;
                 if (angleRate >= 0.2f || angleRate <= -0.5f)
                     continue;
@@ -489,22 +489,22 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <remarks>Based on the answer of https://stackoverflow.com/questions/1119451/how-to-tell-if-a-line-intersects-a-polygon-in-c#1120126</remarks>
     private static Vector3 FindLineIntersection(Vector3 start1, Vector3 end1, Vector3 start2, Vector3 end2)
     {
-        var denominator = ((end1.X - start1.X) * (end2.Y - start2.Y)) - ((end1.Y - start1.Y) * (end2.X - start2.X));
+        var denominator = (end1.X - start1.X) * (end2.Y - start2.Y) - (end1.Y - start1.Y) * (end2.X - start2.X);
 
         // AB & CD are parallel 
         if (denominator == 0)
             return Vector3.Zero;
 
-        var numerator1 = ((start1.Y - start2.Y) * (end2.X - start2.X)) - ((start1.X - start2.X) * (end2.Y - start2.Y));
+        var numerator1 = (start1.Y - start2.Y) * (end2.X - start2.X) - (start1.X - start2.X) * (end2.Y - start2.Y);
         var r = numerator1 / denominator;
-        var numerator2 = ((start1.Y - start2.Y) * (end1.X - start1.X)) - ((start1.X - start2.X) * (end1.Y - start1.Y));
+        var numerator2 = (start1.Y - start2.Y) * (end1.X - start1.X) - (start1.X - start2.X) * (end1.Y - start1.Y);
         var s = numerator2 / denominator;
 
-        if ((r < 0 || r > 1) || (s < 0 || s > 1))
+        if (r < 0 || r > 1 || s < 0 || s > 1)
             return Vector3.Zero;
 
         // Find intersection point
-        return new Vector3(start1.X + (r * (end1.X - start1.X)), start1.Y + (r * (end1.Y - start1.Y)), start1.Z + (r * (end1.Z - start1.Z)));
+        return new Vector3(start1.X + r * (end1.X - start1.X), start1.Y + r * (end1.Y - start1.Y), start1.Z + r * (end1.Z - start1.Z));
     }
 
     /// <summary>

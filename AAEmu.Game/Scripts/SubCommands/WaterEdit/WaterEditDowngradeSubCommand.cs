@@ -41,7 +41,7 @@ public class WaterEditDowngradeSubCommand : SubCommandBase
         for (var i = 0; i < WaterEditCmd.SelectedWater.Points.Count; i++)
         {
             // Pick every "skip" point, and the last one
-            if (((i % scale) == 0) || (i >= WaterEditCmd.SelectedWater.Points.Count-1))
+            if (i % scale == 0 || i >= WaterEditCmd.SelectedWater.Points.Count-1)
                 newPoints.Add(WaterEditCmd.SelectedWater.Points[i]);
         }
 

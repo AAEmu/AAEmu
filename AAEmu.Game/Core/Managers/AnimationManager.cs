@@ -48,7 +48,7 @@ public class AnimationManager : Singleton<AnimationManager>
                 res.Add(lastCombatSyncEvent);
                 lastAnimDuration = null;
             }
-            else if ((lastCombatSyncEvent != null) && (spaceCount == 4))
+            else if (lastCombatSyncEvent != null && spaceCount == 4)
             {
                 // Start of new animation section
                 lastAnimDuration = new AnimDuration();
@@ -58,7 +58,7 @@ public class AnimationManager : Singleton<AnimationManager>
                     return null;
                 }
             }
-            else if ((lastAnimDuration != null) && (spaceCount == 8))
+            else if (lastAnimDuration != null && spaceCount == 8)
             {
                 // This is a actual property
                 var props = trimmedLine.Split(' ');

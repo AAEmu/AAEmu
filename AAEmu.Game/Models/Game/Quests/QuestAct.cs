@@ -46,7 +46,7 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
 
     public bool RunAct()
     {
-        var count = (QuestComponent.Template.KindId == QuestComponentKind.Progress) && (Template.ThisComponentObjectiveIndex < QuestComponent.Parent.Parent.Objectives.Length) ? QuestComponent.Parent.Parent.Objectives[Template.ThisComponentObjectiveIndex] : 0;
+        var count = QuestComponent.Template.KindId == QuestComponentKind.Progress && Template.ThisComponentObjectiveIndex < QuestComponent.Parent.Parent.Objectives.Length ? QuestComponent.Parent.Parent.Objectives[Template.ThisComponentObjectiveIndex] : 0;
         return Template.RunAct(QuestComponent.Parent.Parent, this, count) || OverrideObjectiveCompleted;
     }
 

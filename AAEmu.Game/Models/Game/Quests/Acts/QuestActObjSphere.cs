@@ -45,7 +45,7 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
 
     public override void OnEnterSphere(QuestAct questAct, object sender, OnEnterSphereArgs args)
     {
-        if ((questAct.Id != ActId) || (args.SphereQuest.ComponentId != questAct.QuestComponent.Template.Id))
+        if (questAct.Id != ActId || args.SphereQuest.ComponentId != questAct.QuestComponent.Template.Id)
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnEnterSphere: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ComponentId {args.SphereQuest.ComponentId}");
@@ -54,7 +54,7 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
 
     public override void OnExitSphere(QuestAct questAct, object sender, OnExitSphereArgs args)
     {
-        if ((questAct.Id != ActId) || (args.SphereQuest.ComponentId != questAct.QuestComponent.Template.Id))
+        if (questAct.Id != ActId || args.SphereQuest.ComponentId != questAct.QuestComponent.Template.Id)
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnExitSphere: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ComponentId {args.SphereQuest.ComponentId}");

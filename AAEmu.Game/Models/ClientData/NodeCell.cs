@@ -171,8 +171,8 @@ public class NodeCell
                     var rawHeightBL = GetRawHeight(nearestRawPoints.Left, nearestRawPoints.Bottom);
                     var rawHeightBR = GetRawHeight(nearestRawPoints.Right, nearestRawPoints.Bottom);
                     // Calculate offset within points
-                    var offX = (targetX * sourceScale) - sourceX;
-                    var offY = (targetY * sourceScale) - sourceY;
+                    var offX = targetX * sourceScale - sourceX;
+                    var offY = targetY * sourceScale - sourceY;
                     var height = Blerp(rawHeightTL, rawHeightTR, rawHeightBL, rawHeightBR, offX, offY);
 
                     result[index] = (ushort)Math.Round(height);

@@ -40,33 +40,33 @@ public class ZoneConflict(ZoneGroup owner)
             return;
 
         // Ignore if this zone doesn't have a kill counter mechanic
-        if ((NumKills[0] == 0) && (NumKills[1] == 0) && (NumKills[2] == 0) && (NumKills[3] == 0) && (NumKills[4] == 0))
+        if (NumKills[0] == 0 && NumKills[1] == 0 && NumKills[2] == 0 && NumKills[3] == 0 && NumKills[4] == 0)
             return;
 
         var LastState = CurrentZoneState;
         KillCount += NumberOfKills;
 
-        if ((CurrentZoneState == ZoneConflictType.Tension) && (KillCount > NumKills[0]))
+        if (CurrentZoneState == ZoneConflictType.Tension && KillCount > NumKills[0])
         {
             CurrentZoneState = ZoneConflictType.Danger;
             NextStateTime = DateTime.MinValue;
         }
-        if ((CurrentZoneState == ZoneConflictType.Danger) && (KillCount > NumKills[1]))
+        if (CurrentZoneState == ZoneConflictType.Danger && KillCount > NumKills[1])
         {
             CurrentZoneState = ZoneConflictType.Dispute;
             NextStateTime = DateTime.MinValue;
         }
-        if ((CurrentZoneState == ZoneConflictType.Dispute) && (KillCount > NumKills[2]))
+        if (CurrentZoneState == ZoneConflictType.Dispute && KillCount > NumKills[2])
         {
             CurrentZoneState = ZoneConflictType.Unrest;
             NextStateTime = DateTime.MinValue;
         }
-        if ((CurrentZoneState == ZoneConflictType.Unrest) && (KillCount > NumKills[3]))
+        if (CurrentZoneState == ZoneConflictType.Unrest && KillCount > NumKills[3])
         {
             CurrentZoneState = ZoneConflictType.Crisis;
             NextStateTime = DateTime.MinValue;
         }
-        if ((CurrentZoneState == ZoneConflictType.Crisis) && (KillCount > NumKills[4]))
+        if (CurrentZoneState == ZoneConflictType.Crisis && KillCount > NumKills[4])
         {
             CurrentZoneState = ZoneConflictType.Conflict;
             NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
@@ -97,7 +97,7 @@ public class ZoneConflict(ZoneGroup owner)
 
     public void CheckTimer()
     {
-        if ((NextStateTime > DateTime.MinValue) && (DateTime.UtcNow >= NextStateTime))
+        if (NextStateTime > DateTime.MinValue && DateTime.UtcNow >= NextStateTime)
             ForceNextState();
     }
 
@@ -131,7 +131,7 @@ public class ZoneConflict(ZoneGroup owner)
     {
         if (CurrentZoneState < ZoneConflictType.Peace)
         {
-            if ((CurrentZoneState == ZoneConflictType.War) && (PeaceMin <= 0))
+            if (CurrentZoneState == ZoneConflictType.War && PeaceMin <= 0)
             {
                 SetState(ZoneConflictType.Conflict);
             }
@@ -144,7 +144,7 @@ public class ZoneConflict(ZoneGroup owner)
         if (CurrentZoneState >= ZoneConflictType.Peace)
         {
             // If it doesn't have a killcounter, go directly back to conflict (ocean areas)
-            if ((NumKills[0] == 0) && (NumKills[1] == 0) && (NumKills[2] == 0) && (NumKills[3] == 0) && (NumKills[4] == 0))
+            if (NumKills[0] == 0 && NumKills[1] == 0 && NumKills[2] == 0 && NumKills[3] == 0 && NumKills[4] == 0)
                 SetState(ZoneConflictType.Conflict);
             else
                 SetState(ZoneConflictType.Tension);

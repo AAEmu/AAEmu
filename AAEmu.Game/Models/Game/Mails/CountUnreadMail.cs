@@ -27,7 +27,7 @@ public class CountUnreadMail : PacketMarshaler
 
     public void UpdateReceived(MailType mailType, int amount)
     {
-        if ((mailType == MailType.Charged) || (mailType == MailType.Promotion))
+        if (mailType == MailType.Charged || mailType == MailType.Promotion)
         {
             CommercialReceived += amount;
         }

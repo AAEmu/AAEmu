@@ -52,7 +52,7 @@ public class CharacterCraft(Character owner)
         // Check if we have permission to actually use the doodad (mostly sanity check since the client already checks this before you can craft)
         var hasPermission = true;
         var doodad = Owner.ParentWorld.GetDoodad(doodadId);
-        if ((doodad != null) && (doodad.FuncPermission != DoodadFuncPermission.Any && (Owner != null)))
+        if (doodad != null && doodad.FuncPermission != DoodadFuncPermission.Any && Owner != null)
         {
             switch (doodad.FuncPermission)
             {

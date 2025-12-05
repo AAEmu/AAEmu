@@ -28,7 +28,7 @@ public class CleanupUccEffect : EffectTemplate
 
         // TODO: Check if items are owned by caster
 
-        if ((bleachItem != null) && (targetItem != null))
+        if (bleachItem != null && targetItem != null)
         {
             //var oldFlags = targetItem.ItemFlags;
             // Remove Ucc from target

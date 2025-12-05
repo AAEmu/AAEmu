@@ -36,11 +36,11 @@ public class FishingLoot : SpecialEffectAction
             return;
         }
 
-        var lootTableId = (target.Transform.World.Position.Z > 101) ? zoneGroup.FishingLandLootPackId : zoneGroup.FishingSeaLootPackId;
+        var lootTableId = target.Transform.World.Position.Z > 101 ? zoneGroup.FishingLandLootPackId : zoneGroup.FishingSeaLootPackId;
 
         var pack = LootGameData.Instance.GetPack(lootTableId);
 
-        if ((pack == null) || (pack.Loots.Count <= 0))
+        if (pack == null || pack.Loots.Count <= 0)
             return;
 
         if (!pack.GiveLootPack(character, ActabilityType.Fishing, ItemTaskType.SkillEffectGainItem))

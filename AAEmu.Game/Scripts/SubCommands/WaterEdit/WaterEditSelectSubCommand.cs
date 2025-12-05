@@ -33,7 +33,7 @@ public class WaterEditSelectSubCommand : SubCommandBase
         lock (world.Water._lock)
             foreach (var area in world.Water.Areas)
             {
-                if ((area.Name.ToLower() == selectName) || (area.Id.ToString() == selectName))
+                if (area.Name.ToLower() == selectName || area.Id.ToString() == selectName)
                 {
                     WaterEditCmd.SelectedWater = area;
                     WaterEditCmd.NextPoint = 0;

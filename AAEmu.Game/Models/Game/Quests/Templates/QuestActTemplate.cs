@@ -107,8 +107,8 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         var val = Count;
         // If Score-base, calculate max objective count needed to get score
         if (ParentComponent.ParentQuestTemplate.Score > 0)
-            val = (ParentComponent.ParentQuestTemplate.Score / Count) + 1;
-        return val > 0 ? (ParentQuestTemplate.LetItDone ? (int)Math.Ceiling(val * 3f / 2f) : val) : 1;
+            val = ParentComponent.ParentQuestTemplate.Score / Count + 1;
+        return val > 0 ? ParentQuestTemplate.LetItDone ? (int)Math.Ceiling(val * 3f / 2f) : val : 1;
     }
 
     /// <summary>
@@ -156,11 +156,11 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     /// <returns>New amount for the objective</returns>
     protected int AddObjective(Quest quest, int amount)
     {
-        if ((quest == null) || (amount == 0))
+        if (quest == null || amount == 0)
             return quest?.Objectives[ThisComponentObjectiveIndex] ?? 0;
 
         var maxValue = MaxObjective();
-        if ((maxValue > 0) && (quest.Objectives[ThisComponentObjectiveIndex] + amount >= maxValue))
+        if (maxValue > 0 && quest.Objectives[ThisComponentObjectiveIndex] + amount >= maxValue)
         {
             quest.Objectives[ThisComponentObjectiveIndex] = maxValue;
         }

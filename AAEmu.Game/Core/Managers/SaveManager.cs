@@ -120,15 +120,15 @@ public class SaveManager : Singleton<SaveManager>
                             {
                                 transaction.Commit();
 
-                                if ((savedHouses.Item1 + savedHouses.Item2) > 0)
+                                if (savedHouses.Item1 + savedHouses.Item2 > 0)
                                     Logger.Debug($"Updated {savedHouses.Item1} and deleted {savedHouses.Item2} houses ...");
-                                if ((savedMails.Item1 + savedMails.Item2) > 0)
+                                if (savedMails.Item1 + savedMails.Item2 > 0)
                                     Logger.Debug($"Updated {savedMails.Item1} and deleted {savedMails.Item2} mails ...");
-                                if ((saveItems.Item1 + saveItems.Item2) > 0)
+                                if (saveItems.Item1 + saveItems.Item2 > 0)
                                     Logger.Debug($"Updated {saveItems.Item1} and deleted {saveItems.Item2} items in {saveItems.Item3} containers ...");
-                                if ((saveItems.Item3) > 0)
+                                if (saveItems.Item3 > 0)
                                     Logger.Debug($"Updated {saveItems.Item3} item containers ...");
-                                if ((savedAuctionHouse.Item1 + savedAuctionHouse.Item2) > 0)
+                                if (savedAuctionHouse.Item1 + savedAuctionHouse.Item2 > 0)
                                     Logger.Debug($"Updated {savedAuctionHouse.Item1} and deleted {savedAuctionHouse.Item2} auction items ...");
                                 if (savedCharacters > 0)
                                     Logger.Debug($"Updated {savedCharacters} characters ...");

@@ -16,8 +16,8 @@ public class RoadNode
         if (other ==  null) 
             return false;
 
-        return (Pos.Equals(other.Pos) &&
-                Width.Equals(other.Width) &&
-                Offset.Equals(other.Offset));
+        return Pos.Equals(other.Pos) &&
+               Width.Equals(other.Width) &&
+               Offset.Equals(other.Offset);
     }
 }

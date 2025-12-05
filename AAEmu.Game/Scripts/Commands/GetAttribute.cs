@@ -67,7 +67,7 @@ public class GetAttribute : ICommand
                 var value = target.GetAttribute(attr);
                 var hide = value == "NotFound" || value == "0";
                 // Exception for multipliers
-                if (value != "NotFound" && (attr).ToString().Contains("Mul"))
+                if (value != "NotFound" && attr.ToString().Contains("Mul"))
                 {
                     hide = value == "1";
                 }

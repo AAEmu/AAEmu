@@ -286,7 +286,7 @@ public class CharacterQuests(Character owner)
                         var currentComponentAct = questActTemplate;
 
                         // QuestActConAcceptItem, QuestActObjItemGather, QuestActSupplyItem
-                        if ((currentComponentAct is IQuestActGenericItem iQuestActGenericItem) && (iQuestActGenericItem.ItemId == item.TemplateId))
+                        if (currentComponentAct is IQuestActGenericItem iQuestActGenericItem && iQuestActGenericItem.ItemId == item.TemplateId)
                         {
                             if (iQuestActGenericItem.DropWhenDestroy)
                             {
@@ -298,7 +298,7 @@ public class CharacterQuests(Character owner)
                         }
 
                         // QuestActObjItemGroupGather
-                        if ((currentComponentAct is QuestActObjItemGroupGather questActObjItemGroupGather) && (QuestManager.Instance.CheckGroupItem(questActObjItemGroupGather.ItemGroupId, item.TemplateId)))
+                        if (currentComponentAct is QuestActObjItemGroupGather questActObjItemGroupGather && QuestManager.Instance.CheckGroupItem(questActObjItemGroupGather.ItemGroupId, item.TemplateId))
                         {
                             if (questActObjItemGroupGather.DropWhenDestroy)
                             {
@@ -310,7 +310,7 @@ public class CharacterQuests(Character owner)
                         }
 
                         // QuestActObjItemGroupUse
-                        if ((currentComponentAct is QuestActObjItemGroupUse questActObjItemGroupUse) && (QuestManager.Instance.CheckGroupItem(questActObjItemGroupUse.ItemGroupId, item.TemplateId)))
+                        if (currentComponentAct is QuestActObjItemGroupUse questActObjItemGroupUse && QuestManager.Instance.CheckGroupItem(questActObjItemGroupUse.ItemGroupId, item.TemplateId))
                         {
                             if (questActObjItemGroupUse.DropWhenDestroy)
                             {
@@ -322,7 +322,7 @@ public class CharacterQuests(Character owner)
                         }
 
                         // QuestActObjItemUse
-                        if ((currentComponentAct is QuestActObjItemUse questActObjItemUse) && (questActObjItemUse.ItemId == item.TemplateId))
+                        if (currentComponentAct is QuestActObjItemUse questActObjItemUse && questActObjItemUse.ItemId == item.TemplateId)
                         {
                             if (questActObjItemUse.DropWhenDestroy)
                             {
@@ -450,7 +450,7 @@ public class CharacterQuests(Character owner)
 
                 foreach (var qd in questDetail)
                 {
-                    if ((q.DetailId == qd) && (completeBlock.Body[blockIndex]))
+                    if (q.DetailId == qd && completeBlock.Body[blockIndex])
                     {
                         completeBlock.Body.Set(blockIndex, false);
                         Logger.Info($"QuestReset by {Owner.Name}, reset {questId}");
@@ -598,7 +598,7 @@ public class CharacterQuests(Character owner)
         // TODO: Put Server timezone offset in configuration file, currently using local machine midnight
         // var utcDelta = DateTime.Now - DateTime.UtcNow;
         // var isOld = (DateTime.Today + utcDelta - Owner.LeaveTime.Date) >= TimeSpan.FromDays(1);
-        var isOld = (DateTime.UtcNow.Date - Owner.LeaveTime.Date) >= TimeSpan.FromDays(1);
+        var isOld = DateTime.UtcNow.Date - Owner.LeaveTime.Date >= TimeSpan.FromDays(1);
         if (isOld)
             ResetDailyQuests(false);
     }

@@ -230,7 +230,7 @@ public class UccManager : Singleton<UccManager>
             _downloadQueue.Add(connection.Id, id);
         }
 
-        if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+        if (ucc is CustomUcc customUcc && customUcc.Data.Count > 0)
         {
             connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
             //connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
@@ -289,7 +289,7 @@ public class UccManager : Singleton<UccManager>
             return;
 
         // status 4 == I'm ready to begin download of the image ?
-        if ((status == 4) && (ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+        if (status == 4 && ucc is CustomUcc customUcc && customUcc.Data.Count > 0)
         {
             var maxParts = (int)Math.Ceiling((double)customUcc.Data.Count / TCEmblemStreamDownloadPacket.BufferSize);
             var sendPart = maxParts - count;

@@ -72,7 +72,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <returns>Array of Acts</returns>
     public List<QuestActTemplate> GetActsInComponent(uint id)
     {
-        return (_componentTemplates.TryGetValue(id, out var componentTemplate) ? componentTemplate.ActTemplates : []);
+        return _componentTemplates.TryGetValue(id, out var componentTemplate) ? componentTemplate.ActTemplates : [];
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <returns></returns>
     public List<uint> GetGroupItems(uint groupId)
     {
-        return _groupItems.TryGetValue(groupId, out var item) ? (item) : [];
+        return _groupItems.TryGetValue(groupId, out var item) ? item : [];
     }
 
     /// <summary>
@@ -127,7 +127,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     /// <returns></returns>
     public bool CheckGroupNpc(uint groupId, uint npcId)
     {
-        return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
+        return _groupNpcs.ContainsKey(groupId) && _groupNpcs[groupId].Contains(npcId);
     }
 
     /// <summary>
@@ -287,8 +287,8 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
                         // Use component Id to check if it's a starter, and return contextId (QuestId)
                         foreach (var (questId, questContext) in _questTemplates)
                         {
-                            if ((questContext.Components.TryGetValue(questAct.ParentComponent.Id, out var questComponent)) &&
-                                (questComponent.KindId == QuestComponentKind.Start))
+                            if (questContext.Components.TryGetValue(questAct.ParentComponent.Id, out var questComponent) &&
+                                questComponent.KindId == QuestComponentKind.Start)
                                 return questId;
                         }
                     }
@@ -514,7 +514,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     private void AddActTemplate(QuestActTemplate template)
     {
         var detailType = template.GetType().Name;
-        var baseAct = _actsBaseByActId.Values.FirstOrDefault(x => (x.DetailId == template.DetailId) && (x.DetailType == detailType));
+        var baseAct = _actsBaseByActId.Values.FirstOrDefault(x => x.DetailId == template.DetailId && x.DetailType == detailType);
         template.ActId = baseAct?.ActId ?? 0;
         template.ParentComponent.ActTemplates.Add(template);
         _actTemplatesByDetailType[detailType].Add(template.DetailId, template);
@@ -1914,7 +1914,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
     {
         foreach (var (baseActId, baseActTemplate) in _actsBaseByActId)
         {
-            if ((baseActTemplate.DetailType == actDetailType) && (baseActTemplate.DetailId == actTemplateId))
+            if (baseActTemplate.DetailType == actDetailType && baseActTemplate.DetailId == actTemplateId)
             {
                 return baseActTemplate.ParentComponent;
             }
@@ -1974,7 +1974,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             var removeQuestList = new List<uint>();
             foreach (var (timeoutQuestId, timeoutTask) in timeoutTasks)
             {
-                if ((questId == 0) || (questId == timeoutQuestId))
+                if (questId == 0 || questId == timeoutQuestId)
                 {
                     removeQuestList.Add(timeoutQuestId);
                     timeoutTask.Cancel(); // Cancel task, don't care about the result

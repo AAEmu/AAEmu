@@ -140,7 +140,7 @@ public class RadarManager : Singleton<RadarManager>
                         if (transfer.TemplateId == 46)
                             continue;
 
-                        if ((transfer.Transform.WorldId != entry.Player.Transform.WorldId) || (transfer.Transform.InstanceId != entry.Player.Transform.InstanceId))
+                        if (transfer.Transform.WorldId != entry.Player.Transform.WorldId || transfer.Transform.InstanceId != entry.Player.Transform.InstanceId)
                             continue;
 
                         if (MathUtil.CalculateDistance(entry.Player, transfer, true) <= Math.Max(entry.ShowPublicTransportRange, gmRangeCheck))
@@ -167,7 +167,7 @@ public class RadarManager : Singleton<RadarManager>
                     var inRangeFish = new List<Doodad>();
                     foreach (var fish in allFish)
                     {
-                        if ((fish.Transform.WorldId != entry.Player.Transform.WorldId) || (fish.Transform.InstanceId != entry.Player.Transform.InstanceId))
+                        if (fish.Transform.WorldId != entry.Player.Transform.WorldId || fish.Transform.InstanceId != entry.Player.Transform.InstanceId)
                             continue;
 
                         if (MathUtil.CalculateDistance(entry.Player, fish, true) <= Math.Max(entry.ShowFishSchoolRange, gmRangeCheck))
@@ -194,7 +194,7 @@ public class RadarManager : Singleton<RadarManager>
                     var inRangeShips = new List<Slave>();
                     foreach (var ship in allShips.GetValueOrDefault(entry.Player.Transform.InstanceId))
                     {
-                        if ((ship.Transform.WorldId != entry.Player.Transform.WorldId) || (ship.Transform.InstanceId != entry.Player.Transform.InstanceId))
+                        if (ship.Transform.WorldId != entry.Player.Transform.WorldId || ship.Transform.InstanceId != entry.Player.Transform.InstanceId)
                             continue;
 
                         if (MathUtil.CalculateDistance(entry.Player, ship, true) <= Math.Max(entry.ShowShipTelescopeRange, gmRangeCheck))

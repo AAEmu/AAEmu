@@ -23,7 +23,7 @@ public class QuestActObjCompleteQuest(QuestComponentTemplate parentComponent) : 
         // TODO: Not sure what AcceptWith is supposed to do, but none of the still existing quests seem to use this
         // I'd assume this would indicate that you also automatically accept this quest when getting to this step?
 
-        if ((currentObjectiveCount <= 0) && quest.Owner.Quests.HasQuestCompleted(QuestId))
+        if (currentObjectiveCount <= 0 && quest.Owner.Quests.HasQuestCompleted(QuestId))
             SetObjective(quest, 1);
 
         return GetObjective(quest) > 0;

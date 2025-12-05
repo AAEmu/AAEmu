@@ -34,7 +34,7 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
         {
             case ChatType.Whisper: //whisper
                 var target = WorldManager.Instance.GetCharacter(targetName);
-                if ((target == null) || (!target.IsOnline))
+                if (target == null || !target.IsOnline)
                 {
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
                 }
@@ -62,7 +62,7 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
 
                 if (teamRaid != null)
                 {
-                    if ((type == ChatType.RaidLeader) && (teamRaid.OwnerId != Connection.ActiveChar.Id))
+                    if (type == ChatType.RaidLeader && teamRaid.OwnerId != Connection.ActiveChar.Id)
                     {
                         Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotRaidOwner);
                     }

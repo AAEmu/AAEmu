@@ -41,7 +41,7 @@ public class MailBody(BaseMail parent) : PacketMarshaler
         stream.Write(OpenDate);
         for (var i = 0; i < MaxMailAttachments; i++)
         {
-            if ((i >= Attachments.Count) || (Attachments[i] == null))
+            if (i >= Attachments.Count || Attachments[i] == null)
                 stream.Write(0);
             else
                 stream.Write(Attachments[i]);

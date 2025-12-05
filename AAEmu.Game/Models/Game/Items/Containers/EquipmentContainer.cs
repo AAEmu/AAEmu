@@ -9,7 +9,7 @@ public class EquipmentContainer : ItemContainer
     public EquipmentContainer(uint ownerId, SlotType containerType, bool createWithNewId, Unit parentUnit) : base(ownerId, containerType, createWithNewId, parentUnit)
     {
         // Fancy way of getting the last enum value + 1 for equipment slots
-        ContainerSize = (int)(Enum.GetValues<EquipmentItemSlot>().Max()) + 1;
+        ContainerSize = (int)Enum.GetValues<EquipmentItemSlot>().Max() + 1;
     }
 
     public static List<EquipmentItemSlot> GetAllowedGearSlots(EquipmentItemSlotType slotTypeId)
@@ -154,7 +154,7 @@ public class EquipmentContainer : ItemContainer
         if (Owner == null)
             return true; // Not applicable to NPCs, they can hold whatever they want anywhere
 
-        if ((targetSlot < 0) || (targetSlot >= ContainerSize))
+        if (targetSlot < 0 || targetSlot >= ContainerSize)
         {
             Logger.Warn($"{Owner?.Name} ({OwnerId}) tried to equip a item that is out of range of the valid slots {targetSlot}/{ContainerSize}");
             return false; // must be in equipment slot range

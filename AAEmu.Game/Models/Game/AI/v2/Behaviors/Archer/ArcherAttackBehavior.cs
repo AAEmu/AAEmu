@@ -67,7 +67,7 @@ public class ArcherAttackBehavior : BaseCombatBehavior
 
             var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
             var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
-            moveSpeed *= (delta.Milliseconds / 1000.0);
+            moveSpeed *= delta.Milliseconds / 1000.0;
             Ai.Owner.MoveTowards(idlePosition, (float)moveSpeed, moveFlags);
 
             var dist = MathUtil.CalculateDistance(npcPosition, idlePosition, true);

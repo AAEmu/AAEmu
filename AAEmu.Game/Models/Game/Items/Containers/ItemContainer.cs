@@ -652,7 +652,7 @@ public class ItemContainer
         var itemTasks = new List<ItemTask>();
 
         // Never update in mail or auction containers
-        if ((ContainerType != SlotType.Mail) && (ContainerType != SlotType.Auction))
+        if (ContainerType != SlotType.Mail && ContainerType != SlotType.Auction)
         {
             foreach (var i in currentItems)
             {

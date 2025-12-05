@@ -14,9 +14,9 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
     private bool CanAcceptTemplate(ItemTemplate itemTemplate)
     {
         // All Chests will not accept timed items 
-        if ((itemTemplate.ExpAbsLifetime > 0) ||
-            (itemTemplate.ExpOnlineLifetime > 0) ||
-            (itemTemplate.ExpDate > DateTime.MinValue))
+        if (itemTemplate.ExpAbsLifetime > 0 ||
+            itemTemplate.ExpOnlineLifetime > 0 ||
+            itemTemplate.ExpDate > DateTime.MinValue)
             return false;
 
         // Otherwordly Storage Chest will accept pretty much any other item
@@ -35,9 +35,9 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
 
     public override bool CanAccept(Item item, int targetSlot)
     {
-        return (item == null) || (!item.HasFlag(ItemFlag.SoulBound) &&
-               CanAcceptTemplate(item.Template) &&
-               base.CanAccept(item, targetSlot));
+        return item == null || (!item.HasFlag(ItemFlag.SoulBound) &&
+                                CanAcceptTemplate(item.Template) &&
+                                base.CanAccept(item, targetSlot));
     }
 
     public override void Delete()

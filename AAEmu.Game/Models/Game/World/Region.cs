@@ -20,7 +20,7 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
 
     private int X { get; } = x;
     private int Y { get; } = y;
-    public int Id => Y + (1024 * X);
+    public int Id => Y + 1024 * X;
     public uint ZoneKey { get; init; } = zoneKey;
 
     public void AddObject(GameObject obj)
@@ -219,7 +219,7 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
                 character1.SendPacket(new SCGimmicksRemovedPacket(temp));
             }
 
-            if ((character1.CurrentTarget != null) && (unitIds.Contains(character1.CurrentTarget.ObjId)))
+            if (character1.CurrentTarget != null && unitIds.Contains(character1.CurrentTarget.ObjId))
             {
                 character1.CurrentTarget = null;
                 character1.SendPacket(new SCTargetChangedPacket(character1.ObjId, 0));

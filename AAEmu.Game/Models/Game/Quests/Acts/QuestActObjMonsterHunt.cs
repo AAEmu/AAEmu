@@ -39,7 +39,7 @@ public class QuestActObjMonsterHunt(QuestComponentTemplate parentComponent) : Qu
 
     public override void OnMonsterHunt(QuestAct questAct, object sender, OnMonsterHuntArgs args)
     {
-        if ((questAct.Id != ActId) || (args.NpcId != NpcId))
+        if (questAct.Id != ActId || args.NpcId != NpcId)
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnMonsterHunt: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), NpcId {args.NpcId}, Count {args.Count}");

@@ -182,7 +182,7 @@ public class BuffTemplate
                 var template = source.Skill.Template;
                 var abilityLevel = character.GetAbLevel(source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
-                    abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    abLevel = (uint)(abilityLevel / template.LevelStep * template.LevelStep);
                 else
                     abLevel = (uint)template.AbilityLevel;
 
@@ -208,7 +208,7 @@ public class BuffTemplate
     {
         foreach (var template in Bonuses)
         {
-            var bonus = new Bonus { Template = template, Value = (int)Math.Round(template.Value + (template.LinearLevelBonus * (buff.AbLevel / 100f))) };
+            var bonus = new Bonus { Template = template, Value = (int)Math.Round(template.Value + template.LinearLevelBonus * (buff.AbLevel / 100f)) };
             owner.AddBonus(buff.Index, bonus);
         }
 
@@ -339,7 +339,7 @@ public class BuffTemplate
 
     public int GetDuration(uint abLevel)
     {
-        return Math.Max(0, (LevelDuration * (int)abLevel) + Duration);
+        return Math.Max(0, LevelDuration * (int)abLevel + Duration);
     }
 
     public double GetTick()

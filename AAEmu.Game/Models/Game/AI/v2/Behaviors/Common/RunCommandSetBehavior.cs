@@ -29,7 +29,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
         }
 
         // If there are commands in the AI Command queue, execute those first
-        if ((Ai.AiCurrentCommand != null) || (Ai.AiCommandsQueue.Count > 0))
+        if (Ai.AiCurrentCommand != null || Ai.AiCommandsQueue.Count > 0)
         {
             if (Ai.AiCurrentCommand == null)
             {

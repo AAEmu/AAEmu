@@ -51,7 +51,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>
 
     public void DoTick()
     {
-        if ((AppConfiguration.Instance.Credits.TickMinutes <= 0) && (AppConfiguration.Instance.Loyalty.TickMinutes <= 0))
+        if (AppConfiguration.Instance.Credits.TickMinutes <= 0 && AppConfiguration.Instance.Loyalty.TickMinutes <= 0)
             return;
 
         var connections = GameConnectionTable.Instance.GetConnections();

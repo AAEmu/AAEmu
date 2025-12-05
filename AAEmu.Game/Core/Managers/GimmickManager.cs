@@ -72,7 +72,7 @@ public class GimmickManager(WorldInstance parentWorld)
     public void AddActiveGimmick(Gimmick gimmick)
     {
         // Attach movement handlers based on settings
-        if ((gimmick.TemplateId == 0) && (gimmick.EntityGuid > 0))
+        if (gimmick.TemplateId == 0 && gimmick.EntityGuid > 0)
         {
             // Elevators defined in gimmick_spawns.json
             gimmick.MovementHandler = new GimmickMovementElevator(gimmick);

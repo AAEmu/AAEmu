@@ -51,7 +51,7 @@ public class CharacterMails
     {
         if (MailManager.Instance._allPlayerMails.TryGetValue(id, out var mail))
         {
-            if ((mail.Header.Status == MailStatus.Unread) && !isSent)
+            if (mail.Header.Status == MailStatus.Unread && !isSent)
             {
                 UnreadMailCount.UpdateReceived(mail.MailType, -1);
                 mail.OpenDate = DateTime.UtcNow;
@@ -103,7 +103,7 @@ public class CharacterMails
 
         // With attachments in place, we can calculate the send fee
         var mailFee = mail.GetMailFee();
-        if ((mailFee + money0) > Self.Money)
+        if (mailFee + money0 > Self.Money)
         {
             // Self.SendErrorMessage(ErrorMessageType.MailNotEnoughMoney);
             return MailResult.InsufficientCoins;
@@ -136,7 +136,7 @@ public class CharacterMails
         if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
         {
             var tookMoney = false;
-            if ((thisMail.MailType == MailType.AucOffSuccess) && (thisMail.Body.CopperCoins > 0) && takeMoney)
+            if (thisMail.MailType == MailType.AucOffSuccess && thisMail.Body.CopperCoins > 0 && takeMoney)
             {
                 if (Self.LaborPower < 1)
                 {
@@ -164,7 +164,7 @@ public class CharacterMails
                 foreach (var itemAttachment in thisMail.Body.Attachments)
                 {
                     // if not our specified item, skip this slot
-                    if ((specifiedItemId > 0) && (itemAttachment.Id != specifiedItemId))
+                    if (specifiedItemId > 0 && itemAttachment.Id != specifiedItemId)
                         continue;
 
                     // Sanity-check
@@ -175,11 +175,11 @@ public class CharacterMails
                         {
                             Item stackItem = null;
                             // Check if we can stack the item onto an existing one
-                            if ((itemAttachment.Template.MaxCount > 1) && (foundItems.Count > 0))
+                            if (itemAttachment.Template.MaxCount > 1 && foundItems.Count > 0)
                             {
                                 foreach (var fi in foundItems)
                                 {
-                                    if ((fi.Count + itemAttachment.Count) <= fi.Template.MaxCount)
+                                    if (fi.Count + itemAttachment.Count <= fi.Template.MaxCount)
                                     {
                                         stackItem = fi;
                                         break;
@@ -255,7 +255,7 @@ public class CharacterMails
             }
 
             // Mark mail as read in case we took at least one item from it
-            if ((thisMail.Header.Status == MailStatus.Unread) && (tookMoney || (itemSlotList.Count > 0)))
+            if (thisMail.Header.Status == MailStatus.Unread && (tookMoney || itemSlotList.Count > 0))
             {
                 thisMail.Header.Status = MailStatus.Read;
                 UnreadMailCount.UpdateReceived(thisMail.MailType, -1);

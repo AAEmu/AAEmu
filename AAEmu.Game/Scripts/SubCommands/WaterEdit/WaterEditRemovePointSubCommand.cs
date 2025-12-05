@@ -33,7 +33,7 @@ public class WaterEditRemovePointSubCommand : SubCommandBase
             
         var pointIndex = GetOptionalParameterValue<int>(parameters, "point", WaterEditCmd.NextPoint);
 
-        if ((pointIndex >= WaterEditCmd.SelectedWater.Points.Count - 1) || (pointIndex <= 0))
+        if (pointIndex >= WaterEditCmd.SelectedWater.Points.Count - 1 || pointIndex <= 0)
         {
             character.SendMessage($"|cFFFFFFFF[WaterEdit] {pointIndex} is not a valid point index (1~{WaterEditCmd.SelectedWater.Points.Count-2})!|r");
             return;

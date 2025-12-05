@@ -1827,7 +1827,7 @@ public class ItemManager : Singleton<ItemManager>
                         Logger.Error($"Failed to load item with ID {item.Id}, possible duplicate entries!");
                     }
 
-                    if ((containerId > 0) && _allPersistentContainers.TryGetValue(containerId, out var container))
+                    if (containerId > 0 && _allPersistentContainers.TryGetValue(containerId, out var container))
                     {
                         // Move item to its container (if defined)
                         if (container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
@@ -1927,7 +1927,7 @@ public class ItemManager : Singleton<ItemManager>
     {
         var template = GetTemplate(itemTemplateId);
         // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
-        return template is BackpackTemplate && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
+        return template is BackpackTemplate && !template.BindType.HasFlag(ItemBindType.BindOnEquip);
     }
 
     private static int UpdateItemContainerTimers(TimeSpan delta, ItemContainer itemContainer, Character character)
@@ -1939,7 +1939,7 @@ public class ItemManager : Singleton<ItemManager>
             return res;
         }
 
-        var isEquipmentContainer = (itemContainer is EquipmentContainer);
+        var isEquipmentContainer = itemContainer is EquipmentContainer;
 
         for (var i = itemContainer.Items.Count - 1; i >= 0; i--)
         {
@@ -1947,37 +1947,37 @@ public class ItemManager : Singleton<ItemManager>
             var doExpire = false;
 
             // Check if buffs need to expire
-            if (isEquipmentContainer && (item is EquipItem { Template: EquipItemTemplate { RechargeBuffId: > 0 } equipItemTemplate } equipItem))
+            if (isEquipmentContainer && item is EquipItem { Template: EquipItemTemplate { RechargeBuffId: > 0 } equipItemTemplate } equipItem)
             {
                 var expireBuff = false;
 
                 // Expire Time
-                var expireCheckTime = (equipItemTemplate.BindType == ItemBindType.BindOnUnpack)
+                var expireCheckTime = equipItemTemplate.BindType == ItemBindType.BindOnUnpack
                     ? equipItem.UnpackTime
                     : equipItem.ChargeStartTime;
                 expireCheckTime = expireCheckTime.AddMinutes(equipItemTemplate.ChargeLifetime);
 
                 // Do we need to check if charges expired ?
-                var checkCharges = (equipItemTemplate.ChargeCount > 0);
-                if ((equipItemTemplate.BindType == ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
+                var checkCharges = equipItemTemplate.ChargeCount > 0;
+                if (equipItemTemplate.BindType == ItemBindType.BindOnUnpack && equipItem.HasFlag(ItemFlag.Unpacked) == false)
                     checkCharges = false;
 
                 // Timed Charged items
-                if ((equipItemTemplate.ChargeLifetime > 0) && (expireCheckTime <= DateTime.UtcNow))
+                if (equipItemTemplate.ChargeLifetime > 0 && expireCheckTime <= DateTime.UtcNow)
                     expireBuff = true;
 
                 // Count Charged Items
-                if (checkCharges && (equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount <= 0))
+                if (checkCharges && equipItemTemplate.ChargeCount > 0 && equipItem.ChargeCount <= 0)
                     expireBuff = true;
 
                 // Apply the "expire" buff if needed
-                if (expireBuff && (character != null) &&
+                if (expireBuff && character != null &&
                     character.Buffs.CheckBuff(equipItemTemplate.RechargeBuffId))
                     character.Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
             }
 
             // Check if item itself needs to be expired
-            if ((item.ExpirationTime > DateTime.MinValue) && (item.ExpirationTime <= DateTime.UtcNow))
+            if (item.ExpirationTime > DateTime.MinValue && item.ExpirationTime <= DateTime.UtcNow)
                 doExpire = true; // Item expired by predefined end time
             else if (item.ExpirationOnlineMinutesLeft > 0.0)
             {
@@ -2067,7 +2067,7 @@ public class ItemManager : Singleton<ItemManager>
         var item = GetItemByItemId(itemId);
         if (item == null)
             return false;
-        if ((item.SlotType != slotType) || (item.Slot != slot))
+        if (item.SlotType != slotType || item.Slot != slot)
         {
             Logger.Warn($"UnwrapItem: Requested item position does not match up for {itemId} of user {character.Name}");
             return false;
@@ -2078,7 +2078,7 @@ public class ItemManager : Singleton<ItemManager>
             item.SetFlag(ItemFlag.SoulBound);
         var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, []));
-        if ((item.Template is EquipItemTemplate { ChargeLifetime: > 0 }))
+        if (item.Template is EquipItemTemplate { ChargeLifetime: > 0 })
             character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
         return true;
     }

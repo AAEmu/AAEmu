@@ -25,7 +25,7 @@ public class SkillModifiers
             switch (modifier.UnitModifierType)
             {
                 case UnitModifierType.Percent:
-                    endValue += (endValue * (modifier.Value / 100.0f));
+                    endValue += endValue * (modifier.Value / 100.0f);
                     break;
                 case UnitModifierType.Value:
                     endValue += modifier.Value;

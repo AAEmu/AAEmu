@@ -187,7 +187,7 @@ public class InstantGameManager : Singleton<InstantGameManager>
                 _log.Trace("[Matchmaking] Removing queued game from queueList.");
             }
         }
-        else if ((!game.IsFull) && bfId != (uint)InstantGameType.Gladiator)
+        else if (!game.IsFull && bfId != (uint)InstantGameType.Gladiator)
         {
             if (!_queueList.Contains(game))
             {

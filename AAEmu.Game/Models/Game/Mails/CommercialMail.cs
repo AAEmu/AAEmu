@@ -64,10 +64,10 @@ public class CommercialMail : BaseMail
         OpenDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc); // Always in the past
 
         // Not sure what all the body fields mean
-        var isPresent = (_isGift && (_senderName != string.Empty)) ? "true" : "false";
-        var gifterName = (_isGift ? _senderName : "");
-        var giftString = (_isGift ? "1" : "0");
-        var refundString = (_isRefund ? "1" : "0");
+        var isPresent = _isGift && _senderName != string.Empty ? "true" : "false";
+        var gifterName = _isGift ? _senderName : "";
+        var giftString = _isGift ? "1" : "0";
+        var refundString = _isRefund ? "1" : "0";
         var expireDateString = "2100,12,31,00,00,00";
         Body.Text = "body(" + isPresent + ",'" + gifterName + "','" + _purchasedItemTitle.Replace("'", "\\'") + "')" +
                     "|gift:" + giftString + ";|refund:" + refundString + ";|limit:" + expireDateString + ";";

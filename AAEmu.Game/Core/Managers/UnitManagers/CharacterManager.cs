@@ -440,7 +440,7 @@ public class CharacterManager : Singleton<CharacterManager>
 
         // NOTE: This is purely a warning to log potential cheaters
         // If you have custom starting classes, make sure to comment or adjust this
-        if ((ability2 != AbilityType.None) || (ability3 != AbilityType.None))
+        if (ability2 != AbilityType.None || ability3 != AbilityType.None)
         {
             Logger.Error($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}, Name {name}, Class {ability1}, {ability2}, {ability3}");
         }
@@ -646,7 +646,7 @@ public class CharacterManager : Singleton<CharacterManager>
     /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
     public static bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
     {
-        if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
+        if (character.DeleteTime > DateTime.MinValue && character.DeleteTime <= DateTime.UtcNow)
         {
             Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
             using (var command = dbConnection.CreateCommand())
@@ -711,12 +711,12 @@ public class CharacterManager : Singleton<CharacterManager>
                         var deleteTime = reader.GetDateTime("delete_time");
                         var charId = reader.GetUInt32("id");
                         var accountId = reader.GetUInt32("account_id");
-                        if ((deleteTime > DateTime.MinValue) && (deleteTime <= DateTime.UtcNow))
+                        if (deleteTime > DateTime.MinValue && deleteTime <= DateTime.UtcNow)
                         {
                             deleteList.Add((charId, accountId));
                         }
                         else
-                        if ((deleteTime > DateTime.MinValue) && (deleteTime < nextCheckTime))
+                        if (deleteTime > DateTime.MinValue && deleteTime < nextCheckTime)
                         {
                             nextCheckTime = deleteTime;
                         }
@@ -848,7 +848,7 @@ public class CharacterManager : Singleton<CharacterManager>
                     {
                         // Skip this char in the list if it's read to be deleted
                         var deleteTime = reader.GetDateTime("delete_time");
-                        if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.UtcNow))
+                        if (deleteTime > DateTime.MinValue && deleteTime < DateTime.UtcNow)
                             continue;
 
                         var character = new LoginCharacterInfo
@@ -888,7 +888,7 @@ public class CharacterManager : Singleton<CharacterManager>
         var oldHair = character.Equipment.GetItemBySlot((byte)EquipmentItemSlot.Hair);
 
         // Check if hair changed
-        if ((oldHair != null) && (oldHair.TemplateId != hairModel))
+        if (oldHair != null && oldHair.TemplateId != hairModel)
         {
             // Remove old hair item
             oldHair._holdingContainer.RemoveItem(ItemTaskType.Invalid, oldHair, true);

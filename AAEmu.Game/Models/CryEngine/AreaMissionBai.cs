@@ -42,7 +42,7 @@ public class AreaMissionBai(uint zoneKey)
                     node.DebugStartPos = br.BaseStream.Position;
                     node.DebugNode = i;
                     node.DebugNodeGroup = nodeGroup;
-                    if ((ZoneKey != 0) && (nodeGroup == 2))
+                    if (ZoneKey != 0 && nodeGroup == 2)
                         node.ParseZone2(br);
                     else
                         node.Parse(br, nodeGroup == 2 ? 0x14 : Version);

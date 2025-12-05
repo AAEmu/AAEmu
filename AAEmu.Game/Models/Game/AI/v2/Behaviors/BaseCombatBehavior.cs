@@ -53,7 +53,7 @@ public abstract class BaseCombatBehavior : Behavior
 
         var speed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
         var moveFlags = Ai.GetRealMovementFlags(speed);
-        speed *= (delta.Milliseconds / 1000.0);
+        speed *= delta.Milliseconds / 1000.0;
 
         // Fish overrides
         if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Fish)))
@@ -317,7 +317,7 @@ public abstract class BaseCombatBehavior : Behavior
             Ai.Owner.CurrentAggroTarget = null;
             Ai.Owner.SetTarget(null);
         }
-        else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
+        else if (currentTargetUnit.Hp <= 0 || currentTargetUnit.IsDead)
         {
             Ai.Owner.CurrentAggroTarget = null;
             Ai.Owner.SetTarget(null);

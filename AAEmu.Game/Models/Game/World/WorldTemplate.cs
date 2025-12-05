@@ -122,8 +122,8 @@ public class WorldTemplate
         if (cellX < 0 || cellX > CellX || cellY < 0 || cellY > CellY)
             return 0f; // out of bounds
         var cell = Cells[cellX, cellY].VerifyCellLoaded();
-        var sx = (x % WorldManager.CELL_SIZE) / 2;
-        var sy = (y % WorldManager.CELL_SIZE) / 2;
+        var sx = x % WorldManager.CELL_SIZE / 2;
+        var sy = y % WorldManager.CELL_SIZE / 2;
         return (float)(cell.HeightMap[sx, sy] / HeightMaxCoefficient);
     }
 
@@ -162,7 +162,7 @@ public class WorldTemplate
     /// <returns></returns>
     private static System.Drawing.Rectangle FindNearestSignificantPoints(int x, int y)
     {
-        return new System.Drawing.Rectangle(x - (x % 2), y - (y % 2), 2, 2);
+        return new System.Drawing.Rectangle(x - x % 2, y - y % 2, 2, 2);
     }
 
     /// <summary>
@@ -209,7 +209,7 @@ public class WorldTemplate
     /// <returns>Returns the cell, or null if the given index is out of bounds for this world</returns>
     public WorldCell GetCell(int cellX, int cellY)
     {
-        if ((cellX < 0) || cellX > CellX || cellY < 0 || cellY > CellY)
+        if (cellX < 0 || cellX > CellX || cellY < 0 || cellY > CellY)
             return null;
         return Cells[cellX, cellY];
     }

@@ -356,7 +356,7 @@ public class TeamManager : Singleton<TeamManager>
         }
 
         // Disband if only one member left in Party (not raid)
-        if ((activeTeam.IsParty) && (activeTeam.MembersCount() <= 1))
+        if (activeTeam.IsParty && activeTeam.MembersCount() <= 1)
             isAutoDisband = true;
 
         // If everybody is offline, also disband regardless of raid or party status
@@ -396,7 +396,7 @@ public class TeamManager : Singleton<TeamManager>
     public void MakeTeamOwner(Character unit, uint teamId, uint memberId)
     {
         var activeTeam = GetActiveTeam(teamId);
-        if ((activeTeam?.OwnerId != unit.Id) || activeTeam.OwnerId == memberId) return;
+        if (activeTeam?.OwnerId != unit.Id || activeTeam.OwnerId == memberId) return;
 
         if (activeTeam.IsMember(memberId)) activeTeam.OwnerId = memberId;
         activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(activeTeam.Id, activeTeam.OwnerId));
@@ -411,7 +411,7 @@ public class TeamManager : Singleton<TeamManager>
         activeTeam.IsParty = false;
         activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
         foreach (var m in activeTeam.Members)
-            if ((m != null) && (m.Character != null))
+            if (m != null && m.Character != null)
                 ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(m.Character);
         // TODO: Handle raids in dungeons
     }
@@ -484,7 +484,7 @@ public class TeamManager : Singleton<TeamManager>
     public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
     {
         var activeTeam = GetActiveTeam(teamId);
-        if ((activeTeam == null) || (activeTeam.OwnerId != unit.Id && !activeTeam.IsMarked(unit.Id)))
+        if (activeTeam == null || (activeTeam.OwnerId != unit.Id && !activeTeam.IsMarked(unit.Id)))
             return;
 
         activeTeam.PingPosition = position;

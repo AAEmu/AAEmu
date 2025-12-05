@@ -13,6 +13,6 @@ public class FlightLinkDescriptor
         if (other == null)
             return false;
 
-        return (IndexFirst == other.IndexFirst) && (IndexSecond == other.IndexSecond);
+        return IndexFirst == other.IndexFirst && IndexSecond == other.IndexSecond;
     }
 }

@@ -262,8 +262,8 @@ public partial class QuestManager
         if (levelActs != null)
             foreach (var levelAct in levelActs)
             {
-                if ((levelAct is QuestActConAcceptLevelUp actLevelUp) && // correct Template
-                    (owner.Level >= actLevelUp.Level) && // Minimum Level
+                if (levelAct is QuestActConAcceptLevelUp actLevelUp && // correct Template
+                    owner.Level >= actLevelUp.Level && // Minimum Level
                     !owner.Quests.HasQuestCompleted(actLevelUp.ParentQuestTemplate.Id) && // NEver completed before
                     !owner.Quests.HasQuest(actLevelUp.ParentQuestTemplate.Id)) // Not active
                 {

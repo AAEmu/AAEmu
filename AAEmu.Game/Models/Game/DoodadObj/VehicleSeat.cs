@@ -84,7 +84,7 @@ public class VehicleSeat(BaseUnit parentVehicle)
             spot = -1;
         }
 
-        if ((spot != -1) && (parentVehicle is Transfer transfer))
+        if (spot != -1 && parentVehicle is Transfer transfer)
             if (!transfer.AttachedCharacters.Contains(character))
                 transfer.AttachedCharacters.Add(character);
 

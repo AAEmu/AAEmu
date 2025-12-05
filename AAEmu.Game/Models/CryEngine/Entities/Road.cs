@@ -14,9 +14,8 @@ public class Road(uint zoneId)
         if (other == null)
             return false;
 
-        return ((ZoneId == other.ZoneId) &&
-                Name.Equals(other.Name) &&
-                RoadNodeList.SequenceEqual(other.RoadNodeList)
-            );
+        return ZoneId == other.ZoneId &&
+               Name.Equals(other.Name) &&
+               RoadNodeList.SequenceEqual(other.RoadNodeList);
     }
 }

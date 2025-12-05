@@ -14,8 +14,8 @@ public class WaypointSurfaceNavigation(uint zoneId)
         if (other == null)
             return false;
 
-        return (ZoneId.Equals(other.ZoneId) &&
-                LinkedVolumeRecords.SequenceEqual(other.LinkedVolumeRecords) &&
-                LinkedFlightRecords.SequenceEqual(other.LinkedFlightRecords));
+        return ZoneId.Equals(other.ZoneId) &&
+               LinkedVolumeRecords.SequenceEqual(other.LinkedVolumeRecords) &&
+               LinkedFlightRecords.SequenceEqual(other.LinkedFlightRecords);
     }
 }

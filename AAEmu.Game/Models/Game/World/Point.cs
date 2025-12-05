@@ -75,7 +75,7 @@ public class Point
         {
             return 0; // colinear
         }
-        return (val > 0) ? 1 : 2; // clock or counterclock wise
+        return val > 0 ? 1 : 2; // clock or counterclock wise
     }
 
     // The function that returns true if
@@ -171,6 +171,6 @@ public class Point
         } while (i != 0);
 
         // Return true if count is odd, false otherwise
-        return (count % 2 == 1); // Same as (count%2 == 1)
+        return count % 2 == 1; // Same as (count%2 == 1)
     }
 }

@@ -52,7 +52,7 @@ public class WaterEditOffsetSubCommand : SubCommandBase
         {
             for (var i = 0; i < WaterEditCmd.SelectedWater.Points.Count; i++)
             {
-                if ((onePoint >= 0) && (i != onePoint))
+                if (onePoint >= 0 && i != onePoint)
                     continue;
                 WaterEditCmd.SelectedWater.Points[i] = WaterEditCmd.SelectedWater.Points[i] + offset;
             }

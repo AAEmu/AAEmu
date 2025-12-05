@@ -660,7 +660,7 @@ public partial class Character : Unit, ICharacter
             res += Str / 5f * 1000f;
             res = (float)CalculateWithBonuses(res, UnitAttribute.MainhandDps);
 
-            return (int)(res);
+            return (int)res;
         }
     }
 
@@ -750,7 +750,7 @@ public partial class Character : Unit, ICharacter
             res += Int / 5f * 1000f;
             res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDps);
 
-            return (int)(res);
+            return (int)res;
         }
     }
 
@@ -823,8 +823,8 @@ public partial class Character : Unit, ICharacter
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.MeleeAntiMiss);
-            res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
-            res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+            res = (1f - (Facets / 10f - res) * (1f / Facets)) * 100f;
+            res = (res + 100f - Math.Abs(res - 100f)) / 2f;
             res = (Math.Abs(res) + res) / 2f;
             return (float)res;
         }
@@ -845,7 +845,7 @@ public partial class Character : Unit, ICharacter
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.MeleeCritical);
             res = res * (1f / Facets) * 100;
-            res = res + (MeleeCriticalMul / 10);
+            res = res + MeleeCriticalMul / 10;
             return (float)res;
         }
     }
@@ -886,8 +886,8 @@ public partial class Character : Unit, ICharacter
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.RangedAntiMiss);
-            res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
-            res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+            res = (1f - (Facets / 10f - res) * (1f / Facets)) * 100f;
+            res = (res + 100f - Math.Abs(res - 100f)) / 2f;
             res = (Math.Abs(res) + res) / 2f;
             return (float)res;
         }
@@ -908,7 +908,7 @@ public partial class Character : Unit, ICharacter
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.RangedCritical);
             res = res * (1f / Facets) * 100;
-            res = res + (RangedCriticalMul / 10);
+            res = res + RangedCriticalMul / 10;
             return (float)res;
         }
     }
@@ -949,8 +949,8 @@ public partial class Character : Unit, ICharacter
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.SpellAntiMiss);
-            res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
-            res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+            res = (1f - (Facets / 10f - res) * (1f / Facets)) * 100f;
+            res = (res + 100f - Math.Abs(res - 100f)) / 2f;
             res = (Math.Abs(res) + res) / 2f;
             return (float)res;
         }
@@ -971,7 +971,7 @@ public partial class Character : Unit, ICharacter
             res = CalculateWithBonuses(res, UnitAttribute.SpellCritical);
             res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCritical);
             res = res * (1f / Facets) * 100;
-            res = res + (SpellCriticalMul / 10);
+            res = res + SpellCriticalMul / 10;
             return (float)res;
         }
     }
@@ -1014,7 +1014,7 @@ public partial class Character : Unit, ICharacter
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.HealCritical);
             res = res * (1f / Facets) * 100;
-            res = res + (HealCriticalMul / 10);
+            res = res + HealCriticalMul / 10;
             return (float)res;
         }
     }
@@ -1198,7 +1198,7 @@ public partial class Character : Unit, ICharacter
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.Dodge);
-            res = (res * (1f / Facets) * 100f);
+            res = res * (1f / Facets) * 100f;
             res += CalculateWithBonuses(0f, UnitAttribute.DodgeMul) / 10f;
             return (float)res;
         }
@@ -1218,7 +1218,7 @@ public partial class Character : Unit, ICharacter
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.MeleeParry);
-            res = (res * (1f / Facets) * 100f);
+            res = res * (1f / Facets) * 100f;
             res += CalculateWithBonuses(0f, UnitAttribute.MeleeParryMul) / 10f;
             return (float)res;
         }
@@ -1232,7 +1232,7 @@ public partial class Character : Unit, ICharacter
             //RangedParry Formula == 0
             double res = 0;
             res = CalculateWithBonuses(res, UnitAttribute.RangedParry);
-            res = (res * (1f / Facets) * 100f);
+            res = res * (1f / Facets) * 100f;
             res += CalculateWithBonuses(0f, UnitAttribute.RangedParryMul) / 10f;
             return (float)res;
         }
@@ -1260,7 +1260,7 @@ public partial class Character : Unit, ICharacter
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.Block);
-            res = (res * (1f / Facets) * 100f);
+            res = res * (1f / Facets) * 100f;
             res += CalculateWithBonuses(0f, UnitAttribute.BlockMul) / 10f;
             return (float)res;
         }
@@ -1843,7 +1843,7 @@ public partial class Character : Unit, ICharacter
 
     public bool IsDrowning
     {
-        get { return (Breath <= 0); }
+        get { return Breath <= 0; }
     }
 
     public TimeSpan OnlineTime { get; set; } = TimeSpan.Zero;
@@ -2102,7 +2102,7 @@ public partial class Character : Unit, ICharacter
 
                     character.Inventory = new Inventory(character);
 
-                    var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
+                    var slotsBlob = (PacketStream)(byte[])reader.GetValue("slots");
                     character.LoadActionSlots(slotsBlob);
 
                     character.BmPoint = AccountManager.Instance.GetAccountDetails(character.AccountId).Loyalty;
@@ -2220,7 +2220,7 @@ public partial class Character : Unit, ICharacter
 
                     character.Inventory = new Inventory(character);
 
-                    var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
+                    var slotsBlob = (PacketStream)(byte[])reader.GetValue("slots");
                     character.LoadActionSlots(slotsBlob);
 
                     character.BmPoint = AccountManager.Instance.GetAccountDetails(character.AccountId).Loyalty;
@@ -2294,7 +2294,7 @@ public partial class Character : Unit, ICharacter
                 {
                     if (reader.Read())
                     {
-                        var slotsBlob = (PacketStream)((byte[])reader.GetValue("slots"));
+                        var slotsBlob = (PacketStream)(byte[])reader.GetValue("slots");
                         LoadActionSlots(slotsBlob);
                     }
                 }
@@ -2692,7 +2692,7 @@ public partial class Character : Unit, ICharacter
         base.CombatTick(delta);
 
         // Player specific condition
-        if ((IsInPostCast && LastCast.AddSeconds(5) < DateTime.UtcNow))
+        if (IsInPostCast && LastCast.AddSeconds(5) < DateTime.UtcNow)
         {
             IsInPostCast = false;
         }
@@ -2778,7 +2778,7 @@ public partial class Character : Unit, ICharacter
             EnterWorldManager.LeaveWorldTask(null, LeaveWorldTargetType.CharacterSelect, this);
 
             // If this character is still linked, then unlink it from the connection
-            if ((Connection != null) && (Connection.ActiveChar == this))
+            if (Connection != null && Connection.ActiveChar == this)
             {
                 Connection.ActiveChar = null;
                 Connection = null;

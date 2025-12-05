@@ -11,8 +11,8 @@ public class PositionAndRotation
     public Vector3 Position { get; set; }
     public Vector3 Rotation { get; set; }
 
-    private const float ToSByteDivider = (1f / 127f); // ~0.007874015748f ;
-    private const float TwoPi = (MathF.PI * 2f);
+    private const float ToSByteDivider = 1f / 127f; // ~0.007874015748f ;
+    private const float TwoPi = MathF.PI * 2f;
 
     public PositionAndRotation()
     {
@@ -190,7 +190,7 @@ public class PositionAndRotation
     {
         // TODO: Use Quaternion to do a proper InFront, currently height is ignored
         // TODO: Take into account IsLocal = false
-        var off = new Vector3((-distance * MathF.Sin(Rotation.Z)), (distance * MathF.Cos(Rotation.Z)), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
+        var off = new Vector3(-distance * MathF.Sin(Rotation.Z), distance * MathF.Cos(Rotation.Z), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
         Translate(off);
     }
 
@@ -203,7 +203,7 @@ public class PositionAndRotation
     {
         // TODO: Use Quaternion to do a proper InFront, currently height is ignored
         // TODO: Take into account IsLocal = false
-        var off = new Vector3((distance * MathF.Cos(Rotation.Z)), (distance * MathF.Sin(Rotation.Z)), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
+        var off = new Vector3(distance * MathF.Cos(Rotation.Z), distance * MathF.Sin(Rotation.Z), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
         Translate(off);
     }
 

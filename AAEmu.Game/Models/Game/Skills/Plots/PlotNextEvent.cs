@@ -53,7 +53,7 @@ public class PlotNextEvent
 
         var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position, true);
         //We want damage to be applied when the projectile hits target.
-        return (int)Math.Round((dist / Speed) * 1000.0f);
+        return (int)Math.Round(dist / Speed * 1000.0f);
 
     }
 

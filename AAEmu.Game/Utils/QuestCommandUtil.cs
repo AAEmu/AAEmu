@@ -35,7 +35,7 @@ public class QuestCommandUtil
                     }
                     else
                     {
-                        if ((acceptorType == QuestAcceptorType.Npc) && (character.CurrentTarget is Npc npc))
+                        if (acceptorType == QuestAcceptorType.Npc && character.CurrentTarget is Npc npc)
                             acceptorId = npc.TemplateId;
                     }
                     if (uint.TryParse(args[1], out questId))
@@ -229,7 +229,7 @@ public class QuestCommandUtil
                     }
 
                     var loopCounter = 0;
-                    while ((activeQuest.Step < QuestComponentKind.Progress) && (loopCounter < 10))
+                    while (activeQuest.Step < QuestComponentKind.Progress && loopCounter < 10)
                     {
                         loopCounter++;
                         var res = false;

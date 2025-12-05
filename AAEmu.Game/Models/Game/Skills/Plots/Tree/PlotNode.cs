@@ -60,7 +60,7 @@ public class PlotNode
         }
 
         double castTime = Event.NextEvents
-             .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
+             .Where(nextEvent => nextEvent.Casting || nextEvent.Channeling)
              .Max(nextEvent => nextEvent.Delay / 10 as int?) ?? 0;
         castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime) * state.Caster.CastTimeMul;
         castTime = Math.Max(castTime, 0);
@@ -78,7 +78,7 @@ public class PlotNode
         if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
         {
             var skill = state.ActiveSkill;
-            var unkId = ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false)) ? state.Caster.ObjId : 0;
+            var unkId = (ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false) ? state.Caster.ObjId : 0;
 
             PlotObject casterPlotObj;
             if (targetInfo.Source.ObjId == uint.MaxValue)

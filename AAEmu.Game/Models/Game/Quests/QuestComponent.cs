@@ -46,7 +46,7 @@ public class QuestComponent : IQuestComponent
     {
         var res = true;
 
-        var actsOrCheck = (Parent.ThisStep is QuestComponentKind.Start or QuestComponentKind.Ready) && (Acts.Count > 0);
+        var actsOrCheck = Parent.ThisStep is QuestComponentKind.Start or QuestComponentKind.Ready && Acts.Count > 0;
 
         if (actsOrCheck)
         {

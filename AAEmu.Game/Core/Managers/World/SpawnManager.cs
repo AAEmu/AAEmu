@@ -760,7 +760,7 @@ public class SpawnManager(WorldInstance parentWorld)
                         }
                     }
 
-                    if ((houseId > 0) && (doodad.ParentObjId <= 0))
+                    if (houseId > 0 && doodad.ParentObjId <= 0)
                     {
                         var owningHouse = HousingManager.Instance.GetHouseById(doodad.OwnerDbId);
                         if (owningHouse == null)
@@ -804,7 +804,7 @@ public class SpawnManager(WorldInstance parentWorld)
                         }
                     }
 
-                    if ((ownerTypeToSpawn == DoodadOwnerType.Slave) && (useParentObject is Slave parentSlave))
+                    if (ownerTypeToSpawn == DoodadOwnerType.Slave && useParentObject is Slave parentSlave)
                     {
                         parentSlave.AttachedDoodads.Add(doodad);
                     }

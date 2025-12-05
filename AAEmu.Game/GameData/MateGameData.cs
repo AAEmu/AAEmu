@@ -54,7 +54,7 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
         // Find the player skill based on the mountSkillId
         foreach (var mas in _mountAttachedSkills)
         {
-            if ((mas.Value.MountSkillId != id) || (mas.Value.AttachPointId != attachPoint))
+            if (mas.Value.MountSkillId != id || mas.Value.AttachPointId != attachPoint)
                 continue;
             skill = mas.Value.SkillId;
             break;

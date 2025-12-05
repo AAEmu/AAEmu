@@ -30,6 +30,6 @@ public struct CollisionTriangle : ISupportMappable
 
     public void GetCenter(out JVector point)
     {
-        point = (1.0f / 3.0f) * (A + B + C);
+        point = 1.0f / 3.0f * (A + B + C);
     }
 }

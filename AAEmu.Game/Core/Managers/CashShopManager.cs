@@ -105,7 +105,7 @@ public class CashShopManager : Singleton<CashShopManager>
         {
             if (ShopItems.TryGetValue(sku.ShopId, out var shopItem))
             {
-                if ((shopItem.Skus.Count <= 0) && string.IsNullOrWhiteSpace(shopItem.Name))
+                if (shopItem.Skus.Count <= 0 && string.IsNullOrWhiteSpace(shopItem.Name))
                 {
                     // First Item, grab it's name when needed
                     shopItem.Name = LocalizationManager.Instance.Get("items", "name", sku.ItemId) ?? "???";
@@ -152,7 +152,7 @@ public class CashShopManager : Singleton<CashShopManager>
         }
 
         // If something didn't load, force close the shop
-        if ((MenuItems.Count <= 0) || (ShopItems.Count <= 0) || (SKUs.Count <= 0))
+        if (MenuItems.Count <= 0 || ShopItems.Count <= 0 || SKUs.Count <= 0)
             DisableShop();
     }
 
@@ -176,7 +176,7 @@ public class CashShopManager : Singleton<CashShopManager>
     public void SendICSPage(GameConnection connection, byte mainTabId, byte subTabId, ushort page)
     {
         var thisTabItems = MenuItems.Where(t => t.MainTab == mainTabId && t.SubTab == subTabId).ToList();
-        var isLimitedTab = (mainTabId == 1) && (subTabId == 1);
+        var isLimitedTab = mainTabId == 1 && subTabId == 1;
         var itemsPerPage = isLimitedTab ? 4 : 8;
         var numberOfPages = (ushort)Math.Ceiling((float)thisTabItems.Count / itemsPerPage);
         var thisPageItems = thisTabItems.Skip(itemsPerPage * (page - 1)).Take(itemsPerPage).ToList();
@@ -219,7 +219,7 @@ public class CashShopManager : Singleton<CashShopManager>
     {
         var res = new List<AuditIcsSale>();
 
-        if (((accountId == 0) && (characterId == 0)) || (shopItemId <= 0))
+        if ((accountId == 0 && characterId == 0) || shopItemId <= 0)
             return res;
 
         using var connection = MySQL.CreateConnection();
@@ -252,7 +252,7 @@ public class CashShopManager : Singleton<CashShopManager>
                     ShopItemId = reader.GetUInt32("shop_item_id"),
                     Sku = reader.GetUInt32("sku"), // The SKU Id can be used to get the exact amount of items sold
                     SaleCost = reader.GetInt32("sale_cost"),
-                    SaleCurrency = (CashShopCurrencyType)(reader.GetByte("sale_currency")),
+                    SaleCurrency = (CashShopCurrencyType)reader.GetByte("sale_currency"),
                     Description = reader.GetString("description")
                 };
 

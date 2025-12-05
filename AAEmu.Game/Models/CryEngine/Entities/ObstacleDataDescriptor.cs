@@ -21,12 +21,12 @@ public class ObstacleDataDescriptor(uint zoneId)
         if (other == null)
             return false;
 
-        return (Pos.Equals(other.Pos) &&
-                Dir.Equals(other.Dir) &&
-                ApproxRadius.Equals(other.ApproxRadius) &&
-                ApproxHeight.Equals(other.ApproxHeight) &&
-                Flags.Equals(other.Flags) &&
-                Unk1.Equals(other.Unk1) &&
-                Unk2.Equals(other.Unk2));
+        return Pos.Equals(other.Pos) &&
+               Dir.Equals(other.Dir) &&
+               ApproxRadius.Equals(other.ApproxRadius) &&
+               ApproxHeight.Equals(other.ApproxHeight) &&
+               Flags.Equals(other.Flags) &&
+               Unk1.Equals(other.Unk1) &&
+               Unk2.Equals(other.Unk2);
     }
 }

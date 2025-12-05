@@ -405,7 +405,7 @@ public sealed class Mate : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -434,7 +434,7 @@ public sealed class Mate : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }

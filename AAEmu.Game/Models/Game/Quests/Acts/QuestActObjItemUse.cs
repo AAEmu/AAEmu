@@ -40,7 +40,7 @@ internal class QuestActObjItemUse(QuestComponentTemplate parentComponent) : Ques
 
     public override void OnItemUse(QuestAct questAct, object sender, OnItemUseArgs args)
     {
-        if ((questAct.Id != ActId) || (args.ItemId != ItemId))
+        if (questAct.Id != ActId || args.ItemId != ItemId)
             return;
 
         AddObjective(questAct, 1);

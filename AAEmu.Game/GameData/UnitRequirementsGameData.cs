@@ -157,7 +157,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         var validQuestComponents = new List<uint>();
 
         // For skill for "item use" for specific quests
-        if ((skillCaster is SkillItem skillItem) && (ownerUnit is Character player))
+        if (skillCaster is SkillItem skillItem && ownerUnit is Character player)
         {
             var actsUsingItem = player.Quests.GetActiveActsWithUseItem(skillItem.ItemTemplateId);
             foreach (var act in actsUsingItem)
@@ -179,7 +179,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         foreach (var unitReq in reqs)
         {
             var reqRes = false;
-            if ((unitReq.KindType == UnitReqsKindType.AreaSphere) && (validQuestComponents.Count > 0))
+            if (unitReq.KindType == UnitReqsKindType.AreaSphere && validQuestComponents.Count > 0)
             {
                 // Special handling for quests spheres with items
                 foreach (var requiredComponentId in validQuestComponents)

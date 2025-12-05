@@ -136,7 +136,7 @@ public static class ScriptCompiler
 
         assembly = assemblyResult;
 
-        return (assemblyResult != null) && (isOk);
+        return assemblyResult != null && isOk;
     }
 
     // Only for debugging purposes

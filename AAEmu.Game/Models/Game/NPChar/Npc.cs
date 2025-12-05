@@ -592,7 +592,7 @@ public partial class Npc : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -668,7 +668,7 @@ public partial class Npc : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -724,7 +724,7 @@ public partial class Npc : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -963,16 +963,16 @@ public partial class Npc : Unit
                     if (levelDifference > 0)
                     {
                         // pl.Level is above this.Level
-                        levDif = 1.0f - (0.1f * levelDifference);
+                        levDif = 1.0f - 0.1f * levelDifference;
                     }
                     else if (levelDifference < 0)
                     {
                         // pl.Level is below this.Level
-                        levDif = 1.0f + (0.1f * -levelDifference);
+                        levDif = 1.0f + 0.1f * -levelDifference;
                     }
 
-                    var plKillXp = (int)((KillExp * plMod) * levDif);
-                    var mateKillXp = (int)((KillExp * mateMod) * levDif);
+                    var plKillXp = (int)(KillExp * plMod * levDif);
+                    var mateKillXp = (int)(KillExp * mateMod * levDif);
 
                     pl.AddExp(plKillXp, true);
                     var mateList = pl.ParentWorld.MateManager.GetActiveMates(pl.Id);
@@ -1089,7 +1089,7 @@ public partial class Npc : Unit
             // TODO: make this party/raid wide? Take into account pets/slaves?
             // If there is a quest starter attached to this NPC, start it when unit gets added for the first time
             // to the aggro list
-            if ((Template.EngageCombatGiveQuestId > 0) && player is not null)
+            if (Template.EngageCombatGiveQuestId > 0 && player is not null)
             {
                 if (!player.Quests.IsQuestComplete(Template.EngageCombatGiveQuestId) && !player.Quests.HasQuest(Template.EngageCombatGiveQuestId))
                     player.Quests.AddQuest(Template.EngageCombatGiveQuestId);

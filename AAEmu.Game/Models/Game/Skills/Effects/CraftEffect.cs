@@ -49,12 +49,12 @@ public class CraftEffect : EffectTemplate
                         Logger.Trace("[Shipyard] ID {0}, objID {1}", shipyard.ShipyardData.TemplateId, shipyard.ObjId);
 
                         var shipStep =
-                            (shipyard.CurrentAction >= 0) && (shipyard.CurrentStep < shipyard.Template.ShipyardSteps.Count)
+                            shipyard.CurrentAction >= 0 && shipyard.CurrentStep < shipyard.Template.ShipyardSteps.Count
                                 ? shipyard.Template.ShipyardSteps[shipyard.CurrentStep]
                                 : null;
 
                         // Compare if the used skill (correct pack) is still valid when used
-                        if ((shipStep != null) && (usedSkill != shipStep.SkillId))
+                        if (shipStep != null && usedSkill != shipStep.SkillId)
                         {
                             Logger.Warn("{0} tried to build a ship using the wrong skill, {1} instead of {2}", caster.Name, usedSkill, shipStep.SkillId);
                             source.Skill.Cancelled = true;
@@ -92,12 +92,12 @@ public class CraftEffect : EffectTemplate
                 case WorldInteractionGroup.Building when target is House house:
                     // Get the house's current build step
                     var currentStep =
-                        (house.CurrentAction >= 0) && (house.CurrentStep < house.Template.BuildSteps.Count)
+                        house.CurrentAction >= 0 && house.CurrentStep < house.Template.BuildSteps.Count
                             ? house.Template.BuildSteps[house.CurrentStep]
                             : null;
 
                     // Compare if the used skill (correct pack) is still valid when used
-                    if ((currentStep != null) && (usedSkill != currentStep.SkillId))
+                    if (currentStep != null && usedSkill != currentStep.SkillId)
                     {
                         Logger.Warn("{0} tried to building using the wrong skill, {1} instead of {2}", caster.Name, usedSkill, currentStep.SkillId);
                         character.SkillTask.Skill.Cancelled = true;

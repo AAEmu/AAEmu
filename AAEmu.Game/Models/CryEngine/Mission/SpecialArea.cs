@@ -24,17 +24,17 @@ public class SpecialArea(uint zoneId) : AAEmu.Game.Models.CryEngine.Mission.Miss
         if (other is not SpecialArea area)
             return false;
 
-        return (ZoneId.Equals(area.ZoneId) &&
-                Name.Equals(area.Name) &&
-                MissionType.Equals(area.MissionType) &&
-                WaypointConnections.Equals(area.WaypointConnections) &&
-                (Altered == area.Altered) &&
-                Height.Equals(area.Height) &&
-                NodeAutoConnectDistance.Equals(area.NodeAutoConnectDistance) &&
-                MinZ.Equals(area.MinZ) &&
-                MaxZ.Equals(area.MaxZ) &&
-                BuildingId.Equals(area.BuildingId) &&
-                AiLightLevel.Equals(area.AiLightLevel) &&
-                Points.SequenceEqual(area.Points));
+        return ZoneId.Equals(area.ZoneId) &&
+               Name.Equals(area.Name) &&
+               MissionType.Equals(area.MissionType) &&
+               WaypointConnections.Equals(area.WaypointConnections) &&
+               Altered == area.Altered &&
+               Height.Equals(area.Height) &&
+               NodeAutoConnectDistance.Equals(area.NodeAutoConnectDistance) &&
+               MinZ.Equals(area.MinZ) &&
+               MaxZ.Equals(area.MaxZ) &&
+               BuildingId.Equals(area.BuildingId) &&
+               AiLightLevel.Equals(area.AiLightLevel) &&
+               Points.SequenceEqual(area.Points);
     }
 }

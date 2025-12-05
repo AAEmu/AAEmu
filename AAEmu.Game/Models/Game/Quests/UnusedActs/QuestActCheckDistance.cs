@@ -30,6 +30,6 @@ public class QuestActCheckDistance(QuestComponentTemplate parentComponent) : Que
         // There is actually no quest left that still uses this
         var player = quest.Owner as Character;
         var npcs = WorldManager.GetAround<Npc>(player, Distance);
-        return npcs.Any(x => (x.TemplateId == NpcId) && (x.GetDistanceTo(player, true) <= Distance));
+        return npcs.Any(x => x.TemplateId == NpcId && x.GetDistanceTo(player, true) <= Distance);
     }
 }

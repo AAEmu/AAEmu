@@ -73,8 +73,8 @@ public class MailForSpeciality : BaseMail
         int itemCountBase, int itemCountBonus, int itemCountForSeller, int itemCountForCrafter, int interestRate) : base()
     {
         _sender = seller;
-        _sellerIsCrafter = (crafterId == 0) || (crafterId == seller.Id);
-        if ((crafterId != 0) && (crafterId != seller.Id))
+        _sellerIsCrafter = crafterId == 0 || crafterId == seller.Id;
+        if (crafterId != 0 && crafterId != seller.Id)
             _crafterId = crafterId;
         else
             _crafterId = 0;
@@ -114,8 +114,8 @@ public class MailForSpeciality : BaseMail
 
         Title = _crafterId == 0 ? TradeDeliveryTitle : TradeDeliveryTitleSeller;
 
-        var payout = (int)((_itemCountBase * _tradedRate) / 100f) + _itemCountBonus;
-        var payoutWithInterest = (int)((payout * (100 + _interestRate)) / 100f);
+        var payout = (int)(_itemCountBase * _tradedRate / 100f) + _itemCountBonus;
+        var payoutWithInterest = (int)(payout * (100 + _interestRate) / 100f);
 
         if (_itemToSend == Item.Coins)
         {
@@ -186,8 +186,8 @@ public class MailForSpeciality : BaseMail
         Header.ReceiverId = _crafterId;
         ReceiverName = crafterName;
 
-        var payout = (int)((_itemCountBase * _tradedRate) / 100f) + _itemCountBonus;
-        var payoutWithInterest = (int)((payout * (100 + _interestRate)) / 100f);
+        var payout = (int)(_itemCountBase * _tradedRate / 100f) + _itemCountBonus;
+        var payoutWithInterest = (int)(payout * (100 + _interestRate) / 100f);
 
         Title = TradeDeliveryTitleCrafter;
         if (_itemToSend == Item.Coins)

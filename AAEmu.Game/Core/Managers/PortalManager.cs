@@ -456,7 +456,7 @@ public class PortalManager : Singleton<PortalManager>
             if (districts.Count > 0)
             {
                 var factions = districts.Select(d => d.FactionId).Distinct().ToList();
-                if ((factions.Count > 0) && !factions.Contains(character.Faction.MotherId) && !factions.Contains(character.Faction.Id))
+                if (factions.Count > 0 && !factions.Contains(character.Faction.MotherId) && !factions.Contains(character.Faction.Id))
                 {
                     continue;
                 }

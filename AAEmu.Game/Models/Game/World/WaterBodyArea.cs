@@ -209,15 +209,15 @@ public class WaterBodyArea
         // See: http://en.wikipedia.org/wiki/Linear_equation
         var a1 = v1End.Y - v1Start.Y;
         var b1 = v1Start.X - v1End.X;
-        var c1 = (v1End.X * v1Start.Y) - (v1Start.X * v1End.Y);
+        var c1 = v1End.X * v1Start.Y - v1Start.X * v1End.Y;
 
         // Every point (x,y), that solves the equation above, is on the line,
         // every point that does not solve it, is not. The equation will have a
         // positive result if it is on one side of the line and a negative one 
         // if is on the other side of it. We insert (x1,y1) and (x2,y2) of vector
         // 2 into the equation above.
-        var d1 = (a1 * v2Start.X) + (b1 * v2Start.Y) + c1;
-        var d2 = (a1 * v2End.X) + (b1 * v2End.Y) + c1;
+        var d1 = a1 * v2Start.X + b1 * v2Start.Y + c1;
+        var d2 = a1 * v2End.X + b1 * v2End.Y + c1;
 
         // If d1 and d2 both have the same sign, they are both on the same side
         // of our line 1 and in that case no intersection is possible. Careful, 
@@ -234,11 +234,11 @@ public class WaterBodyArea
         // infinite line 2 in linear equation standard form.
         var a2 = v2End.Y - v2Start.Y;
         var b2 = v2Start.X - v2End.X;
-        var c2 = (v2End.X * v2Start.Y) - (v2Start.X * v2End.Y);
+        var c2 = v2End.X * v2Start.Y - v2Start.X * v2End.Y;
 
         // Calculate d1 and d2 again, this time using points of vector 1.
-        d1 = (a2 * v1Start.X) + (b2 * v1Start.Y) + c2;
-        d2 = (a2 * v1End.X) + (b2 * v1End.Y) + c2;
+        d1 = a2 * v1Start.X + b2 * v1Start.Y + c2;
+        d2 = a2 * v1End.X + b2 * v1End.Y + c2;
 
         // Again, if both have the same sign (and neither one is 0),
         // no intersection is possible.
@@ -248,7 +248,7 @@ public class WaterBodyArea
         // If we get here, only two possibilities are left. Either the two
         // vectors intersect in exactly one point or they are collinear, which
         // means they intersect in any number of points from zero to infinite.
-        if ((a1 * b2) - (a2 * b1) == 0.0f) return false; // COLLINEAR;
+        if (a1 * b2 - a2 * b1 == 0.0f) return false; // COLLINEAR;
 
         // If they are not collinear, they must intersect in exactly one point.
         return true;
@@ -287,10 +287,10 @@ public class WaterBodyArea
                 intersections++;
         }
 
-        var res = ((intersections & 1) == 1);
+        var res = (intersections & 1) == 1;
 
         // Check for Area Types
-        if (res && (AreaType == WaterBodyAreaType.LineArray))
+        if (res && AreaType == WaterBodyAreaType.LineArray)
         {
             var p = new Vector3(x, y, _highest);
             var closestPoint = -1;
@@ -323,7 +323,7 @@ public class WaterBodyArea
                         continue;
                 }
 
-                if ((distanceToLine < RiverWidth))
+                if (distanceToLine < RiverWidth)
                 {
                     // looks like it's roughly in range of the river
 
@@ -331,7 +331,7 @@ public class WaterBodyArea
                     {
                         closestDistance = distanceToLine;
                         closestPoint = side;
-                        flowVector = (Points[side + 1] - Points[side]);
+                        flowVector = Points[side + 1] - Points[side];
                         flowVector = Vector3.Normalize(flowVector) * Speed;
                     }
                 }
@@ -347,7 +347,7 @@ public class WaterBodyArea
     public Vector3 GetCenter(bool atSurface)
     {
         var h = atSurface ? _highest : _lowest - Depth;
-        return new Vector3(_boundingBox.Left + (_boundingBox.Width / 2f), _boundingBox.Top + (_boundingBox.Height / 2f), h);
+        return new Vector3(_boundingBox.Left + _boundingBox.Width / 2f, _boundingBox.Top + _boundingBox.Height / 2f, h);
     }
     
     // https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment

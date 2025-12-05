@@ -33,8 +33,8 @@ public class WaterBodies
             foreach (var area in Areas)
             {
                 if (area.GetSurface(point, out var surfacePoint, out flowDirection) &&
-                    (point.Z <= surfacePoint.Z) &&
-                    (point.Z >= surfacePoint.Z - area.Depth))
+                    point.Z <= surfacePoint.Z &&
+                    point.Z >= surfacePoint.Z - area.Depth)
                     return true;
             }
 
@@ -109,7 +109,7 @@ public class WaterBodies
                 
                 // To fix issues with endpoints of rivers looping back to the start, remove the obsolete point from the data.
                 // This doesn't really give an issue with water itself due to how it's handled, but is wrong nonetheless.
-                if ((area.AreaType == WaterBodyAreaType.LineArray) && (area.Points.Count > 2) && (area.Points[^1].Equals(area.Points[0])))
+                if (area.AreaType == WaterBodyAreaType.LineArray && area.Points.Count > 2 && area.Points[^1].Equals(area.Points[0]))
                     area.Points.RemoveAt(area.Points.Count-1);
                 
                 area.UpdateBounds();

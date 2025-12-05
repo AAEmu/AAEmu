@@ -61,7 +61,7 @@ public class MailPlayerToPlayer : BaseMail
             if (mailSlots.Item1 != 0)
             {
                 var tempItem = _sender.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
-                if ((tempItem == null) || (tempItem.SlotType != SlotType.Inventory))
+                if (tempItem == null || tempItem.SlotType != SlotType.Inventory)
                 {
                     // Attchment Items do not match player inventory, abort
                     return false;

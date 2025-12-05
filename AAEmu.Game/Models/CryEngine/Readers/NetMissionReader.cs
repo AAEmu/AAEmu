@@ -73,8 +73,8 @@ public class NetMissionReader : BaiReader
                 MinWaterDepth = Reader.ReadSingle(),
                 StartIndex = Reader.ReadByte(),
                 EndIndex = Reader.ReadByte(),
-                IsPureTriangularLink = (Reader.ReadByte() == 1),
-                SimplePassabilityCheck = (Reader.ReadByte() == 1)
+                IsPureTriangularLink = Reader.ReadByte() == 1,
+                SimplePassabilityCheck = Reader.ReadByte() == 1
             };
             // Cache source and target nodes
             linkDescriptor.SourceNodeDescriptor = this.NodeDescriptorList.GetValueOrDefault(linkDescriptor.SourceNode);

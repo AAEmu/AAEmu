@@ -359,7 +359,7 @@ public class Unit : BaseUnit, IUnit
                 // Took damage, check downwards
                 foreach (var triggerValue in HpTriggerPointsPercent)
                 {
-                    if ((oldHpP > triggerValue) && (newHpP <= triggerValue))
+                    if (oldHpP > triggerValue && newHpP <= triggerValue)
                     {
                         DoHpChangeTrigger(triggerValue, true, oldHpValue, newHpValue);
                         break;
@@ -372,7 +372,7 @@ public class Unit : BaseUnit, IUnit
                 // Healed, check upwards
                 foreach (var triggerValue in HpTriggerPointsPercent)
                 {
-                    if ((oldHpP < triggerValue) && (newHpP >= triggerValue))
+                    if (oldHpP < triggerValue && newHpP >= triggerValue)
                     {
                         DoHpChangeTrigger(triggerValue, false, oldHpValue, newHpValue);
                         break;
@@ -595,7 +595,7 @@ public class Unit : BaseUnit, IUnit
         if (criminalState)
         {
             // Don't trigger Retribution (purple) when target is a Npc (except for player portals)
-            if ((attackedTarget is Npc) && (attackedTarget is not Portal))
+            if (attackedTarget is Npc && attackedTarget is not Portal)
                 return;
 
             var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Retribution);
@@ -685,7 +685,7 @@ public class Unit : BaseUnit, IUnit
         {
             if (bonus.Template.ModifierType != UnitModifierType.Percent)
                 continue;
-            value += (value * bonus.Value / 100f);
+            value += value * bonus.Value / 100f;
         }
 
         return value;
@@ -801,7 +801,7 @@ public class Unit : BaseUnit, IUnit
         var minHpLeft = MaxHp / 20; //5% of hp 
         var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 
 
-        fallDmg = (int)(fallDmg + (fallDmg * multiplier));
+        fallDmg = (int)(fallDmg + fallDmg * multiplier);
 
         if (fallVel >= 32000)
         {
@@ -1031,7 +1031,7 @@ public class Unit : BaseUnit, IUnit
 
                 if (!setNumPieces.TryGetValue(equipItemSetId, out var value))
                 {
-                    setNumPieces.Add(equipItemSetId, (1));
+                    setNumPieces.Add(equipItemSetId, 1);
                     itemLevels.Add(equipItemSetId, (uint)item.Template.Level);
                 }
                 else
@@ -1086,7 +1086,7 @@ public class Unit : BaseUnit, IUnit
 
     private void ApplyArmorGradeBuff(Item itemAdded, Item itemRemoved)
     {
-        if ((itemAdded != null || itemRemoved != null) && (itemAdded is not Items.Armor && itemRemoved is not Items.Armor))
+        if ((itemAdded != null || itemRemoved != null) && itemAdded is not Items.Armor && itemRemoved is not Items.Armor)
             return;
 
         // Clear any existing armor grade buffs
@@ -1176,7 +1176,7 @@ public class Unit : BaseUnit, IUnit
 
         // This const was calculated by hand, it might make no sense.
         var abLevel = totalLevel * 0.40670554f;
-        var gradeBuffAbLevel = (abLevel * abLevel) / 15 + 30;
+        var gradeBuffAbLevel = abLevel * abLevel / 15 + 30;
         var lowestGrade = piecesAboveArcane.Min(a => a.Grade);
 
         // Apply buff 
@@ -1213,8 +1213,8 @@ public class Unit : BaseUnit, IUnit
             }
 
             // Charged Item Buffs
-            if ((itemRemoved.Template is EquipItemTemplate equipItemTemplate) &&
-                (equipItemTemplate.RechargeBuffId > 0) &&
+            if (itemRemoved.Template is EquipItemTemplate equipItemTemplate &&
+                equipItemTemplate.RechargeBuffId > 0 &&
                 Buffs.CheckBuff(equipItemTemplate.RechargeBuffId))
                 Buffs.RemoveBuff(equipItemTemplate.RechargeBuffId);
         }
@@ -1235,8 +1235,8 @@ public class Unit : BaseUnit, IUnit
             }
 
             // Charged Item Buffs
-            if ((itemAdded is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
-                (equipItemTemplate.RechargeBuffId > 0))
+            if (itemAdded is EquipItem equipItem && equipItem.Template is EquipItemTemplate equipItemTemplate &&
+                equipItemTemplate.RechargeBuffId > 0)
             {
                 var addChargeBuff = false;
                 var checkExpireTime = equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack)
@@ -1245,15 +1245,15 @@ public class Unit : BaseUnit, IUnit
                 checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
 
                 // Check against timer
-                if ((equipItemTemplate.ChargeLifetime > 0) && (checkExpireTime > DateTime.UtcNow))
+                if (equipItemTemplate.ChargeLifetime > 0 && checkExpireTime > DateTime.UtcNow)
                     addChargeBuff = true;
 
                 // Check against charge counter
-                if ((equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount > 0))
+                if (equipItemTemplate.ChargeCount > 0 && equipItem.ChargeCount > 0)
                     addChargeBuff = true;
 
                 // If this item is Bind on unwrap, don't start the buff if it's not unwrapped
-                if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
+                if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) && equipItem.HasFlag(ItemFlag.Unpacked) == false)
                     addChargeBuff = false;
 
                 if (addChargeBuff)
@@ -1292,8 +1292,8 @@ public class Unit : BaseUnit, IUnit
                 }
 
                 // Charged Item Buffs
-                if ((item is EquipItem equipItem) && (equipItem.Template is EquipItemTemplate equipItemTemplate) &&
-                    (equipItemTemplate.RechargeBuffId > 0))
+                if (item is EquipItem equipItem && equipItem.Template is EquipItemTemplate equipItemTemplate &&
+                    equipItemTemplate.RechargeBuffId > 0)
                 {
                     var addChargeBuff = false;
                     var checkExpireTime = equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack)
@@ -1302,15 +1302,15 @@ public class Unit : BaseUnit, IUnit
                     checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
 
                     // Check against timer
-                    if ((equipItemTemplate.ChargeLifetime > 0) && (checkExpireTime > DateTime.UtcNow))
+                    if (equipItemTemplate.ChargeLifetime > 0 && checkExpireTime > DateTime.UtcNow)
                         addChargeBuff = true;
 
                     // Check against charge counter
-                    if ((equipItemTemplate.ChargeCount > 0) && (equipItem.ChargeCount > 0))
+                    if (equipItemTemplate.ChargeCount > 0 && equipItem.ChargeCount > 0)
                         addChargeBuff = true;
 
                     // If this item is Bind on unwrap, don't start the buff if it's not unwrapped
-                    if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) && (equipItem.HasFlag(ItemFlag.Unpacked) == false))
+                    if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) && equipItem.HasFlag(ItemFlag.Unpacked) == false)
                         addChargeBuff = false;
 
                     if (addChargeBuff)
@@ -1343,7 +1343,7 @@ public class Unit : BaseUnit, IUnit
         {
             // Remove the old zone buff if needed
             var lastZoneGroup = ZoneManager.Instance.GetZoneGroupById(lastZone.GroupId);
-            if ((lastZoneGroup != null) && (lastZoneGroup.BuffId != 0))
+            if (lastZoneGroup != null && lastZoneGroup.BuffId != 0)
             {
                 // Remove the applied buff from last zoneGroup
                 Buffs.RemoveBuff(lastZoneGroup.BuffId);
@@ -1353,7 +1353,7 @@ public class Unit : BaseUnit, IUnit
         {
             // Apply the new zone buff if needed
             var newZoneGroup = ZoneManager.Instance.GetZoneGroupById(newZone.GroupId);
-            if ((newZoneGroup != null) && (newZoneGroup.BuffId != 0))
+            if (newZoneGroup != null && newZoneGroup.BuffId != 0)
             {
                 // Add buff from new zoneGroup
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(newZoneGroup.BuffId);

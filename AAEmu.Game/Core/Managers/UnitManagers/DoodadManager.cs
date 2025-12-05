@@ -2492,7 +2492,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         if (mm >= 60)
                             Logger.Warn($"DoodadFuncToD has invalid value for minutes, Id {func.Id}, ToD {func.Tod}");
                         mm %= 60;
-                        func.TodAsHours = (hh * 1f) + (mm / 60f);
+                        func.TodAsHours = hh * 1f + mm / 60f;
 
                         _phaseFuncTemplates["DoodadFuncTod"].Add(func.Id, func);
                     }

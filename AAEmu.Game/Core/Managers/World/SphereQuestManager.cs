@@ -119,7 +119,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
     {
         foreach (var questTrigger in _sphereQuestTriggers)
         {
-            if ((questTrigger.Owner.Id == ownerId) && ((questId == 0) || (questTrigger.Quest.TemplateId == questId)))
+            if (questTrigger.Owner.Id == ownerId && (questId == 0 || questTrigger.Quest.TemplateId == questId))
                 RemoveSphereQuestTrigger(questTrigger);
         }
     }
@@ -137,8 +137,8 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
                     {
                         foreach (var sphereQuestTrigger in _sphereQuestTriggers)
                         {
-                            if ((addQuestSphereTrigger.Owner.Id == sphereQuestTrigger.Owner.Id) &&
-                                (addQuestSphereTrigger.Quest.TemplateId == sphereQuestTrigger.Quest.TemplateId))
+                            if (addQuestSphereTrigger.Owner.Id == sphereQuestTrigger.Owner.Id &&
+                                addQuestSphereTrigger.Quest.TemplateId == sphereQuestTrigger.Quest.TemplateId)
                                 break;
                         }
 

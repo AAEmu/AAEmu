@@ -48,7 +48,7 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
             if (doodad.CurrentFuncs?.Any(func => func.FuncType == "DoodadFuncNaviOpenMailbox") == true)
             {
                 var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
-                mailCheckOK = (dist <= 5f); // 5m is kinda generous I guess
+                mailCheckOK = dist <= 5f; // 5m is kinda generous I guess
             }
             else
             {

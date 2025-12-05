@@ -34,7 +34,7 @@ public class WaterEditInsertPointSubCommand : SubCommandBase
             
         var pointIndex = GetOptionalParameterValue<int>(parameters, "point", WaterEditCmd.NextPoint);
 
-        if ((pointIndex > WaterEditCmd.SelectedWater.Points.Count - 1) || (pointIndex < 0))
+        if (pointIndex > WaterEditCmd.SelectedWater.Points.Count - 1 || pointIndex < 0)
         {
             character.SendMessage($"|cFFFFFFFF[WaterEdit] {pointIndex} is not a valid point index (0~{WaterEditCmd.SelectedWater.Points.Count-1})!|r");
             return;

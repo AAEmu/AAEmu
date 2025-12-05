@@ -34,7 +34,7 @@ public partial class Character
     {
         // check trade packs to drop
         var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
-        if ((item?.Template is BackpackTemplate { BackpackType: BackpackType.TradePack } backpackTemplate))
+        if (item?.Template is BackpackTemplate { BackpackType: BackpackType.TradePack } backpackTemplate)
         {
             // Find the linked doodad of this item's put down effect
             var backpackDoodadId = 0u;

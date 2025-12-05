@@ -19,12 +19,12 @@ public class PolygonArea(uint zoneId) : AAEmu.Game.Models.CryEngine.Mission.Miss
         if (other is not PolygonArea poly)
             return false;
 
-        return (ZoneId.Equals(poly.ZoneId) &&
-                Name.Equals(poly.Name) &&
-                Points.SequenceEqual(poly.Points) &&
-                NavigationType.Equals(poly.NavigationType) &&
-                Type.Equals(poly.Type) &&
-                Height.Equals(poly.Height) &&
-                AiLightLevel.Equals(poly.NavigationType));
+        return ZoneId.Equals(poly.ZoneId) &&
+               Name.Equals(poly.Name) &&
+               Points.SequenceEqual(poly.Points) &&
+               NavigationType.Equals(poly.NavigationType) &&
+               Type.Equals(poly.Type) &&
+               Height.Equals(poly.Height) &&
+               AiLightLevel.Equals(poly.NavigationType);
     }
 }

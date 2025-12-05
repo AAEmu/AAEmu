@@ -45,7 +45,7 @@ public class WaterEditSetZSubCommand : SubCommandBase
 
         for (var i = 0; i < WaterEditCmd.SelectedWater.Points.Count; i++)
         {
-            if ((onePoint >= 0) && (onePoint != i))
+            if (onePoint >= 0 && onePoint != i)
                 continue;
 
             WaterEditCmd.SelectedWater.Points[i] = new Vector3(WaterEditCmd.SelectedWater.Points[i].X,

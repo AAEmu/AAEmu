@@ -128,7 +128,7 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
             Markers.Clear();
         }
 
-        if ((SelectedWorld == null) || (SelectedWater == null))
+        if (SelectedWorld == null || SelectedWater == null)
             return;
 
         lock (SelectedWorld.Water._lock)
@@ -157,7 +157,7 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
                 var surfaceUnit = NpcManager.Instance.Create(((Character)character).ParentWorld, 0, topNpcId);
                 surfaceUnit.Transform.Local.SetPosition(point);
                     
-                if ((p == 0) && (SelectedWater.AreaType == WaterBodyAreaType.Polygon) && (useVirtualBorder == false))
+                if (p == 0 && SelectedWater.AreaType == WaterBodyAreaType.Polygon && useVirtualBorder == false)
                     surfaceUnit.Name = "#" + p.ToString() + " <-> #" + (ShowPoints.Count - 1).ToString();
                 else
                     surfaceUnit.Name = "#" + p.ToString();
@@ -187,7 +187,7 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
                     Markers.Add(middleDoodad);
 
                     // If a line, also add markers on the width border
-                    if ((SelectedWater.AreaType == WaterBodyAreaType.LineArray) && (useVirtualBorder == false))
+                    if (SelectedWater.AreaType == WaterBodyAreaType.LineArray && useVirtualBorder == false)
                     {
                         var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
                         var rightDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, middleDoodadId);
@@ -251,7 +251,7 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
         }
         Markers.Clear();
             
-        if ((SelectedWorld == null) || (SelectedWater == null))
+        if (SelectedWorld == null || SelectedWater == null)
             return;
 
         lock (SelectedWorld.Water._lock)
