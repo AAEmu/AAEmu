@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.S2C;
 
 public class TCEmblemStreamRecvStatusPacket : StreamPacket
 {
-    private EmblemStreamStatus _status;
+    private readonly EmblemStreamStatus _status;
 
     public TCEmblemStreamRecvStatusPacket(EmblemStreamStatus status) : base(TCOffsets.TCEmblemStreamRecvStatusPacket)
     {

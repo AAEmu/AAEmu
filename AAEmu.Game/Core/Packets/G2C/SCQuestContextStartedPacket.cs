@@ -6,8 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCQuestContextStartedPacket : GamePacket
 {
-    private Quest _quest;
-    private uint _componentId;
+    private readonly Quest _quest;
+    private readonly uint _componentId;
 
     public SCQuestContextStartedPacket(Quest quest, uint componentId) : base(SCOffsets.SCQuestContextStartedPacket, 1)
     {

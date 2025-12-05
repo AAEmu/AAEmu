@@ -6,8 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAuctionSearchedPacket : GamePacket
 {
-    private int _page;
-    private int _count;
+    private readonly int _page;
+    private readonly int _count;
     private readonly List<AuctionLot> _lots;
     private readonly short _errorMsg;
     private readonly DateTime _serverTime;

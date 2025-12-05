@@ -14,7 +14,7 @@ public class StreamNetwork : Singleton<StreamNetwork>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Server _server;
-    private StreamProtocolHandler _handler;
+    private readonly StreamProtocolHandler _handler;
 
     private StreamNetwork()
     {

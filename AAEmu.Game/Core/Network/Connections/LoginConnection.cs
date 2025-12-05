@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Network.Connections;
 
 public class LoginConnection
 {
-    private ISession _session;
+    private readonly ISession _session;
 
     public uint Id => _session.SessionId;
     public IPAddress Ip => _session.Ip;

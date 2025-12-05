@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.InstantGame;
 
 public partial class InstantGame
 {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
     private readonly List<Character> _players;
     private readonly Dictionary<uint, List<Character>> _corps;

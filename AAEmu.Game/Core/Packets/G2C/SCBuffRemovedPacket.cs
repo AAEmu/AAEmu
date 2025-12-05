@@ -7,8 +7,8 @@ public class SCBuffRemovedPacket : GamePacket
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 
-    private uint _objId;
-    private uint _index;
+    private readonly uint _objId;
+    private readonly uint _index;
 
     public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 1)
     {

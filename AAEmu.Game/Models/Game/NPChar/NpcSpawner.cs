@@ -44,7 +44,7 @@ public class NpcSpawner : Spawner<Npc>
     public NpcSpawnerTemplate Template { get; set; }
     public List<NpcSpawnerNpc> SpawnableNpcs { get; set; } = []; // List of NPCs that can be spawned
     public ConcurrentDictionary<uint, List<Npc>> SpawnedNpcs { get; set; } = new(); // <SpawnerId, List of spawned NPCs>
-    private DateTime _lastSpawnTime = DateTime.MinValue;
+    private readonly DateTime _lastSpawnTime = DateTime.MinValue;
     private readonly Dictionary<int, SpawnerPlayerCountCache> _playerCountCache = new();
     private readonly Dictionary<int, SpawnerPlayerInRadiusCache> _playerInRadiusCache = new();
 

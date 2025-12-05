@@ -18,7 +18,7 @@ public class SaveManager : Singleton<SaveManager>
     private double Delay = 1;
     private bool _enabled;
     private bool _isSaving;
-    private object _lock = new();
+    private readonly object _lock = new();
     private SaveTickStartTask saveTask;
     public ShutdownTask ShutdownTask { get; set; } = null;
 

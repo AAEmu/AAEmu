@@ -7,10 +7,10 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInviteToInstantGamePacket : GamePacket
 {
-    private ZoneInstanceId _zoneInstanceId;
-    private uint _rulesetId;
-    private InstantCorps _corps;
-    private ulong _qualifiedId;
+    private readonly ZoneInstanceId _zoneInstanceId;
+    private readonly uint _rulesetId;
+    private readonly InstantCorps _corps;
+    private readonly ulong _qualifiedId;
 
     public SCInviteToInstantGamePacket(ZoneInstanceId zoneInstanceId, uint rulesetId, InstantCorps corps, ulong qualifiedId)
         : base(SCOffsets.SCInviteToInstantGamePacket, 1)

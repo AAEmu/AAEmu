@@ -6,15 +6,15 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class CommercialMail : BaseMail
 {
-    private List<Item> _items;
-    private uint _receiverId;
-    private string _receiverName;
-    private string _senderName;
-    private bool _isGift;
-    private bool _isRefund;
-    private string _purchasedItemTitle;
+    private readonly List<Item> _items;
+    private readonly uint _receiverId;
+    private readonly string _receiverName;
+    private readonly string _senderName;
+    private readonly bool _isGift;
+    private readonly bool _isRefund;
+    private readonly string _purchasedItemTitle;
 
-    private static string InGameCashShopSenderName = ".inGameShop";
+    private static readonly string InGameCashShopSenderName = ".inGameShop";
 
     /// <summary>
     /// Create mail for items bought from the in game cash shop. Items must be created beforehand.

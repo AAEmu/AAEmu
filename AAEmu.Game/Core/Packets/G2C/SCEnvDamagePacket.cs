@@ -6,10 +6,10 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCEnvDamagePacket : GamePacket
 {
-    private EnvSource _source;
-    private uint _target;
-    private uint _amount;
-    private uint _gimmickId;
+    private readonly EnvSource _source;
+    private readonly uint _target;
+    private readonly uint _amount;
+    private readonly uint _gimmickId;
 
     public SCEnvDamagePacket(EnvSource source, uint target, uint amount, uint gimmickId = 0) : base(SCOffsets.SCEnvDamagePacket, 1)
     {

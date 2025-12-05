@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class MailHeader : PacketMarshaler
 {
-    private BaseMail _baseMail;
+    private readonly BaseMail _baseMail;
     public long MailId { get => _baseMail.Id; }
     public MailType Type { get => _baseMail.MailType; }
     public MailStatus Status { get; set; }

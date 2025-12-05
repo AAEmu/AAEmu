@@ -11,8 +11,8 @@ public class VehicleSeat
 {
     // objId Doodad - Chair, bench, bed where we sit down or lay
     // List<character.Id> List of employed places on a chair, bench, beds, or 0, if the place is free
-    private Dictionary<uint, List<uint>> _seats;
-    private BaseUnit _parent;
+    private readonly Dictionary<uint, List<uint>> _seats;
+    private readonly BaseUnit _parent;
 
     // Space = 1-means that there is one place (a chair), Space = 2-means that there are two places to sit (a bench on transport)
     // Spot = 0 sit left, = 1 sit right on the bench

@@ -16,7 +16,7 @@ public static class ScriptCompiler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static Assembly _assembly;
-    private static Dictionary<string, ScriptObject> _scriptsObjects = [];
+    private static readonly Dictionary<string, ScriptObject> _scriptsObjects = [];
 
     public static bool Compile()
     {

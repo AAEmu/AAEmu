@@ -14,7 +14,7 @@ public class TransferSpawner : Spawner<Transfer>
     
     public WorldInstance ParentWorld { get; set; }
 
-    private List<Transfer> _spawned = [];
+    private readonly List<Transfer> _spawned = [];
     private Transfer _lastSpawn;
     private int _scheduledCount;
     private int _spawnCount;

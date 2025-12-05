@@ -10,10 +10,10 @@ namespace AAEmu.Game.Models.Tasks.Doodads;
 public class DoodadFuncTimerTask : DoodadFuncTask
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private BaseUnit _caster;
-    private Doodad _owner;
-    private uint _skillId;
-    private int _nextPhase;
+    private readonly BaseUnit _caster;
+    private readonly Doodad _owner;
+    private readonly uint _skillId;
+    private readonly int _nextPhase;
 
     public DoodadFuncTimerTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
     {

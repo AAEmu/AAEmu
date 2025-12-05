@@ -26,7 +26,7 @@ public class AuctionManager : Singleton<AuctionManager>
     public ConcurrentDictionary<ulong, AuctionLot> AuctionLots { get; } = [];
     public ConcurrentBag<long> _deletedAuctionItemIds { get; } = [];
 
-    private static int MaxListingFee = 1000000; // 100g, 100 copper coins = 1 silver, 100 silver = 1 gold.
+    private static readonly int MaxListingFee = 1000000; // 100g, 100 copper coins = 1 silver, 100 silver = 1 gold.
 
     private void RemoveAuctionLotSold(AuctionLot itemToRemove, string buyer, int soldAmount)
     {

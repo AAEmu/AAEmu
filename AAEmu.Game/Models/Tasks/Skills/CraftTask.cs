@@ -5,10 +5,10 @@ namespace AAEmu.Game.Models.Tasks.Skills;
 
 public class CraftTask : Task
 {
-    private uint _craftId;
-    private uint _objId;
-    private int _count;
-    private Character _character;
+    private readonly uint _craftId;
+    private readonly uint _objId;
+    private readonly int _count;
+    private readonly Character _character;
 
     public CraftTask(Character character, uint craftId, uint objId, int count)
     {

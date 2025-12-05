@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Expeditions;
 
 public class Expedition : SystemFaction
 {
-    private List<uint> _removedMembers;
+    private readonly List<uint> _removedMembers;
 
     public List<ExpeditionMember> Members { get; set; }
     public List<ExpeditionRolePolicy> Policies { get; set; }

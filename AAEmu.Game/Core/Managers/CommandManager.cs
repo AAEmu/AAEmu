@@ -15,8 +15,8 @@ public partial class CommandManager : Singleton<CommandManager>
 {
     public const string CommandPrefix = "/";
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<string, ICommand> _commands;
-    private Dictionary<string, string> _commandAliases;
+    private readonly Dictionary<string, ICommand> _commands;
+    private readonly Dictionary<string, string> _commandAliases;
 
     private CommandManager()
     {

@@ -8,8 +8,8 @@ namespace AAEmu.Game.Models.Game.Units.Route;
 
 internal class Track : Patrol
 {
-    private float distance = 1.5f;
-    private float MovingDistance = 0.27f;
+    private readonly float distance = 1.5f;
+    private readonly float MovingDistance = 0.27f;
     public override void Execute(Npc npc)
     {
         Interrupt = false;

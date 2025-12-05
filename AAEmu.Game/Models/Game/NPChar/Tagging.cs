@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class Tagging
 {
-    private object _lock = new();
+    private readonly object _lock = new();
     private Dictionary<Character, int> _taggers = [];
     private Character _tagger;
     private uint _tagTeam;

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Network.Connections;
 
 public class GameConnectionTable : Singleton<GameConnectionTable>
 {
-    private ConcurrentDictionary<uint, GameConnection> _connections;
+    private readonly ConcurrentDictionary<uint, GameConnection> _connections;
 
     private GameConnectionTable()
     {

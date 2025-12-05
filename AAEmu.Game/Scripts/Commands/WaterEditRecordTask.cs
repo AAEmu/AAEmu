@@ -6,7 +6,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class WaterEditRecordTask : Task
 {
-    private Character _character;
+    private readonly Character _character;
     public List<Vector3> DataPoints { get; set; }
     public object Lock = new object();
     public bool Recording { get; set; }

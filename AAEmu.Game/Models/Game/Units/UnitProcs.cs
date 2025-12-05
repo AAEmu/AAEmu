@@ -5,8 +5,8 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class UnitProcs
 {
-    private List<ItemProc> _procs;
-    private Dictionary<ProcChanceKind, List<ItemProc>> _procsByChanceKind;
+    private readonly List<ItemProc> _procs;
+    private readonly Dictionary<ProcChanceKind, List<ItemProc>> _procsByChanceKind;
 
     public Unit Owner { get; set; }
 

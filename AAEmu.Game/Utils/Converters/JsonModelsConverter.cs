@@ -5,7 +5,7 @@ namespace AAEmu.Game.Utils.Converters;
 
 public class JsonModelsConverter : JsonConverter
 {
-    private Dictionary<Type, JsonConverter> _converters = [];
+    private readonly Dictionary<Type, JsonConverter> _converters = [];
 
     public JsonModelsConverter()
     {

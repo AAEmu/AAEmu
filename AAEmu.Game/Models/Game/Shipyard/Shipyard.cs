@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Shipyard;
 public sealed class Shipyard : Unit
 {
     public override float Scale => 1.0f;
-    private object _lock = new();
+    private readonly object _lock = new();
     private bool _isDirty;
     private int _allAction;
     private int _baseAction;

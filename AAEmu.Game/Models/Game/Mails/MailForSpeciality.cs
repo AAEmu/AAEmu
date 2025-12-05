@@ -6,24 +6,24 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class MailForSpeciality : BaseMail
 {
-    private Character _sender;
-    private uint _crafterId;
-    private uint _tradedPack;
-    private int _tradedRate;
-    private uint _itemToSend;
-    private int _itemCountBase;
-    private int _itemCountBonus;
-    private int _itemCountSeller;
-    private int _itemCountCrafter;
-    private int _interestRate;
-    private string _tradePackName;
-    private bool _sellerIsCrafter;
+    private readonly Character _sender;
+    private readonly uint _crafterId;
+    private readonly uint _tradedPack;
+    private readonly int _tradedRate;
+    private readonly uint _itemToSend;
+    private readonly int _itemCountBase;
+    private readonly int _itemCountBonus;
+    private readonly int _itemCountSeller;
+    private readonly int _itemCountCrafter;
+    private readonly int _interestRate;
+    private readonly string _tradePackName;
+    private readonly bool _sellerIsCrafter;
     // unused private int _itemCountTotal;
 
-    private static string TradeDeliveryName = ".sellBackpack";
-    private static string TradeDeliveryTitle = "Speciality Payment";
-    private static string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
-    private static string TradeDeliveryTitleCrafter = "Speciality Payment [Crafter]";
+    private static readonly string TradeDeliveryName = ".sellBackpack";
+    private static readonly string TradeDeliveryTitle = "Speciality Payment";
+    private static readonly string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
+    private static readonly string TradeDeliveryTitleCrafter = "Speciality Payment [Crafter]";
 
     /*
      * Function from LUA in Trino 1.2

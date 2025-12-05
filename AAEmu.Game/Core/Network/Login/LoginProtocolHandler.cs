@@ -15,7 +15,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private ConcurrentDictionary<uint, Type> _packets;
+    private readonly ConcurrentDictionary<uint, Type> _packets;
     private PacketStream _lastPacket;
     private LoadTask _loadTask;
 

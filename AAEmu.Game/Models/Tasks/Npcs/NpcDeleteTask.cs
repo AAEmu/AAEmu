@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Tasks.Npcs;
 
 public class NpcDeleteTask : Task
 {
-    private Npc _npc;
+    private readonly Npc _npc;
 
     public NpcDeleteTask(Npc npc)
     {

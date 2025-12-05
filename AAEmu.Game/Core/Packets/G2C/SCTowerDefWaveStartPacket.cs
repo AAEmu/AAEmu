@@ -6,9 +6,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTowerDefWaveStartPacket : GamePacket
 {
-    private TowerDefKey _key;
-    private uint _eventZoneId;
-    private uint _step;
+    private readonly TowerDefKey _key;
+    private readonly uint _eventZoneId;
+    private readonly uint _step;
 
     public SCTowerDefWaveStartPacket(TowerDefKey key, uint eventZoneId, uint step) : base(SCOffsets.SCTowerDefWaveStartPacket, 1)
     {

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class PublicFarmManager : Singleton<PublicFarmManager>
 {
-    private static Logger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, FarmType> _farmZones;
 

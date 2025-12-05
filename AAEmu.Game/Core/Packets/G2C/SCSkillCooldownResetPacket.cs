@@ -6,10 +6,10 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSkillCooldownResetPacket : GamePacket
 {
-    private Character _chr;
-    private uint _skillId;
-    private uint _tagId;
-    private bool _gcd;
+    private readonly Character _chr;
+    private readonly uint _skillId;
+    private readonly uint _tagId;
+    private readonly bool _gcd;
 
     public SCSkillCooldownResetPacket() : base(SCOffsets.SCSkillCooldownResetPacket, 1)
     {

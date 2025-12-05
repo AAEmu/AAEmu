@@ -3,7 +3,7 @@
 namespace AAEmu.Game.Models.Game.NPChar;
 public class Aggro
 {
-    private object _lock = new();
+    private readonly object _lock = new();
 
     public Unit Owner { get; }
 

@@ -14,20 +14,20 @@ namespace AAEmu.Game.Core.Managers.World;
 public class SphereQuestManager : ISphereQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private WorldInstance _parent;
+    private readonly WorldInstance _parent;
 
     private static Dictionary<uint, List<SphereQuest>> _sphereQuests;
 
     private readonly List<SphereQuestTrigger> _sphereQuestTriggers;
     private List<SphereQuestTrigger> _addQueue;
     private List<SphereQuestTrigger> _removeQueue;
-    private List<SphereQuestStarter> _questStartingSpheres;
-    private List<SphereQuestStarter> _questSpheresBasic;
+    private readonly List<SphereQuestStarter> _questStartingSpheres;
+    private readonly List<SphereQuestStarter> _questSpheresBasic;
     // PlayerId, Pos
-    private Dictionary<uint, Vector3> _questStartingLastPositionChecks;
+    private readonly Dictionary<uint, Vector3> _questStartingLastPositionChecks;
 
-    private object _addLock = new();
-    private object _remLock = new();
+    private readonly object _addLock = new();
+    private readonly object _remLock = new();
 
     public SphereQuestManager(WorldInstance parent)
     {

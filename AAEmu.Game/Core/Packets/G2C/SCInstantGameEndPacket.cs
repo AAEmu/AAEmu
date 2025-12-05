@@ -8,10 +8,10 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameEndPacket : GamePacket
 {
-    private ZoneInstanceId _zoneInstanceId;
-    private BattlefieldEndingReason _battlefieldEndingReason;
-    private InstantGameTeamResult _corps1Result;
-    private InstantGameTeamResult _corps2Result;
+    private readonly ZoneInstanceId _zoneInstanceId;
+    private readonly BattlefieldEndingReason _battlefieldEndingReason;
+    private readonly InstantGameTeamResult _corps1Result;
+    private readonly InstantGameTeamResult _corps2Result;
 
     public SCInstantGameEndPacket(ZoneInstanceId zoneInstanceId, BattlefieldEndingReason battlefieldEndingReason, InstantGameTeamResult corps1Result, InstantGameTeamResult corps2Result)
         : base(SCOffsets.SCInstantGameEndPacket, 1)

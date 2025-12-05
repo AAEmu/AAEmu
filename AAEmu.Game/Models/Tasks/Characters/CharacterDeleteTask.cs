@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Tasks.Characters;
 
 public class CharacterDeleteTask : Task
 {
-    private static object _lock = new();
+    private static readonly object _lock = new();
 
     public override void Execute()
     {

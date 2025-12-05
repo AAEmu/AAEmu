@@ -8,9 +8,9 @@ namespace AAEmu.Game.Core.Packets.S2C;
 
 public class TCItemUccDataPacket : StreamPacket
 {
-    private uint _playerId;
+    private readonly uint _playerId;
     private uint _count;
-    private List<ulong> _itemIds;
+    private readonly List<ulong> _itemIds;
 
     public TCItemUccDataPacket(uint playerId, uint count, List<ulong> itemIds) : base(TCOffsets.TCItemUccDataPacket)
     {

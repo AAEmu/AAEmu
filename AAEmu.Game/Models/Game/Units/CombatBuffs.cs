@@ -8,8 +8,8 @@ namespace AAEmu.Game.Models.Game.Units;
 public class CombatBuffs
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private BaseUnit _owner;
-    private Dictionary<SkillHitType, List<CombatBuffTemplate>> _cbuffsByHitType;
+    private readonly BaseUnit _owner;
+    private readonly Dictionary<SkillHitType, List<CombatBuffTemplate>> _cbuffsByHitType;
 
     public CombatBuffs(BaseUnit owner)
     {

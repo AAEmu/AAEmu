@@ -18,9 +18,9 @@ public class InstantGameManager : Singleton<InstantGameManager>
 
     private List<InstantGame> _queueList;
 
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-    private Lock _lock = new Lock();
+    private readonly Lock _lock = new Lock();
 
     public void Initialize()
     {

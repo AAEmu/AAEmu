@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Network.Login;
 public class LoginNetwork : Singleton<LoginNetwork>
 {
     private Client _client;
-    private LoginProtocolHandler _handler;
+    private readonly LoginProtocolHandler _handler;
     private LoginConnection _connection;
 
     private LoginNetwork()

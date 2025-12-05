@@ -16,7 +16,7 @@ public class AccountManager : Singleton<AccountManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private ConcurrentDictionary<uint, GameConnection> _accounts;
+    private readonly ConcurrentDictionary<uint, GameConnection> _accounts;
     private readonly Dictionary<uint, object> _locks = [];
 
     public AccountManager()

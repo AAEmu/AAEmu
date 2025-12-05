@@ -11,11 +11,11 @@ namespace AAEmu.Game.Models.Tasks.Doodads;
 public class DoodadFuncCloutTask : DoodadFuncTask
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private BaseUnit _caster;
-    private Doodad _owner;
-    private uint _skillId;
-    private int _nextPhase;
-    private AreaTrigger _areaTrigger;
+    private readonly BaseUnit _caster;
+    private readonly Doodad _owner;
+    private readonly uint _skillId;
+    private readonly int _nextPhase;
+    private readonly AreaTrigger _areaTrigger;
 
     public DoodadFuncCloutTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase, AreaTrigger areaTrigger) : base(caster, owner, skillId)
     {

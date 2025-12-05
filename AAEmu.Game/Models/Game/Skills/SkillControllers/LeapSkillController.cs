@@ -18,8 +18,8 @@ public class LeapSkillController : SkillController
     public int Duration { get; set; }
     public int DistanceOffset { get; set; }
 
-    private float _calculatedSpeed;
-    private Vector3 _endPosition;
+    private readonly float _calculatedSpeed;
+    private readonly Vector3 _endPosition;
     public enum LeapDirection
     {
         Both = 0,

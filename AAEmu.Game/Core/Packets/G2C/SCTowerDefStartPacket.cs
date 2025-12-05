@@ -6,8 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTowerDefStartPacket : GamePacket
 {
-    private TowerDefKey _key;
-    private uint _eventZoneId;
+    private readonly TowerDefKey _key;
+    private readonly uint _eventZoneId;
 
     public SCTowerDefStartPacket(TowerDefKey key, uint eventZoneId) : base(SCOffsets.SCTowerDefStartPacket, 1)
     {

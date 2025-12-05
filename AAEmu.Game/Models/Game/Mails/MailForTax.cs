@@ -16,9 +16,9 @@ public class MailForTax : BaseMail
      * 
      */
 
-    private House _house;
+    private readonly House _house;
 
-    private static string TaxSenderName = ".houseTax";
+    private static readonly string TaxSenderName = ".houseTax";
 
     public MailForTax(House house) : base()
     {

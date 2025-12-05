@@ -7,12 +7,12 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameAddPointPacket : GamePacket
 {
-    private ZoneInstanceId _zoneInstanceId;
-    private InstantCorps _corps;
-    private int _points;
-    private int _score1;
-    private int _score2;
-    private string _charName;
+    private readonly ZoneInstanceId _zoneInstanceId;
+    private readonly InstantCorps _corps;
+    private readonly int _points;
+    private readonly int _score1;
+    private readonly int _score2;
+    private readonly string _charName;
 
     public SCInstantGameAddPointPacket(ZoneInstanceId zoneInstanceId, InstantCorps corps, int points, int score1, int score2, string charName)
         : base(SCOffsets.SCInstantGameAddPointPacket, 1)

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameRemainTimePacket : GamePacket
 {
-    private uint _remainTime;
+    private readonly uint _remainTime;
 
     // TODO: Check offset!!
     public SCInstantGameRemainTimePacket(uint remainTime)

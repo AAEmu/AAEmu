@@ -10,8 +10,8 @@ namespace AAEmu.Game.Models.Game.Units.Route;
 
 public class Line : Patrol
 {
-    private float distance = 0f;
-    private float MovingDistance = 0.27f;
+    private readonly float distance = 0f;
+    private readonly float MovingDistance = 0.27f;
     public Vector3 Position { get; set; }
 
     public override void Execute(Npc npc)

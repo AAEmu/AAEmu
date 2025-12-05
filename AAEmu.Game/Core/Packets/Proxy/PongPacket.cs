@@ -7,10 +7,10 @@ public class PongPacket : GamePacket
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
-    private long _tm;
-    private long _when;
-    private uint _local;
-    private uint _world;
+    private readonly long _tm;
+    private readonly long _when;
+    private readonly uint _local;
+    private readonly uint _world;
 
     public PongPacket(long tm, long when, uint local) : base(PPOffsets.PongPacket, 2)
     {

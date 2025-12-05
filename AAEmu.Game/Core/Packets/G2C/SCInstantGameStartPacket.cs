@@ -6,9 +6,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameStartPacket : GamePacket
 {
-    private ZoneInstanceId _zoneInstanceId;
-    private uint _start;
-    private uint _now;
+    private readonly ZoneInstanceId _zoneInstanceId;
+    private readonly uint _start;
+    private readonly uint _now;
 
     public SCInstantGameStartPacket(ZoneInstanceId zoneInstanceId, uint start, uint now)
         : base(SCOffsets.SCInstantGameStartPacket, 1)

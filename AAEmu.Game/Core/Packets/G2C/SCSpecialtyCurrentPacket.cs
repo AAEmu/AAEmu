@@ -5,9 +5,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSpecialtyCurrentPacket : GamePacket
 {
-    private ushort _fromZoneGroup;
-    private ushort _toZoneGroup;
-    private List<(uint, uint)> _results;
+    private readonly ushort _fromZoneGroup;
+    private readonly ushort _toZoneGroup;
+    private readonly List<(uint, uint)> _results;
 
     public SCSpecialtyCurrentPacket(ushort fromZoneGroup, ushort toZoneGroup, List<(uint, uint)> results) : base(SCOffsets.SCSpecialtyCurrentPacket, 1)
     {

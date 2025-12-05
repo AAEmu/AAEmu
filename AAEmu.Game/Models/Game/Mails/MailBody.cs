@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.Mails;
 public class MailBody : PacketMarshaler
 {
     public const byte MaxMailAttachments = 10;
-    private BaseMail _baseMail;
+    private readonly BaseMail _baseMail;
     private string _text;
     private int _copperCoins;
     private int _billingAmount;

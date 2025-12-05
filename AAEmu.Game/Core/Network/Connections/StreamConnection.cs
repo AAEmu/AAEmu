@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Network.Connections;
 
 public class StreamConnection
 {
-    private ISession _session;
+    private readonly ISession _session;
     private int _requestId;
     private readonly Dictionary<int, Doodad[]> _requests;
 

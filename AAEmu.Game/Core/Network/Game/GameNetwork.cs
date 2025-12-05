@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Network.Game;
 public class GameNetwork : Singleton<GameNetwork>
 {
     private Server _server;
-    private GameProtocolHandler _handler;
+    private readonly GameProtocolHandler _handler;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private GameNetwork()

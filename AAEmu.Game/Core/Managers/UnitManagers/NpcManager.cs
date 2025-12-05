@@ -31,7 +31,7 @@ public class NpcManager : Singleton<NpcManager>
     private Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>> _itemBodyParts;
     private Dictionary<uint, List<uint>> _tccLookup;
     // you can provide a seed here if you want NPCs to more reliable retain their appearance between reboots, or leave out the seed to get it random every time
-    private Random _loadCustomRandom = new(123456789);
+    private readonly Random _loadCustomRandom = new(123456789);
     public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerNpc;    // npcSpawnerId, nsn
     public Dictionary<uint, NpcSpawnerTemplate> _npcSpawners; // npcSpawnerId, template
     public Dictionary<uint, List<uint>> _npcMemberAndSpawnerId; // memberId, List<npcSpawnerId>

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class MailPlayerToPlayer : BaseMail
 {
-    private ICharacter _sender;
+    private readonly ICharacter _sender;
 
     public MailPlayerToPlayer(ICharacter sender, string receiverPlayerName) : base()
     {

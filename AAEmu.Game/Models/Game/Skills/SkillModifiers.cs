@@ -6,8 +6,8 @@ namespace AAEmu.Game.Models.Game.Skills;
 
 public class SkillModifiers
 {
-    private Dictionary<uint, List<SkillModifier>> _modifiersBySkillId;
-    private Dictionary<uint, List<SkillModifier>> _modifiersByTagId;
+    private readonly Dictionary<uint, List<SkillModifier>> _modifiersBySkillId;
+    private readonly Dictionary<uint, List<SkillModifier>> _modifiersByTagId;
 
     public SkillModifiers()
     {

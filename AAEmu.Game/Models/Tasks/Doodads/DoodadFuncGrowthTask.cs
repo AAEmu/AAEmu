@@ -9,11 +9,11 @@ namespace AAEmu.Game.Models.Tasks.Doodads;
 public class DoodadFuncGrowthTask : DoodadFuncTask
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private BaseUnit _caster;
-    private Doodad _owner;
-    private uint _skillId;
-    private int _nextPhase;
-    private float _endScale;
+    private readonly BaseUnit _caster;
+    private readonly Doodad _owner;
+    private readonly uint _skillId;
+    private readonly int _nextPhase;
+    private readonly float _endScale;
 
     public DoodadFuncGrowthTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase, float endScale) : base(caster, owner, skillId)
     {

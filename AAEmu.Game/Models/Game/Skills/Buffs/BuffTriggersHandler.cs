@@ -7,8 +7,8 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs;
 public class BuffTriggersHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Buff _owner;
-    private List<BuffTrigger> _triggers;
+    private readonly Buff _owner;
+    private readonly List<BuffTrigger> _triggers;
 
     public BuffTriggersHandler(Buff buff)
     {

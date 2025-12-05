@@ -8,7 +8,7 @@ public class SCUnitMovementsPacket : GamePacket // TODO ... SCOneUnitMovementPac
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
-    private (uint id, MoveType type)[] _movements;
+    private readonly (uint id, MoveType type)[] _movements;
 
     public SCUnitMovementsPacket((uint id, MoveType type)[] movements) : base(SCOffsets.SCUnitMovementsPacket, 1)
     {

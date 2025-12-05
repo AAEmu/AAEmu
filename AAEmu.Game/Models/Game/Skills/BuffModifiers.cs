@@ -8,8 +8,8 @@ namespace AAEmu.Game.Models.Game.Skills;
 
 public class BuffModifiers
 {
-    private Dictionary<uint, List<BuffModifier>> _modifiersByBuffId;
-    private Dictionary<uint, List<BuffModifier>> _modifiersByTagId;
+    private readonly Dictionary<uint, List<BuffModifier>> _modifiersByBuffId;
+    private readonly Dictionary<uint, List<BuffModifier>> _modifiersByTagId;
 
     public BuffModifiers()
     {

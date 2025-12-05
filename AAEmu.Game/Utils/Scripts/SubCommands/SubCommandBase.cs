@@ -10,7 +10,7 @@ public abstract class SubCommandBase : ICommandV2
 {
     protected Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<string, ICommandV2> _subCommands = [];
-    private List<SubCommandParameterBase> _parameters = [];
+    private readonly List<SubCommandParameterBase> _parameters = [];
 
     protected void AddParameter(SubCommandParameterBase parameter)
     {

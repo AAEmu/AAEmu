@@ -6,9 +6,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAppliedToInstantGamePacket : GamePacket
 {
-    private uint _battlefieldId;
-    private InstantCorps _corps;
-    private ushort _errorMessageId;
+    private readonly uint _battlefieldId;
+    private readonly InstantCorps _corps;
+    private readonly ushort _errorMessageId;
 
     public SCAppliedToInstantGamePacket(uint battlefieldId, InstantCorps corps, ushort errorMessageId = 0)
         : base(SCOffsets.SCAppliedToInstantGamePacket, 1)

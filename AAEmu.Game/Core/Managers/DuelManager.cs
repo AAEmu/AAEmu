@@ -26,7 +26,7 @@ public class DuelManager : Singleton<DuelManager>
     private const double DuelDurationTime = 5;    // 5 min
 
     // there can be several duels at the same time
-    private ConcurrentDictionary<uint, Duel> _duels = new();
+    private readonly ConcurrentDictionary<uint, Duel> _duels = new();
     public Dictionary<uint, FactionsEnum> _saveFactions { get; set; } = [];
 
     protected DuelManager()

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Managers;
 public partial class NameManager : Singleton<NameManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private CharacterManager _characterManager;
+    private readonly CharacterManager _characterManager;
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterIds;
     private Dictionary<string, uint> _characterNames;

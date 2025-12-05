@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTowerDefListPacket : GamePacket
 {
-    private List<TowerDefInfo> _towerDefInfoList;
+    private readonly List<TowerDefInfo> _towerDefInfoList;
 
     public SCTowerDefListPacket(List<TowerDefInfo> towerDefInfos) : base(SCOffsets.SCTowerDefListPacket, 1)
     {

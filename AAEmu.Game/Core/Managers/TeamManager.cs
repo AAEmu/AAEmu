@@ -18,8 +18,8 @@ public class TeamManager : Singleton<TeamManager>
      * RE-DO LEAVE / KICK / DISMISS
      */
 
-    private Dictionary<uint, Team> _activeTeams = []; // teamId, Team
-    private Dictionary<uint, InvitationTemplate> _activeInvitations = []; // targetId, InvitationTemplate
+    private readonly Dictionary<uint, Team> _activeTeams = []; // teamId, Team
+    private readonly Dictionary<uint, InvitationTemplate> _activeInvitations = []; // targetId, InvitationTemplate
 
     public Team GetActiveTeamByUnit(uint unitId)
     {

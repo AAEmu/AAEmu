@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCDoodadPhaseChangedPacket : GamePacket
 {
-    private Doodad _doodad;
+    private readonly Doodad _doodad;
 
     public SCDoodadPhaseChangedPacket(Doodad doodad) : base(SCOffsets.SCDoodadPhaseChangedPacket, 1)
     {

@@ -6,8 +6,8 @@ namespace AAEmu.Game.Core.Packets.S2C;
 
 public class TCEmblemStreamSendStatusPacket : StreamPacket
 {
-    private Ucc _ucc;
-    private EmblemStreamStatus _emblemStreamStatus;
+    private readonly Ucc _ucc;
+    private readonly EmblemStreamStatus _emblemStreamStatus;
     public TCEmblemStreamSendStatusPacket(Ucc ucc, EmblemStreamStatus status) : base(TCOffsets.TCEmblemStreamSendStatusPacket)
     {
         _ucc = ucc;

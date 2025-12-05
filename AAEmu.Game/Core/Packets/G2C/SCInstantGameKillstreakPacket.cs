@@ -6,10 +6,10 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameKillstreakPacket : GamePacket
 {
-    private ZoneInstanceId _zoneInstanceId;
-    private sbyte _killstreak;
-    private uint _skillId;
-    private bool _enabled;
+    private readonly ZoneInstanceId _zoneInstanceId;
+    private readonly sbyte _killstreak;
+    private readonly uint _skillId;
+    private readonly bool _enabled;
 
     public SCInstantGameKillstreakPacket(ZoneInstanceId zoneInstanceId, sbyte killstreak, uint skillId, bool enabled)
         : base(SCOffsets.SCInstantGameKillstreakPacket, 1)

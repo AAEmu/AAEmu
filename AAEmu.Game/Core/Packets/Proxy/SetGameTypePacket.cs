@@ -5,9 +5,9 @@ namespace AAEmu.Game.Core.Packets.Proxy;
 
 public class SetGameTypePacket : GamePacket
 {
-    private string _level;
-    private ulong _checksum;
-    private byte _immersive;
+    private readonly string _level;
+    private readonly ulong _checksum;
+    private readonly byte _immersive;
 
     public SetGameTypePacket(string level, ulong checksum, byte immersive) : base(PPOffsets.SetGameTypePacket, 2)
     {

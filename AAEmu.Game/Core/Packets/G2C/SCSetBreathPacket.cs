@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSetBreathPacket : GamePacket
 {
-    private uint _timeLeft;
+    private readonly uint _timeLeft;
 
     public SCSetBreathPacket(uint timeLeft) : base(SCOffsets.SCSetBreathPacket, 1)
     {

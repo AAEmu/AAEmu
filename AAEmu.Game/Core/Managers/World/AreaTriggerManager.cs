@@ -12,8 +12,8 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>
     private List<AreaTrigger> _addQueue;
     private List<AreaTrigger> _removeQueue;
 
-    private object _addLock = new();
-    private object _remLock = new();
+    private readonly object _addLock = new();
+    private readonly object _remLock = new();
 
     public AreaTriggerManager()
     {

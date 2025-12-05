@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game;
 
 public class Family : PacketMarshaler
 {
-    private List<uint> _removedMembers;
+    private readonly List<uint> _removedMembers;
 
     public uint Id { get; init; }
     public List<FamilyMember> Members { get; } = [];

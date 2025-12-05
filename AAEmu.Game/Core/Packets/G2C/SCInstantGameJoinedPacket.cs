@@ -8,9 +8,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameJoinedPacket : GamePacket
 {
-    private ZoneInstanceId _zoneInstanceId;
-    private InstantCorps _corps;
-    private GameRuleSet _ruleSet;
+    private readonly ZoneInstanceId _zoneInstanceId;
+    private readonly InstantCorps _corps;
+    private readonly GameRuleSet _ruleSet;
 
     public SCInstantGameJoinedPacket(ZoneInstanceId zoneInstanceId, InstantCorps corps, GameRuleSet ruleSet)
         : base(SCOffsets.SCInstantGameJoinedPacket, 1)

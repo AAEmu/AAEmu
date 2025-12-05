@@ -60,11 +60,11 @@ public class TickManager : Singleton<TickManager>
         private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
         public delegate void OnTickEvent(TimeSpan delta);
-        private List<TickEventEntity> _eventList;
-        private Queue<TickEventEntity> _eventsToAdd;
-        private Queue<OnTickEvent> _eventsToRemove;
-        private Stopwatch _sw;
-        private object _lock = new();
+        private readonly List<TickEventEntity> _eventList;
+        private readonly Queue<TickEventEntity> _eventsToAdd;
+        private readonly Queue<OnTickEvent> _eventsToRemove;
+        private readonly Stopwatch _sw;
+        private readonly object _lock = new();
 
         public TickEventHandler()
         {

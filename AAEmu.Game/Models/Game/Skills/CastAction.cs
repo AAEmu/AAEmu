@@ -24,8 +24,8 @@ public abstract class CastAction : PacketMarshaler
 
 public class CastSkill : CastAction
 {
-    private uint _skillId;
-    private ushort _tlId;
+    private readonly uint _skillId;
+    private readonly ushort _tlId;
 
     public uint SkillId { get => _skillId; }
     public ushort TlId { get => _tlId; }
@@ -48,10 +48,10 @@ public class CastSkill : CastAction
 
 public class CastPlot : CastAction
 {
-    private uint _plotId;
-    private ushort _tlId;
-    private uint _eventId;
-    private uint _skillId;
+    private readonly uint _plotId;
+    private readonly ushort _tlId;
+    private readonly uint _eventId;
+    private readonly uint _skillId;
 
     public CastPlot(uint plotId, ushort tlId, uint eventId, uint skillId)
     {
@@ -75,7 +75,7 @@ public class CastPlot : CastAction
 
 public class CastBuff : CastAction
 {
-    private Buff _buff;
+    private readonly Buff _buff;
     public Buff Buff { get => _buff; }
 
     public CastBuff(Buff buff)

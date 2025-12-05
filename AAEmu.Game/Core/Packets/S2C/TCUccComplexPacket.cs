@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.S2C;
 
 public class TCUccComplexPacket : StreamPacket
 {
-    private Ucc _ucc;
+    private readonly Ucc _ucc;
     public TCUccComplexPacket(Ucc ucc) : base(TCOffsets.TCUccComplexPacket)
     {
         _ucc = ucc;
