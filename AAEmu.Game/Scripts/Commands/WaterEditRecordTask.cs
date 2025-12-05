@@ -8,7 +8,7 @@ public class WaterEditRecordTask : Task
 {
     private readonly Character _character;
     public List<Vector3> DataPoints { get; set; }
-    public object Lock = new object();
+    public object Lock = new();
     public bool Recording { get; set; }
     public int RecordInterval { get; set; } = 1000;
 

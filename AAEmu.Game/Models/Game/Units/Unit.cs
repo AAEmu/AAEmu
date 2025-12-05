@@ -1367,7 +1367,7 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    private readonly Dictionary<uint, int> _triggerCounts = new Dictionary<uint, int>();
+    private readonly Dictionary<uint, int> _triggerCounts = new();
 
     public void IncrementTriggerCount(uint buffId)
     {

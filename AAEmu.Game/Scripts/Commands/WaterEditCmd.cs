@@ -20,10 +20,10 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
     public static WaterBodyArea SelectedWater { get; set; }
     public static WorldInstance SelectedWorld { get; set; }
     public static int NextPoint { get; set; }
-    public static List<(WaterBodyArea, float)> NearbyList = new List<(WaterBodyArea, float)>();
-    public static List<BaseUnit> Markers = new List<BaseUnit>();
+    public static List<(WaterBodyArea, float)> NearbyList = new();
+    public static List<BaseUnit> Markers = new();
     public static WaterEditRecordTask RecordingTask { get; set; }
-    public static List<Vector3> RecordedData { get; set; } = new List<Vector3>();
+    public static List<Vector3> RecordedData { get; set; } = new();
     public static float RecordedSpeed { get; set; }
     public static Character RecordingCharacter { get; set; }
         

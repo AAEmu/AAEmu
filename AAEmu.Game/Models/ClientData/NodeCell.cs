@@ -11,7 +11,7 @@ public class NodeCell
     public byte Dummy { get; set; }
     public byte Flags { get; set; }
     public byte Flags2 { get; set; }
-    public AABB BoxHeightmap { get; set; } = new AABB();
+    public AABB BoxHeightmap { get; set; } = new();
     public byte bHasHoles { get; set; }
     public float fOffset { get; set; }
     public float fRange { get; set; }

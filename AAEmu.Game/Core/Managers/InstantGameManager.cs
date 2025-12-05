@@ -20,7 +20,7 @@ public class InstantGameManager : Singleton<InstantGameManager>
 
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-    private readonly Lock _lock = new Lock();
+    private readonly Lock _lock = new();
 
     public void Initialize()
     {

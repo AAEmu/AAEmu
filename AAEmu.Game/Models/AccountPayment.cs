@@ -12,7 +12,7 @@ public class AccountPayment
     public int Location { get; set; } = 1;
 
     public DateTime StartTime { get; set; } = DateTime.MinValue;
-    public DateTime EndTime { get; set; } = new DateTime(2030, 1, 1);
+    public DateTime EndTime { get; set; } = new(2030, 1, 1);
 
     /// <summary>
     /// Checks if Premium is currently active

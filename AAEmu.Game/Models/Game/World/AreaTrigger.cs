@@ -26,7 +26,7 @@ public class AreaTrigger
     public uint TlId { get; set; }
     public SkillTargetRelation TargetRelation { get; set; }
     public BuffTemplate InsideBuffTemplate { get; set; }
-    public Dictionary<uint, List<EffectTemplate>> EffectsPerBuff { get; set; } = new Dictionary<uint, List<EffectTemplate>>();
+    public Dictionary<uint, List<EffectTemplate>> EffectsPerBuff { get; set; } = new();
     public int TickRate { get; set; }
     private DateTime _lastTick = DateTime.MinValue;
 
