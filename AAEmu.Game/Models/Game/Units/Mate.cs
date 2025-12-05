@@ -21,7 +21,7 @@ public class MatePassengerInfo
 
 public sealed class Mate : Unit
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Mate; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Mate;
     public NpcTemplate Template { get; set; }
     public uint OwnerObjId { get; set; }

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Housing;
 
 public sealed class House : Unit
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Housing;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Housing; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Housing;
     public override ModelPostureType ModelPostureType { get => ModelPostureType.HouseState; }
     private readonly object _lock = new();

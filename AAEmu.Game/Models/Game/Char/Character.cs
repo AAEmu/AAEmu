@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public partial class Character : Unit, ICharacter
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Character; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Character;
 
     public static Dictionary<uint, uint> UsedCharacterObjIds { get; } = [];

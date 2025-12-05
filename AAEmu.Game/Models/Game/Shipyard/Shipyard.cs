@@ -17,7 +17,7 @@ public sealed class Shipyard : Unit
     private int _currentStep;
     private ShipyardsTemplate _template;
 
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Shipyard;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Shipyard; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Shipyard;
     public ShipyardData ShipyardData { get; set; }
     public ShipyardsTemplate Template

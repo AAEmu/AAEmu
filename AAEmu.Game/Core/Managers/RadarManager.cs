@@ -13,12 +13,12 @@ namespace AAEmu.Game.Core.Managers;
 
 public class RadarManager : Singleton<RadarManager>
 {
-    private int RadarUpdateDelay { get; } = 1000;
+    private int RadarUpdateDelay { get => 1000; }
     private static object Lock { get; } = new();
     private Dictionary<uint, TelescopeRegistrationEntry> Registrations { get; set; }
-    private static int TransfersPerPacket { get; } = 10;
-    private static int FishPerPacket { get; } = 10;
-    private static int ShipsPerPacket { get; } = 10;
+    private static int TransfersPerPacket { get => 10; }
+    private static int FishPerPacket { get => 10; }
+    private static int ShipsPerPacket { get => 10; }
 
     public void Initialize()
     {

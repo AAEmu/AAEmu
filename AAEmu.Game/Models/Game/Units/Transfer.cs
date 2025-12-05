@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class Transfer : Unit
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Transfer; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Transfer;
 
     public override ModelPostureType ModelPostureType { get => ModelPostureType.TurretState; }

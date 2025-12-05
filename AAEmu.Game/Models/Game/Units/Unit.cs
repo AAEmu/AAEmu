@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class Unit : BaseUnit, IUnit
 {
-    public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
+    public virtual UnitTypeFlag TypeFlag { get => UnitTypeFlag.None; }
     public virtual BaseUnitType BaseUnitType { get; set; } = BaseUnitType.Invalid;
 
     public virtual UnitEvents Events { get; }
