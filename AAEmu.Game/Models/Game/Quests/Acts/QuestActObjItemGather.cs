@@ -74,6 +74,6 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
 
         // Just adding/removing the count should technically be enough without having to do a new count
         // AddObjective(questAct, args.Count, Count);
-        SetObjective((QuestAct)questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
+        SetObjective(questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
     }
 }

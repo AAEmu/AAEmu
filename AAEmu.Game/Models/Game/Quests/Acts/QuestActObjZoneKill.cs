@@ -108,7 +108,7 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
         if (valid)
         {
             // TODO: Check if this would actually need 2 objective counters or not
-            AddObjective((QuestAct)questAct, 1);
+            AddObjective(questAct, 1);
 
             // Handle Team sharing (if needed)
             if (TeamShare)

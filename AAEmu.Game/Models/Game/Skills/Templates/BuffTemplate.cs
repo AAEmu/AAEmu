@@ -180,7 +180,7 @@ public class BuffTemplate
             if (source.Skill != null)
             {
                 var template = source.Skill.Template;
-                var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                var abilityLevel = character.GetAbLevel(source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
                     abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
                 else

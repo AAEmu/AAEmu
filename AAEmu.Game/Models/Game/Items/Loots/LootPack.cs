@@ -273,7 +273,7 @@ public class LootPack
                         foreach (var loot in tmpSelectedItemsByGroup[groupNo])
                         {
                             var itemRate = loot.DropRate > 1 ? loot.DropRate / (float)normalizedRate : 1f;
-                            cumulativeRate += (long)Math.Floor((float)normalizedRate * itemRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
+                            cumulativeRate += (long)Math.Floor(normalizedRate * itemRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
                             if (roll < cumulativeRate)
                             {
                                 if (!selectedItemsByGroup.ContainsKey(loot.Group))

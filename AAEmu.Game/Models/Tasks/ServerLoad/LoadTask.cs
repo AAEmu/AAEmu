@@ -8,7 +8,7 @@ public class LoadTask : Task
 {
     public override void Execute()
     {
-        var loadRate = (double)AccountManager.Instance.Count() /
+        var loadRate = AccountManager.Instance.Count() /
                        (double)AppConfiguration.Instance.Network.NumConnections;
         byte load = loadRate switch
         {

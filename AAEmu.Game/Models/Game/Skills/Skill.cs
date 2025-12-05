@@ -68,7 +68,7 @@ public class Skill
         Id = template.Id;
         Template = template;
         if (owner != null)
-            Level = template.LevelStep > 0 ? (byte)((owner.GetAbLevel((AbilityType)template.AbilityId) - template.AbilityLevel) / template.LevelStep + 1) : (byte)1;
+            Level = template.LevelStep > 0 ? (byte)((owner.GetAbLevel(template.AbilityId) - template.AbilityLevel) / template.LevelStep + 1) : (byte)1;
         else
             Level = 1;
     }
@@ -264,7 +264,7 @@ public class Skill
                     else
                     {
                         var returnPointId =
-                            PortalManager.Instance.GetDistrictReturnPoint((uint)character.ReturnDistrictId,
+                            PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDistrictId,
                                 character.Faction.Id);
                         trp = PortalManager.Instance.GetRecallById(returnPointId);
                     }
@@ -298,7 +298,7 @@ public class Skill
         var castTime = 0;
         if (Template.CastingTime > 0)
             castTime = (int)(unit.CastTimeMul * unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime));
-        castTime = (int)Math.Round((float)castTime * CastTimeMultiplier);
+        castTime = (int)Math.Round(castTime * CastTimeMultiplier);
 
         /*
         // TODO: Replace Old code
@@ -1437,7 +1437,7 @@ AlwaysHit:
     /// <returns></returns>
     public int ManaCost(Unit caster)
     {
-        var baseCost = ((caster.GetAbLevel((AbilityType)Template.AbilityId) - 1) * 1.6 + 8) * 3 / 3.65;
+        var baseCost = ((caster.GetAbLevel(Template.AbilityId) - 1) * 1.6 + 8) * 3 / 3.65;
         var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
         var manaCost = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
         return manaCost;

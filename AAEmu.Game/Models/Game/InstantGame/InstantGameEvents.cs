@@ -55,8 +55,8 @@ public partial class InstantGame
             victim.ResetAllSkillCooldowns(false); // Skill Cooldown Reset
             victim.Buffs.RemoveAllEffects(); // Buff Reset
 
-            victim.Hp = (int)victim.MaxHp; // Full HP
-            victim.Mp = (int)victim.MaxMp; // Full MP
+            victim.Hp = victim.MaxHp; // Full HP
+            victim.Mp = victim.MaxMp; // Full MP
             victim.BroadcastPacket(new SCUnitPointsPacket(victim.ObjId, victim.Hp, victim.Mp), true); // Reset HP and MP
 
             spawn = corps == InstantCorps.Corps1 ? _battlefield.Spawns.Corps2Spawn : _battlefield.Spawns.Corps1Spawn;
@@ -72,8 +72,8 @@ public partial class InstantGame
                 else
                     killer.SendPacket(new SCTeleportUnitPacket(0, 0, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ));
 
-                killer.Hp = (int)killer.MaxHp;
-                killer.Mp = (int)killer.MaxMp;
+                killer.Hp = killer.MaxHp;
+                killer.Mp = killer.MaxMp;
                 killer.BroadcastPacket(new SCUnitPointsPacket(killer.ObjId, killer.Hp, killer.Mp), true);
                 killer.Buffs.RemoveAllEffects();
                 killer.ResetAllSkillCooldowns(false);

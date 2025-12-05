@@ -179,7 +179,7 @@ public class WaterEditCmd : SubCommandBase, ICommand, ICommandV2
 
                 for (int i = 1; i < dividers; i++)
                 {
-                    var h = SelectedWater.Depth / dividers * (float)i;
+                    var h = SelectedWater.Depth / dividers * i;
                     var middleDoodad = DoodadManager.Instance.Create(SelectedWorld, 0, middleDoodadId);
                     middleDoodad.Transform.Local.SetPosition(point);
                     middleDoodad.Transform.Local.SetHeight(point.Z - SelectedWater.Depth + h);

@@ -43,6 +43,6 @@ public class QuestActObjMonsterHunt(QuestComponentTemplate parentComponent) : Qu
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnMonsterHunt: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), NpcId {args.NpcId}, Count {args.Count}");
-        AddObjective((QuestAct)questAct, (int)args.Count);
+        AddObjective(questAct, (int)args.Count);
     }
 }

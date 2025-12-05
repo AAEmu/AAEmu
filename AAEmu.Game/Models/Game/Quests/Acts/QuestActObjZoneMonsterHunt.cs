@@ -45,6 +45,6 @@ public class QuestActObjZoneMonsterHunt(QuestComponentTemplate parentComponent) 
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnZoneKill(@QuestActObjZoneMonsterHunt): Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ZoneGroupId {args.ZoneGroupId}, NpcObjId {npc.ObjId}");
-        AddObjective((QuestAct)questAct, 1);
+        AddObjective(questAct, 1);
     }
 }

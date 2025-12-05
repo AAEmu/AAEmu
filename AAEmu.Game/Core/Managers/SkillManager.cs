@@ -1791,7 +1791,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
             if (!skillTemplate.NeedLearn || skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 ||
                 !skillTemplate.Show)
                 continue;
-            var ability = (AbilityType)skillTemplate.AbilityId;
+            var ability = skillTemplate.AbilityId;
             if (!_startAbilitySkills.ContainsKey(ability))
                 _startAbilitySkills.Add(ability, []);
             _startAbilitySkills[ability].Add(skillTemplate);

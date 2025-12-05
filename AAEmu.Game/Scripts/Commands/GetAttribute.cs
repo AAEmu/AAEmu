@@ -57,7 +57,7 @@ public class GetAttribute : ICommand
             foreach (var attr in Enum.GetValues<UnitAttribute>())
             {
                 var value = target.GetAttribute(attr);
-                character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
+                character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{attr}: {value}"));
             }
         }
         else if (args[argsIdx].Equals("used", StringComparison.CurrentCultureIgnoreCase))

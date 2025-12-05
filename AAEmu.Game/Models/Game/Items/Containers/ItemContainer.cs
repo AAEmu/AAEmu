@@ -770,7 +770,7 @@ public class ItemContainer
         }
 
         // Special handling for money
-        if (templateId == (uint)Item.Coins)
+        if (templateId == Item.Coins)
         {
             return CalculateSpaceLeftForMoney(template.MaxCount);
         }
@@ -804,7 +804,7 @@ public class ItemContainer
 
     private bool SpaceLeftForMoney(Item itemToAdd, out List<Item> currentItems, out int spaceLeftForItem)
     {
-        if (itemToAdd.TemplateId == (uint)Item.Coins)
+        if (itemToAdd.TemplateId == Item.Coins)
         {
             currentItems = [itemToAdd];
             spaceLeftForItem = CalculateSpaceLeftForMoney(itemToAdd.Template.MaxCount);
@@ -828,7 +828,7 @@ public class ItemContainer
         var moneyCount = Math.Max(0L, _owner.Money);
 
         // Clamp to MaxCount and int range
-        var count = (int)Math.Min(moneyCount, (long)maxCount);
+        var count = (int)Math.Min(moneyCount, maxCount);
 
         // How many more can be added (always >= 0)
         return maxCount - count;

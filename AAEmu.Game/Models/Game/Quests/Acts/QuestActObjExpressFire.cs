@@ -48,7 +48,7 @@ public class QuestActObjExpressFire(QuestComponentTemplate parentComponent) : Qu
         if (QuestManager.Instance.CheckGroupNpc(NpcGroupId, args.NpcId))
         {
             Logger.Debug($"QuestActObjExpressFire({DetailId}).OnExpressFire: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ExpressKeyId {ExpressKeyId}, NpcGroupId {NpcGroupId}");
-            AddObjective((QuestAct)questAct, 1);
+            AddObjective(questAct, 1);
         }
     }
 }

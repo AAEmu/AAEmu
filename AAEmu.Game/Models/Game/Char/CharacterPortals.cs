@@ -90,7 +90,7 @@ public class CharacterPortals(Character owner)
 
     public bool ChangePrivatePortalName(uint id, string name)
     {
-        if (PrivatePortals.TryGetValue((uint)id, out var privatePortal))
+        if (PrivatePortals.TryGetValue(id, out var privatePortal))
         {
             privatePortal.Name = name;
             Owner.SendPacket(new SCPortalInfoSavedPacket(privatePortal));
