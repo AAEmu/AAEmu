@@ -35,7 +35,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new NpcSkill()
+                var template = new NpcSkill
                 {
                     Id = reader.GetUInt32("id"),
                     OwnerId = reader.GetUInt32("owner_id"),
@@ -61,7 +61,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new NpcPassiveBuff()
+                var template = new NpcPassiveBuff
                 {
                     Id = reader.GetUInt32("id"),
                     OwnerId = reader.GetUInt32("owner_id"),

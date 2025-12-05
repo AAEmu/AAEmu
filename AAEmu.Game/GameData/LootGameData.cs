@@ -44,7 +44,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new Loot()
+                    var template = new Loot
                     {
                         Id = reader.GetUInt32("id"),
                         Group = reader.GetUInt32("group"),
@@ -77,7 +77,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new LootGroups()
+                    var template = new LootGroups
                     {
                         Id = reader.GetUInt32("id"),
                         PackId = reader.GetUInt32("pack_id"),
@@ -106,7 +106,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new LootActabilityGroups()
+                    var template = new LootActabilityGroups
                     {
                         Id = reader.GetUInt32("id"),
                         LootPackId = reader.GetUInt32("loot_pack_id"),
@@ -129,7 +129,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
 
         foreach (var (lootPackId, loots) in _lootsByPackId)
         {
-            var pack = new LootPack()
+            var pack = new LootPack
             {
                 Id = lootPackId,
                 Loots = loots,

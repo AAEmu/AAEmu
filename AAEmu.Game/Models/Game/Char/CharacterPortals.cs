@@ -73,7 +73,7 @@ public class CharacterPortals(Character owner)
     public void AddPrivatePortal(float x, float y, float z, float zRot, uint zoneId, string name)
     {
         // TODO - Only working by command
-        var newPortal = new Portal()
+        var newPortal = new Portal
         {
             Id = PrivateBookIdManager.Instance.GetNextId(),
             Name = name,

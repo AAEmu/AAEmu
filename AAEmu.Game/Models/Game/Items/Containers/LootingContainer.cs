@@ -112,7 +112,7 @@ public class LootingContainer(IBaseUnit owner)
             // Check all people with a claim on the NPC
             EligiblePlayers.Clear();
             KillerTeam = TeamManager.Instance.GetActiveTeam(npc.CharacterTagging.TagTeam);
-            TeamLootingRule = KillerTeam?.LootingRule.Clone() ?? new LootingRule()
+            TeamLootingRule = KillerTeam?.LootingRule.Clone() ?? new LootingRule
             {
                 LootMethod = LootingRuleMethod.FreeForAll,
             };

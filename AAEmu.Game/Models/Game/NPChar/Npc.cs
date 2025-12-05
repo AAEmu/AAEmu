@@ -1478,7 +1478,7 @@ public partial class Npc : Unit
         // Passive Buffs
         foreach (var npcPassiveBuff in Template.PassiveBuffs)
         {
-            var passive = new PassiveBuff() { Template = npcPassiveBuff.PassiveBuff };
+            var passive = new PassiveBuff { Template = npcPassiveBuff.PassiveBuff };
             passive.Apply(this);
         }
 

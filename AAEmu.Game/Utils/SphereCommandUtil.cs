@@ -152,7 +152,7 @@ public class SphereCommandUtil
                         uuid = (uint)(spheres.Count + 1);
                     }
 
-                    var pos = new JsonPosition()
+                    var pos = new JsonPosition
                     {
                         X = character.Transform.Local.Position.X,
                         Y = character.Transform.Local.Position.Y,

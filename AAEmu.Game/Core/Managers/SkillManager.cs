@@ -1678,7 +1678,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                 {
                     while (reader.Read())
                     {
-                        var combatBuffTemplate = new CombatBuffTemplate()
+                        var combatBuffTemplate = new CombatBuffTemplate
                         {
                             Id = reader.GetUInt32("id"),
                             HitSkillId = reader.GetUInt32("hit_skill_id", 0),

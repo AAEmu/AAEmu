@@ -571,7 +571,7 @@ public class PhysicsManager
     {
         var jq = JQuaternion.CreateFromMatrix(matrix);
 
-        return new Quaternion()
+        return new Quaternion
         {
             X = jq.X,
             Y = jq.Y,

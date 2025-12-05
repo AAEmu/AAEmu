@@ -38,7 +38,7 @@ public class PlotBuilder
             }
             else
             {
-                var childNode = new PlotNode()
+                var childNode = new PlotNode
                 {
                     Tree = parent.Tree,
                     Parent = parent,

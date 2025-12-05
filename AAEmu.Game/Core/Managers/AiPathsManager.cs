@@ -56,7 +56,7 @@ public class AiPathsManager : Singleton<AiPathsManager>
                     if (!Enum.TryParse<AiPathPointAction>(columns[0], true, out var action))
                         action = AiPathPointAction.None;
 
-                    var newPoint = new AiPathPoint()
+                    var newPoint = new AiPathPoint
                     {
                         Position = new Vector3(x, y, z),
                         Action = action,

@@ -140,7 +140,7 @@ public partial class InstantGame
 
         character.Events.OnKill += OnKill;
 
-        var member = new InstantGameTeamMember() { Character = character };
+        var member = new InstantGameTeamMember { Character = character };
         _members.Add(character, member);
 
         var result = corps == InstantCorps.Corps1 ? _corps1Result : _corps2Result;

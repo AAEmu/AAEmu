@@ -83,7 +83,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == 1);
                 if (aiCommand.Param1 == 1)
                 {
-                    Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint() { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
+                    Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
                 }
                 Ai.GoToFollowPath();
                 if (aiCommand.Param1 == 1)

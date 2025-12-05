@@ -2646,7 +2646,7 @@ public class DoodadManager : Singleton<DoodadManager>
                         var cofferCapacity = IsCofferTemplate(templateId);
 
                         var template = cofferCapacity > 0
-                            ? new DoodadCofferTemplate() { Capacity = cofferCapacity }
+                            ? new DoodadCofferTemplate { Capacity = cofferCapacity }
                             : new DoodadTemplate();
 
                         template.Id = templateId;

@@ -197,7 +197,7 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                                     // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
                                     // convert coordinates from local to world, immediately when reading the path from the file
                                     var vec = ZoneManager.ConvertToWorldCoordinates(zoneId, xyz);
-                                    var pos = new WorldSpawnPosition()
+                                    var pos = new WorldSpawnPosition
                                     {
                                         X = vec.X,
                                         Y = vec.Y,

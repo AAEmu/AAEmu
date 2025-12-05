@@ -90,7 +90,7 @@ public class ModelManager : Singleton<ModelManager>
                         {
                             while (reader.Read())
                             {
-                                var model = new ActorModel()
+                                var model = new ActorModel
                                 {
                                     Id = reader.GetUInt32("id"),
                                     Radius = reader.GetFloat("radius"),
@@ -111,7 +111,7 @@ public class ModelManager : Singleton<ModelManager>
                         {
                             while (reader.Read())
                             {
-                                var model = new ShipModelV1()
+                                var model = new ShipModelV1
                                 {
                                     Id = reader.GetUInt32("id"),
                                     Velocity = reader.GetFloat("velocity"),
@@ -149,7 +149,7 @@ public class ModelManager : Singleton<ModelManager>
                         {
                             while (reader.Read())
                             {
-                                var model = new VehicleModel()
+                                var model = new VehicleModel
                                 {
                                     Id = reader.GetUInt32("id"),
                                     LinInertia = reader.GetFloat("lin_inertia"),
@@ -186,7 +186,7 @@ public class ModelManager : Singleton<ModelManager>
                         {
                             while (reader.Read())
                             {
-                                var model = new ModelType()
+                                var model = new ModelType
                                 {
                                     Id = reader.GetUInt32("id"),
                                     SubId = reader.GetUInt32("sub_id"),
@@ -206,7 +206,7 @@ public class ModelManager : Singleton<ModelManager>
                         {
                             while (reader.Read())
                             {
-                                var stance = new GameStance()
+                                var stance = new GameStance
                                 {
                                     Id = reader.GetUInt32("id"),
                                     ActorModelId = reader.GetUInt32("actor_model_id"),

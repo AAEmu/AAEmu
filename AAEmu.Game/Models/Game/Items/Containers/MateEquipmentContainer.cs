@@ -21,13 +21,13 @@ public class MateEquipmentContainer : EquipmentContainer
             return;
         }
 
-        var petItem = new ItemAndLocation()
+        var petItem = new ItemAndLocation
         {
             Item = item,
             SlotType = lastContainer.ContainerType, // ContainerType,
             SlotNumber = previousSlot,
         };
-        var inventoryItem = new ItemAndLocation()
+        var inventoryItem = new ItemAndLocation
         {
             Item = null,
             SlotType = ContainerType,
@@ -47,13 +47,13 @@ public class MateEquipmentContainer : EquipmentContainer
             return;
         }
 
-        var petItem = new ItemAndLocation()
+        var petItem = new ItemAndLocation
         {
             Item = null,
             SlotType = item.SlotType, // newContainer
             SlotNumber = (byte)item.Slot,
         };
-        var inventoryItem = new ItemAndLocation()
+        var inventoryItem = new ItemAndLocation
         {
             Item = item,
             SlotType = ContainerType,

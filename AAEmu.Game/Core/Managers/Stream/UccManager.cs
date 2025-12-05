@@ -69,7 +69,7 @@ public class UccManager : Singleton<UccManager>
                         var type = (UccType)reader.GetByte("type");
                         if (type == UccType.Simple)
                         {
-                            var ucc = new DefaultUcc()
+                            var ucc = new DefaultUcc
                             {
                                 Id = id,
                                 Type = type,
@@ -92,7 +92,7 @@ public class UccManager : Singleton<UccManager>
                         }
                         else if (type == UccType.Complex)
                         {
-                            var ucc = new CustomUcc()
+                            var ucc = new CustomUcc
                             {
                                 Id = id,
                                 Type = type,
@@ -166,7 +166,7 @@ public class UccManager : Singleton<UccManager>
 #endif
 
         _uploadQueue.Add(connection.Id, customUcc);
-        var uploadHandler = new UccUploadHandle() { ExpectedSize = expectedDataSize, UploadingUcc = customUcc };
+        var uploadHandler = new UccUploadHandle { ExpectedSize = expectedDataSize, UploadingUcc = customUcc };
         _complexUploadParts.Add(connection.Id, uploadHandler);
         connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.Continue));
     }

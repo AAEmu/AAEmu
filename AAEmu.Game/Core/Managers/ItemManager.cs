@@ -708,7 +708,7 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new ItemProcTemplate()
+                        var template = new ItemProcTemplate
                         {
                             Id = reader.GetUInt32("id"),
                             SkillId = reader.GetUInt32("skill_id"),
@@ -737,7 +737,7 @@ public class ItemManager : Singleton<ItemManager>
                         if (!_equipItemSets.ContainsKey(id))
                             _equipItemSets.Add(id, new EquipItemSet { Id = id });
 
-                        var bonus = new EquipItemSetBonus()
+                        var bonus = new EquipItemSetBonus
                         {
                             NumPieces = reader.GetInt32("num_pieces"),
                             BuffId = reader.GetUInt32("buff_id", 0),
@@ -1328,7 +1328,7 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var armorGradeBuff = new ArmorGradeBuff()
+                        var armorGradeBuff = new ArmorGradeBuff
                         {
                             Id = reader.GetByte("id"),
                             ArmorType = (ArmorType)reader.GetUInt32("armor_type_id"),
@@ -1352,7 +1352,7 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var entry = new ItemSet()
+                        var entry = new ItemSet
                         {
                             Id = reader.GetUInt32("id"),
                             KindId = reader.GetUInt32("kind_id"),
@@ -1373,7 +1373,7 @@ public class ItemManager : Singleton<ItemManager>
                 {
                     while (reader.Read())
                     {
-                        var entry = new ItemSetItem()
+                        var entry = new ItemSetItem
                         {
                             Id = reader.GetUInt32("id"),
                             ItemSetId = reader.GetUInt32("item_set_id"),

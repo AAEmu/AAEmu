@@ -10,6 +10,6 @@ public class CSStartedCinemaPacket() : GamePacket(CSOffsets.CSStartedCinemaPacke
     {
         // Empty struct
         Logger.Warn("StartedCinema");
-        Connection.ActiveChar.Events.OnCinemaStarted(Connection.ActiveChar, new OnCinemaStartedArgs() { CinemaId = Connection.ActiveChar.CurrentlyPlayingCinemaId });
+        Connection.ActiveChar.Events.OnCinemaStarted(Connection.ActiveChar, new OnCinemaStartedArgs { CinemaId = Connection.ActiveChar.CurrentlyPlayingCinemaId });
     }
 }

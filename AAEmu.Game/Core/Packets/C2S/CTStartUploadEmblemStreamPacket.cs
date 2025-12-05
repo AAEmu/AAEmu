@@ -20,7 +20,7 @@ public class CTStartUploadEmblemStreamPacket() : StreamPacket(CTOffsets.CTStartU
 
         if (dataSize == 0) // simple
         {
-            var defaultUcc = new DefaultUcc()
+            var defaultUcc = new DefaultUcc
             {
                 UploaderId = Connection.GameConnection.ActiveChar.Id
             };
@@ -29,7 +29,7 @@ public class CTStartUploadEmblemStreamPacket() : StreamPacket(CTOffsets.CTStartU
         }
         else // complex
         {
-            var customUcc = new CustomUcc() { UploaderId = Connection.GameConnection.ActiveChar.Id };
+            var customUcc = new CustomUcc { UploaderId = Connection.GameConnection.ActiveChar.Id };
             customUcc.Read(stream);
             UccManager.Instance.StartUpload(Connection, dataSize, customUcc);
         }

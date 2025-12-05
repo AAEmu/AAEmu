@@ -34,7 +34,7 @@ public class MusicManager : Singleton<MusicManager>
                 {
                     while (reader.Read())
                     {
-                        var songData = new SongData()
+                        var songData = new SongData
                         {
                             Id = reader.GetUInt32("id"),
                             AuthorId = reader.GetUInt32("author"),

@@ -13,6 +13,6 @@ public class CSCompletedCinemaPacket() : GamePacket(CSOffsets.CSCompletedCinemaP
         Logger.Warn("CompletedCinema");
 
         WorldManager.ResendVisibleObjectsToCharacter(Connection.ActiveChar);
-        Connection.ActiveChar.Events.OnCinemaEnded(Connection.ActiveChar, new OnCinemaEndedArgs() { CinemaId = Connection.ActiveChar.CurrentlyPlayingCinemaId });
+        Connection.ActiveChar.Events.OnCinemaEnded(Connection.ActiveChar, new OnCinemaEndedArgs { CinemaId = Connection.ActiveChar.CurrentlyPlayingCinemaId });
     }
 }

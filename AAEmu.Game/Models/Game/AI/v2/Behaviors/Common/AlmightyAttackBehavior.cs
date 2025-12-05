@@ -100,7 +100,7 @@ public class AlmightyAttackBehavior : BaseCombatBehavior
             Ai.PathHandler.TargetPosition = Vector3.Zero;
             Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
             Ai.Owner.CurrentGameStance = GameStanceType.Combat;
-            Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint()
+            Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint
             {
                 Action = AiPathPointAction.Speed,
                 Param = "3",

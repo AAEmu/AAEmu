@@ -332,7 +332,7 @@ public partial class QuestManager
     /// <param name="questId"></param>
     public void OnTimerExpired(ICharacter owner, uint questId)
     {
-        owner?.Events?.OnTimerExpired(owner, new OnTimerExpiredArgs() { QuestId = questId });
+        owner?.Events?.OnTimerExpired(owner, new OnTimerExpiredArgs { QuestId = questId });
     }
 
     /// <summary>

@@ -37,7 +37,7 @@ public class RadarManager : Singleton<RadarManager>
             }
             else
             {
-                entry = new TelescopeRegistrationEntry()
+                entry = new TelescopeRegistrationEntry
                 {
                     Player = player,
                     ShowPublicTransportRange = checkRange,
@@ -62,7 +62,7 @@ public class RadarManager : Singleton<RadarManager>
             }
             else
             {
-                entry = new TelescopeRegistrationEntry()
+                entry = new TelescopeRegistrationEntry
                 {
                     Player = player,
                     ShowFishSchoolRange = checkRange,
@@ -87,7 +87,7 @@ public class RadarManager : Singleton<RadarManager>
             }
             else
             {
-                entry = new TelescopeRegistrationEntry()
+                entry = new TelescopeRegistrationEntry
                 {
                     Player = player,
                     ShowShipTelescopeRange = checkRange,

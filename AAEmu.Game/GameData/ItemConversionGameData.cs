@@ -77,7 +77,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             {
                 while (reader.Read())
                 {
-                    ItemConversionReagent data = new ItemConversionReagent()
+                    ItemConversionReagent data = new ItemConversionReagent
                     {
                         ConversionId = reader.GetUInt32("item_conv_rpack_id"),
                         ImplId = (ItemImplEnum)reader.GetInt32("item_impl_id"),
@@ -101,7 +101,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             {
                 while (reader.Read())
                 {
-                    ItemConversionReagent data = new ItemConversionReagent()
+                    ItemConversionReagent data = new ItemConversionReagent
                     {
                         ConversionId = reader.GetUInt32("item_conv_rpack_id"),
                         InputItemId = reader.GetUInt32("item_id"),
@@ -154,7 +154,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             {
                 while (reader.Read())
                 {
-                    ItemConversionProduct data = new ItemConversionProduct()
+                    ItemConversionProduct data = new ItemConversionProduct
                     {
                         ConversionId = reader.GetUInt32("item_conv_ppack_id"),
                         ChanceRate = reader.GetInt32("chance_rate", 0),

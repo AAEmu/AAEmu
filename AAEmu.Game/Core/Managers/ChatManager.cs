@@ -136,7 +136,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddFactionChannel(FactionsEnum factionId, string name)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Ally, Faction = factionId, InternalId = (uint)factionId, InternalName = name };
+        var channel = new ChatChannel { ChatType = ChatType.Ally, Faction = factionId, InternalId = (uint)factionId, InternalName = name };
         return FactionChannels.TryAdd(factionId, channel);
     }
 
@@ -170,7 +170,7 @@ public class ChatManager : Singleton<ChatManager>
     private bool AddNationChannel(Race race, FactionsEnum factionDisplayId, string name)
     {
         var mRace = (((byte)race - 1) & 0xFC);
-        var channel = new ChatChannel() { ChatType = ChatType.Region, Faction = factionDisplayId, InternalId = mRace, InternalName = name };
+        var channel = new ChatChannel { ChatType = ChatType.Region, Faction = factionDisplayId, InternalId = mRace, InternalName = name };
         return NationChannels.TryAdd(mRace, channel);
     }
 
@@ -245,7 +245,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddGuildChannel(Expedition guild)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Clan, SubType = (short)guild.Id, InternalId = (uint)guild.Id, InternalName = guild.Name };
+        var channel = new ChatChannel { ChatType = ChatType.Clan, SubType = (short)guild.Id, InternalId = (uint)guild.Id, InternalName = guild.Name };
         return GuildChannels.TryAdd(guild.Id, channel);
     }
 
@@ -281,7 +281,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddFamilyChannel(uint familyId)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Family, SubType = (short)familyId, InternalId = familyId, InternalName = $"Family {familyId}" };
+        var channel = new ChatChannel { ChatType = ChatType.Family, SubType = (short)familyId, InternalId = familyId, InternalName = $"Family {familyId}" };
         return FamilyChannels.TryAdd(familyId, channel);
     }
 
@@ -317,7 +317,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddPartyChannel(uint partyId)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Party, SubType = (short)partyId, InternalId = partyId, InternalName = $"Party({partyId})" };
+        var channel = new ChatChannel { ChatType = ChatType.Party, SubType = (short)partyId, InternalId = partyId, InternalName = $"Party({partyId})" };
         return PartyChannels.TryAdd(partyId, channel);
     }
 
@@ -370,7 +370,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddRaidChannel(uint partyId)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Raid, SubType = (short)partyId, InternalId = partyId, InternalName = $"Raid({partyId})" };
+        var channel = new ChatChannel { ChatType = ChatType.Raid, SubType = (short)partyId, InternalId = partyId, InternalName = $"Raid({partyId})" };
         return RaidChannels.TryAdd(partyId, channel);
     }
 

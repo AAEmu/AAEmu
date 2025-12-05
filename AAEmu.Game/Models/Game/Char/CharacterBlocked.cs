@@ -74,7 +74,7 @@ public class CharacterBlocked(Character owner)
             {
                 while (reader.Read())
                 {
-                    var template = new BlockedTemplate()
+                    var template = new BlockedTemplate
                     {
                         Owner = reader.GetUInt32("owner"),
                         BlockedId = reader.GetUInt32("blocked_id")
@@ -122,7 +122,7 @@ public class CharacterBlocked(Character owner)
         var blocked = WorldManager.Instance.GetCharacter(name);
 
         if (blocked == null || BlockedList.ContainsKey(blocked.Id)) return; // already blocked
-        var template = new BlockedTemplate()
+        var template = new BlockedTemplate
         {
             BlockedId = blocked.Id,
             Owner = Owner.Id
@@ -142,7 +142,7 @@ public class CharacterBlocked(Character owner)
 
     private static Blocked FormatBlocked(Character blocked)
     {
-        return new Blocked()
+        return new Blocked
         {
             CharacterId = blocked.Id,
             Name = blocked.Name

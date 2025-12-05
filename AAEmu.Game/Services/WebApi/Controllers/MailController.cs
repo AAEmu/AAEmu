@@ -257,7 +257,7 @@ internal class MailController : BaseController
         var mailList = MailManager.Instance.GetCurrentMailList(listRequest.CharacterId);
         foreach (var (mailId, mail) in mailList)
         {
-            var mailItem = new ListMailResponseItem()
+            var mailItem = new ListMailResponseItem
             {
                 Id = mailId,
                 SenderId = mail.Header.SenderId,

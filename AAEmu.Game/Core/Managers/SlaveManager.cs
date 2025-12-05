@@ -647,7 +647,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             var childSlaveTemplate = SlaveGameData.Instance.GetSlaveTemplate(childSlaveTemplateId > 0 ? childSlaveTemplateId : slaveBinding.SlaveId);
             var childTlId = (ushort)TlIdManager.Instance.GetNextId();
             var childObjId = ObjectIdManager.Instance.GetNextId();
-            var childSlave = new Slave()
+            var childSlave = new Slave
             {
                 TlId = childTlId,
                 ObjId = childObjId,

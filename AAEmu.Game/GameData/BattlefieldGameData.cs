@@ -31,7 +31,7 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
             {
                 while (reader.Read())
                 {
-                    var bf = new Battlefield()
+                    var bf = new Battlefield
                     {
                         Id = reader.GetUInt32("id"),
                         ZoneKey = reader.GetUInt32("zone_key")
@@ -51,7 +51,7 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
             {
                 while (reader.Read())
                 {
-                    var gsr = new GameRuleSet()
+                    var gsr = new GameRuleSet
                     {
                         Id = reader.GetUInt32("id"),
                         BattlefieldId = reader.GetUInt32("battle_field_id"),

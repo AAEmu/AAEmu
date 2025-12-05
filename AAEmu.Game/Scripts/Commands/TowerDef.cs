@@ -45,7 +45,7 @@ public class TowerDef : ICommand
                     return;
                 }
 
-                var startPacket = new SCTowerDefStartPacket(new TowerDefKey() { TowerDefId = startId, ZoneGroupId = 5 },
+                var startPacket = new SCTowerDefStartPacket(new TowerDefKey { TowerDefId = startId, ZoneGroupId = 5 },
                     character.Transform.ZoneId);
                 character.SendPacket(startPacket);
                 break;
@@ -55,7 +55,7 @@ public class TowerDef : ICommand
                     return;
                 }
 
-                var endPacket = new SCTowerDefEndPacket(new TowerDefKey() { TowerDefId = endId, ZoneGroupId = 5 },
+                var endPacket = new SCTowerDefEndPacket(new TowerDefKey { TowerDefId = endId, ZoneGroupId = 5 },
                     character.Transform.ZoneId);
                 character.SendPacket(endPacket);
                 break;
@@ -71,7 +71,7 @@ public class TowerDef : ICommand
                 }
 
                 var nextPacket = new SCTowerDefWaveStartPacket(
-                    new TowerDefKey() { TowerDefId = nextId, ZoneGroupId = 5 }, character.Transform.ZoneId, step);
+                    new TowerDefKey { TowerDefId = nextId, ZoneGroupId = 5 }, character.Transform.ZoneId, step);
                 character.SendPacket(nextPacket);
                 break;
             default:

@@ -34,7 +34,7 @@ public class AddExp : SpecialEffectAction
         if (expToAdd == 0 && unit.Level >= 50) // Experia
         {
             var expBySkillEffectForLevel = FormulaManager.Instance.GetFormula((uint)FormulaKind.ExpBySkillEffect);
-            var res = expBySkillEffectForLevel.Evaluate(new Dictionary<string, double>() { ["pc_level"] = unit.Level });
+            var res = expBySkillEffectForLevel.Evaluate(new Dictionary<string, double> { ["pc_level"] = unit.Level });
 
             expToAdd = (int)(res * (value3 / 10.0f));
         }

@@ -105,7 +105,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
                     if (_slaveInitialItems.TryGetValue(itemPackId, out var key))
                     {
-                        key.Add(new SlaveInitialItems()
+                        key.Add(new SlaveInitialItems
                         {
                             slaveInitialItemPackId = itemPackId, equipSlotId = slotId, itemId = item
                         });
@@ -235,7 +235,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SlaveBindings()
+                    var template = new SlaveBindings
                     {
                         Id = reader.GetUInt32("id"),
                         OwnerId = reader.GetUInt32("owner_id"),
@@ -261,7 +261,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SlaveDropDoodad()
+                    var template = new SlaveDropDoodad
                     {
                         Id = reader.GetUInt32("id"),
                         OwnerId = reader.GetUInt32("owner_id"),
@@ -295,7 +295,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SlaveMountSkills()
+                    var template = new SlaveMountSkills
                     {
                         Id = reader.GetUInt32("id"),
                         SlaveId = reader.GetUInt32("slave_id"),

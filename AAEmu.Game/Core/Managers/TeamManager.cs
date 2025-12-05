@@ -275,8 +275,8 @@ public class TeamManager : Singleton<TeamManager>
         ChatManager.Instance.GetPartyChat(newTeam, activeInvitation.Owner).JoinChannel(activeInvitation.Owner);
         ChatManager.Instance.GetPartyChat(newTeam, activeInvitation.Target).JoinChannel(activeInvitation.Target);
         // Trigger events
-        activeInvitation.Owner.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs() { Team = newTeam, Player = activeInvitation.Owner });
-        activeInvitation.Target.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs() { Team = newTeam, Player = activeInvitation.Target });
+        activeInvitation.Owner.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Owner });
+        activeInvitation.Target.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Target });
     }
 
     public void CreateSoloTeam(Character character, bool asParty)
@@ -305,7 +305,7 @@ public class TeamManager : Singleton<TeamManager>
             ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(character);
         ChatManager.Instance.GetPartyChat(newTeam, character).JoinChannel(character);
         // Trigger events
-        character.Events?.OnTeamJoin(character, new OnTeamJoinArgs() { Team = newTeam, Player = character });
+        character.Events?.OnTeamJoin(character, new OnTeamJoinArgs { Team = newTeam, Player = character });
     }
 
     public void AskRiskyTeam(Character unit, uint teamId, uint targetId, RiskyAction riskyAction)
@@ -351,7 +351,7 @@ public class TeamManager : Singleton<TeamManager>
             {
                 target.InParty = false;
                 target.SendPacket(new SCLeavedTeamPacket(teamId, riskyAction == RiskyAction.Kick, false));
-                target.Events?.OnTeamLeave(target, new OnTeamLeaveArgs() { Id = activeTeam.Id, Team = activeTeam, Player = target });
+                target.Events?.OnTeamLeave(target, new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = target });
             }
         }
 
@@ -382,7 +382,7 @@ public class TeamManager : Singleton<TeamManager>
                         member.Character.SendPacket(new SCLeavedTeamPacket(teamId, false, true));
                         member.Character.InParty = false;
                         // trigger event
-                        member.Character.Events?.OnTeamLeave(member.Character, new OnTeamLeaveArgs() { Id = activeTeam.Id, Team = activeTeam, Player = member.Character });
+                        member.Character.Events?.OnTeamLeave(member.Character, new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = member.Character });
                     }
                 }
             }

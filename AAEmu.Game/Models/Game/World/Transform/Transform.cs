@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -234,7 +234,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public WorldSpawnPosition CloneAsSpawnPosition()
     {
-        return new WorldSpawnPosition()
+        return new WorldSpawnPosition
         {
             WorldId = this.WorldId,
             ZoneId = this.ZoneId,

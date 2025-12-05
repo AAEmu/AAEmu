@@ -15,7 +15,7 @@ public class CTUploadEmblemStreamPacket() : StreamPacket(CTOffsets.CTUploadEmble
         var partSize = stream.ReadUInt16();
         var data = stream.ReadBytes(partSize); // or bytes; max length 3096
 
-        var uccPart = new UccPart()
+        var uccPart = new UccPart
         {
             Total = total,
             Size = partSize,

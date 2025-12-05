@@ -54,7 +54,7 @@ public class WorldSpawnPosition
 
     public WorldSpawnPosition Clone()
     {
-        return new WorldSpawnPosition()
+        return new WorldSpawnPosition
         {
             WorldId = WorldId,
             ZoneId = ZoneId,

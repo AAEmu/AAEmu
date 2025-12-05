@@ -165,7 +165,7 @@ public abstract class Behavior
         {
             case SkillTargetType.Pos:
                 var pos = Ai.Owner.Transform.World.Position;
-                skillCastTarget = new SkillCastPositionTarget()
+                skillCastTarget = new SkillCastPositionTarget
                 {
                     ObjId = Ai.Owner.ObjId,
                     PosX = pos.X,

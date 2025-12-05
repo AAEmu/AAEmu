@@ -120,7 +120,7 @@ public class AnimationManager : Singleton<AnimationManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new Anim()
+                        var template = new Anim
                         {
                             Id = reader.GetUInt32("id"),
                             Name = reader.GetString("name"),

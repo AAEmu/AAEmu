@@ -47,7 +47,7 @@ public static class ClientFileManager
         // Source is a packed file ?
         if (File.Exists(pathName))
         {
-            var newSource = new ClientSource() { SourceType = ClientSourceType.GamePak, PathName = pathName };
+            var newSource = new ClientSource { SourceType = ClientSourceType.GamePak, PathName = pathName };
             if (newSource.Open())
             {
                 sources.Add(newSource);
