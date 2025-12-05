@@ -265,7 +265,7 @@ public class NpcManager : Singleton<NpcManager>
 
             foreach (var (slotTypeId, bp) in ibp)
             {
-                var rbp = bp[bp.Count - 1];
+                var rbp = bp[^1];
                 if (modelId != template.ModelId) { continue; }
 
                 switch (slotTypeId)
@@ -653,7 +653,7 @@ public class NpcManager : Singleton<NpcManager>
 
                             foreach (var (slotTypeId, bp) in ibp)
                             {
-                                var rbp = bp[bp.Count - 1];
+                                var rbp = bp[^1];
                                 if (modelId != template.ModelId) { continue; }
 
                                 switch (slotTypeId)

@@ -145,7 +145,7 @@ public class SphereCommandUtil
                     uint uuid = 0;
                     if (spheres.Count > 0)
                     {
-                        uuid = ((spheres[spheres.Count - 1].Id) + 1);
+                        uuid = ((spheres[^1].Id) + 1);
                     }
                     else
                     {

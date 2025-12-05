@@ -125,7 +125,7 @@ public class TransferSpawner : Spawner<Transfer>
 
         if (_lastSpawn == null || _lastSpawn.ObjId == transfer.ObjId)
         {
-            _lastSpawn = _spawned.Count != 0 ? _spawned[_spawned.Count - 1] : null;
+            _lastSpawn = _spawned.Count != 0 ? _spawned[^1] : null;
         }
     }
 
