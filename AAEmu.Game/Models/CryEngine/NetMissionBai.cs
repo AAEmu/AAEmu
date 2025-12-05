@@ -8,9 +8,9 @@ public class NetMissionBai
     public Vector3 Minimum { get; set; } = Vector3.Zero;
     public Vector3 Maximum { get; set; } = Vector3.Zero;
     public int NodeCount { get; set; }
-    public List<NetMissionNode> Nodes { get; set; } = new();
+    public List<NetMissionNode> Nodes { get; set; } = [];
     public int EdgesCount { get; set; }
-    public List<NetMissionEdge> Edges { get; set; } = new();
+    public List<NetMissionEdge> Edges { get; set; } = [];
     public Dictionary<uint, NetMissionNode> NodeMap { get; set; } = new();
 
     public void Parse(BinaryReader br)

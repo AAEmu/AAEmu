@@ -9,8 +9,8 @@ public class Navigation
 
     public uint ZoneId { get; }
     public BBox BBox { get; set; } = new();
-    public List<NodeDescriptor> DescriptorList { get; set; } = new();
-    public List<LinkDescriptor> LinkDescriptorList { get; set; } = new();
+    public List<NodeDescriptor> DescriptorList { get; set; } = [];
+    public List<LinkDescriptor> LinkDescriptorList { get; set; } = [];
 
     public bool Equals(Navigation other)
     {

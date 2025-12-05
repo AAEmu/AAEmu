@@ -25,8 +25,8 @@ public class InstantGameManager : Singleton<InstantGameManager>
     public void Initialize()
     {
         _matchmakingQueue = new Dictionary<uint, List<MatchmakingApplicant>>();
-        _instantGames = new List<InstantGame>();
-        _queueList = new List<InstantGame>();
+        _instantGames = [];
+        _queueList = [];
 
         // 15 seconds between each matchmaking query
         TickManager.Instance.OnTick.Subscribe(BattlefieldTick, TimeSpan.FromSeconds(15));
@@ -39,7 +39,7 @@ public class InstantGameManager : Singleton<InstantGameManager>
             if (!_matchmakingQueue.ContainsKey(battlefieldId))
             {
                 var bf = BattlefieldGameData.Instance.GetBattlefield(battlefieldId);
-                if (bf != null) _matchmakingQueue.Add(bf.Id, new List<MatchmakingApplicant>());
+                if (bf != null) _matchmakingQueue.Add(bf.Id, []);
             }
 
             if (_matchmakingQueue[battlefieldId].Any(applicant => applicant.CharObj == character))

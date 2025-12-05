@@ -12,6 +12,6 @@ public class PlotStep
 
     public PlotStep()
     {
-        Steps = new LinkedList<PlotStep>();
+        Steps = [];
     }
 }

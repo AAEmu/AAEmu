@@ -9,7 +9,7 @@ public class NetMissionReader : BaiReader
     public static int BaiTriangulationFileVersion = 55;
 
     public ConcurrentDictionary<long, NodeDescriptor> NodeDescriptorList { get; set; } = new();
-    public List<LinkDescriptor> LinkDescriptorList { get; set; } = new();
+    public List<LinkDescriptor> LinkDescriptorList { get; set; } = [];
     public Navigation Navigation { get; set; }
     public BBox BBox { get; set; }
 

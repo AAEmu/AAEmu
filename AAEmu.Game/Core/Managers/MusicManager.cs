@@ -158,6 +158,6 @@ public class MusicManager : Singleton<MusicManager>
     {
         if (_midiCache.TryGetValue(playerId, out var data))
             return data;
-        return Array.Empty<byte>();
+        return [];
     }
 }

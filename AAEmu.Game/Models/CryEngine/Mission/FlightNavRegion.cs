@@ -28,9 +28,9 @@ public class FlightNavRegion : Mission
     /// </summary>
     public int TerrainDownSample { get; set; }
 
-    public List<Spans> SpanList { get; set; } = new();
+    public List<Spans> SpanList { get; set; } = [];
 
-    public List<FlightLinkDescriptor> FlightLinkDescriptorList { get; set; } = new();
+    public List<FlightLinkDescriptor> FlightLinkDescriptorList { get; set; } = [];
 
     public FlightNavRegion(uint zoneId) : base(zoneId)
     {

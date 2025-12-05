@@ -4,7 +4,7 @@ public class Road
 {
     public uint ZoneId { get; }
     public string Name { get; set; } = string.Empty;
-    public List<RoadNode> RoadNodeList { get; set; } = new();
+    public List<RoadNode> RoadNodeList { get; set; } = [];
 
     public Road(uint zoneId)
     {

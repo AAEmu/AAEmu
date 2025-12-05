@@ -11,7 +11,7 @@ public class AreaMissionBai(uint zoneKey)
     public uint ZoneKey { get; init; } = zoneKey;
     public uint Version { get; set; }
     public uint NodeCount { get; set; }
-    public List<AreaMissionNode> Nodes { get; set; } = new();
+    public List<AreaMissionNode> Nodes { get; set; } = [];
 
     public void Parse(BinaryReader br)
     {
@@ -72,7 +72,7 @@ public class AreaMissionNode
     public uint VerticesCount { get; set; }
     public AreaMissionType NodeType { get; set; }
     public uint NodeIndex { get; set; }
-    public List<Vector3> Vtx { get; set; } = new();
+    public List<Vector3> Vtx { get; set; } = [];
 
     public long DebugStartPos { get; set; }
     public long DebugEndPos { get; set; }

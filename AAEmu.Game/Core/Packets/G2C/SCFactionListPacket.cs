@@ -10,7 +10,7 @@ public class SCFactionListPacket : GamePacket
 
     public SCFactionListPacket() : base(0x007, 1)
     {
-        _factions = System.Array.Empty<SystemFaction>();
+        _factions = [];
     }
 
     public SCFactionListPacket(SystemFaction[] factions) : base(SCOffsets.SCFactionListPacket, 1)

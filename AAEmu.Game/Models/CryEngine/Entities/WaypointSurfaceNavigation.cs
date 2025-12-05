@@ -3,8 +3,8 @@
 public class WaypointSurfaceNavigation
 {
     public uint ZoneId { get; }
-    public List<LinkRecord> LinkedVolumeRecords { get; set; } = new();
-    public List<LinkRecord> LinkedFlightRecords { get; set; } = new();
+    public List<LinkRecord> LinkedVolumeRecords { get; set; } = [];
+    public List<LinkRecord> LinkedFlightRecords { get; set; } = [];
 
     public WaypointSurfaceNavigation(uint zoneId)
     {

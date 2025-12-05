@@ -7,7 +7,7 @@ namespace AAEmuGeoData.Scripts.CryEngine.Mission;
 
 public class PolygonArea : AAEmu.Game.Models.CryEngine.Mission.Mission
 {
-    public List<Vector3> Points { get; set; } = new();
+    public List<Vector3> Points { get; set; } = [];
     public NavigationType NavigationType { get; set; } = NavigationType.Unset;
     public int Type { get; set; }
     public double Height { get; set; }

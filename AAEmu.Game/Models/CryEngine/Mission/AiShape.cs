@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.CryEngine.Mission;
 
 public class AiShape : Mission
 {
-    public List<Vector3> Points { get; set; } = new();
+    public List<Vector3> Points { get; set; } = [];
 
     public override bool Equals(Mission other)
     {

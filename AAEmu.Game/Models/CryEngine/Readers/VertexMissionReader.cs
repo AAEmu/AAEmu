@@ -7,7 +7,7 @@ public class VertexMissionReader : BaiReader
 {
     public static int BaiVertexFileVersion = 2;
 
-    public List<ObstacleDataDescriptor> ObstacleDataDescriptorList { get; set; } = new();
+    public List<ObstacleDataDescriptor> ObstacleDataDescriptorList { get; set; } = [];
 
     public VertexMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
     {

@@ -53,16 +53,16 @@ public class WaterBodyArea
     public WaterBodyArea()
     {
         AreaType = WaterBodyAreaType.Polygon;
-        Points = new List<Vector3>();
-        BorderPoints = new List<Vector3>();
+        Points = [];
+        BorderPoints = [];
     }
 
     public WaterBodyArea(string name, WaterBodyAreaType areaType)
     {
         AreaType = areaType;
         Name = name;
-        Points = new List<Vector3>();
-        BorderPoints = new List<Vector3>();
+        Points = [];
+        BorderPoints = [];
     }
 
     /// <summary>
@@ -130,7 +130,7 @@ public class WaterBodyArea
         else if (AreaType == WaterBodyAreaType.LineArray)
         {
             // If a line array, generate a border
-            BorderPoints = new List<Vector3>();
+            BorderPoints = [];
             var otherSide = new List<Vector3>();
             
             var directionVector = Vector3.Zero;
@@ -154,7 +154,7 @@ public class WaterBodyArea
         }
         else
         {
-            BorderPoints = new List<Vector3>();
+            BorderPoints = [];
         }
         
         foreach (var point in Points)

@@ -16,7 +16,7 @@ public class SpecialArea : AAEmu.Game.Models.CryEngine.Mission.Mission
     public double MaxZ { get; set; }
     public int BuildingId { get; set; }
     public AiLightLevel AiLightLevel { get; set; } = AiLightLevel.None;
-    public List<Vector3> Points { get; set; } = new();
+    public List<Vector3> Points { get; set; } = [];
         
     public SpecialArea(uint zoneId) : base(zoneId)
     {

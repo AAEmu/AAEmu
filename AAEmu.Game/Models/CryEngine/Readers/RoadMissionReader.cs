@@ -7,7 +7,7 @@ public class RoadMissionReader : BaiReader
 {
     public static int BaiRoadsFileVersion = 2;
 
-    public List<Road> RoadList { get; set; } = new();
+    public List<Road> RoadList { get; set; } = [];
 
     public RoadMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
     {

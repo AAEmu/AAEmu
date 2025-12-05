@@ -15,7 +15,7 @@ public class WaterEditRecordTask : Task
     public WaterEditRecordTask(Character character)
     {
         _character = character;
-        DataPoints = new List<Vector3>();
+        DataPoints = [];
         Recording = true;
         WaterEditCmd.RecordingCharacter = character;
     }
@@ -23,7 +23,7 @@ public class WaterEditRecordTask : Task
     public WaterEditRecordTask()
     {
         // Needed for dynamic compiler
-        DataPoints = new List<Vector3>();
+        DataPoints = [];
         Recording = false;
     }
 

@@ -38,7 +38,7 @@ public class InstantGameTeamResult : PacketMarshaler
     {
         State = state;
         FactionId = factionId;
-        Members = new List<InstantGameTeamMember>();
+        Members = [];
     }
 
     public override PacketStream Write(PacketStream stream)

@@ -37,6 +37,6 @@ public class TotalCharacterCustom
 
     public TotalCharacterCustom()
     {
-        Modifier = Array.Empty<byte>();
+        Modifier = [];
     }
 }

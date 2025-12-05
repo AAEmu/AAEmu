@@ -34,7 +34,7 @@ public partial class InstantGame
     public InstantGame(Battlefield battlefield)
     {
         _battlefield = battlefield;
-        _players = new List<Character>();
+        _players = [];
 
         _members = new Dictionary<Character, InstantGameTeamMember>();
         _corps1Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps1FactionId);
@@ -42,8 +42,8 @@ public partial class InstantGame
 
         _corps = new Dictionary<uint, List<Character>>
         {
-            {_battlefield.RuleSet.Corps1FactionId, new List<Character>()},
-            {_battlefield.RuleSet.Corps2FactionId, new List<Character>()}
+            {_battlefield.RuleSet.Corps1FactionId, [] },
+            {_battlefield.RuleSet.Corps2FactionId, [] }
         };
 
         _characterCorps = new Dictionary<Character, InstantCorps>();

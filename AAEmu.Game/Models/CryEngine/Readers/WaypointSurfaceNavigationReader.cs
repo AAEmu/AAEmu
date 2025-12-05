@@ -7,7 +7,7 @@ public class WaypointSurfaceNavigationReader : BaiReader
 {
     public int BaiWayPoint3DSurfaceFileVersion = 1;
 
-    public List<WaypointSurfaceNavigation> WaypointSurfaceNavigationList { get; set; } = new();
+    public List<WaypointSurfaceNavigation> WaypointSurfaceNavigationList { get; set; } = [];
 
     public WaypointSurfaceNavigationReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
     {

@@ -12,16 +12,16 @@ public class AreasMissionReader : BaiReader
     private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public static int BaiAreasFileVersion = 21;
 
-    public List<AiShape> ForbiddenAreasList { get; } = new();
-    public List<SpecialArea> NavigationModifiers { get; } = new();
-    public List<AiShape> DesignerForbiddenAreasList { get; } = new();
-    public List<AiShape> ForbiddenBoundariesList { get; } = new();
-    public List<AiShape> ExtraLinkCostsList { get; } = new();
-    public List<PolygonArea> DesignerPathsList { get; } = new();
-    public List<Vector3> Points { get; } = new();
+    public List<AiShape> ForbiddenAreasList { get; } = [];
+    public List<SpecialArea> NavigationModifiers { get; } = [];
+    public List<AiShape> DesignerForbiddenAreasList { get; } = [];
+    public List<AiShape> ForbiddenBoundariesList { get; } = [];
+    public List<AiShape> ExtraLinkCostsList { get; } = [];
+    public List<PolygonArea> DesignerPathsList { get; } = [];
+    public List<Vector3> Points { get; } = [];
 
     // Helpers to remove duplicates
-    public static ConcurrentBag<string> UsedAreaNames { get; set; } = new();
+    public static ConcurrentBag<string> UsedAreaNames { get; set; } = [];
 
     public AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
     {

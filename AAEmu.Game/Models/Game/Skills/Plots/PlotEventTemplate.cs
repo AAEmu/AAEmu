@@ -32,10 +32,10 @@ public class PlotEventTemplate
 
     public PlotEventTemplate()
     {
-        Conditions = new LinkedList<PlotEventCondition>();
-        AoeConditions = new LinkedList<PlotAoeCondition>();
-        Effects = new LinkedList<PlotEventEffect>();
-        NextEvents = new LinkedList<PlotNextEvent>();
+        Conditions = [];
+        AoeConditions = [];
+        Effects = [];
+        NextEvents = [];
         _computedHasSpecialEffects = false;
     }
 

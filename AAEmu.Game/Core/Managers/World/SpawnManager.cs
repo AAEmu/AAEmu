@@ -1,4 +1,4 @@
-using AAEmu.Commons.Exceptions;
+﻿using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -50,7 +50,7 @@ public class SpawnManager(WorldInstance parentWorld)
     private uint _nextId = 1u;
     private uint _fakeSpawnerId = 9000001u;
 
-    public List<Task> SpawnTasks { get; init; } = new();
+    public List<Task> SpawnTasks { get; init; } = [];
 
     /// <summary>
     /// Adds an NPC spawner to the manager.

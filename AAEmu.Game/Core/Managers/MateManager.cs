@@ -238,7 +238,7 @@ public class MateManager(WorldInstance parentWorldInstance)
         // Get or set entry for player objId
         if (!_activeMates.TryGetValue(owner.Id, out var activeMateList))
         {
-            activeMateList = new List<Mate>();
+            activeMateList = [];
             _activeMates.Add(owner.Id, activeMateList);
         }
 

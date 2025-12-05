@@ -90,7 +90,7 @@ public class DeclareDominion : SpecialEffectAction
                     Y = 0,
                     Z = 0,
                     ObjId = 4,
-                    UnkIds = Array.Empty<uint>()
+                    UnkIds = []
                 },
                 Unk2Data = new DominionUnkData()
                 {
@@ -102,7 +102,7 @@ public class DeclareDominion : SpecialEffectAction
                     Y = 0,
                     Z = 0,
                     ObjId = 0,
-                    UnkIds = Array.Empty<uint>()
+                    UnkIds = []
                 }
             },
             NonPvPDuration = 0,
