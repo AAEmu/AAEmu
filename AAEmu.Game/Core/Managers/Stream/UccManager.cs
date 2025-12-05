@@ -258,7 +258,7 @@ public class UccManager : Singleton<UccManager>
 
         if (!_uccs.TryGetValue(uccId, out var ucc))
             return;
-        if (!(ucc is CustomUcc customUcc))
+        if (ucc is not CustomUcc customUcc)
             return;
 
         var index = previousIndex;

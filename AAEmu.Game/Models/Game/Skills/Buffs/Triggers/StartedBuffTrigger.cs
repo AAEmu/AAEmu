@@ -10,7 +10,7 @@ internal class StartedBuffTrigger(Buff owner, BuffTriggerTemplate template) : Bu
         var args = eventArgs as OnBuffStartedArgs;
         Logger.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, this.GetType()?.Name, Template?.Effect?.GetType().Name, Template?.Effect?.Id);
 
-        if (!(_owner is Unit owner))
+        if (_owner is not Unit owner)
         {
             Logger.Warn("AttackTrigger owner is not a Unit");
             return;

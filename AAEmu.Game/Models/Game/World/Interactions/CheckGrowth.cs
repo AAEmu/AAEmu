@@ -12,7 +12,7 @@ public class CheckGrowth : IWorldInteraction
         uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
     {
         // TODO Verification Needed
-        if (!(target is Doodad doodad)) { return; }
+        if (target is not Doodad doodad) { return; }
 
         var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
         if (func == null) { return; }

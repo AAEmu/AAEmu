@@ -36,7 +36,7 @@ public class ItemAddSubCommand : SubCommandBase
         string firstArgument = parameters["target"];
         if (firstArgument == "target")
         {
-            if (selfCharacter.CurrentTarget is null || !(selfCharacter.CurrentTarget is Character))
+            if (selfCharacter.CurrentTarget is null || selfCharacter.CurrentTarget is not Character)
             {
                 SendColorMessage(messageOutput, Color.Red, "Please select a valid character player");
                 return;

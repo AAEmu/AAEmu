@@ -41,7 +41,7 @@ public class ItemUnwrapSubCommand : SubCommandBase
             return;
         }
 
-        if (!(item.Template is EquipItemTemplate equipItemTemplate))
+        if (item.Template is not EquipItemTemplate equipItemTemplate)
         {
             character.SendMessage($"Item @ITEM_NAME({item.TemplateId}) is not a equipment item, Id: {itemId}");
             return;

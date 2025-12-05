@@ -24,7 +24,7 @@ public class GiveBmMileage : SpecialEffectAction
     {
         if (caster is Character) { Logger.Debug("Special effects: GiveBmMileage value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
-        if (!(caster is Character character))
+        if (caster is not Character character)
             return;
 
         AccountManager.Instance.AddLoyalty(character.AccountId, value1);

@@ -505,7 +505,7 @@ public class Unit : BaseUnit, IUnit
 
     public void StopAutoSkill(Unit unit)
     {
-        if (unit.AutoAttackTask is null || !(unit is Character character))
+        if (unit.AutoAttackTask is null || unit is not Character character)
         {
             return;
         }
@@ -1086,7 +1086,7 @@ public class Unit : BaseUnit, IUnit
 
     private void ApplyArmorGradeBuff(Item itemAdded, Item itemRemoved)
     {
-        if ((itemAdded != null || itemRemoved != null) && (!(itemAdded is Armor) && !(itemRemoved is Armor)))
+        if ((itemAdded != null || itemRemoved != null) && (itemAdded is not Items.Armor && itemRemoved is not Items.Armor))
             return;
 
         // Clear any existing armor grade buffs
@@ -1096,10 +1096,10 @@ public class Unit : BaseUnit, IUnit
         var armorPieces = new Dictionary<ArmorType, List<Armor>>();
         foreach (var item in Equipment.Items)
         {
-            if (!(item is Armor armor))
+            if (item is not Armor armor)
                 continue;
 
-            if (!(item.Template is ArmorTemplate armorTemplate))
+            if (item.Template is not ArmorTemplate armorTemplate)
                 continue;
 
             if (armorTemplate.SlotTemplate.SlotTypeId == (ulong)EquipmentItemSlotType.Back)

@@ -319,7 +319,7 @@ public class WaterBodyArea
                     var fromPointDirection = MathUtil.CalculateDirection(p, Points[side]);
                     var diff = Math.Abs(nextPointDirection - fromPointDirection) * (180 / MathF.PI);
 
-                    if (!(diff is >= 90 and <= 270)) // NOT in front
+                    if (diff is < 90 or > 270) // NOT in front
                         continue;
                 }
 

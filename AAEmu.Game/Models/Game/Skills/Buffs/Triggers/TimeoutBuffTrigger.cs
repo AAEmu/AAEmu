@@ -11,7 +11,7 @@ public class TimeoutBuffTrigger(Buff owner, BuffTriggerTemplate template) : Buff
         Logger.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, this.GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
         //Template.Effect.Apply()
 
-        if (!(_owner is Unit owner))
+        if (_owner is not Unit owner)
         {
             Logger.Warn("Owner is not a Unit");
             return;

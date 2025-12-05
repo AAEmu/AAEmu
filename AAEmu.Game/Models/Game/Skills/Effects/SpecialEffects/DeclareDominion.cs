@@ -31,7 +31,7 @@ public class DeclareDominion : SpecialEffectAction
             return;
 
         // Check target is not already claimed
-        if (!(target is House lodestone))
+        if (target is not House lodestone)
             return;
 
         // Get target zone, radius, etc..

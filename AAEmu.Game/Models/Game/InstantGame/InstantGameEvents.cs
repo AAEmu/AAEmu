@@ -25,7 +25,7 @@ public partial class InstantGame
 
     public void OnKill(object sender, OnKillArgs args)
     {
-        if (!(args.Killer is Character killer) || !(args.Victim is Character victim))
+        if (args.Killer is not Character killer || args.Victim is not Character victim)
             return;
 
         // _log.Debug("{0} killed {1}", args.Killer.Name, args.Victim.Name, character.Name);

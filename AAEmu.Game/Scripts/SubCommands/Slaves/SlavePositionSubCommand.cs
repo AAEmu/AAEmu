@@ -42,7 +42,7 @@ public class SlavePositionSubCommand : SubCommandBase
         else
         {
             var currentTarget = ((Character)character).CurrentTarget;
-            if (currentTarget is null || !(currentTarget is Models.Game.Units.Slave))
+            if (currentTarget is null || currentTarget is not Models.Game.Units.Slave)
             {
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Slave first");
                 return;

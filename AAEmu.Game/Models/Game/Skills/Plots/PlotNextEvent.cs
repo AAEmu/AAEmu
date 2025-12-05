@@ -33,7 +33,7 @@ public class PlotNextEvent
         foreach (var effect in effects)
         {
             var template = SkillManager.Instance.GetEffectTemplate(effect.ActualId, effect.ActualType);
-            if (!(template is SpecialEffect specialEffect))
+            if (template is not SpecialEffect specialEffect)
                 continue;
 
             if (specialEffect.SpecialEffectTypeId != SpecialType.Anim)

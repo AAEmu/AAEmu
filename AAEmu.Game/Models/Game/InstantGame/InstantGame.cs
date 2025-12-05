@@ -163,21 +163,22 @@ public partial class InstantGame
         Task.Run(async () =>
         {
             await Task.Delay(3000);
-            foreach (var player in _characterCorps)
+            foreach (var (character, _) in _characterCorps)
             {
-                // Reset HP and MP
-                if (player.Key != null)
+                if (character == null)
                 {
-                    // Reset HP
-                    player.Key.Hp = player.Key.MaxHp;
-                    player.Key.Mp = player.Key.MaxMp;
-                    player.Key.BroadcastPacket(new SCUnitPointsPacket(player.Key.ObjId, player.Key.Hp, player.Key.Mp), true);
-                    // Reset Buffs
-                    player.Key.Buffs.RemoveAllEffects();
-                    // Reset Cooldowns
-                    player.Key.ResetAllSkillCooldowns(false);
+                    continue;
                 }
 
+                // Reset HP and MP
+                // Reset HP
+                character.Hp = character.MaxHp;
+                character.Mp = character.MaxMp;
+                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+                // Reset Buffs
+                character.Buffs.RemoveAllEffects();
+                // Reset Cooldowns
+                character.ResetAllSkillCooldowns(false);
             }
         });
         Task.Run(async () =>
@@ -247,10 +248,7 @@ public partial class InstantGame
     private void MoveCharacterToWorld(Character character, uint zoneId, float x, float y, float z)
     {
         character.DisabledSetPosition = true;
-        if (character.MainWorldPosition == null)
-        {
-            character.MainWorldPosition = character.Transform.CloneDetached(character);
-        }
+        character.MainWorldPosition ??= character.Transform.CloneDetached(character);
         character.Transform.ApplyWorldSpawnPosition(new WorldSpawnPosition { ZoneId = zoneId, X = x, Y = y, Z = z }, _world.Id);
         character.SendPacket(new SCLoadInstancePacket(_world.Id, zoneId, x, y, z, 0, 0, 0));
     }

@@ -38,7 +38,7 @@ public class HealEffect : EffectTemplate
     {
         Logger.Trace("HealEffect {0}", Id);
 
-        if (!(target is Unit))
+        if (target is not Unit)
             return;
         var trg = (Unit)target;
 

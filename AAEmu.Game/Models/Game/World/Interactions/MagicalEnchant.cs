@@ -13,18 +13,18 @@ public class MagicalEnchant : IWorldInteraction
     public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
         uint skillId, uint itemId, DoodadFuncTemplate objectFunc = null)
     {
-        if (!(caster is Character character))
+        if (caster is not Character character)
             return;
 
-        if (!(targetType is SkillCastItemTarget itemTarget))
+        if (targetType is not SkillCastItemTarget itemTarget)
             return;
 
-        if (!(casterType is SkillItem skillItem))
+        if (casterType is not SkillItem skillItem)
             return;
 
         var targetItem = character.Inventory.Bag.GetItemByItemId(itemTarget.Id);
 
-        if (!(targetItem is EquipItem equipItem))
+        if (targetItem is not EquipItem equipItem)
             return;
 
         equipItem.RuneId = skillItem.ItemTemplateId;

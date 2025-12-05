@@ -37,7 +37,7 @@ public class CombatBuffs(BaseUnit owner)
     {
         if (!_cbuffsByHitType.TryGetValue(type, out var buffs))
             return;
-        if (!(owner is Unit unit))
+        if (owner is not Unit unit)
             return;
         foreach (var cb in buffs)
         {

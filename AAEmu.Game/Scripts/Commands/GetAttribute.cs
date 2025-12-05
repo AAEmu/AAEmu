@@ -40,7 +40,7 @@ public class GetAttribute : ICommand
 
         if (args.Length > 1 && args[0] == "target")
         {
-            if (character.CurrentTarget == null || !(character.CurrentTarget is Unit))
+            if (character.CurrentTarget == null || character.CurrentTarget is not Unit)
             {
                 CommandManager.SendErrorText(this, messageOutput, $"No Target Selected");
                 return;

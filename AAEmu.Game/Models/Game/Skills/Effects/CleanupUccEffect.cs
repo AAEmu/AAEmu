@@ -17,11 +17,11 @@ public class CleanupUccEffect : EffectTemplate
         CompressedGamePackets packetBuilder = null)
     {
         Logger.Trace("CleanupUccEffect");
-        if (!(target is Character player))
+        if (target is not Character player)
             return;
-        if (!(casterObj is SkillItem skillItem))
+        if (casterObj is not SkillItem skillItem)
             return;
-        if (!(targetObj is SkillCastItemTarget scit))
+        if (targetObj is not SkillCastItemTarget scit)
             return;
         var bleachItem = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
         var targetItem = ItemManager.Instance.GetItemByItemId(scit.Id);

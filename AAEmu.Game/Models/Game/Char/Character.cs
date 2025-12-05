@@ -1894,7 +1894,7 @@ public partial class Character : Unit, ICharacter
             }
 
 #pragma warning disable CA1508 // Avoid dead conditional code
-            if (CurrentInteractionObject is null || !(CurrentInteractionObject is Npc npc))
+            if (CurrentInteractionObject is null || CurrentInteractionObject is not Npc npc)
                 continue;
 #pragma warning restore CA1508 // Avoid dead conditional code
 
