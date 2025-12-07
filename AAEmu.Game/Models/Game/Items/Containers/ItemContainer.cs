@@ -670,6 +670,10 @@ public class ItemContainer
             {
                 itemTasks.Add(new ItemAdd(newItem));
                 newItemsList.Add(newItem);
+                if (ContainerType != SlotType.Mail)  //A line from GPT is to prevent items moved to the mail slot from triggering quests. lol
+                {
+                    Owner?.Inventory.OnAcquiredItem(newItem, addAmount);  //Solves the problem when the first item received was not included in the quest. (stack creation condition)
+                }
             }
             else
                 throw new GameException("AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
