@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class MailPlayerToPlayer : BaseMail
 {
-    private ICharacter _sender;
+    private readonly ICharacter _sender;
 
     public MailPlayerToPlayer(ICharacter sender, string receiverPlayerName) : base()
     {
@@ -61,7 +61,7 @@ public class MailPlayerToPlayer : BaseMail
             if (mailSlots.Item1 != 0)
             {
                 var tempItem = _sender.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
-                if ((tempItem == null) || (tempItem.SlotType != SlotType.Inventory))
+                if (tempItem == null || tempItem.SlotType != SlotType.Inventory)
                 {
                     // Attchment Items do not match player inventory, abort
                     return false;

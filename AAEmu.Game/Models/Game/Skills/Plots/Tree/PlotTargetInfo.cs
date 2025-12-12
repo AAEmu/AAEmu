@@ -91,19 +91,17 @@ public class PlotTargetInfo
 
     private BaseUnit UpdateAreaTarget(PlotTargetAreaParams args, PlotState state, PlotEventTemplate plotEvent)
     {
-        var posUnit = new BaseUnit();
-        posUnit.ObjId = uint.MaxValue;
-        posUnit.Region = PreviousTarget.Region;
+        var posUnit = new BaseUnit { ObjId = uint.MaxValue, Region = PreviousTarget.Region };
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
-        var degrees = (float)(args.Angle);
+        var degrees = (float)args.Angle;
         posUnit.Transform.Local.Rotate(0, 0, degrees.DegToRad() * -1f);
         // posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
         if (args.Distance != 0)
         {
-            posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);
+            posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f - 0.01f);
         }
         // TODO: Make this use geo data, need to check if we can grab parent world from here
-        posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f), WorldManager.Instance.GetHeight(posUnit.Transform)));
+        posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + args.HeightOffset / 1000f, WorldManager.Instance.GetHeight(posUnit.Transform)));
 
         if (args.MaxTargets == 0)
         {
@@ -164,16 +162,14 @@ public class PlotTargetInfo
 
     private BaseUnit UpdateRandomAreaTarget(PlotTargetRandomAreaParams args, PlotState state, PlotEventTemplate plotEvent)
     {
-        var posUnit = new BaseUnit();
-        posUnit.ObjId = uint.MaxValue;
-        posUnit.Region = PreviousTarget.Region;
+        var posUnit = new BaseUnit { ObjId = uint.MaxValue, Region = PreviousTarget.Region };
         posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
         posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
         posUnit.Transform.InstanceId = PreviousTarget.Transform.InstanceId;
         posUnit.Transform.Local.SetZRotation(((float)Random.Shared.Next(-180, 180)).DegToRad());
         posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
         // TODO: Make this use geo data, need to check if we can grab parent world from here
-        posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f), WorldManager.Instance.GetHeight(posUnit.Transform)));
+        posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + args.HeightOffset / 1000f, WorldManager.Instance.GetHeight(posUnit.Transform)));
 
         if (args.MaxTargets == 0)
         {

@@ -25,7 +25,7 @@ public class TotalCharacterCustom
     public uint LeftPupilColor { get; set; }
     public uint RightPupilColor { get; set; }
     public uint EyebrowColor { get; set; }
-    public byte[] Modifier { get; set; }
+    public byte[] Modifier { get; set; } = [];
     public uint OwnerTypeId { get; set; }
     public float FaceMovableDecalWeight { get; set; }
     public float FaceFixedDecalAsset0Weight { get; set; }
@@ -34,9 +34,4 @@ public class TotalCharacterCustom
     public float FaceFixedDecalAsset3Weight { get; set; }
     public float FaceNormalMapWeight { get; set; }
     public uint DecoColor { get; set; }
-
-    public TotalCharacterCustom()
-    {
-        Modifier = Array.Empty<byte>();
-    }
 }

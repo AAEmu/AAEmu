@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeExpeditionOwnerPacket : GamePacket
+public class CSChangeExpeditionOwnerPacket() : GamePacket(CSOffsets.CSChangeExpeditionOwnerPacket, 1)
 {
-    public CSChangeExpeditionOwnerPacket() : base(CSOffsets.CSChangeExpeditionOwnerPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32(); // type(id)

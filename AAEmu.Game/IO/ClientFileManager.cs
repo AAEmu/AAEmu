@@ -8,7 +8,7 @@ public static class ClientFileManager
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _initialized = false;
 
-    private static List<ClientSource> sources = [];
+    private static readonly List<ClientSource> sources = [];
 
     public static IReadOnlyList<ClientSource> Sources => sources;
 
@@ -47,7 +47,7 @@ public static class ClientFileManager
         // Source is a packed file ?
         if (File.Exists(pathName))
         {
-            var newSource = new ClientSource() { SourceType = ClientSourceType.GamePak, PathName = pathName };
+            var newSource = new ClientSource { SourceType = ClientSourceType.GamePak, PathName = pathName };
             if (newSource.Open())
             {
                 sources.Add(newSource);
@@ -98,7 +98,7 @@ public static class ClientFileManager
     public static bool FileExists(string fileName)
     {
         var source = GetFileSource(fileName);
-        return (source != null);
+        return source != null;
     }
 
     /// <summary>

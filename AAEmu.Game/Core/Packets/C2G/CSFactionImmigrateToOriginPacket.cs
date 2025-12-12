@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSFactionImmigrateToOriginPacket : GamePacket
+public class CSFactionImmigrateToOriginPacket() : GamePacket(CSOffsets.CSFactionImmigrateToOriginPacket, 1)
 {
-    public CSFactionImmigrateToOriginPacket() : base(CSOffsets.CSFactionImmigrateToOriginPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Empty struct

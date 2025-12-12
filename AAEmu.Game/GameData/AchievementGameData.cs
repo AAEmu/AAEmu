@@ -32,19 +32,21 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
             {
                 while (reader.Read())
                 {
-                    var template = new Achievements();
-                    template.Id = reader.GetUInt32("id");
-                    template.CategoryId = reader.GetUInt32("category_id", 0);
-                    template.CompleteNum = reader.GetUInt32("complete_num", 0);
-                    template.CompleteOr = reader.GetBoolean("complete_or");
-                    template.IconId = reader.GetUInt32("icon_id", 0);
-                    template.IsActive = reader.GetBoolean("is_active");
-                    template.IsHidden = reader.GetBoolean("is_hidden");
-                    template.ItemId = reader.GetUInt32("item_id", 0);
-                    template.OrUnitReqs = reader.GetBoolean("or_unit_reqs");
-                    template.ParentAchievementId = reader.GetUInt32("parent_achievement_id", 0);
-                    template.Priority = reader.GetUInt32("priority", 0);
-                    template.SubCategoryId = reader.GetUInt32("sub_category_id", 0);
+                    var template = new Achievements
+                    {
+                        Id = reader.GetUInt32("id"),
+                        CategoryId = reader.GetUInt32("category_id", 0),
+                        CompleteNum = reader.GetUInt32("complete_num", 0),
+                        CompleteOr = reader.GetBoolean("complete_or"),
+                        IconId = reader.GetUInt32("icon_id", 0),
+                        IsActive = reader.GetBoolean("is_active"),
+                        IsHidden = reader.GetBoolean("is_hidden"),
+                        ItemId = reader.GetUInt32("item_id", 0),
+                        OrUnitReqs = reader.GetBoolean("or_unit_reqs"),
+                        ParentAchievementId = reader.GetUInt32("parent_achievement_id", 0),
+                        Priority = reader.GetUInt32("priority", 0),
+                        SubCategoryId = reader.GetUInt32("sub_category_id", 0)
+                    };
 
                     _achievements.TryAdd(template.Id, template);
                 }
@@ -60,11 +62,13 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
             {
                 while (reader.Read())
                 {
-                    var template = new AchievementObjectives();
-                    template.Id = reader.GetUInt32("id");
-                    template.AchievementId = reader.GetUInt32("achievement_id");
-                    template.OrUnitReqs = reader.GetBoolean("or_unit_reqs");
-                    template.RecordId = reader.GetUInt32("record_id");
+                    var template = new AchievementObjectives
+                    {
+                        Id = reader.GetUInt32("id"),
+                        AchievementId = reader.GetUInt32("achievement_id"),
+                        OrUnitReqs = reader.GetBoolean("or_unit_reqs"),
+                        RecordId = reader.GetUInt32("record_id")
+                    };
 
                     if (!_achievementObjectives.TryGetValue(template.AchievementId, out var value))
                     {
@@ -86,10 +90,11 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
             {
                 while (reader.Read())
                 {
-                    var template = new PreCompletedAchievements();
-                    template.Id = reader.GetUInt32("id");
-                    template.CompletedAchievementId = reader.GetUInt32("completed_achievement_id");
-                    template.MyAchievementId = reader.GetUInt32("my_achievement_id");
+                    var template = new PreCompletedAchievements
+                    {
+                        Id = reader.GetUInt32("id"), CompletedAchievementId = reader.GetUInt32("completed_achievement_id"),
+                        MyAchievementId = reader.GetUInt32("my_achievement_id")
+                    };
 
                     if (!_preCompletedAchievements.TryGetValue(template.CompletedAchievementId, out var value))
                     {
@@ -111,11 +116,13 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
             {
                 while (reader.Read())
                 {
-                    var template = new CharRecords();
-                    template.Id = reader.GetUInt32("id");
-                    template.KindId = (CharRecordKind)reader.GetUInt32("kind_id");
-                    template.Value1 = reader.GetUInt32("value1");
-                    template.Value2 = reader.GetUInt32("value2");
+                    var template = new CharRecords
+                    {
+                        Id = reader.GetUInt32("id"),
+                        KindId = (CharRecordKind)reader.GetUInt32("kind_id"),
+                        Value1 = reader.GetUInt32("value1"),
+                        Value2 = reader.GetUInt32("value2")
+                    };
 
                     _charRecords.Add(template.Id, template);
                 }

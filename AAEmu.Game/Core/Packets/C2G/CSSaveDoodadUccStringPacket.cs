@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSaveDoodadUccStringPacket : GamePacket
+public class CSSaveDoodadUccStringPacket() : GamePacket(CSOffsets.CSSaveDoodadUccStringPacket, 1)
 {
-    public CSSaveDoodadUccStringPacket() : base(CSOffsets.CSSaveDoodadUccStringPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var objId = stream.ReadBc();

@@ -180,7 +180,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                         : null;
                     var isSticky = ((MoveTypeActorFlags)dmt.ActorFlags).HasFlag(MoveTypeActorFlags.HangingFromObject);
 
-                    if ((targetUnit.Transform.Parent != null) && (parentObject == null))
+                    if (targetUnit.Transform.Parent != null && parentObject == null)
                     {
                         // No longer standing on object?
                         var oldParentObj = targetUnit.Transform.Parent.GameObject?.ObjId ?? 0;
@@ -190,7 +190,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                             $"|cFF884444{targetUnit.Name} ({targetUnit.ObjId}) no longer standing on Object {oldParentObj} " +
                             $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
                     }
-                    else if ((targetUnit.Transform.Parent == null) && (parentObject != null))
+                    else if (targetUnit.Transform.Parent == null && parentObject != null)
                     {
                         // Standing on a new object ?
                         targetUnit.Transform.Parent = parentObject.Transform;
@@ -200,8 +200,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                             $"@ x{dmt.X:F1} y{dmt.Y:F1} z{dmt.Z:F1} || World: {targetUnit.Transform.World}|r");
                     }
                     else if (targetUnit.Transform.Parent is { GameObject: not null } &&
-                             (parentObject != null) &&
-                             (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
+                             parentObject != null &&
+                             targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId)
                     {
                         // Changed to standing on different object ?
                         targetUnit.Transform.Parent = parentObject.Transform;
@@ -212,7 +212,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     }
 
                     // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
-                    if ((targetUnit.Transform.StickyParent != null) && !isSticky)
+                    if (targetUnit.Transform.StickyParent != null && !isSticky)
                         targetUnit.Transform.StickyParent = null;
 
                     // Debug Climb Data
@@ -232,7 +232,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     }
                     */
 
-                    if ((targetUnit is Character other) && (other.ObjId != character.ObjId))
+                    if (targetUnit is Character other && other.ObjId != character.ObjId)
                     {
                         // TODO : check target has Telekinesis buff if target is a player
                         // Just forward it to the packet, not safe for exploits/hacking
@@ -249,7 +249,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     targetUnit.Transform.FinalizeTransform();
 
                     // Handle Fall Velocity
-                    if ((dmt.FallVel > 0) && (targetUnit is Unit unit))
+                    if (dmt.FallVel > 0 && targetUnit is Unit unit)
                     {
                         _ = unit.DoFallDamage(dmt.FallVel);
                         // character.SendMessage("{0} took {1} fall damage {2}/{3} HP left", unit.Name, fallDmg, unit.Hp, unit.MaxHp);

@@ -1,15 +1,10 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-public class Road
+public class Road(uint zoneId)
 {
-    public uint ZoneId { get; }
+    public uint ZoneId { get; } = zoneId;
     public string Name { get; set; } = string.Empty;
-    public List<RoadNode> RoadNodeList { get; set; } = new();
-
-    public Road(uint zoneId)
-    {
-        ZoneId = zoneId;
-    }
+    public List<RoadNode> RoadNodeList { get; set; } = [];
 
     public bool Equals(Road other)
     {
@@ -19,9 +14,8 @@ public class Road
         if (other == null)
             return false;
 
-        return ((ZoneId == other.ZoneId) &&
-                Name.Equals(other.Name) &&
-                RoadNodeList.SequenceEqual(other.RoadNodeList)
-            );
+        return ZoneId == other.ZoneId &&
+               Name.Equals(other.Name) &&
+               RoadNodeList.SequenceEqual(other.RoadNodeList);
     }
 }

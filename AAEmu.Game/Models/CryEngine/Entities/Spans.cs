@@ -20,13 +20,13 @@ public class Spans
         if (other == null)
             return false;
 
-        return (X.Equals(other.X) &&
-                Y.Equals(other.Y) &&
-                MinZ.Equals(other.MinZ) &&
-                MaxZ.Equals(other.MaxZ) &&
-                MaxRadius.Equals(other.MaxRadius) &&
-                Classification.Equals(other.Classification) &&
-                ChildIdx.Equals(other.ChildIdx) &&
-                NextIdx.Equals(other.NextIdx));
+        return X.Equals(other.X) &&
+               Y.Equals(other.Y) &&
+               MinZ.Equals(other.MinZ) &&
+               MaxZ.Equals(other.MaxZ) &&
+               MaxRadius.Equals(other.MaxRadius) &&
+               Classification.Equals(other.Classification) &&
+               ChildIdx.Equals(other.ChildIdx) &&
+               NextIdx.Equals(other.NextIdx);
     }
 }

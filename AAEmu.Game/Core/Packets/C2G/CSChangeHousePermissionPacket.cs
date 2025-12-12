@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeHousePermissionPacket : GamePacket
+public class CSChangeHousePermissionPacket() : GamePacket(CSOffsets.CSChangeHousePermissionPacket, 1)
 {
-    public CSChangeHousePermissionPacket() : base(CSOffsets.CSChangeHousePermissionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var tl = stream.ReadUInt16();

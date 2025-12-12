@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSFactionImmigrationInviteReplyPacket : GamePacket
+public class CSFactionImmigrationInviteReplyPacket() : GamePacket(CSOffsets.CSFactionImmigrationInviteReplyPacket, 1)
 {
-    public CSFactionImmigrationInviteReplyPacket() : base(CSOffsets.CSFactionImmigrationInviteReplyPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // TODO : check unk

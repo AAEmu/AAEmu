@@ -3,13 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class FastPingPacket : GamePacket
+public class FastPingPacket() : GamePacket(PPOffsets.FastPingPacket, 2)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
-
-    public FastPingPacket() : base(PPOffsets.FastPingPacket, 2)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

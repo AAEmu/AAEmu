@@ -3,25 +3,15 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSpecialtyCurrentPacket : GamePacket
+public class SCSpecialtyCurrentPacket(ushort fromZoneGroup, ushort toZoneGroup, List<(uint, uint)> results)
+    : GamePacket(SCOffsets.SCSpecialtyCurrentPacket, 1)
 {
-    private ushort _fromZoneGroup;
-    private ushort _toZoneGroup;
-    private List<(uint, uint)> _results;
-
-    public SCSpecialtyCurrentPacket(ushort fromZoneGroup, ushort toZoneGroup, List<(uint, uint)> results) : base(SCOffsets.SCSpecialtyCurrentPacket, 1)
-    {
-        _fromZoneGroup = fromZoneGroup;
-        _toZoneGroup = toZoneGroup;
-        _results = results;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_results.Count);
-        stream.Write(_fromZoneGroup);
-        stream.Write(_toZoneGroup);
-        foreach (var (itemId, rate) in _results)
+        stream.Write(results.Count);
+        stream.Write(fromZoneGroup);
+        stream.Write(toZoneGroup);
+        foreach (var (itemId, rate) in results)
         {
             stream.Write(itemId);
             stream.Write(rate);

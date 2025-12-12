@@ -45,7 +45,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
             task.ExecuteCount++;
 
             // Check if there still needs to be executions done
-            if ((task.RepeatCount < 0) || (task.ExecuteCount < task.RepeatCount))
+            if (task.RepeatCount < 0 || task.ExecuteCount < task.RepeatCount)
             {
                 // If there is a CronSchedule set, use that to calculate the next TriggerTime
                 if (task.CronSchedule != null)
@@ -82,7 +82,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
         task.Id = taskId;
 
         // If it's only supposed to run once and immediately, then don't queue it, and just run now
-        if ((startDelay.HasValue && startDelay.Value == TimeSpan.Zero) && (count >= 0) && (count <= 1))
+        if (startDelay.HasValue && startDelay.Value == TimeSpan.Zero && count >= 0 && count <= 1)
         {
             task.Execute();
             ReleaseId(task.Id);

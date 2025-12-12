@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCICSCashPointPacket : GamePacket
+public class SCICSCashPointPacket(int point) : GamePacket(SCOffsets.SCICSCashPointPacket, 1)
 {
-    private readonly int _point;
-
-    public SCICSCashPointPacket(int point) : base(SCOffsets.SCICSCashPointPacket, 1)
-    {
-        _point = point;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_point);
+        stream.Write(point);
         return stream;
     }
 }

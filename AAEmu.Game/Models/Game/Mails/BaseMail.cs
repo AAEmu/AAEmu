@@ -50,7 +50,7 @@ public class BaseMail
     /// <returns></returns>
     public bool CanReturnMail()
     {
-        return ((IsDelivered == false) && (Header.SenderId != Header.ReceiverId) && (Header.SenderId > 0) && ((MailType == MailType.Normal) || (MailType == MailType.Express)));
+        return IsDelivered == false && Header.SenderId != Header.ReceiverId && Header.SenderId > 0 && (MailType == MailType.Normal || MailType == MailType.Express);
     }
 
     public bool ReturnToSender()
@@ -61,7 +61,7 @@ public class BaseMail
         var originalReceiver = WorldManager.Instance.GetCharacterById(Header.ReceiverId);
         var originalSender = WorldManager.Instance.GetCharacterById(Header.SenderId);
 
-        if ((originalReceiver != null) && (originalReceiver.IsOnline))
+        if (originalReceiver != null && originalReceiver.IsOnline)
             originalReceiver.SendPacket(new SCMailReturnedPacket(_id, _header));
 
         var originalReceiverId = Header.ReceiverId;
@@ -73,7 +73,7 @@ public class BaseMail
 
         Send();
 
-        if ((originalSender != null) && (originalSender.IsOnline))
+        if (originalSender != null && originalSender.IsOnline)
             MailManager.NotifyNewMailByNameIfOnline(this, originalSender.Name);
 
         // TODO

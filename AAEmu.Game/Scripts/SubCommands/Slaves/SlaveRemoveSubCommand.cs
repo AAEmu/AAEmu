@@ -34,7 +34,7 @@ public class SlaveRemoveSubCommand : SubCommandBase
         else
         {
             var currentTarget = ((Character)character).CurrentTarget;
-            if (currentTarget is null || !(currentTarget is Slave))
+            if (currentTarget is null || currentTarget is not Slave)
             {
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Slave first");
                 return;

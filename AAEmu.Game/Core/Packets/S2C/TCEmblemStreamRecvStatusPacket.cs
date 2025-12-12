@@ -3,18 +3,12 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
-public class TCEmblemStreamRecvStatusPacket : StreamPacket
+public class TCEmblemStreamRecvStatusPacket(EmblemStreamStatus status)
+    : StreamPacket(TCOffsets.TCEmblemStreamRecvStatusPacket)
 {
-    private EmblemStreamStatus _status;
-
-    public TCEmblemStreamRecvStatusPacket(EmblemStreamStatus status) : base(TCOffsets.TCEmblemStreamRecvStatusPacket)
-    {
-        _status = status;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)_status); // status
+        stream.Write((byte)status); // status
         stream.Write(0);
 
         return stream;

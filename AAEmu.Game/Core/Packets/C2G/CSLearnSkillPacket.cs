@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSLearnSkillPacket : GamePacket
+public class CSLearnSkillPacket() : GamePacket(CSOffsets.CSLearnSkillPacket, 1)
 {
-    public CSLearnSkillPacket() : base(CSOffsets.CSLearnSkillPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var skillId = stream.ReadUInt32();

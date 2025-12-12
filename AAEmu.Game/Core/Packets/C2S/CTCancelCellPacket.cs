@@ -3,13 +3,9 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTCancelCellPacket : StreamPacket
+public class CTCancelCellPacket() : StreamPacket(CTOffsets.CTCancelCellPacket)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
-
-    public CTCancelCellPacket() : base(CTOffsets.CTCancelCellPacket)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

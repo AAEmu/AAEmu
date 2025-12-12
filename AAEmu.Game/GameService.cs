@@ -183,7 +183,7 @@ public sealed class GameService : IHostedService, IDisposable
         ManaRegenManager.Instance.Initialize();
         PublicFarmManager.Instance.Initialize();
 
-        if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
+        if (heightmapTask != null && !heightmapTask.IsCompleted)
         {
             Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
             await heightmapTask;

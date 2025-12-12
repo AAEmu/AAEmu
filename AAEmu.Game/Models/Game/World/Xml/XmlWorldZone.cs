@@ -15,7 +15,7 @@ public class XmlWorldZone
     public int OriginY { get; set; }
     public ConcurrentDictionary<(int, int), XmlWorldCell> Cells { get; set; }
     public XmlWorld Parent { get; set; }
-    public WorldSpawnPosition SpawnPosition { get; set; } = new WorldSpawnPosition(); // координаты для Zones
+    public WorldSpawnPosition SpawnPosition { get; set; } = new(); // координаты для Zones
 
     public void ReadNode(XmlNode node, WorldTemplate worldTemplate, XmlWorld xmlWorld)
     {

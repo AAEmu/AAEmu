@@ -8,12 +8,8 @@ using AAEmu.Game.Models.Observers;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSpawnCharacterPacket : GamePacket
+public class CSSpawnCharacterPacket() : GamePacket(CSOffsets.CSSpawnCharacterPacket, 1)
 {
-    public CSSpawnCharacterPacket() : base(CSOffsets.CSSpawnCharacterPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         Connection.State = GameState.World;

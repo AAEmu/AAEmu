@@ -134,7 +134,7 @@ public class GameObject : IGameObject
     {
         foreach (var character in WorldManager.GetAround<Character>(this))
             character.SendPacket(packet);
-        if ((self) && (this is Character chr))
+        if (self && this is Character chr)
             chr.SendPacket(packet);
     }
 
@@ -163,7 +163,7 @@ public class GameObject : IGameObject
     /// <param name="character"></param>
     public virtual void AddVisibleObject(Character character)
     {
-        if ((Transform != null) && (Transform.Children.Count > 0))
+        if (Transform != null && Transform.Children.Count > 0)
             foreach (var child in Transform.Children.ToArray())
                 //if (child?.GameObject != character) // Never send to self, or the client crashes
                 child?.GameObject?.AddVisibleObject(character);
@@ -171,12 +171,12 @@ public class GameObject : IGameObject
 
     public virtual void RemoveVisibleObject(Character character)
     {
-        if ((character.CurrentTarget != null) && (character.CurrentTarget == this))
+        if (character.CurrentTarget != null && character.CurrentTarget == this)
         {
             character.CurrentTarget = null;
             character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
         }
-        if ((Transform != null) && (Transform.Children.Count > 0))
+        if (Transform != null && Transform.Children.Count > 0)
             foreach (var child in Transform.Children.ToArray())
                 //if (child?.GameObject != character) // Never send to self, or the client crashes
                 child?.GameObject?.RemoveVisibleObject(character);

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCRaceCongestionPacket : GamePacket
+public class SCRaceCongestionPacket() : GamePacket(SCOffsets.SCRaceCongestionPacket, 1)
 {
-    public SCRaceCongestionPacket() : base(SCOffsets.SCRaceCongestionPacket, 1)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         for (var i = 0; i < 9; i++)

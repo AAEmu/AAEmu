@@ -6,15 +6,15 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class CommercialMail : BaseMail
 {
-    private List<Item> _items;
-    private uint _receiverId;
-    private string _receiverName;
-    private string _senderName;
-    private bool _isGift;
-    private bool _isRefund;
-    private string _purchasedItemTitle;
+    private readonly List<Item> _items;
+    private readonly uint _receiverId;
+    private readonly string _receiverName;
+    private readonly string _senderName;
+    private readonly bool _isGift;
+    private readonly bool _isRefund;
+    private readonly string _purchasedItemTitle;
 
-    private static string InGameCashShopSenderName = ".inGameShop";
+    private static readonly string InGameCashShopSenderName = ".inGameShop";
 
     /// <summary>
     /// Create mail for items bought from the in game cash shop. Items must be created beforehand.
@@ -64,10 +64,10 @@ public class CommercialMail : BaseMail
         OpenDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc); // Always in the past
 
         // Not sure what all the body fields mean
-        var isPresent = (_isGift && (_senderName != string.Empty)) ? "true" : "false";
-        var gifterName = (_isGift ? _senderName : "");
-        var giftString = (_isGift ? "1" : "0");
-        var refundString = (_isRefund ? "1" : "0");
+        var isPresent = _isGift && _senderName != string.Empty ? "true" : "false";
+        var gifterName = _isGift ? _senderName : "";
+        var giftString = _isGift ? "1" : "0";
+        var refundString = _isRefund ? "1" : "0";
         var expireDateString = "2100,12,31,00,00,00";
         Body.Text = "body(" + isPresent + ",'" + gifterName + "','" + _purchasedItemTitle.Replace("'", "\\'") + "')" +
                     "|gift:" + giftString + ";|refund:" + refundString + ";|limit:" + expireDateString + ";";

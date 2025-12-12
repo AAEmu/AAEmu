@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSListCharacterPacket : GamePacket
+public class CSListCharacterPacket() : GamePacket(CSOffsets.CSListCharacterPacket, 1)
 {
-    public CSListCharacterPacket() : base(CSOffsets.CSListCharacterPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var size = stream.ReadInt32(); // TODO max size 4096

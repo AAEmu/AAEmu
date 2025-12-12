@@ -6,21 +6,14 @@ using NLog;
 
 namespace AAEmu.Game.Models.Tasks.Doodads;
 
-public class DoodadFuncTodTask : DoodadFuncTask
+public class DoodadFuncTodTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase)
+    : DoodadFuncTask(caster, owner, skillId)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private BaseUnit _caster;
-    private Doodad _owner;
-    private uint _skillId;
-    private int _nextPhase;
+    private readonly BaseUnit _caster = caster;
+    private readonly Doodad _owner = owner;
+    private readonly uint _skillId = skillId;
 
-    public DoodadFuncTodTask(BaseUnit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
-    {
-        _caster = caster;
-        _owner = owner;
-        _skillId = skillId;
-        _nextPhase = nextPhase;
-    }
     public override void Execute()
     {
         if (_caster is Character)
@@ -38,6 +31,6 @@ public class DoodadFuncTodTask : DoodadFuncTask
                 Logger.Trace("DoodadFuncTodTask: The current timer has been ended.");
         }
 
-        _owner.DoChangePhase(_caster, _nextPhase);
+        _owner.DoChangePhase(_caster, nextPhase);
     }
 }

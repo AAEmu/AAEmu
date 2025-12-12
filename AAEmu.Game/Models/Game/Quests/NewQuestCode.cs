@@ -68,10 +68,10 @@ public partial class Quest
 
         // HackFix: added to account for missing Ready step on Quests that use a Score + LetItBeDone
         if (
-            (Step == QuestComponentKind.Progress) &&
-            (Template.Score > 0) &&
-            (Template.LetItDone) &&
-            (GetQuestObjectivePercent() >= 1f) &&
+            Step == QuestComponentKind.Progress &&
+            Template.Score > 0 &&
+            Template.LetItDone &&
+            GetQuestObjectivePercent() >= 1f &&
             !QuestSteps.ContainsKey(QuestComponentKind.Ready))
         {
             res = true;
@@ -189,7 +189,7 @@ public partial class Quest
             questSteps.InitializeStep();
 
         // Trigger OnQuestStepChanged event, even if this step is not available
-        Owner?.Events?.OnQuestStepChanged(Owner, new OnQuestStepChangedArgs() { QuestId = TemplateId, Step = value });
+        Owner?.Events?.OnQuestStepChanged(Owner, new OnQuestStepChangedArgs { QuestId = TemplateId, Step = value });
         // Owner?.SendMessage($"Quest {TemplateId}, Step {oldValue} => {value}");
         // Logger.Debug($"Player {Owner?.Name ?? "???"}, Quest {TemplateId}, Step => {value}");
         RequestEvaluation();
@@ -234,7 +234,7 @@ public partial class Quest
                 return QuestObjectiveStatus.ExtraProgress;
             if (score >= Template.Score)
                 return QuestObjectiveStatus.QuestComplete;
-            if (Template.LetItDone && (score >= (int)Math.Ceiling(Template.Score * 1f / 2f)))
+            if (Template.LetItDone && score >= (int)Math.Ceiling(Template.Score * 1f / 2f))
                 return QuestObjectiveStatus.CanEarlyComplete;
 
             return QuestObjectiveStatus.NotReady;
@@ -268,7 +268,7 @@ public partial class Quest
                 {
                     thisObjectiveStatus = QuestObjectiveStatus.QuestComplete;
                 }
-                else if (Template.LetItDone && (Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2))
+                else if (Template.LetItDone && Objectives[questComponentAct.Template.ThisComponentObjectiveIndex] >= questComponentAct.Template.Count * 1 / 2)
                 {
                     thisObjectiveStatus = QuestObjectiveStatus.CanEarlyComplete;
                 }

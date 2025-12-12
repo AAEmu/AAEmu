@@ -7,7 +7,7 @@ namespace AAEmu.Game.Utils.Scripts;
 public static class ScriptReflector
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private static Dictionary<string, ScriptObject> _scriptsObjects = [];
+    private static readonly Dictionary<string, ScriptObject> _scriptsObjects = [];
 
     public static bool Reflect()
     {

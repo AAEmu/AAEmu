@@ -35,15 +35,10 @@ public class DoodadTemplate
     public bool NoCollision { get; set; }
     public uint RestrictZoneId { get; set; }
 
-    public List<DoodadFuncGroups> FuncGroups { get; set; }
+    public List<DoodadFuncGroups> FuncGroups { get; set; } = [];
 
     // Helper Properties
     public int TotalDoodadGrowthTime { get; set; }
-
-    public DoodadTemplate()
-    {
-        FuncGroups = [];
-    }
 
     /// <summary>
     /// There's probably a better why to check this

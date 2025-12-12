@@ -7,12 +7,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCreateDoodadPacket : GamePacket
+public class CSCreateDoodadPacket() : GamePacket(CSOffsets.CSCreateDoodadPacket, 1)
 {
-    public CSCreateDoodadPacket() : base(CSOffsets.CSCreateDoodadPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

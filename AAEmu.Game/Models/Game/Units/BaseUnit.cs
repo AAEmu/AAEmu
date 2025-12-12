@@ -70,7 +70,7 @@ public class BaseUnit : GameObject, IBaseUnit
             zoneFaction = FactionManager.Instance.GetFaction(FactionsEnum.Neutral);
         }
         var targetMotherFaction = target.Faction?.MotherId ?? 0;
-        if (this is Character && targetMotherFaction != 0 && ((targetMotherFaction == zoneFaction.MotherId) || (targetMotherFaction == zoneFaction.Id)))
+        if (this is Character && targetMotherFaction != 0 && (targetMotherFaction == zoneFaction.MotherId || targetMotherFaction == zoneFaction.Id))
         {
             // Target is protected by mother zone, can't attack it
             return false;
@@ -198,7 +198,7 @@ public class BaseUnit : GameObject, IBaseUnit
         if (baseUnit is House house)
         {
             // Subtract house radius, this should be fair enough for building
-            rawDist -= (house.Template.GardenRadius * house.Scale);
+            rawDist -= house.Template.GardenRadius * house.Scale;
         }
         else
         {
@@ -207,7 +207,7 @@ public class BaseUnit : GameObject, IBaseUnit
                 rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
         }
         // Subtract own radius
-        rawDist -= (this is Unit sourceUnit) ? (ModelManager.Instance.GetActorModel(sourceUnit.ModelId)?.Radius ?? 0) * Scale : 0f;
+        rawDist -= this is Unit sourceUnit ? (ModelManager.Instance.GetActorModel(sourceUnit.ModelId)?.Radius ?? 0) * Scale : 0f;
 
         return Math.Max(rawDist, 0);
     }

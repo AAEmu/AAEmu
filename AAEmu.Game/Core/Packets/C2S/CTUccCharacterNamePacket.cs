@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Packets.S2C;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTUccCharacterNamePacket : StreamPacket
+public class CTUccCharacterNamePacket() : StreamPacket(CTOffsets.CTUccCharacterNamePacket)
 {
-    public CTUccCharacterNamePacket() : base(CTOffsets.CTUccCharacterNamePacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

@@ -24,7 +24,7 @@ public class Armor : EquipItem
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
                        template.SlotTemplate.Coverage * 0.01f;
-            var res = (modifiers.Count * temp * modifiers.StrWeight) * 1f / modifiers.AllWeight *
+            var res = modifiers.Count * temp * modifiers.StrWeight * 1f / modifiers.AllWeight *
                       grade.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
         }
@@ -48,7 +48,7 @@ public class Armor : EquipItem
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
                        template.SlotTemplate.Coverage * 0.01f;
-            var res = (modifiers.Count * temp * modifiers.DexWeight) * 1f / modifiers.AllWeight *
+            var res = modifiers.Count * temp * modifiers.DexWeight * 1f / modifiers.AllWeight *
                       grade.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
         }
@@ -72,7 +72,7 @@ public class Armor : EquipItem
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
                        template.SlotTemplate.Coverage * 0.01f;
-            var res = (modifiers.Count * temp * modifiers.StaWeight) * 1f / modifiers.AllWeight *
+            var res = modifiers.Count * temp * modifiers.StaWeight * 1f / modifiers.AllWeight *
                       grade.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
         }
@@ -96,7 +96,7 @@ public class Armor : EquipItem
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
                        template.SlotTemplate.Coverage * 0.01f;
-            var res = (modifiers.Count * temp * modifiers.IntWeight) * 1f / modifiers.AllWeight *
+            var res = modifiers.Count * temp * modifiers.IntWeight * 1f / modifiers.AllWeight *
                       grade.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
         }
@@ -120,7 +120,7 @@ public class Armor : EquipItem
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetWearableStatConst() * 0.0099999998f *
                        template.SlotTemplate.Coverage * 0.01f;
-            var res = (modifiers.Count * temp * modifiers.SpiWeight) * 1f / modifiers.AllWeight *
+            var res = modifiers.Count * temp * modifiers.SpiWeight * 1f / modifiers.AllWeight *
                       grade.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
         }

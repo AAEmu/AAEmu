@@ -15,14 +15,9 @@ public class LoginProtocolHandler : BaseProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private ConcurrentDictionary<uint, Type> _packets;
+    private readonly ConcurrentDictionary<uint, Type> _packets = new();
     private PacketStream _lastPacket;
     private LoadTask _loadTask;
-
-    public LoginProtocolHandler()
-    {
-        _packets = new ConcurrentDictionary<uint, Type>();
-    }
 
     public override void OnConnect(ISession session)
     {

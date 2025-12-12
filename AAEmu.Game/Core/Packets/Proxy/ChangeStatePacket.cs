@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class ChangeStatePacket : GamePacket
+public class ChangeStatePacket(int state) : GamePacket(PPOffsets.ChangeStatePacket, 2)
 {
-    private readonly int _state;
-
-    public ChangeStatePacket(int state) : base(PPOffsets.ChangeStatePacket, 2)
-    {
-        _state = state;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_state);
+        stream.Write(state);
         return stream;
     }
 }

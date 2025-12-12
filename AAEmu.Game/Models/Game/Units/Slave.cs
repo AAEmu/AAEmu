@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class Slave : Unit
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Slave;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Slave; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Slave;
     public override ModelPostureType ModelPostureType { get => ModelPostureType.TurretState; }
     //public uint Id { get; set; } // moved to BaseUnit
@@ -438,7 +438,7 @@ public class Slave : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -508,7 +508,7 @@ public class Slave : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -558,7 +558,7 @@ public class Slave : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -732,8 +732,8 @@ public class Slave : Unit
                         newDoodad.Transform = doodad.Transform.CloneDetached();
                         // Add a bit of randomness to the dropped doodad
                         newDoodad.Transform.Local.Translate(
-                            (Random.Shared.NextSingle() * 2f) - 1f,
-                            (Random.Shared.NextSingle() * 2f) - 1f,
+                            Random.Shared.NextSingle() * 2f - 1f,
+                            Random.Shared.NextSingle() * 2f - 1f,
                             0f);
                         newDoodad.AttachPoint = AttachPointKind.None;
                         newDoodad.ItemId = droppedItem.Id;
@@ -801,7 +801,7 @@ public class Slave : Unit
             {
                 var doodad = DoodadManager.Instance.Create(ParentWorld, 0, dropDoodad.DoodadId, null, true);
                 var pos = Transform.World.Position;
-                var rng = new Vector3((Random.Shared.NextSingle() * 2f) - 1f, (Random.Shared.NextSingle() * 2f) - 1f, 0);
+                var rng = new Vector3(Random.Shared.NextSingle() * 2f - 1f, Random.Shared.NextSingle() * 2f - 1f, 0);
                 rng = Vector3.Normalize(rng);
                 rng *= Random.Shared.NextSingle() * dropDoodad.Radius;
                 pos += rng;

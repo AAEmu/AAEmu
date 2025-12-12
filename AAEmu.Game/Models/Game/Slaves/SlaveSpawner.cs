@@ -9,7 +9,7 @@ public class SlaveSpawner : Spawner<Slave>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private List<Slave> _spawned;
+    private readonly List<Slave> _spawned;
     public Slave _lastSpawn;
     private int _scheduledCount;
     private int _spawnCount;

@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSTakeAllAttachmentItemPacket : GamePacket
+public class CSTakeAllAttachmentItemPacket() : GamePacket(CSOffsets.CSTakeAllAttachmentItemPacket, 1)
 {
-    public CSTakeAllAttachmentItemPacket() : base(CSOffsets.CSTakeAllAttachmentItemPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var mailId = stream.ReadInt64();

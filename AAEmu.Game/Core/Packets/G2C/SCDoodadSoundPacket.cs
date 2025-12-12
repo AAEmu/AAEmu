@@ -4,21 +4,12 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDoodadSoundPacket : GamePacket
+public class SCDoodadSoundPacket(Doodad doodad, uint soundId) : GamePacket(SCOffsets.SCDoodadSoundPacket, 1)
 {
-    private readonly Doodad _doodad;
-    private readonly uint _soundId;
-
-    public SCDoodadSoundPacket(Doodad doodad, uint soundId) : base(SCOffsets.SCDoodadSoundPacket, 1)
-    {
-        _doodad = doodad;
-        _soundId = soundId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_doodad.ObjId);
-        stream.Write(_soundId);
+        stream.WriteBc(doodad.ObjId);
+        stream.Write(soundId);
 
         return stream;
     }

@@ -134,27 +134,31 @@ public class MailManager : Singleton<MailManager>
                 {
                     while (reader.Read())
                     {
-                        var tempMail = new BaseMail();
-                        tempMail.Id = reader.GetInt32("id");
-                        tempMail.Title = reader.GetString("title");
-                        tempMail.MailType = (MailType)reader.GetInt32("type");
-                        tempMail.ReceiverName = reader.GetString("receiver_name");
-                        tempMail.OpenDate = reader.GetDateTime("open_date");
-
-                        tempMail.Header.Status = (MailStatus)reader.GetInt32("status");
-                        tempMail.Header.SenderId = reader.GetUInt32("sender_id");
-                        tempMail.Header.SenderName = reader.GetString("sender_name");
-                        tempMail.Header.Attachments = (byte)reader.GetInt32("attachment_count");
-                        tempMail.Header.ReceiverId = reader.GetUInt32("receiver_id");
-                        tempMail.Header.Returned = (reader.GetInt32("returned") != 0);
-                        tempMail.Header.Extra = reader.GetInt64("extra");
-
-                        tempMail.Body.Text = reader.GetString("text");
-                        tempMail.Body.CopperCoins = reader.GetInt32("money_amount_1");
-                        tempMail.Body.BillingAmount = reader.GetInt32("money_amount_2");
-                        tempMail.Body.MoneyAmount2 = reader.GetInt32("money_amount_3");
-                        tempMail.Body.SendDate = reader.GetDateTime("send_date");
-                        tempMail.Body.RecvDate = reader.GetDateTime("received_date");
+                        var tempMail = new BaseMail
+                        {
+                            Id = reader.GetInt32("id"), Title = reader.GetString("title"), MailType = (MailType)reader.GetInt32("type"),
+                            ReceiverName = reader.GetString("receiver_name"),
+                            OpenDate = reader.GetDateTime("open_date"),
+                            Header =
+                            {
+                                Status = (MailStatus)reader.GetInt32("status"),
+                                SenderId = reader.GetUInt32("sender_id"),
+                                SenderName = reader.GetString("sender_name"),
+                                Attachments = (byte)reader.GetInt32("attachment_count"),
+                                ReceiverId = reader.GetUInt32("receiver_id"),
+                                Returned = reader.GetInt32("returned") != 0,
+                                Extra = reader.GetInt64("extra")
+                            },
+                            Body =
+                            {
+                                Text = reader.GetString("text"),
+                                CopperCoins = reader.GetInt32("money_amount_1"),
+                                BillingAmount = reader.GetInt32("money_amount_2"),
+                                MoneyAmount2 = reader.GetInt32("money_amount_3"),
+                                SendDate = reader.GetDateTime("send_date"),
+                                RecvDate = reader.GetDateTime("received_date")
+                            }
+                        };
 
                         // Read/Load Items
                         tempMail.Body.Attachments.Clear();
@@ -188,7 +192,7 @@ public class MailManager : Singleton<MailManager>
                         tempMail.Header.Attachments = (byte)attachmentCount;
 
                         // Set internal delivered flag
-                        tempMail.IsDelivered = (tempMail.Body.RecvDate <= DateTime.UtcNow);
+                        tempMail.IsDelivered = tempMail.Body.RecvDate <= DateTime.UtcNow;
                         tempMail.IsDirty = false;
 
                         // Remove from delete list if it's a recycled Id
@@ -307,7 +311,7 @@ public class MailManager : Singleton<MailManager>
             if (mail.Value.Header.Status != MailStatus.Read)
             {
                 character?.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
-                var addBody = (mail.Value.MailType == MailType.Charged);
+                var addBody = mail.Value.MailType == MailType.Charged;
 
                 character?.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
                 mail.Value.IsDelivered = true;
@@ -320,13 +324,13 @@ public class MailManager : Singleton<MailManager>
     {
         Logger.Trace($"NotifyNewMailByNameIfOnline() - {receiverName}");
         // If unread and ready to deliver
-        if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.UtcNow) && (m.IsDelivered == false))
+        if (m.Header.Status != MailStatus.Read && m.Body.RecvDate <= DateTime.UtcNow && m.IsDelivered == false)
         {
             var player = WorldManager.Instance.GetCharacter(receiverName);
             if (player != null)
             {
                 // TODO: Mia mail stuff
-                var addBody = (m.MailType == MailType.Charged);
+                var addBody = m.MailType == MailType.Charged;
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
 
                 player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, false, addBody ? m.Body : null));
@@ -355,7 +359,7 @@ public class MailManager : Singleton<MailManager>
     {
         // Deliver yet "undelivered" mails
         Logger.Trace("CheckAllMailTimings");
-        var undeliveredMails = _allPlayerMails.Where(x => (x.Value.Body.RecvDate <= DateTime.UtcNow) && (x.Value.IsDelivered == false)).ToDictionary(x => x.Key, x => x.Value);
+        var undeliveredMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && x.Value.IsDelivered == false).ToDictionary(x => x.Key, x => x.Value);
         var delivered = 0;
         foreach (var mail in undeliveredMails)
             if (NotifyNewMailByNameIfOnline(mail.Value, mail.Value.Header.ReceiverName))
@@ -383,7 +387,7 @@ public class MailManager : Singleton<MailManager>
         }
 
         var houseId = (uint)(mail.Header.Extra & 0xFFFFFFFF); // Extract house DB Id from Extra
-        var houseZoneGroup = ((mail.Header.Extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
+        var houseZoneGroup = (mail.Header.Extra >> 48) & 0xFFFF; // Extract zone group Id from Extra
         var house = HousingManager.Instance.GetHouseById(houseId);
 
         if (house == null)
@@ -411,7 +415,7 @@ public class MailManager : Singleton<MailManager>
             {
                 var c = consumedCerts;
                 // Use Bound First
-                if ((userBoundTaxCount > 0) && (c > 0))
+                if (userBoundTaxCount > 0 && c > 0)
                 {
                     if (c > userBoundTaxCount)
                         c = userBoundTaxCount;
@@ -419,7 +423,7 @@ public class MailManager : Singleton<MailManager>
                     consumedCerts -= c;
                 }
                 c = consumedCerts;
-                if ((userTaxCount > 0) && (c > 0))
+                if (userTaxCount > 0 && c > 0)
                 {
                     if (c > userTaxCount)
                         c = userTaxCount;
@@ -546,18 +550,16 @@ public class MailManager : Singleton<MailManager>
         // Distribute the quest rewards
         foreach (var item in totalRewardsItemsList)
         {
-            if ((mail == null) || (mail.Body.Attachments.Count >= 10))
+            if (mail == null || mail.Body.Attachments.Count >= 10)
             {
-                mail = new MailPlayerToPlayer(character, character.Name);
-                mail.Header.SenderId = 0;
-                mail.Header.SenderName = ".questReward";
-                mail.MailType = MailType.SysExpress;
-                // NOTE: On newer versions, this uses the .title / .body format, but this doesn't seem to work on 1.2
-                // mail.Title = $".title('{questName}')";
-                // mail.Body.Text = $".body('{questName}')";
-                mail.Title = questName;
-                mail.Body.Text = $"Reward for quest {questName}.";
-                mail.Body.CopperCoins = mailCopper;
+                mail = new MailPlayerToPlayer(character, character.Name)
+                {
+                    Header = { SenderId = 0, SenderName = ".questReward" }, MailType = MailType.SysExpress, // NOTE: On newer versions, this uses the .title / .body format, but this doesn't seem to work on 1.2
+                    // mail.Title = $".title('{questName}')";
+                    // mail.Body.Text = $".body('{questName}')";
+                    Title = questName,
+                    Body = { Text = $"Reward for quest {questName}.", CopperCoins = mailCopper }
+                };
                 mailCopper = 0;
                 resultList.Add(mail);
             }

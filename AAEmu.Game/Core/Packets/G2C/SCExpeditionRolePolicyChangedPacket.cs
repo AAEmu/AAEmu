@@ -4,21 +4,13 @@ using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCExpeditionRolePolicyChangedPacket : GamePacket
+public class SCExpeditionRolePolicyChangedPacket(ExpeditionRolePolicy rolePolicy, bool success)
+    : GamePacket(SCOffsets.SCExpeditionRolePolicyChangedPacket, 1)
 {
-    private readonly ExpeditionRolePolicy _rolePolicy;
-    private readonly bool _success;
-
-    public SCExpeditionRolePolicyChangedPacket(ExpeditionRolePolicy rolePolicy, bool success) : base(SCOffsets.SCExpeditionRolePolicyChangedPacket, 1)
-    {
-        _rolePolicy = rolePolicy;
-        _success = success;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_rolePolicy);
-        stream.Write(_success);
+        stream.Write(rolePolicy);
+        stream.Write(success);
         return stream;
     }
 }

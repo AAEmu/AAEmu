@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.S2C;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTItemUccPacket : StreamPacket
+public class CTItemUccPacket() : StreamPacket(CTOffsets.CTItemUccPacket)
 {
-    public CTItemUccPacket() : base(CTOffsets.CTItemUccPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
 

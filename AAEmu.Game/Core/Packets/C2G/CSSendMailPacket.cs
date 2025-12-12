@@ -8,12 +8,8 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSendMailPacket : GamePacket
+public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
 {
-    public CSSendMailPacket() : base(CSOffsets.CSSendMailPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         Logger.Debug($"SendMail by {Connection.ActiveChar.Name}");
@@ -52,7 +48,7 @@ public class CSSendMailPacket : GamePacket
             if (doodad.CurrentFuncs?.Any(func => func.FuncType == "DoodadFuncNaviOpenMailbox") == true)
             {
                 var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
-                mailCheckOK = (dist <= 5f); // 5m is kinda generous I guess
+                mailCheckOK = dist <= 5f; // 5m is kinda generous I guess
             }
             else
             {

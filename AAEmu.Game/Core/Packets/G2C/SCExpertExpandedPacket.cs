@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCExpertExpandedPacket : GamePacket
+public class SCExpertExpandedPacket(byte next) : GamePacket(SCOffsets.SCExpertExpandedPacket, 1)
 {
-    private readonly byte _next;
-
-    public SCExpertExpandedPacket(byte next) : base(SCOffsets.SCExpertExpandedPacket, 1)
-    {
-        _next = next;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_next);
+        stream.Write(next);
         return stream;
     }
 }

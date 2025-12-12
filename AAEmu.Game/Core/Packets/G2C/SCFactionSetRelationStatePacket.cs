@@ -3,31 +3,16 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFactionSetRelationStatePacket : GamePacket
+public class SCFactionSetRelationStatePacket(uint id, uint id2, byte state, DateTime expireTime, byte nextState)
+    : GamePacket(SCOffsets.SCFactionSetRelationStatePacket, 1)
 {
-    private readonly uint _id;
-    private readonly uint _id2;
-    private readonly byte _state;
-    private readonly DateTime _expireTime;
-    private readonly byte _nextState;
-
-    public SCFactionSetRelationStatePacket(uint id, uint id2, byte state, DateTime expireTime, byte nextState)
-        : base(SCOffsets.SCFactionSetRelationStatePacket, 1)
-    {
-        _id = id;
-        _id2 = id2;
-        _state = state;
-        _expireTime = expireTime;
-        _nextState = nextState;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);
-        stream.Write(_id2);
-        stream.Write(_state);
-        stream.Write(_expireTime);
-        stream.Write(_nextState);
+        stream.Write(id);
+        stream.Write(id2);
+        stream.Write(state);
+        stream.Write(expireTime);
+        stream.Write(nextState);
         return stream;
     }
 }

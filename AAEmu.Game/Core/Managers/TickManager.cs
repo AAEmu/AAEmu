@@ -40,31 +40,24 @@ public class TickManager : Singleton<TickManager>
         DoTickLoop = false;
     }
 
-    public class TickEventEntity
+    public class TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate, bool useAsync)
     {
-        public TickEventHandler.OnTickEvent Event { get; }
+        public TickEventHandler.OnTickEvent Event { get; } = ev;
         public TimeSpan LastExecution { get; set; }
-        public TimeSpan TickRate { get; }
+        public TimeSpan TickRate { get; } = tickRate;
         public Task ActiveTask { get; set; }
-        public bool UseAsync { get; }
-
-        public TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate, bool useAsync)
-        {
-            Event = ev;
-            TickRate = tickRate;
-            UseAsync = useAsync;
-        }
+        public bool UseAsync { get; } = useAsync;
     }
     public class TickEventHandler
     {
         private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
         public delegate void OnTickEvent(TimeSpan delta);
-        private List<TickEventEntity> _eventList;
-        private Queue<TickEventEntity> _eventsToAdd;
-        private Queue<OnTickEvent> _eventsToRemove;
-        private Stopwatch _sw;
-        private object _lock = new();
+        private readonly List<TickEventEntity> _eventList;
+        private readonly Queue<TickEventEntity> _eventsToAdd;
+        private readonly Queue<OnTickEvent> _eventsToRemove;
+        private readonly Stopwatch _sw;
+        private readonly object _lock = new();
 
         public TickEventHandler()
         {

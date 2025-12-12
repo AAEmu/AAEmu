@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSICSGoodsListPacket : GamePacket
+public class CSICSGoodsListPacket() : GamePacket(CSOffsets.CSICSGoodsListPacket, 1)
 {
-    public CSICSGoodsListPacket() : base(CSOffsets.CSICSGoodsListPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var mainTabId = stream.ReadByte();

@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAccountWarnedPacket : GamePacket
+public class SCAccountWarnedPacket(byte source, string msg) : GamePacket(SCOffsets.SCAccountWarnedPacket, 1)
 {
-    private readonly byte _source;
-    private readonly string _msg;
-
-    public SCAccountWarnedPacket(byte source, string msg) : base(SCOffsets.SCAccountWarnedPacket, 1)
-    {
-        _source = source;
-        _msg = msg;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_source);
-        stream.Write(_msg);
+        stream.Write(source);
+        stream.Write(msg);
         return stream;
     }
 }

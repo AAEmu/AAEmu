@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace AAEmu.Game.Services.WebApi;
 public class RouteMapper
 {
-    private Dictionary<string, RouteDefinition> _routes = new(StringComparer.CurrentCultureIgnoreCase);
+    private readonly Dictionary<string, RouteDefinition> _routes = new(StringComparer.CurrentCultureIgnoreCase);
     public void RegisterRoute(string path, HttpMethod httpMethod, MethodInfo targetMethod)
     {
         var route = new RouteDefinition(path, httpMethod, targetMethod);

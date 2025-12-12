@@ -14,15 +14,10 @@ public class PlotNode
     // Tree
     public PlotTree Tree;
     public PlotNode Parent;
-    public List<PlotNode> Children;
+    public List<PlotNode> Children = [];
     // Plots
     public PlotEventTemplate Event;
     public PlotNextEvent ParentNextEvent;
-
-    public PlotNode()
-    {
-        Children = [];
-    }
 
     private bool IsChannelStart()
     {
@@ -65,7 +60,7 @@ public class PlotNode
         }
 
         double castTime = Event.NextEvents
-             .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
+             .Where(nextEvent => nextEvent.Casting || nextEvent.Channeling)
              .Max(nextEvent => nextEvent.Delay / 10 as int?) ?? 0;
         castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime) * state.Caster.CastTimeMul;
         castTime = Math.Max(castTime, 0);
@@ -83,7 +78,7 @@ public class PlotNode
         if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
         {
             var skill = state.ActiveSkill;
-            var unkId = ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false)) ? state.Caster.ObjId : 0;
+            var unkId = (ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false) ? state.Caster.ObjId : 0;
 
             PlotObject casterPlotObj;
             if (targetInfo.Source.ObjId == uint.MaxValue)
@@ -97,7 +92,7 @@ public class PlotNode
             else
                 targetPlotObj = new PlotObject(targetInfo.Target);
 
-            byte targetCount = (byte)targetInfo.EffectedTargets.Count;
+            var targetCount = (byte)targetInfo.EffectedTargets.Count;
 
             var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
                 targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);

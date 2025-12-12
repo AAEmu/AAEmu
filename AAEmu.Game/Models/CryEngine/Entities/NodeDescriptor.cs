@@ -11,7 +11,7 @@ public class NodeDescriptor(NetMissionReader netMission)
     public Vector3 Up { get; set; } = Vector3.UnitZ;
     public Vector3 Pos { get; set; } = Vector3.Zero;
     public int Index { get; set; }
-    public int[] Obstacle { get; set; } = Array.Empty<int>();
+    public int[] Obstacle { get; set; } = [];
     public byte Type { get; set; }
     public byte Unk1 { get; set; }
     public byte BitField0 { get; set; }

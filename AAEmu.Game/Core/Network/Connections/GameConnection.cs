@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Network.Connections;
 
 public class GameConnection
 {
-    private ISession _session;
+    private readonly ISession _session;
 
     public uint Id => _session.SessionId;
     public uint AccountId { get; set; }

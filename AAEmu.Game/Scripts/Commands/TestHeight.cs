@@ -66,11 +66,10 @@ public class TestHeight : ICommand
                         return;
                     }
 
-                    var doodadSpawner = new DoodadSpawner();
-                    doodadSpawner.ParentWorld = character.ParentWorld;
-                    doodadSpawner.Id = 0;
-                    doodadSpawner.UnitId = unitId;
-                    doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
+                    var doodadSpawner = new DoodadSpawner
+                    {
+                        ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId, Position = character.Transform.CloneAsSpawnPosition()
+                    };
                     doodadSpawner.Position.X = x;
                     doodadSpawner.Position.Y = y;
                     doodadSpawner.Position.Z = targetPlayer.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
@@ -98,11 +97,10 @@ public class TestHeight : ICommand
                     return;
                 }
 
-                var doodadSpawner = new DoodadSpawner();
-                doodadSpawner.ParentWorld = character.ParentWorld;
-                doodadSpawner.Id = 0;
-                doodadSpawner.UnitId = unitId;
-                doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
+                var doodadSpawner = new DoodadSpawner
+                {
+                    ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId, Position = character.Transform.CloneAsSpawnPosition()
+                };
                 doodadSpawner.Position.X = x;
                 doodadSpawner.Position.Y = rY;
                 doodadSpawner.Position.Z = character.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
@@ -119,11 +117,10 @@ public class TestHeight : ICommand
                     return;
                 }
 
-                var doodadSpawner = new DoodadSpawner();
-                doodadSpawner.ParentWorld = character.ParentWorld;
-                doodadSpawner.Id = 0;
-                doodadSpawner.UnitId = unitId;
-                doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
+                var doodadSpawner = new DoodadSpawner
+                {
+                    ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId, Position = character.Transform.CloneAsSpawnPosition()
+                };
                 doodadSpawner.Position.X = rX;
                 doodadSpawner.Position.Y = y;
                 doodadSpawner.Position.Z = character.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());

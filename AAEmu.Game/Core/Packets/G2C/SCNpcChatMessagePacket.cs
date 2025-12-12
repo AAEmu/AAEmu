@@ -6,42 +6,31 @@ using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCNpcChatMessagePacket : GamePacket
+public class SCNpcChatMessagePacket(
+    ChatType chatType,
+    Npc npc,
+    Character character,
+    byte kind,
+    uint type,
+    string message)
+    : GamePacket(SCOffsets.SCNpcChatMessagePacket, 1)
 {
-    private readonly ChatType _chatType;
-    private readonly Npc _npc;
-    private readonly Character _character;
-    private readonly uint _type;
-    private readonly byte _kind;
-    private readonly string _message;
-
-    public SCNpcChatMessagePacket(ChatType chatType, Npc npc, Character character, byte kind, uint type, string message)
-        : base(SCOffsets.SCNpcChatMessagePacket, 1)
-    {
-        _chatType = chatType;
-        _npc = npc;
-        _character = character;
-        _kind = kind;
-        _type = type;
-        _message = message;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         #region Int64_chat
-        stream.Write((short)_chatType);                     // ChatType -> ChatChannelNo
-        stream.Write((short)(_character?.Faction.Id ?? 0)); // chat, subType
-        stream.Write((uint)(_character?.Faction.Id ?? 0));  // chat, factionId
+        stream.Write((short)chatType);                     // ChatType -> ChatChannelNo
+        stream.Write((short)(character?.Faction.Id ?? 0)); // chat, subType
+        stream.Write((uint)(character?.Faction.Id ?? 0));  // chat, factionId
         #endregion Int64_chat
 
-        stream.WriteBc(_npc.ObjId);             // bc
-        stream.Write(_npc.Name);                // name
-        stream.WriteBc(_character?.ObjId ?? 0); // bc
-        stream.Write(_kind);                    // kind
-        if (_kind == 1)
-            stream.Write(_type);
+        stream.WriteBc(npc.ObjId);             // bc
+        stream.Write(npc.Name);                // name
+        stream.WriteBc(character?.ObjId ?? 0); // bc
+        stream.Write(kind);                    // kind
+        if (kind == 1)
+            stream.Write(type);
         else
-            stream.Write(_message);
+            stream.Write(message);
 
         return stream;
     }

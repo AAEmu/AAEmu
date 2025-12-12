@@ -6,16 +6,16 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class WaterEditRecordTask : Task
 {
-    private Character _character;
+    private readonly Character _character;
     public List<Vector3> DataPoints { get; set; }
-    public object Lock = new object();
+    public object Lock = new();
     public bool Recording { get; set; }
     public int RecordInterval { get; set; } = 1000;
 
     public WaterEditRecordTask(Character character)
     {
         _character = character;
-        DataPoints = new List<Vector3>();
+        DataPoints = [];
         Recording = true;
         WaterEditCmd.RecordingCharacter = character;
     }
@@ -23,7 +23,7 @@ public class WaterEditRecordTask : Task
     public WaterEditRecordTask()
     {
         // Needed for dynamic compiler
-        DataPoints = new List<Vector3>();
+        DataPoints = [];
         Recording = false;
     }
 
@@ -33,7 +33,7 @@ public class WaterEditRecordTask : Task
         {
             lock (Lock)
             {
-                if ((_character == null) || (!_character.IsOnline))
+                if (_character == null || !_character.IsOnline)
                 {
                     Recording = false;
                     continue;

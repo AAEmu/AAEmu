@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSendUserMusicPacket : GamePacket
+public class CSSendUserMusicPacket() : GamePacket(CSOffsets.CSSendUserMusicPacket, 1)
 {
-    public CSSendUserMusicPacket() : base(CSOffsets.CSSendUserMusicPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var songSize = stream.ReadUInt32(); // this is the size without the trailing null terminator 0x00

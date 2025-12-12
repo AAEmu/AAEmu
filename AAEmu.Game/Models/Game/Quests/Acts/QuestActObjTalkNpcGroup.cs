@@ -37,11 +37,11 @@ public class QuestActObjTalkNpcGroup(QuestComponentTemplate parentComponent) : Q
 
     public override void OnTalkNpcGroupMade(QuestAct questAct, object sender, OnTalkNpcGroupMadeArgs args)
     {
-        if ((questAct.Id != ActId) || (args.NpcGroupId != NpcGroupId))
+        if (questAct.Id != ActId || args.NpcGroupId != NpcGroupId)
             return;
 
         var player = questAct.QuestComponent.Parent.Parent.Owner;
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnTalkNpcGroupMade: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {player.Name} ({player.Id}), NpcGroupId {args.NpcGroupId}, NpcId {args.NpcId}");
-        SetObjective((QuestAct)questAct, 1);
+        SetObjective(questAct, 1);
     }
 }

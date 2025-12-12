@@ -62,7 +62,7 @@ internal class MailController : BaseController
         {
             case RecipientType.Expedition:
                 {
-                    foreach (uint recipient in mailRequest.Recipients)
+                    foreach (var recipient in mailRequest.Recipients)
                     {
                         var expedition = ExpeditionManager.Instance.GetExpedition((FactionsEnum)recipient);
                         if (expedition == null || expedition.isDisbanded)
@@ -87,7 +87,7 @@ internal class MailController : BaseController
                 break;
             case RecipientType.Family:
                 {
-                    foreach (uint recipient in mailRequest.Recipients)
+                    foreach (var recipient in mailRequest.Recipients)
                     {
                         var family = FamilyManager.Instance.GetFamily(recipient);
                         if (family == null)
@@ -125,10 +125,10 @@ internal class MailController : BaseController
                             {
                                 while (reader.Read())
                                 {
-                                    var character = new Character(new UnitCustomModelParams());
-                                    character.Id = reader.GetUInt32("id");
-                                    character.AccountId = reader.GetUInt32("account_id");
-                                    character.Name = reader.GetString("name");
+                                    var character = new Character(new UnitCustomModelParams())
+                                    {
+                                        Id = reader.GetUInt32("id"), AccountId = reader.GetUInt32("account_id"), Name = reader.GetString("name")
+                                    };
 
                                     characters.Add(character);
                                 }
@@ -140,7 +140,7 @@ internal class MailController : BaseController
             case RecipientType.Character:
             default:
                 {
-                    foreach (uint recipient in mailRequest.Recipients)
+                    foreach (var recipient in mailRequest.Recipients)
                     {
                         var character = WorldManager.Instance.GetCharacterById(recipient) ??
                                         Character.Load(recipient);
@@ -173,22 +173,21 @@ internal class MailController : BaseController
         var sended = 0;
         foreach (var character in characters)
         {
-            var mail = new BaseMail();
-            mail.MailType = mailRequest.Type;
-            mail.Title = mailRequest.Title;
-            mail.ReceiverName = character.Name;
-
-            mail.Header.SenderId = 0;
-            mail.Header.SenderName = mailRequest.SenderName;
-            mail.Header.ReceiverId = character.Id;
-
-            mail.Header.Extra = 0;
-
-            mail.Body.Text = mailRequest.Body;
-            mail.Body.SendDate = DateTime.UtcNow;
-            mail.Body.RecvDate = DateTime.UtcNow;
-            mail.Body.CopperCoins = mailRequest.Money;
-            mail.Body.BillingAmount = mailRequest.Billing;
+            var mail = new BaseMail
+            {
+                MailType = mailRequest.Type, Title = mailRequest.Title, ReceiverName = character.Name, Header =
+                {
+                    SenderId = 0, SenderName = mailRequest.SenderName, ReceiverId = character.Id, Extra = 0
+                },
+                Body =
+                {
+                    Text = mailRequest.Body,
+                    SendDate = DateTime.UtcNow,
+                    RecvDate = DateTime.UtcNow,
+                    CopperCoins = mailRequest.Money,
+                    BillingAmount = mailRequest.Billing
+                }
+            };
 
             foreach (var attachmentItem in mailRequest.AttachmentItems)
             {
@@ -257,7 +256,7 @@ internal class MailController : BaseController
         var mailList = MailManager.Instance.GetCurrentMailList(listRequest.CharacterId);
         foreach (var (mailId, mail) in mailList)
         {
-            var mailItem = new ListMailResponseItem()
+            var mailItem = new ListMailResponseItem
             {
                 Id = mailId,
                 SenderId = mail.Header.SenderId,

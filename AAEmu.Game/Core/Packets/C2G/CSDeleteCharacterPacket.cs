@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSDeleteCharacterPacket : GamePacket
+public class CSDeleteCharacterPacket() : GamePacket(CSOffsets.CSDeleteCharacterPacket, 1)
 {
-    public CSDeleteCharacterPacket() : base(CSOffsets.CSDeleteCharacterPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var characterId = stream.ReadUInt32();

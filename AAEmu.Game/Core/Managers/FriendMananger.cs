@@ -31,7 +31,7 @@ public class FriendMananger : Singleton<FriendMananger>
                 {
                     while (reader.Read())
                     {
-                        var template = new FriendTemplate()
+                        var template = new FriendTemplate
                         {
                             Id = reader.GetUInt32("id"),
                             FriendId = reader.GetUInt32("friend_id"),
@@ -162,7 +162,7 @@ public class FriendMananger : Singleton<FriendMananger>
 
     private static Friend FormatFriend(Character friend)
     {
-        return new Friend()
+        return new Friend
         {
             Name = friend.Name,
             CharacterId = friend.Id,

@@ -8,15 +8,10 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AiPathsManager : Singleton<AiPathsManager>
 {
-    private readonly string PathFileFolder;
+    private readonly string PathFileFolder = Path.Combine("Data", "Path");
     private const string PathFileExt = ".path";
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly object _lock = new();
-
-    public AiPathsManager()
-    {
-        PathFileFolder = Path.Combine("Data", "Path");
-    }
 
     /// <summary>
     /// Cache for loaded Path
@@ -61,7 +56,7 @@ public class AiPathsManager : Singleton<AiPathsManager>
                     if (!Enum.TryParse<AiPathPointAction>(columns[0], true, out var action))
                         action = AiPathPointAction.None;
 
-                    var newPoint = new AiPathPoint()
+                    var newPoint = new AiPathPoint
                     {
                         Position = new Vector3(x, y, z),
                         Action = action,

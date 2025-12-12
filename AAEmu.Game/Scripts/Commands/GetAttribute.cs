@@ -40,7 +40,7 @@ public class GetAttribute : ICommand
 
         if (args.Length > 1 && args[0] == "target")
         {
-            if (character.CurrentTarget == null || !(character.CurrentTarget is Unit))
+            if (character.CurrentTarget == null || character.CurrentTarget is not Unit)
             {
                 CommandManager.SendErrorText(this, messageOutput, $"No Target Selected");
                 return;
@@ -57,7 +57,7 @@ public class GetAttribute : ICommand
             foreach (var attr in Enum.GetValues<UnitAttribute>())
             {
                 var value = target.GetAttribute(attr);
-                character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
+                character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{attr}: {value}"));
             }
         }
         else if (args[argsIdx].Equals("used", StringComparison.CurrentCultureIgnoreCase))
@@ -67,7 +67,7 @@ public class GetAttribute : ICommand
                 var value = target.GetAttribute(attr);
                 var hide = value == "NotFound" || value == "0";
                 // Exception for multipliers
-                if (value != "NotFound" && (attr).ToString().Contains("Mul"))
+                if (value != "NotFound" && attr.ToString().Contains("Mul"))
                 {
                     hide = value == "1";
                 }

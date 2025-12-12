@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class TimeManager : Singleton<TimeManager>, IObservable<float>
 {
-    private readonly List<IObserver<float>> _observers;
+    private readonly List<IObserver<float>> _observers = [];
     private bool _work;
     private const float MaxTime = 86400f;
     private float _time = 43200f; // TODO 12h 00m
@@ -22,11 +22,6 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>
     public float GetTime { get => _time / 3600f; }
 
     private float _lastTime;
-
-    public TimeManager()
-    {
-        _observers = [];
-    }
 
     public IDisposable Subscribe(IObserver<float> observer)
     {

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSFactionImmigrationInvitePacket : GamePacket
+public class CSFactionImmigrationInvitePacket() : GamePacket(CSOffsets.CSFactionImmigrationInvitePacket, 1)
 {
-    public CSFactionImmigrationInvitePacket() : base(CSOffsets.CSFactionImmigrationInvitePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var invitee = stream.ReadString();

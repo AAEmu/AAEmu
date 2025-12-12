@@ -6,24 +6,24 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class MailForSpeciality : BaseMail
 {
-    private Character _sender;
-    private uint _crafterId;
-    private uint _tradedPack;
-    private int _tradedRate;
-    private uint _itemToSend;
-    private int _itemCountBase;
-    private int _itemCountBonus;
-    private int _itemCountSeller;
-    private int _itemCountCrafter;
-    private int _interestRate;
-    private string _tradePackName;
-    private bool _sellerIsCrafter;
+    private readonly Character _sender;
+    private readonly uint _crafterId;
+    private readonly uint _tradedPack;
+    private readonly int _tradedRate;
+    private readonly uint _itemToSend;
+    private readonly int _itemCountBase;
+    private readonly int _itemCountBonus;
+    private readonly int _itemCountSeller;
+    private readonly int _itemCountCrafter;
+    private readonly int _interestRate;
+    private readonly string _tradePackName;
+    private readonly bool _sellerIsCrafter;
     // unused private int _itemCountTotal;
 
-    private static string TradeDeliveryName = ".sellBackpack";
-    private static string TradeDeliveryTitle = "Speciality Payment";
-    private static string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
-    private static string TradeDeliveryTitleCrafter = "Speciality Payment [Crafter]";
+    private static readonly string TradeDeliveryName = ".sellBackpack";
+    private static readonly string TradeDeliveryTitle = "Speciality Payment";
+    private static readonly string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
+    private static readonly string TradeDeliveryTitleCrafter = "Speciality Payment [Crafter]";
 
     /*
      * Function from LUA in Trino 1.2
@@ -73,8 +73,8 @@ public class MailForSpeciality : BaseMail
         int itemCountBase, int itemCountBonus, int itemCountForSeller, int itemCountForCrafter, int interestRate) : base()
     {
         _sender = seller;
-        _sellerIsCrafter = (crafterId == 0) || (crafterId == seller.Id);
-        if ((crafterId != 0) && (crafterId != seller.Id))
+        _sellerIsCrafter = crafterId == 0 || crafterId == seller.Id;
+        if (crafterId != 0 && crafterId != seller.Id)
             _crafterId = crafterId;
         else
             _crafterId = 0;
@@ -114,8 +114,8 @@ public class MailForSpeciality : BaseMail
 
         Title = _crafterId == 0 ? TradeDeliveryTitle : TradeDeliveryTitleSeller;
 
-        var payout = (int)((_itemCountBase * _tradedRate) / 100f) + _itemCountBonus;
-        var payoutWithInterest = (int)((payout * (100 + _interestRate)) / 100f);
+        var payout = (int)(_itemCountBase * _tradedRate / 100f) + _itemCountBonus;
+        var payoutWithInterest = (int)(payout * (100 + _interestRate) / 100f);
 
         if (_itemToSend == Item.Coins)
         {
@@ -186,8 +186,8 @@ public class MailForSpeciality : BaseMail
         Header.ReceiverId = _crafterId;
         ReceiverName = crafterName;
 
-        var payout = (int)((_itemCountBase * _tradedRate) / 100f) + _itemCountBonus;
-        var payoutWithInterest = (int)((payout * (100 + _interestRate)) / 100f);
+        var payout = (int)(_itemCountBase * _tradedRate / 100f) + _itemCountBonus;
+        var payoutWithInterest = (int)(payout * (100 + _interestRate) / 100f);
 
         Title = TradeDeliveryTitleCrafter;
         if (_itemToSend == Item.Coins)

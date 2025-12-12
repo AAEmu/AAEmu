@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCBmPointPacket : GamePacket
+public class SCBmPointPacket(long bmPoint) : GamePacket(SCOffsets.SCBmPointPacket, 1)
 {
-    private readonly long _bmPoint;
-
-    public SCBmPointPacket(long bmPoint) : base(SCOffsets.SCBmPointPacket, 1)
-    {
-        _bmPoint = bmPoint;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_bmPoint);
+        stream.Write(bmPoint);
         return stream;
     }
 }

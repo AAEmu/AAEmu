@@ -2,28 +2,16 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.InstantGame.Static;
 
-namespace AAEmu.Game.Core.Packets.G2C
+namespace AAEmu.Game.Core.Packets.G2C;
+
+public class SCAppliedToInstantGamePacket(uint battlefieldId, InstantCorps corps, ushort errorMessageId = 0)
+    : GamePacket(SCOffsets.SCAppliedToInstantGamePacket, 1)
 {
-    public class SCAppliedToInstantGamePacket : GamePacket
+    public override PacketStream Write(PacketStream stream)
     {
-        private uint _battlefieldId;
-        private InstantCorps _corps;
-        private ushort _errorMessageId;
-
-        public SCAppliedToInstantGamePacket(uint battlefieldId, InstantCorps corps, ushort errorMessageId = 0)
-            : base(SCOffsets.SCAppliedToInstantGamePacket, 1)
-        {
-            _battlefieldId = battlefieldId;
-            _corps = corps;
-            _errorMessageId = errorMessageId;
-        }
-
-        public override PacketStream Write(PacketStream stream)
-        {
-            stream.Write(_battlefieldId);
-            stream.Write((byte)_corps);
-            stream.Write(_errorMessageId);
-            return stream;
-        }
+        stream.Write(battlefieldId);
+        stream.Write((byte)corps);
+        stream.Write(errorMessageId);
+        return stream;
     }
 }

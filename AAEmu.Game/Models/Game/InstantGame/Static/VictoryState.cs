@@ -1,10 +1,9 @@
-﻿namespace AAEmu.Game.Models.Game.InstantGame.Static
+﻿namespace AAEmu.Game.Models.Game.InstantGame.Static;
+
+public enum VictoryState
 {
-    public enum VictoryState
-    {
-        Invalid = 0,
-        Lose = 1,
-        Win = 2,
-        Draw = 3,
-    }
+    Invalid = 0,
+    Lose = 1,
+    Win = 2,
+    Draw = 3,
 }

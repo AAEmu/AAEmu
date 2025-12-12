@@ -193,7 +193,7 @@ public class Gimmick : Unit
         MovementHandler?.Tick(delta);
 
         // Handle Delayed Skills
-        if ((Template?.SkillDelay > 0) && (!SkillStarted) && (LastLifeTime.TotalMilliseconds < Template.SkillDelay) && (TotalLifeTime.TotalMilliseconds >= Template.SkillDelay))
+        if (Template?.SkillDelay > 0 && !SkillStarted && LastLifeTime.TotalMilliseconds < Template.SkillDelay && TotalLifeTime.TotalMilliseconds >= Template.SkillDelay)
         {
             DoGimmickSkill(Template.SkillId);
         }
@@ -216,7 +216,7 @@ public class Gimmick : Unit
         MovementHandler?.AfterMove(delta, deltaPosition);
 
         // Check LifeTime and apply despawn time if needed
-        if ((Template?.LifeTime > 0) && (Despawn <= DateTime.MinValue) && (TotalLifeTime.TotalMilliseconds >= Template.LifeTime))// && (LastLifeTime.TotalMilliseconds < Template.LifeTime))
+        if (Template?.LifeTime > 0 && Despawn <= DateTime.MinValue && TotalLifeTime.TotalMilliseconds >= Template.LifeTime)// && (LastLifeTime.TotalMilliseconds < Template.LifeTime))
         {
             Despawn = DateTime.UtcNow;
             Spawner?.Despawn(this);

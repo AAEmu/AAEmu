@@ -41,7 +41,7 @@ public class FollowUnitBehavior : BaseCombatBehavior
 
         var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed) * followSpeedMultiplier;
         var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
-        moveSpeed *= (delta.Milliseconds / 1000.0);
+        moveSpeed *= delta.Milliseconds / 1000.0;
         Ai.Owner.MoveTowards(Ai.AiFollowUnitObj.Transform.World.Position, (float)moveSpeed, moveFlags);
         Ai.IdlePosition = Ai.Owner.Transform.World.Position;
     }

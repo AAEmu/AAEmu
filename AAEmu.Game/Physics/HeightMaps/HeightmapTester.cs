@@ -1,6 +1,4 @@
-﻿using System;
-
-using Jitter2.Collision;
+﻿using Jitter2.Collision;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics.HeightMaps;
@@ -111,8 +109,8 @@ public class HeightmapTester : IDynamicTreeProxy, IRayCastable
         var stepX = dirX > 0 ? 1 : -1;
         var stepZ = dirZ > 0 ? 1 : -1;
 
-        var nextX = dirX > 0 ? (x + 1) - origin.X : origin.X - x;
-        var nextZ = dirZ > 0 ? (z + 1) - origin.Z : origin.Z - z;
+        var nextX = dirX > 0 ? x + 1 - origin.X : origin.X - x;
+        var nextZ = dirZ > 0 ? z + 1 - origin.Z : origin.Z - z;
 
         var tMaxX = dirX != 0 ? nextX / Math.Abs(dirX) : float.PositiveInfinity;
         var tMaxZ = dirZ != 0 ? nextZ / Math.Abs(dirZ) : float.PositiveInfinity;

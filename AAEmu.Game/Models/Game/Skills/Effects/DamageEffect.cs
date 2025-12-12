@@ -443,28 +443,28 @@ public class DamageEffect : EffectTemplate
             switch (DamageType)
             {
                 case DamageType.Melee:
-                    trg.Events.OnDamagedMelee(this, new OnDamagedArgs()
+                    trg.Events.OnDamagedMelee(this, new OnDamagedArgs
                     {
                         Attacker = (Unit)caster,
                         Amount = value
                     });
                     break;
                 case DamageType.Ranged:
-                    trg.Events.OnDamagedRanged(this, new OnDamagedArgs()
+                    trg.Events.OnDamagedRanged(this, new OnDamagedArgs
                     {
                         Attacker = (Unit)caster,
                         Amount = value
                     });
                     break;
                 case DamageType.Magic:
-                    trg.Events.OnDamagedSpell(this, new OnDamagedArgs()
+                    trg.Events.OnDamagedSpell(this, new OnDamagedArgs
                     {
                         Attacker = (Unit)caster,
                         Amount = value
                     });
                     break;
                 case DamageType.Siege:
-                    trg.Events.OnDamagedSiege(this, new OnDamagedArgs()
+                    trg.Events.OnDamagedSiege(this, new OnDamagedArgs
                     {
                         Attacker = (Unit)caster,
                         Amount = value

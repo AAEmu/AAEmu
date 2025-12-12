@@ -2,17 +2,10 @@
 
 namespace AAEmu.Game.Models.Tasks.World;
 
-public class DoodadSpawnerDoSpawnTask : Task
+public class DoodadSpawnerDoSpawnTask(DoodadSpawner doodadSpawner) : Task
 {
-    private readonly DoodadSpawner _doodadSpawner;
-
-    public DoodadSpawnerDoSpawnTask(DoodadSpawner doodadSpawner)
-    {
-        _doodadSpawner = doodadSpawner;
-    }
-
     public override void Execute()
     {
-        _doodadSpawner.DoSpawn();
+        doodadSpawner.DoSpawn();
     }
 }

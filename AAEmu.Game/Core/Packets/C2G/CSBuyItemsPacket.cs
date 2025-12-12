@@ -12,12 +12,8 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSBuyItemsPacket : GamePacket
+public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
 {
-    public CSBuyItemsPacket() : base(CSOffsets.CSBuyItemsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();
@@ -34,7 +30,7 @@ public class CSBuyItemsPacket : GamePacket
         Logger.Debug($"NPCObjId:{npcObjId} DoodadObjId:{doodadObjId} unkId:{unkId} nBuy:{nBuy} nBuyBack{nBuyBack}");
 
         // If a NPC was provided, check if it's valid
-        if ((npcObjId != 0) && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))
+        if (npcObjId != 0 && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))
             return;
         MerchantGoods pack = null;
         if (npc != null)
@@ -75,7 +71,7 @@ public class CSBuyItemsPacket : GamePacket
             var currency = (ShopCurrencyType)stream.ReadByte();
 
             // If using a NPC shop, check if the NPC is selling the specified item
-            if ((npcObjId != 0) && ((pack == null) || (!pack.SellsItem(itemId))))
+            if (npcObjId != 0 && (pack == null || !pack.SellsItem(itemId)))
                 continue;
 
             if (doodadObjId != 0)

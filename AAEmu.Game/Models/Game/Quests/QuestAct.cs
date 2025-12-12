@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
-public class QuestAct : IComparable<QuestAct>, IQuestAct
+public class QuestAct(QuestComponent parentComponent, QuestActTemplate template) : IComparable<QuestAct>, IQuestAct
 {
     /// <summary>
     /// Same as Template.ActId
@@ -13,8 +13,8 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
     public uint DetailId => Template?.DetailId ?? 0;
     public string DetailType { get; set; }
 
-    public QuestComponent QuestComponent { get; }
-    public QuestActTemplate Template { get; set; }
+    public QuestComponent QuestComponent { get; } = parentComponent;
+    public QuestActTemplate Template { get; set; } = template;
 
     #region objectives
 
@@ -33,12 +33,6 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
         }
     }
 
-    public QuestAct(QuestComponent parentComponent, QuestActTemplate template)
-    {
-        QuestComponent = parentComponent;
-        Template = template;
-    }
-
     /// <summary>
     /// Get Current Objective Count for this Act (forwarded value from Quest)
     /// </summary>
@@ -52,7 +46,7 @@ public class QuestAct : IComparable<QuestAct>, IQuestAct
 
     public bool RunAct()
     {
-        var count = (QuestComponent.Template.KindId == QuestComponentKind.Progress) && (Template.ThisComponentObjectiveIndex < QuestComponent.Parent.Parent.Objectives.Length) ? QuestComponent.Parent.Parent.Objectives[Template.ThisComponentObjectiveIndex] : 0;
+        var count = QuestComponent.Template.KindId == QuestComponentKind.Progress && Template.ThisComponentObjectiveIndex < QuestComponent.Parent.Parent.Objectives.Length ? QuestComponent.Parent.Parent.Objectives[Template.ThisComponentObjectiveIndex] : 0;
         return Template.RunAct(QuestComponent.Parent.Parent, this, count) || OverrideObjectiveCompleted;
     }
 

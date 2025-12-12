@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCancelTradePacket : GamePacket
+public class CSCancelTradePacket() : GamePacket(CSOffsets.CSCancelTradePacket, 1)
 {
-    public CSCancelTradePacket() : base(CSOffsets.CSCancelTradePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var reason = stream.ReadInt32();

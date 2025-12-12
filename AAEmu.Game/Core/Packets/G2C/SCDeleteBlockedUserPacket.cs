@@ -3,27 +3,15 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDeleteBlockedUserPacket : GamePacket
+public class SCDeleteBlockedUserPacket(uint characterId, bool success, string blockedName, short errorMessage)
+    : GamePacket(SCOffsets.SCDeleteBlockedUserPacket, 1)
 {
-    private readonly uint _characterId;
-    private readonly bool _success;
-    private readonly string _blockedName;
-    private readonly short _errorMessage;
-
-    public SCDeleteBlockedUserPacket(uint characterId, bool success, string blockedName, short errorMessage) : base(SCOffsets.SCDeleteBlockedUserPacket, 1)
-    {
-        _characterId = characterId;
-        _success = success;
-        _blockedName = blockedName;
-        _errorMessage = errorMessage;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_characterId);
-        stream.Write(_success);
-        stream.Write(_blockedName);
-        stream.Write(_errorMessage);
+        stream.Write(characterId);
+        stream.Write(success);
+        stream.Write(blockedName);
+        stream.Write(errorMessage);
         return stream;
     }
 }

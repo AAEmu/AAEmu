@@ -8,18 +8,12 @@ namespace AAEmu.Game.Models.Game.Skills;
 
 public class BuffModifiers
 {
-    private Dictionary<uint, List<BuffModifier>> _modifiersByBuffId;
-    private Dictionary<uint, List<BuffModifier>> _modifiersByTagId;
-
-    public BuffModifiers()
-    {
-        _modifiersByBuffId = [];
-        _modifiersByTagId = [];
-    }
+    private readonly Dictionary<uint, List<BuffModifier>> _modifiersByBuffId = [];
+    private readonly Dictionary<uint, List<BuffModifier>> _modifiersByTagId = [];
 
     public double ApplyModifiers(BuffTemplate buff, BuffAttribute attribute, double baseValue)
     {
-        double endValue = baseValue;
+        var endValue = baseValue;
 
         var modifiers = GetModifiersForBuffIdWithAttribute(buff.Id, attribute).OrderBy(mod => mod.UnitModifierType).ToList();
 
@@ -33,7 +27,7 @@ public class BuffModifiers
             switch (modifier.UnitModifierType)
             {
                 case UnitModifierType.Percent:
-                    endValue += (endValue * (modifier.Value / 100.0f));
+                    endValue += endValue * (modifier.Value / 100.0f);
                     break;
                 case UnitModifierType.Value:
                     endValue += modifier.Value;

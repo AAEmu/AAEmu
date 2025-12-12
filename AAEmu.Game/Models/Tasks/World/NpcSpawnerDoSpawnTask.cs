@@ -2,19 +2,12 @@
 
 namespace AAEmu.Game.Models.Tasks.World;
 
-public class NpcSpawnerDoSpawnTask : Task
+public class NpcSpawnerDoSpawnTask(NpcSpawner npcSpawner, bool all = false) : Task
 {
-    private readonly NpcSpawner _npcSpawner;
-    private readonly bool _all;
-
-    public NpcSpawnerDoSpawnTask(NpcSpawner npcSpawner, bool all = false)
-    {
-        _npcSpawner = npcSpawner;
-        _all = all;
-    }
+    private readonly bool _all = all;
 
     public override void Execute()
     {
-        _npcSpawner?.DoSpawn();
+        npcSpawner?.DoSpawn();
     }
 }

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSDeleteBlockedUserPacket : GamePacket
+public class CSDeleteBlockedUserPacket() : GamePacket(CSOffsets.CSDeleteBlockedUserPacket, 1)
 {
-    public CSDeleteBlockedUserPacket() : base(CSOffsets.CSDeleteBlockedUserPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();

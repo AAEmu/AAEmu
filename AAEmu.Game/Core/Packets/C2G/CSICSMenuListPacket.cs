@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSICSMenuListPacket : GamePacket
+public class CSICSMenuListPacket() : GamePacket(CSOffsets.CSICSMenuListPacket, 1)
 {
-    public CSICSMenuListPacket() : base(CSOffsets.CSICSMenuListPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Empty struct

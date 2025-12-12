@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class ChangeCVarPacket : GamePacket
+public class ChangeCVarPacket() : GamePacket(PPOffsets.ChangeCVarPacket, 2)
 {
-    public ChangeCVarPacket() : base(PPOffsets.ChangeCVarPacket, 2)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var keyLength = stream.ReadUInt16();

@@ -38,13 +38,13 @@ public class QuestActObjZoneMonsterHunt(QuestComponentTemplate parentComponent) 
 
     public override void OnZoneKill(QuestAct questAct, object sender, OnZoneKillArgs args)
     {
-        if ((questAct.Id != ActId) || (args.ZoneGroupId != ZoneId))
+        if (questAct.Id != ActId || args.ZoneGroupId != ZoneId)
             return;
 
         if (args.Victim is not Npc npc)
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnZoneKill(@QuestActObjZoneMonsterHunt): Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ZoneGroupId {args.ZoneGroupId}, NpcObjId {npc.ObjId}");
-        AddObjective((QuestAct)questAct, 1);
+        AddObjective(questAct, 1);
     }
 }

@@ -4,17 +4,11 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.Skills;
 
-public class DespawnTask : Task
+public class DespawnTask(BaseUnit caster) : Task
 {
-    private readonly BaseUnit _caster;
-
-    public DespawnTask(BaseUnit caster)
-    {
-        _caster = caster;
-    }
     public override void Execute()
     {
-        if (_caster is not Npc npc)
+        if (caster is not Npc npc)
             return;
 
         ObjectIdManager.Instance.ReleaseId(npc.ObjId);

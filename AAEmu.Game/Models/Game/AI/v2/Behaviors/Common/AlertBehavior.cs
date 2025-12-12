@@ -48,7 +48,7 @@ public class AlertBehavior : BaseCombatBehavior
         {
             Ai.Owner.LookTowards(Ai.Owner.CurrentTarget.Transform.World.Position);
         }
-        if ((DateTime.UtcNow > Ai._alertEndTime) && (Ai.Owner.SkillTask == null))
+        if (DateTime.UtcNow > Ai._alertEndTime && Ai.Owner.SkillTask == null)
         {
             // Ai.Owner.SetTarget(null);
             Ai.Owner.Transform.Local.SetRotation(_oldRotation.X, _oldRotation.Y, _oldRotation.Z);

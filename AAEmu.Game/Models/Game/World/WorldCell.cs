@@ -90,8 +90,8 @@ public class WorldCell
         {
             for (var x = 0; x < 4; x++)
             {
-                var pathX = (uint)((CellX * 4) + x);
-                var pathY = (uint)((CellY * 4) + y);
+                var pathX = (uint)(CellX * 4 + x);
+                var pathY = (uint)(CellY * 4 + y);
                 var pathFolder = $"{pathX:000}_{pathY:000}";
                 var pathBaiLoader = new BaseBaiLoader(Template);
                 pathBaiLoader.LoadBaiFilesFromFolder(pathFolder); // (x != 0 || y != 0)

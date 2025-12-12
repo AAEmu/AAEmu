@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSDowngradeExpertLimitPacket : GamePacket
+public class CSDowngradeExpertLimitPacket() : GamePacket(CSOffsets.CSDowngradeExpertLimitPacket, 1)
 {
-    public CSDowngradeExpertLimitPacket() : base(CSOffsets.CSDowngradeExpertLimitPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

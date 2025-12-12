@@ -112,7 +112,7 @@ public class LootingContainer(IBaseUnit owner)
             // Check all people with a claim on the NPC
             EligiblePlayers.Clear();
             KillerTeam = TeamManager.Instance.GetActiveTeam(npc.CharacterTagging.TagTeam);
-            TeamLootingRule = KillerTeam?.LootingRule.Clone() ?? new LootingRule()
+            TeamLootingRule = KillerTeam?.LootingRule.Clone() ?? new LootingRule
             {
                 LootMethod = LootingRuleMethod.FreeForAll,
             };
@@ -365,7 +365,7 @@ public class LootingContainer(IBaseUnit owner)
             return false;
 
         // Check if it's already claimed by somebody else
-        if ((itemEntry.HighestRoller > 0) && (itemEntry.HighestRoller != player.Id))
+        if (itemEntry.HighestRoller > 0 && itemEntry.HighestRoller != player.Id)
         {
             if (itemEntry.HighestRoller > 0)
             {
@@ -671,10 +671,10 @@ public class LootingContainer(IBaseUnit owner)
 
     public bool CanMakePublic()
     {
-        return ((TeamLootingRule != null) &&
-            (TeamLootingRule.LootMethod != LootingRuleMethod.Public) &&
-            (Items.Count > 0) &&
-            (CreationTime > DateTime.MinValue) &&
-            (CreationTime.AddSeconds(MakeLootPublicTime) <= DateTime.UtcNow));
+        return TeamLootingRule != null &&
+               TeamLootingRule.LootMethod != LootingRuleMethod.Public &&
+               Items.Count > 0 &&
+               CreationTime > DateTime.MinValue &&
+               CreationTime.AddSeconds(MakeLootPublicTime) <= DateTime.UtcNow;
     }
 }

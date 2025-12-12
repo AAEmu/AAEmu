@@ -10,16 +10,10 @@ public enum UnitCustomModelType
     Face = 3
 }
 
-public class FixedDecalAsset : PacketMarshaler
+public class FixedDecalAsset(uint assetId = 0, float assetWeight = 0) : PacketMarshaler
 {
-    public uint AssetId { get; set; }
-    public float AssetWeight { get; set; }
-
-    public FixedDecalAsset(uint assetId = 0, float assetWeight = 0)
-    {
-        AssetId = assetId;
-        AssetWeight = assetWeight;
-    }
+    public uint AssetId { get; set; } = assetId;
+    public float AssetWeight { get; set; } = assetWeight;
 
     public override void Read(PacketStream stream)
     {

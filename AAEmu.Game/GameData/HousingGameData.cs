@@ -78,8 +78,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new HousingTemplate();
-                    template.Id = reader.GetUInt32("id");
+                    var template = new HousingTemplate { Id = reader.GetUInt32("id") };
                     template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, reader.GetString("name"));
                     template.CategoryId = reader.GetUInt32("category_id");
                     template.MainModelId = reader.GetUInt32("main_model_id");
@@ -120,9 +119,11 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                             var doodads = new List<HousingBindingDoodad>();
                             while (reader2.Read())
                             {
-                                var bindingDoodad = new HousingBindingDoodad();
-                                bindingDoodad.AttachPointId = (AttachPointKind)reader2.GetInt16("attach_point_id");
-                                bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
+                                var bindingDoodad = new HousingBindingDoodad
+                                {
+                                    AttachPointId = (AttachPointKind)reader2.GetInt16("attach_point_id"),
+                                    DoodadId = reader2.GetUInt32("doodad_id")
+                                };
 
                                 if (templateBindings != null &&
                                     templateBindings.AttachPointId.TryGetValue(bindingDoodad.AttachPointId,

@@ -73,7 +73,7 @@ public class LootPack
 
                 // Logger.Debug($"Rolling loot with pack {Id}, GroupNo {gIdx} rolled {dice}/{lootGroup.DropRate}");
 
-                if ((lootGroup.DropRate > 0) && (dice > lootGroup.DropRate))
+                if (lootGroup.DropRate > 0 && dice > lootGroup.DropRate)
                     continue;
             }
 
@@ -108,7 +108,7 @@ public class LootPack
 
             List<Loot> selected = [];
 
-            if ((alwaysDropGroup == false) && (uniqueItemDrop || hasLootGroup || (GroupCount <= 1)))
+            if (alwaysDropGroup == false && (uniqueItemDrop || hasLootGroup || GroupCount <= 1))
             {
                 selected.Add(loots.RandomElementByWeight(l => l.DropRate));
             }
@@ -191,7 +191,7 @@ public class LootPack
                 {
                     // Check for Quest loot drops
                     var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
-                    if ((itemTemplate?.LootQuestId > 0) && (player != null))
+                    if (itemTemplate?.LootQuestId > 0 && player != null)
                     {
                         // Skip item if player does not have quest
                         if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
@@ -201,7 +201,7 @@ public class LootPack
                     // Roll each item
                     var requiresDice = (long)Math.Floor(loot.DropRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
                     var dice = (long)Random.Shared.Next(0, 10_000_000);
-                    if ((dice < requiresDice) || loot.AlwaysDrop)
+                    if (dice < requiresDice || loot.AlwaysDrop)
                     {
                         if (!selectedItemsByGroup.ContainsKey(loot.Group))
                             selectedItemsByGroup.Add(loot.Group, []);
@@ -224,7 +224,7 @@ public class LootPack
                     {
                         var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
                         // Check for questS itemS in group
-                        if ((itemTemplate?.LootQuestId > 0) && (player != null))
+                        if (itemTemplate?.LootQuestId > 0 && player != null)
                         {
                             // Add item if player has quest
                             if (player.Quests.HasQuest(itemTemplate.LootQuestId))
@@ -247,7 +247,7 @@ public class LootPack
                                 actDice = (long)Math.Floor(actDice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
 
                                 var actLevelMultiplier = 1f;
-                                if ((player != null) && (player.Actability.Actabilities.TryGetValue((byte)actabilityType, out var actAbility)))
+                                if (player != null && player.Actability.Actabilities.TryGetValue((byte)actabilityType, out var actAbility))
                                 {
                                     actLevelMultiplier *= actAbility.GetLootMultiplier();
                                 }
@@ -273,7 +273,7 @@ public class LootPack
                         foreach (var loot in tmpSelectedItemsByGroup[groupNo])
                         {
                             var itemRate = loot.DropRate > 1 ? loot.DropRate / (float)normalizedRate : 1f;
-                            cumulativeRate += (long)Math.Floor((float)normalizedRate * itemRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
+                            cumulativeRate += (long)Math.Floor(normalizedRate * itemRate * lootDropRate * AppConfiguration.Instance.World.LootRate);
                             if (roll < cumulativeRate)
                             {
                                 if (!selectedItemsByGroup.ContainsKey(loot.Group))
@@ -352,7 +352,7 @@ public class LootPack
                     actDice = (long)Math.Floor(actDice / (lootDropRate * AppConfiguration.Instance.World.LootRate));
 
                     var actLevelMultiplier = 1f;
-                    if ((player != null) && (player.Actability.Actabilities.TryGetValue((byte)actabilityType, out var actAbility)))
+                    if (player != null && player.Actability.Actabilities.TryGetValue((byte)actabilityType, out var actAbility))
                     {
                         actLevelMultiplier *= actAbility.GetLootMultiplier();
                     }
@@ -367,7 +367,7 @@ public class LootPack
 
                 // Check for Quest loot drops
                 var itemTemplate = ItemManager.Instance.GetTemplate(loot.ItemId);
-                if ((itemTemplate?.LootQuestId > 0) && (player != null))
+                if (itemTemplate?.LootQuestId > 0 && player != null)
                 {
                     if (!player.Quests.HasQuest(itemTemplate.LootQuestId))
                         continue;

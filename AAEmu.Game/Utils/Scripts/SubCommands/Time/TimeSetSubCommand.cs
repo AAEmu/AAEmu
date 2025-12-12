@@ -19,11 +19,11 @@ public class TimeSetSubCommand : SubCommandBase
         var oldTime = TimeManager.Instance.GetTime;
         var hour = (int)oldTime;
         if (parameters.TryGetValue("hour", out var hourValue))
-            hour = (int)hourValue;
+            hour = hourValue;
         var minute = (int)Math.Floor((oldTime - Math.Truncate(oldTime)) * 60f);
         if (parameters.TryGetValue("minute", out var minuteValue))
             minute = minuteValue;
-        var newTime = hour * 1f + (minute / 60f);
+        var newTime = hour * 1f + minute / 60f;
         TimeManager.Instance.Set(newTime);
 
         SendMessage(messageOutput, $"Changed game time {oldTime:F2} -> {newTime:F2} ({hour}h{minute}m)");

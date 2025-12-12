@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSaveTutorialPacket : GamePacket
+public class CSSaveTutorialPacket() : GamePacket(CSOffsets.CSSaveTutorialPacket, 1)
 {
-    public CSSaveTutorialPacket() : base(CSOffsets.CSSaveTutorialPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

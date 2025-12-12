@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeSlaveTargetPacket : GamePacket
+public class CSChangeSlaveTargetPacket() : GamePacket(CSOffsets.CSChangeSlaveTargetPacket, 1)
 {
-    public CSChangeSlaveTargetPacket() : base(CSOffsets.CSChangeSlaveTargetPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var targetId = stream.ReadBc();

@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCPlaytimePacket : GamePacket
+public class SCPlaytimePacket(int playTime) : GamePacket(SCOffsets.SCPlaytimePacket, 1)
 {
-    private readonly int _playTime;
-
-    public SCPlaytimePacket(int playTime) : base(SCOffsets.SCPlaytimePacket, 1)
-    {
-        _playTime = playTime;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_playTime);
+        stream.Write(playTime);
         return stream;
     }
 }

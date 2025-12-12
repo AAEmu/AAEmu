@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 using System.Numerics;
-using System.Threading;
-
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
@@ -112,15 +106,15 @@ public class PhysicsManager
                     for (var inX = 0; inX < WorldManager.CELL_HMAP_RESOLUTION; inX++)
                     for (var inY = 0; inY < WorldManager.CELL_HMAP_RESOLUTION; inY++)
                     {
-                        var x = (cellX * WorldManager.CELL_HMAP_RESOLUTION) + inX;
-                        var y = (cellY * WorldManager.CELL_HMAP_RESOLUTION) + inY;
+                        var x = cellX * WorldManager.CELL_HMAP_RESOLUTION + inX;
+                        var y = cellY * WorldManager.CELL_HMAP_RESOLUTION + inY;
                         hmapTerrain[x, y] = cell.GetHeightMapDataInCell(x % WorldManager.CELL_HMAP_RESOLUTION,
                             y % WorldManager.CELL_HMAP_RESOLUTION);
                     }
                 }
 
                 if (AppConfiguration.Instance.World.PreLoadTerrain)
-                    Logger.Debug($"Loading {SimulationWorld} heightmap data {(cellCount / cellCountMax * 100f):F0}%");
+                    Logger.Debug($"Loading {SimulationWorld} heightmap data {cellCount / cellCountMax * 100f:F0}%");
             }
 
             var heightmap = new Heightmap(hmapTerrain);
@@ -235,7 +229,7 @@ public class PhysicsManager
                                 continue;
 
                             // TODO: move this
-                            var underPos = slave.Transform.World.Position + ((Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f) * slave.Scale);
+                            var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
                             if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
                             {
                                 if (flowDirection.Length() > 0f)
@@ -571,7 +565,7 @@ public class PhysicsManager
     {
         var jq = JQuaternion.CreateFromMatrix(matrix);
 
-        return new Quaternion()
+        return new Quaternion
         {
             X = jq.X,
             Y = jq.Y,
@@ -596,8 +590,8 @@ public class PhysicsManager
         {
             for (var inY = 0; inY < WorldManager.CELL_HMAP_RESOLUTION; inY++)
             {
-                var x = (cell.CellX * WorldManager.CELL_HMAP_RESOLUTION) + inX;
-                var y = (cell.CellY * WorldManager.CELL_HMAP_RESOLUTION) + inY;
+                var x = cell.CellX * WorldManager.CELL_HMAP_RESOLUTION + inX;
+                var y = cell.CellY * WorldManager.CELL_HMAP_RESOLUTION + inY;
                 WorldHeightMapTester.Heightmap.RawHeights[x, y] = cell.GetHeightMapDataInCell(inX, inY);
             }
         }

@@ -6,21 +6,21 @@ namespace AAEmu.Game.Models.Game.Mails;
 public class MailForAuction : BaseMail
 {
     private uint _buyerId;
-    private uint _sellerId;
-    private Item _item;
-    private string _itemName;
-    private int _itemBuyoutPrice;
+    private readonly uint _sellerId;
+    private readonly Item _item;
+    private readonly string _itemName;
+    private readonly int _itemBuyoutPrice;
     private int _sellerShare;
-    private int _listingFee;
+    private readonly int _listingFee;
     private int _tradeTaxFee;
 
-    private static string AuctionName = "Auctioneer";
+    private static readonly string AuctionName = "Auctioneer";
     // TODO: verify title names
-    private static string TitleSold = "Successful Auction Notice";
-    private static string TitleNotSold = "Failed Auction Notice";
-    private static string TitleBidWin = "Succesfull Purchase";
-    private static string TitleBidLost = "Failed Bid Notice";
-    private static string TitleCancel = "Cancelled Auction Notice";
+    private static readonly string TitleSold = "Successful Auction Notice";
+    private static readonly string TitleNotSold = "Failed Auction Notice";
+    private static readonly string TitleBidWin = "Succesfull Purchase";
+    private static readonly string TitleBidLost = "Failed Bid Notice";
+    private static readonly string TitleCancel = "Cancelled Auction Notice";
 
     // Mail examples for 1.2
 

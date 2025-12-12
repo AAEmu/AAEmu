@@ -4,25 +4,15 @@ using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCExpeditionMemberListPacket : GamePacket
+public class SCExpeditionMemberListPacket(uint total, uint id, List<ExpeditionMember> members)
+    : GamePacket(SCOffsets.SCExpeditionMemberListPacket, 1)
 {
-    private readonly uint _total;
-    private readonly uint _id;
-    private readonly List<ExpeditionMember> _members;
-
-    public SCExpeditionMemberListPacket(uint total, uint id, List<ExpeditionMember> members) : base(SCOffsets.SCExpeditionMemberListPacket, 1)
-    {
-        _total = total;
-        _id = id;
-        _members = members;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_total);
-        stream.Write((byte)_members.Count); // TODO max length 20
-        stream.Write(_id); // expedition id
-        foreach (var member in _members)
+        stream.Write(total);
+        stream.Write((byte)members.Count); // TODO max length 20
+        stream.Write(id); // expedition id
+        foreach (var member in members)
             stream.Write(member);
         return stream;
     }

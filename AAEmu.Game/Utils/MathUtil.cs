@@ -74,7 +74,7 @@ public class MathUtil
     /// <returns>Angle in degrees</returns>
     public static double CalculateAngleFrom(float obj1X, float obj1Y, float obj2X, float obj2Y)
     {
-        var angleTarget = (Math.Atan2(obj2Y - obj1Y, obj2X - obj1X)).RadToDeg(); // + 90;
+        var angleTarget = Math.Atan2(obj2Y - obj1Y, obj2X - obj1X).RadToDeg(); // + 90;
         return angleTarget % 360f;
     }
 
@@ -98,10 +98,10 @@ public class MathUtil
     {
         while (degree < 0f)
             degree += 360f;
-        if ((degree > 90f) && (degree <= 180f))
-            return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * -1);
+        if (degree > 90f && degree <= 180f)
+            return (sbyte)(((degree - 90f) / 90f * 37f + 90f) * -1);
         if (degree > 180f)
-            return (sbyte)((((degree - 270f) / 90f * 37f) - 90f) * -1);
+            return (sbyte)(((degree - 270f) / 90f * 37f - 90f) * -1);
         // When range is between -90 and 90, no rotation scaling is applied for doodads
         return (sbyte)(degree * -1);
     }
@@ -122,7 +122,7 @@ public class MathUtil
             return false; // if it's 0 or below, it's always false
 
         var degree = ClampDegAngle(CalculateAngleFrom(obj1, obj2));
-        return degree >= (-90.0 * fovScale) && degree <= (90.0 * fovScale);
+        return degree >= -90.0 * fovScale && degree <= 90.0 * fovScale;
     }
 
     public static double ConvertDirectionToRadian(sbyte direction)
@@ -195,31 +195,31 @@ public class MathUtil
     public static (float, float) AddDistanceToFrontDeg(float distance, float x, float y, float deg)
     {
         var rad = deg * Math.PI / 180.0;
-        var newX = (distance * (float)Math.Cos(rad)) + x;
-        var newY = (distance * (float)Math.Sin(rad)) + y;
+        var newX = distance * (float)Math.Cos(rad) + x;
+        var newY = distance * (float)Math.Sin(rad) + y;
         return (newX, newY);
     }
 
     public static (float, float) AddDistanceToFront(float distance, float x, float y, float rotZRad)
     {
-        var newX = (distance * (float)Math.Cos(rotZRad)) + x;
-        var newY = (distance * (float)Math.Sin(rotZRad)) + y;
+        var newX = distance * (float)Math.Cos(rotZRad) + x;
+        var newY = distance * (float)Math.Sin(rotZRad) + y;
         return (newX, newY);
     }
 
     public static (float, float) AddDistanceToRight(float distance, float x, float y, sbyte rotZ)
     {
-        var rad = ConvertDirectionToRadian(rotZ) - (Math.PI / 2);
-        var newX = (distance * (float)Math.Cos(rad)) + x;
-        var newY = (distance * (float)Math.Sin(rad)) + y;
+        var rad = ConvertDirectionToRadian(rotZ) - Math.PI / 2;
+        var newX = distance * (float)Math.Cos(rad) + x;
+        var newY = distance * (float)Math.Sin(rad) + y;
         return (newX, newY);
     }
 
     public static (float, float) AddDistanceToRight(float distance, float x, float y, float rotZRad)
     {
-        var rad = rotZRad - (Math.PI / 2);
-        var newX = (distance * (float)Math.Cos(rad)) + x;
-        var newY = (distance * (float)Math.Sin(rad)) + y;
+        var rad = rotZRad - Math.PI / 2;
+        var newX = distance * (float)Math.Cos(rad) + x;
+        var newY = distance * (float)Math.Sin(rad) + y;
         return (newX, newY);
     }
 
@@ -228,7 +228,7 @@ public class MathUtil
         // TODO: Probably needs more verification
         // var radFront = (rotationZ - (MathF.PI / 2f)) * -1f;
         // var radRight = rotationZ * -1f;
-        var radFront = rotationZ - (MathF.PI / 2f);
+        var radFront = rotationZ - MathF.PI / 2f;
         var radRight = rotationZ;
 
         // Console.WriteLine("GetCuboidVertices - rotationZ = " + rotationZ.RadToDeg() + "° > F: " + radFront.RadToDeg() + "°  R: " + radRight.RadToDeg() + "°");
@@ -240,20 +240,20 @@ public class MathUtil
 
         var result = new (float, float)[4];
 
-        var p1 = ((width * cosFront) + x, (width * sinFront) + y);
-        p1 = ((length * cosRight) + p1.Item1, (length * sinRight) + p1.Item2);
+        var p1 = (width * cosFront + x, width * sinFront + y);
+        p1 = (length * cosRight + p1.Item1, length * sinRight + p1.Item2);
         result[0] = p1;
 
-        var p2 = ((width * cosFront) + x, (width * sinFront) + y);
-        p2 = ((-length * cosRight) + p2.Item1, (-length * sinRight) + p2.Item2);
+        var p2 = (width * cosFront + x, width * sinFront + y);
+        p2 = (-length * cosRight + p2.Item1, -length * sinRight + p2.Item2);
         result[1] = p2;
 
-        var p3 = ((-width * cosFront) + x, (-width * sinFront) + y);
-        p3 = ((-length * cosRight) + p3.Item1, (-length * sinRight) + p3.Item2);
+        var p3 = (-width * cosFront + x, -width * sinFront + y);
+        p3 = (-length * cosRight + p3.Item1, -length * sinRight + p3.Item2);
         result[2] = p3;
 
-        var p4 = ((-width * cosFront) + x, (-width * sinFront) + y);
-        p4 = ((length * cosRight) + p4.Item1, (length * sinRight) + p4.Item2);
+        var p4 = (-width * cosFront + x, -width * sinFront + y);
+        p4 = (length * cosRight + p4.Item1, length * sinRight + p4.Item2);
         result[3] = p4;
 
         return result;
@@ -263,7 +263,7 @@ public class MathUtil
     public static (float, float)[] GetCuboidVertices(float length, float width, float x, float y, sbyte rotZ)
     {
         var radFront = ConvertDirectionToRadian(rotZ);
-        var radRight = ConvertDirectionToRadian(rotZ) - (Math.PI / 2);
+        var radRight = ConvertDirectionToRadian(rotZ) - Math.PI / 2;
 
         var cosFront = (float)Math.Cos(radFront);
         var sinFront = (float)Math.Sin(radFront);
@@ -272,20 +272,20 @@ public class MathUtil
 
         var result = new (float, float)[4];
 
-        var p1 = ((width * cosFront) + x, (width * sinFront) + y);
-        p1 = ((length * cosRight) + p1.Item1, (length * sinRight) + p1.Item2);
+        var p1 = (width * cosFront + x, width * sinFront + y);
+        p1 = (length * cosRight + p1.Item1, length * sinRight + p1.Item2);
         result[0] = p1;
 
-        var p2 = ((width * cosFront) + x, (width * sinFront) + y);
-        p2 = ((-length * cosRight) + p2.Item1, (-length * sinRight) + p2.Item2);
+        var p2 = (width * cosFront + x, width * sinFront + y);
+        p2 = (-length * cosRight + p2.Item1, -length * sinRight + p2.Item2);
         result[1] = p2;
 
-        var p3 = ((-width * cosFront) + x, (-width * sinFront) + y);
-        p3 = ((-length * cosRight) + p3.Item1, (-length * sinRight) + p3.Item2);
+        var p3 = (-width * cosFront + x, -width * sinFront + y);
+        p3 = (-length * cosRight + p3.Item1, -length * sinRight + p3.Item2);
         result[2] = p3;
 
-        var p4 = ((-width * cosFront) + x, (-width * sinFront) + y);
-        p4 = ((length * cosRight) + p4.Item1, (length * sinRight) + p4.Item2);
+        var p4 = (-width * cosFront + x, -width * sinFront + y);
+        p4 = (length * cosRight + p4.Item1, length * sinRight + p4.Item2);
         result[3] = p4;
 
         return result;
@@ -304,7 +304,7 @@ public class MathUtil
         b2 = Sign(point, v2, v3) < 0.0f;
         b3 = Sign(point, v3, v1) < 0.0f;
 
-        return ((b1 == b2) && (b2 == b3));
+        return b1 == b2 && b2 == b3;
     }
 
     public static sbyte ConvertRadianToDirection(double radian) // TODO float zRot
@@ -396,8 +396,8 @@ public class MathUtil
         double sqy = quat.Y * quat.Y;
         double sqz = quat.Z * quat.Z;
 
-        var rotX = (float)Math.Atan2(2.0 * (quat.X * quat.Y + quat.Z * quat.W), (sqx - sqy - sqz + sqw));
-        var rotY = (float)Math.Atan2(2.0 * (quat.Y * quat.Z + quat.X * quat.W), (-sqx - sqy + sqz + sqw));
+        var rotX = (float)Math.Atan2(2.0 * (quat.X * quat.Y + quat.Z * quat.W), sqx - sqy - sqz + sqw);
+        var rotY = (float)Math.Atan2(2.0 * (quat.Y * quat.Z + quat.X * quat.W), -sqx - sqy + sqz + sqw);
         var rotZ = (float)Math.Asin(-2.0 * (quat.X * quat.Z - quat.Y * quat.W) / (sqx + sqy + sqz + sqw));
 
         return new Vector3(rotX, rotY, rotZ);

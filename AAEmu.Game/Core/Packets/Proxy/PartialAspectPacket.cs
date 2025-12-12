@@ -2,10 +2,7 @@
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class PartialAspectPacket : GamePacket
+public class PartialAspectPacket() : GamePacket(PPOffsets.PartialAspectPacket, 2)
 {
     // TODO Only command without body...
-    public PartialAspectPacket() : base(PPOffsets.PartialAspectPacket, 2)
-    {
-    }
 }

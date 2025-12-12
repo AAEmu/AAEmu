@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSExpandExpertPacket : GamePacket
+public class CSExpandExpertPacket() : GamePacket(CSOffsets.CSExpandExpertPacket, 1)
 {
-    public CSExpandExpertPacket() : base(CSOffsets.CSExpandExpertPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Empty struct

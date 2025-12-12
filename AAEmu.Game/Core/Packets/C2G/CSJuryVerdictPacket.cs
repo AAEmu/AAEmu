@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSJuryVerdictPacket : GamePacket
+public class CSJuryVerdictPacket() : GamePacket(CSOffsets.CSJuryVerdictPacket, 1)
 {
-    public CSJuryVerdictPacket() : base(CSOffsets.CSJuryVerdictPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var trial = stream.ReadUInt32();

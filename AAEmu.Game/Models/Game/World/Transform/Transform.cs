@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -234,7 +234,7 @@ public class Transform : IDisposable
     /// <returns></returns>
     public WorldSpawnPosition CloneAsSpawnPosition()
     {
-        return new WorldSpawnPosition()
+        return new WorldSpawnPosition
         {
             WorldId = this.WorldId,
             ZoneId = this.ZoneId,
@@ -287,7 +287,7 @@ public class Transform : IDisposable
         lock (_lock)
         {
 
-            if ((parent == null) || (!parent.Equals(_parentTransform)))
+            if (parent == null || !parent.Equals(_parentTransform))
             {
                 if (_parentTransform != null)
                     _parentTransform.InternalDetachChild(this);
@@ -322,7 +322,7 @@ public class Transform : IDisposable
                 _parentTransform = parent;
                 _parentTransform?.InternalAttachChild(this);
 
-                if ((_owningObject is Character aPlayer))
+                if (_owningObject is Character aPlayer)
                     aPlayer.SendDebugMessage($"NewPos: {ToFullString(true, true)}");
             }
         }
@@ -576,7 +576,7 @@ public class Transform : IDisposable
         var chatColorRestore = chatFormatted ? "|r" : "";
         var chatLineFeed = chatFormatted ? "\n" : "";
         var res = "[i" + (_owningObject?.ParentWorld?.Id.ToString() ?? "?") + "] ";
-        if (isFirstInList && ((_parentTransform != null) || (_stickyParentTransform != null)))
+        if (isFirstInList && (_parentTransform != null || _stickyParentTransform != null))
             res += "[" + chatColorWhite + World + chatColorRestore + "] " + chatLineFeed + "=> ";
         res += Local.ToString();
         if (_parentTransform != null)
@@ -617,13 +617,13 @@ public class Transform : IDisposable
     private bool AttachStickyTransform(Transform stickyChild)
     {
         // Null-check
-        if ((stickyChild == null) || (stickyChild.GameObject == null))
+        if (stickyChild == null || stickyChild.GameObject == null)
             return false;
         // Check if already there
         if (StickyChildren.Contains(stickyChild))
             return false;
         // Check if in the same world
-        if ((stickyChild.WorldId != this.WorldId) || (stickyChild.InstanceId != this.InstanceId))
+        if (stickyChild.WorldId != this.WorldId || stickyChild.InstanceId != this.InstanceId)
             return false;
         StickyChildren.Add(stickyChild);
         stickyChild._stickyParentTransform = this;
@@ -652,7 +652,7 @@ public class Transform : IDisposable
 
             // var oldStickyParent = _stickyParentTransform;
             // Detach from previous sticky parent if needed 
-            if ((_stickyParentTransform != null) && (!_stickyParentTransform.Equals(stickyParent)))
+            if (_stickyParentTransform != null && !_stickyParentTransform.Equals(stickyParent))
                 _stickyParentTransform.DetachStickyTransform(this);
 
             /*

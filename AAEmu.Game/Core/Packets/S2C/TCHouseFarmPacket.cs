@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
-public class TCHouseFarmPacket : StreamPacket
+public class TCHouseFarmPacket() : StreamPacket(TCOffsets.TCHouseFarmPacket)
 {
-    public TCHouseFarmPacket() : base(TCOffsets.TCHouseFarmPacket)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         /*

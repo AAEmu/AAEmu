@@ -4,24 +4,13 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCharBriefPacket : GamePacket
+public class SCCharBriefPacket(uint charId, string name, Race race) : GamePacket(SCOffsets.SCCharBriefPacket, 1)
 {
-    private readonly uint _charId;
-    private readonly string _name;
-    private readonly Race _race;
-
-    public SCCharBriefPacket(uint charId, string name, Race race) : base(SCOffsets.SCCharBriefPacket, 1)
-    {
-        _charId = charId;
-        _name = name;
-        _race = race;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_charId);
-        stream.Write(_name);
-        stream.Write((byte)_race);
+        stream.Write(charId);
+        stream.Write(name);
+        stream.Write((byte)race);
         return stream;
     }
 }

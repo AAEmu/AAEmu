@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Utils;
@@ -10,7 +10,7 @@ public static class NumericExtensions
     /// </summary>
     public static double DegToRad(this double val)
     {
-        return (Math.PI / 180.0) * val;
+        return Math.PI / 180.0 * val;
     }
 
     /// <summary>
@@ -18,7 +18,7 @@ public static class NumericExtensions
     /// </summary>
     public static float DegToRad(this float val)
     {
-        return (MathF.PI / 180f) * val;
+        return MathF.PI / 180f * val;
     }
 
     /// <summary>

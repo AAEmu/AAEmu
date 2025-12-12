@@ -4,14 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets;
 
-public class CompressedGamePackets : GamePacket
+public class CompressedGamePackets() : GamePacket(0, 4)
 {
-    public List<GamePacket> Packets;
-
-    public CompressedGamePackets() : base(0, 4)
-    {
-        Packets = [];
-    }
+    public List<GamePacket> Packets = [];
 
     public void AddPacket(GamePacket packet)
     {

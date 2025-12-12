@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSPayChargeMoneyPacket : GamePacket
+public class CSPayChargeMoneyPacket() : GamePacket(CSOffsets.CSPayChargeMoneyPacket, 1)
 {
-    public CSPayChargeMoneyPacket() : base(CSOffsets.CSPayChargeMoneyPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var mailId = stream.ReadInt64();

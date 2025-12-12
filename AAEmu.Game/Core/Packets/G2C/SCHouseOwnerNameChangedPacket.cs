@@ -3,21 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCHouseOwnerNameChangedPacket : GamePacket
+public class SCHouseOwnerNameChangedPacket(ushort tl, string newName)
+    : GamePacket(SCOffsets.SCHouseOwnerNameChangedPacket, 1)
 {
-    private readonly ushort _tl;
-    private readonly string _newName;
-
-    public SCHouseOwnerNameChangedPacket(ushort tl, string newName) : base(SCOffsets.SCHouseOwnerNameChangedPacket, 1)
-    {
-        _tl = tl;
-        _newName = newName;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_tl);
-        stream.Write(_newName);
+        stream.Write(tl);
+        stream.Write(newName);
         return stream;
     }
 }

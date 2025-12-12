@@ -1,9 +1,7 @@
 ﻿namespace AAEmu.Game.Utils.Scripts.SubCommands;
 
-public struct ParameterValue
+public struct ParameterValue(object value)
 {
-    private readonly object _value;
-
     /// <summary>
     /// Gets the underlying parameter value, for testing purposes.
     /// </summary>
@@ -11,23 +9,19 @@ public struct ParameterValue
     [Obsolete("Prefer usage of implicit operations or As<T>()")]
     public object GetValue()
     {
-        return _value;
-    }
-    public ParameterValue(object value)
-    {
-        _value = value;
+        return value;
     }
 
     public T As<T>()
     {
-        if (_value is T)
-            return (T)_value;
+        if (value is T)
+            return (T)value;
 
-        throw new InvalidCastException($"Cannot cast {_value.GetType().Name} to {typeof(T).Name}");
+        throw new InvalidCastException($"Cannot cast {value.GetType().Name} to {typeof(T).Name}");
     }
     public bool Is<T>()
     {
-        return _value is T;
+        return value is T;
     }
 
     public static implicit operator float(ParameterValue value)
@@ -72,6 +66,6 @@ public struct ParameterValue
 
     public override string ToString()
     {
-        return _value.ToString();
+        return value.ToString();
     }
 }

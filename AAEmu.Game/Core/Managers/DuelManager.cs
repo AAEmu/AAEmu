@@ -2,7 +2,6 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -26,7 +25,7 @@ public class DuelManager : Singleton<DuelManager>
     private const double DuelDurationTime = 5;    // 5 min
 
     // there can be several duels at the same time
-    private ConcurrentDictionary<uint, Duel> _duels = new();
+    private readonly ConcurrentDictionary<uint, Duel> _duels = new();
     public Dictionary<uint, FactionsEnum> _saveFactions { get; set; } = [];
 
     protected DuelManager()
@@ -79,11 +78,11 @@ public class DuelManager : Singleton<DuelManager>
                 duel.Challenged.IsInDuel = true;
 
                 // spawn flag
-                _combatFlag = new DoodadSpawner();
-                _combatFlag.ParentWorld = challenged.ParentWorld;
-                _combatFlag.Id = 0;
-                _combatFlag.UnitId = 5014; // Combat Flag Id=5014;
-                _combatFlag.Position = duel.Challenger.Transform.CloneAsSpawnPosition();
+                _combatFlag = new DoodadSpawner
+                {
+                    ParentWorld = challenged.ParentWorld, Id = 0, UnitId = 5014, // Combat Flag Id=5014;
+                    Position = duel.Challenger.Transform.CloneAsSpawnPosition()
+                };
                 _combatFlag.Position.X = duel.Challenger.Transform.World.Position.X - (duel.Challenger.Transform.World.Position.X - duel.Challenged.Transform.World.Position.X) / 2;
                 _combatFlag.Position.Y = duel.Challenger.Transform.World.Position.Y - (duel.Challenger.Transform.World.Position.Y - duel.Challenged.Transform.World.Position.Y) / 2;
                 _combatFlag.Position.Z = challenged.ParentWorld.Template.GeoData.GetHeight(_combatFlag.Position.AsPositionVector());

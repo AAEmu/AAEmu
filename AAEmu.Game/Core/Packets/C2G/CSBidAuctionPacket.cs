@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSBidAuctionPacket : GamePacket
+public class CSBidAuctionPacket() : GamePacket(CSOffsets.CSBidAuctionPacket, 1)
 {
-    public CSBidAuctionPacket() : base(CSOffsets.CSBidAuctionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var auctioneerId = stream.ReadBc();

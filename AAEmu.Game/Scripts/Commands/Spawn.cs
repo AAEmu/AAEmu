@@ -80,10 +80,7 @@ public class Spawn : ICommand
                         return;
                     }
 
-                    var npcSpawner = new NpcSpawner();
-                    npcSpawner.ParentWorld = character.ParentWorld;
-                    npcSpawner.Id = 0;
-                    npcSpawner.UnitId = unitId;
+                    var npcSpawner = new NpcSpawner { ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId };
                     charPos.Local.AddDistanceToFront(3f);
                     angle = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
                     npcSpawner.Position = charPos.CloneAsSpawnPosition();
@@ -118,10 +115,7 @@ public class Spawn : ICommand
                         return;
                     }
 
-                    var doodadSpawner = new DoodadSpawner();
-                    doodadSpawner.ParentWorld = character.ParentWorld;
-                    doodadSpawner.Id = 0;
-                    doodadSpawner.UnitId = unitId;
+                    var doodadSpawner = new DoodadSpawner { ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId };
                     charPos.Local.AddDistanceToFront(3f);
                     angle = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
                     doodadSpawner.Position = charPos.CloneAsSpawnPosition();

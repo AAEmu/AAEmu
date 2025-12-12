@@ -6,13 +6,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSThisTimeUnpackItemPacket : GamePacket
+public class CSThisTimeUnpackItemPacket() : GamePacket(CSOffsets.CSThisTimeUnpackItemPacket, 1)
 {
-    public CSThisTimeUnpackItemPacket() : base(CSOffsets.CSThisTimeUnpackItemPacket, 1)
-    {
-
-    }
-
     public override void Read(PacketStream stream)
     {
         var slotType = (SlotType)stream.ReadByte();

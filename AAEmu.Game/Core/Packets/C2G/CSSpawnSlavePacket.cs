@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSpawnSlavePacket : GamePacket
+public class CSSpawnSlavePacket() : GamePacket(CSOffsets.CSSpawnSlavePacket, 1)
 {
-    public CSSpawnSlavePacket() : base(CSOffsets.CSSpawnSlavePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var slaveId = stream.ReadUInt32();

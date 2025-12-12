@@ -70,7 +70,7 @@ public class NumericSubCommandParameter<T> : SubCommandParameterBase
 
     private void EnsureValidRanges(T minValue, T maxValue)
     {
-        bool isValidRange = false;
+        var isValidRange = false;
 
         switch (typeof(T).Name)
         {
@@ -110,7 +110,7 @@ public class NumericSubCommandParameter<T> : SubCommandParameterBase
         T result;
         var textValue = GetValueWithoutPrefix(argumentValue);
         bool isValidNumber;
-        bool isValidRange = false;
+        var isValidRange = false;
         string invalidMessage = null;
 
         switch (typeof(T).Name)

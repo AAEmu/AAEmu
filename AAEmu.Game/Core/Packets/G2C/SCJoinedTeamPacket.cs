@@ -4,19 +4,12 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCJoinedTeamPacket : GamePacket
+public class SCJoinedTeamPacket(Team team) : GamePacket(SCOffsets.SCJoinedTeamPacket, 1)
 {
-    private readonly Team _team;
-
-    public SCJoinedTeamPacket(Team team) : base(SCOffsets.SCJoinedTeamPacket, 1)
-    {
-        _team = team;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_team);
-        foreach (var member in _team.Members)
+        stream.Write(team);
+        foreach (var member in team.Members)
         {
             if (member?.Character == null)
                 continue;

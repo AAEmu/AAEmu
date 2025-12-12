@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSExpressEmotionPacket : GamePacket
+public class CSExpressEmotionPacket() : GamePacket(CSOffsets.CSExpressEmotionPacket, 1)
 {
-    public CSExpressEmotionPacket() : base(CSOffsets.CSExpressEmotionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var characterObjId = stream.ReadBc();  // character

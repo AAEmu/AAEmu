@@ -336,7 +336,7 @@ public class Buffs : IBuffs
             }
             else if (buffTolerance != null)
             {
-                _toleranceCounters.Add(buffTolerance.Id, new BuffToleranceCounter()
+                _toleranceCounters.Add(buffTolerance.Id, new BuffToleranceCounter
                 {
                     Tolerance = buffTolerance,
                     CurrentStep = buffTolerance.GetFirstStep(),
@@ -441,7 +441,7 @@ public class Buffs : IBuffs
                 if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
                 {
                     // Unit entered a "safe zone"
-                    if ((owner is Npc npc) && (npc.Ai != null))
+                    if (owner is Npc npc && npc.Ai != null)
                     {
                         npc.ClearAllAggro();
                     }

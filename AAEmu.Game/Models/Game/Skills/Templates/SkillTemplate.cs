@@ -110,11 +110,6 @@ public class SkillTemplate
     public bool SourceNotCollided { get; set; }
     public int SkillPoints { get; set; }
     public int DoodadHitFamily { get; set; }
-    public List<SkillEffect> Effects { get; set; }
+    public List<SkillEffect> Effects { get; set; } = [];
     public bool FirstReagentOnly { get; set; }
-
-    public SkillTemplate()
-    {
-        Effects = [];
-    }
 }

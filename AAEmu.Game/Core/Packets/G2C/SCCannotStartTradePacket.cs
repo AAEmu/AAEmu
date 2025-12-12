@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCannotStartTradePacket : GamePacket
+public class SCCannotStartTradePacket(uint objId, int reason) : GamePacket(SCOffsets.SCCannotStartTradePacket, 1)
 {
-    private readonly uint _objId;
-    private readonly int _reason;
-
-    public SCCannotStartTradePacket(uint objId, int reason) : base(SCOffsets.SCCannotStartTradePacket, 1)
-    {
-        _objId = objId;
-        _reason = reason;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_objId);
-        stream.Write(_reason);
+        stream.WriteBc(objId);
+        stream.Write(reason);
         return stream;
     }
 }

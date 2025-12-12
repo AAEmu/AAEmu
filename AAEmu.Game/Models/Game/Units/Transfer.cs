@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class Transfer : Unit
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Transfer; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Transfer;
 
     public override ModelPostureType ModelPostureType { get => ModelPostureType.TurretState; }
@@ -28,8 +28,8 @@ public class Transfer : Unit
     public TransferTemplate Template { get; set; }
     public Transfer Bounded { get; set; }
     public TransferSpawner Spawner { get; set; }
-    public List<Doodad> AttachedDoodads { get; set; }
-    public List<Character> AttachedCharacters { get; set; }
+    public List<Doodad> AttachedDoodads { get; set; } = [];
+    public List<Character> AttachedCharacters { get; set; } = [];
     public DateTime SpawnTime { get; set; }
     public float RotationDegrees { get; set; }
     public Vector3 Velocity { get; set; }
@@ -45,14 +45,6 @@ public class Transfer : Unit
     //public sbyte RequestThrottle { get; set; }
     public DateTime WaitTime { get; set; }
     public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
-
-    public Transfer()
-    {
-        AttachedDoodads = [];
-        Routes = [];
-        TransferPath = [];
-        AttachedCharacters = [];
-    }
 
     #region Attributes
 
@@ -429,8 +421,8 @@ public class Transfer : Unit
     // Организуем движение транспорта / Transport movement information
     // ******************************************************************************************************************
 
-    public Dictionary<int, List<WorldSpawnPosition>> Routes { get; set; } // Steering, TransferPath - список всех участков дороги
-    public List<WorldSpawnPosition> TransferPath { get; set; }  // текущий участок дороги
+    public Dictionary<int, List<WorldSpawnPosition>> Routes { get; set; } = []; // Steering, TransferPath - список всех участков дороги
+    public List<WorldSpawnPosition> TransferPath { get; set; } = []; // текущий участок дороги
     public bool MoveToPathEnabled { get; set; }    // разрешено движение транспорта
     public bool MoveToForward { get; set; }        // movement direction true -> forward, true -> back
     public int MoveStepIndex { get; set; }         // current checkpoint (where are we running now)

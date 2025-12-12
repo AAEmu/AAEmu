@@ -4,18 +4,11 @@ using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAuctionCanceledPacket : GamePacket
+public class SCAuctionCanceledPacket(AuctionLot auctionLot) : GamePacket(SCOffsets.SCAuctionCanceledPacket, 1)
 {
-    private readonly AuctionLot _auctionLot;
-
-    public SCAuctionCanceledPacket(AuctionLot auctionLot) : base(SCOffsets.SCAuctionCanceledPacket, 1)
-    {
-        _auctionLot = auctionLot;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_auctionLot);
+        stream.Write(auctionLot);
 
         return stream;
     }

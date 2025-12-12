@@ -4,27 +4,15 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class X2EnterWorldResponsePacket : GamePacket
+public class X2EnterWorldResponsePacket(short reason, bool gm, uint token, ushort port)
+    : GamePacket(SCOffsets.X2EnterWorldResponsePacket, 1)
 {
-    private readonly short _reason;
-    private readonly uint _token;
-    private readonly ushort _port;
-    private readonly bool _gm;
-
-    public X2EnterWorldResponsePacket(short reason, bool gm, uint token, ushort port) : base(SCOffsets.X2EnterWorldResponsePacket, 1)
-    {
-        _reason = reason;
-        _token = token;
-        _port = port;
-        _gm = gm;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_reason);
-        stream.Write(_gm);
-        stream.Write(_token); // Stream Token // cs
-        stream.Write(_port); // Stream Port // cp
+        stream.Write(reason);
+        stream.Write(gm);
+        stream.Write(token); // Stream Token // cs
+        stream.Write(port); // Stream Port // cp
         stream.Write(Helpers.UnixTimeNow()); // wf
         stream.Write((ushort)0); // pubKeySize
         stream.Write(""); // pubKey

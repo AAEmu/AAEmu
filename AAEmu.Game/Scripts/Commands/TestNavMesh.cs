@@ -1,14 +1,9 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.AI.AStar;
-using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;

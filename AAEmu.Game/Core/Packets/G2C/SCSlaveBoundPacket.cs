@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSlaveBoundPacket : GamePacket
+public class SCSlaveBoundPacket(uint masterId, uint slaveId) : GamePacket(SCOffsets.SCSlaveBoundPacket, 1)
 {
-    private readonly uint _masterId;
-    private readonly uint _slaveId;
-
-    public SCSlaveBoundPacket(uint masterId, uint slaveId) : base(SCOffsets.SCSlaveBoundPacket, 1)
-    {
-        _masterId = masterId;
-        _slaveId = slaveId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_masterId);
-        stream.WriteBc(_slaveId);
+        stream.Write(masterId);
+        stream.WriteBc(slaveId);
         return stream;
     }
 }

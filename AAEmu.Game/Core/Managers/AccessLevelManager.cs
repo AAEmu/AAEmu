@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public class AccessLevelManager : Singleton<AccessLevelManager>
 {
-    private List<Command> CMD = [];
+    private readonly List<Command> CMD = [];
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public void Load()

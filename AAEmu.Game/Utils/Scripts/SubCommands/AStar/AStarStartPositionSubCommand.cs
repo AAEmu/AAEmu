@@ -1,7 +1,6 @@
 ﻿using System.Drawing;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 
@@ -22,7 +21,7 @@ public class AStarStartPositionSubCommand : SubCommandBase
     public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         Npc npc;
-        if (parameters.TryGetValue("ObjId", out ParameterValue npcObjId))
+        if (parameters.TryGetValue("ObjId", out var npcObjId))
         {
             npc = ((Character)character).ParentWorld.GetNpc(npcObjId);
             if (npc is null)

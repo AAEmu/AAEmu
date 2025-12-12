@@ -4,12 +4,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSExpandSlotsPacket : GamePacket
+public class CSExpandSlotsPacket() : GamePacket(CSOffsets.CSExpandSlotsPacket, 1)
 {
-    public CSExpandSlotsPacket() : base(CSOffsets.CSExpandSlotsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var slotType = stream.ReadInt32();

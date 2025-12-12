@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTStartUploadEmblemStreamPacket : StreamPacket
+public class CTStartUploadEmblemStreamPacket() : StreamPacket(CTOffsets.CTStartUploadEmblemStreamPacket)
 {
-    public CTStartUploadEmblemStreamPacket() : base(CTOffsets.CTStartUploadEmblemStreamPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var bc = stream.ReadBc();
@@ -24,7 +20,7 @@ public class CTStartUploadEmblemStreamPacket : StreamPacket
 
         if (dataSize == 0) // simple
         {
-            var defaultUcc = new DefaultUcc()
+            var defaultUcc = new DefaultUcc
             {
                 UploaderId = Connection.GameConnection.ActiveChar.Id
             };
@@ -33,7 +29,7 @@ public class CTStartUploadEmblemStreamPacket : StreamPacket
         }
         else // complex
         {
-            var customUcc = new CustomUcc() { UploaderId = Connection.GameConnection.ActiveChar.Id };
+            var customUcc = new CustomUcc { UploaderId = Connection.GameConnection.ActiveChar.Id };
             customUcc.Read(stream);
             UccManager.Instance.StartUpload(Connection, dataSize, customUcc);
         }

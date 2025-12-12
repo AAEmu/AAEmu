@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRefreshInCharacterListPacket : GamePacket
+public class CSRefreshInCharacterListPacket() : GamePacket(CSOffsets.CSRefreshInCharacterListPacket, 1)
 {
-    public CSRefreshInCharacterListPacket() : base(CSOffsets.CSRefreshInCharacterListPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         Logger.Debug("RefreshInCharacterList");

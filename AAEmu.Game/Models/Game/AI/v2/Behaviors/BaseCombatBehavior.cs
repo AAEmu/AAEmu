@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -53,7 +53,7 @@ public abstract class BaseCombatBehavior : Behavior
 
         var speed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
         var moveFlags = Ai.GetRealMovementFlags(speed);
-        speed *= (delta.Milliseconds / 1000.0);
+        speed *= delta.Milliseconds / 1000.0;
 
         // Fish overrides
         if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.Fish)))
@@ -317,7 +317,7 @@ public abstract class BaseCombatBehavior : Behavior
             Ai.Owner.CurrentAggroTarget = null;
             Ai.Owner.SetTarget(null);
         }
-        else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
+        else if (currentTargetUnit.Hp <= 0 || currentTargetUnit.IsDead)
         {
             Ai.Owner.CurrentAggroTarget = null;
             Ai.Owner.SetTarget(null);
@@ -407,10 +407,10 @@ public abstract class BaseCombatBehavior : Behavior
 
         if (Ai.Owner.Template.BaseSkillId == 0) { return false; }
 
-        var item = new AiSkill();
-        item.SkillId = (uint)Ai.Owner.Template.BaseSkillId;
-        item.Strafe = Ai.Owner.Template.BaseSkillStrafe;
-        item.Delay = Ai.Owner.Template.BaseSkillDelay;
+        var item = new AiSkill
+        {
+            SkillId = (uint)Ai.Owner.Template.BaseSkillId, Strafe = Ai.Owner.Template.BaseSkillStrafe, Delay = Ai.Owner.Template.BaseSkillDelay
+        };
         Logger.Info($"RefreshSkillQueue: Use BaseSkill: Ai.Owner={Ai.Owner.ObjId}:{Ai.Owner.TemplateId}, skill={item.SkillId}");
         _skillQueue.Enqueue(item);
 

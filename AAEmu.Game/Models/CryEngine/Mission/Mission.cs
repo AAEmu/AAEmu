@@ -1,14 +1,9 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Mission;
 
-public abstract class Mission
+public abstract class Mission(uint zoneId)
 {
-    public uint ZoneId { get; }
+    public uint ZoneId { get; } = zoneId;
     public string Name { get; set; } = string.Empty;
-
-    protected Mission(uint zoneId)
-    {
-        ZoneId = zoneId;
-    }
 
     public virtual bool Equals(Mission other)
     {
@@ -18,7 +13,7 @@ public abstract class Mission
         if (other == null)
             return false;
 
-        return (ZoneId.Equals(other.ZoneId) &&
-                Name.Equals(other.Name));
+        return ZoneId.Equals(other.ZoneId) &&
+               Name.Equals(other.Name);
     }
 }

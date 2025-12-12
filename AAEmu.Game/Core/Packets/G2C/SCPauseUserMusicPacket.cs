@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCPauseUserMusicPacket : GamePacket
+public class SCPauseUserMusicPacket(uint playerObjId) : GamePacket(SCOffsets.SCPauseUserMusicPacket, 1)
 {
-    private readonly uint _playerObjId;
-
-    public SCPauseUserMusicPacket(uint playerObjId) : base(SCOffsets.SCPauseUserMusicPacket, 1)
-    {
-        _playerObjId = playerObjId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_playerObjId);
+        stream.WriteBc(playerObjId);
         return stream;
     }
 }

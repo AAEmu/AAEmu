@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.S2C;
 
 namespace AAEmu.Game.Core.Network.Stream;
 
-public abstract class StreamPacket : PacketBase<StreamConnection>
+public abstract class StreamPacket(ushort typeId) : PacketBase<StreamConnection>(typeId)
 {
-    protected StreamPacket(ushort typeId) : base(typeId)
-    {
-    }
-
     public override PacketStream Encode()
     {
         var ps = new PacketStream();
@@ -24,7 +20,7 @@ public abstract class StreamPacket : PacketBase<StreamConnection>
         }
 
         string logString;
-        if ((TypeId == TCOffsets.TCDoodadIdsPacket) || ((TypeId == TCOffsets.TCDoodadStreamPacket)))
+        if (TypeId == TCOffsets.TCDoodadIdsPacket || TypeId == TCOffsets.TCDoodadStreamPacket)
             logString = $"StreamPacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
         else
             logString = $"StreamPacket: S->C {ToString()?.Substring(23)}\n{ps}";

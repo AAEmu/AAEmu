@@ -4,19 +4,12 @@ using AAEmu.Game.Models.Game.TowerDefs;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTowerDefListPacket : GamePacket
+public class SCTowerDefListPacket(List<TowerDefInfo> towerDefInfos) : GamePacket(SCOffsets.SCTowerDefListPacket, 1)
 {
-    private List<TowerDefInfo> _towerDefInfoList;
-
-    public SCTowerDefListPacket(List<TowerDefInfo> towerDefInfos) : base(SCOffsets.SCTowerDefListPacket, 1)
-    {
-        _towerDefInfoList = towerDefInfos;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_towerDefInfoList.Count);
-        foreach (var towerDefInfo in _towerDefInfoList)
+        stream.Write(towerDefInfos.Count);
+        foreach (var towerDefInfo in towerDefInfos)
             towerDefInfo.Write(stream);
         return stream;
     }

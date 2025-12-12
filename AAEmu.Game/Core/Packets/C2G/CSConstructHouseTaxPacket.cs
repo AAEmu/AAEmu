@@ -5,12 +5,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSConstructHouseTaxPacket : GamePacket
+public class CSConstructHouseTaxPacket() : GamePacket(CSOffsets.CSConstructHouseTaxPacket, 1)
 {
-    public CSConstructHouseTaxPacket() : base(CSOffsets.CSConstructHouseTaxPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var designId = stream.ReadUInt32(); // type(id)

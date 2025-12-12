@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSFactionKickToOriginPacket : GamePacket
+public class CSFactionKickToOriginPacket() : GamePacket(CSOffsets.CSFactionKickToOriginPacket, 1)
 {
-    public CSFactionKickToOriginPacket() : base(CSOffsets.CSFactionKickToOriginPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();

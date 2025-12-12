@@ -1,16 +1,10 @@
 ﻿namespace AAEmu.Game.Utils.Scripts.SubCommands;
 
-public abstract class SubCommandParameterBase
+public abstract class SubCommandParameterBase(string name, string displayName, bool required)
 {
-    public SubCommandParameterBase(string name, string displayName, bool required)
-    {
-        Name = name;
-        IsRequired = required;
-        DisplayName = displayName ?? name;
-    }
-    public string Name { get; protected set; }
-    public string DisplayName { get; protected set; }
-    public bool IsRequired { get; protected set; }
+    public string Name { get; protected set; } = name;
+    public string DisplayName { get; protected set; } = displayName ?? name;
+    public bool IsRequired { get; protected set; } = required;
     public string Prefix { get; protected set; }
     public abstract string CallExample { get; }
     /// <summary>

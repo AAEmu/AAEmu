@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSPutupTradeMoneyPacket : GamePacket
+public class CSPutupTradeMoneyPacket() : GamePacket(CSOffsets.CSPutupTradeMoneyPacket, 1)
 {
-    public CSPutupTradeMoneyPacket() : base(CSOffsets.CSPutupTradeMoneyPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var moneyAmount = stream.ReadInt32();

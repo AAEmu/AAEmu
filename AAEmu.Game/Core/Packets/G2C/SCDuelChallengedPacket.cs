@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDuelChallengedPacket : GamePacket
+public class SCDuelChallengedPacket(uint challengedId) : GamePacket(SCOffsets.SCDuelChallengedPacket, 1)
 {
-    private readonly uint _challengedId;
-
-    public SCDuelChallengedPacket(uint challengedId) : base(SCOffsets.SCDuelChallengedPacket, 1)
-    {
-        _challengedId = challengedId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_challengedId);  // challengerId
+        stream.Write(challengedId);  // challengerId
 
         return stream;
     }

@@ -33,11 +33,10 @@ public class SpawnGrid : ICommand
 
     public static void SpawnDoodad(uint unitId, Character character, float newX, float newY)
     {
-        var doodadSpawner = new DoodadSpawner();
-        doodadSpawner.ParentWorld = character.ParentWorld;
-        doodadSpawner.Id = 0;
-        doodadSpawner.UnitId = unitId;
-        doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
+        var doodadSpawner = new DoodadSpawner
+        {
+            ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId, Position = character.Transform.CloneAsSpawnPosition()
+        };
         doodadSpawner.Position.Y = newY;
         doodadSpawner.Position.X = newX;
         var angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.X, doodadSpawner.Position.Y,
@@ -52,11 +51,10 @@ public class SpawnGrid : ICommand
 
     public static void SpawnNPC(uint unitId, Character character, float newX, float newY)
     {
-        var npcSpawner = new NpcSpawner();
-        npcSpawner.ParentWorld = character.ParentWorld;
-        npcSpawner.Id = 0;
-        npcSpawner.UnitId = unitId;
-        npcSpawner.Position = character.Transform.CloneAsSpawnPosition();
+        var npcSpawner = new NpcSpawner
+        {
+            ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId, Position = character.Transform.CloneAsSpawnPosition()
+        };
         npcSpawner.Position.Y = newY;
         npcSpawner.Position.X = newX;
         var angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y,

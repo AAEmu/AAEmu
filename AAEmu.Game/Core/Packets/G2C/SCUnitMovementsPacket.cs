@@ -4,21 +4,15 @@ using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCUnitMovementsPacket : GamePacket // TODO ... SCOneUnitMovementPacket
+public class SCUnitMovementsPacket((uint id, MoveType type)[] movements)
+    : GamePacket(SCOffsets.SCUnitMovementsPacket, 1) // TODO ... SCOneUnitMovementPacket
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 
-    private (uint id, MoveType type)[] _movements;
-
-    public SCUnitMovementsPacket((uint id, MoveType type)[] movements) : base(SCOffsets.SCUnitMovementsPacket, 1)
-    {
-        _movements = movements;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((ushort)_movements.Length); // TODO ... max size is 400
-        foreach (var (id, type) in _movements)
+        stream.Write((ushort)movements.Length); // TODO ... max size is 400
+        foreach (var (id, type) in movements)
         {
             stream.WriteBc(id);
             stream.Write(type);

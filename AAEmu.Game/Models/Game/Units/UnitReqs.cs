@@ -48,7 +48,7 @@ public class UnitReqs
         switch (KindType)
         {
             case UnitReqsKindType.Level:
-                return Ret(SkillResultKeys.skill_urk_level, unit != null && (unit.Level >= Value1 && (Value2 == 0 || unit.Level <= Value2)));
+                return Ret(SkillResultKeys.skill_urk_level, unit != null && unit.Level >= Value1 && (Value2 == 0 || unit.Level <= Value2));
 
             case UnitReqsKindType.Ability:
                 return Ret(SkillResultKeys.skill_urk_ability, player != null && player.Abilities.GetAbilityLevel((AbilityType)Value1) >= Value2);
@@ -106,10 +106,10 @@ public class UnitReqs
             case UnitReqsKindType.EquipShield:
                 // TODO: Validate shield type (value2)
                 return Ret(SkillResultKeys.skill_urk_equip_shield,
-                    (unit != null) &&
-                    (unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand) is { } item) &&
-                    (item.Template is WeaponTemplate weaponTemplate) &&
-                    (weaponTemplate.HoldableTemplate.SlotTypeId == (uint)EquipmentItemSlotType.Shield));
+                    unit != null &&
+                    unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand) is { } item &&
+                    item.Template is WeaponTemplate weaponTemplate &&
+                    weaponTemplate.HoldableTemplate.SlotTypeId == (uint)EquipmentItemSlotType.Shield);
 
             case UnitReqsKindType.NoBuff:
                 return RetWithValue(SkillResultKeys.skill_urk_nobuff, Value1, unit != null && !unit.Buffs.CheckBuff(Value1));
@@ -127,11 +127,11 @@ public class UnitReqs
 
             case UnitReqsKindType.TargetNpc:
                 return RetWithValue(SkillResultKeys.skill_urk_target_npc, Value1,
-                    (targetUnit is Npc targetNpc) && (targetNpc.TemplateId == Value1));
+                    targetUnit is Npc targetNpc && targetNpc.TemplateId == Value1);
 
             case UnitReqsKindType.TargetDoodad:
                 BaseUnit targetDoodad = null;
-                if ((unit?.CurrentTarget is Doodad targetDoodadCheck))
+                if (unit?.CurrentTarget is Doodad targetDoodadCheck)
                 {
                     targetDoodad = targetDoodadCheck;
                 }
@@ -139,7 +139,7 @@ public class UnitReqs
                 {
                     targetDoodad = WorldManager.GetAround<Doodad>(unit, 5f, true)?.Where(x => x.TemplateId == Value1).FirstOrDefault();
                 }
-                return Ret(SkillResultKeys.skill_urk_target_doodad, (targetDoodad != null) && (targetDoodad.TemplateId == Value1));
+                return Ret(SkillResultKeys.skill_urk_target_doodad, targetDoodad != null && targetDoodad.TemplateId == Value1);
 
             case UnitReqsKindType.EquipRanged:
                 return Ret(SkillResultKeys.skill_urk_equip_ranged,
@@ -163,7 +163,7 @@ public class UnitReqs
 
             case UnitReqsKindType.TargetNpcGroup:
                 // TODO: Find out how to valid NpcGroup (value1)
-                return Ret(SkillResultKeys.skill_urk_target_npc_group, (targetUnit is Npc));
+                return Ret(SkillResultKeys.skill_urk_target_npc_group, targetUnit is Npc);
 
             case UnitReqsKindType.AreaSphere:
                 // Check Sphere for Quest

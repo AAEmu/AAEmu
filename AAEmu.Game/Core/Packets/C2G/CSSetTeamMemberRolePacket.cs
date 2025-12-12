@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSetTeamMemberRolePacket : GamePacket
+public class CSSetTeamMemberRolePacket() : GamePacket(CSOffsets.CSSetTeamMemberRolePacket, 1)
 {
-    public CSSetTeamMemberRolePacket() : base(CSOffsets.CSSetTeamMemberRolePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

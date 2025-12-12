@@ -259,8 +259,8 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
 
         var interestRate = 5;
 
-        var finalPriceNoInterest = (basePrice * (priceRatio / 100f));
-        var interest = (finalPriceNoInterest * (interestRate / 100f));
+        var finalPriceNoInterest = basePrice * (priceRatio / 100f);
+        var interest = finalPriceNoInterest * (interestRate / 100f);
         var amountBonus = 0; // TODO: negotiation bonus
         var finalPrice = finalPriceNoInterest + interest + amountBonus;
 
@@ -286,7 +286,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         var fsets = new Models.Game.Features.FeatureSet();
 
         // Split up the profit if needed
-        if ((crafterId != 0) && (crafterId != player.Id) && fsets.Check(Models.Game.Features.Feature.backpackProfitShare))
+        if (crafterId != 0 && crafterId != player.Id && fsets.Check(Models.Game.Features.Feature.backpackProfitShare))
         {
             amountOfItemsSeller = (int)Math.Round(amountOfItemsTotalPayout * sellerShare);
             amountOfItemsCrafter = amountOfItemsTotalPayout - amountOfItemsSeller;
@@ -305,7 +305,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>
         }
 
         // Mail for crafter. If seller is not crafter, send a crafter mail as well
-        if ((amountOfItemsCrafter > 0) && (crafterId != 0))
+        if (amountOfItemsCrafter > 0 && crafterId != 0)
         {
             var crafterMail = new MailForSpeciality(player, crafterId, backpack.TemplateId, priceRatio, itemTypeToDeliver, amountOfItemsBase, amountBonus, amountOfItemsSeller, amountOfItemsCrafter, interestRate);
             crafterMail.FinalizeForCrafter();

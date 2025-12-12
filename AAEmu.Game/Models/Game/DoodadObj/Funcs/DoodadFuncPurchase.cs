@@ -17,7 +17,7 @@ public class DoodadFuncPurchase : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        if (!(caster is Character character))
+        if (caster is not Character character)
             return;
         if (character.Inventory.Bag.SpaceLeftForItem(ItemId) < Count)
         {

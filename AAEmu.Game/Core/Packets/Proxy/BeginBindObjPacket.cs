@@ -2,10 +2,7 @@
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class BeginBindObjPacket : GamePacket
+public class BeginBindObjPacket() : GamePacket(PPOffsets.BeginBindObjPacket, 2)
 {
     // TODO Only command without body...
-    public BeginBindObjPacket() : base(PPOffsets.BeginBindObjPacket, 2)
-    {
-    }
 }

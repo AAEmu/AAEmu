@@ -6,12 +6,8 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSDecorateHousePacket : GamePacket
+public class CSDecorateHousePacket() : GamePacket(CSOffsets.CSDecorateHousePacket, 1)
 {
-    public CSDecorateHousePacket() : base(CSOffsets.CSDecorateHousePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var houseTlId = stream.ReadUInt16();

@@ -2,20 +2,9 @@
 
 namespace AAEmu.Game.Services.WebApi;
 
-public record RouteDefinition
+public record RouteDefinition(string Path, HttpMethod Method, MethodInfo TargetMethod)
 {
-    public string Key { get; }
-    public string Path { get; }
-    public HttpMethod Method { get; }
-    public MethodInfo TargetMethod { get; }
-
-    public RouteDefinition(string path, HttpMethod httpMethod, MethodInfo targetMethod)
-    {
-        Path = path;
-        Method = httpMethod;
-        TargetMethod = targetMethod;
-        Key = GetRouteKey(path, httpMethod);
-    }
+    public string Key { get; } = GetRouteKey(Path, Method);
 
     public static string GetRouteKey(string path, HttpMethod method)
     {

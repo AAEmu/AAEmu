@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSKickTeamMemberPacket : GamePacket
+public class CSKickTeamMemberPacket() : GamePacket(CSOffsets.CSKickTeamMemberPacket, 1)
 {
-    public CSKickTeamMemberPacket() : base(CSOffsets.CSKickTeamMemberPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

@@ -5,18 +5,11 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterFriends
+public class CharacterFriends(Character owner)
 {
-    public Character Owner { get; set; }
-    public Dictionary<uint, FriendTemplate> FriendsIdList { get; set; } // friendId, Template
-    private readonly List<uint> _removedFriends; // friendId
-
-    public CharacterFriends(Character owner)
-    {
-        Owner = owner;
-        FriendsIdList = [];
-        _removedFriends = [];
-    }
+    public Character Owner { get; set; } = owner;
+    public Dictionary<uint, FriendTemplate> FriendsIdList { get; set; } = []; // friendId, Template
+    private readonly List<uint> _removedFriends = []; // friendId
 
     public void AddFriend(string name)
     {
@@ -27,7 +20,7 @@ public class CharacterFriends
             return;
         }
 
-        var template = new FriendTemplate()
+        var template = new FriendTemplate
         {
             Id = FriendIdManager.Instance.GetNextId(),
             FriendId = friend.CharacterId,
@@ -74,7 +67,7 @@ public class CharacterFriends
             {
                 while (reader.Read())
                 {
-                    var template = new FriendTemplate()
+                    var template = new FriendTemplate
                     {
                         Id = reader.GetUInt32("id"),
                         FriendId = reader.GetUInt32("friend_id"),

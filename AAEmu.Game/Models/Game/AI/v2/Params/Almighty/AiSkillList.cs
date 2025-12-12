@@ -45,10 +45,12 @@ public class AiSkillList
         StartAiSkills = [];
         if (table["startAiSkill"] is LuaTable startAiSkill)
         {
-            var aiSkill = new AiSkill();
-            aiSkill.SkillId = Convert.ToUInt32(startAiSkill["skillType"]);
-            aiSkill.Delay = Convert.ToSingle(startAiSkill["delay"]);
-            aiSkill.Strafe = Convert.ToBoolean(startAiSkill["strafe"]);
+            var aiSkill = new AiSkill
+            {
+                SkillId = Convert.ToUInt32(startAiSkill["skillType"]),
+                Delay = Convert.ToSingle(startAiSkill["delay"]),
+                Strafe = Convert.ToBoolean(startAiSkill["strafe"])
+            };
 
             StartAiSkills.Add(aiSkill);
         }
@@ -69,17 +71,18 @@ public class AiSkillList
         }
         else if (table["skills"] is LuaTable skills)
         {
-            var skillList = new SkillList();
-            skillList.Skills = [];
+            var skillList = new SkillList { Skills = [] };
             foreach (var skill in skills.Values)
             {
                 if (skill is not LuaTable skillTable)
                     continue;
 
-                var aiSkill = new AiSkill();
-                aiSkill.SkillId = Convert.ToUInt32(skillTable["skillType"]);
-                aiSkill.Delay = Convert.ToSingle(skillTable["delay"]);
-                aiSkill.Strafe = Convert.ToBoolean(skillTable["strafe"]);
+                var aiSkill = new AiSkill
+                {
+                    SkillId = Convert.ToUInt32(skillTable["skillType"]),
+                    Delay = Convert.ToSingle(skillTable["delay"]),
+                    Strafe = Convert.ToBoolean(skillTable["strafe"])
+                };
 
                 skillList.Skills.Add(aiSkill);
             }
@@ -87,13 +90,14 @@ public class AiSkillList
         }
         else
         {
-            var aiSkill = new AiSkill();
-            aiSkill.SkillId = Convert.ToUInt32(table["skillType"]);
-            aiSkill.Delay = Convert.ToSingle(table["delay"]);
-            aiSkill.Strafe = Convert.ToBoolean(table["strafe"]);
+            var aiSkill = new AiSkill
+            {
+                SkillId = Convert.ToUInt32(table["skillType"]),
+                Delay = Convert.ToSingle(table["delay"]),
+                Strafe = Convert.ToBoolean(table["strafe"])
+            };
 
-            var skillList = new SkillList();
-            skillList.Skills = [aiSkill];
+            var skillList = new SkillList { Skills = [aiSkill] };
             SkillLists.Add(skillList);
         }
     }

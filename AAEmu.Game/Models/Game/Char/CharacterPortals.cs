@@ -8,26 +8,16 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterPortals
+public class CharacterPortals(Character owner)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; }
-    private readonly List<uint> _removedVisitedDistricts;
-    private readonly List<uint> _removedPrivatePortals;
+    private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; } = [];
+    private readonly List<uint> _removedVisitedDistricts = [];
+    private readonly List<uint> _removedPrivatePortals = [];
 
-    public Dictionary<uint, Portal> PrivatePortals { get; set; }
-    public Dictionary<uint, Portal> DistrictPortals { get; set; }
-    public Character Owner { get; set; }
-
-    public CharacterPortals(Character owner)
-    {
-        Owner = owner;
-        PrivatePortals = [];
-        DistrictPortals = [];
-        VisitedDistricts = [];
-        _removedVisitedDistricts = [];
-        _removedPrivatePortals = [];
-    }
+    public Dictionary<uint, Portal> PrivatePortals { get; set; } = [];
+    public Dictionary<uint, Portal> DistrictPortals { get; set; } = [];
+    public Character Owner { get; set; } = owner;
 
     public Portal GetPortalInfo(uint id)
     {
@@ -67,10 +57,10 @@ public class CharacterPortals
         {
             if (!VisitedDistricts.ContainsKey(subZoneId))
             {
-                var newVisitedDistrict = new VisitedDistrict();
-                newVisitedDistrict.Id = VisitedSubZoneIdManager.Instance.GetNextId();
-                newVisitedDistrict.SubZone = subZoneId;
-                newVisitedDistrict.Owner = Owner.Id;
+                var newVisitedDistrict = new VisitedDistrict
+                {
+                    Id = VisitedSubZoneIdManager.Instance.GetNextId(), SubZone = subZoneId, Owner = Owner.Id
+                };
                 VisitedDistricts.Add(subZoneId, newVisitedDistrict);
             }
             PopulateDistrictPortals();
@@ -83,7 +73,7 @@ public class CharacterPortals
     public void AddPrivatePortal(float x, float y, float z, float zRot, uint zoneId, string name)
     {
         // TODO - Only working by command
-        var newPortal = new Portal()
+        var newPortal = new Portal
         {
             Id = PrivateBookIdManager.Instance.GetNextId(),
             Name = name,
@@ -100,7 +90,7 @@ public class CharacterPortals
 
     public bool ChangePrivatePortalName(uint id, string name)
     {
-        if (PrivatePortals.TryGetValue((uint)id, out var privatePortal))
+        if (PrivatePortals.TryGetValue(id, out var privatePortal))
         {
             privatePortal.Name = name;
             Owner.SendPacket(new SCPortalInfoSavedPacket(privatePortal));
@@ -257,7 +247,7 @@ public class CharacterPortals
 
             //var returnPointsId = PortalManager.Instance.GetDistrictReturnPoint(subZone.Value.Id, Owner.Faction.Id);
 
-            if ((portals == null) || (portals.Count == 0)) { continue; }
+            if (portals == null || portals.Count == 0) { continue; }
 
             foreach (var portal in portals)
             {

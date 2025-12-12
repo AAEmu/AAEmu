@@ -7,21 +7,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj;
 /// Here is the work with the places in the cart
 /// </summary>
 
-public class VehicleSeat
+public class VehicleSeat(BaseUnit parentVehicle)
 {
     // objId Doodad - Chair, bench, bed where we sit down or lay
     // List<character.Id> List of employed places on a chair, bench, beds, or 0, if the place is free
-    private Dictionary<uint, List<uint>> _seats;
-    private BaseUnit _parent;
+    private readonly Dictionary<uint, List<uint>> _seats = []; // objId, List<character.Id>
 
     // Space = 1-means that there is one place (a chair), Space = 2-means that there are two places to sit (a bench on transport)
     // Spot = 0 sit left, = 1 sit right on the bench
-
-    public VehicleSeat(BaseUnit parentVehicle)
-    {
-        _seats = []; // objId, List<character.Id>
-        _parent = parentVehicle;
-    }
 
     private void Init(uint objId, int space)
     {
@@ -37,7 +30,7 @@ public class VehicleSeat
     {
         _seats[seatObjId][spot] = character.Id; // occupied place
         character.Transform.Parent = null;
-        character.Transform.StickyParent = _parent.Transform;
+        character.Transform.StickyParent = parentVehicle.Transform;
     }
 
     public void UnLoadPassenger(Character character, uint seatObjId)
@@ -48,7 +41,7 @@ public class VehicleSeat
             {
                 _seats[seatObjId][i] = 0; // free up space
                 character.Transform.StickyParent = null;
-                if (_parent is Transfer transfer)
+                if (parentVehicle is Transfer transfer)
                     transfer.AttachedCharacters.Remove(character);
             }
         }
@@ -91,7 +84,7 @@ public class VehicleSeat
             spot = -1;
         }
 
-        if ((spot != -1) && (_parent is Transfer transfer))
+        if (spot != -1 && parentVehicle is Transfer transfer)
             if (!transfer.AttachedCharacters.Contains(character))
                 transfer.AttachedCharacters.Add(character);
 

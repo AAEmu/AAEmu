@@ -21,7 +21,7 @@ public class MatePassengerInfo
 
 public sealed class Mate : Unit
 {
-    public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
+    public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Mate; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Mate;
     public NpcTemplate Template { get; set; }
     public uint OwnerObjId { get; set; }
@@ -405,7 +405,7 @@ public sealed class Mate : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -434,7 +434,7 @@ public sealed class Mate : Unit
             foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    res += (res * bonus.Value / 100f);
+                    res += res * bonus.Value / 100f;
                 else
                     res += bonus.Value;
             }
@@ -507,8 +507,8 @@ public sealed class Mate : Unit
 
         // TODO: Spawn this with the correct amount of seats depending on the template
         // 2 seats by default
-        Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo() { _objId = 0, _reason = 0 });
-        Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo() { _objId = 0, _reason = 0 });
+        Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo { _objId = 0, _reason = 0 });
+        Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo { _objId = 0, _reason = 0 });
     }
 
     /// <summary>

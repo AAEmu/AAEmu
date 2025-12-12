@@ -46,7 +46,7 @@ public class QuestActObjMonsterGroupHunt(QuestComponentTemplate parentComponent)
         if (QuestMonsterGroupId == args.NpcId)
         {
             Logger.Debug($"{QuestActTemplateName}({DetailId}).OnMonsterGroupHunt: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), Npc {args.NpcId}, Count {args.Count}");
-            AddObjective((QuestAct)questAct, (int)args.Count);
+            AddObjective(questAct, (int)args.Count);
         }
     }
 }

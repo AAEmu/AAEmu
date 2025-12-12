@@ -62,7 +62,7 @@ public class CharacterSkills(Character owner)
         {
             Id = template.Id,
             Template = template,
-            Level = (template.LevelStep > 0 ? (byte)(((Owner.GetAbLevel(template.AbilityId) - (template.AbilityLevel)) / template.LevelStep) + 1) : (byte)1)
+            Level = template.LevelStep > 0 ? (byte)((Owner.GetAbLevel(template.AbilityId) - template.AbilityLevel) / template.LevelStep + 1) : (byte)1
         };
         Skills.Add(skill.Id, skill);
 

@@ -4,21 +4,12 @@ using AAEmu.Game.Models.Game.TowerDefs;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTowerDefStartPacket : GamePacket
+public class SCTowerDefStartPacket(TowerDefKey key, uint eventZoneId) : GamePacket(SCOffsets.SCTowerDefStartPacket, 1)
 {
-    private TowerDefKey _key;
-    private uint _eventZoneId;
-
-    public SCTowerDefStartPacket(TowerDefKey key, uint eventZoneId) : base(SCOffsets.SCTowerDefStartPacket, 1)
-    {
-        _key = key;
-        _eventZoneId = eventZoneId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_key);
-        stream.Write(_eventZoneId);
+        stream.Write(key);
+        stream.Write(eventZoneId);
         return stream;
     }
 }

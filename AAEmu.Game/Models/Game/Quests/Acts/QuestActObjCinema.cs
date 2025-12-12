@@ -73,7 +73,7 @@ public class QuestActObjCinema(QuestComponentTemplate parentComponent) : QuestAc
         if (player.CurrentlyPlayingCinemaId != CinemaId)
             return;
 
-        SetObjective((QuestAct)questAct, 1);
+        SetObjective(questAct, 1);
         player.CurrentlyPlayingCinemaId = 0;
     }
 }

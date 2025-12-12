@@ -20,18 +20,18 @@ public class ImprintUccEffect : EffectTemplate
         CompressedGamePackets packetBuilder = null)
     {
         Logger.Trace("ImprintUccEffect");
-        if (!(target is Character player))
+        if (target is not Character player)
             return;
-        if (!(casterObj is SkillItem skillItem))
+        if (casterObj is not SkillItem skillItem)
             return;
-        if (!(targetObj is SkillCastItemTarget scit))
+        if (targetObj is not SkillCastItemTarget scit)
             return;
         var stampItem = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
         var targetItem = ItemManager.Instance.GetItemByItemId(scit.Id);
 
         // TODO: Check if items are owned by caster
 
-        if ((stampItem != null) && (targetItem != null))
+        if (stampItem != null && targetItem != null)
         {
             //var oldFlags = targetItem.ItemFlags;
             UccManager.ApplyStamp(stampItem, targetItem);

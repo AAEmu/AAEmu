@@ -6,12 +6,8 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSStartInteractionPacket : GamePacket
+public class CSStartInteractionPacket() : GamePacket(CSOffsets.CSStartInteractionPacket, 1)
 {
-    public CSStartInteractionPacket() : base(CSOffsets.CSStartInteractionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();

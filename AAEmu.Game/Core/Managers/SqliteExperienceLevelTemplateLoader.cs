@@ -27,11 +27,11 @@ public sealed class SqliteExperienceLevelTemplateLoader(ILogger logger) : IExper
         var lastMateExp = -1;
         while (reader.Read())
         {
-            var levelTemplate = new ExperienceLevelTemplate();
-            levelTemplate.Level = reader.GetByte("id");
-            levelTemplate.TotalExp = reader.GetInt32("total_exp");
-            levelTemplate.TotalMateExp = reader.GetInt32("total_mate_exp");
-            levelTemplate.SkillPoints = reader.GetInt32("skill_points");
+            var levelTemplate = new ExperienceLevelTemplate
+            {
+                Level = reader.GetByte("id"), TotalExp = reader.GetInt32("total_exp"), TotalMateExp = reader.GetInt32("total_mate_exp"),
+                SkillPoints = reader.GetInt32("skill_points")
+            };
 
             if (levelTemplate.Level != expectedLevel)
             {

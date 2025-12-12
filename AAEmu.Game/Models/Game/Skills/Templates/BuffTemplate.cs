@@ -156,16 +156,9 @@ public class BuffTemplate
     public bool CrowdHostile { get; set; }
     public bool OnActionTime => Tick > 0;
 
-    public List<TickEffect> TickEffects { get; set; }
-    public List<BonusTemplate> Bonuses { get; set; }
-    public List<DynamicBonusTemplate> DynamicBonuses { get; set; }
-
-    public BuffTemplate()
-    {
-        TickEffects = [];
-        Bonuses = [];
-        DynamicBonuses = [];
-    }
+    public List<TickEffect> TickEffects { get; set; } = [];
+    public List<BonusTemplate> Bonuses { get; set; } = [];
+    public List<DynamicBonusTemplate> DynamicBonuses { get; set; } = [];
 
     public void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
@@ -187,9 +180,9 @@ public class BuffTemplate
             if (source.Skill != null)
             {
                 var template = source.Skill.Template;
-                var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                var abilityLevel = character.GetAbLevel(source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
-                    abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    abLevel = (uint)(abilityLevel / template.LevelStep * template.LevelStep);
                 else
                     abLevel = (uint)template.AbilityLevel;
 
@@ -215,9 +208,7 @@ public class BuffTemplate
     {
         foreach (var template in Bonuses)
         {
-            var bonus = new Bonus();
-            bonus.Template = template;
-            bonus.Value = (int)Math.Round(template.Value + (template.LinearLevelBonus * (buff.AbLevel / 100f)));
+            var bonus = new Bonus { Template = template, Value = (int)Math.Round(template.Value + template.LinearLevelBonus * (buff.AbLevel / 100f)) };
             owner.AddBonus(buff.Index, bonus);
         }
 
@@ -348,7 +339,7 @@ public class BuffTemplate
 
     public int GetDuration(uint abLevel)
     {
-        return Math.Max(0, (LevelDuration * (int)abLevel) + Duration);
+        return Math.Max(0, LevelDuration * (int)abLevel + Duration);
     }
 
     public double GetTick()

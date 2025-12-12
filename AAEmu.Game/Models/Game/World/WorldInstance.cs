@@ -245,7 +245,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// <returns></returns>
     private static System.Drawing.Rectangle FindNearestSignificantPoints(int x, int y)
     {
-        return new System.Drawing.Rectangle(x - (x % 2), y - (y % 2), 2, 2);
+        return new System.Drawing.Rectangle(x - x % 2, y - y % 2, 2, 2);
     }
 
     /// <summary>
@@ -701,7 +701,7 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
             unit.IsInBattle = false;
         }
 
-        if ((unit is Character { IsInPostCast: true } character) && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
+        if (unit is Character { IsInPostCast: true } character && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
         {
             character.IsInPostCast = false;
         }

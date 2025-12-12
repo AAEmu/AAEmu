@@ -4,15 +4,15 @@ namespace AAEmu.Game.Models;
 
 #pragma warning disable IDE0052 // Remove unread private members
 
-public class AccountPayment
+public class AccountPayment(GameConnection connection)
 {
-    private GameConnection _connection;
+    private GameConnection _connection = connection;
 
     public PaymentMethodType Method { get; set; } = PaymentMethodType.Premium;
     public int Location { get; set; } = 1;
 
     public DateTime StartTime { get; set; } = DateTime.MinValue;
-    public DateTime EndTime { get; set; } = new DateTime(2030, 1, 1);
+    public DateTime EndTime { get; set; } = new(2030, 1, 1);
 
     /// <summary>
     /// Checks if Premium is currently active
@@ -20,11 +20,6 @@ public class AccountPayment
     public bool PremiumState
     {
         get => Method == PaymentMethodType.Premium && DateTime.UtcNow >= StartTime && DateTime.UtcNow <= EndTime;
-    }
-
-    public AccountPayment(GameConnection connection)
-    {
-        _connection = connection;
     }
 }
 

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCriminalLockedPacket : GamePacket
+public class CSCriminalLockedPacket() : GamePacket(CSOffsets.CSCriminalLockedPacket, 1)
 {
-    public CSCriminalLockedPacket() : base(CSOffsets.CSCriminalLockedPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32();

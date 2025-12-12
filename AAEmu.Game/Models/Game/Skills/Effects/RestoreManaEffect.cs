@@ -25,7 +25,7 @@ public class RestoreManaEffect : EffectTemplate
     {
         Logger.Trace("RestoreManaEffect");
 
-        if (!(target is Unit))
+        if (target is not Unit)
             return;
         var trg = (Unit)target;
         var min = 0;

@@ -3,16 +3,10 @@ using AAEmu.Game.Models.Game.Duels;
 
 namespace AAEmu.Game.Models.Tasks.Duels;
 
-public class DuelEndTimerTask : Task
+public class DuelEndTimerTask(Duel duel, uint challengerId) : Task
 {
-    protected Duel _duel;
-    protected uint _challengerId;
-
-    public DuelEndTimerTask(Duel duel, uint challengerId)
-    {
-        _duel = duel;
-        _challengerId = challengerId;
-    }
+    protected Duel _duel = duel;
+    protected uint _challengerId = challengerId;
 
     public override async System.Threading.Tasks.Task ExecuteAsync()
     {

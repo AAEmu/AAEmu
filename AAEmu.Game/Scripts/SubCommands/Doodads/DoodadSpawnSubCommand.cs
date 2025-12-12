@@ -34,10 +34,11 @@ public class DoodadSpawnSubCommand : SubCommandBase
         charPos.Local.AddDistanceToFront(3f);
         var defaultYaw = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
         var newYaw = GetOptionalParameterValue(parameters, "yaw", defaultYaw).DegToRad();
-        var doodadSpawner = new DoodadSpawner { Id = 0, UnitId = unitTemplateId };
-        doodadSpawner.ParentWorld = ((Character)character).ParentWorld;
+        var doodadSpawner = new DoodadSpawner
+        {
+            Id = 0, UnitId = unitTemplateId, ParentWorld = ((Character)character).ParentWorld, Position = charPos.CloneAsSpawnPosition()
+        };
 
-        doodadSpawner.Position = charPos.CloneAsSpawnPosition();
         doodadSpawner.Position.Yaw = newYaw;
         doodadSpawner.Position.Pitch = 0;
         doodadSpawner.Position.Roll = 0;

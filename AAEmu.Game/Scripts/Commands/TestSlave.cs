@@ -31,14 +31,11 @@ public class TestSlave : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        var slave = new Slave();
-        slave.Summoner = character;
-        slave.TemplateId = 73;
-        slave.ModelId = 1008;
-        slave.ObjId = ObjectIdManager.Instance.GetNextId();
-        slave.TlId = (ushort)TlIdManager.Instance.GetNextId();
-        slave.Faction = FactionManager.Instance.GetFaction((FactionsEnum)143);
-        slave.Level = 50;
+        var slave = new Slave { Summoner = character, TemplateId = 73, ModelId = 1008, ObjId = ObjectIdManager.Instance.GetNextId(),
+            TlId = (ushort)TlIdManager.Instance.GetNextId(),
+            Faction = FactionManager.Instance.GetFaction((FactionsEnum)143),
+            Level = 50
+        };
         slave.Transform = character.Transform.CloneDetached(slave);
         slave.Transform.Local.AddDistanceToFront(5f);
         slave.Hp = slave.MaxHp = 190000;

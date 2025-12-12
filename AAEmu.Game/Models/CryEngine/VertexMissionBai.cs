@@ -7,7 +7,7 @@ public class VertexMissionBai
 {
     public int Version { get; set; }
     public int NodeCount { get; set; }
-    public List<VertexMissionNode> Nodes { get; set; } = new();
+    public List<VertexMissionNode> Nodes { get; set; } = [];
 
     public void Parse(BinaryReader br)
     {

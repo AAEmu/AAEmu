@@ -3,28 +3,15 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.UpdateTargetMethods;
 
-public class PlotTargetAreaParams : IPlotTargetParams
+public class PlotTargetAreaParams(PlotEventTemplate template) : IPlotTargetParams
 {
-    public AreaShape Shape { get; set; } // TODO: Change to AreaShape object
-    public int MaxTargets { get; set; }
-    public int Distance { get; set; }
-    public int Angle { get; set; }
-    public int HeightOffset { get; set; }
-    public int UnkValue { get; set; } // Possibly Radius
-    public bool HitOnce { get; set; }
-    public SkillTargetRelation UnitRelationType { get; set; }
-    public byte UnitTypeFlag { get; set; }
-
-    public PlotTargetAreaParams(PlotEventTemplate template)
-    {
-        Shape = WorldManager.Instance.GetAreaShapeById((uint)template.TargetUpdateMethodParam1);
-        MaxTargets = template.TargetUpdateMethodParam2;
-        Distance = template.TargetUpdateMethodParam3;
-        Angle = template.TargetUpdateMethodParam4;
-        HeightOffset = template.TargetUpdateMethodParam5;
-        UnkValue = template.TargetUpdateMethodParam6;
-        HitOnce = template.TargetUpdateMethodParam7 == 1;
-        UnitRelationType = (SkillTargetRelation)template.TargetUpdateMethodParam8;
-        UnitTypeFlag = (byte)template.TargetUpdateMethodParam9;
-    }
+    public AreaShape Shape { get; set; } = WorldManager.Instance.GetAreaShapeById((uint)template.TargetUpdateMethodParam1); // TODO: Change to AreaShape object
+    public int MaxTargets { get; set; } = template.TargetUpdateMethodParam2;
+    public int Distance { get; set; } = template.TargetUpdateMethodParam3;
+    public int Angle { get; set; } = template.TargetUpdateMethodParam4;
+    public int HeightOffset { get; set; } = template.TargetUpdateMethodParam5;
+    public int UnkValue { get; set; } = template.TargetUpdateMethodParam6; // Possibly Radius
+    public bool HitOnce { get; set; } = template.TargetUpdateMethodParam7 == 1;
+    public SkillTargetRelation UnitRelationType { get; set; } = (SkillTargetRelation)template.TargetUpdateMethodParam8;
+    public byte UnitTypeFlag { get; set; } = (byte)template.TargetUpdateMethodParam9;
 }

@@ -7,12 +7,8 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeTargetPacket : GamePacket
+public class CSChangeTargetPacket() : GamePacket(CSOffsets.CSChangeTargetPacket, 1)
 {
-    public CSChangeTargetPacket() : base(CSOffsets.CSChangeTargetPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var targetId = stream.ReadBc();

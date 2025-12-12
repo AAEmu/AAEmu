@@ -136,7 +136,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddFactionChannel(FactionsEnum factionId, string name)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Ally, Faction = factionId, InternalId = (uint)factionId, InternalName = name };
+        var channel = new ChatChannel { ChatType = ChatType.Ally, Faction = factionId, InternalId = (uint)factionId, InternalName = name };
         return FactionChannels.TryAdd(factionId, channel);
     }
 
@@ -169,8 +169,8 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddNationChannel(Race race, FactionsEnum factionDisplayId, string name)
     {
-        var mRace = (((byte)race - 1) & 0xFC);
-        var channel = new ChatChannel() { ChatType = ChatType.Region, Faction = factionDisplayId, InternalId = mRace, InternalName = name };
+        var mRace = ((byte)race - 1) & 0xFC;
+        var channel = new ChatChannel { ChatType = ChatType.Region, Faction = factionDisplayId, InternalId = mRace, InternalName = name };
         return NationChannels.TryAdd(mRace, channel);
     }
 
@@ -183,7 +183,7 @@ public class ChatManager : Singleton<ChatManager>
     {
         // some bit magic that makes raceId into some kind of birth continent id
         // If Fairy (for Nuia) and Returned (for Haranya) are ever added as a different faction, we'll need to go and write some proper code for this
-        var mRace = (((byte)race - 1) & 0xFC);
+        var mRace = ((byte)race - 1) & 0xFC;
         return NationChannels.GetValueOrDefault(mRace, NullChannel);
     }
 
@@ -245,7 +245,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddGuildChannel(Expedition guild)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Clan, SubType = (short)guild.Id, InternalId = (uint)guild.Id, InternalName = guild.Name };
+        var channel = new ChatChannel { ChatType = ChatType.Clan, SubType = (short)guild.Id, InternalId = (uint)guild.Id, InternalName = guild.Name };
         return GuildChannels.TryAdd(guild.Id, channel);
     }
 
@@ -281,7 +281,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddFamilyChannel(uint familyId)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Family, SubType = (short)familyId, InternalId = familyId, InternalName = $"Family {familyId}" };
+        var channel = new ChatChannel { ChatType = ChatType.Family, SubType = (short)familyId, InternalId = familyId, InternalName = $"Family {familyId}" };
         return FamilyChannels.TryAdd(familyId, channel);
     }
 
@@ -317,7 +317,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddPartyChannel(uint partyId)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Party, SubType = (short)partyId, InternalId = partyId, InternalName = $"Party({partyId})" };
+        var channel = new ChatChannel { ChatType = ChatType.Party, SubType = (short)partyId, InternalId = partyId, InternalName = $"Party({partyId})" };
         return PartyChannels.TryAdd(partyId, channel);
     }
 
@@ -334,11 +334,11 @@ public class ChatManager : Singleton<ChatManager>
         uint partyNumber = 0;
         for (uint i = 0; i < party.Members.Length; i++)
         {
-            if ((party.Members[i] == null) || (party.Members[i].Character == null))
+            if (party.Members[i] == null || party.Members[i].Character == null)
                 continue;
             if (party.Members[i].Character.Id == myChar.Id)
             {
-                partyNumber = (i / 5);
+                partyNumber = i / 5;
                 break;
             }
         }
@@ -370,7 +370,7 @@ public class ChatManager : Singleton<ChatManager>
     /// <returns></returns>
     private bool AddRaidChannel(uint partyId)
     {
-        var channel = new ChatChannel() { ChatType = ChatType.Raid, SubType = (short)partyId, InternalId = partyId, InternalName = $"Raid({partyId})" };
+        var channel = new ChatChannel { ChatType = ChatType.Raid, SubType = (short)partyId, InternalId = partyId, InternalName = $"Raid({partyId})" };
         return RaidChannels.TryAdd(partyId, channel);
     }
 

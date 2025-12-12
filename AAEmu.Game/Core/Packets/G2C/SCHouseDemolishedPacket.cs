@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCHouseDemolishedPacket : GamePacket
+public class SCHouseDemolishedPacket(ushort tl) : GamePacket(SCOffsets.SCHouseDemolishedPacket, 1)
 {
-    private readonly ushort _tl;
-
-    public SCHouseDemolishedPacket(ushort tl) : base(SCOffsets.SCHouseDemolishedPacket, 1)
-    {
-        _tl = tl;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_tl);
+        stream.Write(tl);
         return stream;
     }
 }

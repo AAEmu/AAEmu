@@ -57,7 +57,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
         foreach (var questComponent in Components.Values)
             questComponent.IsCurrentlyActive = UnitRequirementsGameData.Instance.CanComponentRun(questComponent.Template, (BaseUnit)Parent.Owner);
 
-        var componentsOrCheck = (Parent.Template.Selective && ThisStep == QuestComponentKind.Progress);
+        var componentsOrCheck = Parent.Template.Selective && ThisStep == QuestComponentKind.Progress;
 
         if (componentsOrCheck)
         {
@@ -92,7 +92,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
         }
 
         // Override result for score quests
-        if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.Score > 0))
+        if (ThisStep == QuestComponentKind.Progress && Parent.Template.Score > 0)
         {
             // Validate using Score combined from all components
             var score = 0;
@@ -111,7 +111,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
                 ? QuestStatus.Ready
                 : QuestStatus.Progress;
         }
-        else if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.LetItDone))
+        else if (ThisStep == QuestComponentKind.Progress && Parent.Template.LetItDone)
         {
             // Validate using combined from all components
             var objectiveStatus = Parent.GetQuestObjectiveStatus();
@@ -125,7 +125,7 @@ public class QuestStep(QuestComponentKind step, Quest parent)
         res &= Parent.DistributeRewards(true);
 
         // LetItBeDone type of quests, are always forced forward using the Report Acts
-        if ((ThisStep == QuestComponentKind.Progress) && (Parent.Template.LetItDone))
+        if (ThisStep == QuestComponentKind.Progress && Parent.Template.LetItDone)
             res = false;
 
         return res;

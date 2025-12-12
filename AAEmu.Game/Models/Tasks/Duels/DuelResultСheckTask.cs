@@ -3,18 +3,11 @@ using AAEmu.Game.Models.Game.Duels;
 
 namespace AAEmu.Game.Models.Tasks.Duels;
 
-public class DuelResultСheckTask : Task
+public class DuelResultСheckTask(Duel duel) : Task
 {
-    protected Duel _duel;
-    protected uint _challengerId;
-    protected uint _challengedId;
-
-    public DuelResultСheckTask(Duel duel)
-    {
-        _duel = duel;
-        _challengerId = duel.Challenger.Id;
-        _challengedId = duel.Challenged.Id;
-    }
+    protected Duel _duel = duel;
+    protected uint _challengerId = duel.Challenger.Id;
+    protected uint _challengedId = duel.Challenged.Id;
 
     public override void Execute()
     {

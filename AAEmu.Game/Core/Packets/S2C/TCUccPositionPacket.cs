@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
-public class TCUccPositionPacket : StreamPacket
+public class TCUccPositionPacket() : StreamPacket(TCOffsets.TCUccPositionPacket)
 {
-    public TCUccPositionPacket() : base(TCOffsets.TCUccPositionPacket)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((long)0); // type

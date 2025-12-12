@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
-public class TCUccStringPacket : StreamPacket
+public class TCUccStringPacket() : StreamPacket(TCOffsets.TCUccStringPacket)
 {
-    public TCUccStringPacket() : base(TCOffsets.TCUccStringPacket)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((long)0); // type

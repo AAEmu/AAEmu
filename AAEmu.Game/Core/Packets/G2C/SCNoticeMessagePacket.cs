@@ -21,7 +21,7 @@ public class SCNoticeMessagePacket : GamePacket
             ARGBColor = Color.FromArgb(0xFF, ARGBColor.R, ARGBColor.G, ARGBColor.B);
         // if no visible time set, generate automatic timing
         if (vistime <= 0)
-            vistime = 1000 + (message.Length * 50);
+            vistime = 1000 + message.Length * 50;
         _type = type;
         _alphahex = ARGBColor.A.ToString("X2");
         _colorhex = ARGBColor.R.ToString("X2") + ARGBColor.G.ToString("X2") + ARGBColor.B.ToString("X2");

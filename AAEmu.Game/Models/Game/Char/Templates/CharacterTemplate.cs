@@ -12,16 +12,9 @@ public class CharacterTemplate
     public FactionsEnum FactionId { get; set; }
     public uint ReturnDistrictId { get; set; }
     public uint ResurrectionDistrictId { get; set; }
-    public WorldSpawnPosition SpawnPosition { get; set; }
-    public uint[] Items { get; set; }
-    public List<uint> Buffs { get; set; }
+    public WorldSpawnPosition SpawnPosition { get; set; } = new();
+    public uint[] Items { get; set; } = new uint[7];
+    public List<uint> Buffs { get; set; } = [];
     public byte NumInventorySlot { get; set; }
     public short NumBankSlot { get; set; }
-
-    public CharacterTemplate()
-    {
-        SpawnPosition = new WorldSpawnPosition();
-        Items = new uint[7];
-        Buffs = [];
-    }
 }

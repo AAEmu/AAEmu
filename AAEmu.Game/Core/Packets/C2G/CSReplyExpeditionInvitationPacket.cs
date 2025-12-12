@@ -5,12 +5,8 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSReplyExpeditionInvitationPacket : GamePacket
+public class CSReplyExpeditionInvitationPacket() : GamePacket(CSOffsets.CSReplyExpeditionInvitationPacket, 1)
 {
-    public CSReplyExpeditionInvitationPacket() : base(CSOffsets.CSReplyExpeditionInvitationPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = (FactionsEnum)stream.ReadUInt32(); // type(id)

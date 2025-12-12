@@ -4,12 +4,8 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRepairAllEquipmentsPacket : GamePacket
+public class CSRepairAllEquipmentsPacket() : GamePacket(CSOffsets.CSRepairAllEquipmentsPacket, 1)
 {
-    public CSRepairAllEquipmentsPacket() : base(CSOffsets.CSRepairAllEquipmentsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var autoUseAAPoint = stream.ReadBoolean();

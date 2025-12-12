@@ -10,7 +10,7 @@ public abstract class SubCommandBase : ICommandV2
 {
     protected Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<string, ICommandV2> _subCommands = [];
-    private List<SubCommandParameterBase> _parameters = [];
+    private readonly List<SubCommandParameterBase> _parameters = [];
 
     protected void AddParameter(SubCommandParameterBase parameter)
     {
@@ -140,7 +140,7 @@ public abstract class SubCommandBase : ICommandV2
         foreach (var parameterPrefix in _parameters.Where(p => p.Prefix is not null))
         {
             string foundPrefixArgument = null;
-            bool duplicatedPrefixValue = false;
+            var duplicatedPrefixValue = false;
             foreach (var argument in prefixArguments)
             {
                 if (parameterPrefix.MatchPrefix(argument))

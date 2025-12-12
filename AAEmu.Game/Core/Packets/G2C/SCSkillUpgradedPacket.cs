@@ -4,19 +4,12 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSkillUpgradedPacket : GamePacket
+public class SCSkillUpgradedPacket(Skill skill) : GamePacket(SCOffsets.SCSkillUpgradedPacket, 1)
 {
-    private readonly Skill _skill;
-
-    public SCSkillUpgradedPacket(Skill skill) : base(SCOffsets.SCSkillUpgradedPacket, 1)
-    {
-        _skill = skill;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_skill.Id);
-        stream.Write(_skill.Level);
+        stream.Write(skill.Id);
+        stream.Write(skill.Level);
         return stream;
     }
 }

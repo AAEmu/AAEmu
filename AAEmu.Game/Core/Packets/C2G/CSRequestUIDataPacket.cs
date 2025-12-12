@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRequestUIDataPacket : GamePacket
+public class CSRequestUIDataPacket() : GamePacket(CSOffsets.CSRequestUIDataPacket, 1)
 {
-    public CSRequestUIDataPacket() : base(CSOffsets.CSRequestUIDataPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var uiDataType = stream.ReadUInt16();

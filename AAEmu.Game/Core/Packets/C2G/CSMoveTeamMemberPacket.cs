@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSMoveTeamMemberPacket : GamePacket
+public class CSMoveTeamMemberPacket() : GamePacket(CSOffsets.CSMoveTeamMemberPacket, 1)
 {
-    public CSMoveTeamMemberPacket() : base(CSOffsets.CSMoveTeamMemberPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var teamId = stream.ReadUInt32();

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeSlaveNamePacket : GamePacket
+public class CSChangeSlaveNamePacket() : GamePacket(CSOffsets.CSChangeSlaveNamePacket, 1)
 {
-    public CSChangeSlaveNamePacket() : base(CSOffsets.CSChangeSlaveNamePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var tl = stream.ReadUInt16();

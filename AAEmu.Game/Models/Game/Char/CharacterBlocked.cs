@@ -5,18 +5,11 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterBlocked
+public class CharacterBlocked(Character owner)
 {
-    public Character Owner { get; set; }
-    public Dictionary<uint, BlockedTemplate> BlockedList { get; set; } // bvId, Template
-    private readonly List<uint> _removedBlocked; // blockedId
-
-    public CharacterBlocked(Character owner)
-    {
-        Owner = owner;
-        BlockedList = [];
-        _removedBlocked = [];
-    }
+    public Character Owner { get; set; } = owner;
+    public Dictionary<uint, BlockedTemplate> BlockedList { get; set; } = []; // bvId, Template
+    private readonly List<uint> _removedBlocked = []; // blockedId
 
     public static List<Blocked> GetBlockedInfo(List<uint> ids)
     {
@@ -81,7 +74,7 @@ public class CharacterBlocked
             {
                 while (reader.Read())
                 {
-                    var template = new BlockedTemplate()
+                    var template = new BlockedTemplate
                     {
                         Owner = reader.GetUInt32("owner"),
                         BlockedId = reader.GetUInt32("blocked_id")
@@ -129,7 +122,7 @@ public class CharacterBlocked
         var blocked = WorldManager.Instance.GetCharacter(name);
 
         if (blocked == null || BlockedList.ContainsKey(blocked.Id)) return; // already blocked
-        var template = new BlockedTemplate()
+        var template = new BlockedTemplate
         {
             BlockedId = blocked.Id,
             Owner = Owner.Id
@@ -149,7 +142,7 @@ public class CharacterBlocked
 
     private static Blocked FormatBlocked(Character blocked)
     {
-        return new Blocked()
+        return new Blocked
         {
             CharacterId = blocked.Id,
             Name = blocked.Name

@@ -16,7 +16,7 @@ public class Friend : PacketMarshaler
     public AbilityType Ability1 { get; set; }
     public AbilityType Ability2 { get; set; }
     public AbilityType Ability3 { get; set; }
-    public Transform Position { get; set; } = new Transform(null, null);
+    public Transform Position { get; set; } = new(null, null);
     public bool InParty { get; set; }
     public bool IsOnline { get; set; }
     public DateTime LastWorldLeaveTime { get; set; }

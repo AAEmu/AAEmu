@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRenameExpeditionPacket : GamePacket
+public class CSRenameExpeditionPacket() : GamePacket(CSOffsets.CSRenameExpeditionPacket, 1)
 {
-    public CSRenameExpeditionPacket() : base(CSOffsets.CSRenameExpeditionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id = stream.ReadUInt32(); // type(id)

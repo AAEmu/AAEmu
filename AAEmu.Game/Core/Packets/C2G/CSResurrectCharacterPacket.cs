@@ -10,12 +10,8 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSResurrectCharacterPacket : GamePacket
+public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectCharacterPacket, 1)
 {
-    public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var inPlace = stream.ReadBoolean();
@@ -70,7 +66,7 @@ public class CSResurrectCharacterPacket : GamePacket
             }
             
             // Find the closest return portal (in the world) for the player if none has been found yet
-            if ((usePortalId == 0) || (portal == null))
+            if (usePortalId == 0 || portal == null)
             {
                 portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
             }

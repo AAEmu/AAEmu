@@ -55,9 +55,9 @@ public class BuffEffect : EffectTemplate
             if (source.Skill != null)
             {
                 var template = source.Skill.Template;
-                var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                var abilityLevel = character.GetAbLevel(source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
-                    abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    abLevel = (uint)(abilityLevel / template.LevelStep * template.LevelStep);
                 else
                     abLevel = (uint)template.AbilityLevel;
 
@@ -86,7 +86,7 @@ public class BuffEffect : EffectTemplate
 
         // Check if a bad buff was applied to a friendly faction (bloodlust)
         var relationToTarget = caster?.GetRelationStateTo(target) ?? RelationState.Neutral;
-        if (Buff.Kind == BuffKind.Bad && (target is not Npc) && 
+        if (Buff.Kind == BuffKind.Bad && target is not Npc && 
             relationToTarget == RelationState.Friendly && caster != target &&
             !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
         {

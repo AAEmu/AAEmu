@@ -32,7 +32,7 @@ public class GoldSetSubCommand : SubCommandBase
         var firstParameter = parameters["target"].ToString();
         if (firstParameter == "target")
         {
-            if (selfCharacter.CurrentTarget is null || !(selfCharacter.CurrentTarget is Character))
+            if (selfCharacter.CurrentTarget is null || selfCharacter.CurrentTarget is not Character)
             {
                 SendColorMessage(messageOutput, Color.Red, "Please select a valid character player");
                 return;

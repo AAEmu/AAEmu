@@ -1,14 +1,9 @@
 ﻿namespace AAEmu.Game.Models.Game.AI.v2.Framework;
 
-public class Transition
+public class Transition(TransitionEvent on, BehaviorKind target)
 {
-    public TransitionEvent On { get; set; }
-    // public Behavior Target { get; set; }
-    public BehaviorKind Kind { get; set; }
+    public TransitionEvent On { get; set; } = on;
 
-    public Transition(TransitionEvent on, BehaviorKind target)
-    {
-        On = on;
-        Kind = target;
-    }
+    // public Behavior Target { get; set; }
+    public BehaviorKind Kind { get; set; } = target;
 }

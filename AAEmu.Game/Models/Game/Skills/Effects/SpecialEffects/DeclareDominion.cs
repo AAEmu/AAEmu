@@ -31,7 +31,7 @@ public class DeclareDominion : SpecialEffectAction
             return;
 
         // Check target is not already claimed
-        if (!(target is House lodestone))
+        if (target is not House lodestone)
             return;
 
         // Get target zone, radius, etc..
@@ -39,7 +39,7 @@ public class DeclareDominion : SpecialEffectAction
         // Advance building step on target
 
         // Create new dominion data
-        var dominion = new DominionData()
+        var dominion = new DominionData
         {
             House = lodestone.Id,
             X = lodestone.Transform.World.Position.X,
@@ -62,7 +62,7 @@ public class DeclareDominion : SpecialEffectAction
             NationalMonumentX = 0,
             NationalMonumentY = 0,
             NationalMonumentZ = 0,
-            TerritoryData = new DominionTerritoryData()
+            TerritoryData = new DominionTerritoryData
             {
                 Id = 6,
                 Id2 = 4771,
@@ -73,14 +73,14 @@ public class DeclareDominion : SpecialEffectAction
                 RadiusSiege = 250,
                 RadiusOffenseHq = 100
             },
-            SiegeTimers = new DominionSiegeTimers()
+            SiegeTimers = new DominionSiegeTimers
             {
                 Bdm = 0,
                 Durations = [0, 0, 0, 0, 0],
                 Fixed = DateTime.MinValue,
                 Started = DateTime.MinValue,
                 SiegePeriod = 1,
-                UnkData = new DominionUnkData()
+                UnkData = new DominionUnkData
                 {
                     Id = 0,
                     Limit = 0,
@@ -90,9 +90,9 @@ public class DeclareDominion : SpecialEffectAction
                     Y = 0,
                     Z = 0,
                     ObjId = 4,
-                    UnkIds = Array.Empty<uint>()
+                    UnkIds = []
                 },
-                Unk2Data = new DominionUnkData()
+                Unk2Data = new DominionUnkData
                 {
                     Id = 0,
                     Limit = 0,
@@ -102,7 +102,7 @@ public class DeclareDominion : SpecialEffectAction
                     Y = 0,
                     Z = 0,
                     ObjId = 0,
-                    UnkIds = Array.Empty<uint>()
+                    UnkIds = []
                 }
             },
             NonPvPDuration = 0,

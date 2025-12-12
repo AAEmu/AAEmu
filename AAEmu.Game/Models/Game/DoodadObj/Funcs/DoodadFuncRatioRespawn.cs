@@ -13,7 +13,7 @@ public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
         Logger.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
 
         // Doodad spawn
-        if ((owner.PhaseRatio <= Ratio) && ((owner.Spawner?.Id ?? 0) > 0))
+        if (owner.PhaseRatio <= Ratio && (owner.Spawner?.Id ?? 0) > 0)
         {
             /*
             var doodad = DoodadManager.Instance.Create(0, SpawnDoodadId);

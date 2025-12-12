@@ -7,15 +7,10 @@ namespace AAEmu.Game.Models.Game;
 
 public class Family : PacketMarshaler
 {
-    private List<uint> _removedMembers;
+    private readonly List<uint> _removedMembers = [];
 
     public uint Id { get; init; }
     public List<FamilyMember> Members { get; } = [];
-
-    public Family()
-    {
-        _removedMembers = [];
-    }
 
     public override PacketStream Write(PacketStream stream)
     {
@@ -71,11 +66,11 @@ public class Family : PacketMarshaler
             {
                 while (reader.Read())
                 {
-                    var member = new FamilyMember();
-                    member.Id = reader.GetUInt32("character_id");
-                    member.Name = reader.GetString("name");
-                    member.Role = reader.GetByte("role");
-                    member.Title = reader.GetString("title");
+                    var member = new FamilyMember
+                    {
+                        Id = reader.GetUInt32("character_id"), Name = reader.GetString("name"), Role = reader.GetByte("role"),
+                        Title = reader.GetString("title")
+                    };
                     AddMember(member);
                 }
             }

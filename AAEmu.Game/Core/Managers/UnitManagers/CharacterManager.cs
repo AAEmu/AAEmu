@@ -32,26 +32,14 @@ public class CharacterManager : Singleton<CharacterManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly Dictionary<byte, CharacterTemplate> _templates;
-    private readonly Dictionary<byte, AbilityItems> _abilityItems;
-    private readonly Dictionary<int, List<Expand>> _expands;
-    private readonly Dictionary<uint, AppellationTemplate> _appellations;
-    private readonly Dictionary<uint, ActabilityTemplate> _actabilities;
-    private readonly Dictionary<uint, ActabilityCategoriesTemplate> _actabilitiesCategories;
-    private readonly Dictionary<int, ExpertLimit> _expertLimits;
-    private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits;
-
-    public CharacterManager()
-    {
-        _templates = [];
-        _abilityItems = [];
-        _expands = [];
-        _appellations = [];
-        _actabilities = [];
-        _actabilitiesCategories = [];
-        _expertLimits = [];
-        _expandExpertLimits = [];
-    }
+    private readonly Dictionary<byte, CharacterTemplate> _templates = [];
+    private readonly Dictionary<byte, AbilityItems> _abilityItems = [];
+    private readonly Dictionary<int, List<Expand>> _expands = [];
+    private readonly Dictionary<uint, AppellationTemplate> _appellations = [];
+    private readonly Dictionary<uint, ActabilityTemplate> _actabilities = [];
+    private readonly Dictionary<uint, ActabilityCategoriesTemplate> _actabilitiesCategories = [];
+    private readonly Dictionary<int, ExpertLimit> _expertLimits = [];
+    private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits = [];
 
     public CharacterTemplate GetTemplate(Race race, Gender gender)
     {
@@ -273,13 +261,13 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     while (reader.Read())
                     {
-                        var expand = new Expand();
-                        expand.IsBank = reader.GetBoolean("is_bank", true);
-                        expand.Step = reader.GetInt32("step");
-                        expand.Price = reader.GetInt32("price");
-                        expand.ItemId = reader.GetUInt32("item_id", 0);
-                        expand.ItemCount = reader.GetInt32("item_count");
-                        expand.CurrencyId = reader.GetInt32("currency_id");
+                        var expand = new Expand
+                        {
+                            IsBank = reader.GetBoolean("is_bank", true), Step = reader.GetInt32("step"), Price = reader.GetInt32("price"),
+                            ItemId = reader.GetUInt32("item_id", 0),
+                            ItemCount = reader.GetInt32("item_count"),
+                            CurrencyId = reader.GetInt32("currency_id")
+                        };
 
                         if (!_expands.TryGetValue(expand.Step, out var value))
                             _expands.Add(expand.Step, [expand]);
@@ -297,9 +285,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new AppellationTemplate();
-                        template.Id = reader.GetUInt32("id");
-                        template.BuffId = reader.GetUInt32("buff_id", 0);
+                        var template = new AppellationTemplate { Id = reader.GetUInt32("id"), BuffId = reader.GetUInt32("buff_id", 0) };
 
                         _appellations.Add(template.Id, template);
                     }
@@ -314,10 +300,10 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new ActabilityTemplate();
-                        template.Id = reader.GetUInt32("id");
-                        template.Name = reader.GetString("name");
-                        template.UnitAttributeId = reader.GetInt32("unit_attr_id");
+                        var template = new ActabilityTemplate
+                        {
+                            Id = reader.GetUInt32("id"), Name = reader.GetString("name"), UnitAttributeId = reader.GetInt32("unit_attr_id")
+                        };
                         _actabilities.Add(template.Id, template);
                     }
                 }
@@ -331,12 +317,12 @@ public class CharacterManager : Singleton<CharacterManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new ActabilityCategoriesTemplate();
-                        template.Id = reader.GetUInt32("id");
-                        template.Name = reader.GetString("name");
-                        template.GroupId = reader.GetUInt32("group_id");
-                        template.VisibleUi = reader.GetBoolean("visible_ui", true);
-                        template.VisibleOrder = reader.GetInt32("visible_order");
+                        var template = new ActabilityCategoriesTemplate
+                        {
+                            Id = reader.GetUInt32("id"), Name = reader.GetString("name"), GroupId = reader.GetUInt32("group_id"),
+                            VisibleUi = reader.GetBoolean("visible_ui", true),
+                            VisibleOrder = reader.GetInt32("visible_order")
+                        };
                         _actabilitiesCategories.Add(template.Id, template);
                     }
                 }
@@ -351,16 +337,18 @@ public class CharacterManager : Singleton<CharacterManager>
                     var step = 0;
                     while (reader.Read())
                     {
-                        var template = new ExpertLimit();
-                        template.Id = reader.GetUInt32("id");
-                        template.UpLimit = reader.GetInt32("up_limit");
-                        template.ExpertLimitCount = reader.GetByte("expert_limit");
-                        template.Advantage = reader.GetInt32("advantage");
-                        template.CastAdvantage = reader.GetInt32("cast_adv");
-                        template.UpCurrencyId = reader.GetUInt32("up_currency_id", 0);
-                        template.UpPrice = reader.GetInt32("up_price");
-                        template.DownCurrencyId = reader.GetUInt32("down_currency_id", 0);
-                        template.DownPrice = reader.GetInt32("down_price");
+                        var template = new ExpertLimit
+                        {
+                            Id = reader.GetUInt32("id"),
+                            UpLimit = reader.GetInt32("up_limit"),
+                            ExpertLimitCount = reader.GetByte("expert_limit"),
+                            Advantage = reader.GetInt32("advantage"),
+                            CastAdvantage = reader.GetInt32("cast_adv"),
+                            UpCurrencyId = reader.GetUInt32("up_currency_id", 0),
+                            UpPrice = reader.GetInt32("up_price"),
+                            DownCurrencyId = reader.GetUInt32("down_currency_id", 0),
+                            DownPrice = reader.GetInt32("down_price")
+                        };
                         _expertLimits.Add(step++, template);
                     }
                 }
@@ -375,12 +363,14 @@ public class CharacterManager : Singleton<CharacterManager>
                     var step = 0;
                     while (reader.Read())
                     {
-                        var template = new ExpandExpertLimit();
-                        template.Id = reader.GetUInt32("id");
-                        template.ExpandCount = reader.GetByte("expand_count");
-                        template.LifePoint = reader.GetInt32("life_point");
-                        template.ItemId = reader.GetUInt32("item_id", 0);
-                        template.ItemCount = reader.GetInt32("item_count");
+                        var template = new ExpandExpertLimit
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ExpandCount = reader.GetByte("expand_count"),
+                            LifePoint = reader.GetInt32("life_point"),
+                            ItemId = reader.GetUInt32("item_id", 0),
+                            ItemCount = reader.GetInt32("item_count")
+                        };
                         _expandExpertLimits.Add(step++, template);
                     }
                 }
@@ -450,7 +440,7 @@ public class CharacterManager : Singleton<CharacterManager>
 
         // NOTE: This is purely a warning to log potential cheaters
         // If you have custom starting classes, make sure to comment or adjust this
-        if ((ability2 != AbilityType.None) || (ability3 != AbilityType.None))
+        if (ability2 != AbilityType.None || ability3 != AbilityType.None)
         {
             Logger.Error($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}, Name {name}, Class {ability1}, {ability2}, {ability3}");
         }
@@ -468,13 +458,12 @@ public class CharacterManager : Singleton<CharacterManager>
         NameManager.Instance.AddCharacter(characterId, name, connection.AccountId);
         var template = GetTemplate(race, gender);
 
-        var character = new Character(customModel);
-        character.Id = characterId;
-        character.TemplateId = characterId;
-        character.AccountId = connection.AccountId;
-        character.Name = name;
-        character.Race = race;
-        character.Gender = gender;
+        var character = new Character(customModel)
+        {
+            Id = characterId, TemplateId = characterId, AccountId = connection.AccountId, Name = name,
+            Race = race,
+            Gender = gender
+        };
         character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
         character.Level = level;
         character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
@@ -657,7 +646,7 @@ public class CharacterManager : Singleton<CharacterManager>
     /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
     public static bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
     {
-        if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
+        if (character.DeleteTime > DateTime.MinValue && character.DeleteTime <= DateTime.UtcNow)
         {
             Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
             using (var command = dbConnection.CreateCommand())
@@ -722,12 +711,12 @@ public class CharacterManager : Singleton<CharacterManager>
                         var deleteTime = reader.GetDateTime("delete_time");
                         var charId = reader.GetUInt32("id");
                         var accountId = reader.GetUInt32("account_id");
-                        if ((deleteTime > DateTime.MinValue) && (deleteTime <= DateTime.UtcNow))
+                        if (deleteTime > DateTime.MinValue && deleteTime <= DateTime.UtcNow)
                         {
                             deleteList.Add((charId, accountId));
                         }
                         else
-                        if ((deleteTime > DateTime.MinValue) && (deleteTime < nextCheckTime))
+                        if (deleteTime > DateTime.MinValue && deleteTime < nextCheckTime)
                         {
                             nextCheckTime = deleteTime;
                         }
@@ -859,15 +848,14 @@ public class CharacterManager : Singleton<CharacterManager>
                     {
                         // Skip this char in the list if it's read to be deleted
                         var deleteTime = reader.GetDateTime("delete_time");
-                        if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.UtcNow))
+                        if (deleteTime > DateTime.MinValue && deleteTime < DateTime.UtcNow)
                             continue;
 
-                        var character = new LoginCharacterInfo();
-                        character.AccountId = accountId;
-                        character.Id = reader.GetUInt32("id");
-                        character.Name = reader.GetString("name");
-                        character.Race = reader.GetByte("race");
-                        character.Gender = reader.GetByte("gender");
+                        var character = new LoginCharacterInfo
+                        {
+                            AccountId = accountId, Id = reader.GetUInt32("id"), Name = reader.GetString("name"), Race = reader.GetByte("race"),
+                            Gender = reader.GetByte("gender")
+                        };
                         result.Add(character);
                     }
                 }
@@ -900,7 +888,7 @@ public class CharacterManager : Singleton<CharacterManager>
         var oldHair = character.Equipment.GetItemBySlot((byte)EquipmentItemSlot.Hair);
 
         // Check if hair changed
-        if ((oldHair != null) && (oldHair.TemplateId != hairModel))
+        if (oldHair != null && oldHair.TemplateId != hairModel)
         {
             // Remove old hair item
             oldHair._holdingContainer.RemoveItem(ItemTaskType.Invalid, oldHair, true);

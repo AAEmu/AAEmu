@@ -13,7 +13,7 @@ public class ClientSource
     {
         switch (SourceType)
         {
-            case ClientSourceType.Directory when (Directory.Exists(PathName)):
+            case ClientSourceType.Directory when Directory.Exists(PathName):
                 return true;
             case ClientSourceType.GamePak:
                 GamePak = new AAPak(PathName);
@@ -26,7 +26,7 @@ public class ClientSource
 
     public void Close()
     {
-        if ((SourceType == ClientSourceType.GamePak) && (GamePak != null))
+        if (SourceType == ClientSourceType.GamePak && GamePak != null)
         {
             GamePak.ClosePak();
         }
@@ -93,8 +93,8 @@ public class ClientSource
                         {
                             if (pfiName.StartsWith(rootDir, System.StringComparison.CurrentCultureIgnoreCase))
                             {
-                                if ((string.IsNullOrWhiteSpace(searchPattern) ||
-                                     (Regex.Match(pfiName.ToLower(), wildCard).Success)))
+                                if (string.IsNullOrWhiteSpace(searchPattern) ||
+                                    Regex.Match(pfiName.ToLower(), wildCard).Success)
                                     list.Add(pfiName);
                             }
                         }
@@ -103,7 +103,7 @@ public class ClientSource
                     {
                         var files = GamePak.GetFilesInDirectory(rootDir);
                         foreach (var pfi in files)
-                            if ((string.IsNullOrWhiteSpace(searchPattern) || (Regex.Match(pfi.name, wildCard).Success)))
+                            if (string.IsNullOrWhiteSpace(searchPattern) || Regex.Match(pfi.name, wildCard).Success)
                                 list.Add(pfi.name);
                     }
                     break;

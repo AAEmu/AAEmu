@@ -1,16 +1,11 @@
 ﻿namespace AAEmu.Game.Models.CryEngine.Entities;
 
-public class Navigation
+public class Navigation(uint zoneId)
 {
-    public Navigation(uint zoneId)
-    {
-        ZoneId = zoneId;
-    }
-
-    public uint ZoneId { get; }
+    public uint ZoneId { get; } = zoneId;
     public BBox BBox { get; set; } = new();
-    public List<NodeDescriptor> DescriptorList { get; set; } = new();
-    public List<LinkDescriptor> LinkDescriptorList { get; set; } = new();
+    public List<NodeDescriptor> DescriptorList { get; set; } = [];
+    public List<LinkDescriptor> LinkDescriptorList { get; set; } = [];
 
     public bool Equals(Navigation other)
     {

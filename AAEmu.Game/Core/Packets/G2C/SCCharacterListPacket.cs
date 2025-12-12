@@ -4,22 +4,13 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCharacterListPacket : GamePacket
+public class SCCharacterListPacket(bool last, Character[] characters) : GamePacket(SCOffsets.SCCharacterListPacket, 1)
 {
-    private readonly bool _last;
-    private readonly Character[] _characters;
-
-    public SCCharacterListPacket(bool last, Character[] characters) : base(SCOffsets.SCCharacterListPacket, 1)
-    {
-        _last = last;
-        _characters = characters;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_last);
-        stream.Write((byte)_characters.Length);
-        foreach (var character in _characters)
+        stream.Write(last);
+        stream.Write((byte)characters.Length);
+        foreach (var character in characters)
             character.Write(stream);
 
         return stream;

@@ -40,13 +40,10 @@ public class ItemTemplate
     public int LivingPointPrice { get; set; }
     public byte CharGender { get; set; }
     public uint SpecialtyZoneId { get; set; }
-    public AuctionSettings AuctionSettings { get; set; }
+    public AuctionSettings AuctionSettings { get; set; } = new(0, 0, 0/*, 0, true*/); // Инициализация AuctionSettings
 
     // Helpers
     public string searchString { get; set; }
 
-    public ItemTemplate()
-    {
-        AuctionSettings = new AuctionSettings(0, 0, 0/*, 0, true*/); // Инициализация AuctionSettings
-    }
+    /*, 0, true*/
 }

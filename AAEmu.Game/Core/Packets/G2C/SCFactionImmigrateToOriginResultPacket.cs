@@ -3,21 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFactionImmigrateToOriginResultPacket : GamePacket
+public class SCFactionImmigrateToOriginResultPacket(string charName, uint id)
+    : GamePacket(SCOffsets.SCFactionImmigrateToOriginResultPacket, 1)
 {
-    private readonly string _charName;
-    private readonly uint _id;
-
-    public SCFactionImmigrateToOriginResultPacket(string charName, uint id) : base(SCOffsets.SCFactionImmigrateToOriginResultPacket, 1)
-    {
-        _charName = charName;
-        _id = id;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_charName);
-        stream.Write(_id);
+        stream.Write(charName);
+        stream.Write(id);
         return stream;
     }
 }

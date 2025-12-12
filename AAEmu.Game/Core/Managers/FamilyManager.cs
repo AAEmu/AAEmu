@@ -40,7 +40,7 @@ public class FamilyManager : Singleton<FamilyManager>
                         if (familyId == 0)
                             continue;
 
-                        var family = new Family() { Id = familyId };
+                        var family = new Family { Id = familyId };
                         _families.Add(family.Id, family);
 
                         using (var connection2 = MySQL.CreateConnection())

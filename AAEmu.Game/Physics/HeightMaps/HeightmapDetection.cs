@@ -1,5 +1,4 @@
-﻿using System;
-using Jitter2.Collision;
+﻿using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
 using Jitter2.LinearMath;
 

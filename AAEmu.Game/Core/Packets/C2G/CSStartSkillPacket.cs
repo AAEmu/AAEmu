@@ -13,12 +13,8 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSStartSkillPacket : GamePacket
+public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
 {
-    public CSStartSkillPacket() : base(CSOffsets.CSStartSkillPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // Ignore if there is no active character set
@@ -85,7 +81,7 @@ public class CSStartSkillPacket : GamePacket
             var slave = caster as Slave;
             var mountAttachedSkill = 0u;
 
-            if ((mate != null) || (slave != null))
+            if (mate != null || slave != null)
             {
                 // check if it's a mate or slave skill and return its rider/operator related skill
                 mountAttachedSkill = MateGameData.Instance.GetMountAttachedSkills(skillId, Connection.ActiveChar?.AttachedPoint ?? AttachPointKind.None);
@@ -113,12 +109,12 @@ public class CSStartSkillPacket : GamePacket
             skill = Connection.ActiveChar.AutoAttackTask.Skill;
             skillResult = SkillResult.Success;
         }
-        else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
+        else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && skillCaster is not SkillItem)
         {
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
-            if ((skillResult == SkillResult.Success) && (skillId < 5000) && (skillCaster.ObjId == Connection.ActiveChar.ObjId))
+            if (skillResult == SkillResult.Success && skillId < 5000 && skillCaster.ObjId == Connection.ActiveChar.ObjId)
             {
                 // All basic combat skills are below ID 5000, only 2 (melee),3 (offhand) and 4 (ranged) exist, next actual skill used is 5001
                 Connection.ActiveChar.IsAutoAttack = true;
@@ -162,9 +158,10 @@ public class CSStartSkillPacket : GamePacket
         if (skillResult != SkillResult.Success)
         {
             // It actually sends a skill started packet, but not a skill fired or stopped
-            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject);
-            scSkillStartedPacket.RealCastTimeDiv10 = 0;
-            scSkillStartedPacket.BaseCastTimeDiv10 = 0;
+            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
+            {
+                RealCastTimeDiv10 = 0, BaseCastTimeDiv10 = 0
+            };
             // ExtraData at the end of the packet is used to mark a use error
             scSkillStartedPacket.SetSkillResult(skillResult);
             scSkillStartedPacket.SetResultUInt(skillResultErrorValue);

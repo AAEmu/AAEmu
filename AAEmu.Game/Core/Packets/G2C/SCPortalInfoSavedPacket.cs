@@ -4,18 +4,11 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCPortalInfoSavedPacket : GamePacket
+public class SCPortalInfoSavedPacket(Portal portal) : GamePacket(SCOffsets.SCPortalInfoSavedPacket, 1)
 {
-    private readonly Portal _portal;
-
-    public SCPortalInfoSavedPacket(Portal portal) : base(SCOffsets.SCPortalInfoSavedPacket, 1)
-    {
-        _portal = portal;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_portal);
+        stream.Write(portal);
         return stream;
     }
 }

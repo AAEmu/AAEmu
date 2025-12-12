@@ -8,12 +8,8 @@ using AAEmu.Game.Models.Game.Chat;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSendChatMessagePacket : GamePacket
+public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessagePacket, 1)
 {
-    public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var type = (ChatType)stream.ReadInt16();
@@ -38,7 +34,7 @@ public class CSSendChatMessagePacket : GamePacket
         {
             case ChatType.Whisper: //whisper
                 var target = WorldManager.Instance.GetCharacter(targetName);
-                if ((target == null) || (!target.IsOnline))
+                if (target == null || !target.IsOnline)
                 {
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
                 }
@@ -66,7 +62,7 @@ public class CSSendChatMessagePacket : GamePacket
 
                 if (teamRaid != null)
                 {
-                    if ((type == ChatType.RaidLeader) && (teamRaid.OwnerId != Connection.ActiveChar.Id))
+                    if (type == ChatType.RaidLeader && teamRaid.OwnerId != Connection.ActiveChar.Id)
                     {
                         Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotRaidOwner);
                     }

@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S;
 
-public class CTUccComplexPacket : StreamPacket
+public class CTUccComplexPacket() : StreamPacket(CTOffsets.CTUccComplexPacket)
 {
-    public CTUccComplexPacket() : base(CTOffsets.CTUccComplexPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var type = stream.ReadUInt64();

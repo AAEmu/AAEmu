@@ -23,12 +23,7 @@ public class QuestTemplate : IQuestTemplate
     public bool UseAcceptMessage { get; set; }
     public bool UseCompleteMessage { get; set; }
     public uint GradeId { get; set; }
-    public IDictionary<uint, QuestComponentTemplate> Components { get; set; }
-
-    public QuestTemplate()
-    {
-        Components = new Dictionary<uint, QuestComponentTemplate>();
-    }
+    public IDictionary<uint, QuestComponentTemplate> Components { get; set; } = new Dictionary<uint, QuestComponentTemplate>();
 
     public QuestComponentTemplate GetFirstComponent(QuestComponentKind step)
     {

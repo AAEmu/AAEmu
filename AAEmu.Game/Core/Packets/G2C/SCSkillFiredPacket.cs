@@ -10,12 +10,12 @@ public class SCSkillFiredPacket : GamePacket
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 
-    private uint _id;
-    private ushort _tl;
-    private SkillCaster _caster;
-    private SkillCastTarget _target;
-    private SkillObject _skillObject;
-    private Skill _skill;
+    private readonly uint _id;
+    private readonly ushort _tl;
+    private readonly SkillCaster _caster;
+    private readonly SkillCastTarget _target;
+    private readonly SkillObject _skillObject;
+    private readonly Skill _skill;
 
     private short _effectDelay = 37;
     private int _fireAnimId = 2;

@@ -152,7 +152,7 @@ public class Inventory
     public int ConsumeItem(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
     {
         SlotType[] containerList;
-        if ((containersToCheck != null) && (containersToCheck.Length > 0))
+        if (containersToCheck != null && containersToCheck.Length > 0)
             containerList = containersToCheck;
         else
             containerList = [SlotType.Inventory, SlotType.Equipment, SlotType.Bank];
@@ -181,7 +181,7 @@ public class Inventory
         var totalCount = 0;
         if (_itemContainers.TryGetValue(slotType, out var c))
         {
-            if (c.GetAllItemsByTemplate(templateId, -1, out _, out int itemCount))
+            if (c.GetAllItemsByTemplate(templateId, -1, out _, out var itemCount))
                 totalCount += itemCount;
         }
         return totalCount >= count;
@@ -227,7 +227,7 @@ public class Inventory
     /// <returns>True if any item was found</returns>
     public bool GetAllItemsByTemplate(SlotType[] inContainerTypes, uint templateId, int gradeToCheck, out List<Item> foundItems, out int unitsOfItemFound)
     {
-        bool res = false;
+        var res = false;
         foundItems = [];
         unitsOfItemFound = 0;
         if (inContainerTypes == null || inContainerTypes.Length <= 0)

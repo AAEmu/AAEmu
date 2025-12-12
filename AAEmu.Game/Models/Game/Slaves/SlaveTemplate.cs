@@ -24,29 +24,18 @@ public class SlaveTemplate
     public int Hp50DoodadCount { get; set; }
     public int Hp75DoodadCount { get; set; }
 
-    public List<SlaveInitialBuffs> InitialBuffs { get; }
-    public List<SlavePassiveBuffs> PassiveBuffs { get; }
-    public List<SlaveDoodadBindings> DoodadBindings { get; }
-    public List<SlaveDoodadBindings> HealingPointDoodads { get; }
-    public List<SlaveBindings> SlaveBindings { get; }
-    public List<SlaveDropDoodad> SlaveDropDoodads { get; }
-    public List<BonusTemplate> Bonuses { get; set; }
-
-    public SlaveTemplate()
-    {
-        InitialBuffs = [];
-        PassiveBuffs = [];
-        DoodadBindings = [];
-        HealingPointDoodads = [];
-        SlaveBindings = [];
-        SlaveDropDoodads = [];
-        Bonuses = [];
-    }
+    public List<SlaveInitialBuffs> InitialBuffs { get; } = [];
+    public List<SlavePassiveBuffs> PassiveBuffs { get; } = [];
+    public List<SlaveDoodadBindings> DoodadBindings { get; } = [];
+    public List<SlaveDoodadBindings> HealingPointDoodads { get; } = [];
+    public List<SlaveBindings> SlaveBindings { get; } = [];
+    public List<SlaveDropDoodad> SlaveDropDoodads { get; } = [];
+    public List<BonusTemplate> Bonuses { get; set; } = [];
 
     public bool IsABoat()
     {
-        return ((SlaveKind == SlaveKind.Boat) || (SlaveKind == SlaveKind.Fishboat) ||
-                (SlaveKind == SlaveKind.Speedboat) || (SlaveKind == SlaveKind.MerchantShip) ||
-                (SlaveKind == SlaveKind.BigSailingShip) || (SlaveKind == SlaveKind.SmallSailingShip));
+        return SlaveKind == SlaveKind.Boat || SlaveKind == SlaveKind.Fishboat ||
+               SlaveKind == SlaveKind.Speedboat || SlaveKind == SlaveKind.MerchantShip ||
+               SlaveKind == SlaveKind.BigSailingShip || SlaveKind == SlaveKind.SmallSailingShip;
     }
 }

@@ -2,27 +2,20 @@
 
 namespace AAEmu.Game.Utils.DB;
 
-public sealed class SQLiteWrapperReader : IDisposable
+public sealed class SQLiteWrapperReader(SqliteDataReader reader) : IDisposable
 {
-    private readonly SqliteDataReader _reader;
-    private readonly Dictionary<string, int> _ordinal;
+    private readonly Dictionary<string, int> _ordinal = [];
 
-    public SQLiteWrapperReader(SqliteDataReader reader)
-    {
-        _reader = reader;
-        _ordinal = [];
-    }
-
-    public bool Read() => _reader.Read();
+    public bool Read() => reader.Read();
 
     public object GetValue(string column)
     {
-        return _reader.GetValue(GetOrdinal(column));
+        return reader.GetValue(GetOrdinal(column));
     }
 
     public bool GetBoolean(string column)
     {
-        return _reader.GetBoolean(GetOrdinal(column));
+        return reader.GetBoolean(GetOrdinal(column));
     }
 
     public bool GetBoolean(string column, bool fromString)
@@ -41,40 +34,40 @@ public sealed class SQLiteWrapperReader : IDisposable
 
     public byte GetByte(string column)
     {
-        return _reader.GetByte(GetOrdinal(column));
+        return reader.GetByte(GetOrdinal(column));
     }
 
     public byte GetByte(string column, byte defaultValue)
     {
         var ordinal = GetOrdinal(column);
-        if (_reader.IsDBNull(ordinal))
+        if (reader.IsDBNull(ordinal))
             return defaultValue;
-        return _reader.GetByte(ordinal);
+        return reader.GetByte(ordinal);
     }
 
     public long GetBytes(string column, long fieldOffset, byte[] buffer, int bufferOffset, int length)
     {
-        return _reader.GetBytes(GetOrdinal(column), fieldOffset, buffer, bufferOffset, length);
+        return reader.GetBytes(GetOrdinal(column), fieldOffset, buffer, bufferOffset, length);
     }
 
     public char GetChar(string column)
     {
-        return _reader.GetChar(GetOrdinal(column));
+        return reader.GetChar(GetOrdinal(column));
     }
 
     public long GetChars(string column, long fieldOffset, char[] buffer, int bufferOffset, int length)
     {
-        return _reader.GetChars(GetOrdinal(column), fieldOffset, buffer, bufferOffset, length);
+        return reader.GetChars(GetOrdinal(column), fieldOffset, buffer, bufferOffset, length);
     }
 
     public Guid GetGuid(string column)
     {
-        return _reader.GetGuid(GetOrdinal(column));
+        return reader.GetGuid(GetOrdinal(column));
     }
 
     public short GetInt16(string column)
     {
-        return _reader.GetInt16(GetOrdinal(column));
+        return reader.GetInt16(GetOrdinal(column));
     }
 
     public ushort GetUInt16(string column) => (ushort)GetInt16(column);
@@ -82,17 +75,17 @@ public sealed class SQLiteWrapperReader : IDisposable
     public int GetInt32(string column)
     {
         //Same impl of Sqlite.Core v2.2.1
-        return (int)_reader.GetInt64(GetOrdinal(column));
+        return (int)reader.GetInt64(GetOrdinal(column));
     }
 
     public int GetInt32(string column, int defaultValue)
     {
         var ordinal = GetOrdinal(column);
-        if (_reader.IsDBNull(ordinal))
+        if (reader.IsDBNull(ordinal))
             return defaultValue;
 
         //Same impl of Sqlite.Core v2.2.1
-        return (int)_reader.GetInt64(ordinal);
+        return (int)reader.GetInt64(ordinal);
     }
 
     public uint GetUInt32(string column) => (uint)GetInt32(column);
@@ -100,62 +93,62 @@ public sealed class SQLiteWrapperReader : IDisposable
     public uint GetUInt32(string column, uint defaultValue)
     {
         var ordinal = GetOrdinal(column);
-        if (_reader.IsDBNull(ordinal))
+        if (reader.IsDBNull(ordinal))
             return defaultValue;
         return (uint)GetInt32(column);
     }
 
     public long GetInt64(string column)
     {
-        return _reader.GetInt64(GetOrdinal(column));
+        return reader.GetInt64(GetOrdinal(column));
     }
 
     public ulong GetUInt64(string column) => (ulong)GetInt64(column);
 
     public float GetFloat(string column)
     {
-        return _reader.GetFloat(GetOrdinal(column));
+        return reader.GetFloat(GetOrdinal(column));
     }
 
     public float GetFloat(string column, float defaultValue)
     {
         var ordinal = GetOrdinal(column);
-        if (_reader.IsDBNull(ordinal))
+        if (reader.IsDBNull(ordinal))
             return defaultValue;
-        return _reader.GetFloat(ordinal);
+        return reader.GetFloat(ordinal);
     }
 
     public double GetDouble(string column)
     {
-        return _reader.GetDouble(GetOrdinal(column));
+        return reader.GetDouble(GetOrdinal(column));
     }
 
     public string GetString(string column)
     {
-        return _reader.GetString(GetOrdinal(column));
+        return reader.GetString(GetOrdinal(column));
     }
 
     public string GetString(string column, string defaultValue)
     {
         var ordinal = GetOrdinal(column);
-        if (_reader.IsDBNull(ordinal))
+        if (reader.IsDBNull(ordinal))
             return defaultValue;
-        return _reader.GetString(ordinal);
+        return reader.GetString(ordinal);
     }
 
     public decimal GetDecimal(string column)
     {
-        return _reader.GetDecimal(GetOrdinal(column));
+        return reader.GetDecimal(GetOrdinal(column));
     }
 
     public DateTime GetDateTime(string column)
     {
-        return _reader.GetDateTime(GetOrdinal(column));
+        return reader.GetDateTime(GetOrdinal(column));
     }
 
     public bool IsDBNull(string column)
     {
-        return _reader.IsDBNull(GetOrdinal(column));
+        return reader.IsDBNull(GetOrdinal(column));
     }
 
     public int GetOrdinal(string column)
@@ -163,7 +156,7 @@ public sealed class SQLiteWrapperReader : IDisposable
         if (_ordinal.TryGetValue(column, out var ordinal1))
             return ordinal1;
 
-        var ordinal = _reader.GetOrdinal(column);
+        var ordinal = reader.GetOrdinal(column);
         _ordinal.Add(column, ordinal);
         return ordinal;
     }
@@ -171,6 +164,6 @@ public sealed class SQLiteWrapperReader : IDisposable
     public void Dispose()
     {
         _ordinal.Clear();
-        _reader.Dispose();
+        reader.Dispose();
     }
 }

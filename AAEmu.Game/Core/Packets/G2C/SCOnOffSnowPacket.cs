@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCOnOffSnowPacket : GamePacket
+public class SCOnOffSnowPacket(bool on) : GamePacket(SCOffsets.SCOnOffSnowPacket, 1)
 {
-    private readonly bool _on;
-
-    public SCOnOffSnowPacket(bool @on) : base(SCOffsets.SCOnOffSnowPacket, 1)
-    {
-        _on = @on;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_on);
+        stream.Write(on);
         return stream;
     }
 }

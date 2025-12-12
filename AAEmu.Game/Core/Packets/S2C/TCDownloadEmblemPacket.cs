@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
-public class TCDownloadEmblemPacket : StreamPacket
+public class TCDownloadEmblemPacket() : StreamPacket(TCOffsets.TCDownloadEmblemPacket)
 {
-    public TCDownloadEmblemPacket() : base(TCOffsets.TCDownloadEmblemPacket)
-    {
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((long)0); // type

@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSSplitBagItemPacket : GamePacket
+public class CSSplitBagItemPacket() : GamePacket(CSOffsets.CSSplitBagItemPacket, 1)
 {
-    public CSSplitBagItemPacket() : base(CSOffsets.CSSplitBagItemPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var fromItemId = stream.ReadUInt64();

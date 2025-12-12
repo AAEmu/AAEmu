@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCUnitNameChangedPacket : GamePacket
+public class SCUnitNameChangedPacket(uint objId, string name) : GamePacket(SCOffsets.SCUnitNameChangedPacket, 1)
 {
-    private readonly uint _objId;
-    private readonly string _name;
-
-    public SCUnitNameChangedPacket(uint objId, string name) : base(SCOffsets.SCUnitNameChangedPacket, 1)
-    {
-        _objId = objId;
-        _name = name;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_objId);
-        stream.Write(_name);
+        stream.WriteBc(objId);
+        stream.Write(name);
         return stream;
     }
 }

@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeHousePayPacket : GamePacket
+public class CSChangeHousePayPacket() : GamePacket(CSOffsets.CSChangeHousePayPacket, 1)
 {
-    public CSChangeHousePayPacket() : base(CSOffsets.CSChangeHousePayPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var tl = stream.ReadUInt16();

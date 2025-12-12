@@ -3,18 +3,11 @@ using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C;
 
-public class TCJoinResponsePacket : StreamPacket
+public class TCJoinResponsePacket(byte response) : StreamPacket(TCOffsets.TCJoinResponsePacket)
 {
-    private readonly byte _response;
-
-    public TCJoinResponsePacket(byte response) : base(TCOffsets.TCJoinResponsePacket)
-    {
-        _response = response;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_response);
+        stream.Write(response);
 
         return stream;
     }

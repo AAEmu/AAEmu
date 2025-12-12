@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Login;
 
 namespace AAEmu.Game.Core.Packets.L2G;
 
-public class LGRegisterGameServerPacket : LoginPacket
+public class LGRegisterGameServerPacket() : LoginPacket(LGOffsets.LGRegisterGameServerPacket)
 {
-    public LGRegisterGameServerPacket() : base(LGOffsets.LGRegisterGameServerPacket)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var result = stream.ReadByte();

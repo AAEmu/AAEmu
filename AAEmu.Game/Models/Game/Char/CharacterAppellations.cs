@@ -5,21 +5,14 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class CharacterAppellations
+public class CharacterAppellations(Character owner)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public List<uint> Appellations { get; set; }
-    public uint ActiveAppellation { get; set; }
+    public List<uint> Appellations { get; set; } = [];
+    public uint ActiveAppellation { get; set; } = 0;
 
-    public Character Owner { get; set; }
-
-    public CharacterAppellations(Character owner)
-    {
-        Owner = owner;
-        Appellations = [];
-        ActiveAppellation = 0;
-    }
+    public Character Owner { get; set; } = owner;
 
     private void addBuff(uint titleId)
     {

@@ -44,6 +44,6 @@ public class QuestActObjLevel(QuestComponentTemplate parentComponent) : QuestAct
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnLevelUp: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), Level {questAct.QuestComponent.Parent.Parent.Owner.Level}/{Level}");
         var res = questAct.QuestComponent.Parent.Parent.Owner.Level >= Level;
-        SetObjective((QuestAct)questAct, res ? 1 : 0);
+        SetObjective(questAct, res ? 1 : 0);
     }
 }

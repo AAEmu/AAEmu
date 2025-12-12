@@ -64,7 +64,7 @@ public class FormulaManager : Singleton<FormulaManager>
             ExecutionMode = ExecutionMode.Compiled,
             CultureInfo = CultureInfo.InvariantCulture,
         });
-        CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : (a > c ? c : a));
+        CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : a > c ? c : a);
         CalculationEngine.AddFunction("if_negative", (a, b, c) => a < 0 ? b : c);
         CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
         CalculationEngine.AddFunction("if_zero", (a, b, c) => a == 0 ? b : c);

@@ -130,7 +130,7 @@ public class SphereCommandUtil
                 continue;
             }
 
-            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
+            var path = $"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json";
 
             var contents =
                 FileManager.GetFileContents(
@@ -145,14 +145,14 @@ public class SphereCommandUtil
                     uint uuid = 0;
                     if (spheres.Count > 0)
                     {
-                        uuid = ((spheres[spheres.Count - 1].Id) + 1);
+                        uuid = spheres[^1].Id + 1;
                     }
                     else
                     {
                         uuid = (uint)(spheres.Count + 1);
                     }
 
-                    var pos = new JsonPosition()
+                    var pos = new JsonPosition
                     {
                         X = character.Transform.Local.Position.X,
                         Y = character.Transform.Local.Position.Y,
@@ -192,7 +192,7 @@ public class SphereCommandUtil
         {
             if (questTrigger.Owner.Id != character.Id)
                 continue;
-            if ((questId > 0) && (questTrigger.Quest.Id != questId))
+            if (questId > 0 && questTrigger.Quest.Id != questId)
                 continue;
             var currentDistance = MathUtil.CalculateDistance(character.Transform.World.Position, questTrigger.Sphere.Xyz, true);
             character.SendMessage($"[Sphere] Quest {questTrigger.Quest.TemplateId} - Component: {questTrigger.Sphere.ComponentId} - TriggerSphere  xyz:{questTrigger.Sphere.Xyz} , radius:{questTrigger.Sphere.Radius}m, at {currentDistance:F1}m away");
@@ -204,7 +204,7 @@ public class SphereCommandUtil
 
     public static void RemoveQuestSphere(Character character, uint jsonId)
     {
-        bool found = false;
+        var found = false;
 
         var worlds = WorldManager.Instance.GetWorlds();
 
@@ -215,7 +215,7 @@ public class SphereCommandUtil
                 continue;
             }
 
-            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
+            var path = $"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json";
 
             var contents =
                 FileManager.GetFileContents(
@@ -271,7 +271,7 @@ public class SphereCommandUtil
                 continue;
             }
 
-            var path = ($"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json");
+            var path = $"{FileManager.AppPath}Data/Worlds/{world.Template.Name}/quest_sphere.json";
 
             var contents =
                 FileManager.GetFileContents(
@@ -283,7 +283,7 @@ public class SphereCommandUtil
             {
                 if (JsonHelper.TryDeserializeObject(contents, out List<JsonQuestSphere> spheres, out _))
                 {
-                    bool found = false;
+                    var found = false;
                     foreach (var sphere in spheres)
                     {
                         if (sphere.Id == jsonId)

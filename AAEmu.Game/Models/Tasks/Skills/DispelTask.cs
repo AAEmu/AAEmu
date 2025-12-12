@@ -3,21 +3,16 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Tasks.Skills;
 
-public class DispelTask : Task
+public class DispelTask(Buff buff) : Task
 {
-    public WeakReference Effect;
-
-    public DispelTask(Buff buff)
-    {
-        Effect = new WeakReference(buff);
-    }
+    public WeakReference Effect = new(buff);
 
     public override void Execute()
     {
         if (!Effect.IsAlive)
             return;
 
-        if ((Effect.Target is not Buff eff) || eff.IsEnded() || eff.Owner == null)
+        if (Effect.Target is not Buff eff || eff.IsEnded() || eff.Owner == null)
             return;
 
         eff.ScheduleEffect(false);

@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAggroTargetChangedPacket : GamePacket
+public class SCAggroTargetChangedPacket(uint npcId, uint targetId) : GamePacket(SCOffsets.SCAggroTargetChanged, 1)
 {
-    private readonly uint _npcId;
-    private readonly uint _targetId;
-
-    public SCAggroTargetChangedPacket(uint npcId, uint targetId) : base(SCOffsets.SCAggroTargetChanged, 1)
-    {
-        _npcId = npcId;
-        _targetId = targetId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_npcId);
-        stream.WriteBc(_targetId);
+        stream.WriteBc(npcId);
+        stream.WriteBc(targetId);
 
         return stream;
     }

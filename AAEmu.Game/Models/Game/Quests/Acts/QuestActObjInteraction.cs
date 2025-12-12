@@ -51,7 +51,7 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnInteraction: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), WorldInteractionId {WorldInteractionId}, DoodadId {DoodadId}, TeamShare {TeamShare}, Phase {Phase}.");
-        AddObjective((QuestAct)questAct, 1);
+        AddObjective(questAct, 1);
 
         var player = questAct.QuestComponent.Parent.Parent.Owner;
         if (player.Id == args.SourcePlayer.Id)

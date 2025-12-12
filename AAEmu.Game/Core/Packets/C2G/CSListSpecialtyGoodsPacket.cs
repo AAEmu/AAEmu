@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSListSpecialtyGoodsPacket : GamePacket
+public class CSListSpecialtyGoodsPacket() : GamePacket(CSOffsets.CSListSpecialtyGoodsPacket, 1)
 {
-    public CSListSpecialtyGoodsPacket() : base(CSOffsets.CSListSpecialtyGoodsPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var objId = stream.ReadBc();

@@ -93,7 +93,7 @@ public class BigMonsterAttackBehavior : BaseCombatBehavior
         baseList = baseList.Where(s =>
         {
             var template = SkillManager.Instance.GetSkillTemplate(s.SkillType);
-            return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+            return template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
         });
 
         return baseList.ToList();

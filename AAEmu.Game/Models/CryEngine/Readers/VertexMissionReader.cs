@@ -3,16 +3,13 @@ using AAEmu.Game.Models.CryEngine.Entities;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public class VertexMissionReader : BaiReader
+public class VertexMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiReader(rawStream, zoneId)
 {
     public static int BaiVertexFileVersion = 2;
 
-    public List<ObstacleDataDescriptor> ObstacleDataDescriptorList { get; set; } = new();
+    public List<ObstacleDataDescriptor> ObstacleDataDescriptorList { get; set; } = [];
 
-    public VertexMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
-    {
-        //
-    }
+    //
 
     public override void CheckVersion(int version)
     {
@@ -30,14 +27,13 @@ public class VertexMissionReader : BaiReader
         var count = Reader.ReadInt32();
         for (var i = 0; i < count; i++)
         {
-            var obstacleDataDescriptor = new ObstacleDataDescriptor(ZoneId);
-            obstacleDataDescriptor.Pos = ReadVector3();
-            obstacleDataDescriptor.Dir = ReadVector3(true);
-            obstacleDataDescriptor.ApproxRadius = Reader.ReadSingle();
-            obstacleDataDescriptor.Flags = Reader.ReadByte();
-            obstacleDataDescriptor.ApproxHeight = Reader.ReadByte();
-            obstacleDataDescriptor.Unk1 = Reader.ReadByte();
-            obstacleDataDescriptor.Unk2 = Reader.ReadByte();
+            var obstacleDataDescriptor = new ObstacleDataDescriptor(ZoneId)
+            {
+                Pos = ReadVector3(), Dir = ReadVector3(true), ApproxRadius = Reader.ReadSingle(), Flags = Reader.ReadByte(),
+                ApproxHeight = Reader.ReadByte(),
+                Unk1 = Reader.ReadByte(),
+                Unk2 = Reader.ReadByte()
+            };
 
             ObstacleDataDescriptorList.Add(obstacleDataDescriptor);
         }

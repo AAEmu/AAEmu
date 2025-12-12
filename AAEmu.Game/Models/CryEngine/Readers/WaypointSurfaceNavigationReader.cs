@@ -3,16 +3,13 @@ using AAEmu.Game.Models.CryEngine.Entities;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public class WaypointSurfaceNavigationReader : BaiReader
+public class WaypointSurfaceNavigationReader(System.IO.Stream rawStream, uint zoneId) : BaiReader(rawStream, zoneId)
 {
     public int BaiWayPoint3DSurfaceFileVersion = 1;
 
-    public List<WaypointSurfaceNavigation> WaypointSurfaceNavigationList { get; set; } = new();
+    public List<WaypointSurfaceNavigation> WaypointSurfaceNavigationList { get; set; } = [];
 
-    public WaypointSurfaceNavigationReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
-    {
-        //
-    }
+    //
 
     public override void CheckVersion(int version)
     {

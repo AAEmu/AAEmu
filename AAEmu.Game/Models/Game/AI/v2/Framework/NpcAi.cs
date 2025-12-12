@@ -369,7 +369,7 @@ $"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is
 
     public double GetRealMovementSpeed(double baseMoveSpeed)
     {
-        var speedMul = (Owner.CalculateWithBonuses(0, UnitAttribute.MoveSpeedMul) / 1000.0) + 1.0;
+        var speedMul = Owner.CalculateWithBonuses(0, UnitAttribute.MoveSpeedMul) / 1000.0 + 1.0;
         if (Math.Abs(speedMul - 1.0) > double.Epsilon)
             baseMoveSpeed *= speedMul;
 

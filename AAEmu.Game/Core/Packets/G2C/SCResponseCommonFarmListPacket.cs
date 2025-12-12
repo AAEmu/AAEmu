@@ -5,26 +5,19 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCResponseCommonFarmListPacket : GamePacket
+public class SCResponseCommonFarmListPacket(Dictionary<FarmType, List<Doodad>> allPlanted)
+    : GamePacket(SCOffsets.SCResponseCommonFarmListPacket, 1)
 {
-    private readonly Dictionary<FarmType, List<Doodad>> _allPlanted;
-
-    public SCResponseCommonFarmListPacket(Dictionary<FarmType, List<Doodad>> allPlanted)
-        : base(SCOffsets.SCResponseCommonFarmListPacket, 1)
-    {
-        _allPlanted = allPlanted;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
         //Need to send all data for all 4 tabs here!
 
-        stream.Write(_allPlanted.Values.Sum(l => l.Count));
-        stream.Write(_allPlanted.Values.Sum(l => l.Count));
+        stream.Write(allPlanted.Values.Sum(l => l.Count));
+        stream.Write(allPlanted.Values.Sum(l => l.Count));
 
-        foreach (FarmType type in Enum.GetValues<FarmType>())
+        foreach (var type in Enum.GetValues<FarmType>())
         {
-            if (_allPlanted.TryGetValue(type, out var doodadList))
+            if (allPlanted.TryGetValue(type, out var doodadList))
             {
                 foreach (var doodad in doodadList)
                 {

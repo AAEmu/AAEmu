@@ -4,22 +4,23 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSoldItemListPacket : GamePacket
+public class SCSoldItemListPacket(List<Item> items) : GamePacket(SCOffsets.SCSoldItemListPacket, 1)
 {
-    private List<Item> _items;
-
-    public SCSoldItemListPacket(List<Item> items) : base(SCOffsets.SCSoldItemListPacket, 1)
-    {
-        _items =
-        [
-            /*
+    private readonly List<Item> _items =
+    [
+        /*
         var startPos = items.Count < 12 ? 0 : items.Count - 12;
         var size = items.Count - startPos;
         _items.AddRange(items.GetRange(startPos, size));
         */
-            .. items.GetRange(0, items.Count > 12 ? 12 : items.Count),
-        ];
-    }
+        .. items.GetRange(0, items.Count > 12 ? 12 : items.Count),
+    ];
+
+    /*
+        var startPos = items.Count < 12 ? 0 : items.Count - 12;
+        var size = items.Count - startPos;
+        _items.AddRange(items.GetRange(startPos, size));
+        */
 
     public override PacketStream Write(PacketStream stream)
     {

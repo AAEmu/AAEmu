@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSChangeExpeditionRolePolicyPacket : GamePacket
+public class CSChangeExpeditionRolePolicyPacket() : GamePacket(CSOffsets.CSChangeExpeditionRolePolicyPacket, 1)
 {
-    public CSChangeExpeditionRolePolicyPacket() : base(CSOffsets.CSChangeExpeditionRolePolicyPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var rolePolicy = new ExpeditionRolePolicy();

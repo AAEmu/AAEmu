@@ -33,8 +33,7 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
         else
             Logger.Trace("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}, ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}, TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}", Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
 
-        var areaTrigger = new AreaTrigger();
-        areaTrigger.Shape = WorldManager.Instance.GetAreaShapeById(AoeShapeId);
+        var areaTrigger = new AreaTrigger { Shape = WorldManager.Instance.GetAreaShapeById(AoeShapeId) };
 
         if (UseOriginSource)
         {

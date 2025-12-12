@@ -8,14 +8,14 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class NameManager : Singleton<NameManager>
+public partial class NameManager(CharacterManager characterManager = null) : Singleton<NameManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private CharacterManager _characterManager;
+    private readonly CharacterManager _characterManager = characterManager ?? CharacterManager.Instance;
     private Regex _characterNameRegex;
-    private Dictionary<uint, string> _characterIds;
-    private Dictionary<string, uint> _characterNames;
-    private Dictionary<uint, uint> _characterAccounts;
+    private Dictionary<uint, string> _characterIds = [];
+    private Dictionary<string, uint> _characterNames = [];
+    private Dictionary<uint, uint> _characterAccounts = [];
 
     public string GetCharacterName(uint characterId)
         => _characterIds.TryGetValue(characterId, out var characterName)
@@ -34,14 +34,6 @@ public partial class NameManager : Singleton<NameManager>
 
     public NameManager() : this(null)
     {
-    }
-
-    public NameManager(CharacterManager characterManager = null)
-    {
-        _characterIds = [];
-        _characterNames = [];
-        _characterAccounts = [];
-        _characterManager = characterManager ?? CharacterManager.Instance;
     }
 
     [GeneratedRegex("^[a-zA-Z0-9а-яА-Я]{1,18}$")]
@@ -142,7 +134,7 @@ public partial class NameManager : Singleton<NameManager>
 
         if (!_characterNames.TryAdd(normalizedName, characterId))
         {
-            uint oldId = _characterNames.GetValueOrDefault(normalizedName);
+            var oldId = _characterNames.GetValueOrDefault(normalizedName);
             if (characterId != oldId)
                 Logger.Error($"AddCharacterName, failed to register id for {name} ({characterId}), Account {accountId}, OldId {oldId}");
         }

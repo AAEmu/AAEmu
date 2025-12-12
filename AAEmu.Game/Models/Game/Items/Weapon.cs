@@ -22,7 +22,7 @@ public class Weapon : EquipItem
             mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-            var temp2 = (modifiers.Count * temp * modifiers.StrWeight * 1f) / modifiers.AllWeight *
+            var temp2 = modifiers.Count * temp * modifiers.StrWeight * 1f / modifiers.AllWeight *
                         grade.StatMultiplier * 0.0099999998f + 0.5f;
             var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
@@ -46,7 +46,7 @@ public class Weapon : EquipItem
             mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-            var temp2 = (modifiers.Count * temp * modifiers.DexWeight * 1f) / modifiers.AllWeight *
+            var temp2 = modifiers.Count * temp * modifiers.DexWeight * 1f / modifiers.AllWeight *
                         grade.StatMultiplier * 0.0099999998f + 0.5f;
             var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
@@ -70,7 +70,7 @@ public class Weapon : EquipItem
             mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-            var temp2 = (modifiers.Count * temp * modifiers.StaWeight * 1f) / modifiers.AllWeight *
+            var temp2 = modifiers.Count * temp * modifiers.StaWeight * 1f / modifiers.AllWeight *
                         grade.StatMultiplier * 0.0099999998f + 0.5f;
             var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
@@ -94,7 +94,7 @@ public class Weapon : EquipItem
             mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-            var temp2 = (modifiers.Count * temp * modifiers.IntWeight * 1f) / modifiers.AllWeight *
+            var temp2 = modifiers.Count * temp * modifiers.IntWeight * 1f / modifiers.AllWeight *
                         grade.StatMultiplier * 0.0099999998f + 0.5f;
             var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
@@ -118,7 +118,7 @@ public class Weapon : EquipItem
             mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
             var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                        ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-            var temp2 = (modifiers.Count * temp * modifiers.SpiWeight * 1f) / modifiers.AllWeight *
+            var temp2 = modifiers.Count * temp * modifiers.SpiWeight * 1f / modifiers.AllWeight *
                         grade.StatMultiplier * 0.0099999998f + 0.5f;
             var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
             return (int)res;
@@ -139,7 +139,7 @@ public class Weapon : EquipItem
             };
             var formulaRes = formula.Evaluate(parameters);
             if (TemperPhysical > 100)
-                formulaRes *= (TemperPhysical / 100.0f);
+                formulaRes *= TemperPhysical / 100.0f;
             return (float)formulaRes;
         }
     }
@@ -158,7 +158,7 @@ public class Weapon : EquipItem
             };
             var formulaRes = formula.Evaluate(parameters);
             if (TemperMagical > 100)
-                formulaRes *= (TemperMagical / 100.0f);
+                formulaRes *= TemperMagical / 100.0f;
             return formulaRes;
         }
     }
@@ -178,7 +178,7 @@ public class Weapon : EquipItem
 
             var formulaRes = formula.Evaluate(parameters);
             if (TemperMagical > 100)
-                formulaRes *= (TemperMagical / 100.0f);
+                formulaRes *= TemperMagical / 100.0f;
             return formulaRes;
         }
     }
@@ -198,7 +198,7 @@ public class Weapon : EquipItem
 
             var formulaResult = formula.Evaluate(parameters);
             if (TemperPhysical > 100)
-                formulaResult *= (TemperPhysical / 100.0f);
+                formulaResult *= TemperPhysical / 100.0f;
             return (int)formulaResult;
         }
     }

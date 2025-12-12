@@ -40,7 +40,7 @@ public class PutDownBackpackEffect : EffectTemplate
 
         var previousGlider = character.Inventory.Bag.GetItemByItemId(character.Inventory.PreviousBackPackItemId);
         // If no longer valid, reset the value here
-        if ((previousGlider == null) || (previousGlider.SlotType != SlotType.Inventory))
+        if (previousGlider == null || previousGlider.SlotType != SlotType.Inventory)
             character.Inventory.PreviousBackPackItemId = 0;
 
         using var pos = character.Transform.CloneDetached();
@@ -92,7 +92,7 @@ public class PutDownBackpackEffect : EffectTemplate
             doodad.Save();
 
             character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId, (byte)EquipmentItemSlot.Backpack, null), false);
-            if ((previousGlider != null) && character.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack) == null)
+            if (previousGlider != null && character.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack) == null)
                 character.Inventory.SplitOrMoveItem(Items.Actions.ItemTaskType.SwapItems, previousGlider.Id,
                     previousGlider.SlotType, (byte)previousGlider.Slot, 0, SlotType.Equipment,
                     (int)EquipmentItemSlot.Backpack);

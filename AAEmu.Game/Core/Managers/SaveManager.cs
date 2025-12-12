@@ -16,17 +16,11 @@ public class SaveManager : Singleton<SaveManager>
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private double Delay = 1;
-    private bool _enabled;
-    private bool _isSaving;
-    private object _lock = new();
+    private bool _enabled = false;
+    private bool _isSaving = false;
+    private readonly object _lock = new();
     private SaveTickStartTask saveTask;
     public ShutdownTask ShutdownTask { get; set; } = null;
-
-    public SaveManager()
-    {
-        _enabled = false;
-        _isSaving = false;
-    }
 
     public void Initialize()
     {
@@ -126,15 +120,15 @@ public class SaveManager : Singleton<SaveManager>
                             {
                                 transaction.Commit();
 
-                                if ((savedHouses.Item1 + savedHouses.Item2) > 0)
+                                if (savedHouses.Item1 + savedHouses.Item2 > 0)
                                     Logger.Debug($"Updated {savedHouses.Item1} and deleted {savedHouses.Item2} houses ...");
-                                if ((savedMails.Item1 + savedMails.Item2) > 0)
+                                if (savedMails.Item1 + savedMails.Item2 > 0)
                                     Logger.Debug($"Updated {savedMails.Item1} and deleted {savedMails.Item2} mails ...");
-                                if ((saveItems.Item1 + saveItems.Item2) > 0)
+                                if (saveItems.Item1 + saveItems.Item2 > 0)
                                     Logger.Debug($"Updated {saveItems.Item1} and deleted {saveItems.Item2} items in {saveItems.Item3} containers ...");
-                                if ((saveItems.Item3) > 0)
+                                if (saveItems.Item3 > 0)
                                     Logger.Debug($"Updated {saveItems.Item3} item containers ...");
-                                if ((savedAuctionHouse.Item1 + savedAuctionHouse.Item2) > 0)
+                                if (savedAuctionHouse.Item1 + savedAuctionHouse.Item2 > 0)
                                     Logger.Debug($"Updated {savedAuctionHouse.Item1} and deleted {savedAuctionHouse.Item2} auction items ...");
                                 if (savedCharacters > 0)
                                     Logger.Debug($"Updated {savedCharacters} characters ...");

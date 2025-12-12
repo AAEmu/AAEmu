@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSUnhangPacket : GamePacket
+public class CSUnhangPacket() : GamePacket(CSOffsets.CSUnhangPacket, 1)
 {
-    public CSUnhangPacket() : base(CSOffsets.CSUnhangPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var unitObjId = stream.ReadBc();

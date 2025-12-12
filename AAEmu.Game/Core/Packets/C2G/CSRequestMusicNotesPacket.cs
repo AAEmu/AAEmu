@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRequestMusicNotesPacket : GamePacket
+public class CSRequestMusicNotesPacket() : GamePacket(CSOffsets.CSRequestMusicNotesPacket, 1)
 {
-    public CSRequestMusicNotesPacket() : base(CSOffsets.CSRequestMusicNotesPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var id64 = stream.ReadUInt64(); // songId

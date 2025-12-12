@@ -4,21 +4,14 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCInvenExpandedPacket : GamePacket
+public class SCInvenExpandedPacket(SlotType slotType, byte numSlots) : GamePacket(SCOffsets.SCInvenExpandedPacket, 1)
 {
-    private readonly byte _slotType;
-    private readonly byte _numSlots;
-
-    public SCInvenExpandedPacket(SlotType slotType, byte numSlots) : base(SCOffsets.SCInvenExpandedPacket, 1)
-    {
-        _slotType = (byte)slotType;
-        _numSlots = numSlots;
-    }
+    private readonly byte _slotType = (byte)slotType;
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_slotType);
-        stream.Write(_numSlots);
+        stream.Write(numSlots);
         return stream;
     }
 }

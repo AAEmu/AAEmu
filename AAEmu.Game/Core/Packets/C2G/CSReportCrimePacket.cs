@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSReportCrimePacket : GamePacket
+public class CSReportCrimePacket() : GamePacket(CSOffsets.CSReportCrimePacket, 1)
 {
-    public CSReportCrimePacket() : base(CSOffsets.CSReportCrimePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         // TODO find what the unknowns are

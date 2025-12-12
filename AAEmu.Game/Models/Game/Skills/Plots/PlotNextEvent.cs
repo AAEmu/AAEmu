@@ -33,7 +33,7 @@ public class PlotNextEvent
         foreach (var effect in effects)
         {
             var template = SkillManager.Instance.GetEffectTemplate(effect.ActualId, effect.ActualType);
-            if (!(template is SpecialEffect specialEffect))
+            if (template is not SpecialEffect specialEffect)
                 continue;
 
             if (specialEffect.SpecialEffectTypeId != SpecialType.Anim)
@@ -53,7 +53,7 @@ public class PlotNextEvent
 
         var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position, true);
         //We want damage to be applied when the projectile hits target.
-        return (int)Math.Round((dist / Speed) * 1000.0f);
+        return (int)Math.Round(dist / Speed * 1000.0f);
 
     }
 

@@ -14,7 +14,7 @@ public class TransferSpawner : Spawner<Transfer>
     
     public WorldInstance ParentWorld { get; set; }
 
-    private List<Transfer> _spawned = [];
+    private readonly List<Transfer> _spawned = [];
     private Transfer _lastSpawn;
     private int _scheduledCount;
     private int _spawnCount;
@@ -67,7 +67,7 @@ public class TransferSpawner : Spawner<Transfer>
 
                 transfer.TransferPath = transfer.Routes.Count > 0 ? transfer.Routes[0] : null;// начнем с самого начала
 
-                if ((transfer.TransferPath != null) && (transfer.TransferPath.Count >= 2))
+                if (transfer.TransferPath != null && transfer.TransferPath.Count >= 2)
                 {
                     //Logger.Warn("TransfersPath #" + transfer.TemplateId);
                     //Logger.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
@@ -125,7 +125,7 @@ public class TransferSpawner : Spawner<Transfer>
 
         if (_lastSpawn == null || _lastSpawn.ObjId == transfer.ObjId)
         {
-            _lastSpawn = _spawned.Count != 0 ? _spawned[_spawned.Count - 1] : null;
+            _lastSpawn = _spawned.Count != 0 ? _spawned[^1] : null;
         }
     }
 
@@ -133,7 +133,7 @@ public class TransferSpawner : Spawner<Transfer>
     {
         _spawnCount--;
         _spawned.Remove(transfer);
-        if (RespawnTime > 0 && (_spawnCount + _scheduledCount) < Count)
+        if (RespawnTime > 0 && _spawnCount + _scheduledCount < Count)
         {
             transfer.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
             transfer.ParentWorld.SpawnManager.AddRespawn(transfer);

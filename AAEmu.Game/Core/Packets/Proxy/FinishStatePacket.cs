@@ -5,14 +5,10 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
-public class FinishStatePacket : GamePacket
+public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
 {
     private readonly bool[] _scAccountInitPacket = [false, true];
     private readonly byte[] _scLevelRestrictionInitPacket = [0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15];
-
-    public FinishStatePacket() : base(PPOffsets.FinishStatePacket, 2)
-    {
-    }
 
     public override void Read(PacketStream stream)
     {

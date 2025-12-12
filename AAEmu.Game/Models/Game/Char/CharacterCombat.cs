@@ -1,6 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
@@ -35,7 +34,7 @@ public partial class Character
     {
         // check trade packs to drop
         var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
-        if ((item?.Template is BackpackTemplate { BackpackType: BackpackType.TradePack } backpackTemplate))
+        if (item?.Template is BackpackTemplate { BackpackType: BackpackType.TradePack } backpackTemplate)
         {
             // Find the linked doodad of this item's put down effect
             var backpackDoodadId = 0u;

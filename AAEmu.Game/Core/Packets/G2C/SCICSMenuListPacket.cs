@@ -9,7 +9,7 @@ public class SCICSMenuListPacket : GamePacket
     private const byte MainTabCount = 6;
     private const byte SubTabCount = 7;
     private readonly bool _enabled;
-    private Dictionary<byte, Dictionary<byte, bool>> _tabsEnabled;
+    private readonly Dictionary<byte, Dictionary<byte, bool>> _tabsEnabled;
 
     public SCICSMenuListPacket(bool enabled) : base(SCOffsets.SCICSMenuListPacket, 1)
     {

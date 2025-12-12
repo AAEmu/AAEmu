@@ -69,7 +69,7 @@ public class UccManager : Singleton<UccManager>
                         var type = (UccType)reader.GetByte("type");
                         if (type == UccType.Simple)
                         {
-                            var ucc = new DefaultUcc()
+                            var ucc = new DefaultUcc
                             {
                                 Id = id,
                                 Type = type,
@@ -92,7 +92,7 @@ public class UccManager : Singleton<UccManager>
                         }
                         else if (type == UccType.Complex)
                         {
-                            var ucc = new CustomUcc()
+                            var ucc = new CustomUcc
                             {
                                 Id = id,
                                 Type = type,
@@ -166,7 +166,7 @@ public class UccManager : Singleton<UccManager>
 #endif
 
         _uploadQueue.Add(connection.Id, customUcc);
-        var uploadHandler = new UccUploadHandle() { ExpectedSize = expectedDataSize, UploadingUcc = customUcc };
+        var uploadHandler = new UccUploadHandle { ExpectedSize = expectedDataSize, UploadingUcc = customUcc };
         _complexUploadParts.Add(connection.Id, uploadHandler);
         connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.Continue));
     }
@@ -230,7 +230,7 @@ public class UccManager : Singleton<UccManager>
             _downloadQueue.Add(connection.Id, id);
         }
 
-        if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+        if (ucc is CustomUcc customUcc && customUcc.Data.Count > 0)
         {
             connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
             //connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
@@ -258,7 +258,7 @@ public class UccManager : Singleton<UccManager>
 
         if (!_uccs.TryGetValue(uccId, out var ucc))
             return;
-        if (!(ucc is CustomUcc customUcc))
+        if (ucc is not CustomUcc customUcc)
             return;
 
         var index = previousIndex;
@@ -289,7 +289,7 @@ public class UccManager : Singleton<UccManager>
             return;
 
         // status 4 == I'm ready to begin download of the image ?
-        if ((status == 4) && (ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+        if (status == 4 && ucc is CustomUcc customUcc && customUcc.Data.Count > 0)
         {
             var maxParts = (int)Math.Ceiling((double)customUcc.Data.Count / TCEmblemStreamDownloadPacket.BufferSize);
             var sendPart = maxParts - count;

@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -18,8 +17,8 @@ public class LeapSkillController : SkillController
     public int Duration { get; set; }
     public int DistanceOffset { get; set; }
 
-    private float _calculatedSpeed;
-    private Vector3 _endPosition;
+    private readonly float _calculatedSpeed;
+    private readonly Vector3 _endPosition;
     public enum LeapDirection
     {
         Both = 0,

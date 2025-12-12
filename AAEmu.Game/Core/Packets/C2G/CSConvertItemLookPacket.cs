@@ -8,12 +8,8 @@ using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSConvertItemLookPacket : GamePacket
+public class CSConvertItemLookPacket() : GamePacket(CSOffsets.CSConvertItemLookPacket, 1)
 {
-    public CSConvertItemLookPacket() : base(CSOffsets.CSConvertItemLookPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var baseId = stream.ReadUInt64();

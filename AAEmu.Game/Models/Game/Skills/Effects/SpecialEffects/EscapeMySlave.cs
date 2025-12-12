@@ -19,7 +19,7 @@ public class EscapeMySlave : SpecialEffectAction
         int value4)
     {
         // TODO ...
-        if ((caster is Character player) && (targetObj is SkillCastPositionTarget skillCastPositionTarget))
+        if (caster is Character player && targetObj is SkillCastPositionTarget skillCastPositionTarget)
         {
             Logger.Debug($"Special effects: EscapeMySlave value1 {value1}, value2 {value2}, value3 {value3}, value4 {value4}");
 

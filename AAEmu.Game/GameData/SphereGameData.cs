@@ -50,7 +50,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new Spheres()
+                    var template = new Spheres
                     {
                         Id = reader.GetUInt32("id"),
                         Name = reader.GetString("name"),
@@ -82,7 +82,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereQuests()
+                    var template = new SphereQuests
                     {
                         Id = reader.GetUInt32("id"),
                         QuestId = reader.GetUInt32("quest_id"),
@@ -103,7 +103,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereSkills()
+                    var template = new SphereSkills
                     {
                         Id = reader.GetUInt32("id"),
                         SkillId = reader.GetUInt32("skill_id"),
@@ -125,7 +125,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereSounds()
+                    var template = new SphereSounds
                     {
                         Id = reader.GetUInt32("id"),
                         SoundId = reader.GetUInt32("sound_id"),
@@ -146,7 +146,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereDoodadInteracts()
+                    var template = new SphereDoodadInteracts
                     {
                         Id = reader.GetUInt32("id"),
                         SkillId = reader.GetUInt32("skill_id"),
@@ -167,7 +167,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereChatBubbles()
+                    var template = new SphereChatBubbles
                     {
                         Id = reader.GetUInt32("id"),
                         SphereBubbleId = reader.GetUInt32("sphere_bubble_id"),
@@ -198,7 +198,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereBuffs()
+                    var template = new SphereBuffs
                     {
                         Id = reader.GetUInt32("id"),
                         BuffId = reader.GetUInt32("buff_id")
@@ -219,7 +219,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereBubbles()
+                    var template = new SphereBubbles
                     {
                         Id = reader.GetUInt32("id")
                     };
@@ -238,7 +238,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereAcceptQuests()
+                    var template = new SphereAcceptQuests
                     {
                         Id = reader.GetUInt32("id")
                     };
@@ -257,7 +257,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new SphereAcceptQuestQuests()
+                    var template = new SphereAcceptQuestQuests
                     {
                         Id = reader.GetUInt32("id"),
                         SphereAcceptQuestId = reader.GetUInt32("sphere_accept_quest_id"),
@@ -277,7 +277,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
         var questTemplate = QuestManager.Instance.GetTemplate(questId);
         if (questTemplate == null)
             return null;
-        foreach (QuestComponentKind step in Enum.GetValues<QuestComponentKind>())
+        foreach (var step in Enum.GetValues<QuestComponentKind>())
         {
             var components = questTemplate.GetComponents(step);
             if (components.Length == 0)

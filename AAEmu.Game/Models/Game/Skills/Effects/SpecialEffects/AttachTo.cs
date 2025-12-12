@@ -14,10 +14,10 @@ public class AttachTo : SpecialEffectAction
     {
         if (caster is Character) { Logger.Debug("Special effects: AttachTo value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
-        if (!(target is Slave slave))
+        if (target is not Slave slave)
             return;
 
-        if (!(caster is Character character))
+        if (caster is not Character character)
             return;
 
         character.ParentWorld.SlaveManager.BindSlave(character, slave.ObjId, (AttachPointKind)value1, AttachUnitReason.NewMaster);

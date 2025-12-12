@@ -3,12 +3,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSAddFriendPacket : GamePacket
+public class CSAddFriendPacket() : GamePacket(CSOffsets.CSAddFriendPacket, 1)
 {
-    public CSAddFriendPacket() : base(CSOffsets.CSAddFriendPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();

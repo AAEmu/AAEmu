@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSFamilyInviteMemberPacket : GamePacket
+public class CSFamilyInviteMemberPacket() : GamePacket(CSOffsets.CSFamilyInviteMemberPacket, 1)
 {
-    public CSFamilyInviteMemberPacket() : base(CSOffsets.CSFamilyInviteMemberPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();

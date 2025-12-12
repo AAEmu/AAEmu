@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeamAreaInvitedPacket : GamePacket
+public class SCTeamAreaInvitedPacket(uint r, bool s) : GamePacket(SCOffsets.SCTeamAreaInvitedPacket, 1)
 {
-    private readonly uint _r;
-    private readonly bool _s;
-
-    public SCTeamAreaInvitedPacket(uint r, bool s) : base(SCOffsets.SCTeamAreaInvitedPacket, 1)
-    {
-        _r = r;
-        _s = s;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_r);
-        stream.Write(_s);
+        stream.Write(r);
+        stream.Write(s);
         return stream;
     }
 }

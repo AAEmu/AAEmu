@@ -3,26 +3,20 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDeleteCharacterResponsePacket : GamePacket
+public class SCDeleteCharacterResponsePacket(
+    uint characterId,
+    byte status,
+    DateTime? deleteRequestedTime = null,
+    DateTime? deleteDelay = null)
+    : GamePacket(SCOffsets.SCDeleteCharacterResponsePacket, 1)
 {
-    private readonly uint _characterId;
-    private readonly byte _status;
-    private readonly DateTime _deleteRequestedTime;
-    private readonly DateTime _deleteDelay;
-
-    public SCDeleteCharacterResponsePacket(uint characterId, byte status, DateTime? deleteRequestedTime = null, DateTime? deleteDelay = null)
-        : base(SCOffsets.SCDeleteCharacterResponsePacket, 1)
-    {
-        _characterId = characterId;
-        _status = status;
-        _deleteRequestedTime = deleteRequestedTime ?? DateTime.MinValue;
-        _deleteDelay = deleteDelay ?? DateTime.MinValue;
-    }
+    private readonly DateTime _deleteRequestedTime = deleteRequestedTime ?? DateTime.MinValue;
+    private readonly DateTime _deleteDelay = deleteDelay ?? DateTime.MinValue;
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_characterId);
-        stream.Write(_status);
+        stream.Write(characterId);
+        stream.Write(status);
         stream.Write(_deleteRequestedTime);
         stream.Write(_deleteDelay);
         return stream;

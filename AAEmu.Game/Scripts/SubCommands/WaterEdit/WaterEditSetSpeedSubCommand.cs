@@ -5,52 +5,51 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Scripts.Commands
+namespace AAEmu.Game.Scripts.Commands;
+
+public class WaterEditSetSpeedSubCommand : SubCommandBase 
 {
-    public class WaterEditSetSpeedSubCommand : SubCommandBase 
+    public WaterEditSetSpeedSubCommand()
     {
-        public WaterEditSetSpeedSubCommand()
+        Title = "[WaterEdit]";
+        Description = "Set speed at which the selected river flows in m/s.";
+        CallPrefix = $"{CommandManager.CommandPrefix}wateredit setspeed";
+        AddParameter(new NumericSubCommandParameter<float>("speed", "speed", true, 0f, 100f));
+    }
+
+    public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+    {
+        var world = WorldManager.Instance.GetWorld(character.Transform.InstanceId);
+        if (world == null)
         {
-            Title = "[WaterEdit]";
-            Description = "Set speed at which the selected river flows in m/s.";
-            CallPrefix = $"{CommandManager.CommandPrefix}wateredit setspeed";
-            AddParameter(new NumericSubCommandParameter<float>("speed", "speed", true, 0f, 100f));
+            character.SendMessage($"[WaterEdit] You are somehow not in a valid world!");
+            return;
         }
 
-        public override void Execute(ICharacter character, string triggerArgument, IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
+        if (WaterEditCmd.SelectedWater == null)
         {
-            var world = WorldManager.Instance.GetWorld(character.Transform.InstanceId);
-            if (world == null)
-            {
-                character.SendMessage($"[WaterEdit] You are somehow not in a valid world!");
-                return;
-            }
+            character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
+            return;
+        }
 
-            if (WaterEditCmd.SelectedWater == null)
-            {
-                character.SendMessage($"|cFFFF0000[WaterEdit] You need to select a water body first!|r");
-                return;
-            }
-
-            if (WaterEditCmd.SelectedWorld != world)
-            {
-                character.SendMessage(
-                    $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEditCmd.SelectedWorld.Template.Name})|r");
-                return;
-            }
+        if (WaterEditCmd.SelectedWorld != world)
+        {
+            character.SendMessage(
+                $"|cFFFF0000[WaterEdit] Currently selected water is not in the same world as you! ({WaterEditCmd.SelectedWorld.Template.Name})|r");
+            return;
+        }
             
-            if (WaterEditCmd.SelectedWater.AreaType != WaterBodyAreaType.LineArray)
-            {
-                character.SendMessage(
-                    $"|cFFFF0000[WaterEdit] Currently selected water is not of LineArray type! ({WaterEditCmd.SelectedWorld.Template.Name})|r");
-                return;
-            }
-
-            float newSpeed = parameters["speed"];
-
-            WaterEditCmd.SelectedWater.Speed = newSpeed;
-            WaterEditCmd.ShowSelectedArea(character);
-            character.SendMessage($"[WaterEdit] Speed for |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r set to |cFF00FF00{newSpeed}!|r");
+        if (WaterEditCmd.SelectedWater.AreaType != WaterBodyAreaType.LineArray)
+        {
+            character.SendMessage(
+                $"|cFFFF0000[WaterEdit] Currently selected water is not of LineArray type! ({WaterEditCmd.SelectedWorld.Template.Name})|r");
+            return;
         }
+
+        float newSpeed = parameters["speed"];
+
+        WaterEditCmd.SelectedWater.Speed = newSpeed;
+        WaterEditCmd.ShowSelectedArea(character);
+        character.SendMessage($"[WaterEdit] Speed for |cFFFFFFFF{WaterEditCmd.SelectedWater.Name}|r set to |cFF00FF00{newSpeed}!|r");
     }
 }

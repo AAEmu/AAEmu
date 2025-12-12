@@ -8,12 +8,7 @@ public class UnitCooldowns
 {
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public ConcurrentDictionary<uint, DateTime> Cooldowns { get; set; }
-
-    public UnitCooldowns()
-    {
-        Cooldowns = new ConcurrentDictionary<uint, DateTime>();
-    }
+    public ConcurrentDictionary<uint, DateTime> Cooldowns { get; set; } = new();
 
     public void AddCooldown(uint skillId, uint duration)
     {

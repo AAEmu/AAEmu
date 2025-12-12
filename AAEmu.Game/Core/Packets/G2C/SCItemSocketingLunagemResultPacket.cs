@@ -3,27 +3,15 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCItemSocketingLunagemResultPacket : GamePacket
+public class SCItemSocketingLunagemResultPacket(byte result, ulong itemId, uint type, bool install)
+    : GamePacket(SCOffsets.SCItemSocketingLunagemResultPacket, 1)
 {
-    private readonly byte _result;
-    private readonly ulong _itemId;
-    private readonly uint _type;
-    private readonly bool _install;
-
-    public SCItemSocketingLunagemResultPacket(byte result, ulong itemId, uint type, bool install) : base(SCOffsets.SCItemSocketingLunagemResultPacket, 1)
-    {
-        _result = result;
-        _itemId = itemId;
-        _type = type;
-        _install = install;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_result);
-        stream.Write(_itemId);
-        stream.Write(_type);
-        stream.Write(_install);
+        stream.Write(result);
+        stream.Write(itemId);
+        stream.Write(type);
+        stream.Write(install);
         return stream;
     }
 }

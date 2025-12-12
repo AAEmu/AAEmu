@@ -38,7 +38,7 @@ public class HealEffect : EffectTemplate
     {
         Logger.Trace("HealEffect {0}", Id);
 
-        if (!(target is Unit))
+        if (target is not Unit)
             return;
         var trg = (Unit)target;
 
@@ -75,7 +75,7 @@ public class HealEffect : EffectTemplate
         max = variableDamage + levelMax;
 
         var tickModifier = 1.0f;
-        if ((source.Buff?.TickEffects.Count > 0) && (source.Buff.Duration != 0))
+        if (source.Buff?.TickEffects.Count > 0 && source.Buff.Duration != 0)
         {
             tickModifier = (float)(source.Buff.Tick / source.Buff.Duration);
         }
@@ -94,7 +94,7 @@ public class HealEffect : EffectTemplate
             }
         }
 
-        bool criticalHeal = Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
+        var criticalHeal = Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
 
         var value = (int)Random.Shared.Next(min, max);
 

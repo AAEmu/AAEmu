@@ -96,9 +96,9 @@ public class HousingManager : Singleton<HousingManager>
             TemplateId = template.Id, // duplicate Id
             Id = template.Id,
             Faction = FactionManager.Instance.GetFaction(factionId),
-            Name = LocalizationManager.Instance.Get("housings", "name", template.Id)
+            Name = LocalizationManager.Instance.Get("housings", "name", template.Id),
+            Transform = { InstanceId = worldInstance.Id }
         };
-        house.Transform.InstanceId = worldInstance.Id;
         house.Hp = house.MaxHp;
         // Force public on always public properties on create
         if (template.AlwaysPublic)
@@ -390,7 +390,7 @@ public class HousingManager : Singleton<HousingManager>
         // TODO minus moneyAmount
 
         var sourceDesignItem = connection.ActiveChar.Inventory.GetItemById(itemId);
-        if ((sourceDesignItem == null) || (sourceDesignItem.OwnerId != connection.ActiveChar.Id))
+        if (sourceDesignItem == null || sourceDesignItem.OwnerId != connection.ActiveChar.Id)
         {
             // Invalid itemId supplied or the id is not owned by the user
             connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagInvalidItem);
@@ -422,7 +422,7 @@ public class HousingManager : Singleton<HousingManager>
             {
                 var c = consumedCerts;
                 // Use Bound First
-                if ((userBoundTaxCount > 0) && (c > 0))
+                if (userBoundTaxCount > 0 && c > 0)
                 {
                     if (c > userBoundTaxCount)
                         c = userBoundTaxCount;
@@ -430,7 +430,7 @@ public class HousingManager : Singleton<HousingManager>
                     consumedCerts -= c;
                 }
                 c = consumedCerts;
-                if ((userTaxCount > 0) && (c > 0))
+                if (userTaxCount > 0 && c > 0)
                 {
                     if (c > userTaxCount)
                         c = userTaxCount;
@@ -667,7 +667,7 @@ public class HousingManager : Singleton<HousingManager>
         // Default Heavy Tax formula for 1.2
         var taxMultiplier = (heavyHouseCount < MaxHeavyTaxCounted ? heavyHouseCount : MaxHeavyTaxCounted) * 0.5f;
         // If less than 3 properties, or not a heavy tax property, no extra multiplier needed
-        if ((heavyHouseCount < 3) || (newHouseTemplate.HeavyTax == false))
+        if (heavyHouseCount < 3 || newHouseTemplate.HeavyTax == false)
             taxMultiplier = 1f;
 
         totalTaxToPay = oneWeekTaxCount = (int)Math.Ceiling(newHouseTemplate.Taxation.Tax * taxMultiplier);
@@ -685,8 +685,8 @@ public class HousingManager : Singleton<HousingManager>
     /// <param name="house"></param>
     public static void UpdateTaxInfo(House house)
     {
-        var isDemolished = (house.ProtectionEndDate <= DateTime.UtcNow);
-        var isTaxDue = (house.TaxDueDate <= DateTime.UtcNow);
+        var isDemolished = house.ProtectionEndDate <= DateTime.UtcNow;
+        var isTaxDue = house.TaxDueDate <= DateTime.UtcNow;
 
         // Update Buffs (if needed)
         SetUntouchable(house, !isDemolished);
@@ -778,7 +778,7 @@ public class HousingManager : Singleton<HousingManager>
         var myHouses = new Dictionary<uint, House>();
         GetByCharacterId(myHouses, characterId);
         foreach (var h in myHouses)
-            if ((h.Value.Faction == null) || (h.Value.Faction.Id != factionId))
+            if (h.Value.Faction == null || h.Value.Faction.Id != factionId)
                 UpdateHouseFaction(h.Value, factionId);
     }
 
@@ -807,7 +807,7 @@ public class HousingManager : Singleton<HousingManager>
             var designTemplate = ItemManager.Instance.GetTemplate(designItemId);
             if (designTemplate != null && designItem != null)
             {
-                designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0;
+                designItem.Grade = designTemplate.FixedGrade >= 0 ? (byte)designTemplate.FixedGrade : (byte)0;
                 designItem.OwnerId = house.OwnerId;
                 designItem.SlotType = SlotType.Mail;
                 returnedItems.Add(designItem);
@@ -872,7 +872,7 @@ public class HousingManager : Singleton<HousingManager>
             var thisDoodadsItem = ItemManager.Instance.GetItemByItemId(f.ItemId);
             var returnedThisItem = false;
 
-            var wantReturned = ((newOwner == null) && decoInfo.Restore) || forceRestoreAllDecor;
+            var wantReturned = (newOwner == null && decoInfo.Restore) || forceRestoreAllDecor;
 
             // If item is bound, always return it owner
             if (f.ItemId > 0)
@@ -883,7 +883,7 @@ public class HousingManager : Singleton<HousingManager>
             }
 
             // If this doodad is a Coffer and has a ItemContainer attached, also return all item of that container
-            if ((f is DoodadCoffer coffer) && (f.GetItemContainerId() > 0))
+            if (f is DoodadCoffer coffer && f.GetItemContainerId() > 0)
             {
                 // TODO: Check if items should stay in the coffer when house is sold.
                 // Move it to new owner's SystemContainer first so they don't get destroyed
@@ -947,7 +947,7 @@ public class HousingManager : Singleton<HousingManager>
             if (f.ItemTemplateId > 0)
             {
                 // try to stack stackable items
-                var oldItem = returnedItems.FirstOrDefault(x => (x.TemplateId == f.ItemTemplateId) && (x.Count < x.Template.MaxCount));
+                var oldItem = returnedItems.FirstOrDefault(x => x.TemplateId == f.ItemTemplateId && x.Count < x.Template.MaxCount);
 
                 if (oldItem != null)
                 {
@@ -958,7 +958,7 @@ public class HousingManager : Singleton<HousingManager>
                     // It's a new one, add an item slot
                     var furnitureItem = ItemManager.Instance.Create(f.ItemTemplateId, 1, 0);
                     var furnitureTemplate = ItemManager.Instance.GetTemplate(f.ItemTemplateId);
-                    furnitureItem.Grade = (furnitureTemplate.FixedGrade >= 0) ? (byte)furnitureTemplate.FixedGrade : (byte)0;
+                    furnitureItem.Grade = furnitureTemplate.FixedGrade >= 0 ? (byte)furnitureTemplate.FixedGrade : (byte)0;
                     furnitureItem.OwnerId = house.OwnerId;
                     furnitureItem.SlotType = SlotType.Mail;
                     returnedItems.Add(furnitureItem);
@@ -975,7 +975,7 @@ public class HousingManager : Singleton<HousingManager>
             if (newOwner != null)
                 f.OwnerId = newOwner.Id;
 
-            if ((newOwner == null) || returnedThisItem)
+            if (newOwner == null || returnedThisItem)
             {
                 f.Transform.DetachAll();
                 f.Delete();
@@ -989,7 +989,7 @@ public class HousingManager : Singleton<HousingManager>
         for (var i = 0; i < returnedItems.Count; i++)
         {
             // Split items into mails of maximum 10 attachments
-            if ((i % 10) == 0)
+            if (i % 10 == 0)
             {
                 // TODO: proper mail handler
                 newMail = new BaseMail
@@ -1012,7 +1012,7 @@ public class HousingManager : Singleton<HousingManager>
                 };
             }
             // Only attach money to first mail
-            if ((returnedMoney > 0) && (i == 0))
+            if (returnedMoney > 0 && i == 0)
                 newMail.AttachMoney(returnedMoney);
 
             // If player is loaded in at the moment (which he/she should be anyway), directly manipulate the inventory
@@ -1027,7 +1027,7 @@ public class HousingManager : Singleton<HousingManager>
             newMail.Body.Attachments.Add(returnedItems[i]);
 
             // Send on last or 10th item of the mail
-            if (((i % 10) == 9) || (i == returnedItems.Count - 1))
+            if (i % 10 == 9 || i == returnedItems.Count - 1)
                 newMail.Send();
         }
 
@@ -1084,15 +1084,15 @@ public class HousingManager : Singleton<HousingManager>
         {
             for (var postId = 0; postId < 4; postId++)
             {
-                var xMultiplier = (postId % 2) == 0 ? -1 : 1f;
-                var yMultiplier = (postId / 2) == 0 ? -1 : 1f;
-                var zRot = ((135f + (90f * postId) % 360)).DegToRad();
+                var xMultiplier = postId % 2 == 0 ? -1 : 1f;
+                var yMultiplier = postId / 2 == 0 ? -1 : 1f;
+                var zRot = (135f + 90f * postId % 360).DegToRad();
 
                 var doodad = DoodadManager.Instance.Create(house.ParentWorld,  0, ForSaleMarkerDoodadId, null, true);
                 // location
                 doodad.Transform.Local.SetPosition(
-                    (house.Template.GardenRadius * xMultiplier) + house.Transform.World.Position.X,
-                    (house.Template.GardenRadius * yMultiplier) + house.Transform.World.Position.Y,
+                    house.Template.GardenRadius * xMultiplier + house.Transform.World.Position.X,
+                    house.Template.GardenRadius * yMultiplier + house.Transform.World.Position.Y,
                     +house.Transform.World.Position.Z);
                 // adjust height to the floor
                 doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position));// WorldManager.Instance.GetHeight(doodad.Transform)));
@@ -1148,7 +1148,7 @@ public class HousingManager : Singleton<HousingManager>
 
         // Check if buyer exists (we just check if the name exists)
         var buyerName = NameManager.Instance.GetCharacterName(buyerId);
-        if ((buyerId != 0) && (buyerName == null))
+        if (buyerId != 0 && buyerName == null)
             return false;
 
         buyerName ??= "";
@@ -1191,7 +1191,7 @@ public class HousingManager : Singleton<HousingManager>
         house.SellPrice = 0;
         house.SellToPlayerId = 0;
         // Can only return certificates if owner is online and is the one resetting the sale
-        if ((certAmount > 0) && (returnCertificates) && (owner != null))
+        if (certAmount > 0 && returnCertificates && owner != null)
         {
             if (owner.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.Invalid,
                 Item.AppraisalCertificate, certAmount, -1, out var addedItems, out _, 0))
@@ -1286,7 +1286,7 @@ public class HousingManager : Singleton<HousingManager>
             return false;
         }
 
-        if ((house.SellToPlayerId != 0) && (house.SellToPlayerId != character.Id))
+        if (house.SellToPlayerId != 0 && house.SellToPlayerId != character.Id)
         {
             // Not a valid buyer
             character.SendErrorMessage(ErrorMessageType.HouseCannotBuyAsNotDesignatedBuyer);
@@ -1398,7 +1398,7 @@ public class HousingManager : Singleton<HousingManager>
             var expiredHouseList = new List<House>();
             foreach (var house in _houses)
             {
-                if ((house.Value?.ProtectionEndDate <= DateTime.UtcNow) && (house.Value?.OwnerId > 0))
+                if (house.Value?.ProtectionEndDate <= DateTime.UtcNow && house.Value?.OwnerId > 0)
                     expiredHouseList.Add(house.Value);
                 UpdateTaxInfo(house.Value);
             }
@@ -1434,7 +1434,7 @@ public class HousingManager : Singleton<HousingManager>
 
         // Check Item
         var item = ItemManager.Instance.GetItemByItemId(itemId);
-        if ((item == null) || (item.OwnerId != player.Id))
+        if (item == null || item.OwnerId != player.Id)
         {
             // Invalid Item
             return false;
@@ -1442,7 +1442,7 @@ public class HousingManager : Singleton<HousingManager>
 
         // Check House
         var house = GetHouseByTlId(houseTlId);
-        if ((house == null) || (house.TlId != houseTlId))
+        if (house == null || house.TlId != houseTlId)
         {
             // Invalid House
             player.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
@@ -1468,7 +1468,7 @@ public class HousingManager : Singleton<HousingManager>
         doodad.Transform.Local.SetPosition(pos.X, pos.Y, pos.Z);
         doodad.Transform.Local.ApplyFromQuaternion(quat);
         doodad.ItemTemplateId = item.TemplateId; // designId;
-        doodad.ItemId = (item.Template.MaxCount <= 1) ? itemId : 0;
+        doodad.ItemId = item.Template.MaxCount <= 1 ? itemId : 0;
         doodad.OwnerDbId = house.Id;
 
         if (house.Id > 0 && item is BigFish fish)
@@ -1499,7 +1499,7 @@ public class HousingManager : Singleton<HousingManager>
         if (item.Template.MaxCount > 1)
         {
             // Stackable items are simply consumed
-            res = (player.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadCreate, item.TemplateId, 1, item) == 1);
+            res = player.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadCreate, item.TemplateId, 1, item) == 1;
         }
         else
         {

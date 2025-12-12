@@ -18,7 +18,7 @@ public class TCEmblemStreamDownloadPacket : StreamPacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        if ((_ucc == null) || (_ucc.Data.Count <= 0))
+        if (_ucc == null || _ucc.Data.Count <= 0)
         {
             stream.Write(_currentIndex);
             stream.Write(0);

@@ -25,7 +25,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new TowerDef()
+                    var template = new TowerDef
                     {
                         Id = reader.GetUInt32("id"),
                         TimeOfDay = reader.GetFloat("tod"),
@@ -55,7 +55,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                     if (!_towerDefs.TryGetValue(towerDefId, out var towerDef))
                         return;
 
-                    var template = new TowerDefProg()
+                    var template = new TowerDefProg
                     {
                         Id = reader.GetUInt32("id"),
                         TowerDef = towerDef,
@@ -83,7 +83,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                     if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
                         return;
 
-                    var template = new TowerDefProgSpawnTarget()
+                    var template = new TowerDefProgSpawnTarget
                     {
                         Id = reader.GetUInt32("id"),
                         SpawnTargetId = reader.GetUInt32("spawn_target_id"),
@@ -109,7 +109,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                     if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
                         return;
 
-                    var template = new TowerDefProgKillTarget()
+                    var template = new TowerDefProgKillTarget
                     {
                         Id = reader.GetUInt32("id"),
                         KillTargetId = reader.GetUInt32("kill_target_id"),

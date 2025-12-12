@@ -3,21 +3,12 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCUnitIdleStatusPacket : GamePacket
+public class SCUnitIdleStatusPacket(uint id, bool status) : GamePacket(SCOffsets.SCUnitIdleStatusPacket, 1)
 {
-    private readonly uint _id;
-    private readonly bool _status;
-
-    public SCUnitIdleStatusPacket(uint id, bool status) : base(SCOffsets.SCUnitIdleStatusPacket, 1)
-    {
-        _id = id;
-        _status = status;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_id);
-        stream.Write(_status);
+        stream.WriteBc(id);
+        stream.Write(status);
         return stream;
     }
 }

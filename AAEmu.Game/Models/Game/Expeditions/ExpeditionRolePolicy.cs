@@ -82,19 +82,18 @@ public class ExpeditionRolePolicy : PacketMarshaler
 
     public ExpeditionRolePolicy Clone()
     {
-        var rolePolicy = new ExpeditionRolePolicy();
-        rolePolicy.ExpeditionId = ExpeditionId;
-        rolePolicy.Role = Role;
-        rolePolicy.Name = Name;
-        rolePolicy.DominionDeclare = DominionDeclare;
-        rolePolicy.Invite = Invite;
-        rolePolicy.Expel = Expel;
-        rolePolicy.Promote = Promote;
-        rolePolicy.Dismiss = Dismiss;
-        rolePolicy.Chat = Chat;
-        rolePolicy.ManagerChat = ManagerChat;
-        rolePolicy.SiegeMaster = SiegeMaster;
-        rolePolicy.JoinSiege = JoinSiege;
+        var rolePolicy = new ExpeditionRolePolicy
+        {
+            ExpeditionId = ExpeditionId, Role = Role, Name = Name, DominionDeclare = DominionDeclare,
+            Invite = Invite,
+            Expel = Expel,
+            Promote = Promote,
+            Dismiss = Dismiss,
+            Chat = Chat,
+            ManagerChat = ManagerChat,
+            SiegeMaster = SiegeMaster,
+            JoinSiege = JoinSiege
+        };
         return rolePolicy;
     }
 }

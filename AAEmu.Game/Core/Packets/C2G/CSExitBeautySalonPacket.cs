@@ -5,12 +5,8 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSExitBeautySalonPacket : GamePacket
+public class CSExitBeautySalonPacket() : GamePacket(CSOffsets.CSExitBeautySalonPacket, 1)
 {
-    public CSExitBeautySalonPacket() : base(CSOffsets.CSExitBeautySalonPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         //Logger.Debug("ExitBeautySalon");

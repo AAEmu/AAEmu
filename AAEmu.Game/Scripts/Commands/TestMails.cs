@@ -98,22 +98,21 @@ public class TestMails : ICommand
         CommandManager.SendNormalText(this, messageOutput, $"Testing type: {mType}");
         try
         {
-            var mail = new BaseMail();
-
-            mail.MailType = mType;
-            mail.Title = "TestMail " + mType.ToString();
-            mail.ReceiverName = character.Name;
-
-            mail.Header.SenderId = character.Id;
-            mail.Header.SenderName = character.Name;
-            mail.Header.ReceiverId = character.Id;
-
-            mail.Header.Attachments = 0;
-            mail.Header.Extra = 0;
-
-            mail.Body.Text = "Test Mail Body";
-            mail.Body.SendDate = DateTime.UtcNow;
-            mail.Body.RecvDate = DateTime.UtcNow;
+            var mail = new BaseMail
+            {
+                MailType = mType,
+                Title = "TestMail " + mType.ToString(),
+                ReceiverName = character.Name,
+                Header =
+                {
+                    SenderId = character.Id,
+                    SenderName = character.Name,
+                    ReceiverId = character.Id,
+                    Attachments = 0,
+                    Extra = 0
+                },
+                Body = { Text = "Test Mail Body", SendDate = DateTime.UtcNow, RecvDate = DateTime.UtcNow }
+            };
 
             if (args.Length > 1)
             {

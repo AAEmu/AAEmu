@@ -2,9 +2,9 @@
 
 namespace AAEmu.Game.Models.CryEngine.Mission;
 
-public class AiShape : Mission
+public class AiShape(uint zoneId) : Mission(zoneId)
 {
-    public List<Vector3> Points { get; set; } = new();
+    public List<Vector3> Points { get; set; } = [];
 
     public override bool Equals(Mission other)
     {
@@ -19,8 +19,5 @@ public class AiShape : Mission
                Points.SequenceEqual(aiShape.Points);
     }
 
-    public AiShape(uint zoneId) : base(zoneId)
-    {
-        //
-    }
+    //
 }

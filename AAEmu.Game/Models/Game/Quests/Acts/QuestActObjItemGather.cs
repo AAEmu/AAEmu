@@ -69,11 +69,11 @@ public class QuestActObjItemGather(QuestComponentTemplate parentComponent) : Que
 
     public override void OnItemGather(QuestAct questAct, object sender, OnItemGatherArgs args)
     {
-        if ((questAct.Id != ActId) || (args.ItemId != ItemId))
+        if (questAct.Id != ActId || args.ItemId != ItemId)
             return;
 
         // Just adding/removing the count should technically be enough without having to do a new count
         // AddObjective(questAct, args.Count, Count);
-        SetObjective((QuestAct)questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
+        SetObjective(questAct, questAct.QuestComponent.Parent.Parent.Owner.Inventory.GetItemsCount(ItemId));
     }
 }

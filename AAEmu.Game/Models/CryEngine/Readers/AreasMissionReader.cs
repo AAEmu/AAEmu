@@ -7,26 +7,23 @@ using AAEmuGeoData.Scripts.CryEngine.Mission;
 
 namespace AAEmu.Game.Models.CryEngine.Readers;
 
-public class AreasMissionReader : BaiReader
+public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiReader(rawStream, zoneId)
 {
     private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
     public static int BaiAreasFileVersion = 21;
 
-    public List<AiShape> ForbiddenAreasList { get; } = new();
-    public List<SpecialArea> NavigationModifiers { get; } = new();
-    public List<AiShape> DesignerForbiddenAreasList { get; } = new();
-    public List<AiShape> ForbiddenBoundariesList { get; } = new();
-    public List<AiShape> ExtraLinkCostsList { get; } = new();
-    public List<PolygonArea> DesignerPathsList { get; } = new();
-    public List<Vector3> Points { get; } = new();
+    public List<AiShape> ForbiddenAreasList { get; } = [];
+    public List<SpecialArea> NavigationModifiers { get; } = [];
+    public List<AiShape> DesignerForbiddenAreasList { get; } = [];
+    public List<AiShape> ForbiddenBoundariesList { get; } = [];
+    public List<AiShape> ExtraLinkCostsList { get; } = [];
+    public List<PolygonArea> DesignerPathsList { get; } = [];
+    public List<Vector3> Points { get; } = [];
 
     // Helpers to remove duplicates
-    public static ConcurrentBag<string> UsedAreaNames { get; set; } = new();
+    public static ConcurrentBag<string> UsedAreaNames { get; set; } = [];
 
-    public AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : base(rawStream, zoneId)
-    {
-        //
-    }
+    //
 
     public override void CheckVersion(int version)
     {
@@ -111,7 +108,7 @@ public class AreasMissionReader : BaiReader
         polygonArea.Height = Reader.ReadSingle();
         polygonArea.AiLightLevel = (AiLightLevel)Reader.ReadInt32();
 
-        if ((IgnoreDuplicateAreaNames == false) || !UsedAreaNames.Contains(polygonArea.Name))
+        if (IgnoreDuplicateAreaNames == false || !UsedAreaNames.Contains(polygonArea.Name))
         {
             DesignerPathsList.Add(polygonArea);
             UsedAreaNames.Add(polygonArea.Name);
@@ -126,7 +123,7 @@ public class AreasMissionReader : BaiReader
         specialArea.Name = ReadName();
         specialArea.MissionType = (MissionType)Reader.ReadInt32();
         specialArea.WaypointConnections = (WaypointConnections)Reader.ReadInt32();
-        specialArea.Altered = (Reader.ReadByte() != 0);
+        specialArea.Altered = Reader.ReadByte() != 0;
 
         _ = Reader.ReadSingle(); // junk?
         _ = Reader.ReadSingle(); // junk?
@@ -147,7 +144,7 @@ public class AreasMissionReader : BaiReader
         }
 
         ReadPoints(specialArea.Points);
-        if ((IgnoreDuplicateAreaNames == false) || !UsedAreaNames.Contains(specialArea.Name))
+        if (IgnoreDuplicateAreaNames == false || !UsedAreaNames.Contains(specialArea.Name))
         {
             NavigationModifiers.Add(specialArea);
             UsedAreaNames.Add(specialArea.Name);
@@ -164,7 +161,7 @@ public class AreasMissionReader : BaiReader
         aiShape.Points.Clear();
         ;
         var pointsSize = Reader.ReadUInt32();
-        for (int i = 0; i < pointsSize; i++)
+        for (var i = 0; i < pointsSize; i++)
         {
             aiShape.Points.Add(ReadVector3());
         }

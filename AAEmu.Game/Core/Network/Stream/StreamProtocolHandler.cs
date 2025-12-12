@@ -12,12 +12,7 @@ public class StreamProtocolHandler : BaseProtocolHandler
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private ConcurrentDictionary<uint, Type> _packets;
-
-    public StreamProtocolHandler()
-    {
-        _packets = new ConcurrentDictionary<uint, Type>();
-    }
+    private readonly ConcurrentDictionary<uint, Type> _packets = new();
 
     public override void OnConnect(ISession session)
     {

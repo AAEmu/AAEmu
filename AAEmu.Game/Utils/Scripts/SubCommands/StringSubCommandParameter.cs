@@ -2,7 +2,7 @@
 
 public class StringSubCommandParameter : SubCommandParameterBase
 {
-    private List<string> _values = [];
+    private readonly List<string> _values = [];
     public StringSubCommandParameter(string name, string displayName, bool isRequired, params string[] validValues) : base(name, displayName, isRequired)
     {
         _values.AddRange(validValues.Select(s => s.ToLower()));

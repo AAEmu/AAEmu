@@ -5,12 +5,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCreateHousePacket : GamePacket
+public class CSCreateHousePacket() : GamePacket(CSOffsets.CSCreateHousePacket, 1)
 {
-    public CSCreateHousePacket() : base(CSOffsets.CSCreateHousePacket, 1)
-    {
-        //
-    }
+    //
 
     public override void Read(PacketStream stream)
     {

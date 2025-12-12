@@ -16,7 +16,7 @@ public class AccountManager : Singleton<AccountManager>
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private ConcurrentDictionary<uint, GameConnection> _accounts;
+    private readonly ConcurrentDictionary<uint, GameConnection> _accounts;
     private readonly Dictionary<uint, object> _locks = [];
 
     public AccountManager()
@@ -94,8 +94,8 @@ public class AccountManager : Singleton<AccountManager>
             // Account didn't exist, check if it's our first
             command.CommandText = "SELECT COUNT(*) FROM accounts";
             command.Prepare();
-            var accountCount = (int)((long)(command.ExecuteScalar() ?? 0L));
-            var newAccessLevel = (accountCount <= 0)
+            var accountCount = (int)(long)(command.ExecuteScalar() ?? 0L);
+            var newAccessLevel = accountCount <= 0
                 ? AppConfiguration.Instance.Account.AccessLevelFirstAccount
                 : 0;
 

@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSEditorGameModePacket : GamePacket
+public class CSEditorGameModePacket() : GamePacket(CSOffsets.CSEditorGameModePacket, 1)
 {
-    public CSEditorGameModePacket() : base(CSOffsets.CSEditorGameModePacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var on = stream.ReadBoolean();

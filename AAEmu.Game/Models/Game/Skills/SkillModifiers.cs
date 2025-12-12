@@ -6,20 +6,14 @@ namespace AAEmu.Game.Models.Game.Skills;
 
 public class SkillModifiers
 {
-    private Dictionary<uint, List<SkillModifier>> _modifiersBySkillId;
-    private Dictionary<uint, List<SkillModifier>> _modifiersByTagId;
-
-    public SkillModifiers()
-    {
-        _modifiersBySkillId = [];
-        _modifiersByTagId = [];
-    }
+    private readonly Dictionary<uint, List<SkillModifier>> _modifiersBySkillId = [];
+    private readonly Dictionary<uint, List<SkillModifier>> _modifiersByTagId = [];
 
     public double ApplyModifiers(Skill skill, SkillAttribute attribute, double baseValue)
     {
-        double endValue = baseValue;
+        var endValue = baseValue;
 
-        List<SkillModifier> modifiers = GetModifiersForSkillIdWithAttribute(skill.Template.Id, attribute).OrderBy(mod => mod.UnitModifierType).ToList();
+        var modifiers = GetModifiersForSkillIdWithAttribute(skill.Template.Id, attribute).OrderBy(mod => mod.UnitModifierType).ToList();
 
         foreach (var tag in SkillManager.Instance.GetSkillTags(skill.Template.Id))
         {
@@ -31,7 +25,7 @@ public class SkillModifiers
             switch (modifier.UnitModifierType)
             {
                 case UnitModifierType.Percent:
-                    endValue += (endValue * (modifier.Value / 100.0f));
+                    endValue += endValue * (modifier.Value / 100.0f);
                     break;
                 case UnitModifierType.Value:
                     endValue += modifier.Value;

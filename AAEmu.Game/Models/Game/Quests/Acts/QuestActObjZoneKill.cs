@@ -62,7 +62,7 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
         var player = questAct.QuestComponent.Parent.Parent.Owner;
 
         // If Party kills is not allowed, only allow kills from self
-        if (!IsParty && (args.Killer.Id == player.Id))
+        if (!IsParty && args.Killer.Id == player.Id)
             return;
 
         // Ignore if victim is the killer (e.g. death from fall-damage)
@@ -75,40 +75,40 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
 
         var valid = false;
 
-        if ((CountNpc > 0) && (victimNpc != null))
+        if (CountNpc > 0 && victimNpc != null)
         {
             // NPC kills
             if (NpcFactionId > 0)
             {
-                if (NpcFactionExclusive && (victimNpc.Faction.Id != NpcFactionId))
+                if (NpcFactionExclusive && victimNpc.Faction.Id != NpcFactionId)
                     valid = true;
-                if (!NpcFactionExclusive && (victimNpc.Faction.Id == NpcFactionId))
+                if (!NpcFactionExclusive && victimNpc.Faction.Id == NpcFactionId)
                     valid = true;
             }
 
-            if ((victimNpc.Level < LvlMinNpc) || (victimNpc.Level > LvlMaxNpc))
+            if (victimNpc.Level < LvlMinNpc || victimNpc.Level > LvlMaxNpc)
                 valid = false;
         }
 
-        if ((CountPlayerKill > 0) && (victimPc != null))
+        if (CountPlayerKill > 0 && victimPc != null)
         {
             if (PcFactionId > 0)
             {
                 // Player kills
-                if (PcFactionExclusive && (victimPc.Faction.Id != PcFactionId))
+                if (PcFactionExclusive && victimPc.Faction.Id != PcFactionId)
                     valid = true;
-                if (!PcFactionExclusive && (victimPc.Faction.Id == PcFactionId))
+                if (!PcFactionExclusive && victimPc.Faction.Id == PcFactionId)
                     valid = true;
             }
 
-            if ((victimPc.Level < LvlMin) || (victimPc.Level > LvlMax))
+            if (victimPc.Level < LvlMin || victimPc.Level > LvlMax)
                 valid = false;
         }
 
         if (valid)
         {
             // TODO: Check if this would actually need 2 objective counters or not
-            AddObjective((QuestAct)questAct, 1);
+            AddObjective(questAct, 1);
 
             // Handle Team sharing (if needed)
             if (TeamShare)

@@ -11,7 +11,7 @@ public class NodeCell
     public byte Dummy { get; set; }
     public byte Flags { get; set; }
     public byte Flags2 { get; set; }
-    public AABB BoxHeightmap { get; set; } = new AABB();
+    public AABB BoxHeightmap { get; set; } = new();
     public byte bHasHoles { get; set; }
     public float fOffset { get; set; }
     public float fRange { get; set; }
@@ -171,8 +171,8 @@ public class NodeCell
                     var rawHeightBL = GetRawHeight(nearestRawPoints.Left, nearestRawPoints.Bottom);
                     var rawHeightBR = GetRawHeight(nearestRawPoints.Right, nearestRawPoints.Bottom);
                     // Calculate offset within points
-                    var offX = (targetX * sourceScale) - sourceX;
-                    var offY = (targetY * sourceScale) - sourceY;
+                    var offX = targetX * sourceScale - sourceX;
+                    var offY = targetY * sourceScale - sourceY;
                     var height = Blerp(rawHeightTL, rawHeightTR, rawHeightBL, rawHeightBR, offX, offY);
 
                     result[index] = (ushort)Math.Round(height);

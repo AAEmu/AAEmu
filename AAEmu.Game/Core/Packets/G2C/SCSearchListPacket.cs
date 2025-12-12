@@ -4,26 +4,15 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSearchListPacket : GamePacket
+public class SCSearchListPacket(int total, Friend[] friends, bool success) : GamePacket(SCOffsets.SCSearchListPacket, 1)
 {
-    private readonly int _total;
-    private readonly Friend[] _friends;
-    private readonly bool _success;
-
-    public SCSearchListPacket(int total, Friend[] friends, bool success) : base(SCOffsets.SCSearchListPacket, 1)
-    {
-        _total = total;
-        _friends = friends;
-        _success = success;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_total);
-        stream.Write(_friends.Length); // TODO max length 200
-        foreach (var friend in _friends)
+        stream.Write(total);
+        stream.Write(friends.Length); // TODO max length 200
+        foreach (var friend in friends)
             stream.Write(friend);
-        stream.Write(_success);
+        stream.Write(success);
         return stream;
     }
 }

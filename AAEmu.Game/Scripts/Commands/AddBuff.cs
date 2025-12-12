@@ -43,7 +43,7 @@ public class AddBuff : ICommand
         Unit sourceUnit = character;
         Unit targetUnit = null;
 
-        if (!(character.CurrentTarget is Unit selectedUnit))
+        if (character.CurrentTarget is not Unit selectedUnit)
         {
             CommandManager.SendErrorText(this, messageOutput, "No target unit selected");
             return;

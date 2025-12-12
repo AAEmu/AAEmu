@@ -64,8 +64,8 @@ public class Simulation : Patrol
     //Not used
     //private float MovingDistance = 0.25f; //0.3f;
 
-    private float RangeToCheckPoint = 0.5f; // дистанция до чекпоинта при которой считается , что мы достигли оного
-    private int MoveTrigerDelay = 1000;     // срабатывание таймера на движение  0,8 сек
+    private readonly float RangeToCheckPoint = 0.5f; // дистанция до чекпоинта при которой считается , что мы достигли оного
+    private readonly int MoveTrigerDelay = 1000;     // срабатывание таймера на движение  0,8 сек
 
     private uint SkillId { get; set; }
     private uint Timeout { get; set; }
@@ -217,7 +217,7 @@ public class Simulation : Patrol
     public void StopRecord(Simulation sim)
     {
         // записываем в файл
-        using (StreamWriter sw = new StreamWriter(GetRecordFileName()))
+        using (var sw = new StreamWriter(GetRecordFileName()))
         {
             foreach (var b in RecordPath)
             {

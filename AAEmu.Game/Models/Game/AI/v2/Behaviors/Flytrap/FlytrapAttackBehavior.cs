@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.AI.AStar;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params.Flytrap;
 using AAEmu.Game.Models.Game.Models;
@@ -183,7 +182,7 @@ public class FlytrapAttackBehavior : Behavior
         // Only remove CurrentTarget is either no unit selected, or if target is already dead
         if (Ai.Owner.CurrentTarget is not Unit currentTargetUnit)
             Ai.Owner.SetTarget(null);
-        else if ((currentTargetUnit.Hp <= 0) || (currentTargetUnit.IsDead))
+        else if (currentTargetUnit.Hp <= 0 || currentTargetUnit.IsDead)
             Ai.Owner.SetTarget(null);
 
         return false;

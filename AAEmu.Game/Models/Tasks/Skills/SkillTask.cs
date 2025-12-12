@@ -2,12 +2,7 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Tasks.Skills;
 
-public abstract class SkillTask : Task
+public abstract class SkillTask(Skill skill) : Task
 {
-    public Skill Skill { get; set; }
-
-    protected SkillTask(Skill skill)
-    {
-        Skill = skill;
-    }
+    public Skill Skill { get; set; } = skill;
 }

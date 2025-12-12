@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Jitter2.LinearMath;
+﻿using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics.HeightMaps;
 

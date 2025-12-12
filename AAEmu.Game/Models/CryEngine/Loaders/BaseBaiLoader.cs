@@ -221,8 +221,8 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
 
         Vector3 GetTargetOffsetByZoneOrPath(uint zoneKey, uint pathBlockX, uint pathBlockY)
         {
-            if ((zoneKey == 0) || !ParentWorldTemplate.XmlWorld.Zones.TryGetValue(zoneKey, out var xmlWorldZone))
-                return new Vector3((pathBlockX * 256f), (pathBlockY * 256f), 0f);
+            if (zoneKey == 0 || !ParentWorldTemplate.XmlWorld.Zones.TryGetValue(zoneKey, out var xmlWorldZone))
+                return new Vector3(pathBlockX * 256f, pathBlockY * 256f, 0f);
             return new Vector3(xmlWorldZone.OriginX * 1024f, xmlWorldZone.OriginY * 1024f, 0f);
         }
     }

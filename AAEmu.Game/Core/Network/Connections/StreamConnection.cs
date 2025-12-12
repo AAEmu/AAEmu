@@ -6,23 +6,15 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Network.Connections;
 
-public class StreamConnection
+public class StreamConnection(ISession session)
 {
-    private ISession _session;
-    private int _requestId;
-    private readonly Dictionary<int, Doodad[]> _requests;
+    private int _requestId = -1;
+    private readonly Dictionary<int, Doodad[]> _requests = [];
 
-    public uint Id => _session.SessionId;
-    public IPAddress Ip => _session.Ip;
+    public uint Id => session.SessionId;
+    public IPAddress Ip => session.Ip;
     public GameConnection GameConnection { get; set; }
     public PacketStream LastPacket { get; set; }
-
-    public StreamConnection(ISession session)
-    {
-        _session = session;
-        _requestId = -1;
-        _requests = [];
-    }
 
     public int GetNextRequestId(Doodad[] doodads)
     {
@@ -50,7 +42,7 @@ public class StreamConnection
 
     public void SendPacket(byte[] packet)
     {
-        _session?.SendPacket(packet);
+        session?.SendPacket(packet);
     }
 
     public static void OnConnect()
@@ -59,6 +51,6 @@ public class StreamConnection
 
     public void Shutdown()
     {
-        _session?.Close();
+        session?.Close();
     }
 }

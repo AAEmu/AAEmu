@@ -15,8 +15,8 @@ public partial class CommandManager : Singleton<CommandManager>
 {
     public const string CommandPrefix = "/";
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<string, ICommand> _commands;
-    private Dictionary<string, string> _commandAliases;
+    private readonly Dictionary<string, ICommand> _commands;
+    private readonly Dictionary<string, string> _commandAliases;
 
     private CommandManager()
     {
@@ -34,7 +34,7 @@ public partial class CommandManager : Singleton<CommandManager>
         var cmd = _commands.GetValueOrDefault(commandName.ToLower());
 
         // If not found, check if it's an alias
-        if ((cmd == null) && (_commandAliases.TryGetValue(commandName.ToLower(), out var originalName)))
+        if (cmd == null && _commandAliases.TryGetValue(commandName.ToLower(), out var originalName))
             cmd = _commands.GetValueOrDefault(originalName.ToLower());
 
         return cmd;
@@ -64,7 +64,7 @@ public partial class CommandManager : Singleton<CommandManager>
             _commands.Remove(names[0].ToLower());
         _commands.Add(names[0].ToLower(), command);
 
-        for (int i = 1; i < names.Length; i++)
+        for (var i = 1; i < names.Length; i++)
         {
             if (_commandAliases.ContainsKey(names[i].ToLower()))
                 _commandAliases.Remove(names[i].ToLower());
@@ -113,7 +113,7 @@ public partial class CommandManager : Singleton<CommandManager>
 
         // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case
         // things aren't working out when live-editing scripts
-        if ((_commands.Count <= 0) && (words.Length == 3) && (thisCommand == "scripts") && (words[1] == "reload") && (words[2] == "force") && (characterAccessLevel >= 100))
+        if (_commands.Count <= 0 && words.Length == 3 && thisCommand == "scripts" && words[1] == "reload" && words[2] == "force" && characterAccessLevel >= 100)
         {
             ForceScriptsReload(character);
 
@@ -137,7 +137,7 @@ public partial class CommandManager : Singleton<CommandManager>
         if (command == null)
         {
             _commandAliases.TryGetValue(thisCommand, out var alias);
-            if ((alias != null) && (alias != string.Empty))
+            if (alias != null && alias != string.Empty)
             {
                 _commands.TryGetValue(alias, out command);
                 thisCommand = alias;

@@ -3,14 +3,9 @@ using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Core.Network.Game;
 
-public abstract class GamePacket : PacketBase<GameConnection>
+public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameConnection>(typeId)
 {
-    public byte Level { get; set; }
-
-    protected GamePacket(ushort typeId, byte level) : base(typeId)
-    {
-        Level = level;
-    }
+    public byte Level { get; set; } = level;
 
     /// <summary>
     /// This is called in Encode after Read() in the case of GamePackets

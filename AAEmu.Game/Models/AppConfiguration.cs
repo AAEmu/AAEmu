@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models;
 public partial class AppConfiguration : Singleton<AppConfiguration>
 {
     public byte Id { get; set; }
-    public byte[] AdditionalesId { get; set; } = System.Array.Empty<byte>();
+    public byte[] AdditionalesId { get; set; } = [];
     public string SecretKey { get; set; }
     public DBConnections Connections { get; set; }
     public NetworkConfig Network { get; set; }
@@ -29,9 +29,9 @@ public partial class AppConfiguration : Singleton<AppConfiguration>
     public CurrencyValuesConfig LaborOffline { get; set; }
     public CurrencyValuesConfig Credits { get; set; }
     public CurrencyValuesConfig Loyalty { get; set; }
-    public ClientDataConfig ClientData { get; set; } = new ClientDataConfig();
-    public SpecialtyConfig Specialty { get; set; } = new SpecialtyConfig();
-    public ScriptsConfig Scripts { get; set; } = new ScriptsConfig();
+    public ClientDataConfig ClientData { get; set; } = new();
+    public SpecialtyConfig Specialty { get; set; } = new();
+    public ScriptsConfig Scripts { get; set; } = new();
     public string DefaultLanguage { get; set; } = "en_us";
     public bool DebugInfo { get; set; } = true;
     public uint DebugInfoLevel { get; set; } = 100;

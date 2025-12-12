@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSRestrictCheckPacket : GamePacket
+public class CSRestrictCheckPacket() : GamePacket(CSOffsets.CSRestrictCheckPacket, 1)
 {
-    public CSRestrictCheckPacket() : base(CSOffsets.CSRestrictCheckPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         var characterId = stream.ReadUInt32();

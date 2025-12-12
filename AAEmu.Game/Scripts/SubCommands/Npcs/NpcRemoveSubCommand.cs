@@ -35,7 +35,7 @@ public class NpcRemoveSubCommand : SubCommandBase
         else
         {
             var currentTarget = ((Character)character).CurrentTarget;
-            if (currentTarget is null || !(currentTarget is Npc))
+            if (currentTarget is null || currentTarget is not Npc)
             {
                 SendColorMessage(messageOutput, Color.Red, "You need to target a Npc first");
                 Logger.Warn("You need to target a Npc first");

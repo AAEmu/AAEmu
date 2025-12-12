@@ -10,7 +10,7 @@ public class GiveQuest : IWorldInteraction
     public void Execute(BaseUnit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
         uint skillId, uint doodadId, DoodadFuncTemplate objectFunc = null)
     {
-        if (!(target is Doodad doodad)) { return; }
+        if (target is not Doodad doodad) { return; }
 
         doodad.Use(caster, skillId);
     }

@@ -5,10 +5,10 @@ using AAEmu.Game.Models.Tasks.Duels;
 
 namespace AAEmu.Game.Models.Game.Duels;
 
-public class Duel
+public class Duel(Character challenger, Character challenged)
 {
-    public Character Challenger { get; set; }
-    public Character Challenged { get; set; }
+    public Character Challenger { get; set; } = challenger; // это персонаж который вызвал нас на дуэль
+    public Character Challenged { get; set; } = challenged; // это наш персонаж (т.е. connection.ActiveChar)
     public Doodad DuelFlag { get; set; }
     public DuelStartTask DuelStartTask { get; set; }
     public DuelEndTimerTask DuelEndTimerTask { get; set; }
@@ -16,12 +16,6 @@ public class Duel
     public DuelResultСheckTask DuelResultСheckTask { get; set; }
     public bool DuelStarted { get; set; } = false;
     public bool DuelAllowed { get; set; } = false;
-
-    public Duel(Character challenger, Character challenged)
-    {
-        Challenger = challenger; // это персонаж который вызвал нас на дуэль
-        Challenged = challenged; // это наш персонаж (т.е. connection.ActiveChar)
-    }
 
     public void SendPacketsBoth(GamePacket packet)
     {

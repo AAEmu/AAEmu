@@ -7,12 +7,9 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSCreateCharacterPacket : GamePacket
+public class CSCreateCharacterPacket() : GamePacket(CSOffsets.CSCreateCharacterPacket, 1)
 {
-    public CSCreateCharacterPacket() : base(CSOffsets.CSCreateCharacterPacket, 1)
-    {
-        //
-    }
+    //
 
     public override void Read(PacketStream stream)
     {

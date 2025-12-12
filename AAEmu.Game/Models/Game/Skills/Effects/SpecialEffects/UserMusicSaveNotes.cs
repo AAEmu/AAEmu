@@ -24,7 +24,7 @@ public class UserMusicSaveNotes : SpecialEffectAction
         // TODO ...
         if (caster is Character) { Logger.Debug("Special effects: UserMusicSaveNotes value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
-        if ((caster is Character player) && (casterObj is SkillItem si))
+        if (caster is Character player && casterObj is SkillItem si)
         {
             var item = ItemManager.Instance.GetItemByItemId(si.ItemId);
             if (!MusicManager.Instance.CreateSheetMusic(player, item))

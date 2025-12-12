@@ -3,24 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCombatFirstHitPacket : GamePacket
+public class SCCombatFirstHitPacket(uint vuId, uint huId, uint htId) : GamePacket(SCOffsets.SCCombatFirstHitPacket, 1)
 {
-    private readonly uint _vuId;
-    private readonly uint _huId;
-    private readonly uint _htId;
-
-    public SCCombatFirstHitPacket(uint vuId, uint huId, uint htId) : base(SCOffsets.SCCombatFirstHitPacket, 1)
-    {
-        _vuId = vuId;
-        _huId = huId;
-        _htId = htId;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(_vuId);
-        stream.WriteBc(_huId);
-        stream.Write(_htId);
+        stream.WriteBc(vuId);
+        stream.WriteBc(huId);
+        stream.Write(htId);
         return stream;
     }
 }

@@ -10,8 +10,8 @@ public class SCCooldownsPacket : GamePacket
 {
     private Character _chr;
     //private uint _skillId;
-    private int _skillCount;
-    private int _tagCount;
+    private readonly int _skillCount;
+    private readonly int _tagCount;
 
     public SCCooldownsPacket() : base(SCOffsets.SCCooldownsPacket, 1)
     {

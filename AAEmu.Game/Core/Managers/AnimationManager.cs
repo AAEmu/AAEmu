@@ -44,12 +44,11 @@ public class AnimationManager : Singleton<AnimationManager>
             if (spaceCount == 0)
             {
                 // Start of new model section
-                lastCombatSyncEvent = new AnimCombatSyncEvent();
-                lastCombatSyncEvent.ModelName = line.Trim('"');
+                lastCombatSyncEvent = new AnimCombatSyncEvent { ModelName = line.Trim('"') };
                 res.Add(lastCombatSyncEvent);
                 lastAnimDuration = null;
             }
-            else if ((lastCombatSyncEvent != null) && (spaceCount == 4))
+            else if (lastCombatSyncEvent != null && spaceCount == 4)
             {
                 // Start of new animation section
                 lastAnimDuration = new AnimDuration();
@@ -59,7 +58,7 @@ public class AnimationManager : Singleton<AnimationManager>
                     return null;
                 }
             }
-            else if ((lastAnimDuration != null) && (spaceCount == 8))
+            else if (lastAnimDuration != null && spaceCount == 8)
             {
                 // This is a actual property
                 var props = trimmedLine.Split(' ');
@@ -120,7 +119,7 @@ public class AnimationManager : Singleton<AnimationManager>
                 {
                     while (reader.Read())
                     {
-                        var template = new Anim()
+                        var template = new Anim
                         {
                             Id = reader.GetUInt32("id"),
                             Name = reader.GetString("name"),

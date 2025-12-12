@@ -4,28 +4,15 @@ using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCMailDeletedPacket : GamePacket
+public class SCMailDeletedPacket(bool isSent, long mailId, bool isUnreadMailCountModified, CountUnreadMail count)
+    : GamePacket(SCOffsets.SCMailDeletedPacket, 1)
 {
-    private readonly bool _isSent;
-    private readonly long _mailId;
-    private readonly bool _isUnreadMailCountModified;
-    private readonly CountUnreadMail _count;
-
-    public SCMailDeletedPacket(bool isSent, long mailId, bool isUnreadMailCountModified, CountUnreadMail count)
-        : base(SCOffsets.SCMailDeletedPacket, 1)
-    {
-        _isSent = isSent;
-        _mailId = mailId;
-        _isUnreadMailCountModified = isUnreadMailCountModified;
-        _count = count;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_isSent);
-        stream.Write(_mailId);
-        stream.Write(_isUnreadMailCountModified);
-        stream.Write(_count);
+        stream.Write(isSent);
+        stream.Write(mailId);
+        stream.Write(isUnreadMailCountModified);
+        stream.Write(count);
         return stream;
     }
 }

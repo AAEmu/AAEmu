@@ -4,12 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-public class CSLeaveExpeditionPacket : GamePacket
+public class CSLeaveExpeditionPacket() : GamePacket(CSOffsets.CSLeaveExpeditionPacket, 1)
 {
-    public CSLeaveExpeditionPacket() : base(CSOffsets.CSLeaveExpeditionPacket, 1)
-    {
-    }
-
     public override void Read(PacketStream stream)
     {
         Logger.Debug("LeaveExpedition");

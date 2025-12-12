@@ -13,16 +13,16 @@ public enum ExtraDataFlags
     HasUInt = 4,
 }
 
-public class SCSkillStartedPacket : GamePacket
+public class SCSkillStartedPacket(
+    uint id,
+    ushort tl,
+    SkillCaster caster,
+    SkillCastTarget target,
+    Skill skill,
+    SkillObject skillObject)
+    : GamePacket(SCOffsets.SCSkillStartedPacket, 1)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
-
-    private readonly uint _id;
-    private readonly ushort _tl;
-    private readonly SkillCaster _caster;
-    private readonly SkillCastTarget _target;
-    private readonly Skill _skill;
-    private readonly SkillObject _skillObject;
 
     public ushort RealCastTimeDiv10 { get; set; }
     public ushort BaseCastTimeDiv10 { get; set; }
@@ -32,24 +32,13 @@ public class SCSkillStartedPacket : GamePacket
     private ushort ExtraDataUShort { get; set; }
     private uint ExtraDataUInt { get; set; }
 
-    public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject)
-        : base(SCOffsets.SCSkillStartedPacket, 1)
-    {
-        _id = id;
-        _tl = tl;
-        _caster = caster;
-        _target = target;
-        _skill = skill;
-        _skillObject = skillObject;
-    }
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_id);
-        stream.Write(_tl);
-        stream.Write(_caster);
-        stream.Write(_target);
-        stream.Write(_skillObject);
+        stream.Write(id);
+        stream.Write(tl);
+        stream.Write(caster);
+        stream.Write(target);
+        stream.Write(skillObject);
 
         stream.Write(RealCastTimeDiv10);
         stream.Write(BaseCastTimeDiv10);
@@ -99,6 +88,6 @@ public class SCSkillStartedPacket : GamePacket
 
     public override string Verbose()
     {
-        return $" - Id {_id}, TlId {_tl}, Caster {_caster.ObjId}, Target {_target.ObjId}, Skill {_skill.Template.Id}";
+        return $" - Id {id}, TlId {tl}, Caster {caster.ObjId}, Target {target.ObjId}, Skill {skill.Template.Id}";
     }
 }

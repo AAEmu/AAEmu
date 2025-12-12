@@ -6,22 +6,16 @@ using NLog;
 
 namespace AAEmu.Game.Services.WebApi;
 
-public class WebApiSession : HttpSession
+public class WebApiSession(WebApiServer server) : HttpSession(server)
 {
-    private readonly WebApiServer _server;
-
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    public WebApiSession(WebApiServer server) : base(server)
-    {
-        _server = server;
-    }
 
     protected override void OnReceivedRequest(HttpRequest request)
     {
         HttpResponse response = null;
         try
         {
-            var (foundRoute, matches) = _server.RouteMapper.GetRoute(request.Url, new HttpMethod(request.Method));
+            var (foundRoute, matches) = server.RouteMapper.GetRoute(request.Url, new HttpMethod(request.Method));
             if (foundRoute is null)
             {
                 response = new HttpResponse((int)HttpStatusCode.NotFound);
@@ -44,7 +38,7 @@ public class WebApiSession : HttpSession
                 }
             }
 
-            object[] args = parameters.ToArray();
+            var args = parameters.ToArray();
 
             var activate = Activator.CreateInstance(foundRoute.TargetMethod.DeclaringType);
             response = (HttpResponse)foundRoute.TargetMethod.Invoke(activate, args);

@@ -20,20 +20,15 @@ public class AreaTrigger
     /// <summary>
     /// Units currently inside the Shape
     /// </summary>
-    private List<Unit> Units { get; set; }
+    private List<Unit> Units { get; set; } = [];
 
     public uint SkillId { get; set; }
     public uint TlId { get; set; }
     public SkillTargetRelation TargetRelation { get; set; }
     public BuffTemplate InsideBuffTemplate { get; set; }
-    public Dictionary<uint, List<EffectTemplate>> EffectsPerBuff { get; set; } = new Dictionary<uint, List<EffectTemplate>>();
+    public Dictionary<uint, List<EffectTemplate>> EffectsPerBuff { get; set; } = new();
     public int TickRate { get; set; }
     private DateTime _lastTick = DateTime.MinValue;
-
-    public AreaTrigger()
-    {
-        Units = [];
-    }
 
     private void UpdateUnits()
     {
