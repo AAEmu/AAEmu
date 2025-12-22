@@ -21,7 +21,7 @@ public class CharacterCraft(Character owner)
     /// </summary>
     private uint DoodadId { get; set; }
     private int ConsumeLaborPower { get; set; }
-    private Character Owner { get; init; } = owner;
+    private Character Owner => owner;
     public bool IsCrafting { get; set; }
 
     public void Craft(Craft craft, int count, uint doodadId)

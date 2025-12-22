@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.IO;
+using System.Numerics;
 using AAEmu.Commons.Exceptions;
 using NLog;
 using AAEmu.Game.IO;
@@ -56,16 +57,17 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 // Logger.Debug($"Areas File: {areaFile}");
 
                 // Load all .bai files for data
-                using var fs = ClientFileManager.GetFileStream(areaFile);
-                // Ignore files that are too small
-                if (fs.Length <= 20)
+                var fileStream = ClientFileManager.GetFileStream(areaFile);
+                // Ignore files that are too small or null streams
+                if (fileStream == null || fileStream.Length <= 20)
                 {
+                    fileStream?.Dispose();
                     continue;
                 }
 
-                var area = new AreasMissionReader(fs, zoneKey);
                 try
                 {
+                    var area = new AreasMissionReader(fileStream, zoneKey);
                     area.ReaderPointOffset = targetOffset;
                     area.ReadFile();
                     AreasMissionReaders.Add(area);
@@ -73,7 +75,10 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 catch (Exception ex)
                 {
                     Logger.Debug($"Areas File Exception: {ex}, in {areaFile}, area offset {targetOffset}, skipping the rest of this file");
-                    // continue;
+                }
+                finally
+                {
+                    fileStream.Dispose();
                 }
             }
 
@@ -128,10 +133,13 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
 
                 // Logger.Debug($"Vertex File: {vertexFile}");
 
-                using var fs = ClientFileManager.GetFileStream(vertexFile);
-                var vertex = new VertexMissionReader(fs, zoneKey);
+                var fileStream = ClientFileManager.GetFileStream(vertexFile);
+                if (fileStream == null)
+                    continue;
+
                 try
                 {
+                    var vertex = new VertexMissionReader(fileStream, zoneKey);
                     vertex.ReaderPointOffset = targetOffset;
                     vertex.ReadFile();
                     VertexMissionReaders.Add(vertex);
@@ -139,7 +147,10 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 catch (Exception ex)
                 {
                     Logger.Debug($"Vertex File Exception: {ex}, in {vertexFile}");
-                    // continue;
+                }
+                finally
+                {
+                    fileStream.Dispose();
                 }
             }
 
