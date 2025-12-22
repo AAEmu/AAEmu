@@ -42,6 +42,10 @@ public class LinkDescriptor(NetMissionReader baiReader)
                EndIndex == other.EndIndex &&
                IsPureTriangularLink == other.IsPureTriangularLink &&
                SimplePassabilityCheck == other.SimplePassabilityCheck &&
-               Vector3.Equals(EdgeCenter, other.EdgeCenter);
+#if NET10_0_OR_GREATER
+              Vector3.EqualsAll(EdgeCenter, other.EdgeCenter);
+#else
+              Vector3.Equals(EdgeCenter, other.EdgeCenter);
+#endif
     }
 }

@@ -224,7 +224,6 @@ public class PlotTree(uint plotId)
     private static void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
     {
 
-
         var packets = new CompressedGamePackets();
         while (executeQueue.Count > 0)
         {

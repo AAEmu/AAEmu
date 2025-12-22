@@ -31,7 +31,9 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     {
         var expedition = new Expedition
         {
-            Id = (FactionsEnum)ExpeditionIdManager.Instance.GetNextId(), MotherId = owner.Faction.Id, Name = name,
+            Id = (FactionsEnum)ExpeditionIdManager.Instance.GetNextId(),
+            MotherId = owner.Faction.Id,
+            Name = name,
             OwnerId = owner.Id,
             OwnerName = owner.Name,
             UnitOwnerType = 0,
@@ -97,7 +99,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                         {
                             var member = new ExpeditionMember
                             {
-                                CharacterId = reader.GetUInt32("character_id"), ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id"),
+                                CharacterId = reader.GetUInt32("character_id"),
+                                ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id"),
                                 Role = reader.GetByte("role"),
                                 Memo = reader.GetString("memo"),
                                 LastWorldLeaveTime = reader.GetDateTime("last_leave_time"),
@@ -127,7 +130,8 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
                         {
                             var policy = new ExpeditionRolePolicy
                             {
-                                ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id"), Role = reader.GetByte("role"),
+                                ExpeditionId = (FactionsEnum)reader.GetUInt32("expedition_id"),
+                                Role = reader.GetByte("role"),
                                 Name = reader.GetString("name"),
                                 DominionDeclare = reader.GetBoolean("dominion_declare"),
                                 Invite = reader.GetBoolean("invite"),
@@ -525,7 +529,10 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
     {
         var member = new ExpeditionMember
         {
-            IsOnline = true, Name = character.Name, Level = character.Level, Role = (byte)(owner ? 255 : 0),
+            IsOnline = true,
+            Name = character.Name,
+            Level = character.Level,
+            Role = (byte)(owner ? 255 : 0),
             Memo = "",
             Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z),
             ZoneId = character.Transform.ZoneId,

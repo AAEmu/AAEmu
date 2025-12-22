@@ -31,7 +31,6 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         // var housingAreas = new Dictionary<uint, HousingAreas>();
         // var houseTaxes = new Dictionary<uint, HouseTax>();
 
-
         Logger.Info("Loading Housing Information ...");
 
         using (var command = connection.CreateCommand())

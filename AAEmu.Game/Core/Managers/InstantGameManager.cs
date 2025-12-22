@@ -20,9 +20,11 @@ public class InstantGameManager : Singleton<InstantGameManager>
     private readonly List<InstantGame> _instantGames = [];
 
     private readonly List<InstantGame> _queueList = [];
-
+#if NET9_0_OR_GREATER
     private readonly Lock _lock = new();
-
+#else
+    private readonly object _lock = new();
+#endif
     public void Initialize()
     {
         // 15 seconds between each matchmaking query

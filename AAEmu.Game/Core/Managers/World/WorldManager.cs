@@ -789,7 +789,6 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         return ai.Owner.Spawner?.Position.Z ?? ai.Owner.Transform.World.Position.Z;
     }
 
-
     /// <summary>
     /// Gets the root GameObject all the way up from the parent/child object tree
     /// </summary>

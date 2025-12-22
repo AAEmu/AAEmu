@@ -59,7 +59,6 @@ public class Creature : IComparable
         return result.ToDictionary(c => c.Id, c => c);
     }
 
-
     #region IComparable Members
 
     public int CompareTo(object obj)

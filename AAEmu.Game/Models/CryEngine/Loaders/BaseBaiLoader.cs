@@ -59,7 +59,9 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 using var fs = ClientFileManager.GetFileStream(areaFile);
                 // Ignore files that are too small
                 if (fs.Length <= 20)
+                {
                     continue;
+                }
 
                 var area = new AreasMissionReader(fs, zoneKey);
                 try
@@ -263,7 +265,6 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                     return nearestNode;
                 }
             }
-            
         }
         return nearestNode;
     }

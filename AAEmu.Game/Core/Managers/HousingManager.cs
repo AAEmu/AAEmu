@@ -1050,7 +1050,6 @@ public class HousingManager : Singleton<HousingManager>
     }
     */
 
-
     /// <summary>
     /// Helper function to calculate how many Appraisal Certificates are needed to sell a house at a given price
     /// </summary>

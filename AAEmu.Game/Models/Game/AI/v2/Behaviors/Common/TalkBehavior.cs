@@ -173,7 +173,7 @@ public class TalkBehavior : BaseCombatBehavior
     {
         if (Ai.Owner.Template.NpcNicknameId != VehicleNickId) return;
 
-        var pos = Ai.Owner.Transform.CloneDetached();
+        using var pos = Ai.Owner.Transform.CloneDetached();
         pos.Local.AddDistanceToFront(SpyglassDist);
         var yaw = (float)MathUtil.CalculateAngleFrom(pos, Ai.Owner.Transform);
 

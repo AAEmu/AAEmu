@@ -26,7 +26,6 @@ public class DungeonLoaderTask(WorldTemplate worldTemplate, Dungeon dungeon, uin
             Logger.Info($"[{dungeon.World})] New Dungeon instance created!");
         }
 
-
         // Spawn all world elements for this dungeon
         Logger.Debug($"[{dungeon.World})] Spawning game objects Npc, Doodad, Slave, Gimmick...");
         dungeon.World.SpawnManager.SpawnAll();
