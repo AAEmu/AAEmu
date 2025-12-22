@@ -8,7 +8,7 @@
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="NLog" />
     <PackageReference Include="NetCoreServer" />
-	  <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
 </Project>
