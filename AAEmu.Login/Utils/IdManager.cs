@@ -21,11 +21,7 @@ public class IdManager
     private readonly int _freeIdSize;
     private readonly string[,] _objTables;
     private readonly bool _distinct;
-#if NET9_0_OR_GREATER
     private readonly Lock _lock = new();
-#else
-    private readonly object _lock = new();
-#endif
 
     public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, bool distinct = false)
     {
