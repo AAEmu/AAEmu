@@ -51,7 +51,7 @@ public class AddBuff : ICommand
 
         targetUnit = selectedUnit;
         var userFriendlyName = string.Empty;
-        if (targetUnit is Npc targetNpc)
+        if (selectedUnit is Npc targetNpc)
         {
             userFriendlyName = $"@NPC_NAME({targetNpc.TemplateId})";
         }

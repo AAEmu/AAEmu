@@ -17,19 +17,21 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
       - name: Install dependencies
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release --no-restore
       # - name: Scripts Compile Net 8
       #    run: dotnet run --project AAEmu.Game/AAEmu.Game.csproj --framework net8.0 compiler-check
-      - name: Scripts Compile Net 9
-        run: dotnet run --project AAEmu.Game/AAEmu.Game.csproj --framework net9.0 compiler-check
+      # - name: Scripts Compile Net 9
+      #    run: dotnet run --project AAEmu.Game/AAEmu.Game.csproj --framework net9.0 compiler-check      
+      - name: Scripts Compile Net 10
+        run: dotnet run --project AAEmu.Game/AAEmu.Game.csproj --framework net10.0 compiler-check
       - name: Test
         run: dotnet test --filter FullyQualifiedName!~AAEmu.IntegrationTests /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./AAEmu.UnitTests/TestResults/coverage.info
+          path-to-lcov: ./AAEmu.UnitTests/TestResults/coverage.net10.0.info

@@ -102,7 +102,6 @@ public class GimmickSpawner : Spawner<Gimmick>
 #pragma warning restore CA2208 // Instantiate argument exceptions correctly
         }
 
-
         gimmick.SetScale(Scale);
         gimmick.Spawn(); // добавляем в мир
         ParentWorld.GimmickManager.AddActiveGimmick(gimmick);

@@ -19,7 +19,7 @@ public partial class InstantGame
         {
             result.State = VictoryState.Win;
             _endGameTokenSource.Cancel();
-            EndGame();
+            EndGame().Start();
         }
     }
 

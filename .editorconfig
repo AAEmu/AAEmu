@@ -150,6 +150,7 @@ dotnet_diagnostic.IDE0300.severity = warning # Use collection expression for arr
 dotnet_diagnostic.IDE0028.severity = warning # Simplify collection initialization
 dotnet_diagnostic.IDE0001.severity = warning # Simplify name
 dotnet_diagnostic.IDE0005.severity = warning # Remove unnecessary using directives
+dotnet_diagnostic.IDE0009.severity = none # Add 'this' or 'Me' qualification
 dotnet_diagnostic.IDE0018.severity = warning # Inline variable declaration
 dotnet_diagnostic.IDE0034.severity = warning # Simplify 'default' expression
 dotnet_diagnostic.IDE0035.severity = warning # Remove unreachable code

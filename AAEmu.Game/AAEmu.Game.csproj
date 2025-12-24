@@ -94,10 +94,6 @@
     <PackageReference Include="NLog" />
     <PackageReference Include="NLua" />
     <PackageReference Include="OSVersionExt.NetStd" />
-    <PackageReference Include="System.Drawing.Primitives" />
-    <PackageReference Include="System.Numerics.Vectors" />
-    <PackageReference Include="System.Private.Uri" />
   </ItemGroup>
-  
  
 </Project>

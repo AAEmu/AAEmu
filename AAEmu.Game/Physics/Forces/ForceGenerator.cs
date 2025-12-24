@@ -16,7 +16,6 @@ public class ForceGenerator
     {
         this._world = world;
 
-
         // ReSharper disable RedundantDelegateCreation
         _preStep = new World.WorldStep(PreStep);
         _postStep = new World.WorldStep(PostStep);
