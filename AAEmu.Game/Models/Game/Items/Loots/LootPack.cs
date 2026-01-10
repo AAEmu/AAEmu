@@ -27,11 +27,11 @@ public class LootPack
     /// <param name="player">Player whose loot multipliers need to be used</param>
     /// <param name="actabilityType">Actability that triggered the Loot generation</param>
     /// <returns></returns>
-    public List<(uint itemId, int count, byte grade, uint originalGroup)> GeneratePack(Character player, ActabilityType actabilityType)
+    public List<(uint itemId, int count, byte grade, uint originalGroup)> GeneratePack(Character player, ActabilityType actabilityType, byte? inheritedGrade = null)
     {
         var lootDropRate = (100f + player.DropRateMul) / 100f;
         var lootGoldRate = (100f + player.LootGoldMul) / 100f;
-        return GeneratePackNewV2(lootDropRate, lootGoldRate, player, actabilityType);
+        return GeneratePackNewV2(lootDropRate, lootGoldRate, player, actabilityType, inheritedGrade);
     }
 
     /// <summary>
@@ -173,7 +173,7 @@ public class LootPack
     /// <param name="player">The player the loot is generated for, currently only used to handle exclusions</param>
     /// <param name="actabilityType">AbilityType used to initiate the loot generation (used to calculate bonus)</param>
     /// <returns></returns>
-    public List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> GeneratePackNewV2(float lootDropRate, float lootGoldRate, Character player, ActabilityType actabilityType)
+    public List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> GeneratePackNewV2(float lootDropRate, float lootGoldRate, Character player, ActabilityType actabilityType, byte? inheritedGrade = null)
     {
         var items = new List<(uint itemId, int count, byte grade, uint lootGroupOrigin)>();
 
@@ -308,8 +308,8 @@ public class LootPack
                     if (loot.ItemId == Item.Coins)
                         countToAddNow = (int)Math.Round(countToAddNow * lootGoldRate * AppConfiguration.Instance.World.GoldLootMultiplier);
                     // Choose grade
-                    var generatedGrade = loot.GradeId;
-                    if (group?.ItemGradeDistributionId > 0)
+                    var generatedGrade = inheritedGrade ?? loot.GradeId;
+                    if (inheritedGrade == null && group?.ItemGradeDistributionId > 0)
                         generatedGrade = GetGradeFromDistribution(group.ItemGradeDistributionId);
                     // Add selected item to final item
                     items.Add((loot.ItemId, countToAddNow, generatedGrade, loot.Group));
@@ -508,10 +508,10 @@ public class LootPack
     /// <param name="actabilityType"></param>
     /// <param name="taskType"></param>
     /// <param name="generatedList"></param>
-    public bool GiveLootPack(Character character, ActabilityType actabilityType, ItemTaskType taskType, List<(uint itemId, int count, byte grade, uint originalGroup)> generatedList = null)
+    public bool GiveLootPack(Character character, ActabilityType actabilityType, ItemTaskType taskType, List<(uint itemId, int count, byte grade, uint originalGroup)> generatedList = null, byte? inheritedGrade = null)
     {
         // If it is not generated yet, generate loot pack info now
-        generatedList ??= GeneratePack(character, actabilityType);
+        generatedList ??= GeneratePack(character, actabilityType, inheritedGrade);
 
         var canAdd = true;
         // First check for room
