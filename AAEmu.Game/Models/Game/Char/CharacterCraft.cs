@@ -166,14 +166,11 @@ public class CharacterCraft(Character owner)
         {
             // Search Bag container for the material  
             Item foundMaterial = null;
-            var container = Owner.Inventory.Bag;
+            if (Owner.Inventory.Bag.GetAllItemsByTemplate(mainGradeMaterial.ItemId, -1, out var items, out _))
             {
-                if (container.GetAllItemsByTemplate(mainGradeMaterial.ItemId, -1, out var items, out _))
+                if (items.Count > 0)
                 {
-                    if (items.Count > 0)
-                    {
-                        foundMaterial = items[0];
-                    }
+                    foundMaterial = items[0];
                 }
             }
 
