@@ -367,8 +367,9 @@ public class CharacterCraft(Character owner)
     private static int FreeRegrade(int baseGrade)
     {
         int grade = baseGrade;
-        //Check grade is not mythic
-        if (grade != (int)ItemGrade.Mythic)
+        var maxGrade = Enum.GetValues<ItemGrade>().Max();
+        //Check grade is not already max
+        if (grade != (int)maxGrade)
         {
             //5% chance
             var luckyRoll = Random.Shared.Next(0, 20);
