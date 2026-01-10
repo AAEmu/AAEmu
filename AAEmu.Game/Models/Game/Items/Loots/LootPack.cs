@@ -26,6 +26,7 @@ public class LootPack
     /// </summary>
     /// <param name="player">Player whose loot multipliers need to be used</param>
     /// <param name="actabilityType">Actability that triggered the Loot generation</param>
+    /// <param name="inheritedGrade">Grade to inherit (Optional)</param>
     /// <returns></returns>
     public List<(uint itemId, int count, byte grade, uint originalGroup)> GeneratePack(Character player, ActabilityType actabilityType, byte? inheritedGrade = null)
     {
@@ -172,6 +173,7 @@ public class LootPack
     /// <param name="lootGoldRate">1.0f = 100% applies to coins item only</param>
     /// <param name="player">The player the loot is generated for, currently only used to handle exclusions</param>
     /// <param name="actabilityType">AbilityType used to initiate the loot generation (used to calculate bonus)</param>
+    /// <param name="inheritedGrade">Grade to inherit (Optional)</param>
     /// <returns></returns>
     public List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> GeneratePackNewV2(float lootDropRate, float lootGoldRate, Character player, ActabilityType actabilityType, byte? inheritedGrade = null)
     {
@@ -508,6 +510,7 @@ public class LootPack
     /// <param name="actabilityType"></param>
     /// <param name="taskType"></param>
     /// <param name="generatedList"></param>
+    /// <param name="inheritedGrade">Grade to inherit (Optional)</param>
     public bool GiveLootPack(Character character, ActabilityType actabilityType, ItemTaskType taskType, List<(uint itemId, int count, byte grade, uint originalGroup)> generatedList = null, byte? inheritedGrade = null)
     {
         // If it is not generated yet, generate loot pack info now
