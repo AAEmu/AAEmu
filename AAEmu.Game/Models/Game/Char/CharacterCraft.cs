@@ -245,16 +245,13 @@ public class CharacterCraft(Character owner)
             if (template is EquipItemTemplate) // Check if material is equipment  
             {
                 // Search bag container for this material
-                var container = Owner.Inventory.Bag;
+                if (Owner.Inventory.Bag.GetAllItemsByTemplate(material.ItemId, -1, out var items, out _))
                 {
-                    if (container.GetAllItemsByTemplate(material.ItemId, -1, out var items, out _))
+                    if (items.Count > 0)
                     {
-                        if (items.Count > 0)
-                        {
-                            gradeMaterial = items[0];
-                            inheritedGrade = gradeMaterial.Grade;
-                            break;
-                        }
+                        gradeMaterial = items[0];
+                        inheritedGrade = gradeMaterial.Grade;
+                        break;
                     }
                 }
             }
@@ -374,7 +371,7 @@ public class CharacterCraft(Character owner)
     {
         int grade = baseGrade;
         //Check grade is not mythic
-        if (grade != 11)
+        if (grade != (int)ItemGrade.Mythic)
         {
             //5% chance
             var luckyRoll = Random.Shared.Next(0, 20);
