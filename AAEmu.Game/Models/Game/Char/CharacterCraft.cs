@@ -373,11 +373,15 @@ public class CharacterCraft(Character owner)
     private static int FreeRegrade(int baseGrade)
     {
         int grade = baseGrade;
-        //5% chance
-        var luckyRoll = Random.Shared.Next(0, 20);
-        if (luckyRoll < 1)
+        //Check grade is not mythic
+        if (grade != 11)
         {
-            grade++;
+            //5% chance
+            var luckyRoll = Random.Shared.Next(0, 20);
+            if (luckyRoll < 1)
+            {
+                grade++;
+            }
         }
         return grade;
     }
