@@ -1,6 +1,6 @@
 # Configuration
 $projectPath = "..\AAEmu.Game"
-$executableDir = "..\AAEmu.Game\bin\x64\Debug\net9.0"
+$executableDir = "..\AAEmu.Game\bin\x64\Debug\net10.0"
 $workingDirectory = "..\.server_files\AAEmu.Game"
 $buildConfiguration = "Debug"
 
@@ -113,7 +113,7 @@ function Start-DotnetWatch {
             "watch", 
             "--project", $fullProjectPath, 
             "run", 
-            "--framework", "net9.0", 
+            "--framework", "net10.0", 
             "--detailed"  # Changed from "detailed" to "verbose" for more comprehensive logs
         )
         
@@ -141,7 +141,7 @@ function Start-DotnetWatch {
                 
                 # Try running dotnet build directly to see errors
                 Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Running dotnet build to check for errors..." -ForegroundColor Yellow
-                $buildOutput = & dotnet build $fullProjectPath --framework net9.0 --verbose
+                $buildOutput = & dotnet build $fullProjectPath --framework net10.0 --verbose
                 Write-Host $buildOutput -ForegroundColor Gray
             }
         }
