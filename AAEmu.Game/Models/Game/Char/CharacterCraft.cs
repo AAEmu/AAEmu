@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks.Skills;
 
@@ -155,16 +156,136 @@ public class CharacterCraft(Character owner)
             return;
         }
 
-        foreach (var product in CurrentCraft.CraftProducts)
+        /*
+        // "Proper" Grade inheritance referencing the compact flags, doesn't work for 1.2
+        // Find the material that determines the grade for inheritance
+        byte inheritedGrade = 0;
+        var mainGradeMaterial = CurrentCraft.CraftMaterials.FirstOrDefault(m => m.MainGrade);
+        Owner.SendDebugMessage($"Looking for main grade material. Found: {mainGradeMaterial?.ItemId ?? 0}");
+        if (mainGradeMaterial != null)
         {
-            // Check if we're crafting a trade pack, if so, try to remove currently equipped backpack slot
-            if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
+            // Search Bag container for the material  
+            Item foundMaterial = null;
+            if (Owner.Inventory.Bag.GetAllItemsByTemplate(mainGradeMaterial.ItemId, -1, out var items, out _))
             {
-                Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, product.ItemId, product.Amount, -1, Owner.Id);
+                if (items.Count > 0)
+                {
+                    foundMaterial = items[0];
+                }
+            }
+
+            if (foundMaterial != null)
+            {
+                inheritedGrade = foundMaterial.Grade;
+                Owner.SendDebugMessage($"Found material {mainGradeMaterial.ItemId} with grade {inheritedGrade}");
             }
             else
             {
-                if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, -1, Owner.Id))
+                Owner.SendDebugMessage($"Could not find material {mainGradeMaterial.ItemId} in any container");
+            }
+        }
+
+        foreach (var product in CurrentCraft.CraftProducts)
+        {
+            // Determine the grade to use for this product  
+            int gradeToUse = -1; // Default grade
+
+            if (product.UseGrade)
+            {
+                // If UseGrade is true, inherit from main grade material and roll for free regrade  
+                gradeToUse = FreeRegrade((int)inheritedGrade);
+                Owner.SendDebugMessage($"Product {product.ItemId} will use inherited grade {gradeToUse}");
+            }
+            else if (product.ItemGradeId > 0)
+            {
+                // If ItemGradeId is specified, use that grade  
+                gradeToUse = (int)product.ItemGradeId;
+                Owner.SendDebugMessage($"Product {product.ItemId} will use fixed grade {gradeToUse}");
+            }
+            else
+            {
+                Owner.SendDebugMessage($"Product will use default grade: {gradeToUse}");
+            }
+
+            // Check if template allows grade changes  
+            var template = ItemManager.Instance.GetTemplate(product.ItemId);
+            if (template != null)
+            {
+                Owner.SendDebugMessage($"Product template {product.ItemId} - FixedGrade: {template.FixedGrade}, Gradable: {template.Gradable}");
+            }
+
+            // Check if we're crafting a trade pack, if so, try to remove currently equipped backpack slot
+            if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
+            {
+                Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, product.ItemId, product.Amount, gradeToUse, Owner.Id);
+            }
+            else
+            {
+                if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, gradeToUse, Owner.Id))
+                {
+                    Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
+                    CancelCraft();
+                    return;
+                }
+            }
+        }
+        */
+
+        // "Improper" Heuristic Grade inheritance to be used for 1.2 only, due to unset flags in compact.
+        byte inheritedGrade = 0;
+        Item gradeMaterial = null;
+        // Find equipment materials that could provide grade  
+        // Search for the first equipment material in the craft  
+        foreach (var material in CurrentCraft.CraftMaterials)
+        {
+            var template = ItemManager.Instance.GetTemplate(material.ItemId);
+            if (template is EquipItemTemplate) // Check if material is equipment  
+            {
+                // Search bag container for this material
+                if (Owner.Inventory.Bag.GetAllItemsByTemplate(material.ItemId, -1, out var items, out _))
+                {
+                    if (items.Count > 0)
+                    {
+                        gradeMaterial = items[0];
+                        inheritedGrade = gradeMaterial.Grade;
+                        break;
+                    }
+                }
+            }
+        }
+
+        foreach (var product in CurrentCraft.CraftProducts)
+        {
+            // Determine if this product should inherit grade  
+            var productTemplate = ItemManager.Instance.GetTemplate(product.ItemId);
+            int gradeToUse = -1;
+
+            // If we found an equipment material, inherit grade and roll for free regrade
+            if (gradeMaterial != null)
+            {
+                gradeToUse = FreeRegrade((int)inheritedGrade);
+            }
+            else if (product.ItemGradeId > 0)
+            {
+                // Use specified grade if set  
+                gradeToUse = (int)product.ItemGradeId;
+            }
+
+            // Check if template allows grade changes  
+            var template = ItemManager.Instance.GetTemplate(product.ItemId);
+            if (template != null)
+            {
+                Owner.SendDebugMessage($"Product template {product.ItemId} - FixedGrade: {template.FixedGrade}, Gradable: {template.Gradable}");
+            }
+
+            // Check if we're crafting a trade pack, if so, try to remove currently equipped backpack slot
+            if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
+            {
+                Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, product.ItemId, product.Amount, gradeToUse, Owner.Id);
+            }
+            else
+            {
+                if (!Owner.Inventory.TryEquipNewBackPack(ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount, gradeToUse, Owner.Id))
                 {
                     Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
                     CancelCraft();
@@ -237,5 +358,26 @@ public class CharacterCraft(Character owner)
         }
 
         // Might want to send a packet here, I think there is a packet when crafting fails. Not sure yet.
+    }
+
+    /// <summary>
+    ///Roll for chance of free regrade, Use when inheriting grade only.
+    /// Uses a magic number for the chance based on user statistics, replace if/when actual data tables are found.
+    ///</summary>
+    private static int FreeRegrade(int baseGrade)
+    {
+        int grade = baseGrade;
+        var maxGrade = ItemManager.MaxGradeValue;
+        //Check grade is not already max
+        if (grade != (int)maxGrade)
+        {
+            //5% chance
+            var luckyRoll = Random.Shared.Next(0, 20);
+            if (luckyRoll < 1)
+            {
+                grade++;
+            }
+        }
+        return grade;
     }
 }

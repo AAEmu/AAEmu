@@ -66,8 +66,11 @@ public class GainLootPackItemEffect : EffectTemplate
             character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
         }
 
+        //Get the source item's grade if we need to inherit it  
+        byte? inheritedGrade = InheritGrade ? sourceItem.Grade : null;
+
         // Give the results
-        pack.GiveLootPack(character, actAbility, ItemTaskType.SkillEffectGainItem);
+        pack.GiveLootPack(character, actAbility, ItemTaskType.SkillEffectGainItem, inheritedGrade: inheritedGrade);
 
         Logger.Debug($"GainLootPackItemEffect {LootPackId}");
     }
