@@ -79,6 +79,9 @@ public class ItemManager : Singleton<ItemManager>
     private bool _loadedUserItems;
     // private Dictionary<ulong, Item> _timerSubscriptionsItems;
 
+    public static int MaxGradeId;
+    public static int MaxGradeValue;
+
     public ItemTemplate GetTemplate(uint id)
     {
         return _templates.GetValueOrDefault(id);
@@ -552,6 +555,8 @@ public class ItemManager : Singleton<ItemManager>
                         _grades.Add(template.Grade, template);
                         _gradesOrdered.Add(template.GradeOrder, template);
                     }
+                    MaxGradeId = _grades.Keys.Max();
+                    MaxGradeValue = _gradesOrdered.Keys.Max();
                 }
             }
 

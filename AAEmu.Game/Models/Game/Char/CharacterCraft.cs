@@ -367,7 +367,7 @@ public class CharacterCraft(Character owner)
     private static int FreeRegrade(int baseGrade)
     {
         int grade = baseGrade;
-        var maxGrade = Enum.GetValues<ItemGrade>().Max();
+        var maxGrade = ItemManager.MaxGradeValue;
         //Check grade is not already max
         if (grade != (int)maxGrade)
         {
