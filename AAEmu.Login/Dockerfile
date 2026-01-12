@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS builder
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS builder
 ARG CONFIGURATION
 ARG RUNTIME
 ARG FRAMEWORK
@@ -10,7 +10,7 @@ COPY ./AAEmu.Commons ./AAEmu.Commons
 COPY ./AAEmu.Login ./AAEmu.Login
 RUN dotnet publish ./AAEmu.Login/AAEmu.Login.csproj -c $CONFIGURATION -r $RUNTIME --self-contained true -f $FRAMEWORK
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine
+FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine
 
 ARG CONFIGURATION
 ARG FRAMEWORK
