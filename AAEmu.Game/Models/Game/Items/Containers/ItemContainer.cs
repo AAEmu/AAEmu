@@ -547,7 +547,7 @@ public class ItemContainer
         // Check all remaining items
         if (amountToConsume > 0)
         {
-            foreach (var i in foundItems)
+            foreach (var i in foundItems.OrderBy(x => x.Slot))
             {
                 var toRemove = Math.Min(i.Count, amountToConsume);
                 i.Count -= toRemove;
