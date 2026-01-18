@@ -16,7 +16,7 @@
     <None Include="Config.json" Condition="Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ExampleConfig.json" Condition="!Exists('Config.json')">
+    <None Include="Config.Local.json" Condition="Exists('Config.Local.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="NLog.config">
