@@ -654,7 +654,7 @@ public class ItemContainer
         // Never update in mail or auction containers
         if (ContainerType != SlotType.Mail && ContainerType != SlotType.Auction)
         {
-            foreach (var i in currentItems)
+            foreach (var i in currentItems.OrderBy(x => x.Slot))
             {
                 var freeSpace = i.Template.MaxCount - i.Count;
                 if (freeSpace > 0)
