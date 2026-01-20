@@ -32,7 +32,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
     public override void OnDisconnect(ISession session)
     {
-        Logger.Info("Connect to LoginServer has been lost");
+        Logger.Info("Connection to LoginServer has been lost");
         LoginNetwork.Instance.SetConnection(null);
         session.Close();
         if (_loadTask != null)

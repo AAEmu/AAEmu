@@ -2,8 +2,6 @@
 using MySql.Data.MySqlClient;
 using NLog;
 
-#pragma warning disable IDE0079 // Remove unnecessary suppression
-
 namespace AAEmu.Commons.Utils.DB;
 
 public static class MySQL
@@ -18,17 +16,16 @@ public static class MySQL
 
     public static MySqlConnection CreateConnection()
     {
-#pragma warning disable CA2000 // Dispose objects before losing scope
         var connection = new MySqlConnection(s_connectionString);
-#pragma warning restore CA2000 // Dispose objects before losing scope
         try
         {
             connection.Open();
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Logger.Fatal($"Error on DB connect: {e.Message}");
-            return null;
+            Logger.Fatal(ex, "Error on DB connect");
+            connection.Dispose();
+            throw;
         }
 
         return connection;
@@ -41,7 +38,7 @@ public static class MySQL
 
     public static void SetConfiguration(MySqlConnectionSettings mySqlConnectionSettings)
     {
-        var builder = new MySqlConnectionStringBuilder()
+        var builder = new MySqlConnectionStringBuilder
         {
             Server = mySqlConnectionSettings?.Host ?? "localhost",
             Port = mySqlConnectionSettings?.Port ?? 3306,

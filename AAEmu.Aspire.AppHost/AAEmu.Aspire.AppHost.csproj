@@ -1,0 +1,27 @@
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.1.0">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>8642802a-3cf3-41c5-a386-faeaf3f70d77</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.MySql" />
+    </ItemGroup>
+  
+    <ItemGroup>
+      <None Include="..\SQL\aaemu_login.sql" Link="init_aaemu_login.sql">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="..\SQL\aaemu_game.sql" Link="init_aaemu_game.sql">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\AAEmu.Game\AAEmu.Game.csproj" />
+      <ProjectReference Include="..\AAEmu.Login\AAEmu.Login.csproj" />
+    </ItemGroup>
+
+</Project>
