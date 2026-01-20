@@ -1,8 +1,8 @@
-﻿using AAEmu.Commons.Utils.DB;
-using AAEmu.Commons.Utils.Updater;
+﻿using AAEmu.Commons.Utils.Updater;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Models;
+using AAEmu.Login.Utils;
 using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login;
@@ -11,6 +11,7 @@ public sealed class LoginService(
     IGameController gameController,
     IRequestController requestController,
     IInternalNetwork internalNetwork,
+    IMySqlConnectionFactory connectionFactory,
     IOptions<DBConnectionsConfig> dbConnectionsConfig,
     ILogger<LoginService> logger) : IHostedService, IDisposable
 {
@@ -19,7 +20,7 @@ public sealed class LoginService(
         logger.LogInformation("Starting daemon: AAEmu.Login");
 
         // Check for updates
-        await using (var connection = MySQL.CreateConnection())
+        await using (var connection = connectionFactory.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login",
                     dbConnectionsConfig.Value.MySQLProvider.Database))

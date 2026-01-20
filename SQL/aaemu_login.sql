@@ -1,22 +1,12 @@
-CREATE DATABASE  IF NOT EXISTS `aaemu_login` ;
+CREATE DATABASE IF NOT EXISTS `aaemu_login`;
 USE `aaemu_login`;
 -- ----------------------------------------------------------------------------------------------
 -- Make sure to remove the above two lines if you want use your own DB/Schema names during import
+-- This script is idempotent. It can be run multiple times without causing errors, and does not
+-- clear data from existing tables.
 -- ----------------------------------------------------------------------------------------------
 
-DROP TABLE IF EXISTS `game_servers`;
-CREATE TABLE `game_servers` (
-  `id` tinyint unsigned NOT NULL,
-  `name` text NOT NULL,
-  `host` varchar(128) NOT NULL,
-  `port` int NOT NULL,
-  `hidden` tinyint(1) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Server list';
-
-
-DROP TABLE IF EXISTS `users`;
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `username` varchar(32) NOT NULL,
   `password` text COMMENT 'Hashed password of the user',

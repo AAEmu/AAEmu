@@ -9,6 +9,7 @@ using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.AspNetCore.Connections;
+using MySql.Data.MySqlClient;
 using NLog;
 using NLog.Config;
 using NLog.Extensions.Logging;
@@ -81,6 +82,10 @@ public static class Program
         builder.Services.AddOptionsWithValidateOnStart<PublicNetworkConfig>()
             .BindConfiguration(PublicNetworkConfig.ConfigurationSectionName)
             .ValidateDataAnnotations();
+
+        builder.Services.AddSingleton<IMySqlConnectionFactory, MySqlConnectionFactory>();
+        builder.Services.AddTransient<MySqlConnection>(sp =>
+            sp.GetRequiredService<IMySqlConnectionFactory>().CreateConnection());
 
         builder.Services.AddHostedService<MySqlInitializer>();
         builder.Services.AddHostedService<LoginService>();

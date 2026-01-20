@@ -1,9 +1,9 @@
 ﻿using System.Collections.Concurrent;
-using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
+using AAEmu.Login.Utils;
 using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
 
@@ -12,6 +12,7 @@ namespace AAEmu.Login.Core.Controllers;
 public class LoginController(
     IGameController gameController,
     IOptions<AppConfiguration> appConfig,
+    IMySqlConnectionFactory connectionFactory,
     ILogger<LoginController> logger) : ILoginController
 {
     private readonly bool _autoAccount = appConfig.Value.AutoAccount;
@@ -26,7 +27,7 @@ public class LoginController(
     /// <param name="username"></param>
     public async Task Login(LoginConnection connection, string username)
     {
-        await using var connect = MySQL.CreateConnection();
+        await using var connect = connectionFactory.CreateConnection();
         await using var command = connect.CreateCommand();
         command.CommandText = "SELECT * FROM users where username=@username";
         command.Parameters.AddWithValue("@username", username);
@@ -75,7 +76,7 @@ public class LoginController(
     /// <param name="password"></param>
     public async Task Login(LoginConnection connection, string username, ReadOnlyMemory<byte> password)
     {
-        await using var connect = MySQL.CreateConnection();
+        await using var connect = connectionFactory.CreateConnection();
         await using var command = connect.CreateCommand();
         command.CommandText = "SELECT * FROM users where username=@username";
         command.Parameters.AddWithValue("@username", username);
@@ -161,7 +162,7 @@ public class LoginController(
             return;
         }
 
-        logger.LogDebug("Created account from invalid username login with value: {Username}", username);
+        logger.LogDebug("Created account from invalid username login with value {Username}", username);
         await Login(connection, username, password);
     }
 

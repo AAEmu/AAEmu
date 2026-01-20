@@ -22,8 +22,8 @@ public class InternalProtocolHandler(
 
     public override void OnConnect(ISession session)
     {
-        logger.LogInformation("GameServer from {IP} connected, session id: {SessionID}", session.Ip.ToString(),
-            session.SessionId.ToString(CultureInfo.InvariantCulture));
+        logger.LogInformation("GameServer from {GameServerIP} connected, session id: {SessionID}",
+            session.Ip.ToString(), session.SessionId.ToString(CultureInfo.InvariantCulture));
         var con = new InternalConnection(session);
         InternalConnection.OnConnect();
         internalConnectionTable.AddConnection(con);
@@ -31,7 +31,7 @@ public class InternalProtocolHandler(
 
     public override void OnDisconnect(ISession session)
     {
-        logger.LogInformation("GameServer from {IP} disconnected", session.Ip.ToString());
+        logger.LogInformation("GameServer from {GameServerIP} disconnected", session.Ip.ToString());
         if (session.GetAttribute("gsId") is { } gsId)
             gameController.Remove((GameServerId)gsId);
         internalConnectionTable.RemoveConnection(session.SessionId);
@@ -122,6 +122,6 @@ public class InternalProtocolHandler(
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.Append($"{stream.Buffer[i]:x2} ");
-        logger.LogError("Unknown packet 0x{Type:x2} from {SessionIP}:\n{Dump}", type, session.Ip, dump);
+        logger.LogError("Unknown packet 0x{Type:x2} from {IP}:\n{Dump}", type, session.Ip, dump);
     }
 }

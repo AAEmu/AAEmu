@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2C;
@@ -54,34 +53,27 @@ public class GameController(
 
     public void Load()
     {
-        using var connection = MySQL.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM game_servers WHERE hidden = 0";
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
+        foreach (var gameServerConfig in appConfig.Value.GameServers.Where(gs => !gs.Hidden))
         {
-            var id = new GameServerId(reader.GetByte("id"));
-            var name = reader.GetString("name");
-            var loadedHost = reader.GetString("host");
-            var host = appConfig.Value.SkipHostResolve ? loadedHost : ResolveHostName(loadedHost);
-            var port = reader.GetUInt16("port");
-            var gameServer = new GameServer(id, name, host, port);
+            var id = new GameServerId(gameServerConfig.Id);
+            var host = appConfig.Value.SkipHostResolve ? gameServerConfig.Host : ResolveHostName(gameServerConfig.Host);
+            var gameServer = new GameServer(id, gameServerConfig.Name, host, gameServerConfig.Port);
             if (!_gameServers.TryAdd(gameServer.Id, gameServer))
             {
-                logger.LogError("Game Server {ID} ({Name}) already exists in the game_servers table!",
+                logger.LogError("Game server {ID} ({Name}) has been defined more than once!",
                     gameServer.Id.Value,
                     gameServer.Name);
             }
 
-            var extraInfo = host != loadedHost ? "from " + loadedHost :
+            var extraInfo = host != gameServerConfig.Host ? "from " + gameServerConfig.Host :
                 appConfig.Value.SkipHostResolve ? " (unresolved)" : "";
-            logger.LogInformation("Game Server {ID}: {Name} -> {Host}:{Port} {ExtraInfo}", id.Value, name, host, port,
-                extraInfo);
+            logger.LogInformation("Game Server {ID}: {Name} -> {Host}:{Port} {ExtraInfo}", id.Value,
+                gameServerConfig.Name, host, gameServerConfig.Port, extraInfo);
         }
 
         if (_gameServers.IsEmpty)
         {
-            logger.LogCritical("No servers have been defined in the game_servers table!");
+            logger.LogCritical("No game servers have been defined!");
             return;
         }
 

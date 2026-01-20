@@ -2,14 +2,15 @@ CREATE DATABASE IF NOT EXISTS `aaemu_game`;
 USE aaemu_game;
 -- ----------------------------------------------------------------------------------------------
 -- Make sure to remove the above two lines if you want use your own DB/Schema names during import
+-- This script is idempotent. It can be run multiple times without causing errors, and does not
+-- clear data from existing tables.
 -- ----------------------------------------------------------------------------------------------
 
 SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
 
-DROP TABLE IF EXISTS `abilities`;
-CREATE TABLE `abilities` (
+CREATE TABLE IF NOT EXISTS `abilities` (
   `id` tinyint unsigned NOT NULL,
   `exp` int NOT NULL,
   `owner` int unsigned NOT NULL,
@@ -17,8 +18,7 @@ CREATE TABLE `abilities` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Skillsets Exp';
 
 
-DROP TABLE IF EXISTS `accounts`;
-CREATE TABLE `accounts` (
+CREATE TABLE IF NOT EXISTS `accounts` (
   `account_id` INT(11) NOT NULL,
   `access_level` INT(11) NOT NULL DEFAULT '0',
   `labor` INT(11) NOT NULL DEFAULT '0',
@@ -34,16 +34,13 @@ CREATE TABLE `accounts` (
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account specific values not related to login';
 
-DELIMITER //
-CREATE TRIGGER update_timestamps BEFORE UPDATE ON accounts
-FOR EACH ROW
-BEGIN
-   SET NEW.last_updated = UTC_TIMESTAMP();
-END;//
-DELIMITER ;
 
-DROP TABLE IF EXISTS `actabilities`;
-CREATE TABLE `actabilities` (
+CREATE TRIGGER IF NOT EXISTS update_timestamps BEFORE UPDATE ON accounts
+FOR EACH ROW
+   SET NEW.last_updated = UTC_TIMESTAMP();
+
+
+CREATE TABLE IF NOT EXISTS `actabilities` (
   `id` int unsigned NOT NULL,
   `point` int unsigned NOT NULL DEFAULT '0',
   `step` tinyint unsigned NOT NULL DEFAULT '0',
@@ -52,8 +49,7 @@ CREATE TABLE `actabilities` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Vocations';
 
 
-DROP TABLE IF EXISTS `appellations`;
-CREATE TABLE `appellations` (
+CREATE TABLE IF NOT EXISTS `appellations` (
   `id` int unsigned NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '0',
   `owner` int unsigned NOT NULL,
@@ -64,8 +60,7 @@ CREATE TABLE `appellations` (
 -- ----------------------------------
 -- Table structure for auction_house
 -- ----------------------------------
-DROP TABLE IF EXISTS `auction_house`;
-CREATE TABLE `auction_house` (
+CREATE TABLE IF NOT EXISTS `auction_house` (
 	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 	`duration` TINYINT(4) NOT NULL,
 	`item_id` BIGINT(20) NOT NULL,
@@ -91,16 +86,14 @@ ROW_FORMAT=DYNAMIC
 ;
 
 
-DROP TABLE IF EXISTS `blocked`;
-CREATE TABLE `blocked` (
+CREATE TABLE IF NOT EXISTS `blocked` (
   `owner` int NOT NULL,
   `blocked_id` int NOT NULL,
   PRIMARY KEY (`owner`,`blocked_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 
-DROP TABLE IF EXISTS `characters`;
-CREATE TABLE `characters` (
+CREATE TABLE IF NOT EXISTS `characters` (
   `id` int unsigned NOT NULL,
   `account_id` int unsigned NOT NULL,
   `name` varchar(128) NOT NULL,
@@ -164,8 +157,7 @@ CREATE TABLE `characters` (
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
 
-DROP TABLE IF EXISTS `completed_quests`;
-CREATE TABLE `completed_quests` (
+CREATE TABLE IF NOT EXISTS `completed_quests` (
   `id` int unsigned NOT NULL,
   `data` tinyblob NOT NULL,
   `owner` int unsigned NOT NULL,
@@ -173,8 +165,7 @@ CREATE TABLE `completed_quests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Quests marked as completed for character';
 
 
-DROP TABLE IF EXISTS `doodads`;
-CREATE TABLE `doodads` (
+CREATE TABLE IF NOT EXISTS `doodads` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` int DEFAULT NULL COMMENT 'Character DB Id',
   `owner_type` tinyint unsigned DEFAULT '255',
@@ -202,8 +193,7 @@ CREATE TABLE `doodads` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Persistent doodads (e.g. tradepacks, furniture)';
 
 
-DROP TABLE IF EXISTS `expedition_members`;
-CREATE TABLE `expedition_members` (
+CREATE TABLE IF NOT EXISTS `expedition_members` (
   `character_id` int NOT NULL,
   `expedition_id` int NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
@@ -218,8 +208,7 @@ CREATE TABLE `expedition_members` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guild members';
 
 
-DROP TABLE IF EXISTS `expedition_role_policies`;
-CREATE TABLE `expedition_role_policies` (
+CREATE TABLE IF NOT EXISTS `expedition_role_policies` (
   `expedition_id` int NOT NULL,
   `role` tinyint unsigned NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
@@ -236,8 +225,7 @@ CREATE TABLE `expedition_role_policies` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guild role settings';
 
 
-DROP TABLE IF EXISTS `expeditions`;
-CREATE TABLE `expeditions` (
+CREATE TABLE IF NOT EXISTS `expeditions` (
   `id` int NOT NULL,
   `owner` int NOT NULL,
   `owner_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
@@ -248,8 +236,7 @@ CREATE TABLE `expeditions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guilds';
 
 
-DROP TABLE IF EXISTS `family_members`;
-CREATE TABLE `family_members` (
+CREATE TABLE IF NOT EXISTS `family_members` (
   `character_id` int NOT NULL,
   `family_id` int NOT NULL,
   `name` varchar(45) NOT NULL,
@@ -259,8 +246,7 @@ CREATE TABLE `family_members` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Family members';
 
 
-DROP TABLE IF EXISTS `friends`;
-CREATE TABLE `friends` (
+CREATE TABLE IF NOT EXISTS `friends` (
   `id` int NOT NULL,
   `friend_id` int NOT NULL,
   `owner` int NOT NULL,
@@ -268,8 +254,7 @@ CREATE TABLE `friends` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Friendslist';
 
 
-DROP TABLE IF EXISTS `housings`;
-CREATE TABLE `housings` (
+CREATE TABLE IF NOT EXISTS `housings` (
   `id` int NOT NULL,
   `account_id` int unsigned NOT NULL,
   `owner` int unsigned NOT NULL,
@@ -297,21 +282,20 @@ CREATE TABLE `housings` (
 -- ----------------------------
 -- Records of housings
 -- ----------------------------
-INSERT INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21441.7, 24211.7, 154.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21441.7, 24211.7, 154.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
 
-DROP TABLE IF EXISTS `items`;
-CREATE TABLE `items` (
+CREATE TABLE IF NOT EXISTS `items` (
   `id` bigint unsigned NOT NULL,
   `type` varchar(100) NOT NULL,
   `template_id` int unsigned NOT NULL,
@@ -338,8 +322,7 @@ CREATE TABLE `items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='All items';
 
 
-DROP TABLE IF EXISTS `mails`;
-CREATE TABLE `mails` (
+CREATE TABLE IF NOT EXISTS `mails` (
   `id` int NOT NULL,
   `type` int NOT NULL,
   `status` int NOT NULL,
@@ -372,8 +355,7 @@ CREATE TABLE `mails` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='In-game mails';
 
 
-DROP TABLE IF EXISTS `mates`;
-CREATE TABLE `mates` (
+CREATE TABLE IF NOT EXISTS `mates` (
   `id` int unsigned NOT NULL,
   `item_id` bigint unsigned NOT NULL,
   `name` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
@@ -389,8 +371,7 @@ CREATE TABLE `mates` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player mounts and pets';
 
 
-DROP TABLE IF EXISTS `options`;
-CREATE TABLE `options` (
+CREATE TABLE IF NOT EXISTS `options` (
   `key` varchar(100) NOT NULL,
   `value` text NOT NULL,
   `owner` int unsigned NOT NULL,
@@ -398,8 +379,7 @@ CREATE TABLE `options` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Settings that the client stores on the server';
 
 
-DROP TABLE IF EXISTS `portal_book_coords`;
-CREATE TABLE `portal_book_coords` (
+CREATE TABLE IF NOT EXISTS `portal_book_coords` (
   `id` int NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `x` int DEFAULT '0',
@@ -413,8 +393,7 @@ CREATE TABLE `portal_book_coords` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Recorded house portals in the portal book';
 
 
-DROP TABLE IF EXISTS `portal_visited_district`;
-CREATE TABLE `portal_visited_district` (
+CREATE TABLE IF NOT EXISTS `portal_visited_district` (
   `id` int NOT NULL,
   `subzone` int NOT NULL,
   `owner` int NOT NULL,
@@ -422,8 +401,7 @@ CREATE TABLE `portal_visited_district` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='List of visited area for the portal book';
 
 
-DROP TABLE IF EXISTS `quests`;
-CREATE TABLE `quests` (
+CREATE TABLE IF NOT EXISTS `quests` (
   `id` int unsigned NOT NULL,
   `template_id` int unsigned NOT NULL,
   `data` tinyblob NOT NULL,
@@ -433,8 +411,7 @@ CREATE TABLE `quests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Currently open quests';
 
 
-DROP TABLE IF EXISTS `skills`;
-CREATE TABLE `skills` (
+CREATE TABLE IF NOT EXISTS `skills` (
   `id` int unsigned NOT NULL,
   `level` tinyint NOT NULL,
   `type` enum('Skill','Buff') NOT NULL,
@@ -443,8 +420,7 @@ CREATE TABLE `skills` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Learned character skills';
 
 
-DROP TABLE IF EXISTS `uccs`;
-CREATE TABLE `uccs` (
+CREATE TABLE IF NOT EXISTS `uccs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `uploader_id` int NOT NULL COMMENT 'PlayerID',
   `type` tinyint NOT NULL,
@@ -465,8 +441,7 @@ CREATE TABLE `uccs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User Created Content (crests)';
 
 
-DROP TABLE IF EXISTS `music`;
-CREATE TABLE `music` (
+CREATE TABLE IF NOT EXISTS `music` (
   `id` int NOT NULL AUTO_INCREMENT,
   `author` int NOT NULL COMMENT 'PlayerId',
   `title` varchar(128) NOT NULL,
@@ -475,8 +450,7 @@ CREATE TABLE `music` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User Created Content (music)';
 
 
-DROP TABLE IF EXISTS `item_containers`;
-CREATE TABLE `item_containers` (
+CREATE TABLE IF NOT EXISTS `item_containers` (
   `container_id` int unsigned NOT NULL,
   `container_type` varchar(64) COLLATE 'utf8mb4_general_ci' NOT NULL DEFAULT 'ItemContainer' COMMENT 'Partial Container Class Name',
   `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
@@ -487,8 +461,7 @@ CREATE TABLE `item_containers` (
 ) COLLATE 'utf8mb4_general_ci';
 
 
-DROP TABLE IF EXISTS `slaves`;
-CREATE TABLE `slaves` (
+CREATE TABLE IF NOT EXISTS `slaves` (
 	`id` INT(10) UNSIGNED NOT NULL,
 	`item_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Item that is used to summon this vehicle',
 	`template_id` INT(10) UNSIGNED NULL DEFAULT NULL COMMENT 'Slave template Id of this vehicle',
@@ -508,8 +481,7 @@ CREATE TABLE `slaves` (
 ) COMMENT='Player vehicles summons' COLLATE 'utf8mb4_general_ci' ENGINE=InnoDB;
 
 
-DROP TABLE IF EXISTS `ics_skus`;
-CREATE TABLE `ics_skus` (
+CREATE TABLE IF NOT EXISTS `ics_skus` (
     `sku` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
     `shop_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Reference to the shop item',
     `position` INT(10) NOT NULL DEFAULT '0' COMMENT 'Used for display order inside the item details',
@@ -533,8 +505,7 @@ AUTO_INCREMENT=1000000
 ;
 
 
-DROP TABLE IF EXISTS `ics_shop_items`;
-CREATE TABLE `ics_shop_items` (
+CREATE TABLE IF NOT EXISTS `ics_shop_items` (
     `shop_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU item id',
     `display_item_id` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Item who\'s icon to use for displaying in the shop, leave 0 for first item in the group',
     `name` TEXT NULL DEFAULT NULL COMMENT 'Can be used to override the name in the shop' COLLATE 'utf8mb4_general_ci',
@@ -559,8 +530,7 @@ AUTO_INCREMENT=2000000
 ;
 
 
-DROP TABLE IF EXISTS `ics_menu`;
-CREATE TABLE `ics_menu` (
+CREATE TABLE IF NOT EXISTS `ics_menu` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `main_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which main tab to display on',
     `sub_tab` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Which sub tab to display on',
@@ -575,8 +545,7 @@ AUTO_INCREMENT=100
 ;
 
 
-DROP TABLE IF EXISTS `audit_ics_sales`;
-CREATE TABLE `audit_ics_sales` (
+CREATE TABLE IF NOT EXISTS `audit_ics_sales` (
     `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
     `buyer_account` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Account ID of the person buying this item',
     `buyer_char` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Character that was logged in when buying',
@@ -600,7 +569,7 @@ ENGINE=InnoDB
 ;
 
 
-CREATE TABLE `audit_char_sus` (
+CREATE TABLE IF NOT EXISTS `audit_char_sus` (
 	`id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
 	`sus_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time of incident',
 	`sus_category` VARCHAR(64) NULL DEFAULT 'None' COMMENT 'Category name for the activity' COLLATE 'utf8mb4_general_ci',

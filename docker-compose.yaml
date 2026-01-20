@@ -10,7 +10,6 @@ services:
         volumes:
             - ./SQL/aaemu_login.sql:/docker-entrypoint-initdb.d/aaemu_login.sql
             - ./SQL/aaemu_game.sql:/docker-entrypoint-initdb.d/aaemu_game.sql
-            - ./SQL/examples/example-server.sql:/docker-entrypoint-initdb.d/example-server.sql
             - ./.server_files/AAEmu.Database/mysql:/var/lib/mysql
             # - db_data:/var/lib/mysql
         environment:
@@ -54,6 +53,10 @@ services:
           - "./.server_files/AAEmu.Login/Config.json:/app/Config.json:ro"
         environment:
             DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
+            GameServers__0__ID: 1
+            GameServers__0__Name: AAEmu.Game
+            GameServers__0__Host: 127.0.0.1
+            GameServers__0__Port: 1239
         ports:
             - 1237:1237
         develop:

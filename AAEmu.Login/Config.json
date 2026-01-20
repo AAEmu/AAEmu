@@ -19,5 +19,6 @@
 			"Port": "%db_port%",
 			"User": "%db_user%"
 		}
-	}
+	},
+	"GameServers": []
 }

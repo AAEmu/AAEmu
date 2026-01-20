@@ -1,10 +1,6 @@
-﻿using AAEmu.Commons.Utils.DB;
-using AAEmu.Login.Models;
-using Microsoft.Extensions.Options;
-
 namespace AAEmu.Login.Utils;
 
-public class MySqlInitializer(IOptions<DBConnectionsConfig> dbConnectionsConfig, ILogger<MySqlInitializer> logger)
+public class MySqlInitializer(IMySqlConnectionFactory connectionFactory, ILogger<MySqlInitializer> logger)
     : IHostedService
 {
     // Not using BackgroundService here due to it not preventing other hosted services from starting:
@@ -13,15 +9,13 @@ public class MySqlInitializer(IOptions<DBConnectionsConfig> dbConnectionsConfig,
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        MySQL.SetConfiguration(dbConnectionsConfig.Value.MySQLProvider);
-
         try
         {
             // Test the DB connection
-            await using var connection = MySQL.CreateConnection();
-            logger.LogInformation("MySQL connection established successfully to {DataSource}. Server version {Version}",
-                connection.DataSource,
-                connection.ServerVersion);
+            await using var connection = connectionFactory.CreateConnection();
+            logger.LogInformation(
+                "MySQL connection established successfully to {DataSource}. Server version {ServerVersion}",
+                connection.DataSource, connection.ServerVersion);
         }
         catch (Exception ex)
         {

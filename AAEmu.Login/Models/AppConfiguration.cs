@@ -22,4 +22,40 @@ public class AppConfiguration
     /// Gets or sets a value indicating whether to skip host resolution of game server hostnames.
     /// </summary>
     public bool SkipHostResolve { get; set; }
+
+    [Required]
+    public required List<GameServerConfig> GameServers { get; set; }
+
+    /// <summary>
+    /// Contains configuration settings for a single game server.
+    /// </summary>
+    public class GameServerConfig
+    {
+        /// <summary>
+        /// Gets or sets the unique identifier of the game server.
+        /// </summary>
+        public required byte Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the display name of the game server, as shown on the client's server selection screen.
+        /// </summary>
+        public required string Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets the host address (IP address or domain name) of the game server.
+        /// This address must be accessible to clients.
+        /// </summary>
+        public required string Host { get; set; }
+
+        /// <summary>
+        /// Gets or sets the port number on which the game server listens for incoming connections from clients.
+        /// </summary>
+        public required ushort Port { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the game server should be hidden from the client's server selection
+        /// screen.
+        /// </summary>
+        public bool Hidden { get; set; }
+    }
 }
