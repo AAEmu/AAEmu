@@ -10,8 +10,10 @@ using AAEmu.Login.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Config;
+using NLog.Extensions.Logging;
 using OSVersionExtension;
 
 namespace AAEmu.Login;
@@ -42,6 +44,8 @@ public static class Program
             .AddCommandLine(args);
 
         // Configure services
+        builder.Logging.ClearProviders()
+            .AddNLog();
         builder.Services.AddOptions();
         builder.Services.AddOptionsWithValidateOnStart<AppConfiguration>()
             .BindConfiguration("")
