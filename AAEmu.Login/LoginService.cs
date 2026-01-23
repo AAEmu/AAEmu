@@ -5,8 +5,8 @@ using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NLog;
 
 namespace AAEmu.Login;
 
@@ -15,21 +15,20 @@ public sealed class LoginService(
     IRequestController requestController,
     IInternalNetwork internalNetwork,
     ILoginNetwork loginNetwork,
-    IOptions<AppConfiguration> appConfig) : IHostedService, IDisposable
+    IOptions<AppConfiguration> appConfig,
+    ILogger<LoginService> logger) : IHostedService, IDisposable
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        Logger.Info("Starting daemon: AAEmu.Login");
+        logger.LogInformation("Starting daemon: AAEmu.Login");
         // Check for updates
         using (var connection = MySQL.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login",
                     appConfig.Value.Connections.MySQLProvider.Database))
             {
-                Logger.Fatal("Failed up update database !");
-                Logger.Fatal("Press Ctrl+C to quit");
+                logger.LogCritical("Failed to update database!");
+                logger.LogCritical("Press Ctrl+C to quit");
                 return Task.CompletedTask;
             }
         }
@@ -43,7 +42,7 @@ public sealed class LoginService(
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        Logger.Info("Stopping daemon.");
+        logger.LogInformation("Stopping daemon.");
         loginNetwork.Stop();
         internalNetwork.Stop();
         return Task.CompletedTask;
@@ -51,7 +50,6 @@ public sealed class LoginService(
 
     public void Dispose()
     {
-        Logger.Info("Disposing....");
-        LogManager.Flush();
+        logger.LogInformation("Disposing...");
     }
 }

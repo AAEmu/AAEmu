@@ -1,15 +1,16 @@
 ﻿using System.Net;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Models;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NLog;
 
 namespace AAEmu.Login.Core.Network.Login;
 
-public class LoginNetwork(ILoginProtocolHandler protocolHandler, IOptions<AppConfiguration> appConfig) : ILoginNetwork
+public class LoginNetwork(
+    ILoginProtocolHandler protocolHandler,
+    IOptions<AppConfiguration> appConfig,
+    ILogger<LoginNetwork> logger) : ILoginNetwork
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     private Server? _server;
 
     public void Start()
@@ -19,7 +20,7 @@ public class LoginNetwork(ILoginProtocolHandler protocolHandler, IOptions<AppCon
             config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port, protocolHandler);
         _server.Start();
 
-        Logger.Info("Network started with Number of Connections: " + config.NumConnections);
+        logger.LogInformation("Network started with number of connections: {Connections}", config.NumConnections);
     }
 
     public void Stop()
@@ -27,6 +28,6 @@ public class LoginNetwork(ILoginProtocolHandler protocolHandler, IOptions<AppCon
         if (_server is { IsStarted: true })
             _server.Stop();
 
-        Logger.Info("Network stopped");
+        logger.LogInformation("Network stopped");
     }
 }

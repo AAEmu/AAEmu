@@ -1,15 +1,14 @@
 ﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NLog;
 
 namespace AAEmu.Login.Utils;
 
-public class MySqlInitializer(IOptions<AppConfiguration> appConfig) : BackgroundService
+public class MySqlInitializer(IOptions<AppConfiguration> appConfig, ILogger<MySqlInitializer> logger)
+    : BackgroundService
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         MySQL.SetConfiguration(appConfig.Value.Connections.MySQLProvider);
@@ -18,13 +17,13 @@ public class MySqlInitializer(IOptions<AppConfiguration> appConfig) : Background
         {
             // Test the DB connection
             await using var connection = MySQL.CreateConnection();
-            Logger.Info("MySQL connection established successfully to {0}. Server version {1}", connection.DataSource,
+            logger.LogInformation("MySQL connection established successfully to {DataSource}. Server version {Version}",
+                connection.DataSource,
                 connection.ServerVersion);
         }
         catch (Exception ex)
         {
-            Logger.Fatal(ex, "MySQL connection failed, check your configuration!");
-            LogManager.Flush();
+            logger.LogCritical(ex, "MySQL connection failed, check your configuration!");
             throw;
         }
     }

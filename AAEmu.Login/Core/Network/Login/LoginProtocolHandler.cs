@@ -6,32 +6,32 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Models;
-using NLog;
+using Microsoft.Extensions.Logging;
 
 namespace AAEmu.Login.Core.Network.Login;
 
 public class LoginProtocolHandler(
     IEnumerable<ILoginPacketDescriptor> packetDescriptors,
-    ILoginConnectionTable loginConnectionTable) : BaseProtocolHandler, ILoginProtocolHandler
+    ILoginConnectionTable loginConnectionTable,
+    ILogger<LoginProtocolHandler> logger) : BaseProtocolHandler, ILoginProtocolHandler
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     private readonly ConcurrentDictionary<ushort, ILoginPacketDescriptor> _packets =
         new(packetDescriptors.ToDictionary(d => d.TypeId));
 
     public override void OnConnect(ISession session)
     {
-        Logger.Debug($"Connection from {session.Ip} established, session id: {session.SessionId}");
+        logger.LogDebug("Connection from {SessionIP} established, session id: {SessionID}", session.Ip,
+            session.SessionId);
         try
         {
             var con = new LoginConnection(session);
             LoginConnection.OnConnect();
             loginConnectionTable.AddConnection(con);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
             session.Close();
-            Logger.Error(e);
+            logger.LogError(ex, "Error on connection from {SessionIP}", session.Ip);
         }
     }
 
@@ -39,7 +39,7 @@ public class LoginProtocolHandler(
     {
         if (session is null)
         {
-            Logger.Error("Unexpected null Session");
+            logger.LogError("Unexpected null Session");
             return;
         }
 
@@ -49,13 +49,13 @@ public class LoginProtocolHandler(
             if (con != null)
                 loginConnectionTable.RemoveConnection(new ConnectionId(session.SessionId));
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
             session.Close();
-            Logger.Error(e);
+            logger.LogError(ex, "Error on disconnection from {SessionIP}", session.Ip);
         }
 
-        Logger.Debug($"Client from {session.Ip} disconnected");
+        logger.LogDebug("Client from {SessionIP} disconnected", session.Ip);
     }
 
     public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
@@ -67,10 +67,10 @@ public class LoginProtocolHandler(
                 return;
             OnReceive(connection, buf, offset, bytes);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
             session.Close();
-            Logger.Error(e);
+            logger.LogError(ex, "Error on receiving data from {SessionIP}", session.Ip);
         }
     }
 
@@ -129,9 +129,9 @@ public class LoginProtocolHandler(
                         {
                             packetDescriptor.Dispatch(stream2, connection);
                         }
-                        catch (Exception e)
+                        catch (Exception ex)
                         {
-                            Logger.Error(e, "Error on packet dispatch {0}", type);
+                            logger.LogError(ex, "Error on packet dispatch {Type}", type);
                         }
                     }
                 }
@@ -143,18 +143,23 @@ public class LoginProtocolHandler(
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
             connection.Shutdown();
-            Logger.Error(e);
+            logger.LogError(ex, "Error on receiving data from {ConnectionIP}", connection.Ip);
         }
     }
 
-    private static void HandleUnknownPacket(LoginConnection connection, uint type, PacketStream stream)
+    private void HandleUnknownPacket(LoginConnection connection, uint type, PacketStream stream)
     {
+        if (!logger.IsEnabled(LogLevel.Error))
+        {
+            return;
+        }
+
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.Append($"{stream.Buffer[i]:x2} ");
-        Logger.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", (object)type, (object)connection.Ip, (object)dump);
+        logger.LogError("Unknown packet 0x{Type:x2} from {ConnectionIP}:\n{Dump}", type, connection.Ip, dump);
     }
 }
