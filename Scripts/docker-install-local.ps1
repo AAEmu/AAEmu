@@ -51,12 +51,12 @@ if ((Test-Path -Path ".env" -PathType leaf) -eq $False) {
 }
 Write-Host "Done"
 
-Write-Host "Copying file AAEmu\AAEmu.Login\ExampleConfig.json to AAEmu\.server_files\AAEmu.Login\Config.json if not already present."
-Copy-Item -Path "AAEmu.Login\ExampleConfig.json" -Destination ".server_files\AAEmu.Login\Config.json" -Force -PassThru
+Write-Host "Copying file AAEmu\AAEmu.Login\Config.json to AAEmu\.server_files\AAEmu.Login\Config.json if not already present."
+Copy-Item -Path "AAEmu.Login\Config.json" -Destination ".server_files\AAEmu.Login\Config.json" -Force -PassThru
 Write-Host "Done"
 
-Write-Host "Copying file AAEmu\AAEmu.Game\ExampleConfig.json to AAEmu\.server_files\AAEmu.Game\Config.json if not already present."
-Copy-Item -Path "AAEmu.Game\ExampleConfig.json" -Destination ".server_files\AAEmu.Game\Config.json" -Force -PassThru
+Write-Host "Copying file AAEmu\AAEmu.Game\Config.json to AAEmu\.server_files\AAEmu.Game\Config.json if not already present."
+Copy-Item -Path "AAEmu.Game\Config.json" -Destination ".server_files\AAEmu.Game\Config.json" -Force -PassThru
 Write-Host "Done"
 
 Write-Host "Copying folder AAEmu\AAEmu.Game\Configurations to AAEmu\.server_files\AAEmu.Game\ if not already present."
