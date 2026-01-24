@@ -3,6 +3,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Models;
+using ISession = AAEmu.Commons.Network.Core.ISession;
 
 namespace AAEmu.Login.Core.Network.Connections;
 

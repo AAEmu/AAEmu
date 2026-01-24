@@ -35,7 +35,7 @@ public static class Program
 
         LoadConfiguration();
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
 
         builder.Configuration
             .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"), optional: true, reloadOnChange: true)
@@ -51,7 +51,7 @@ public static class Program
             {
                 logging.IncludeFormattedMessage = true;
                 logging.IncludeScopes = true;
-            });;
+            });
         builder.Services.AddOpenTelemetry()
             .UseOtlpExporter();
         builder.Services.AddOptions();

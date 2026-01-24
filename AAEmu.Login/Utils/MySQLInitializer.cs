@@ -1,7 +1,5 @@
 ﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Models;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login.Utils;
