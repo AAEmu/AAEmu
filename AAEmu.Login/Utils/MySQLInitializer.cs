@@ -6,10 +6,13 @@ using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login.Utils;
 
-public class MySqlInitializer(IOptions<AppConfiguration> appConfig, ILogger<MySqlInitializer> logger)
-    : BackgroundService
+public class MySqlInitializer(IOptions<AppConfiguration> appConfig, ILogger<MySqlInitializer> logger) : IHostedService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    // Not using BackgroundService here due to it not preventing other hosted services from starting:
+    // https://learn.microsoft.com/en-us/dotnet/core/compatibility/extensions/10.0/backgroundservice-executeasync-task
+    // This service needs to run before any other service that relies on the database.
+
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         MySQL.SetConfiguration(appConfig.Value.Connections.MySQLProvider);
 
@@ -27,4 +30,6 @@ public class MySqlInitializer(IOptions<AppConfiguration> appConfig, ILogger<MySq
             throw;
         }
     }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

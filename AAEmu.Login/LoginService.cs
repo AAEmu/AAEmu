@@ -18,18 +18,19 @@ public sealed class LoginService(
     IOptions<AppConfiguration> appConfig,
     ILogger<LoginService> logger) : IHostedService, IDisposable
 {
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting daemon: AAEmu.Login");
+
         // Check for updates
-        using (var connection = MySQL.CreateConnection())
+        await using (var connection = MySQL.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login",
                     appConfig.Value.Connections.MySQLProvider.Database))
             {
                 logger.LogCritical("Failed to update database!");
                 logger.LogCritical("Press Ctrl+C to quit");
-                return Task.CompletedTask;
+                return;
             }
         }
 
@@ -37,7 +38,6 @@ public sealed class LoginService(
         gameController.Load();
         loginNetwork.Start();
         internalNetwork.Start();
-        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
