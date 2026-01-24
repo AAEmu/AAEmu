@@ -37,6 +37,22 @@ public static class Program
 
         var builder = WebApplication.CreateSlimBuilder(args);
 
+        builder.WebHost.ConfigureKestrel((context, options) =>
+        {
+            if (context.Configuration.GetRequiredSection(PublicNetworkConfig.ConfigurationSectionName)
+                    .Get<PublicNetworkConfig>() is not { } publicNetworkConfig)
+            {
+                throw new ConfigurationErrorsException("Could not load public network configuration");
+            }
+
+            // Set up Kestrel to listen on the public network interface for incoming connections from game clients
+            options.Listen(publicNetworkConfig.Host == "*"
+                    ? IPAddress.Any
+                    : IPAddress.Parse(publicNetworkConfig.Host),
+                publicNetworkConfig.Port,
+                opts => opts.UseConnectionHandler<LoginConnectionHandler>());
+        });
+
         builder.Configuration
             .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"), optional: true, reloadOnChange: true)
             .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.Local.json"), optional: true, reloadOnChange: true)
@@ -85,7 +101,12 @@ public static class Program
         builder.Services.AddInternalPacketHandlers();
         builder.Services.AddLoginPacketHandlers();
 
+        builder.Services.AddHealthChecks();
+
         var app = builder.Build();
+
+        app.MapHealthChecks("/health");
+
         await app.RunAsync();
     }
 
