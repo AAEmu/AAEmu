@@ -17,6 +17,6 @@ public interface IGameController
     Task RequestWorldListAsync(LoginConnection connection);
 
     void SetLoad(GameServerId gsId, byte load);
-    void RequestEnterWorld(LoginConnection connection, GameServerId gsId);
-    void EnterWorld(LoginConnection connection, GameServerId gsId, byte result);
+    void RequestEnterWorld(ILoginConnection connection, GameServerId gsId);
+    Task EnterWorldAsync(ILoginConnection connection, GameServerId gsId, byte result);
 }

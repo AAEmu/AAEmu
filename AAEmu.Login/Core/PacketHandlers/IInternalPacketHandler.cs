@@ -5,5 +5,5 @@ namespace AAEmu.Login.Core.PacketHandlers;
 
 public interface IInternalPacketHandler
 {
-    void Execute(InternalPacket packet, InternalConnection connection);
+    Task Execute(InternalPacket packet, InternalConnection connection);
 }

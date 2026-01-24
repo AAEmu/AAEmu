@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Text;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Models;

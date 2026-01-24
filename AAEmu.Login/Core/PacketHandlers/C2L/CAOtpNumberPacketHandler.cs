@@ -9,7 +9,5 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// </summary>
 public class CAOtpNumberPacketHandler : ILoginPacketHandler<CAOtpNumberPacket>
 {
-    public void Execute(CAOtpNumberPacket packet, LoginConnection connection)
-    {
-    }
+    public Task Execute(CAOtpNumberPacket packet, LoginConnection connection) => Task.CompletedTask;
 }

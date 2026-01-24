@@ -24,16 +24,16 @@ public class LoginController(
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="username"></param>
-    public void Login(LoginConnection connection, string username)
+    public async Task Login(LoginConnection connection, string username)
     {
-        using var connect = MySQL.CreateConnection();
-        using var command = connect.CreateCommand();
+        await using var connect = MySQL.CreateConnection();
+        await using var command = connect.CreateCommand();
         command.CommandText = "SELECT * FROM users where username=@username";
         command.Parameters.AddWithValue("@username", username);
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
+        await using var reader = command.ExecuteReader();
+        if (!await reader.ReadAsync())
         {
-            connection.SendPacket(new ACLoginDeniedPacket(2));
+            await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
             return;
         }
 
@@ -44,10 +44,10 @@ public class LoginController(
         connection.LastLogin = DateTime.UtcNow;
         connection.LastIp = connection.Ip;
 
-        connection.SendPacket(new ACJoinResponsePacket(0, 6));
-        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+        await connection.SendPacketAsync(new ACJoinResponsePacket(0, 6), CancellationToken.None);
+        await connection.SendPacketAsync(new ACAuthResponsePacket(connection.AccountId, 6), CancellationToken.None);
 
-        reader.Close();
+        await reader.CloseAsync();
 
         #region update account
 
@@ -59,7 +59,7 @@ public class LoginController(
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
 
-        if (command.ExecuteNonQuery() != 1)
+        if (await command.ExecuteNonQueryAsync() != 1)
         {
             logger.LogWarning("Database update failed, error occurred while updating account login IP and time");
         }
@@ -73,32 +73,32 @@ public class LoginController(
     /// <param name="connection"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
-    public void Login(LoginConnection connection, string username, ReadOnlySpan<byte> password)
+    public async Task Login(LoginConnection connection, string username, ReadOnlyMemory<byte> password)
     {
-        using var connect = MySQL.CreateConnection();
-        using var command = connect.CreateCommand();
+        await using var connect = MySQL.CreateConnection();
+        await using var command = connect.CreateCommand();
         command.CommandText = "SELECT * FROM users where username=@username";
         command.Parameters.AddWithValue("@username", username);
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
+        await using var reader = command.ExecuteReader();
+        if (!await reader.ReadAsync())
         {
             if (_autoAccount)
             {
-                reader.Close();
-                CreateAndLoginInvalid(connection, username, password, connect);
+                await reader.CloseAsync();
+                await CreateAndLoginInvalid(connection, username, password, connect);
             }
             else
             {
-                connection.SendPacket(new ACLoginDeniedPacket(2));
+                await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
             }
 
             return;
         }
 
         var expectedPassword = Convert.FromBase64String(reader.GetString("password"));
-        if (!password.SequenceEqual(expectedPassword))
+        if (!password.Span.SequenceEqual(expectedPassword))
         {
-            connection.SendPacket(new ACLoginDeniedPacket(2));
+            await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
             return;
         }
 
@@ -106,7 +106,7 @@ public class LoginController(
         if (banned)
         {
             var banReason = (byte)reader.GetUInt32("ban_reason");
-            connection.SendPacket(new ACLoginDeniedPacket(banReason));
+            await connection.SendPacketAsync(new ACLoginDeniedPacket(banReason), CancellationToken.None);
             return;
         }
 
@@ -116,10 +116,10 @@ public class LoginController(
         connection.LastIp = connection.Ip;
 
         logger.LogInformation("{AccountName} connected.", connection.AccountName);
-        connection.SendPacket(new ACJoinResponsePacket(0, 6));
-        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+        await connection.SendPacketAsync(new ACJoinResponsePacket(0, 6), CancellationToken.None);
+        await connection.SendPacketAsync(new ACAuthResponsePacket(connection.AccountId, 6), CancellationToken.None);
 
-        reader.Close();
+        await reader.CloseAsync();
 
         #region update account
 
@@ -131,7 +131,7 @@ public class LoginController(
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
 
-        if (command.ExecuteNonQuery() != 1)
+        if (await command.ExecuteNonQueryAsync() != 1)
         {
             logger.LogWarning("Database update failed, error occurred while updating account login IP and time");
         }
@@ -139,12 +139,12 @@ public class LoginController(
         # endregion
     }
 
-    public void CreateAndLoginInvalid(LoginConnection connection, string username, ReadOnlySpan<byte> password,
+    public async Task CreateAndLoginInvalid(LoginConnection connection, string username, ReadOnlyMemory<byte> password,
         MySqlConnection connect)
     {
-        var pass = Convert.ToBase64String(password);
+        var pass = Convert.ToBase64String(password.Span);
 
-        using var command = connect.CreateCommand();
+        await using var command = connect.CreateCommand();
         command.CommandText =
             "INSERT into users (username, password, email, last_ip, last_login, created_at, updated_at) VALUES (@username, @password, @email, @last_ip, @last_login, @created_at, @updated_at)";
         command.Parameters.AddWithValue("@username", username);
@@ -155,14 +155,14 @@ public class LoginController(
         command.Parameters.AddWithValue("@created_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
 
-        if (command.ExecuteNonQuery() != 1)
+        if (await command.ExecuteNonQueryAsync() != 1)
         {
-            connection.SendPacket(new ACLoginDeniedPacket(2));
+            await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
             return;
         }
 
         logger.LogDebug("Created account from invalid username login with value: {Username}", username);
-        Login(connection, username, password);
+        await Login(connection, username, password);
     }
 
     public void AddReconnectionToken(InternalConnection connection, GameServerId gsId, AccountId accountId, uint token)
@@ -172,7 +172,7 @@ public class LoginController(
         connection.SendPacket(new LGPlayerReconnectPacket(token));
     }
 
-    public void Reconnect(LoginConnection connection, GameServerId gsId, AccountId accountId, uint token)
+    public async Task Reconnect(LoginConnection connection, GameServerId gsId, AccountId accountId, uint token)
     {
         if (!_tokens.ContainsKey(gsId))
         {
@@ -194,8 +194,8 @@ public class LoginController(
         if (value == accountId)
         {
             connection.AccountId = accountId;
-            connection.SendPacket(new ACJoinResponsePacket(0, 6));
-            connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+            await connection.SendPacketAsync(new ACJoinResponsePacket(0, 6), CancellationToken.None);
+            await connection.SendPacketAsync(new ACAuthResponsePacket(connection.AccountId, 6), CancellationToken.None);
         }
         else
         {

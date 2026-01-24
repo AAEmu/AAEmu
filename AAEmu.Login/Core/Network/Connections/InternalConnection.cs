@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Models;
 using ISession = AAEmu.Commons.Network.Core.ISession;
