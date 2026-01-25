@@ -36,6 +36,7 @@ public static class Program
 
         builder.Configuration
             .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"), optional: true, reloadOnChange: true)
+            .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.Local.json"), optional: true, reloadOnChange: true)
             .AddUserSecrets<LoginService>()
             .AddEnvironmentVariables()
             .AddCommandLine(args);
@@ -99,7 +100,7 @@ public static class Program
             $"Running as {(Environment.Is64BitProcess ? "64" : "32")}-bits on {(Environment.Is64BitOperatingSystem ? "64" : "32")}-bits {GetOsName()} ({Environment.OSVersion})");
         if (!Environment.Is64BitProcess)
         {
-            Logger.Warn($"Running in 32-bits mode is not recommended to do memory constraints");
+            Logger.Warn($"Running in 32-bits mode is not recommended due to memory constraints");
         }
     }
 }

@@ -52,10 +52,7 @@ public static class Program
             }
         }
 
-        if (!LoadConfiguration())
-        {
-            return 1;
-        }
+        Configuration(args);
 
         // Apply MySQL Configuration
         MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
@@ -146,53 +143,24 @@ public static class Program
         }
     }
 
-    public static bool LoadConfiguration()
-    {
-        var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-        if (!File.Exists(mainConfig))
-        {
-            // If user secrets are defined the configuration file is not required
-            var isUserSecretsDefined = IsUserSecretsDefined();
-            if (!isUserSecretsDefined)
-            {
-                Logger.Fatal($"{mainConfig} doesn't exist!");
-                return false;
-            }
+    public static void ReloadConfiguration() => Configuration(_launchArgs);
 
-            //return false;
-            mainConfig = null;
-        }
-
-        Configuration(_launchArgs, mainConfig);
-        return true;
-    }
-
-    private static bool IsUserSecretsDefined()
-    {
-        // Check if user secrets are defined
-        var config = new ConfigurationBuilder()
-            .AddUserSecrets<GameService>()
-            .Build();
-
-        var userSecretsDefined = config.AsEnumerable().Any();
-        return userSecretsDefined;
-    }
-
-    private static void Configuration(string[] args, string mainConfigJson)
+    private static void Configuration(string[] args)
     {
         // Load NLog configuration
         LogManager.ThrowConfigExceptions = false;
         LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"));
 
         // Load Game server configuration
-        // Get files inside in the Configurations folder
-        var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json", SearchOption.AllDirectories).ToList();
-        configFiles.Sort();
-        // Add the old main Config.json file
-        if (mainConfigJson != null)
-        {
-            configFiles.Insert(0, mainConfigJson);
-        }
+        List<string> configFiles =
+        [
+            // Add the old main Config.json file
+            Path.Combine(FileManager.AppPath, "Config.json"),
+            Path.Combine(FileManager.AppPath, "Config.Local.json"),
+            // Get files inside the Configurations folder
+            ..Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json",
+                SearchOption.AllDirectories).Order()
+        ];
 
         var configurationBuilder = new ConfigurationBuilder();
 
@@ -200,12 +168,11 @@ public static class Program
         foreach (var file in configFiles)
         {
             Logger.Info($"Config: {file}");
-            configurationBuilder.AddJsonFile(file);
+            configurationBuilder.AddJsonFile(file, optional: true);
         }
 
         configurationBuilder.AddUserSecrets<GameService>();
-
-        // Add command-line arguments
+        configurationBuilder.AddEnvironmentVariables();
         configurationBuilder.AddCommandLine(args);
 
         var configurationBuilderResult = configurationBuilder.Build();

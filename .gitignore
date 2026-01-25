@@ -5,7 +5,7 @@ bin/
 obj/
 publish/
 **/hmap.dat
-**/Config.json
+**/Config.Local.json
 *.old
 *.bak
 *.packet
@@ -17,8 +17,6 @@ publish/
 **/launchSettings.json
 /AAEmu.Game/Properties/PublishProfiles
 /AAEmu.Game/ClientData/*
-/AAEmu.Game/Config.json
-/AAEmu.Login/Config.json
 /AAEmu.IntegrationTests/Config.json
 *.sqlite3
 .server_files

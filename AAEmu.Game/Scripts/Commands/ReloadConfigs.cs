@@ -30,16 +30,9 @@ internal class ReloadConfigs : ICommand
     {
         try
         {
-            if (Program.LoadConfiguration())
-            {
-                //ConfigurationManager.Instance.Load();
-                CommandManager.SendNormalText(this, messageOutput, "Configuration reloaded");
-            }
-            else
-            {
-                CommandManager.SendErrorText(this, messageOutput,
-                    "Configurations failed reloading - check error output");
-            }
+            Program.ReloadConfiguration();
+            //ConfigurationManager.Instance.Load();
+            CommandManager.SendNormalText(this, messageOutput, "Configuration reloaded");
         }
         catch (Exception e)
         {

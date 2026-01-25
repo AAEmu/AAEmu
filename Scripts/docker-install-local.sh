@@ -55,12 +55,12 @@ echo -e "Copying file AAEmu/.env.example to Copying file AAEmu/.env if not alrea
 cp -n .env.example .env
 echo -e "Done"
 
-echo -e "Copying file AAEmu/AAEmu.Login/ExampleConfig.json to AAEmu/.server_files/AAEmu.Login/Config.json if not already present."
-cp -n AAEmu.Login/ExampleConfig.json .server_files/AAEmu.Login/Config.json
+echo -e "Copying file AAEmu/AAEmu.Login/Config.json to AAEmu/.server_files/AAEmu.Login/Config.json if not already present."
+cp -n AAEmu.Login/Config.json .server_files/AAEmu.Login/Config.json
 echo -e "Done"
 
-echo -e "Copying file AAEmu/AAEmu.Game/ExampleConfig.json to AAEmu/.server_files/AAEmu.Game/Config.json if not already present."
-cp -n AAEmu.Game/ExampleConfig.json .server_files/AAEmu.Game/Config.json
+echo -e "Copying file AAEmu/AAEmu.Game/Config.json to AAEmu/.server_files/AAEmu.Game/Config.json if not already present."
+cp -n AAEmu.Game/Config.json .server_files/AAEmu.Game/Config.json
 echo -e "Done"
 
 echo -e "Copying folder AAEmu/AAEmu.Game/Configurations to AAEmu/.server_files/AAEmu.Game/Configurations if not already present."

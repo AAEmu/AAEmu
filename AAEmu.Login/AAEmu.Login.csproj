@@ -27,10 +27,10 @@
     <None Include="Config.json" Condition="Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Dockerfile" />
-    <None Include="ExampleConfig.json" Condition="!Exists('Config.json')">
+    <None Update="Config.Local.json" Condition="Exists('Config.Local.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Dockerfile" />
     <None Include="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
