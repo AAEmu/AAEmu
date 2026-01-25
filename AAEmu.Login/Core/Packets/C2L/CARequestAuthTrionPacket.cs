@@ -4,11 +4,21 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
+/// <summary>
+/// A packet sent by the client to the login server to request authentication with Trion credentials.
+/// </summary>
 public class CARequestAuthTrionPacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CARequestAuthTrionPacket;
-    
+
+    /// <summary>
+    /// Gets the Trion username.
+    /// </summary>
     public string? Username { get; private set; }
+
+    /// <summary>
+    /// Gets the Trion password.
+    /// </summary>
     public string? Password { get; private set; }
 
     public override void Read(PacketStream stream)
@@ -37,7 +47,7 @@ public class CARequestAuthTrionPacket() : LoginPacket(TypeId), ILoginPacket
             Logger.Error("RequestAuthTrion: username or password is empty or whitespace");
             return;
         }
-        
+
         Username = username;
         Password = password;
     }

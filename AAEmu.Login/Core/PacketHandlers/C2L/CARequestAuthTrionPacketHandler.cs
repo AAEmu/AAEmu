@@ -5,6 +5,10 @@ using AAEmu.Login.Core.Packets.C2L;
 
 namespace AAEmu.Login.Core.PacketHandlers.C2L;
 
+/// <summary>
+/// Handles the <see cref="CARequestAuthTrionPacket"/> which is sent by the client to request authentication using
+/// Trion credentials.
+/// </summary>
 public class CARequestAuthTrionPacketHandler(ILoginController loginController)
     : ILoginPacketHandler<CARequestAuthTrionPacket>
 {

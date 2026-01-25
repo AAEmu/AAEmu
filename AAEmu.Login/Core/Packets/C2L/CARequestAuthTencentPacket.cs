@@ -3,6 +3,9 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
+/// <summary>
+/// A packet sent by the client to the login server to request authentication via Tencent's services.
+/// </summary>
 public class CARequestAuthTencentPacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CARequestAuthTencentPacket;

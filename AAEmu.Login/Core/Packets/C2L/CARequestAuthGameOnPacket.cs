@@ -3,6 +3,9 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
+/// <summary>
+/// A packet sent by the client to the login server to request authentication for entering the game world.
+/// </summary>
 public class CARequestAuthGameOnPacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CARequestAuthGameOnPacket;

@@ -4,6 +4,10 @@ using AAEmu.Login.Core.Packets.C2L;
 
 namespace AAEmu.Login.Core.PacketHandlers.C2L;
 
+/// <summary>
+/// Handles the <see cref="CARequestAuthMailRuPacket"/> which is sent by the client to request authentication via
+/// Mail.Ru.
+/// </summary>
 public class CARequestAuthMailRuPacketHandler(ILoginController loginController)
     : ILoginPacketHandler<CARequestAuthMailRuPacket>
 {

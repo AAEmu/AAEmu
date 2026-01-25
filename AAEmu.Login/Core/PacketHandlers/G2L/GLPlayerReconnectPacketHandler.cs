@@ -4,6 +4,10 @@ using AAEmu.Login.Core.Packets.G2L;
 
 namespace AAEmu.Login.Core.PacketHandlers.G2L;
 
+/// <summary>
+/// Handles the <see cref="GLPlayerReconnectPacket"/> which is sent by the game server when a player attempts to
+/// reconnect.
+/// </summary>
 public class GLPlayerReconnectPacketHandler(ILoginController loginController)
     : IInternalPacketHandler<GLPlayerReconnectPacket>
 {

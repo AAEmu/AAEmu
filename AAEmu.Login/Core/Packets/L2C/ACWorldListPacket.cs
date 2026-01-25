@@ -5,6 +5,12 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
+/// <summary>
+/// A packet sent by the login server to the client containing the list of available game servers and character
+/// information.
+/// </summary>
+/// <param name="gameServers">The list of game servers.</param>
+/// <param name="characters">The list of characters belonging to the account across all game servers.</param>
 public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacterInfo> characters)
     : LoginPacket(LCOffsets.ACWorldListPacket)
 {

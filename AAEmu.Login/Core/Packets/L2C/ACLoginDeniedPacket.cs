@@ -3,6 +3,10 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
+/// <summary>
+/// A packet sent by the login server to inform the client that the login attempt has been denied.
+/// </summary>
+/// <param name="reason">The reason the login was denied.</param>
 public class ACLoginDeniedPacket(byte reason) : LoginPacket(LCOffsets.ACLoginDeniedPacket)
 {
     public override PacketStream Write(PacketStream stream)

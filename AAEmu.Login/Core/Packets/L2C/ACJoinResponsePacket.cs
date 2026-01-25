@@ -3,6 +3,11 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
+/// <summary>
+/// A packet sent by the login server to the client in response to a successful authentication request.
+/// </summary>
+/// <param name="reason"></param>
+/// <param name="afs"></param>
 public class ACJoinResponsePacket(ushort reason, ulong afs) : LoginPacket(LCOffsets.ACJoinResponsePacket)
 {
     public override PacketStream Write(PacketStream stream)

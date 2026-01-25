@@ -3,11 +3,21 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
+/// <summary>
+/// A packet sent by the client to the login server to request authentication via Mail.Ru credentials.
+/// </summary>
 public class CARequestAuthMailRuPacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CARequestAuthMailRuPacket;
-    
+
+    /// <summary>
+    /// Gets the Mail.Ru user ID.
+    /// </summary>
     public string? Id { get; private set; }
+
+    /// <summary>
+    /// Gets the authentication token provided by Mail.Ru.
+    /// </summary>
     public byte[]? Token { get; private set; }
 
     public override void Read(PacketStream stream)
