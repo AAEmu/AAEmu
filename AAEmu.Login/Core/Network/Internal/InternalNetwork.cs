@@ -9,7 +9,7 @@ namespace AAEmu.Login.Core.Network.Internal;
 
 public class InternalNetwork(
     IInternalProtocolHandler protocolHandler,
-    IOptions<AppConfiguration> appConfig,
+    IOptions<InternalNetworkConfig> internalNetworkConfig,
     ILogger<InternalNetwork> logger)
     : IInternalNetwork
 {
@@ -17,7 +17,7 @@ public class InternalNetwork(
 
     public void Start()
     {
-        var config = appConfig.Value.InternalNetwork;
+        var config = internalNetworkConfig.Value;
         var host =
             new IPEndPoint(config.Host.Equals("*") ? IPAddress.IPv6Any : IPAddress.Parse(config.Host), config.Port);
 

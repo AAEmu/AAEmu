@@ -6,7 +6,8 @@ using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login.Utils;
 
-public class MySqlInitializer(IOptions<AppConfiguration> appConfig, ILogger<MySqlInitializer> logger) : IHostedService
+public class MySqlInitializer(IOptions<DBConnectionsConfig> dbConnectionsConfig, ILogger<MySqlInitializer> logger)
+    : IHostedService
 {
     // Not using BackgroundService here due to it not preventing other hosted services from starting:
     // https://learn.microsoft.com/en-us/dotnet/core/compatibility/extensions/10.0/backgroundservice-executeasync-task
@@ -14,7 +15,7 @@ public class MySqlInitializer(IOptions<AppConfiguration> appConfig, ILogger<MySq
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        MySQL.SetConfiguration(appConfig.Value.Connections.MySQLProvider);
+        MySQL.SetConfiguration(dbConnectionsConfig.Value.MySQLProvider);
 
         try
         {

@@ -8,14 +8,14 @@ namespace AAEmu.Login.Core.Network.Login;
 
 public class LoginNetwork(
     ILoginProtocolHandler protocolHandler,
-    IOptions<AppConfiguration> appConfig,
+    IOptions<PublicNetworkConfig> publicNetworkConfig,
     ILogger<LoginNetwork> logger) : ILoginNetwork
 {
     private Server? _server;
 
     public void Start()
     {
-        var config = appConfig.Value.Network;
+        var config = publicNetworkConfig.Value;
         _server = new Server(
             config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port, protocolHandler);
         _server.Start();

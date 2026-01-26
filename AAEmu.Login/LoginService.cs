@@ -15,7 +15,7 @@ public sealed class LoginService(
     IRequestController requestController,
     IInternalNetwork internalNetwork,
     ILoginNetwork loginNetwork,
-    IOptions<AppConfiguration> appConfig,
+    IOptions<DBConnectionsConfig> dbConnectionsConfig,
     ILogger<LoginService> logger) : IHostedService, IDisposable
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -26,7 +26,7 @@ public sealed class LoginService(
         await using (var connection = MySQL.CreateConnection())
         {
             if (!MySqlDatabaseUpdater.Run(connection, "aaemu_login",
-                    appConfig.Value.Connections.MySQLProvider.Database))
+                    dbConnectionsConfig.Value.MySQLProvider.Database))
             {
                 logger.LogCritical("Failed to update database!");
                 logger.LogCritical("Press Ctrl+C to quit");
