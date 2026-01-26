@@ -67,6 +67,11 @@ public class LoginConnection
         return res;
     }
 
+    /// <summary>
+    /// Adds the known characters of the account on a specific game server.
+    /// </summary>
+    /// <param name="gsId">The identifier of the game server.</param>
+    /// <param name="characterInfos">The list of characters that the account has on the game server.</param>
     public void AddCharacters(GameServerId gsId, List<LoginCharacterInfo> characterInfos)
     {
         foreach (var character in characterInfos)

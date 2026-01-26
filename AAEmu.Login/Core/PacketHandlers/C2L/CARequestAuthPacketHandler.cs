@@ -4,8 +4,10 @@ using AAEmu.Login.Core.Packets.C2L;
 
 namespace AAEmu.Login.Core.PacketHandlers.C2L;
 
-public class CARequestAuthPacketHandler(ILoginController loginController)
-    : ILoginPacketHandler<CARequestAuthPacket>
+/// <summary>
+/// Handles the <see cref="CARequestAuthPacket"/> which is sent by the client to request authentication.
+/// </summary>
+public class CARequestAuthPacketHandler(ILoginController loginController) : ILoginPacketHandler<CARequestAuthPacket>
 {
     public void Execute(CARequestAuthPacket packet, LoginConnection connection)
     {

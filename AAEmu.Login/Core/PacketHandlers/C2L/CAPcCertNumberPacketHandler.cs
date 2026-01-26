@@ -3,8 +3,10 @@ using AAEmu.Login.Core.Packets.C2L;
 
 namespace AAEmu.Login.Core.PacketHandlers.C2L;
 
-public class CAPcCertNumberPacketHandler
-    : ILoginPacketHandler<CAPcCertNumberPacket>
+/// <summary>
+/// Handles the <see cref="CAPcCertNumberPacket"/> which is sent by the client to provide a certificate number.
+/// </summary>
+public class CAPcCertNumberPacketHandler : ILoginPacketHandler<CAPcCertNumberPacket>
 {
     public void Execute(CAPcCertNumberPacket packet, LoginConnection connection)
     {

@@ -3,10 +3,16 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
+/// <summary>
+/// A packet sent by the client to the login server to request authentication.
+/// </summary>
 public class CARequestAuthPacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CARequestAuthPacket;
-    
+
+    /// <summary>
+    /// Gets the account name provided by the client for authentication.
+    /// </summary>
     public string? Account { get; private set; }
 
     public override void Read(PacketStream stream)

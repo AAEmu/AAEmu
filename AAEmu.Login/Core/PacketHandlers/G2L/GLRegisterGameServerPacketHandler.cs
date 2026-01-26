@@ -9,6 +9,10 @@ using NLog;
 
 namespace AAEmu.Login.Core.PacketHandlers.G2L;
 
+/// <summary>
+/// Handles the <see cref="GLRegisterGameServerPacket"/> which is sent by the game server to register itself with the
+/// login server.
+/// </summary>
 public class GLRegisterGameServerPacketHandler(IGameController gameController, IOptions<AppConfiguration> appConfig)
     : IInternalPacketHandler<GLRegisterGameServerPacket>
 {

@@ -6,6 +6,11 @@ using AAEmu.Login.Models;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
+/// <summary>
+/// A packet sent by the login server to the client containing the world cookie and game server connection details.
+/// </summary>
+/// <param name="connection">The client connection.</param>
+/// <param name="gs">The game server the client wishes to connect to.</param>
 public class ACWorldCookiePacket(LoginConnection connection, GameServer gs) : LoginPacket(LCOffsets.ACWorldCookiePacket)
 {
     private readonly uint _cookie = connection.Id.Value;

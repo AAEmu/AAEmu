@@ -4,6 +4,10 @@ using AAEmu.Login.Core.Packets.C2L;
 
 namespace AAEmu.Login.Core.PacketHandlers.C2L;
 
+/// <summary>
+/// Handles the <see cref="CARequestReconnectPacket"/> which is sent by the client to request reconnection to a game
+/// server.
+/// </summary>
 public class CARequestReconnectPacketHandler(ILoginController loginController)
     : ILoginPacketHandler<CARequestReconnectPacket>
 {
