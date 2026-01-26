@@ -4,15 +4,16 @@
 ![Discord](https://img.shields.io/discord/479677351618281472?color=%235865F2&label=Discord&logo=Discord&logoColor=%23FFFFFF")
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AAEmu/AAEmu)
 
-__Open source server software for ArcheAge written in .Net Core__
+__Open source server software for ArcheAge written in .NET C#__
 
 ### Setup, help & support, FAQs
-Head over to the [wiki](https://github.com/atel0/AAEmu/wiki).
+Head over to the [wiki](https://github.com/AAEmu/AAEmu/wiki).
 If you don't find what you're looking for there, [talk to a human](#discussion). Please do not use our issue tracker for support requests.
 
 ### Discussion
 - [Community Discord](https://discord.gg/vn8E8E6)
-- [FAQ](https://github.com/atel0/AAEmu/wiki/FAQ)
+- [FAQ](https://github.com/AAEmu/AAEmu/wiki/FAQ)
+- [Mini troubleshooting guide](https://github.com/AAEmu/AAEmu/wiki/Mini-troubleshoot-guide)
 
 ### Can I contribute?
 Yes you can! Contributions are welcomed provided that they comply with our [Contributing Guidelines](CONTRIBUTING.md). Please ensure you read the relevant sections of the guidelines carefully before making a Pull Request or opening an Issue.
