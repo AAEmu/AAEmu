@@ -5,5 +5,5 @@ namespace AAEmu.Login.Core.PacketHandlers;
 
 public interface ILoginPacketHandler
 {
-    Task Execute(LoginPacket packet, LoginConnection connection);
+    Task Execute(LoginPacket packet, ILoginConnection connection);
 }

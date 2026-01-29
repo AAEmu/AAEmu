@@ -29,6 +29,10 @@ public interface ILoginConnection
 
     bool IsLocallyConnected { get; }
     AccountId AccountId { get; set; }
+    Dictionary<GameServerId, List<LoginCharacterInfo>> Characters { get; }
+    string? AccountName { get; set; }
+    DateTime LastLogin { get; set; }
+    IPAddress? LastIp { get; set; }
 
     ValueTask SendPacketAsync(LoginPacket packet, CancellationToken cancellationToken);
     ValueTask SendPacketAsync(ReadOnlyMemory<byte> packet, CancellationToken cancellationToken);

@@ -9,7 +9,7 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// </summary>
 public class CARequestAuthPacketHandler(ILoginController loginController) : ILoginPacketHandler<CARequestAuthPacket>
 {
-    public async Task Execute(CARequestAuthPacket packet, LoginConnection connection)
+    public async Task Execute(CARequestAuthPacket packet, ILoginConnection connection)
     {
         await loginController.Login(connection, packet.Account!);
 

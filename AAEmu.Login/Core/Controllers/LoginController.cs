@@ -25,7 +25,7 @@ public class LoginController(
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="username"></param>
-    public async Task Login(LoginConnection connection, string username)
+    public async Task Login(ILoginConnection connection, string username)
     {
         await using var connect = connectionFactory.CreateConnection();
         await using var command = connect.CreateCommand();
@@ -74,7 +74,7 @@ public class LoginController(
     /// <param name="connection"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
-    public async Task Login(LoginConnection connection, string username, ReadOnlyMemory<byte> password)
+    public async Task Login(ILoginConnection connection, string username, ReadOnlyMemory<byte> password)
     {
         await using var connect = connectionFactory.CreateConnection();
         await using var command = connect.CreateCommand();
@@ -140,7 +140,7 @@ public class LoginController(
         # endregion
     }
 
-    public async Task CreateAndLoginInvalid(LoginConnection connection, string username, ReadOnlyMemory<byte> password,
+    public async Task CreateAndLoginInvalid(ILoginConnection connection, string username, ReadOnlyMemory<byte> password,
         MySqlConnection connect)
     {
         var pass = Convert.ToBase64String(password.Span);
@@ -173,7 +173,7 @@ public class LoginController(
         connection.SendPacket(new LGPlayerReconnectPacket(token));
     }
 
-    public async Task Reconnect(LoginConnection connection, GameServerId gsId, AccountId accountId, uint token)
+    public async Task Reconnect(ILoginConnection connection, GameServerId gsId, AccountId accountId, uint token)
     {
         if (!_tokens.ContainsKey(gsId))
         {

@@ -11,7 +11,7 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 public class CARequestReconnectPacketHandler(ILoginController loginController)
     : ILoginPacketHandler<CARequestReconnectPacket>
 {
-    public async Task Execute(CARequestReconnectPacket packet, LoginConnection connection)
+    public async Task Execute(CARequestReconnectPacket packet, ILoginConnection connection)
     {
         await loginController.Reconnect(connection, packet.GsId, packet.AccountId, packet.Cookie);
     }

@@ -6,14 +6,14 @@ namespace AAEmu.Login.Core.Controllers;
 public interface ILoginController
 {
     void AddReconnectionToken(InternalConnection connection, GameServerId gsId, AccountId accountId, uint token);
-    Task Reconnect(LoginConnection connection, GameServerId gsId, AccountId accountId, uint token);
+    Task Reconnect(ILoginConnection connection, GameServerId gsId, AccountId accountId, uint token);
 
     /// <summary>
     /// Kr Method Auth
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="username"></param>
-    Task Login(LoginConnection connection, string username);
+    Task Login(ILoginConnection connection, string username);
 
     /// <summary>
     /// Eu Method Auth
@@ -21,5 +21,5 @@ public interface ILoginController
     /// <param name="connection"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
-    Task Login(LoginConnection connection, string username, ReadOnlyMemory<byte> password);
+    Task Login(ILoginConnection connection, string username, ReadOnlyMemory<byte> password);
 }

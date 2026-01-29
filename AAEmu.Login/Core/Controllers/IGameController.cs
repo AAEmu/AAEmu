@@ -14,8 +14,7 @@ public interface IGameController
     /// Requests the list of available game worlds from the specified login connection.
     /// </summary>
     /// <param name="connection">The client connection making the request.</param>
-    Task RequestWorldListAsync(LoginConnection connection);
-
+    Task RequestWorldListAsync(ILoginConnection connection);
     void SetLoad(GameServerId gsId, byte load);
     void RequestEnterWorld(ILoginConnection connection, GameServerId gsId);
     Task EnterWorldAsync(ILoginConnection connection, GameServerId gsId, byte result);

@@ -126,7 +126,7 @@ public class GameController(
         gameServer.MirrorsId.Clear();
     }
 
-    public async Task RequestWorldListAsync(LoginConnection connection)
+    public async Task RequestWorldListAsync(ILoginConnection connection)
     {
         var gameServers = _gameServers.Values.ToList();
         if (_gameServers.Values.Any(x => x.Active))
