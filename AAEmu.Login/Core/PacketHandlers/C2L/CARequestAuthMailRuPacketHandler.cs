@@ -11,7 +11,8 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 public class CARequestAuthMailRuPacketHandler(ILoginController loginController)
     : ILoginPacketHandler<CARequestAuthMailRuPacket>
 {
-    public async Task Execute(CARequestAuthMailRuPacket packet, ILoginConnection connection)
+    public async Task Execute(CARequestAuthMailRuPacket packet, ILoginConnection connection,
+        CancellationToken cancellationToken)
     {
         await loginController.Login(connection, packet.Id!, packet.Token);
     }

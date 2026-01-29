@@ -126,7 +126,7 @@ public sealed class LoginConnection : ILoginConnectionOwner
                         try
                         {
                             // Dispatch the packet for further processing.
-                            await packetDescriptor.Dispatch(packet, this);
+                            await packetDescriptor.Dispatch(packet, this, ConnectionClosed);
                         }
                         catch (Exception ex)
                         {

@@ -12,7 +12,8 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 public class CARequestAuthTrionPacketHandler(ILoginController loginController)
     : ILoginPacketHandler<CARequestAuthTrionPacket>
 {
-    public async Task Execute(CARequestAuthTrionPacket packet, ILoginConnection connection)
+    public async Task Execute(CARequestAuthTrionPacket packet, ILoginConnection connection,
+        CancellationToken cancellationToken)
     {
         var token = Helpers.StringToByteArray(packet.Password!);
         await loginController.Login(connection, packet.Username!, token);

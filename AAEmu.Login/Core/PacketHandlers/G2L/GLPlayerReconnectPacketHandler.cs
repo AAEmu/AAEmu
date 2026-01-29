@@ -11,7 +11,8 @@ namespace AAEmu.Login.Core.PacketHandlers.G2L;
 public class GLPlayerReconnectPacketHandler(ILoginController loginController)
     : IInternalPacketHandler<GLPlayerReconnectPacket>
 {
-    public Task Execute(GLPlayerReconnectPacket packet, InternalConnection connection)
+    public Task Execute(GLPlayerReconnectPacket packet, InternalConnection connection,
+        CancellationToken cancellationToken)
     {
         loginController.AddReconnectionToken(connection, packet.GsId, packet.AccountId, packet.Token);
         return Task.CompletedTask;

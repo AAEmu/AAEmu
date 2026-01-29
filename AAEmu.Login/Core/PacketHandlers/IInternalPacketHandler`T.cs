@@ -7,5 +7,5 @@ public interface IInternalPacketHandler<in TPacket> : IPacketHandler<TPacket, In
     IInternalPacketHandler where TPacket : InternalPacket
 {
     Task IInternalPacketHandler.Execute(InternalPacket packet, InternalConnection connection) =>
-        Execute((TPacket)packet, connection);
+        Execute((TPacket)packet, connection, CancellationToken.None);
 }

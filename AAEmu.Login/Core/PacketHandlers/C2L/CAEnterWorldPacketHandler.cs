@@ -9,7 +9,7 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// </summary>
 public class CAEnterWorldPacketHandler(IGameController gameController) : ILoginPacketHandler<CAEnterWorldPacket>
 {
-    public Task Execute(CAEnterWorldPacket packet, ILoginConnection connection)
+    public Task Execute(CAEnterWorldPacket packet, ILoginConnection connection, CancellationToken cancellationToken)
     {
         gameController.RequestEnterWorld(connection, packet.GsId);
         return Task.CompletedTask;

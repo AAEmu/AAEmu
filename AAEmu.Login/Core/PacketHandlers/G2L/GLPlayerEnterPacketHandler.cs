@@ -10,7 +10,8 @@ namespace AAEmu.Login.Core.PacketHandlers.G2L;
 public class GLPlayerEnterPacketHandler(IGameController gameController, ILoginConnectionTable loginConnectionTable)
     : IInternalPacketHandler<GLPlayerEnterPacket>
 {
-    public async Task Execute(GLPlayerEnterPacket packet, InternalConnection connection)
+    public async Task Execute(GLPlayerEnterPacket packet, InternalConnection connection,
+        CancellationToken cancellationToken)
     {
         var loginConnection = loginConnectionTable.GetConnection(packet.ConnectionId);
         await gameController.EnterWorldAsync(loginConnection!, packet.GsId, packet.Result);

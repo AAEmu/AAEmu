@@ -9,5 +9,6 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// </summary>
 public class CACancelEnterWorldPacketHandler : ILoginPacketHandler<CACancelEnterWorldPacket>
 {
-    public Task Execute(CACancelEnterWorldPacket packet, ILoginConnection connection) => Task.CompletedTask;
+    public Task Execute(CACancelEnterWorldPacket packet, ILoginConnection connection,
+        CancellationToken cancellationToken) => Task.CompletedTask;
 }
