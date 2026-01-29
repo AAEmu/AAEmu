@@ -23,6 +23,12 @@ public interface ILoginConnection
     IPAddress Ip { get; }
 
     /// <summary>
+    /// The session managing the login flow state machine.
+    /// Used by infrastructure code for routing. Most code should receive ILoginSession directly.
+    /// </summary>
+    ILoginSession Session { get; }
+
+    /// <summary>
     /// Triggered when the client connection is closed.
     /// </summary>
     CancellationToken ConnectionClosed { get; }

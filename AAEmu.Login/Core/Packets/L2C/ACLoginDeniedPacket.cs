@@ -1,6 +1,7 @@
 ﻿using System.Buffers.Binary;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
+using AAEmu.Login.Core.PacketHandlers.C2L;
 
 namespace AAEmu.Login.Core.Packets.L2C;
 
@@ -14,13 +15,13 @@ namespace AAEmu.Login.Core.Packets.L2C;
 /// For example, reason <c>try_trade_cash_temporal</c> uses <c>$1</c> for the
 /// number of suspension days, so pass the day count as the first element.
 /// </param>
-public class ACLoginDeniedPacket(byte reason, params int[] vp) : LoginPacket(LCOffsets.ACLoginDeniedPacket)
+public class ACLoginDeniedPacket(LoginDeniedReason reason, params int[] vp) : LoginPacket(LCOffsets.ACLoginDeniedPacket)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(reason);
+        stream.Write((byte)reason);
         stream.Write(BuildVpData(), appendSize: true); // vp - binary: [0x00 + int32_le] per entry
-        stream.Write(""); // msg
+        stream.Write(""); // msg - completely overrides the displayed message
 
         return stream;
     }

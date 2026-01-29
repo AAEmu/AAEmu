@@ -4,7 +4,7 @@ using AAEmu.Login.Core.Network.Connections;
 
 namespace AAEmu.Login.Core.Network.Login;
 
-public abstract class LoginPacket(ushort typeId) : PacketBase<LoginConnection>(typeId)
+public abstract class LoginPacket(ushort typeId) : PacketBase<ILoginConnection>(typeId)
 {
     public void EncodeTo(IBufferWriter<byte> bufferWriter)
     {
@@ -29,7 +29,7 @@ public abstract class LoginPacket(ushort typeId) : PacketBase<LoginConnection>(t
         return ps;
     }
 
-    public override PacketBase<LoginConnection> Decode(PacketStream ps)
+    public override PacketBase<ILoginConnection> Decode(PacketStream ps)
     {
         try
         {

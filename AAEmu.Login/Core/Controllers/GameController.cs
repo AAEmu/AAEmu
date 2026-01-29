@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Sockets;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
-using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Options;
@@ -12,6 +11,7 @@ namespace AAEmu.Login.Core.Controllers;
 
 public class GameController(
     IRequestController requestController,
+    ILoginConnectionTable connectionTable,
     IOptions<AppConfiguration> appConfig,
     ILogger<GameController> logger)
     : IGameController
@@ -126,7 +126,7 @@ public class GameController(
         gameServer.MirrorsId.Clear();
     }
 
-    public async Task RequestWorldListAsync(ILoginConnection connection)
+    public async Task<WorldListResult> GetWorldListAsync(ILoginConnection connection)
     {
         var gameServers = _gameServers.Values.ToList();
         if (_gameServers.Values.Any(x => x.Active))
@@ -157,8 +157,7 @@ public class GameController(
             await creationTask;
         }
 
-        await connection.SendPacketAsync(new ACWorldListPacket(gameServers, connection.GetCharacters()),
-            CancellationToken.None);
+        return new WorldListResult(gameServers, connection.GetCharacters());
     }
 
     public void SetLoad(GameServerId gsId, byte load)
@@ -166,31 +165,34 @@ public class GameController(
         _gameServers[gsId].Load = (GSLoad)load;
     }
 
-    public void RequestEnterWorld(ILoginConnection connection, GameServerId gsId)
+    public GameServer? GetGameServer(GameServerId gsId) => _gameServers.GetValueOrDefault(gsId);
+
+    public void RequestEnterWorld(AccountId accountId, ConnectionId connectionId, GameServerId gsId)
     {
         if (!_gameServers.TryGetValue(gsId, out var gs))
+        {
+            logger.LogWarning("RequestEnterWorld: game server {GsId} not found", gsId);
             return;
+        }
+
         if (!gs.Active)
+        {
+            logger.LogWarning("RequestEnterWorld: game server {GsId} not active", gsId);
             return;
-        gs.SendPacket(new LGPlayerEnterPacket(connection.AccountId, connection.Id));
+        }
+
+        gs.SendPacket(new LGPlayerEnterPacket(accountId, connectionId));
     }
 
-    public async Task EnterWorldAsync(ILoginConnection connection, GameServerId gsId, byte result)
+    public void RouteEnterWorldResponse(ConnectionId connectionId, GameServerId gsId, byte result)
     {
-        switch (result)
+        var connection = connectionTable.GetConnection(connectionId);
+        if (connection is null)
         {
-            case 0 when _gameServers.TryGetValue(gsId, out var server):
-                await connection.SendPacketAsync(new ACWorldCookiePacket(connection, server), CancellationToken.None);
-                break;
-            case 0:
-                // TODO ...
-                break;
-            case 1:
-                await connection.SendPacketAsync(new ACEnterWorldDeniedPacket(0), CancellationToken.None); // TODO change reason
-                break;
-            default:
-                // TODO ...
-                break;
+            logger.LogWarning("RouteEnterWorldResponse: connection {ConnectionId} not found", connectionId);
+            return;
         }
+
+        connection.Session.CompleteEnterWorldRequest(gsId, result);
     }
 }

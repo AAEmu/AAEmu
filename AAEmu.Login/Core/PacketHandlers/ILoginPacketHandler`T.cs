@@ -3,9 +3,9 @@ using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.PacketHandlers;
 
-public interface ILoginPacketHandler<in TPacket> : IPacketHandler<TPacket, ILoginConnection>,
+public interface ILoginPacketHandler<in TPacket> : IPacketHandler<TPacket, ILoginSession>,
     ILoginPacketHandler where TPacket : LoginPacket
 {
-    Task ILoginPacketHandler.Execute(LoginPacket packet, ILoginConnection connection,
-        CancellationToken cancellationToken) => Execute((TPacket)packet, connection, cancellationToken);
+    Task ILoginPacketHandler.Execute(LoginPacket packet, ILoginSession session,
+        CancellationToken cancellationToken) => Execute((TPacket)packet, session, cancellationToken);
 }

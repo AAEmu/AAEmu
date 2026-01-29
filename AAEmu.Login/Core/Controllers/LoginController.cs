@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
+using System.Net;
 using AAEmu.Login.Core.Network.Connections;
-using AAEmu.Login.Core.Packets.L2C;
+using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
@@ -23,9 +24,7 @@ public class LoginController(
     /// <summary>
     /// Kr Method Auth
     /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="username"></param>
-    public async Task Login(ILoginConnection connection, string username)
+    public async Task<LoginResult> Login(string username)
     {
         await using var connect = connectionFactory.CreateConnection();
         await using var command = connect.CreateCommand();
@@ -34,19 +33,13 @@ public class LoginController(
         await using var reader = command.ExecuteReader();
         if (!await reader.ReadAsync())
         {
-            await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
-            return;
+            return new LoginResult(false, default, LoginDeniedReason.BadAccount);
         }
 
         // TODO ... validation password
 
-        connection.AccountId = new AccountId(reader.GetUInt32("id"));
-        connection.AccountName = username;
-        connection.LastLogin = DateTime.UtcNow;
-        connection.LastIp = connection.Ip;
-
-        await connection.SendPacketAsync(new ACJoinResponsePacket(0, 6), CancellationToken.None);
-        await connection.SendPacketAsync(new ACAuthResponsePacket(connection.AccountId, 6), CancellationToken.None);
+        var accountId = new AccountId(reader.GetUInt32("id"));
+        var lastLogin = DateTime.UtcNow;
 
         await reader.CloseAsync();
 
@@ -55,10 +48,10 @@ public class LoginController(
         command.Parameters.Clear();
         command.CommandText =
             "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
-        command.Parameters.AddWithValue("@id", connection.AccountId.Value);
-        command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
-        command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
-        command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+        command.Parameters.AddWithValue("@id", accountId.Value);
+        command.Parameters.AddWithValue("@last_ip", "");
+        command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)lastLogin).ToUnixTimeSeconds());
+        command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)lastLogin).ToUnixTimeSeconds());
 
         if (await command.ExecuteNonQueryAsync() != 1)
         {
@@ -66,15 +59,15 @@ public class LoginController(
         }
 
         # endregion
+
+        return new LoginResult(true, accountId, default);
     }
 
     /// <summary>
     /// Eu Method Auth
     /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="username"></param>
-    /// <param name="password"></param>
-    public async Task Login(ILoginConnection connection, string username, ReadOnlyMemory<byte> password)
+    public async Task<LoginResult> Login(string username, string password, IPAddress ip,
+        CancellationToken cancellationToken)
     {
         await using var connect = connectionFactory.CreateConnection();
         await using var command = connect.CreateCommand();
@@ -86,39 +79,29 @@ public class LoginController(
             if (_autoAccount)
             {
                 await reader.CloseAsync();
-                await CreateAndLoginInvalid(connection, username, password, connect);
-            }
-            else
-            {
-                await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
+                return await CreateAndLoginInvalid(username, password, ip, connect);
             }
 
-            return;
+            return new LoginResult(false, default, LoginDeniedReason.BadResponse);
         }
 
-        var expectedPassword = Convert.FromBase64String(reader.GetString("password"));
-        if (!password.Span.SequenceEqual(expectedPassword))
+        var storedPassword = reader.GetString("password");
+        if (password != storedPassword)
         {
-            await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
-            return;
+            return new LoginResult(false, default, LoginDeniedReason.BadResponse);
         }
 
         var banned = reader.GetBoolean("banned");
         if (banned)
         {
-            var banReason = (byte)reader.GetUInt32("ban_reason");
-            await connection.SendPacketAsync(new ACLoginDeniedPacket(banReason), CancellationToken.None);
-            return;
+            var banReason = (LoginDeniedReason)(byte)reader.GetUInt32("ban_reason");
+            return new LoginResult(false, default, banReason);
         }
 
-        connection.AccountId = new AccountId(reader.GetUInt32("id"));
-        connection.AccountName = username;
-        connection.LastLogin = DateTime.UtcNow;
-        connection.LastIp = connection.Ip;
+        var accountId = new AccountId(reader.GetUInt32("id"));
+        var lastLogin = DateTime.UtcNow;
 
-        logger.LogInformation("{AccountName} connected.", connection.AccountName);
-        await connection.SendPacketAsync(new ACJoinResponsePacket(0, 6), CancellationToken.None);
-        await connection.SendPacketAsync(new ACAuthResponsePacket(connection.AccountId, 6), CancellationToken.None);
+        logger.LogInformation("{Username} connected.", username);
 
         await reader.CloseAsync();
 
@@ -127,10 +110,10 @@ public class LoginController(
         command.Parameters.Clear();
         command.CommandText =
             "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
-        command.Parameters.AddWithValue("@id", connection.AccountId.Value);
-        command.Parameters.AddWithValue("@last_ip", connection.LastIp.ToString());
-        command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
-        command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)connection.LastLogin).ToUnixTimeSeconds());
+        command.Parameters.AddWithValue("@id", accountId.Value);
+        command.Parameters.AddWithValue("@last_ip", ip);
+        command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)lastLogin).ToUnixTimeSeconds());
+        command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)lastLogin).ToUnixTimeSeconds());
 
         if (await command.ExecuteNonQueryAsync() != 1)
         {
@@ -138,32 +121,31 @@ public class LoginController(
         }
 
         # endregion
+
+        return new LoginResult(true, accountId, default);
     }
 
-    public async Task CreateAndLoginInvalid(ILoginConnection connection, string username, ReadOnlyMemory<byte> password,
-        MySqlConnection connect)
+    private async Task<LoginResult> CreateAndLoginInvalid(string username, string password, IPAddress clientIp,
+        MySqlConnection connection)
     {
-        var pass = Convert.ToBase64String(password.Span);
-
-        await using var command = connect.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText =
             "INSERT into users (username, password, email, last_ip, last_login, created_at, updated_at) VALUES (@username, @password, @email, @last_ip, @last_login, @created_at, @updated_at)";
         command.Parameters.AddWithValue("@username", username);
-        command.Parameters.AddWithValue("@password", pass);
+        command.Parameters.AddWithValue("@password", password);
         command.Parameters.AddWithValue("@email", "");
-        command.Parameters.AddWithValue("@last_ip", connection.Ip.ToString());
+        command.Parameters.AddWithValue("@last_ip", clientIp);
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@created_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
 
         if (await command.ExecuteNonQueryAsync() != 1)
         {
-            await connection.SendPacketAsync(new ACLoginDeniedPacket(2), CancellationToken.None);
-            return;
+            return new LoginResult(false, default, LoginDeniedReason.BadResponse);
         }
 
         logger.LogDebug("Created account from invalid username login with value {Username}", username);
-        await Login(connection, username, password);
+        return await Login(username, password, clientIp, CancellationToken.None);
     }
 
     public void AddReconnectionToken(InternalConnection connection, GameServerId gsId, AccountId accountId, uint token)
@@ -173,7 +155,7 @@ public class LoginController(
         connection.SendPacket(new LGPlayerReconnectPacket(token));
     }
 
-    public async Task Reconnect(ILoginConnection connection, GameServerId gsId, AccountId accountId, uint token)
+    public Task<ReconnectResult> Reconnect(GameServerId gsId, AccountId accountId, uint token)
     {
         if (!_tokens.ContainsKey(gsId))
         {
@@ -182,25 +164,22 @@ public class LoginController(
             else
             {
                 // TODO ...
-                return;
+                return Task.FromResult(new ReconnectResult(false, default));
             }
         }
 
         if (!_tokens[gsId].TryGetValue(token, out var value))
         {
             // TODO ...
-            return;
+            return Task.FromResult(new ReconnectResult(false, default));
         }
 
         if (value == accountId)
         {
-            connection.AccountId = accountId;
-            await connection.SendPacketAsync(new ACJoinResponsePacket(0, 6), CancellationToken.None);
-            await connection.SendPacketAsync(new ACAuthResponsePacket(connection.AccountId, 6), CancellationToken.None);
+            return Task.FromResult(new ReconnectResult(true, accountId));
         }
-        else
-        {
-            // TODO ...
-        }
+
+        // TODO ...
+        return Task.FromResult(new ReconnectResult(false, default));
     }
 }

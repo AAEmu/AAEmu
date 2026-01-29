@@ -18,6 +18,7 @@ public class LoginConnectionFactoryTests
 {
     private readonly Mock<ILoginProtocolHandler> _mockProtocolHandler = new();
     private readonly Mock<IConnectionIdLeaseFactory> _mockLeaseFactory = new();
+    private readonly Mock<ILoginSessionFactory> _mockSessionFactory = new();
     private readonly ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
 
     [Fact]
@@ -33,6 +34,7 @@ public class LoginConnectionFactoryTests
             [],
             _mockProtocolHandler.Object,
             _mockLeaseFactory.Object,
+            _mockSessionFactory.Object,
             _loggerFactory);
 
         var mockContext = CreateMockConnectionContext();
@@ -58,6 +60,7 @@ public class LoginConnectionFactoryTests
             [],
             _mockProtocolHandler.Object,
             _mockLeaseFactory.Object,
+            _mockSessionFactory.Object,
             _loggerFactory);
 
         var mockContext = CreateMockConnectionContext();
@@ -86,6 +89,7 @@ public class LoginConnectionFactoryTests
             [],
             _mockProtocolHandler.Object,
             _mockLeaseFactory.Object,
+            _mockSessionFactory.Object,
             _loggerFactory);
 
         var mockContext1 = CreateMockConnectionContext();
@@ -122,6 +126,7 @@ public class LoginConnectionFactoryTests
             packetDescriptors,
             _mockProtocolHandler.Object,
             _mockLeaseFactory.Object,
+            _mockSessionFactory.Object,
             _loggerFactory);
 
         var mockContext = CreateMockConnectionContext();
@@ -150,6 +155,7 @@ public class LoginConnectionFactoryTests
             packetDescriptors,
             _mockProtocolHandler.Object,
             _mockLeaseFactory.Object,
+            _mockSessionFactory.Object,
             _loggerFactory));
     }
 
@@ -166,6 +172,7 @@ public class LoginConnectionFactoryTests
             [],
             _mockProtocolHandler.Object,
             _mockLeaseFactory.Object,
+            _mockSessionFactory.Object,
             _loggerFactory);
 
         // Create context where local and remote are the same IP
@@ -195,6 +202,7 @@ public class LoginConnectionFactoryTests
             [],
             _mockProtocolHandler.Object,
             _mockLeaseFactory.Object,
+            _mockSessionFactory.Object,
             _loggerFactory);
 
         // Create context where local and remote are different IPs
