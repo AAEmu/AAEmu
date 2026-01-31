@@ -58,6 +58,15 @@ public static class Program
         builder.Services.AddOptionsWithValidateOnStart<AppConfiguration>()
             .BindConfiguration("")
             .ValidateDataAnnotations();
+        builder.Services.AddOptionsWithValidateOnStart<DBConnectionsConfig>()
+            .BindConfiguration(DBConnectionsConfig.ConfigurationSectionName)
+            .ValidateDataAnnotations();
+        builder.Services.AddOptionsWithValidateOnStart<InternalNetworkConfig>()
+            .BindConfiguration(InternalNetworkConfig.ConfigurationSectionName)
+            .ValidateDataAnnotations();
+        builder.Services.AddOptionsWithValidateOnStart<PublicNetworkConfig>()
+            .BindConfiguration(PublicNetworkConfig.ConfigurationSectionName)
+            .ValidateDataAnnotations();
 
         builder.Services.AddHostedService<MySqlInitializer>();
         builder.Services.AddHostedService<LoginService>();

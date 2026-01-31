@@ -1,33 +1,25 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using AAEmu.Commons.Models;
 
 namespace AAEmu.Login.Models;
 
+/// <summary>
+/// Contains general application configuration.
+/// </summary>
 public class AppConfiguration
 {
+    /// <summary>
+    /// Gets or sets the secret key used to verify game servers when registering themselves with the login server.
+    /// </summary>
     [Required]
     public required string SecretKey { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether accounts should be created automatically if they do not exist.
+    /// </summary>
     public bool AutoAccount { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to skip host resolution of game server hostnames.
+    /// </summary>
     public bool SkipHostResolve { get; set; }
-    [Required]
-    public required DBConnections Connections { get; set; }
-    [Required]
-    public required NetworkConfig InternalNetwork { get; set; }
-    [Required]
-    public required NetworkConfig Network { get; set; }
-
-    public class NetworkConfig
-    {
-        [Required]
-        public required string Host { get; set; }
-        [Required]
-        public required ushort Port { get; set; }
-        public required int NumConnections { get; set; }
-    }
-
-    public class DBConnections
-    {
-        [Required]
-        public required MySqlConnectionSettings MySQLProvider { get; set; }
-    }
 }
