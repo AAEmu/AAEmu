@@ -2,6 +2,7 @@ using System.Net;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.PacketHandlers.C2L;
+using AAEmu.Login.Core.Services;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,12 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
     private static LoginController CreateController(bool autoAccount = false)
     {
         var gameController = new Mock<IGameController>();
+        var passwordService = new Mock<IPasswordService>();
+        passwordService.Setup(p => p.VerifyPassword(It.IsAny<string>(), It.IsAny<Password>()))
+            .Returns((string stored, Password provided) =>
+                stored == provided.Value ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed);
+        passwordService.Setup(p => p.HashForStorage(It.IsAny<Password>()))
+            .Returns((Password p) => p.Value);
         var appConfig = Options.Create(new AppConfiguration
         {
             SecretKey = "test-key", AutoAccount = autoAccount, GameServers = []
@@ -36,7 +43,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
         var connectionFactory = new Mock<IMySqlConnectionFactory>();
         connectionFactory.Setup(f => f.CreateConnection()).Returns(MySQL.CreateConnection);
         var logger = new Mock<ILogger<LoginController>>();
-        return new LoginController(gameController.Object, appConfig, connectionFactory.Object, logger.Object);
+        return new LoginController(gameController.Object, passwordService.Object, appConfig, connectionFactory.Object, logger.Object);
     }
 
     private static async Task InsertUser(string username, string password, bool banned = false, int banReason = 0)
@@ -58,7 +65,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
     {
         var controller = CreateController(autoAccount: false);
 
-        var result = await controller.Login("no_such_user", "pass", _ipAddress, TestContext.Current.CancellationToken);
+        var result = await controller.Login("no_such_user", Password.FromPlaintext("pass"), _ipAddress, TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(LoginDeniedReason.BadResponse, result.DenialReason);
@@ -69,7 +76,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
     {
         var controller = CreateController(autoAccount: true);
 
-        var result = await controller.Login("autouser", "newpass", _ipAddress, TestContext.Current.CancellationToken);
+        var result = await controller.Login("autouser", Password.FromPlaintext("newpass"), _ipAddress, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.NotEqual(default, result.AccountId);
@@ -82,7 +89,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
         var controller = CreateController();
 
         var result =
-            await controller.Login("alice", "mypassword", _ipAddress, TestContext.Current.CancellationToken);
+            await controller.Login("alice", Password.FromPlaintext("mypassword"), _ipAddress, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
     }
@@ -93,7 +100,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
         await InsertUser("bob", "correctpass");
         var controller = CreateController();
 
-        var result = await controller.Login("bob", "wrongpass", _ipAddress, TestContext.Current.CancellationToken);
+        var result = await controller.Login("bob", Password.FromPlaintext("wrongpass"), _ipAddress, TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(LoginDeniedReason.BadResponse, result.DenialReason);
@@ -105,7 +112,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
         await InsertUser("banned_user", "pass", banned: true, banReason: 5);
         var controller = CreateController();
 
-        var result = await controller.Login("banned_user", "pass", _ipAddress, TestContext.Current.CancellationToken);
+        var result = await controller.Login("banned_user", Password.FromPlaintext("pass"), _ipAddress, TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(LoginDeniedReason.TryTradeCashTemporal, result.DenialReason);
@@ -117,7 +124,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
         await InsertUser("tracker", "pass");
         var controller = CreateController();
  
-        var result = await controller.Login("tracker", "pass", _ipAddress, TestContext.Current.CancellationToken);
+        var result = await controller.Login("tracker", Password.FromPlaintext("pass"), _ipAddress, TestContext.Current.CancellationToken);
         Assert.True(result.Success);
 
         // Verify the DB was updated

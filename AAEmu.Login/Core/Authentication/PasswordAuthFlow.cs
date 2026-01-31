@@ -1,6 +1,7 @@
 using System.Net;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
+using AAEmu.Login.Core.Services;
 
 namespace AAEmu.Login.Core.Authentication;
 
@@ -11,7 +12,7 @@ namespace AAEmu.Login.Core.Authentication;
 public class PasswordAuthFlow(
     ILoginController loginController,
     string username,
-    string password,
+    Password password,
     IPAddress clientIp) : IAuthenticationFlow
 {
     public async Task<AuthFlowResult> StartAsync(ILoginClient client, CancellationToken cancellationToken)

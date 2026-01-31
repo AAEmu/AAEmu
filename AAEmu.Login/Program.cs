@@ -6,11 +6,13 @@ using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.PacketHandlers;
+using AAEmu.Login.Core.Services;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MySql.Data.MySqlClient;
+using Microsoft.AspNetCore.Identity;
 using NLog;
 using NLog.Config;
 using NLog.Extensions.Logging;
@@ -114,6 +116,11 @@ public static class Program
 
         builder.Services.AddHostedService<MySqlInitializer>();
         builder.Services.AddHostedService<LoginService>();
+
+        builder.Services.Configure<PasswordHasherOptions>(options =>
+            options.IterationCount = 600_000); // OWASP recommended in 2026: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+        builder.Services.AddSingleton<IPasswordHasher<string>, PasswordHasher<string>>();
+        builder.Services.AddSingleton<IPasswordService, PasswordService>();
 
         builder.Services.AddSingleton<IGameController, GameController>();
         builder.Services.AddSingleton<ILoginController, LoginController>();
