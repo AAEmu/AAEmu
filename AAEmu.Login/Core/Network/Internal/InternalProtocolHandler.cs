@@ -7,24 +7,23 @@ using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Models;
-using NLog;
+using Microsoft.Extensions.Logging;
 
 namespace AAEmu.Login.Core.Network.Internal;
 
 public class InternalProtocolHandler(
     IEnumerable<IInternalPacketDescriptor> packetDescriptors,
     IGameController gameController,
-    IInternalConnectionTable internalConnectionTable)
+    IInternalConnectionTable internalConnectionTable,
+    ILogger<InternalProtocolHandler> logger)
     : BaseProtocolHandler, IInternalProtocolHandler
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     private readonly ConcurrentDictionary<ushort, IInternalPacketDescriptor> _packets =
         new(packetDescriptors.ToDictionary(d => d.TypeId));
 
     public override void OnConnect(ISession session)
     {
-        Logger.Info("GameServer from {0} connected, session id: {1}", session.Ip.ToString(),
+        logger.LogInformation("GameServer from {IP} connected, session id: {SessionID}", session.Ip.ToString(),
             session.SessionId.ToString(CultureInfo.InvariantCulture));
         var con = new InternalConnection(session);
         InternalConnection.OnConnect();
@@ -33,7 +32,7 @@ public class InternalProtocolHandler(
 
     public override void OnDisconnect(ISession session)
     {
-        Logger.Info("GameServer from {0} disconnected", session.Ip.ToString());
+        logger.LogInformation("GameServer from {IP} disconnected", session.Ip.ToString());
         if (session.GetAttribute("gsId") is { } gsId)
             gameController.Remove((GameServerId)gsId);
         internalConnectionTable.RemoveConnection(session.SessionId);
@@ -44,7 +43,7 @@ public class InternalProtocolHandler(
         var connection = internalConnectionTable.GetConnection(session.SessionId);
         if (connection == null)
         {
-            Logger.Error("Connection not found for session {0}", session.SessionId);
+            logger.LogError("Connection not found for session {SessionID}", session.SessionId);
             return;
         }
 
@@ -99,9 +98,9 @@ public class InternalProtocolHandler(
                     {
                         packetDescriptor.Dispatch(stream2, connection);
                     }
-                    catch (Exception e)
+                    catch (Exception ex)
                     {
-                        Logger.Error(e, "Error on packet dispatch {0}", type);
+                        logger.LogError(ex, "Error on packet dispatch {Type}", type);
                     }
                 }
             }
@@ -114,11 +113,16 @@ public class InternalProtocolHandler(
         }
     }
 
-    private static void HandleUnknownPacket(ISession session, uint type, PacketStream stream)
+    private void HandleUnknownPacket(ISession session, uint type, PacketStream stream)
     {
+        if (!logger.IsEnabled(LogLevel.Error))
+        {
+            return;
+        }
+
         var dump = new StringBuilder();
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.Append($"{stream.Buffer[i]:x2} ");
-        Logger.Error("Unknown packet 0x{0:x2} from {1}:\n{2}", type, session.Ip, dump);
+        logger.LogError("Unknown packet 0x{Type:x2} from {SessionIP}:\n{Dump}", type, session.Ip, dump);
     }
 }

@@ -4,16 +4,17 @@ using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
-using NLog;
 
 namespace AAEmu.Login.Core.Controllers;
 
-public class LoginController(IGameController gameController, IOptions<AppConfiguration> appConfig) : ILoginController
+public class LoginController(
+    IGameController gameController,
+    IOptions<AppConfiguration> appConfig,
+    ILogger<LoginController> logger) : ILoginController
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     private readonly bool _autoAccount = appConfig.Value.AutoAccount;
 
     private readonly ConcurrentDictionary<GameServerId, ConcurrentDictionary<uint, AccountId>>
@@ -61,7 +62,7 @@ public class LoginController(IGameController gameController, IOptions<AppConfigu
 
         if (command.ExecuteNonQuery() != 1)
         {
-            Logger.Warn("Database update failed, error occurred while updating account login IP and time");
+            logger.LogWarning("Database update failed, error occurred while updating account login IP and time");
         }
 
         # endregion
@@ -115,7 +116,7 @@ public class LoginController(IGameController gameController, IOptions<AppConfigu
         connection.LastLogin = DateTime.UtcNow;
         connection.LastIp = connection.Ip;
 
-        Logger.Info("{0} connected.", connection.AccountName);
+        logger.LogInformation("{AccountName} connected.", connection.AccountName);
         connection.SendPacket(new ACJoinResponsePacket(0, 6));
         connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
 
@@ -133,7 +134,7 @@ public class LoginController(IGameController gameController, IOptions<AppConfigu
 
         if (command.ExecuteNonQuery() != 1)
         {
-            Logger.Warn("Database update failed, error occurred while updating account login IP and time");
+            logger.LogWarning("Database update failed, error occurred while updating account login IP and time");
         }
 
         # endregion
@@ -161,7 +162,7 @@ public class LoginController(IGameController gameController, IOptions<AppConfigu
             return;
         }
 
-        Logger.Debug("Created account from invalid username login with value:" + username);
+        logger.LogDebug("Created account from invalid username login with value: {Username}", username);
         Login(connection, username, password);
     }
 

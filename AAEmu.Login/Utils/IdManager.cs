@@ -2,13 +2,13 @@
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
-using NLog;
+using Microsoft.Extensions.Logging;
 
 namespace AAEmu.Login.Utils;
 
 public class IdManager
 {
-    protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    protected ILogger Logger { get; }
 
     private BitSet? _freeIds;
     private int _freeIdCount;
@@ -23,8 +23,10 @@ public class IdManager
     private readonly bool _distinct;
     private readonly Lock _lock = new();
 
-    public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, bool distinct = false)
+    public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, ILogger logger,
+        bool distinct = false)
     {
+        Logger = logger;
         _name = name;
         _firstId = firstId;
         _lastId = lastId;
@@ -50,7 +52,8 @@ public class IdManager
                 var objectId = (int)(usedObjectId - _firstId);
                 if (usedObjectId < _firstId)
                 {
-                    Logger.Warn("{0}: Object ID {1} in DB is less than {2}", _name, usedObjectId, _firstId);
+                    Logger.LogWarning("{Name}: Object ID {ObjectID} in DB is less than {FirstID}", _name, usedObjectId,
+                        _firstId);
                     continue;
                 }
 
@@ -61,12 +64,11 @@ public class IdManager
             }
 
             _nextFreeId = _freeIds.NextClear(0);
-            Logger.Info("{0} successfully initialized", _name);
+            Logger.LogInformation("{Name} successfully initialized", _name);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Logger.Error("{0} could not be initialized correctly", _name);
-            Logger.Error(e);
+            Logger.LogError(ex, "{Name} could not be initialized correctly", _name);
             return false;
         }
 
@@ -101,7 +103,7 @@ public class IdManager
             return [];
 
         var result = new uint[count];
-        Logger.Info("{0}: Extracting {1} used id's from data tables...", _name, count);
+        Logger.LogInformation("{Name}: Extracting {Count} used id's from data tables...", _name, count);
 
         command.CommandText = query;
         using (var reader = command.ExecuteReader())
@@ -113,7 +115,7 @@ public class IdManager
                 idx++;
             }
 
-            Logger.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, idx);
+            Logger.LogInformation("{Name}: Successfully extracted {Count} used id's from data tables.", _name, idx);
         }
 
         return result;
@@ -135,7 +137,7 @@ public class IdManager
             Interlocked.Increment(ref _freeIdCount);
         }
         else
-            Logger.Warn("{0}: release objectId {1} failed", _name, usedObjectId);
+            Logger.LogWarning("{Name}: release objectId {ObjectID} failed", _name, usedObjectId);
     }
 
     public virtual void ReleaseId(IEnumerable<uint> usedObjectIds)

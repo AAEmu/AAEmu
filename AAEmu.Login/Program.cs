@@ -10,8 +10,11 @@ using AAEmu.Login.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Config;
+using NLog.Extensions.Logging;
+using OpenTelemetry;
 using OSVersionExtension;
 
 namespace AAEmu.Login;
@@ -42,6 +45,15 @@ public static class Program
             .AddCommandLine(args);
 
         // Configure services
+        builder.Logging.ClearProviders()
+            .AddNLog()
+            .AddOpenTelemetry(logging =>
+            {
+                logging.IncludeFormattedMessage = true;
+                logging.IncludeScopes = true;
+            });;
+        builder.Services.AddOpenTelemetry()
+            .UseOtlpExporter();
         builder.Services.AddOptions();
         builder.Services.AddOptionsWithValidateOnStart<AppConfiguration>()
             .BindConfiguration("")
