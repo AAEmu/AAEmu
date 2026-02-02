@@ -12,6 +12,10 @@ public interface ILoginClient
     ValueTask SendAuthSuccessAsync(AccountId accountId, CancellationToken cancellationToken);
     ValueTask SendAuthDeniedAsync(LoginDeniedReason reason, CancellationToken cancellationToken);
     ValueTask SendWorldListAsync(WorldListResult worldList, CancellationToken cancellationToken);
+    ValueTask SendChallengeAsync(CancellationToken cancellationToken);
+    ValueTask SendOtpPromptAsync(int maximumTries, int currentTry, CancellationToken cancellationToken);
+    ValueTask SendCertPromptAsync(int maximumTries, int currentTry, CancellationToken cancellationToken);
+    ValueTask SendArsPromptAsync(string sessionCode, TimeSpan timeout, CancellationToken cancellationToken);
     ValueTask SendWorldCookieAsync(GameServer server, CancellationToken cancellationToken);
     ValueTask SendEnterWorldDeniedAsync(byte reason, CancellationToken cancellationToken);
 }

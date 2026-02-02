@@ -11,12 +11,13 @@ namespace AAEmu.Login.Core.Packets.C2L;
 public class CAChallengeResponsePacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CAChallengeResponsePacket;
-    
+
+    public byte[]? Password { get; private set; }
+
     public override void Read(PacketStream stream)
     {
         for (var i = 0; i < 4; i++)
             stream.ReadUInt32(); // responses
-        var password = stream.ReadBytes(); // TODO or bytes? length 32
-        var bytes = Convert.FromBase64String("jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI=");
+        Password = stream.ReadBytes(); // TODO or bytes? length 32
     }
 }

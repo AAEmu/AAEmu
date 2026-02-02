@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Services;
@@ -12,12 +12,7 @@ public interface ILoginController
     Task<ReconnectResult> Reconnect(GameServerId gsId, AccountId accountId, uint token);
 
     /// <summary>
-    /// Kr Method Auth
-    /// </summary>
-    Task<LoginResult> Login(string username);
-
-    /// <summary>
-    /// Eu Method Auth
+    /// Eu Method Auth.
     /// </summary>
     /// <param name="username">The username.</param>
     /// <param name="password">The password sent by the client, with its encoding kind.</param>

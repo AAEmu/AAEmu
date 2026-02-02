@@ -1,3 +1,4 @@
+using AAEmu.Login.Core.Authentication;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.C2L;
 
@@ -9,6 +10,9 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// </summary>
 public class CAOtpNumberPacketHandler : ILoginPacketHandler<CAOtpNumberPacket>
 {
-    public Task Execute(CAOtpNumberPacket packet, ILoginSession session, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+    public async Task Execute(CAOtpNumberPacket packet, ILoginSession session, CancellationToken cancellationToken)
+    {
+        await session.ContinueAuthAsync<IOtpAuthFlow>(
+            flow => flow.SubmitOtpAsync(session.Client, packet.OtpNumber ?? "", cancellationToken), cancellationToken);
+    }
 }

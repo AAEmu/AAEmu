@@ -15,6 +15,6 @@ public class CAChallengeResponse2PacketHandler : ILoginPacketHandler<CAChallenge
         CancellationToken cancellationToken)
     {
         // Deny as this auth method is not supported
-        await session.SendPacketAsync(new ACLoginDeniedPacket(LoginDeniedReason.BadResponse), cancellationToken);
+        await session.Client.SendAuthDeniedAsync(LoginDeniedReason.LoginUnknown, cancellationToken);
     }
 }

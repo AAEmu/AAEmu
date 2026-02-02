@@ -29,50 +29,12 @@ public partial class LoginController(
     private static partial Regex UsernameRegex();
 
     /// <summary>
-    /// Kr Method Auth
-    /// </summary>
-    public async Task<LoginResult> Login(string username)
-    {
-        await using var connect = connectionFactory.CreateConnection();
-        await using var command = connect.CreateCommand();
-        command.CommandText = "SELECT * FROM users where username=@username";
-        command.Parameters.AddWithValue("@username", username);
-        await using var reader = command.ExecuteReader();
-        if (!await reader.ReadAsync())
-        {
-            return new LoginResult(false, default, LoginDeniedReason.BadAccount);
-        }
-
-        // TODO ... validation password
-
-        var accountId = new AccountId(reader.GetUInt32("id"));
-        var lastLogin = DateTime.UtcNow;
-
-        await reader.CloseAsync();
-
-        #region update account
-
-        command.Parameters.Clear();
-        command.CommandText =
-            "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
-        command.Parameters.AddWithValue("@id", accountId.Value);
-        command.Parameters.AddWithValue("@last_ip", "");
-        command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)lastLogin).ToUnixTimeSeconds());
-        command.Parameters.AddWithValue("@updated_at", ((DateTimeOffset)lastLogin).ToUnixTimeSeconds());
-
-        if (await command.ExecuteNonQueryAsync() != 1)
-        {
-            logger.LogWarning("Database update failed, error occurred while updating account login IP and time");
-        }
-
-        # endregion
-
-        return new LoginResult(true, accountId, default);
-    }
-
-    /// <summary>
     /// Eu Method Auth
     /// </summary>
+    /// <param name="username">The username.</param>
+    /// <param name="password">The password sent by the client, with its encoding kind.</param>
+    /// <param name="ip">The client IP address for recording.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     public async Task<LoginResult> Login(string username, Password password, IPAddress ip,
         CancellationToken cancellationToken)
     {
@@ -89,14 +51,14 @@ public partial class LoginController(
                 return await CreateAndLoginInvalid(username, password, ip, connect);
             }
 
-            return new LoginResult(false, default, LoginDeniedReason.BadResponse);
+            return new LoginResult(false, default, LoginDeniedReason.BadAccount);
         }
 
         var storedPassword = reader.GetString("password");
         var verificationResult = passwordService.VerifyPassword(storedPassword, password);
         if (verificationResult == PasswordVerificationResult.Failed)
         {
-            return new LoginResult(false, default, LoginDeniedReason.BadResponse);
+            return new LoginResult(false, default, LoginDeniedReason.BadAccount);
         }
 
         var banned = reader.GetBoolean("banned");
@@ -164,7 +126,7 @@ public partial class LoginController(
 
         if (await command.ExecuteNonQueryAsync() != 1)
         {
-            return new LoginResult(false, default, LoginDeniedReason.BadResponse);
+            return new LoginResult(false, default, LoginDeniedReason.LoginUnknown);
         }
 
         logger.LogDebug("Created account from invalid username login with value {Username}", username);
