@@ -13,7 +13,7 @@ public class LoginConnectionFactory(
     private readonly ConcurrentDictionary<ushort, ILoginPacketDescriptor> _packets =
         new(packetDescriptors.ToDictionary(d => d.TypeId));
 
-    public LoginConnection Create(ConnectionContext connectionContext)
+    public ILoginConnectionOwner Create(ConnectionContext connectionContext)
     {
         var connectionIdLease = connectionIdLeaseFactory.Rent();
         try

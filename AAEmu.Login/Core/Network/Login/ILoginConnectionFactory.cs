@@ -5,5 +5,5 @@ namespace AAEmu.Login.Core.Network.Login;
 
 public interface ILoginConnectionFactory
 {
-    LoginConnection Create(ConnectionContext connectionContext);
+    ILoginConnectionOwner Create(ConnectionContext connectionContext);
 }

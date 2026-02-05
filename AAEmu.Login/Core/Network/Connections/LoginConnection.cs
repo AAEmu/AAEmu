@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Connections;
 
 namespace AAEmu.Login.Core.Network.Connections;
 
-public sealed class LoginConnection : IAsyncDisposable, ILoginConnection
+public sealed class LoginConnection : ILoginConnectionOwner
 {
     private readonly ConnectionContext _session;
     private readonly ConnectionIdLease _connectionIdLease;

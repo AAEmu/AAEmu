@@ -6,6 +6,15 @@ using AAEmu.Login.Models;
 namespace AAEmu.Login.Core.Network.Connections;
 
 /// <summary>
+/// Represents the owner of a connection between a client and the login server, with the responsibility to dispose
+/// the connection when it ends.
+/// </summary>
+public interface ILoginConnectionOwner : ILoginConnection, IAsyncDisposable
+{
+    Task OnConnectedAsync();
+}
+
+/// <summary>
 /// Represents a connection between a client and the login server.
 /// </summary>
 public interface ILoginConnection
