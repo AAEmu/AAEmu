@@ -9,6 +9,7 @@ using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MySql.Data.MySqlClient;
 using NLog;
 using NLog.Config;
@@ -50,6 +51,17 @@ public static class Program
                     : IPAddress.Parse(publicNetworkConfig.Host),
                 publicNetworkConfig.Port,
                 opts => opts.UseConnectionHandler<LoginConnectionHandler>());
+
+            // Listen on any HTTP URLs assigned by the orchestrator (e.g. Aspire via ASPNETCORE_URLS)
+            var urls = context.Configuration[WebHostDefaults.ServerUrlsKey];
+            if (urls is not null)
+            {
+                foreach (var url in urls.Split(';'))
+                {
+                    var uri = new Uri(url);
+                    options.ListenAnyIP(uri.Port);
+                }
+            }
         });
 
         builder.Configuration
@@ -104,7 +116,8 @@ public static class Program
 
         var app = builder.Build();
 
-        app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+        app.MapHealthChecks("/health/ready");
 
         await app.RunAsync();
     }
