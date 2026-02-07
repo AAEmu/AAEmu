@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Buffers.Binary;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C;
@@ -7,15 +8,41 @@ namespace AAEmu.Login.Core.Packets.L2C;
 /// A packet sent by the login server to inform the client that the login attempt has been denied.
 /// </summary>
 /// <param name="reason">The reason the login was denied.</param>
-public class ACLoginDeniedPacket(byte reason) : LoginPacket(LCOffsets.ACLoginDeniedPacket)
+/// <param name="vp">
+/// Variable parameters that replace <c>$1</c>, <c>$2</c>, ... <c>$9</c> placeholders in the client's
+/// localized message for the given reason. Each value is formatted as a decimal integer.
+/// For example, reason <c>try_trade_cash_temporal</c> uses <c>$1</c> for the
+/// number of suspension days, so pass the day count as the first element.
+/// </param>
+public class ACLoginDeniedPacket(byte reason, params int[] vp) : LoginPacket(LCOffsets.ACLoginDeniedPacket)
 {
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(reason);
-        stream.Write(""); // vp
+        stream.Write(BuildVpData(), appendSize: true); // vp - binary: [0x00 + int32_le] per entry
         stream.Write(""); // msg
 
         return stream;
+    }
+
+    /// <summary>
+    /// Builds the binary VP data. Each entry is a 0x00 separator byte followed by a 4-byte little-endian int32.
+    /// The client formats each int32 with <c>%d</c> and substitutes them into <c>$1</c>..<c>$9</c> placeholders.
+    /// </summary>
+    private byte[] BuildVpData()
+    {
+        if (vp.Length == 0)
+            return [];
+
+        var data = new byte[vp.Length * 5]; // 1 null byte + 4 bytes per entry
+        for (var i = 0; i < vp.Length; i++)
+        {
+            var offset = i * 5;
+            data[offset] = 0x00;
+            BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(offset + 1, 4), vp[i]);
+        }
+
+        return data;
     }
 
     /*
