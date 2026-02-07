@@ -2,7 +2,6 @@
 using System.Net.Sockets;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Models;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login.Core.Network.Internal;

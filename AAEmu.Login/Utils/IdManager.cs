@@ -2,7 +2,6 @@
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
-using Microsoft.Extensions.Logging;
 
 namespace AAEmu.Login.Utils;
 

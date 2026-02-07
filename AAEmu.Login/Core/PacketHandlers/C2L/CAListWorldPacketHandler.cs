@@ -10,8 +10,8 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// </summary>
 public class CAListWorldPacketHandler(IGameController gameController) : ILoginPacketHandler<CAListWorldPacket>
 {
-    public void Execute(CAListWorldPacket packet, LoginConnection connection)
+    public async Task Execute(CAListWorldPacket packet, LoginConnection connection)
     {
-        Task.Run(() => gameController.RequestWorldListAsync(connection));
+        await gameController.RequestWorldListAsync(connection);
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using AAEmu.Login.Utils;
-using Microsoft.Extensions.Logging;
 
 namespace AAEmu.Login.Core.Controllers;
 

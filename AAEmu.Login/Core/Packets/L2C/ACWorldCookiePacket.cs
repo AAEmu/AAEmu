@@ -11,7 +11,8 @@ namespace AAEmu.Login.Core.Packets.L2C;
 /// </summary>
 /// <param name="connection">The client connection.</param>
 /// <param name="gs">The game server the client wishes to connect to.</param>
-public class ACWorldCookiePacket(LoginConnection connection, GameServer gs) : LoginPacket(LCOffsets.ACWorldCookiePacket)
+public class ACWorldCookiePacket(ILoginConnection connection, GameServer gs)
+    : LoginPacket(LCOffsets.ACWorldCookiePacket)
 {
     private readonly uint _cookie = connection.Id.Value;
 

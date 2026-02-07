@@ -11,9 +11,9 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// <seealso cref="ACChallengePacket"/>
 public class CAChallengeResponsePacketHandler : ILoginPacketHandler<CAChallengeResponsePacket>
 {
-    public void Execute(CAChallengeResponsePacket packet, LoginConnection connection)
+    public async Task Execute(CAChallengeResponsePacket packet, LoginConnection connection)
     {
         // Deny as this auth method is not supported
-        connection.SendPacket(new ACLoginDeniedPacket(3));
+        await connection.SendPacketAsync(new ACLoginDeniedPacket(3), CancellationToken.None);
     }
 }

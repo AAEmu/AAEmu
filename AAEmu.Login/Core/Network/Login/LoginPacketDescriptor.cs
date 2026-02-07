@@ -10,10 +10,10 @@ public class LoginPacketDescriptor<TPacket>(ushort packetId, ILoginPacketHandler
 {
     public ushort TypeId { get; } = packetId;
 
-    public void Dispatch(PacketStream stream, LoginConnection connection)
+    public async Task Dispatch(PacketStream stream, LoginConnection connection)
     {
         var packet = new TPacket { Connection = connection };
         packet.Decode(stream);
-        handler.Execute(packet, connection);
+        await handler.Execute(packet, connection);
     }
 }

@@ -1,16 +1,14 @@
-﻿using System.Reflection;
+﻿using System.Configuration;
+using System.Net;
+using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Login.Core.Controllers;
-using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.PacketHandlers;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Connections;
 using NLog;
 using NLog.Config;
 using NLog.Extensions.Logging;
@@ -35,7 +33,23 @@ public static class Program
 
         LoadConfiguration();
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
+
+        builder.WebHost.ConfigureKestrel((context, options) =>
+        {
+            if (context.Configuration.GetRequiredSection(PublicNetworkConfig.ConfigurationSectionName)
+                    .Get<PublicNetworkConfig>() is not { } publicNetworkConfig)
+            {
+                throw new ConfigurationErrorsException("Could not load public network configuration");
+            }
+
+            // Set up Kestrel to listen on the public network interface for incoming connections from game clients
+            options.Listen(publicNetworkConfig.Host == "*"
+                    ? IPAddress.Any
+                    : IPAddress.Parse(publicNetworkConfig.Host),
+                publicNetworkConfig.Port,
+                opts => opts.UseConnectionHandler<LoginConnectionHandler>());
+        });
 
         builder.Configuration
             .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"), optional: true, reloadOnChange: true)
@@ -51,7 +65,7 @@ public static class Program
             {
                 logging.IncludeFormattedMessage = true;
                 logging.IncludeScopes = true;
-            });;
+            });
         builder.Services.AddOpenTelemetry()
             .UseOtlpExporter();
         builder.Services.AddOptions();
@@ -75,17 +89,18 @@ public static class Program
         builder.Services.AddSingleton<ILoginController, LoginController>();
         builder.Services.AddSingleton<IRequestController, RequestController>();
 
-        builder.Services.AddSingleton<IInternalProtocolHandler, InternalProtocolHandler>();
-        builder.Services.AddSingleton<IInternalConnectionTable, InternalConnectionTable>();
-        builder.Services.AddSingleton<IInternalNetwork, InternalNetwork>();
-        builder.Services.AddSingleton<ILoginProtocolHandler, LoginProtocolHandler>();
-        builder.Services.AddSingleton<ILoginConnectionTable, LoginConnectionTable>();
-        builder.Services.AddSingleton<ILoginNetwork, LoginNetwork>();
+        builder.Services.AddInternalNetwork();
+        builder.Services.AddLoginNetwork();
 
         builder.Services.AddInternalPacketHandlers();
         builder.Services.AddLoginPacketHandlers();
 
+        builder.Services.AddHealthChecks();
+
         var app = builder.Build();
+
+        app.MapHealthChecks("/health");
+
         await app.RunAsync();
     }
 

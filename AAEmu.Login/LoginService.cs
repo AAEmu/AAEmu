@@ -2,10 +2,7 @@
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
-using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login;
@@ -14,7 +11,6 @@ public sealed class LoginService(
     IGameController gameController,
     IRequestController requestController,
     IInternalNetwork internalNetwork,
-    ILoginNetwork loginNetwork,
     IOptions<DBConnectionsConfig> dbConnectionsConfig,
     ILogger<LoginService> logger) : IHostedService, IDisposable
 {
@@ -36,14 +32,12 @@ public sealed class LoginService(
 
         requestController.Initialize();
         gameController.Load();
-        loginNetwork.Start();
         internalNetwork.Start();
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Stopping daemon.");
-        loginNetwork.Stop();
         internalNetwork.Stop();
         return Task.CompletedTask;
     }

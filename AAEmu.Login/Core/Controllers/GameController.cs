@@ -7,7 +7,6 @@ using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login.Core.Controllers;
@@ -166,7 +165,8 @@ public class GameController(
             await creationTask;
         }
 
-        connection.SendPacket(new ACWorldListPacket(gameServers, connection.GetCharacters()));
+        await connection.SendPacketAsync(new ACWorldListPacket(gameServers, connection.GetCharacters()),
+            CancellationToken.None);
     }
 
     public void SetLoad(GameServerId gsId, byte load)
@@ -174,7 +174,7 @@ public class GameController(
         _gameServers[gsId].Load = (GSLoad)load;
     }
 
-    public void RequestEnterWorld(LoginConnection connection, GameServerId gsId)
+    public void RequestEnterWorld(ILoginConnection connection, GameServerId gsId)
     {
         if (!_gameServers.TryGetValue(gsId, out var gs))
             return;
@@ -183,18 +183,18 @@ public class GameController(
         gs.SendPacket(new LGPlayerEnterPacket(connection.AccountId, connection.Id));
     }
 
-    public void EnterWorld(LoginConnection connection, GameServerId gsId, byte result)
+    public async Task EnterWorldAsync(ILoginConnection connection, GameServerId gsId, byte result)
     {
         switch (result)
         {
             case 0 when _gameServers.TryGetValue(gsId, out var server):
-                connection.SendPacket(new ACWorldCookiePacket(connection, server));
+                await connection.SendPacketAsync(new ACWorldCookiePacket(connection, server), CancellationToken.None);
                 break;
             case 0:
                 // TODO ...
                 break;
             case 1:
-                connection.SendPacket(new ACEnterWorldDeniedPacket(0)); // TODO change reason
+                await connection.SendPacketAsync(new ACEnterWorldDeniedPacket(0), CancellationToken.None); // TODO change reason
                 break;
             default:
                 // TODO ...

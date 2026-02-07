@@ -18,18 +18,18 @@ public class GLRegisterGameServerPacketHandler(IGameController gameController, I
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public void Execute(GLRegisterGameServerPacket packet, InternalConnection connection)
+    public Task Execute(GLRegisterGameServerPacket packet, InternalConnection connection)
     {
         if (packet.SecretKey != appConfig.Value.SecretKey)
         {
             Logger.Error($"Connection {connection.Ip}, bad secret key");
             Task.Run(() => SendPacketWithDelay(5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
             // Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
-            return;
+            return Task.CompletedTask;
         }
 
         gameController.Add(packet.GsId, packet.Mirrors!, connection);
-        return;
+        return Task.CompletedTask;
 
         async Task SendPacketWithDelay(int delay, InternalPacket message)
         {

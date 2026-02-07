@@ -5,27 +5,23 @@ namespace AAEmu.Login.Core.Network.Connections;
 
 public class LoginConnectionTable : ILoginConnectionTable
 {
-    private readonly ConcurrentDictionary<ConnectionId, LoginConnection> _connections = [];
+    private readonly ConcurrentDictionary<ConnectionId, ILoginConnection> _connections = [];
 
-    public void AddConnection(LoginConnection con)
+    public void AddConnection(ILoginConnection con)
     {
-        _connections.TryAdd(con.Id, con);
+        if (!_connections.TryAdd(con.Id, con))
+        {
+            throw new ArgumentException("Connection with the same ID already exists.");
+        }
     }
 
-    public LoginConnection? GetConnection(ConnectionId id)
-    {
-        _connections.TryGetValue(id, out var con);
-        return con;
-    }
+    public ILoginConnection? GetConnection(ConnectionId id) => _connections.GetValueOrDefault(id);
 
-    public LoginConnection? RemoveConnection(ConnectionId id)
+    public ILoginConnection? RemoveConnection(ConnectionId id)
     {
         _connections.TryRemove(id, out var con);
         return con;
     }
 
-    public List<LoginConnection> GetConnections()
-    {
-        return [.. _connections.Values];
-    }
+    public List<ILoginConnection> GetConnections() => [.. _connections.Values];
 }

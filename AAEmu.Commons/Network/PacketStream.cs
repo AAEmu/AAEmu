@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.Buffers;
+using System.Collections;
 using System.Numerics;
 using System.Text;
 
@@ -168,6 +169,12 @@ public class PacketStream : ICloneable, IComparable
         Replace(sourcePacketStream, offset, count);
     }
 
+    public PacketStream(ReadOnlySequence<byte> bytes)
+    {
+        IsLittleEndian = true;
+        Replace(bytes);
+    }
+
     #endregion // Constructor
 
     #region Reserve & Roundup
@@ -246,6 +253,15 @@ public class PacketStream : ICloneable, IComparable
     {
         Reserve(count);
         SBuffer.BlockCopy(bytes, offset, Buffer, 0, count);
+        Count = count;
+        return this;
+    }
+
+    public PacketStream Replace(ReadOnlySequence<byte> bytes)
+    {
+        var count = checked((int)bytes.Length);
+        Reserve(count);
+        bytes.CopyTo(Buffer);
         Count = count;
         return this;
     }

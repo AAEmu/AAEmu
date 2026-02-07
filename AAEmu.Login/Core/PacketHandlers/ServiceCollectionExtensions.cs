@@ -4,7 +4,6 @@ using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.PacketHandlers.G2L;
 using AAEmu.Login.Core.Packets.C2L;
 using AAEmu.Login.Core.Packets.G2L;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Login.Core.PacketHandlers;
 

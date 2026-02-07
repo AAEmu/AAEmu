@@ -12,5 +12,5 @@ public interface ILoginPacketDescriptor
     /// </summary>
     /// <param name="stream">The stream containing the packet data.</param>
     /// <param name="connection">The connection where the packet was received.</param>
-    void Dispatch(PacketStream stream, LoginConnection connection);
+    Task Dispatch(PacketStream stream, LoginConnection connection);
 }
