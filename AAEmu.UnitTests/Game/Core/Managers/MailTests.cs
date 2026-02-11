@@ -10,6 +10,9 @@ using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
+// avoid interference with NameManagerTests
+// don't let them run in parallel as they both manipulate the static NameManager's state
+[Collection("NameManager")] 
 public sealed class MailTests : IDisposable
 {
     private CharacterMock _character;
@@ -26,6 +29,7 @@ public sealed class MailTests : IDisposable
 
         _mails = new CharacterMails(_character);
 
+        NameManager.Instance.Load([], [], []);
         NameManager.Instance.AddCharacter(_character.Id, _character.Name, 1);
         MailIdManager.Instance.Initialize();
         MailManager.Instance._allPlayerMails = [];
