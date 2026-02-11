@@ -24,10 +24,12 @@ jobs:
         run: dotnet build --configuration Release --no-restore
       - name: Scripts Compile
         run: dotnet run --configuration Release --no-build --project AAEmu.Game/AAEmu.Game.csproj compiler-check
+      - name: Install dotnet-coverage
+        run: dotnet tool install --global dotnet-coverage
       - name: Test
-        run: dotnet test AAEmu.UnitTests --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
+        run: dotnet-coverage collect "dotnet test AAEmu.UnitTests --configuration Release --no-build" -f cobertura -o AAEmu.UnitTests/TestResults/coverage.cobertura.xml
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./AAEmu.UnitTests/TestResults/coverage.info
+          file: ./AAEmu.UnitTests/TestResults/coverage.cobertura.xml
