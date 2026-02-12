@@ -29,11 +29,10 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
     private static LoginController CreateController(bool autoAccount = false)
     {
         var gameController = new Mock<IGameController>();
-        var appConfig =
-            Options.Create(new AppConfiguration
-            {
-                SecretKey = "test-key", AutoAccount = autoAccount, GameServers = []
-            });
+        var appConfig = Options.Create(new AppConfiguration
+        {
+            SecretKey = "test-key", AutoAccount = autoAccount, GameServers = []
+        });
         var connectionFactory = new Mock<IMySqlConnectionFactory>();
         connectionFactory.Setup(f => f.CreateConnection()).Returns(MySQL.CreateConnection);
         var logger = new Mock<ILogger<LoginController>>();
