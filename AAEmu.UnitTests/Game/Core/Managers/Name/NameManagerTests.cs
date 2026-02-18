@@ -7,8 +7,15 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.Name;
 
-public class NameManagerTests
+[Collection("NameManager")]
+public sealed class NameManagerTests : IDisposable
 {
+    public void Dispose()
+    {
+        // Clean up
+        NameManager.Instance.Load([], [], []);
+    }
+
     [Fact]
     public void EmptyNameManagerShouldNotHaveNames()
     {

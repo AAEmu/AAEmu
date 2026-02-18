@@ -8,7 +8,7 @@ COPY ./AAEmu.Commons ./AAEmu.Commons
 COPY ./AAEmu.Login ./AAEmu.Login
 RUN dotnet publish ./AAEmu.Login/AAEmu.Login.csproj -c $CONFIGURATION -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
 
 ARG CONFIGURATION
 ARG DB_HOST
