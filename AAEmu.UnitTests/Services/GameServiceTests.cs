@@ -1,4 +1,4 @@
-using AAEmu.Game;
+﻿using AAEmu.Game;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -24,6 +24,8 @@ public class GameServiceTests
     public void TimeSinceStart_ReturnsTimeSpanSinceStart()
     {
         // Arrange
+        // Calling StartTime here to make sure the GameService static class is always initialized correctly
+        _ = GameService.StartTime;
         var beforeTime = DateTime.UtcNow;
 
         // Act
