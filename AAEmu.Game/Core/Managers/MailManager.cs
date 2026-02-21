@@ -17,7 +17,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class MailManager : Singleton<MailManager>, IMailManager
+public class MailManager(IMailIdManager mailIdManager, INameManager nameManager, IItemManager itemManager, ITaskManager taskManager, IWorldManager worldManager, IHousingManager housingManager, ILocalizationManager localizationManager) : Singleton<MailManager>, IMailManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -45,7 +45,7 @@ public class MailManager : Singleton<MailManager>, IMailManager
     {
         lock (_deletedMailIds)
         {
-            var Id = MailIdManager.Instance.GetNextId();
+            var Id = mailIdManager.GetNextId();
             if (_deletedMailIds.Contains(Id))
                 _deletedMailIds.Remove(Id);
             return Id;
@@ -55,8 +55,8 @@ public class MailManager : Singleton<MailManager>, IMailManager
     public bool Send(BaseMail mail)
     {
         // Verify Receiver
-        var targetName = NameManager.Instance.GetCharacterName(mail.Header.ReceiverId);
-        var targetId = NameManager.Instance.GetCharacterId(mail.Header.ReceiverName);
+        var targetName = nameManager.GetCharacterName(mail.Header.ReceiverId);
+        var targetId = nameManager.GetCharacterId(mail.Header.ReceiverName);
         if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.InvariantCultureIgnoreCase))
         {
             Logger.Debug("Send() - Failed to verify receiver name {0} != {1}", targetName, mail.Header.ReceiverName);
@@ -92,7 +92,7 @@ public class MailManager : Singleton<MailManager>, IMailManager
         {
             if (!_deletedMailIds.Contains(id))
                 _deletedMailIds.Add(id);
-            MailIdManager.Instance.ReleaseId((uint)id);
+            mailIdManager.ReleaseId((uint)id);
         }
         return _allPlayerMails.Remove(id);
     }
@@ -167,7 +167,7 @@ public class MailManager : Singleton<MailManager>, IMailManager
                             var itemId = reader.GetUInt64("attachment" + i.ToString());
                             if (itemId > 0)
                             {
-                                var item = ItemManager.Instance.GetItemByItemId(itemId);
+                                var item = itemManager.GetItemByItemId(itemId);
                                 if (item != null)
                                 {
                                     item.OwnerId = tempMail.Header.ReceiverId;
@@ -206,7 +206,7 @@ public class MailManager : Singleton<MailManager>, IMailManager
         Logger.Info("Loaded {0} player mails", _allPlayerMails.Count);
 
         var mailCheckTask = new MailDeliveryTask();
-        TaskManager.Instance.Schedule(mailCheckTask, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5));
+        taskManager.Schedule(mailCheckTask, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5));
     }
 
     public (int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -297,7 +297,7 @@ public class MailManager : Singleton<MailManager>, IMailManager
     public Dictionary<long, BaseMail> GetCurrentMailList(uint characterId)
     {
         // Try to grab the actual online Character object to send live updates
-        var character = WorldManager.Instance.GetCharacterById(characterId);
+        var character = worldManager.GetCharacterById(characterId);
         var tempMails = _allPlayerMails.Where(
             x => x.Value.Body.RecvDate <= DateTime.UtcNow &&
                  (x.Value.Header.ReceiverId == characterId || 
@@ -388,7 +388,7 @@ public class MailManager : Singleton<MailManager>, IMailManager
 
         var houseId = (uint)(mail.Header.Extra & 0xFFFFFFFF); // Extract house DB Id from Extra
         var houseZoneGroup = (mail.Header.Extra >> 48) & 0xFFFF; // Extract zone group Id from Extra
-        var house = HousingManager.Instance.GetHouseById(houseId);
+        var house = housingManager.GetHouseById(houseId);
 
         if (house == null)
         {
@@ -520,18 +520,18 @@ public class MailManager : Singleton<MailManager>, IMailManager
         return resultList;
     }
 
-    public static List<BaseMail> CreateQuestRewardMails(ICharacter character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions, int mailCopper)
+    public List<BaseMail> CreateQuestRewardMails(ICharacter character, Quest quest, List<ItemCreationDefinition> itemCreationDefinitions, int mailCopper)
     {
         var resultList = new List<BaseMail>();
 
         MailPlayerToPlayer mail = null;
-        var questName = LocalizationManager.Instance.Get("quest_contexts", "name", quest.TemplateId, quest.TemplateId.ToString());
+        var questName = localizationManager.Get("quest_contexts", "name", quest.TemplateId, quest.TemplateId.ToString());
 
         // Generate a finalized list of all reward items in the mail attachments container of the player
         var totalRewardsItemsList = new List<Item>();
         foreach (var item in itemCreationDefinitions)
         {
-            var itemTemplate = ItemManager.Instance.GetTemplate(item.TemplateId);
+            var itemTemplate = itemManager.GetTemplate(item.TemplateId);
             var itemGrade = itemTemplate.FixedGrade;
             if (itemGrade <= 0)
                 itemGrade = 0;

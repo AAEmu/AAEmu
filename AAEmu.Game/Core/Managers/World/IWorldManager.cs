@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Managers.World;
@@ -14,4 +15,16 @@ public interface IWorldManager
     WorldTemplate CreateWorldTemplate(string worldName);
 
     Character GetCharacterByObjId(uint id);
+    Character GetCharacterById(uint id);
+    Character GetCharacter(string name);
+    List<Character> GetAllCharacters();
+
+    uint GetZoneId(WorldTemplate worldTemplate, float x, float y);
+    WorldTemplate GetWorldTemplateByName(string worldName);
+    WorldTemplate GetWorldTemplateByZoneKey(uint zoneKey);
+    WorldInstance[] GetWorlds();
+    WorldInstance GetWorld(uint worldInstanceId);
+    List<uint> GetZoneKeysByWorldId(uint worldId);
+
+    void BroadcastPacketToServer(GamePacket packet);
 }

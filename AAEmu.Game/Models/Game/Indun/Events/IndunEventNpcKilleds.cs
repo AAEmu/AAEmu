@@ -24,6 +24,6 @@ internal class IndunEventNpcKilleds : IndunEvent
         if (npc.TemplateId != NpcId) { return; }
 
         Logger.Warn($"IndunEventNpcKilleds - {NpcId}, {Id}");
-        IndunManager.DoIndunActions(StartActionId, world);
+        IndunManager.Instance.DoIndunActions(StartActionId, world);
     }
 }

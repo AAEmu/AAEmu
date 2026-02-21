@@ -1,11 +1,15 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Reflection;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.UnitTests.Utils.Mocks;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
@@ -32,6 +36,26 @@ public sealed class MailTests : IDisposable
         NameManager.Instance.Load([], [], []);
         NameManager.Instance.AddCharacter(_character.Id, _character.Name, 1);
         MailIdManager.Instance.Initialize();
+
+        // Reset cached MailManager instance from any previous test
+        typeof(Singleton<MailManager>)
+            .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+            ?.SetValue(null, null);
+
+        // Create MailManager with real leaf deps + mocked non-critical deps
+        var mailManager = new MailManager(
+            MailIdManager.Instance,
+            NameManager.Instance,
+            Mock.Of<IItemManager>(),
+            Mock.Of<ITaskManager>(),
+            Mock.Of<IWorldManager>(),
+            Mock.Of<IHousingManager>(),
+            Mock.Of<ILocalizationManager>());
+
+        var services = new ServiceCollection();
+        services.AddSingleton(mailManager);
+        SingletonContainer.ServiceProvider = services.BuildServiceProvider();
+
         MailManager.Instance._allPlayerMails = [];
     }
 
@@ -41,6 +65,11 @@ public sealed class MailTests : IDisposable
         MailManager.Instance._allPlayerMails = null;
         _character = null;
         _mails = null;
+
+        SingletonContainer.ServiceProvider = null;
+        typeof(Singleton<MailManager>)
+            .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+            ?.SetValue(null, null);
     }
 
     [Fact]

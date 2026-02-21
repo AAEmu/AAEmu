@@ -56,4 +56,5 @@ public interface IItemManager
     void UpdateItemTimers();
     bool UnwrapItem(Character character, SlotType slotType, byte slot, ulong itemId);
     ItemSet GetItemSet(uint itemSetId);
+    SlotType GetContainerSlotTypeByContainerId(ulong dbId);
 }

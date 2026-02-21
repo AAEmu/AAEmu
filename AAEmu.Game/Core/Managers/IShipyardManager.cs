@@ -7,4 +7,5 @@ public interface IShipyardManager
 {
     void Initialize();
     Shipyard Create(Character owner, ShipyardData shipyardData);
+    void ShipyardCompletedTask(Shipyard shipyard);
 }

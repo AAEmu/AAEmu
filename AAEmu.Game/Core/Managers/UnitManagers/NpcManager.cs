@@ -20,7 +20,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
-public class NpcManager : Singleton<NpcManager>, INpcManager
+public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelManager, IFactionManager factionManager, IItemManager itemManager, IAIManager aiManager) : Singleton<NpcManager>, INpcManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
@@ -77,13 +77,13 @@ public class NpcManager : Singleton<NpcManager>, INpcManager
         var npc = new Npc
         {
             ParentWorld = parentWorld,
-            ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId(),
+            ObjId = objectId > 0 ? objectId : objectIdManager.GetNextId(),
             TemplateId = id, // duplicate Id
             Id = id,
             Template = template,
             ModelId = template.ModelId,
-            CanFly = ModelManager.Instance.IsFlyOrSwim(template.ModelId),
-            Faction = FactionManager.Instance.GetFaction(template.FactionId),
+            CanFly = modelManager.IsFlyOrSwim(template.ModelId),
+            Faction = factionManager.GetFaction(template.FactionId),
             Level = template.Level,
             Patrol = null
         };
@@ -136,7 +136,7 @@ public class NpcManager : Singleton<NpcManager>, INpcManager
                 return npc;
 
             npc.Ai = ai;
-            AIManager.Instance.AddAi(ai);
+            aiManager.AddAi(ai);
             npc.Ai.Start();
         }
 
@@ -184,14 +184,14 @@ public class NpcManager : Singleton<NpcManager>, INpcManager
                 break;
         }
 
-        var modelType = ModelManager.Instance.GetModelType(template.ModelId);
+        var modelType = modelManager.GetModelType(template.ModelId);
 
         // choose randomly from the list totalCustomId
         if (modelParamsId != 0 && modelType != null && modelType.SubType == "ActorModel")
         {
             // Get all possible hair item_ids that match this model
             var hairsForThisModel = new List<uint>();
-            foreach (var item in ItemManager.Instance.GetAllItems())
+            foreach (var item in itemManager.GetAllItems())
                 if (item is BodyPartTemplate bpt && bpt.ModelId == template.ModelId && bpt.SlotTypeId == (uint)EquipmentItemSlotType.Hair)
                     hairsForThisModel.Add(bpt.ItemId);
 
@@ -782,7 +782,7 @@ public class NpcManager : Singleton<NpcManager>, INpcManager
         }
     }
 
-    private static void SetEquipItemTemplate(Npc npc, uint templateId, EquipmentItemSlot slot, byte grade = 0, bool npcOnly = false)
+    private void SetEquipItemTemplate(Npc npc, uint templateId, EquipmentItemSlot slot, byte grade = 0, bool npcOnly = false)
     {
         if (npcOnly && npc.Equipment.GetItemBySlot((int)slot) != null)
             return;
@@ -790,7 +790,7 @@ public class NpcManager : Singleton<NpcManager>, INpcManager
         Item item = null;
         if (templateId > 0)
         {
-            item = ItemManager.Instance.Create(templateId, 1, grade, false);
+            item = itemManager.Create(templateId, 1, grade, false);
             item.SlotType = SlotType.Equipment;
             item.Slot = (int)slot;
         }

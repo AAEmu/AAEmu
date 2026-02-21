@@ -13,7 +13,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SubZoneManager : Singleton<SubZoneManager>, ISubZoneManager
+public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager) : Singleton<SubZoneManager>, ISubZoneManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -21,13 +21,13 @@ public class SubZoneManager : Singleton<SubZoneManager>, ISubZoneManager
     {
         #region LoadClientData
 
-        foreach (var world in WorldManager.Instance.GetWorlds())
+        foreach (var world in worldManager.GetWorlds())
         {
-            var zonesList = WorldManager.Instance.GetZoneKeysByWorldId(world.Id);
+            var zonesList = worldManager.GetZoneKeysByWorldId(world.Id);
 
             foreach (var zoneKey in zonesList)
             {
-                var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
+                var zone = zoneManager.GetZoneByKey(zoneKey);
                 var zoneId = zone.Id;
                 #region subzone
 
@@ -278,7 +278,7 @@ public class SubZoneManager : Singleton<SubZoneManager>, ISubZoneManager
 
     public List<uint> GetHousingZoneByPosition(WorldInstance world, float x, float y)
     {
-        var zoneId = WorldManager.Instance.GetZoneId(world.Template, x, y);
+        var zoneId = worldManager.GetZoneId(world.Template, x, y);
 
         var foundHousingZones = new List<uint>();
 
@@ -314,7 +314,7 @@ public class SubZoneManager : Singleton<SubZoneManager>, ISubZoneManager
 
     public List<uint> GetSubZoneByPosition(WorldTemplate worldTemplate, float x, float y)
     {
-        var zoneId = WorldManager.Instance.GetZoneId(worldTemplate, x, y);
+        var zoneId = worldManager.GetZoneId(worldTemplate, x, y);
 
         var foundSubzones = new List<uint>();
 

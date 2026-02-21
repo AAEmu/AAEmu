@@ -15,7 +15,7 @@ public class CSCofferInteractionPacket() : GamePacket(CSOffsets.CSCofferInteract
         Logger.Warn("CofferInteraction, cofferObjId: {0}, opening: {1}", cofferObjId, opening);
         if (opening)
         {
-            if (!DoodadManager.OpenCofferDoodad(Connection.ActiveChar, cofferObjId))
+            if (!DoodadManager.Instance.OpenCofferDoodad(Connection.ActiveChar, cofferObjId))
             {
                 Logger.Warn($"{Connection.ActiveChar.Name} failed to Open coffer objId {cofferObjId}");
                 // If it failed, the coffer is likely in use by somebody else
@@ -24,7 +24,7 @@ public class CSCofferInteractionPacket() : GamePacket(CSOffsets.CSCofferInteract
         }
         else
         {
-            if (!DoodadManager.CloseCofferDoodad(Connection.ActiveChar, cofferObjId))
+            if (!DoodadManager.Instance.CloseCofferDoodad(Connection.ActiveChar, cofferObjId))
                 Logger.Warn($"{Connection.ActiveChar.Name} failed to Close coffer objId {cofferObjId}");
         }
     }

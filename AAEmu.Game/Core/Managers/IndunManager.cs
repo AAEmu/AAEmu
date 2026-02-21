@@ -13,7 +13,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class IndunManager : Singleton<IndunManager>, IIndunManager
+public class IndunManager(ITickManager tickManager, IWorldManager worldManager, IZoneManager zoneManager, ITeamManager teamManager) : Singleton<IndunManager>, IIndunManager
 {
     // ReSharper disable once InconsistentNaming
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -24,14 +24,14 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
 
     public void Initialize()
     {
-        TickManager.Instance.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(30), true);
+        tickManager.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(30), true);
     }
 
     private void IndunInfoTick(TimeSpan delta)
     {
         var sysInstanceCount = 0;
         var dungeonInstanceCount = 0;
-        var worldList = WorldManager.Instance.GetWorlds().ToList();
+        var worldList = worldManager.GetWorlds().ToList();
 
         // Count dungeons
         foreach (var worldInstance in worldList)
@@ -81,7 +81,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
     /// <returns></returns>
     public bool InstanceHasChannels(uint zoneId)
     {
-        var dungeonZone = IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneById(zoneId).GroupId);
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(zoneManager.GetZoneById(zoneId).GroupId);
         return dungeonZone.SelectChannel;
     }
 
@@ -102,7 +102,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
             return false;
         }
 
-        var zone = ZoneManager.Instance.GetZoneById(zoneId);
+        var zone = zoneManager.GetZoneById(zoneId);
         if (zone == null)
         {
             Logger.Warn($"Requesting non existing system instance for zone {zoneId}, character {character.Name}");
@@ -143,18 +143,18 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
             Logger.Info($"Player requested a dungeon, but is now offline.");
             return false;
         }
-        var team = TeamManager.Instance.GetTeamByObjId(character.ObjId);
-        var zone = ZoneManager.Instance.GetZoneById(zoneId);
+        var team = teamManager.GetTeamByObjId(character.ObjId);
+        var zone = zoneManager.GetZoneById(zoneId);
 
         // Check valid zone/dungeon
-        var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(zone.ZoneKey);
+        var worldTemplate = worldManager.GetWorldTemplateByZoneKey(zone.ZoneKey);
         if (worldTemplate == null)
         {
             // Non-existing dungeon zone
             return false;
         }
 
-        var targetZone = ZoneManager.Instance.GetZoneById(zoneId);
+        var targetZone = zoneManager.GetZoneById(zoneId);
         if (targetZone == null)
         {
             // Key does not match any zone
@@ -284,7 +284,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
     private List<Dungeon> GetExistingDungeonsByZoneKey(uint zoneKey)
     {
         var res = new List<Dungeon>();
-        foreach (var worldInstance in WorldManager.Instance.GetWorlds())
+        foreach (var worldInstance in worldManager.GetWorlds())
         {
             if (worldInstance.DungeonInstance == null)
                 continue;
@@ -357,14 +357,14 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
         dungeon = null;
 
         // Check if we have capacity
-        if (WorldManager.Instance.GetWorlds().Length > AppConfiguration.Instance.World.MaxInstances)
+        if (worldManager.GetWorlds().Length > AppConfiguration.Instance.World.MaxInstances)
         {
             Logger.Warn($"Requesting a new instance would exceeds the allowed ammount, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
             character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
             return false;
         }
-        
-        var team = TeamManager.Instance.GetTeamByObjId(character.ObjId);
+
+        var team = teamManager.GetTeamByObjId(character.ObjId);
         Logger.Info($"Requesting instance, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
 
         // Check requirements such as level, item, etc
@@ -393,9 +393,9 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
     {
         Logger.Info($"Requesting system instance, zoneKey: {zoneKey}, character: {character?.Name ?? "[SYSTEM]"}, channel: {channelId}, override InstanceId: {(overrideInstanceId ? fixedInstanceId.ToString() : "NO")}");
 
-        var team = character != null ? TeamManager.Instance.GetTeamByObjId(character.ObjId) : null;
+        var team = character != null ? teamManager.GetTeamByObjId(character.ObjId) : null;
 
-        var dungeonZone = IndunGameData.Instance.GetDungeonZone(ZoneManager.Instance.GetZoneByKey(zoneKey).GroupId);
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(zoneManager.GetZoneByKey(zoneKey).GroupId);
         if (dungeonZone == null)
         {
             Logger.Error($"Requesting invalid system instance: , zoneKey: {zoneKey}, character: {character?.Name ?? "[SYSTEM]"}, channel: {channelId}, override InstanceId: {(overrideInstanceId ? fixedInstanceId.ToString() : "NO")}");
@@ -403,7 +403,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
         }
         
         // Check for duplicate system instances
-        foreach (var worldInstance in WorldManager.Instance.GetWorlds())
+        foreach (var worldInstance in worldManager.GetWorlds())
         {
             if (worldInstance.ChannelId == channelId &&
                 worldInstance.DungeonInstance?.GetZoneGroupId == dungeonZone.ZoneGroupId)
@@ -424,7 +424,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
         };
 
         // Check if zones match
-        if (dungeonZone.ZoneGroupId != ZoneManager.Instance.GetZoneByKey(zoneKey)?.GroupId)
+        if (dungeonZone.ZoneGroupId != zoneManager.GetZoneByKey(zoneKey)?.GroupId)
         {
             Logger.Info("[IndunManager] system dungeon request on different area.");
             character?.SendErrorMessage(ErrorMessageType.ProhibitedInInstance);
@@ -498,7 +498,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
         
         // Remove from all possible different types of dungeons
         // System dungeons (mirage/library)
-        foreach (var worldInstance in WorldManager.Instance.GetWorlds().Where(w => w.HasCharacter(character.Id)))
+        foreach (var worldInstance in worldManager.GetWorlds().Where(w => w.HasCharacter(character.Id)))
         {
             
             character.Events.OnDungeonLeave(worldInstance, new OnDungeonLeaveArgs { Player = character });
@@ -510,7 +510,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
         return false;
     }
 
-    public static void DoIndunActions(uint startActionId, WorldInstance worldInstance)
+    public void DoIndunActions(uint startActionId, WorldInstance worldInstance)
     {
         while (true)
         {
@@ -573,7 +573,7 @@ public class IndunManager : Singleton<IndunManager>, IIndunManager
                 {
                     foreach (var (zoneGroupId, entriesList) in zoneAndEntries)
                     {
-                        Logger.Debug($"For player={characterId} ({WorldManager.Instance.GetCharacterById(characterId)?.Name}): {entriesList.Count} entries into dungeon zone group {zoneGroupId} ({ZoneManager.Instance.GetZoneGroupById(zoneGroupId)?.Name})");
+                        Logger.Debug($"For player={characterId} ({worldManager.GetCharacterById(characterId)?.Name}): {entriesList.Count} entries into dungeon zone group {zoneGroupId} ({zoneManager.GetZoneGroupById(zoneGroupId)?.Name})");
                     }
                 }
             }

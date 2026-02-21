@@ -16,9 +16,9 @@ public class DoodadFuncCoffer : DoodadPhaseFuncTemplate
         owner.ToNextPhase = false;
         if (caster is Character character && owner is DoodadCoffer coffer)
             if (coffer.OpenedBy?.Id == character.Id)
-                DoodadManager.CloseCofferDoodad(character, owner.ObjId);
+                DoodadManager.Instance.CloseCofferDoodad(character, owner.ObjId);
             else
-                DoodadManager.OpenCofferDoodad(character, owner.ObjId);
+                DoodadManager.Instance.OpenCofferDoodad(character, owner.ObjId);
         Logger.Trace("DoodadFuncCoffer");
         return false;
     }

@@ -675,7 +675,7 @@ public class Dungeon
 
                 if (radiusCount == 0 && room.GetRoomPlayerCount(World.Id) != 0)
                 {
-                    IndunManager.DoIndunActions(ev.StartActionId, World);
+                    IndunManager.Instance.DoIndunActions(ev.StartActionId, World);
                 }
 
                 room.SetRoomPlayerCount(World.Id, (uint)radiusCount);

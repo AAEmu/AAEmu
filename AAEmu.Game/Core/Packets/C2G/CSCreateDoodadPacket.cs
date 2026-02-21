@@ -27,7 +27,7 @@ public class CSCreateDoodadPacket() : GamePacket(CSOffsets.CSCreateDoodadPacket,
         if (!InPublicFarm)
         {
             Logger.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
-            DoodadManager.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId);
+            DoodadManager.Instance.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId);
         }
         else
         {
@@ -35,7 +35,7 @@ public class CSCreateDoodadPacket() : GamePacket(CSOffsets.CSCreateDoodadPacket,
             if (PublicFarmManager.Instance.CanPlace(Connection.ActiveChar, farmType, id))
             {
                 Logger.Warn("CreateFarmDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
-                DoodadManager.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId, farmType);
+                DoodadManager.Instance.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId, farmType);
             }
         }
     }

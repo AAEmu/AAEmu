@@ -13,7 +13,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class PublicFarmManager : Singleton<PublicFarmManager>, IPublicFarmManager
+public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldManager, ISubZoneManager subZoneManager) : Singleton<PublicFarmManager>, IPublicFarmManager
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -30,13 +30,13 @@ public class PublicFarmManager : Singleton<PublicFarmManager>, IPublicFarmManage
         Logger.Info("PublicFarmTickTask: Started");
 
         var lpTickStartTask = new PublicFarmTickStartTask();
-        TaskManager.Instance.Schedule(lpTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        taskManager.Schedule(lpTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
     public void PublicFarmTick()
     {
         // NOTE: Public farms only available in main_world
-        var world = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
+        var world = worldManager.GetWorld(WorldManager.DefaultInstanceId);
         var deleted = new List<Doodad>();
         foreach (var doodad in world.SpawnManager?.GetAllPlayerDoodads() ?? [])
         {
@@ -61,13 +61,13 @@ public class PublicFarmManager : Singleton<PublicFarmManager>, IPublicFarmManage
 
     public bool InPublicFarm(WorldTemplate worldTemplate, Vector3 pos)
     {
-        var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(worldTemplate, pos);
+        var subZoneList = subZoneManager.GetSubZoneByPosition(worldTemplate, pos);
         return subZoneList.Count > 0 && subZoneList.Any(subZoneId => _farmZones.ContainsKey(subZoneId));
     }
 
     private uint GetFarmId(WorldInstance world, Vector3 pos)
     {
-        var subZoneList = SubZoneManager.Instance.GetSubZoneByPosition(world.Template, pos);
+        var subZoneList = subZoneManager.GetSubZoneByPosition(world.Template, pos);
 
         return subZoneList.Count > 0 ? subZoneList.FirstOrDefault(subZoneId => _farmZones.ContainsKey(subZoneId)) : 0;
     }

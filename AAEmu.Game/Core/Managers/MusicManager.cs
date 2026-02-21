@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class MusicManager : Singleton<MusicManager>, IMusicManager
+public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManager) : Singleton<MusicManager>, IMusicManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -50,7 +50,7 @@ public class MusicManager : Singleton<MusicManager>, IMusicManager
 
     public bool Save(SongData songData)
     {
-        songData.Id = MusicIdManager.Instance.GetNextId();
+        songData.Id = musicIdManager.GetNextId();
 
         using (var connection = MySQL.CreateConnection())
         {
@@ -117,7 +117,7 @@ public class MusicManager : Singleton<MusicManager>, IMusicManager
         // Save to DB
         if (Save(sud))
         {
-            var sheet = (MusicSheetItem)ItemManager.Instance.Create(Item.SheetMusic, 1, 0, true);
+            var sheet = (MusicSheetItem)itemManager.Create(Item.SheetMusic, 1, 0, true);
             sheet.OwnerId = player.Id;
             sheet.MadeUnitId = player.Id;
             sheet.SongId = sud.Id;

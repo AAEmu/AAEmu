@@ -24,7 +24,7 @@ public class TradeTemplate
     public int TargetMoneyPutup { get; set; }
 }
 
-public class TradeManager : Singleton<TradeManager>, ITradeManager
+public class TradeManager(ITradeIdManager tradeIdManager, IWorldManager worldManager) : Singleton<TradeManager>, ITradeManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<uint, TradeTemplate> _trades = [];
@@ -78,7 +78,7 @@ public class TradeManager : Singleton<TradeManager>, ITradeManager
     {
         if (IsTrading(owner.ObjId) || IsTrading(target.ObjId)) return;
 
-        var nextId = TradeIdManager.Instance.GetNextId();
+        var nextId = tradeIdManager.GetNextId();
         var template = new TradeTemplate
         {
             Id = nextId,
@@ -107,12 +107,12 @@ public class TradeManager : Singleton<TradeManager>, ITradeManager
         tradeId = tradeId == 0 ? GetTradeId(objId) : tradeId;
         if (tradeId == 0)
         {
-            WorldManager.Instance.GetCharacterByObjId(objId)?.SendPacket(new SCTradeCanceledPacket(reason, true));
+            worldManager.GetCharacterByObjId(objId)?.SendPacket(new SCTradeCanceledPacket(reason, true));
             return;
         }
 
-        var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
-        var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
+        var owner = worldManager.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
+        var target = worldManager.GetCharacterByObjId(_trades[tradeId].TargetObjId);
         _trades.Remove(tradeId);
 
         Logger.Info("Trade Id:{4} between {0}({1}) - {2}({3}) is canceled.", owner.Name, owner.ObjId, target.Name, target.ObjId, tradeId);
@@ -128,8 +128,8 @@ public class TradeManager : Singleton<TradeManager>, ITradeManager
         if (tradeId != 0 && item.Count >= amount)
         {
             var isOwnerWhoAdd = _trades[tradeId].OwnerObjId.Equals(character.ObjId);
-            var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
-            var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
+            var owner = worldManager.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
+            var target = worldManager.GetCharacterByObjId(_trades[tradeId].TargetObjId);
             if (isOwnerWhoAdd)
             {
                 Logger.Info("Trade Id:{0} {1}({2}) added item ({3}-{4}) Amount: {5}.", tradeId, owner.Name, owner.ObjId, slotType, slot, amount);
@@ -160,8 +160,8 @@ public class TradeManager : Singleton<TradeManager>, ITradeManager
         if (tradeId != 0 && character.Money >= moneyAmount)
         {
             var isOwnerWhoAdd = _trades[tradeId].OwnerObjId.Equals(character.ObjId);
-            var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
-            var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
+            var owner = worldManager.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
+            var target = worldManager.GetCharacterByObjId(_trades[tradeId].TargetObjId);
             if (isOwnerWhoAdd)
             {
                 Logger.Info("Trade Id:{0} {1}({2}) changed Money: {3}.", tradeId, owner.Name, owner.ObjId, moneyAmount);
@@ -193,8 +193,8 @@ public class TradeManager : Singleton<TradeManager>, ITradeManager
         if (tradeId != 0 && item != null)
         {
             var isOwnerWhoAdd = _trades[tradeId].OwnerObjId.Equals(character.ObjId);
-            var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
-            var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
+            var owner = worldManager.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
+            var target = worldManager.GetCharacterByObjId(_trades[tradeId].TargetObjId);
             if (isOwnerWhoAdd)
             {
                 Logger.Info("Trade Id:{0} {1}({2}) tookdown item ({3}-{4}).", tradeId, owner.Name, owner.ObjId, slotType, slot);
@@ -232,8 +232,8 @@ public class TradeManager : Singleton<TradeManager>, ITradeManager
             if (isOwnerWhoAdd && _trades[tradeId].LockOwner && _lock) return;
             if (!isOwnerWhoAdd && _trades[tradeId].LockTarget && _lock) return;
 
-            var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
-            var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
+            var owner = worldManager.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
+            var target = worldManager.GetCharacterByObjId(_trades[tradeId].TargetObjId);
 
             if (!_lock)
             {
@@ -271,8 +271,8 @@ public class TradeManager : Singleton<TradeManager>, ITradeManager
             // Check if both locked
             if (!_trades[tradeId].LockOwner && !_trades[tradeId].LockTarget) return;
 
-            var owner = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
-            var target = WorldManager.Instance.GetCharacterByObjId(_trades[tradeId].TargetObjId);
+            var owner = worldManager.GetCharacterByObjId(_trades[tradeId].OwnerObjId);
+            var target = worldManager.GetCharacterByObjId(_trades[tradeId].TargetObjId);
 
             if (isOwnerWhoAdd)
             {

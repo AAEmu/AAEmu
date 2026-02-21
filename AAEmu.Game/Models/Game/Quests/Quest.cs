@@ -310,7 +310,7 @@ public partial class Quest : PacketMarshaler
             // TODO: Add a way to distribute honor or vocation badges in mail as well
             if (Owner.Inventory.Bag.FreeSlotCount < QuestRewardItemsPool.Count)
             {
-                var mails = MailManager.CreateQuestRewardMails(Owner, this, QuestRewardItemsPool, QuestRewardCoinsPool);
+                var mails = MailManager.Instance.CreateQuestRewardMails(Owner, this, QuestRewardItemsPool, QuestRewardCoinsPool);
                 QuestRewardCoinsPool = 0; // Coins will be distributed in mail if any mail needed to be sent, so set to zero again
                 foreach (var mail in mails)
                     if (!mail.Send())

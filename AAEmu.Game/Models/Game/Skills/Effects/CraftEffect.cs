@@ -137,7 +137,7 @@ public class CraftEffect : EffectTemplate
                     {
                         if (sy.ShipyardData.OwnerName == caster.Name)
                         {
-                            ShipyardManager.ShipyardCompletedTask(sy);
+                            ShipyardManager.Instance.ShipyardCompletedTask(sy);
                         }
                         else
                             character.SendErrorMessage(ErrorMessageType.NoPermissionToLoot);

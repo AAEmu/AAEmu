@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class CashShopManager : Singleton<CashShopManager>, ICashShopManager
+public class CashShopManager(IWorldManager worldManager, IAccountManager accountManager, ILocalizationManager localizationManager) : Singleton<CashShopManager>, ICashShopManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -22,11 +22,11 @@ public class CashShopManager : Singleton<CashShopManager>, ICashShopManager
 
     public void CreditDisperseTick(TimeSpan delta)
     {
-        var characters = WorldManager.Instance.GetAllCharacters();
+        var characters = worldManager.GetAllCharacters();
 
         foreach (var character in characters)
         {
-            AccountManager.Instance.AddCredits(character.AccountId, 100);
+            accountManager.AddCredits(character.AccountId, 100);
             character.SendMessage("You have received 100 credits.");
         }
     }
@@ -108,7 +108,7 @@ public class CashShopManager : Singleton<CashShopManager>, ICashShopManager
                 if (shopItem.Skus.Count <= 0 && string.IsNullOrWhiteSpace(shopItem.Name))
                 {
                     // First Item, grab it's name when needed
-                    shopItem.Name = LocalizationManager.Instance.Get("items", "name", sku.ItemId) ?? "???";
+                    shopItem.Name = localizationManager.Get("items", "name", sku.ItemId) ?? "???";
                 }
                 shopItem.Skus.Add(sku.Sku, sku);
             }
@@ -169,7 +169,7 @@ public class CashShopManager : Singleton<CashShopManager>, ICashShopManager
     public void DisableShop()
     {
         Enabled = false;
-        foreach (var character in WorldManager.Instance.GetAllCharacters())
+        foreach (var character in worldManager.GetAllCharacters())
             character?.SendPacket(new SCICSCheckTimePacket());
     }
 
