@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ManaRegenManager : Singleton<ManaRegenManager>, IManaRegenManager
+public class ManaRegenManager(ITickManager tickManager) : Singleton<ManaRegenManager>, IManaRegenManager
 {
     private int UpdateDelay { get; set; } = 200; // Buff tick interval in milliseconds
     private static object Lock { get; } = new();
@@ -14,7 +14,7 @@ public class ManaRegenManager : Singleton<ManaRegenManager>, IManaRegenManager
     public void Initialize()
     {
         Registrations = new Dictionary<uint, ManaRegenTemplate>();
-        TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(UpdateDelay), true);
+        tickManager.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(UpdateDelay), true);
     }
 
     internal void Register(Character player, ManaRegenTemplate template)

@@ -49,6 +49,12 @@ public abstract class Singleton<T> where T : class
         {
             if (_instance != null)
                 return;
+            if (typeof(T).GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    null, Type.EmptyTypes, null) == null)
+                throw new InvalidOperationException(
+                    $"{typeof(T).Name} has no parameterless constructor. " +
+                    "Resolve it from DI, or instantiate it with explicit dependencies.");
             _instance = typeof(T).InvokeMember(typeof(T).Name,
                 BindingFlags.CreateInstance |
                 BindingFlags.Instance |

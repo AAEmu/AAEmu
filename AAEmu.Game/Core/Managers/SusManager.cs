@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SusManager : Singleton<SusManager>, ISusManager
+public class SusManager(IWorldManager worldManager) : Singleton<SusManager>, ISusManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public static string CategoryBot => "Bot";
@@ -138,7 +138,7 @@ public class SusManager : Singleton<SusManager>, ISusManager
             var observedSpeed = deltaFlatPos.Length() / deltaTime;
             // var playerCheckSpeed = 5.0 * character.BaseMoveSpeed * character.MoveSpeedMul * 3.0;
             var playerCheckSpeed = 27.5;
-            var petOwner = WorldManager.Instance.GetCharacterByObjId(pet.OwnerObjId);
+            var petOwner = worldManager.GetCharacterByObjId(pet.OwnerObjId);
             if (observedSpeed > playerCheckSpeed)
             {
                 last.skipTime = 15f;

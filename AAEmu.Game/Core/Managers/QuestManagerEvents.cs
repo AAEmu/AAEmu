@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Acts;
@@ -172,7 +171,7 @@ public partial class QuestManager
         if (npc == null)
             return;
 
-        var npcZoneGroupId = ZoneManager.Instance.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
+        var npcZoneGroupId = zoneManager.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
 
         // Individual monster kill
         owner.Events?.OnMonsterHunt(owner, new OnMonsterHuntArgs

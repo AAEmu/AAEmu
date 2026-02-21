@@ -12,4 +12,6 @@ public interface IWorldManager
     WorldInstance CreateWorldInstance(WorldTemplate worldTemplate, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0, Character notifyPlayer = null);
 
     WorldTemplate CreateWorldTemplate(string worldName);
+
+    Character GetCharacterByObjId(uint id);
 }

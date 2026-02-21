@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
@@ -21,7 +22,7 @@ using QuestNpcAiName = AAEmu.Game.Models.Game.Quests.Static.QuestNpcAiName;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class QuestManager : Singleton<QuestManager>, IQuestManager
+public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneManager) : Singleton<QuestManager>, IQuestManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
@@ -145,7 +146,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
             Logger.Info($"EnqueueEvaluation, {quest.Owner.Name} ({quest.Owner.Id}), Quest {quest.TemplateId}");
 
             if (needNewTask)
-                TaskManager.Instance.Schedule(new QuestManagerRunQueueTask(), null, TimeSpan.FromMilliseconds(1));
+                taskManager.Schedule(new QuestManagerRunQueueTask(), null, TimeSpan.FromMilliseconds(1));
         }
     }
 
@@ -259,7 +260,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         // Start daily reset task
         var dailyCron = "0 0 0 */1 * *"; // Crontab
         // TODO: Make sure it obeys server time settings
-        TaskManager.Instance.CronSchedule(new QuestDailyResetTask(), dailyCron);
+        taskManager.CronSchedule(new QuestDailyResetTask(), dailyCron);
     }
 
     /// <summary>
@@ -1955,7 +1956,7 @@ public partial class QuestManager : Singleton<QuestManager>, IQuestManager
         playerTimerTasks.Add(quest.TemplateId, timeoutTask);
 
         // Actually schedule the task
-        TaskManager.Instance.Schedule(timeoutTask, TimeSpan.FromMilliseconds(limitTime));
+        taskManager.Schedule(timeoutTask, TimeSpan.FromMilliseconds(limitTime));
         owner.SendDebugMessage($"[Quest] Quest ({quest.Id}) will end in {limitTime / 60000} minutes.");
         return true;
     }

@@ -17,7 +17,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SkillManager : Singleton<SkillManager>, ISkillManager
+public class SkillManager(IAnimationManager animationManager, IPlotManager plotManager) : Singleton<SkillManager>, ISkillManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
@@ -336,7 +336,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         var template = new SkillTemplate
                         {
                             Id = reader.GetUInt32("id"), Cost = reader.GetInt32("cost"), Show = reader.GetBoolean("show", true),
-                            FireAnim = AnimationManager.Instance.GetAnimation(reader.GetUInt32("fire_anim_id", 0)),
+                            FireAnim = animationManager.GetAnimation(reader.GetUInt32("fire_anim_id", 0)),
                             AbilityId = (AbilityType)reader.GetByte("ability_id"),
                             ManaCost = reader.GetInt32("mana_cost"),
                             TimingId = reader.GetInt32("timing_id"),
@@ -398,7 +398,7 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
                         template.AllowToPrisoner = reader.GetBoolean("allow_to_prisoner", true);
                         template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                         template.MatchAnimation = reader.GetBoolean("match_animation", true);
-                        template.Plot = reader.IsDBNull("plot_id") ? null : PlotManager.Instance.GetPlot(reader.GetUInt32("plot_id"));
+                        template.Plot = reader.IsDBNull("plot_id") ? null : plotManager.GetPlot(reader.GetUInt32("plot_id"));
                         template.UseAnimTime = reader.GetBoolean("use_anim_time", true);
                         template.ConsumeLaborPower = reader.GetInt32("consume_lp", 0);
                         template.SourceStun = reader.GetBoolean("source_stun", true);

@@ -41,7 +41,7 @@ public class GameServiceTests
     public void GameService_ImplementsIHostedService()
     {
         // Arrange
-        using var service = new GameService();
+        using var service = new GameService(Moq.Mock.Of<IServiceProvider>());
 
         // Assert
         Assert.IsAssignableFrom<IHostedService>(service);
@@ -51,7 +51,7 @@ public class GameServiceTests
     public void GameService_ImplementsIDisposable()
     {
         // Arrange
-        using var service = new GameService();
+        using var service = new GameService(Moq.Mock.Of<IServiceProvider>());
 
         // Assert
         Assert.IsAssignableFrom<IDisposable>(service);
@@ -61,7 +61,7 @@ public class GameServiceTests
     public async Task Dispose_DoesNotThrow()
     {
         // Arrange
-        using var service = new GameService();
+        using var service = new GameService(Moq.Mock.Of<IServiceProvider>());
 
         // Act & Assert
         service.Dispose();
