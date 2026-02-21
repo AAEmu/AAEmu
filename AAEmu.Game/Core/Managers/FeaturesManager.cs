@@ -4,7 +4,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FeaturesManager : Singleton<FeaturesManager>
+public class FeaturesManager : Singleton<FeaturesManager>, IFeaturesManager
 {
     public static FeatureSet Fsets { get; private set; }
 

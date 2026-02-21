@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class NameManager(CharacterManager characterManager = null) : Singleton<NameManager>
+public partial class NameManager(CharacterManager characterManager = null) : Singleton<NameManager>, INameManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly CharacterManager _characterManager = characterManager ?? CharacterManager.Instance;

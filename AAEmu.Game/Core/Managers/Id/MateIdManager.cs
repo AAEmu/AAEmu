@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class MateIdManager() : IdManager("MateIdManager", FirstId, LastId, ObjTables, Exclude)
+public class MateIdManager() : IdManager("MateIdManager", FirstId, LastId, ObjTables, Exclude), IMateIdManager
 {
     private static MateIdManager _instance;
     private const uint FirstId = 0x00000001;

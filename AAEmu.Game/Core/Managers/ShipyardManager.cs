@@ -15,7 +15,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ShipyardManager : Singleton<ShipyardManager>
+public class ShipyardManager : Singleton<ShipyardManager>, IShipyardManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

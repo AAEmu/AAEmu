@@ -11,7 +11,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class CommandManager : Singleton<CommandManager>
+public partial class CommandManager : Singleton<CommandManager>, ICommandManager
 {
     public const string CommandPrefix = "/";
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();

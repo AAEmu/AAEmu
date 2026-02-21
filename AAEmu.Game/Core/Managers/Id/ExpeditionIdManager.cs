@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class ExpeditionIdManager() : IdManager("ExpeditionIdManager", FirstId, LastId, ObjTables, Exclude)
+public class ExpeditionIdManager() : IdManager("ExpeditionIdManager", FirstId, LastId, ObjTables, Exclude), IExpeditionIdManager
 {
     private static ExpeditionIdManager _instance;
     private const uint FirstId = 1000; // Based on official packets

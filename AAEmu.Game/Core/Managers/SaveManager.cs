@@ -11,7 +11,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SaveManager : Singleton<SaveManager>
+public class SaveManager : Singleton<SaveManager>, ISaveManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

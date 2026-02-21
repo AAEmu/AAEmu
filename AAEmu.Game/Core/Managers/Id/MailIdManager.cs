@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class MailIdManager() : IdManager("MailIdManager", FirstId, LastId, ObjTables, Exclude)
+public class MailIdManager() : IdManager("MailIdManager", FirstId, LastId, ObjTables, Exclude), IMailIdManager
 {
     private static MailIdManager _instance;
     private const uint FirstId = 0x00002710; // 10000, no special reason

@@ -26,7 +26,7 @@ using Portal = AAEmu.Game.Models.Game.Portal;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class PortalManager : Singleton<PortalManager>
+public class PortalManager : Singleton<PortalManager>, IPortalManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

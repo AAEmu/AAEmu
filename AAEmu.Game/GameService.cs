@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.Core.Managers;
@@ -27,6 +28,11 @@ public sealed class GameService : IHostedService, IDisposable
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public static DateTime StartTime { get; private set; } = DateTime.UtcNow;
     public static TimeSpan TimeSinceStart => DateTime.UtcNow.Subtract(StartTime);
+
+    public GameService(IServiceProvider serviceProvider)
+    {
+        SingletonContainer.ServiceProvider = serviceProvider;
+    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {

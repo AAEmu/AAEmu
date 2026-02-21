@@ -18,7 +18,7 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ExpeditionManager : Singleton<ExpeditionManager>
+public class ExpeditionManager : Singleton<ExpeditionManager>, IExpeditionManager
 {
     //private ExpeditionConfig _config;
     private Regex _nameRegex;

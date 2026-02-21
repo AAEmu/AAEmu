@@ -11,7 +11,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class RadarManager : Singleton<RadarManager>
+public class RadarManager : Singleton<RadarManager>, IRadarManager
 {
     private int RadarUpdateDelay { get => 1000; }
     private static object Lock { get; } = new();

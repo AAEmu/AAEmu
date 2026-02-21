@@ -19,7 +19,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class AuctionManager : Singleton<AuctionManager>
+public class AuctionManager : Singleton<AuctionManager>, IAuctionManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

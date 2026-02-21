@@ -27,7 +27,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ItemManager : Singleton<ItemManager>
+public class ItemManager : Singleton<ItemManager>, IItemManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;

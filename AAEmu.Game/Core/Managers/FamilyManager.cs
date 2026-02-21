@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FamilyManager : Singleton<FamilyManager>
+public class FamilyManager : Singleton<FamilyManager>, IFamilyManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

@@ -12,7 +12,7 @@ using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class GameScheduleManager : Singleton<GameScheduleManager>
+public class GameScheduleManager : Singleton<GameScheduleManager>, IGameScheduleManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;

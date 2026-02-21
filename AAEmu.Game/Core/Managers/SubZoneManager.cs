@@ -13,7 +13,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SubZoneManager : Singleton<SubZoneManager>
+public class SubZoneManager : Singleton<SubZoneManager>, ISubZoneManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class FactionManager : Singleton<FactionManager>
+public class FactionManager : Singleton<FactionManager>, IFactionManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;

@@ -24,7 +24,7 @@ public class TradeTemplate
     public int TargetMoneyPutup { get; set; }
 }
 
-public class TradeManager : Singleton<TradeManager>
+public class TradeManager : Singleton<TradeManager>, ITradeManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly Dictionary<uint, TradeTemplate> _trades = [];

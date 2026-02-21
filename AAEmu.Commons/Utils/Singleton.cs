@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace AAEmu.Commons.Utils;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -14,12 +16,26 @@ public abstract class Singleton<T> where T : class
     private static T _instance;
 
     /// <summary>
-    /// Gets the instance of the singleton
+    /// Gets the instance of the singleton. Resolves from the DI container when available,
+    /// caching the result so subsequent calls are free. Falls back to reflection when DI
+    /// is not configured (e.g. unit tests).
     /// </summary>
     public static T Instance
     {
         get
         {
+            if (_instance != null)
+                return _instance;
+
+            if (SingletonContainer.ServiceProvider?.GetService<T>() is { } fromDi)
+            {
+                lock (typeof(T))
+                {
+                    _instance ??= fromDi;
+                }
+                return _instance;
+            }
+
             OnInit();
             return _instance;
         }
@@ -31,6 +47,8 @@ public abstract class Singleton<T> where T : class
             return;
         lock (typeof(T))
         {
+            if (_instance != null)
+                return;
             _instance = typeof(T).InvokeMember(typeof(T).Name,
                 BindingFlags.CreateInstance |
                 BindingFlags.Instance |

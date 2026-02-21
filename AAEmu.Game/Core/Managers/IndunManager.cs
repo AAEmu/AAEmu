@@ -13,7 +13,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class IndunManager : Singleton<IndunManager>
+public class IndunManager : Singleton<IndunManager>, IIndunManager
 {
     // ReSharper disable once InconsistentNaming
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();

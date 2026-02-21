@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class WorldIdManager() : IdManager("WorldIdManager", FirstId, LastId, ObjTables, Exclude)
+public class WorldIdManager() : IdManager("WorldIdManager", FirstId, LastId, ObjTables, Exclude), IWorldIdManager
 {
     private static WorldIdManager _instance;
     private const uint FirstId = 0x00000064;

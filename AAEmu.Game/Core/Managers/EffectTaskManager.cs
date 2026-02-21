@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class EffectTaskManager : Singleton<EffectTaskManager>
+public class EffectTaskManager : Singleton<EffectTaskManager>, IEffectTaskManager
 {
     /// <summary>
     /// Pre-Variant of dispel effects...

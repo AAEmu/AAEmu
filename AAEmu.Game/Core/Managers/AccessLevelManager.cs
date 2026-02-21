@@ -4,7 +4,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class AccessLevelManager : Singleton<AccessLevelManager>
+public class AccessLevelManager : Singleton<AccessLevelManager>, IAccessLevelManager
 {
     private readonly List<Command> CMD = [];
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();

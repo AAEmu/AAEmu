@@ -28,7 +28,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
-public class CharacterManager : Singleton<CharacterManager>
+public class CharacterManager : Singleton<CharacterManager>, ICharacterManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

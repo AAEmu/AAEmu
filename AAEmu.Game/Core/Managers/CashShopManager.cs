@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class CashShopManager : Singleton<CashShopManager>
+public class CashShopManager : Singleton<CashShopManager>, ICashShopManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

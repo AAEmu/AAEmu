@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class CharacterIdManager() : IdManager("CharacterIdManager", FirstId, LastId, ObjTables, Exclude)
+public class CharacterIdManager() : IdManager("CharacterIdManager", FirstId, LastId, ObjTables, Exclude), ICharacterIdManager
 {
     private static CharacterIdManager _instance;
     private const uint FirstId = 0x00000001;

@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FormulaManager : Singleton<FormulaManager>
+public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static bool _loaded = false;

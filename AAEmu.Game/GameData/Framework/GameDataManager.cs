@@ -5,7 +5,7 @@ using NLog;
 
 namespace AAEmu.Game.GameData.Framework;
 
-public class GameDataManager : Singleton<GameDataManager>
+public class GameDataManager : Singleton<GameDataManager>, IGameDataManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly List<IGameDataLoader> _loaders = [];

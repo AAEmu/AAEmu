@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class VisitedSubZoneIdManager() : IdManager("VisitedSubZoneIdMananger", FirstId, LastId, ObjTables, Exclude)
+public class VisitedSubZoneIdManager() : IdManager("VisitedSubZoneIdMananger", FirstId, LastId, ObjTables, Exclude), IVisitedSubZoneIdManager
 {
     private static VisitedSubZoneIdManager _instance;
     private const uint FirstId = 0x00000001;

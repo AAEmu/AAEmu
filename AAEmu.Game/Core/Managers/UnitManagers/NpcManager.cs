@@ -20,7 +20,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
-public class NpcManager : Singleton<NpcManager>
+public class NpcManager : Singleton<NpcManager>, INpcManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;

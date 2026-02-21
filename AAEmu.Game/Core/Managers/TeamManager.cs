@@ -10,7 +10,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class TeamManager : Singleton<TeamManager>
+public class TeamManager : Singleton<TeamManager>, ITeamManager
 {
     /*
      * TODO:

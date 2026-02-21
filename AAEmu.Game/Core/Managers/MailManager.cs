@@ -17,7 +17,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class MailManager : Singleton<MailManager>
+public class MailManager : Singleton<MailManager>, IMailManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

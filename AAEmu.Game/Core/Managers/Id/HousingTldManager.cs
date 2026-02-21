@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class HousingTldManager() : IdManager("HousingTldManager", FirstId, LastId, ObjTables, Exclude)
+public class HousingTldManager() : IdManager("HousingTldManager", FirstId, LastId, ObjTables, Exclude), IHousingTldManager
 {
     private static HousingTldManager _instance;
     private const uint FirstId = 0x00000001;

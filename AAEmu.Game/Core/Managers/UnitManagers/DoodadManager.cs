@@ -32,7 +32,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class DoodadManager : Singleton<DoodadManager>
+public class DoodadManager : Singleton<DoodadManager>, IDoodadManager
 {
     private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
 

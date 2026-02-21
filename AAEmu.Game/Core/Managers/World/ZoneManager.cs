@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class ZoneManager : Singleton<ZoneManager>
+public class ZoneManager : Singleton<ZoneManager>, IZoneManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

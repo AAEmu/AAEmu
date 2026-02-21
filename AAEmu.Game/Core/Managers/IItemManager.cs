@@ -1,0 +1,59 @@
+using AAEmu.Game.Models.Game.Auction.Templates;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Items.Loots;
+using AAEmu.Game.Models.Game.Items.Procs;
+using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
+
+namespace AAEmu.Game.Core.Managers;
+
+public interface IItemManager
+{
+    event EventHandler OnItemsLoaded;
+    ItemTemplate GetTemplate(uint id);
+    EquipItemSet GetEquippedItemSet(uint id);
+    GradeTemplate GetGradeTemplate(int grade);
+    Holdable GetHoldable(uint id);
+    EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId);
+    GradeTemplate GetGradeTemplateByOrder(int gradeOrder);
+    ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId);
+    List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId);
+    List<ItemTemplate> GetAllItems();
+    List<Item> GetLootConvertFish(uint templateId);
+    GradeDistributions GetGradeDistributions(byte id);
+    uint GetSocketChance(uint numSockets);
+    ItemCapScale GetItemCapScale(uint skillId);
+    float GetDurabilityRepairCostFactor();
+    float GetDurabilityConst();
+    float GetHoldableDurabilityConst();
+    float GetWearableDurabilityConst();
+    float GetItemStatConst();
+    float GetHoldableStatConst();
+    float GetWearableStatConst();
+    float GetStatValueConst();
+    AttributeModifiers GetAttributeModifiers(uint id);
+    List<uint> GetItemIdsFromDoodad(uint doodadId);
+    ItemTemplate GetItemTemplateFromItemId(uint itemId);
+    List<ItemTemplate> GetItemTemplatesForAuctionSearch(AuctionSearch searchTemplate);
+    ItemProcTemplate GetItemProcTemplate(uint templateId);
+    List<BonusTemplate> GetUnitModifiers(uint itemId);
+    ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade);
+    Item Create(uint templateId, int count, byte grade, bool generateId = true);
+    bool AddItem(Item item);
+    void Load();
+    Item GetItemByItemId(ulong itemId);
+    ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, Unit parentUnit, uint mateId);
+    CofferContainer NewCofferContainer(uint characterId);
+    ItemContainer GetItemContainerByDbId(ulong dbId);
+    bool DeleteItemContainer(ItemContainer container);
+    void LoadUserItems();
+    void ReleaseId(ulong itemId);
+    List<Item> LoadPlayerInventory(ICharacter character);
+    bool IsAutoEquipTradePack(uint itemTemplateId);
+    void UpdateItemTimers();
+    bool UnwrapItem(Character character, SlotType slotType, byte slot, ulong itemId);
+    ItemSet GetItemSet(uint itemSetId);
+}

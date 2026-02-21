@@ -7,7 +7,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class AnimationManager : Singleton<AnimationManager>
+public class AnimationManager : Singleton<AnimationManager>, IAnimationManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

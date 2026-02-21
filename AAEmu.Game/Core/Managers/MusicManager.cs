@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class MusicManager : Singleton<MusicManager>
+public class MusicManager : Singleton<MusicManager>, IMusicManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

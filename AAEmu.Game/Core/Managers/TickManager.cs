@@ -5,11 +5,11 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class TickManager : Singleton<TickManager>
+public class TickManager : Singleton<TickManager>, ITickManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public delegate void OnTickEvent(TimeSpan delta);
-    public TickEventHandler OnTick = new();
+    public TickEventHandler OnTick { get; } = new();
     private bool DoTickLoop = true;
     private Thread TickThread;
 

@@ -14,7 +14,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class EnterWorldManager : Singleton<EnterWorldManager>
+public class EnterWorldManager : Singleton<EnterWorldManager>, IEnterWorldManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

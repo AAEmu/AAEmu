@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class MusicIdManager() : IdManager("MusicIdManager", FirstId, LastId, ObjTables, Exclude)
+public class MusicIdManager() : IdManager("MusicIdManager", FirstId, LastId, ObjTables, Exclude), IMusicIdManager
 {
     private static MusicIdManager _instance;
     private const uint FirstId = 0x00000001;

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Managers;
 /// <summary>
 /// For timed adding credits and loyalty
 /// </summary>
-public class TimedRewardsManager : Singleton<TimedRewardsManager>
+public class TimedRewardsManager : Singleton<TimedRewardsManager>, ITimedRewardsManager
 {
     private const short MaxLabor = 2000;
     private const short MaxLaborPremium = 5000;

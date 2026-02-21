@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class StreamManager : Singleton<StreamManager>
+public class StreamManager : Singleton<StreamManager>, IStreamManager
 {
     private readonly Dictionary<uint, uint> _accounts;
 

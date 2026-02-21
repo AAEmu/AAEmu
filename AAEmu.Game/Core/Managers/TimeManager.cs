@@ -6,7 +6,7 @@ using AAEmu.Game.Models;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class TimeManager : Singleton<TimeManager>, IObservable<float>
+public class TimeManager : Singleton<TimeManager>, IObservable<float>, ITimeManager
 {
     private readonly List<IObserver<float>> _observers = [];
     private bool _work;

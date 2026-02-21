@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class GimmickIdManager() : IdManager("GimmickIdManager", FirstId, LastId, ObjTables, Exclude)
+public class GimmickIdManager() : IdManager("GimmickIdManager", FirstId, LastId, ObjTables, Exclude), IGimmickIdManager
 {
     private static GimmickIdManager _instance;
     private const uint FirstId = 0x0001;

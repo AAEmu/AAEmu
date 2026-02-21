@@ -7,7 +7,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class PlotManager : Singleton<PlotManager>
+public class PlotManager : Singleton<PlotManager>, IPlotManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;

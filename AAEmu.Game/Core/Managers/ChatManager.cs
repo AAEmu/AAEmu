@@ -11,7 +11,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class ChatManager : Singleton<ChatManager>
+public class ChatManager : Singleton<ChatManager>, IChatManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

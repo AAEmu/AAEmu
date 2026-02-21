@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SusManager : Singleton<SusManager>
+public class SusManager : Singleton<SusManager>, ISusManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public static string CategoryBot => "Bot";

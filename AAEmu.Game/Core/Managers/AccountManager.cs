@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers;
 /// <summary>
 /// Manages Connections and Game Account settings
 /// </summary>
-public class AccountManager : Singleton<AccountManager>
+public class AccountManager : Singleton<AccountManager>, IAccountManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

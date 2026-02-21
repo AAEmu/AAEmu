@@ -13,7 +13,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class PublicFarmManager : Singleton<PublicFarmManager>
+public class PublicFarmManager : Singleton<PublicFarmManager>, IPublicFarmManager
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
