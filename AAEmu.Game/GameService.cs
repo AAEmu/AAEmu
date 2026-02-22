@@ -74,12 +74,9 @@ public sealed class GameService : IHostedService, IDisposable
         FeaturesManager.Initialize();
 
         // --- ID managers ---
-        ObjectIdManager.Instance.Initialize();
+        // ObjectIdManager, ItemIdManager, ContainerIdManager, DoodadIdManager, CharacterIdManager
+        // are ILoadable and handled by the orchestrator in Stage 2.
         TradeIdManager.Instance.Initialize();
-        ContainerIdManager.Instance.Initialize();
-        ItemIdManager.Instance.Initialize();
-        DoodadIdManager.Instance.Initialize();
-        CharacterIdManager.Instance.Initialize();
         FamilyIdManager.Instance.Initialize();
         ExpeditionIdManager.Instance.Initialize();
         VisitedSubZoneIdManager.Instance.Initialize();

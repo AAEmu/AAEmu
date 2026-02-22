@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Managers;
 
 using NLog;
 
@@ -37,6 +38,9 @@ public class IdManager
         _freeIdSize = (int)(_lastId - _firstId);
         PrimeFinder.Init();
     }
+
+    /// <summary>Called by the ManagerOrchestrator in Stage 2, delegating to Initialize().</summary>
+    public void Load() => Initialize();
 
     /// <summary>
     /// Initializes the IdManager for use by resetting the Ids and grabbing data from the database if needed

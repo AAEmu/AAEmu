@@ -299,13 +299,13 @@ public static class Program
                 services.AddSingleton(_ => AuctionIdManager.Instance);
                 services.AddSingleton<IAuctionIdManager>(sp => sp.GetRequiredService<AuctionIdManager>());
 
-                services.AddSingleton(_ => CharacterIdManager.Instance);
+                services.AddSingleton<CharacterIdManager>();
                 services.AddSingleton<ICharacterIdManager>(sp => sp.GetRequiredService<CharacterIdManager>());
 
-                services.AddSingleton(_ => ContainerIdManager.Instance);
+                services.AddSingleton<ContainerIdManager>();
                 services.AddSingleton<IContainerIdManager>(sp => sp.GetRequiredService<ContainerIdManager>());
 
-                services.AddSingleton(_ => DoodadIdManager.Instance);
+                services.AddSingleton<DoodadIdManager>();
                 services.AddSingleton<IDoodadIdManager>(sp => sp.GetRequiredService<DoodadIdManager>());
 
                 services.AddSingleton(_ => ExpeditionIdManager.Instance);
@@ -326,7 +326,7 @@ public static class Program
                 services.AddSingleton(_ => HousingTldManager.Instance);
                 services.AddSingleton<IHousingTldManager>(sp => sp.GetRequiredService<HousingTldManager>());
 
-                services.AddSingleton(_ => ItemIdManager.Instance);
+                services.AddSingleton<ItemIdManager>();
                 services.AddSingleton<IItemIdManager>(sp => sp.GetRequiredService<ItemIdManager>());
 
                 services.AddSingleton(_ => MailIdManager.Instance);
@@ -338,7 +338,7 @@ public static class Program
                 services.AddSingleton(_ => MusicIdManager.Instance);
                 services.AddSingleton<IMusicIdManager>(sp => sp.GetRequiredService<MusicIdManager>());
 
-                services.AddSingleton(_ => ObjectIdManager.Instance);
+                services.AddSingleton<ObjectIdManager>();
                 services.AddSingleton<IObjectIdManager>(sp => sp.GetRequiredService<ObjectIdManager>());
 
                 services.AddSingleton(_ => PrivateBookIdManager.Instance);

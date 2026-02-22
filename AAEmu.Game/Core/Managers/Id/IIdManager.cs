@@ -3,7 +3,7 @@ namespace AAEmu.Game.Core.Managers.Id;
 /// <summary>
 /// Common interface for all ID managers.
 /// </summary>
-public interface IIdManager
+public interface IIdManager : ILoadable
 {
     bool Initialize(bool forceReset = false);
     uint GetNextId();
