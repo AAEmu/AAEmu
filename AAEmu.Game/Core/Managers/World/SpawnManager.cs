@@ -48,7 +48,8 @@ public class SpawnManager(WorldInstance parentWorld)
     private List<Doodad> _playerDoodads = [];
 
     private uint _nextId = 1u;
-    private uint _fakeSpawnerId = 9000001u;
+    // Shared across all SpawnManager instances — all write into the global NpcGameData singleton
+    private static uint _fakeSpawnerId = 9000001u;
 
     public List<Task> SpawnTasks { get; init; } = [];
 
