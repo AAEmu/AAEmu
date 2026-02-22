@@ -350,7 +350,7 @@ public static class Program
                 services.AddSingleton<ShipyardIdManager>();
                 services.AddSingleton<IShipyardIdManager>(sp => sp.GetRequiredService<ShipyardIdManager>());
 
-                services.AddSingleton(_ => TaskIdManager.Instance);
+                services.AddSingleton<TaskIdManager>();
                 services.AddSingleton<ITaskIdManager>(sp => sp.GetRequiredService<TaskIdManager>());
 
                 services.AddSingleton<TeamIdManager>();

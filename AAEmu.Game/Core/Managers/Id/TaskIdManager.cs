@@ -1,4 +1,7 @@
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class TaskIdManager() : IdManager("TaskIdManager", FirstId, LastId, ObjTa
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { } };
 
-    public static TaskIdManager Instance => _instance ?? (_instance = new TaskIdManager());
+    public static TaskIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<TaskIdManager>() ?? new TaskIdManager();
 }

@@ -63,11 +63,6 @@ public sealed class GameService : IHostedService, IDisposable
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        // --- Stage 0: Infrastructure ---
-        TickManager.Instance.Initialize();
-        TaskIdManager.Instance.Initialize();
-        TaskManager.Instance.Initialize();
-
         // --- World base (explicit: needed before all other Load() calls) ---
         WorldIdManager.Instance.Initialize();
         WorldManager.Instance.Load();
