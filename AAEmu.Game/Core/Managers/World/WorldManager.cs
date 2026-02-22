@@ -356,6 +356,8 @@ public class WorldManager(
         #endregion
 
         _loaded = true;
+
+        LoadHeightmaps();
     }
 
     public void Initialize()

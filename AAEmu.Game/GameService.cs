@@ -67,10 +67,6 @@ public sealed class GameService : IHostedService, IDisposable
         // All ID managers implement ILoadable and are handled by the orchestrator in Stage 2.
         // SkillTlIdManager.Instance.Initialize(); // static class, not migrated
 
-        // --- Stage 1: Pre-load special steps ---
-        // TODO: Implement lazy loading for heightmaps
-        var heightmapTask = Task.Run(WorldManager.Instance.LoadHeightmaps, cancellationToken);
-
         // --- Stage 2: Orchestrated parallel Load() ---
         // Managers implementing ILoadable are sorted by constructor dep graph and run in parallel batches.
         await _orchestrator.RunLoadAsync();
@@ -99,12 +95,6 @@ public sealed class GameService : IHostedService, IDisposable
         await _orchestrator.RunInitializeAsync();
 
         // --- Stage 5: World creation + network ---
-        if (heightmapTask != null && !heightmapTask.IsCompleted)
-        {
-            Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
-            await heightmapTask;
-        }
-
         // Start main_world and other static instances
         WorldManager.Instance.CreateStaticInstances();
         WorldManager.Instance.Initialize();
