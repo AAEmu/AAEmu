@@ -1,4 +1,6 @@
 ﻿using AAEmu.Game;
+using AAEmu.Game.Core.Managers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -41,7 +43,9 @@ public class GameServiceTests
     public void GameService_ImplementsIHostedService()
     {
         // Arrange
-        using var service = new GameService(Moq.Mock.Of<IServiceProvider>());
+        var sp = Moq.Mock.Of<IServiceProvider>();
+        var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
+        using var service = new GameService(sp, orchestrator);
 
         // Assert
         Assert.IsAssignableFrom<IHostedService>(service);
@@ -51,7 +55,9 @@ public class GameServiceTests
     public void GameService_ImplementsIDisposable()
     {
         // Arrange
-        using var service = new GameService(Moq.Mock.Of<IServiceProvider>());
+        var sp = Moq.Mock.Of<IServiceProvider>();
+        var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
+        using var service = new GameService(sp, orchestrator);
 
         // Assert
         Assert.IsAssignableFrom<IDisposable>(service);
@@ -61,7 +67,9 @@ public class GameServiceTests
     public async Task Dispose_DoesNotThrow()
     {
         // Arrange
-        using var service = new GameService(Moq.Mock.Of<IServiceProvider>());
+        var sp = Moq.Mock.Of<IServiceProvider>();
+        var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
+        using var service = new GameService(sp, orchestrator);
 
         // Act & Assert
         service.Dispose();

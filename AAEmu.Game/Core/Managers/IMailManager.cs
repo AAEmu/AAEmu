@@ -6,7 +6,7 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IMailManager
+public interface IMailManager : ILoadable
 {
     BaseMail GetMailById(long id);
     uint GetNewMailId();
@@ -15,7 +15,6 @@ public interface IMailManager
     void SendMail(MailType type, string receiverName, string senderName, string title, string text, byte attachments, int[] moneyAmounts, long extra, List<Item> items);
     bool DeleteMail(long id);
     bool DeleteMail(BaseMail mail, bool trashItems = false);
-    void Load();
     Dictionary<long, BaseMail> GetCurrentMailList(uint characterId);
     void CheckAllMailTimings();
     bool PayChargeMoney(Character character, long mailId, bool autoUseAAPoint);

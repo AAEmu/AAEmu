@@ -3,8 +3,7 @@ using AAEmu.Game.Models.Stream;
 
 namespace AAEmu.Game.Core.Managers.Stream;
 
-public interface IUccManager
+public interface IUccManager : ILoadable
 {
-    void Load();
     Ucc GetUccFromItem(Item item);
 }

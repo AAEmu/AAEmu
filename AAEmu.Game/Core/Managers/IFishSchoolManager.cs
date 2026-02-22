@@ -3,9 +3,8 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IFishSchoolManager
+public interface IFishSchoolManager : IInitializable
 {
-    void Initialize();
     void Load(WorldInstance world);
     List<Doodad> GetAllFishSchools();
 }

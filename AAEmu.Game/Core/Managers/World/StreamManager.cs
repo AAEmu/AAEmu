@@ -7,12 +7,7 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class StreamManager : Singleton<StreamManager>, IStreamManager
 {
-    private readonly Dictionary<uint, uint> _accounts;
-
-    protected StreamManager()
-    {
-        _accounts = [];
-    }
+    private readonly Dictionary<uint, uint> _accounts = [];
 
     public static void Load()
     {

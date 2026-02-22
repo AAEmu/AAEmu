@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface ISkillManager
+public interface ISkillManager : ILoadable
 {
     event EventHandler OnSkillsLoaded;
 
@@ -26,7 +26,6 @@ public interface ISkillManager
     List<SkillTemplate> GetStartAbilitySkills(AbilityType ability);
     bool IsCommonSkill(uint id);
     bool IsDefaultSkill(uint id);
-    void Load();
     // ushort NextId();
     // void ReleaseId(ushort id);
 }

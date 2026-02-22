@@ -2,9 +2,8 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IFamilyManager
+public interface IFamilyManager : ILoadable
 {
-    void Load();
     void SaveAllFamilies();
     void OnCharacterLogin(Character character);
     void OnCharacterLogout(Character character);

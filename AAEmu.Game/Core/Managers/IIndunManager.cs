@@ -4,9 +4,8 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IIndunManager
+public interface IIndunManager : IInitializable
 {
-    void Initialize();
     bool InstanceHasChannels(uint zoneId);
     bool RequestSystemInstance(Character character, uint zoneId, uint channelId, out Dungeon dungeon);
     void DoIndunActions(uint startActionId, WorldInstance worldInstance);

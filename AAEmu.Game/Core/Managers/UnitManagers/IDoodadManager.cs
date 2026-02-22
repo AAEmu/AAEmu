@@ -6,11 +6,10 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
-public interface IDoodadManager
+public interface IDoodadManager : ILoadable
 {
     bool Exist(uint templateId);
     DoodadTemplate GetTemplate(uint id);
-    void Load();
     Doodad Create(WorldInstance parentWorld, uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false);
     DoodadFunc GetFunc(uint funcId);
     DoodadFunc GetFunc(uint funcGroupId, uint skillId);

@@ -10,7 +10,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IItemManager
+public interface IItemManager : ILoadable
 {
     event EventHandler OnItemsLoaded;
     ItemTemplate GetTemplate(uint id);
@@ -43,7 +43,6 @@ public interface IItemManager
     ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade);
     Item Create(uint templateId, int count, byte grade, bool generateId = true);
     bool AddItem(Item item);
-    void Load();
     Item GetItemByItemId(ulong itemId);
     ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, Unit parentUnit, uint mateId);
     CofferContainer NewCofferContainer(uint characterId);

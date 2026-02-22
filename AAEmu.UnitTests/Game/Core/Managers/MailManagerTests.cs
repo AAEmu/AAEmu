@@ -18,7 +18,7 @@ public class MailManagerTests
         var mockWorld = new Mock<IWorldManager>();
         var mockHousing = new Mock<IHousingManager>();
         var mockLocale = new Mock<ILocalizationManager>();
-        var manager = new MailManager(mockMailId.Object, mockName.Object, mockItem.Object, mockTask.Object, mockWorld.Object, mockHousing.Object, mockLocale.Object);
+        var manager = new MailManager(mockMailId.Object, mockName.Object, mockItem.Object, mockTask.Object, mockWorld.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockLocale.Object);
 
         Assert.NotNull(manager);
         mockMailId.VerifyNoOtherCalls();

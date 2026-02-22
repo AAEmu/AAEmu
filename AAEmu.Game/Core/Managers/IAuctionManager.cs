@@ -9,10 +9,9 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IAuctionManager
+public interface IAuctionManager : ILoadable
 {
     ConcurrentDictionary<ulong, AuctionLot> AuctionLots { get; }
-    void Load();
     void CancelAuctionLot(Character player, ulong auctionId);
     void BidOnAuctionLot(Character player, uint auctioneerId, uint auctioneerId2, AuctionLot lot, AuctionBid bid);
     void GetBidAuctionLots(Character player, int page);

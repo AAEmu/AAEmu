@@ -6,9 +6,8 @@ using Portal = AAEmu.Game.Models.Game.Portal;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IPortalManager
+public interface IPortalManager : ILoadable
 {
-    void Load();
     List<Portal> GetRecallBySubZoneId(uint subZoneId);
     Portal GetRecallById(uint returnPointId);
     Portal GetRespawnBySubZoneId(uint subZoneId);

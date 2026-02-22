@@ -9,7 +9,7 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
-public interface ICharacterManager
+public interface ICharacterManager : ILoadable
 {
     CharacterTemplate GetTemplate(Race race, Gender gender);
     AppellationTemplate GetAppellationsTemplate(uint id);
@@ -18,7 +18,6 @@ public interface ICharacterManager
     uint GetActabilityIdByCategoryId(uint id);
     ExpertLimit GetExpertLimit(int step);
     ExpandExpertLimit GetExpandExpertLimit(int step);
-    void Load();
     int GetEffectiveAccessLevel(Character character);
     void Create(GameConnection connection, string name, Race race, Gender gender, uint[] bodyItems, UnitCustomModelParams customModel, AbilityType ability1, AbilityType ability2, AbilityType ability3, byte level);
     bool IsCharacterPendingDeletion(string name);

@@ -1,13 +1,11 @@
 using System.Numerics;
-
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public interface IZoneManager
+public interface IZoneManager : ILoadable
 {
-    void Load();
     ZoneConflict[] GetConflicts();
     Zone GetZoneById(uint zoneId);
     Zone GetZoneByKey(uint zoneKey);

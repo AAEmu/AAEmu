@@ -2,9 +2,8 @@ using AAEmu.Game.Models.Game.Models;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IModelManager
+public interface IModelManager : ILoadable
 {
-    void Load();
     ModelType GetModelType(uint modelId);
     ActorModel GetActorModel(uint modelId);
     ShipModelV1 GetShipModel(uint modelId);

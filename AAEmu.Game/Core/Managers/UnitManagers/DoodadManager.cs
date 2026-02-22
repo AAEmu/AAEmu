@@ -32,7 +32,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager doodadIdManager, IItemManager itemManager, IHousingManager housingManager, ISusManager susManager) : Singleton<DoodadManager>, IDoodadManager
+public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager doodadIdManager, IItemManager itemManager, Lazy<IHousingManager> housingManager, ISusManager susManager) : Singleton<DoodadManager>, IDoodadManager
 {
     private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
 
@@ -2990,7 +2990,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
         // NOTE: If you would ever want to use player housing outside of main_world, you'll need to modify this
-        var targetHouse = housingManager.GetHouseAtLocation(x, y);
+        var targetHouse = housingManager.Value.GetHouseAtLocation(x, y);
 
         // Create doodad
         var doodad = Instance.Create(character.ParentWorld, 0, id, character, true);

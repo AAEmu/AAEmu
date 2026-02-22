@@ -370,6 +370,22 @@ public static class Program
 
                 services.AddSingleton(_ => WorldIdManager.Instance);
                 services.AddSingleton<IWorldIdManager>(sp => sp.GetRequiredService<WorldIdManager>());
+
+                // -- Lazy<T> wrappers for circular-dep break patterns --
+                // MS DI does NOT auto-wrap registered types in Lazy<T>; they must be registered explicitly.
+                // WorldManager takes these three as Lazy<T> to break the circular dependency.
+                services.AddSingleton(sp => new Lazy<IZoneManager>(sp.GetRequiredService<IZoneManager>));
+                services.AddSingleton(sp => new Lazy<IIndunManager>(sp.GetRequiredService<IIndunManager>));
+                services.AddSingleton(sp => new Lazy<IFamilyManager>(sp.GetRequiredService<IFamilyManager>));
+                // NameManager ↔ CharacterManager circular dep: NameManager takes Lazy<ICharacterManager>.
+                services.AddSingleton(sp => new Lazy<ICharacterManager>(sp.GetRequiredService<ICharacterManager>));
+                // HousingManager ↔ MailManager circular dep: MailManager takes Lazy<IHousingManager>.
+                services.AddSingleton(sp => new Lazy<IHousingManager>(sp.GetRequiredService<IHousingManager>));
+
+                // -- Orchestrator --
+                // Expose the ServiceCollection itself so ManagerOrchestrator can inspect registrations.
+                services.AddSingleton(_ => services);
+                services.AddSingleton<ManagerOrchestrator>();
             });
 
         try

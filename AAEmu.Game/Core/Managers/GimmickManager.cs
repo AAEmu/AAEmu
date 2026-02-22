@@ -86,12 +86,14 @@ public class GimmickManager(WorldInstance parentWorld)
         }
 
         gimmick.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
-        _activeGimmicks.TryAdd(gimmick.ObjId, gimmick);
+        lock (_activeGimmicks)
+            _activeGimmicks.TryAdd(gimmick.ObjId, gimmick);
     }
 
     public void RemoveActiveGimmick(Gimmick gimmick)
     {
-        _activeGimmicks.Remove(gimmick.ObjId);
+        lock (_activeGimmicks)
+            _activeGimmicks.Remove(gimmick.ObjId);
     }
 
     /// <summary>

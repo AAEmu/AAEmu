@@ -4,9 +4,8 @@ using AAEmu.Game.Models.Game.Music;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IMusicManager
+public interface IMusicManager : ILoadable
 {
-    void Load();
     bool Save(SongData songData);
     void UploadSong(uint charId, string title, string song, ulong itemId);
     bool CreateSheetMusic(Character player, Item sourceItem);

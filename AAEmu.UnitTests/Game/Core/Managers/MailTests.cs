@@ -49,7 +49,7 @@ public sealed class MailTests : IDisposable
             Mock.Of<IItemManager>(),
             Mock.Of<ITaskManager>(),
             Mock.Of<IWorldManager>(),
-            Mock.Of<IHousingManager>(),
+            new Lazy<IHousingManager>(() => Mock.Of<IHousingManager>()),
             Mock.Of<ILocalizationManager>());
 
         var services = new ServiceCollection();

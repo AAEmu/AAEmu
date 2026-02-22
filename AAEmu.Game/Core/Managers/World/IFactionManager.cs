@@ -3,9 +3,8 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public interface IFactionManager
+public interface IFactionManager : ILoadable
 {
-    void Load();
     SystemFaction GetFaction(FactionsEnum id);
     void AddFaction(SystemFaction faction);
 }

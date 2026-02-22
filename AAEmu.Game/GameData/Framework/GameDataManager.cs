@@ -1,16 +1,41 @@
-﻿using System.Reflection;
+using System.Reflection;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
 namespace AAEmu.Game.GameData.Framework;
 
-public class GameDataManager : Singleton<GameDataManager>, IGameDataManager
+/// <summary>
+/// Orchestrates all <see cref="IGameDataLoader"/> implementations.
+/// The constructor deps (Localization, Taxations, Item, Quest, Zone) are declared here
+/// so the <see cref="ManagerOrchestrator"/> knows those managers must complete their
+/// <c>Load()</c> before <c>GameDataManager.Load()</c> runs — their data is accessed by
+/// individual game-data loaders (HousingGameData, SphereGameData, etc.) via static Instance.
+/// </summary>
+public class GameDataManager(
+    ILocalizationManager localizationManager,
+    ITaxationsManager taxationsManager,
+    IItemManager itemManager,
+    IQuestManager questManager,
+    IZoneManager zoneManager
+) : Singleton<GameDataManager>, IGameDataManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly List<IGameDataLoader> _loaders = [];
     private bool _loadedGameData = false;
     private bool _postLoadedGameData = false;
+
+    // Stored so DI keeps references alive and to suppress CS9113 (unread primary ctor param).
+    private readonly ILocalizationManager _localizationManager = localizationManager;
+    private readonly ITaxationsManager _taxationsManager = taxationsManager;
+    private readonly IItemManager _itemManager = itemManager;
+    private readonly IQuestManager _questManager = questManager;
+    private readonly IZoneManager _zoneManager = zoneManager;
+
+    /// <inheritdoc cref="ILoadable.Load"/>
+    public void Load() => LoadGameData();
 
     public void LoadGameData()
     {

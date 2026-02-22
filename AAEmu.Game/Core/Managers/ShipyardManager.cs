@@ -19,15 +19,12 @@ public class ShipyardManager(ITaskManager taskManager, IObjectIdManager objectId
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public Dictionary<uint, ShipyardsTemplate> _shipyardsTemplate;
-    private Dictionary<uint, Shipyard> _shipyard;
-    private List<uint> _removedShipyards;
+    public Dictionary<uint, ShipyardsTemplate> _shipyardsTemplate = [];
+    private Dictionary<uint, Shipyard> _shipyard = [];
+    private List<uint> _removedShipyards = [];
 
     public void Initialize()
     {
-        _shipyardsTemplate = [];
-        _shipyard = [];
-        _removedShipyards = [];
         Logger.Info("Initialising Shipyard Manager...");
         ShipyardTickStart();
     }

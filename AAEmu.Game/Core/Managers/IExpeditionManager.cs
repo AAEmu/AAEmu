@@ -2,8 +2,7 @@ using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IExpeditionManager
+public interface IExpeditionManager : ILoadable
 {
     IEnumerable<Expedition> Expeditions { get; }
-    void Load();
 }

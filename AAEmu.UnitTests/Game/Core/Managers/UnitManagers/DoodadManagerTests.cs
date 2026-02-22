@@ -16,7 +16,7 @@ public class DoodadManagerTests
         var mockItem = new Mock<IItemManager>();
         var mockHousing = new Mock<IHousingManager>();
         var mockSus = new Mock<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, mockHousing.Object, mockSus.Object);
+        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         Assert.NotNull(manager);
         mockObjId.VerifyNoOtherCalls();

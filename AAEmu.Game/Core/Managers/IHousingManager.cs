@@ -34,5 +34,6 @@ public interface IHousingManager
     bool DecorateHouse(Character player, ushort houseTlId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId);
     void HousingToggleAllowRecover(Character character, ushort houseTl);
     House GetHouseAtLocation(float x, float y);
+    bool PayWeeklyTax(House house);
     (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
 }

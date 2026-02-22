@@ -1,7 +1,6 @@
 namespace AAEmu.Game.Core.Managers;
 
-public interface IAccessLevelManager
+public interface IAccessLevelManager : ILoadable
 {
-    void Load();
     int GetLevel(string commandStr);
 }

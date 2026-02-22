@@ -17,7 +17,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class MailManager(IMailIdManager mailIdManager, INameManager nameManager, IItemManager itemManager, ITaskManager taskManager, IWorldManager worldManager, IHousingManager housingManager, ILocalizationManager localizationManager) : Singleton<MailManager>, IMailManager
+public class MailManager(IMailIdManager mailIdManager, INameManager nameManager, IItemManager itemManager, ITaskManager taskManager, IWorldManager worldManager, Lazy<IHousingManager> housingManager, ILocalizationManager localizationManager) : Singleton<MailManager>, IMailManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -389,7 +389,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
         var houseId = (uint)(mail.Header.Extra & 0xFFFFFFFF); // Extract house DB Id from Extra
         var houseZoneGroup = (mail.Header.Extra >> 48) & 0xFFFF; // Extract zone group Id from Extra
-        var house = housingManager.GetHouseById(houseId);
+        var house = housingManager.Value.GetHouseById(houseId);
 
         if (house == null)
         {
@@ -454,7 +454,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             }
         }
 
-        if (!HousingManager.Instance.PayWeeklyTax(house))
+        if (!housingManager.Value.PayWeeklyTax(house))
             Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
         else
         {

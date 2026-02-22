@@ -1,10 +1,9 @@
 namespace AAEmu.Game.Core.Managers;
 
-public interface IExperienceManager
+public interface IExperienceManager : ILoadable
 {
     byte MaxPlayerLevel { get; }
     byte MaxMateLevel { get; }
-    void Load();
     void Load(IExperienceLevelTemplateLoader loader, byte playerLevelCap, byte mateLevelCap);
     int GetExpForLevel(byte level, bool mate = false);
     byte GetLevelFromExp(int exp, out int overflow, bool mate = false);
