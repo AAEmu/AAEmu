@@ -25,6 +25,7 @@ public abstract class BaseCombatBehavior : Behavior
     protected DateTime _combatStartTime;
     protected Queue<AiSkill> _skillQueue;
     private bool _startingSkillAlreadyUsed;
+    private DateTime _lastPathRecalcTime;
 
     public void MoveInRange(BaseUnit target, TimeSpan delta)
     {
@@ -134,60 +135,103 @@ public abstract class BaseCombatBehavior : Behavior
 
         if (AppConfiguration.Instance.World.GeoDataMode && target != null)
         {
-            if (Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
+            if (distanceToTarget <= range)
             {
-                // If not at target position (take model size error margin), then calculate new target route position
-                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
-                {
-                    var stopWatch = new Stopwatch();
-                    stopWatch.Start();
-                    Ai.Owner.FindPath((Unit)target);
-                    stopWatch.Stop();
-                    // Toss warning if it took a long time
-                    if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
-                        Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
-                    // Save the target's new coordinates
-                    Ai.PathNode.EndPointPos =  new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
-                }
-            }
-
-            // If there is a PathNode set, and we still have a target, then find the next point to move to
-            if (Ai.PathNode != null)
-            {
-                if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
-                {
-                    var nextPathPoint = Ai.PathNode.FoundPath.Peek();
-                    distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, nextPathPoint, true);
-                    if (distanceToTarget > range)
-                    {
-                        Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags, range);
-                    }
-                    else
-                    {
-                        if (Ai.PathNode.FoundPath.Count <= 0)
-                        {
-                            Ai.Owner.StopMovement();
-                            Ai.PathNode.FoundPath = [];
-                            return;
-                        }
-
-                        Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
-                    }
-                }
-                else
-                {
-                    if (distanceToTarget > range)
-                        Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags, range);
-                    else
-                        Ai.Owner.StopMovement();
-                }
+                Ai.Owner.StopMovement();
+                if (Ai.PathNode?.FoundPath?.Count > 0)
+                    Ai.PathNode.FoundPath = [];
             }
             else
             {
-                if (distanceToTarget > range)
-                    Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
+                // Check line of sight: is there a wall between NPC and target?
+                var npcPos = Ai.Owner.Transform.World.Position;
+                var targetPos = target.Transform.World.Position;
+                var wallBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
+                    .LinePassesThroughForbiddenArea(npcPos, targetPos) ?? false;
+
+                if (!wallBlocked)
+                {
+                    // Clear path — straight line to target
+                    Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
+                    if (Ai.PathNode?.FoundPath?.Count > 0)
+                        Ai.PathNode.FoundPath = [];
+                }
                 else
-                    Ai.Owner.StopMovement();
+                {
+                    // Wall detected on full line — check if the IMMEDIATE path is also blocked.
+                    // On ramps, the full line may clip distant forbidden areas, but the next
+                    // few meters are clear. In that case, prefer straight-line movement.
+                    var dirToTarget = Vector3.Normalize(targetPos - npcPos);
+                    var checkDist = MathF.Min(5f, (float)distanceToTarget);
+                    var shortTarget = npcPos + dirToTarget * checkDist;
+                    var immediateBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
+                        .LinePassesThroughForbiddenArea(npcPos, shortTarget) ?? false;
+
+                    if (!immediateBlocked)
+                    {
+                        // Immediate path is clear — wall is far ahead (ramp / distant obstacle)
+                        Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
+                        if (Ai.PathNode?.FoundPath?.Count > 0)
+                            Ai.PathNode.FoundPath = [];
+                    }
+                    else if (Ai.PathNode != null)
+                    {
+                        // Immediate path also blocked — use A* to navigate around
+                        var targetMoved = (Ai.PathNode.EndPointPos - targetPos).Length() > 3f;
+                        var noPath = Ai.PathNode.FoundPath.Count == 0;
+                        var cooldownElapsed = DateTime.UtcNow > _lastPathRecalcTime.AddSeconds(2);
+
+                        if ((targetMoved || noPath) && cooldownElapsed)
+                        {
+                            Ai.PathNode.FoundPath = [];
+                            var stopWatch = new Stopwatch();
+                            stopWatch.Start();
+                            Ai.Owner.FindPath((Unit)target);
+                            stopWatch.Stop();
+                            _lastPathRecalcTime = DateTime.UtcNow;
+                            if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
+                                Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
+                            Ai.PathNode.EndPointPos = targetPos;
+                        }
+
+                        // Follow A* waypoints, but re-check line of sight at each one
+                        if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
+                        {
+                            // Check if we now have line of sight to the target — skip remaining A* path
+                            var currentPos = Ai.Owner.Transform.World.Position;
+                            var nowClear = !(Ai.Owner.ParentWorld?.Template?.GeoData?
+                                .LinePassesThroughForbiddenArea(currentPos, targetPos) ?? false);
+                            if (nowClear)
+                            {
+                                Ai.PathNode.FoundPath = [];
+                                Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
+                            }
+                            else
+                            {
+                                var nextPathPoint = Ai.PathNode.FoundPath.Peek();
+                                var distToPoint = MathUtil.CalculateDistance(currentPos, nextPathPoint, true);
+                                if (distToPoint > 1.0f)
+                                {
+                                    Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags);
+                                }
+                                else
+                                {
+                                    Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // No A* path available — fallback to direct movement
+                            Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
+                        }
+                    }
+                    else
+                    {
+                        // No PathNode — direct movement only
+                        Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
+                    }
+                }
             }
         }
         else

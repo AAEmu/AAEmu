@@ -83,7 +83,13 @@ public partial class Npc : Unit
     public bool CanFly { get; set; } // TODO: mark NPCs that can fly so that they don't land on the ground when calculating the Z height
 
     /// <summary>
-    /// Tagging works differently to Aggro and has its own system 
+    /// Current downward fall velocity in units/second. Used by the NPC gravity system.
+    /// Reset to 0 when the NPC is on the ground.
+    /// </summary>
+    public float FallVelocity { get; set; }
+
+    /// <summary>
+    /// Tagging works differently to Aggro and has its own system
     /// </summary>
     public Tagging CharacterTagging { get; set; }
 
@@ -1288,8 +1294,22 @@ public partial class Npc : Unit
 
         // TODO: Implement proper use for Transform.World.AddDistanceToFront
         var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
-        var targetPositionZ = WorldManager.Instance.GetReferenceHeight(Ai, newX, newY, newZ, Transform.ZoneId);
-        Transform.Local.SetPosition(newX, newY, targetPositionZ);
+
+        if (!CanFly)
+        {
+            // Ground NPCs: Z is determined by terrain, not by interpolation
+            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, newZ);
+            if (terrainZ > 0f)
+                newZ = terrainZ;
+            else
+                newZ = Transform.Local.Position.Z; // No terrain data — keep current Z
+        }
+        else
+        {
+            newZ = WorldManager.Instance.GetReferenceHeight(Ai, newX, newY, newZ, Transform.ZoneId);
+        }
+
+        Transform.Local.SetPosition(newX, newY, newZ);
 
         var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
         var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
@@ -1325,7 +1345,14 @@ public partial class Npc : Unit
     public void LookTowards(Vector3 other, byte flags = 4)
     {
         var oldPosition = Transform.Local.ClonePosition();
-        oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        if (!CanFly)
+        {
+            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
+            if (terrainZ > 0f && refZ < terrainZ)
+                refZ = terrainZ;
+        }
+        oldPosition.Z = refZ;
         Transform.Local.SetPosition(oldPosition);
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
@@ -1364,8 +1391,16 @@ public partial class Npc : Unit
 
     public void StopMovement()
     {
+        FallVelocity = 0f; // Reset fall state when explicitly stopping
         var oldPosition = Transform.Local.ClonePosition();
-        oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        if (!CanFly)
+        {
+            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
+            if (terrainZ > 0f && refZ < terrainZ)
+                refZ = terrainZ;
+        }
+        oldPosition.Z = refZ;
         Transform.Local.SetPosition(oldPosition);
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
@@ -1411,14 +1446,7 @@ public partial class Npc : Unit
         resList.Add(abuser.Transform.World.Position);
         var reducedPath = ParentWorld.Template.GeoData.ReducePath(resList, 10);
         Ai.PathNode.FoundPath = reducedPath;
-        if (abuser is Character player)
-        {
-            player.SendMessage($"Aggro from {Ai.Owner.ObjId}, getting attack path in {Ai.PathNode.FoundPath.Count}/{resList.Count} steps");
-            foreach (var v3 in Ai.PathNode.FoundPath)
-            {
-                player.SendMessage($"Path step -> {v3}");
-            }
-        }
+        Logger.Debug($"NPC {Ai.Owner.ObjId} pathfinding to target: {Ai.PathNode.FoundPath.Count}/{resList.Count} steps");
     }
 
     /// <summary>

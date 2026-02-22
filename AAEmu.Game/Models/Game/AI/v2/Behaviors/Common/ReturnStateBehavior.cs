@@ -1,6 +1,10 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+﻿using System.Numerics;
+
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils;
@@ -57,6 +61,9 @@ public class ReturnStateBehavior : BaseCombatBehavior
             OnCompletedReturnNoTeleport();
         }
 
+        if (Ai.PathNode?.FoundPath?.Count > 0)
+            Ai.PathNode.FoundPath = [];
+
         _timeoutTime = DateTime.UtcNow.AddSeconds(20);
         _enter = true;
     }
@@ -69,13 +76,99 @@ public class ReturnStateBehavior : BaseCombatBehavior
         var moveSpeed = Ai.GetRealMovementSpeed(Ai.Owner.BaseMoveSpeed);
         var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
         moveSpeed *= delta.Milliseconds / 1000.0;
-        Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
 
-        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Transform.World.Position);
+        var currentPos = Ai.Owner.Transform.World.Position;
+        var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, currentPos);
+
         if (distanceToIdle < 1.0f)
         {
             OnCompletedReturnNoTeleport();
             return;
+        }
+
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            // Same logic as combat: straight line by default, A* only when wall blocks path
+            var wallBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
+                .LinePassesThroughForbiddenArea(currentPos, Ai.IdlePosition) ?? false;
+
+            if (!wallBlocked)
+            {
+                // Clear path — straight line to idle position
+                Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                if (Ai.PathNode?.FoundPath?.Count > 0)
+                    Ai.PathNode.FoundPath = [];
+            }
+            else
+            {
+                // Wall detected on full line — check if the IMMEDIATE path is also blocked.
+                // On ramps, the full line may clip distant forbidden areas, but the next
+                // few meters are clear. In that case, prefer straight-line movement.
+                var dirToIdle = Vector3.Normalize(Ai.IdlePosition - currentPos);
+                var checkDist = MathF.Min(5f, (float)distanceToIdle);
+                var shortTarget = currentPos + dirToIdle * checkDist;
+                var immediateBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
+                    .LinePassesThroughForbiddenArea(currentPos, shortTarget) ?? false;
+
+                if (!immediateBlocked)
+                {
+                    // Immediate path is clear — wall is far ahead (ramp / distant obstacle)
+                    Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                    if (Ai.PathNode?.FoundPath?.Count > 0)
+                        Ai.PathNode.FoundPath = [];
+                }
+                else if (Ai.PathNode != null)
+                {
+                    // Wall also blocks immediate path — use A* to navigate around
+                    if (Ai.PathNode.FoundPath.Count == 0)
+                    {
+                        Ai.PathNode.StartPointPos = currentPos;
+                        Ai.PathNode.EndPointPos = Ai.IdlePosition;
+                        Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
+                        var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, currentPos, Ai.IdlePosition);
+                        resList.Add(Ai.IdlePosition);
+                        Ai.PathNode.FoundPath = Ai.Owner.ParentWorld.Template.GeoData.ReducePath(resList, 10);
+                    }
+
+                    if (Ai.PathNode.FoundPath.Count > 0)
+                    {
+                        // Re-check line of sight — if clear, drop A* and go straight
+                        var nowClear = !(Ai.Owner.ParentWorld?.Template?.GeoData?
+                            .LinePassesThroughForbiddenArea(currentPos, Ai.IdlePosition) ?? false);
+                        if (nowClear)
+                        {
+                            Ai.PathNode.FoundPath = [];
+                            Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                        }
+                        else
+                        {
+                            var nextPoint = Ai.PathNode.FoundPath.Peek();
+                            var distToPoint = MathUtil.CalculateDistance(currentPos, nextPoint, true);
+                            if (distToPoint > 1.0f)
+                            {
+                                Ai.Owner.MoveTowards(nextPoint, (float)moveSpeed, moveFlags);
+                            }
+                            else
+                            {
+                                Ai.PathNode.FoundPath.Dequeue();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                    }
+                }
+                else
+                {
+                    // No PathNode — direct movement only
+                    Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                }
+            }
+        }
+        else
+        {
+            Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
         }
 
         if (DateTime.UtcNow > _timeoutTime)
@@ -91,14 +184,41 @@ public class ReturnStateBehavior : BaseCombatBehavior
             Ai.Owner.StopMovement();
         }
 
+        CorrectIdlePositionZ();
         OnCompletedReturnNoTeleport();
     }
 
     public void OnCompletedReturnNoTeleport()
     {
-        // TODO: Handle return signal override
+        CorrectIdlePositionZ();
         Ai.GoToIdle();
-        // Ai.GoToDefaultBehavior();
+    }
+
+    /// <summary>
+    /// Corrects the Z coordinate of the NPC's current and idle positions
+    /// to match the terrain height, preventing NPCs from floating after return.
+    /// </summary>
+    private void CorrectIdlePositionZ()
+    {
+        if (Ai.Owner.CanFly)
+            return;
+
+        var zoneId = Ai.Owner.Transform.ZoneId;
+
+        // Correct current position if floating
+        var currentPos = Ai.Owner.Transform.World.Position;
+        var terrainZ = WorldManager.Instance.GetHeight(zoneId, currentPos.X, currentPos.Y, currentPos.Z);
+        if (terrainZ > 0f && currentPos.Z > terrainZ + 0.5f)
+        {
+            Ai.Owner.Transform.Local.SetHeight(terrainZ);
+        }
+
+        // Correct stored IdlePosition if floating
+        var idleTerrainZ = WorldManager.Instance.GetHeight(zoneId, Ai.IdlePosition.X, Ai.IdlePosition.Y, Ai.IdlePosition.Z);
+        if (idleTerrainZ > 0f && Ai.IdlePosition.Z > idleTerrainZ + 0.5f)
+        {
+            Ai.IdlePosition = Ai.IdlePosition with { Z = idleTerrainZ };
+        }
     }
 
     public override void Exit()

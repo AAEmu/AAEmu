@@ -258,78 +258,48 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <returns></returns>
     public float GetHeight(Vector3 pos)
     {
-        float res;
-        //var stopWatch = new Stopwatch();
-        //stopWatch.Start();
         try
         {
             var closestPoint = Vector3.Zero;
-            var closestDistance = float.MaxValue;
+            var closestDistance2D = float.MaxValue;
 
-            // Try to get height from .bai files data
+            // Only use NetMission walkable nodes for terrain height.
+            // VertexMission contains obstacle positions (rocks, trees, fences)
+            // whose Z represents the obstacle top, NOT walkable ground.
             var bai = worldTemplate.GetBaiByPos(pos);
             if (bai != null)
             {
-                if (bai.NetMissionReaders.Count > 0)
+                foreach (var netMission in bai.NetMissionReaders)
                 {
-                    foreach (var netMission in bai.NetMissionReaders)
+                    foreach (var (_, nodeDescriptor) in netMission.NodeDescriptorList)
                     {
-                        foreach (var (_, nodeDescriptor) in netMission.NodeDescriptorList)
+                        var dx = nodeDescriptor.Pos.X - pos.X;
+                        var dy = nodeDescriptor.Pos.Y - pos.Y;
+                        var dist2D = dx * dx + dy * dy;
+                        if (dist2D < closestDistance2D)
                         {
-                            var dist = (nodeDescriptor.Pos - pos).Length();
-                            if (dist < closestDistance)
-                            {
-                                closestDistance = dist;
-                                closestPoint = nodeDescriptor.Pos;
-                                // Slightly optimize if very close to target point
-                                if (closestDistance < 0.01f)
-                                {
-                                    return closestPoint.Z;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (bai.VertexMissionReaders.Count > 0)
-                {
-                    foreach (var vertexMission in bai.VertexMissionReaders)
-                    {
-                        foreach (var obstacleDataDescriptor in vertexMission.ObstacleDataDescriptorList)
-                        {
-                            var dist = (obstacleDataDescriptor.Pos - pos).Length();
-                            if (dist < closestDistance)
-                            {
-                                closestDistance = dist;
-                                closestPoint = obstacleDataDescriptor.Pos;
-                                // Slightly optimize if very close to target point
-                                if (closestDistance < 0.01f)
-                                {
-                                    return closestPoint.Z;
-                                }
-                            }
+                            closestDistance2D = dist2D;
+                            closestPoint = nodeDescriptor.Pos;
+                            if (closestDistance2D < 0.01f)
+                                return closestPoint.Z;
                         }
                     }
                 }
             }
-            
-            // Now compare to heightmap data
-            if (closestDistance >= float.MaxValue) 
+
+            // If nearest walkable node is too far (>5 units in 2D), its height
+            // is unreliable for this position — fall back to heightmap
+            if (closestDistance2D > 5f * 5f || closestDistance2D >= float.MaxValue)
             {
-                // Fall back to raw heightmap data
-                closestPoint = new Vector3(pos.X, pos.Y, worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y)));
+                return worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y));
             }
 
             return closestPoint.Z;
         }
         catch
         {
-            res = 0f;
+            return 0f;
         }
-        //stopWatch.Stop();
-        //Logger.Info($"GetHeight took {stopWatch.Elapsed}");
-
-        return res;
     }
 
     private static float DistanceBetweenPoints(Vector3 point, Vector3 compareTo)
@@ -450,10 +420,12 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <param name="startNode"></param>
     /// <param name="endNode"></param>
     /// <returns></returns>
-    private bool LinePassesThroughForbiddenArea(Vector3 startNode, Vector3 endNode)
+    public bool LinePassesThroughForbiddenArea(Vector3 startNode, Vector3 endNode)
     {
         // It should be enough to grab the starting node's bai data. Forbidden zones are defined if even part of the zone falls within the area
         var sourceBai = worldTemplate.GetBaiByPos(startNode);
+        if (sourceBai == null)
+            return false; // No navmesh data — assume clear path
         foreach (var areaMission in sourceBai.AreasMissionReaders)
         {
             // Loop forbidden areas shape

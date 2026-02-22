@@ -682,31 +682,39 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <returns></returns>
     public float GetHeight(uint zoneKey, float x, float y, float z)
     {
-        // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-        var height = 0f;
         var world = GetWorldTemplateByZoneKey(zoneKey);
+        if (world == null)
+            return 0f;
 
+        // HeightMaps provide continuous terrain height at any X,Y — best for ground level
+        var heightMapZ = 0f;
+        if (AppConfiguration.Instance.HeightMapsEnable)
+        {
+            try
+            {
+                heightMapZ = world.GetHeight(x, y);
+            }
+            catch
+            {
+                heightMapZ = 0f;
+            }
+        }
+
+        // GeoData provides navmesh node heights — may include structures (bridges, platforms)
+        var geoDataZ = 0f;
         if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            var position = new Vector3(x, y, z);
-            height = world?.GeoData.GetHeight(position) ?? height;
+            geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
         }
 
-        if (height != 0f || !AppConfiguration.Instance.HeightMapsEnable)
-        {
-            return height;
-        }
+        // Prefer HeightMap — it's continuous and accurate for any X,Y terrain position.
+        // GeoData is sparse (navmesh nodes) and only used as fallback.
+        if (heightMapZ > 0f)
+            return heightMapZ;
+        if (geoDataZ > 0f)
+            return geoDataZ;
 
-        try
-        {
-            height = world?.GetHeight(x, y) ?? 0f;
-        }
-        catch
-        {
-            height = 0f;
-        }
-
-        return height;
+        return 0f;
     }
 
     /// <summary>
@@ -753,40 +761,34 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public float GetReferenceHeight(NpcAi ai, float x, float y, float z, uint zoneId)
     {
-        float finalHeight;
-
-        // 0. Just in case.
+        // 0. Null safety
         if (ai == null)
-        {
-            finalHeight = GetHeight(zoneId, x, y, z);
-            return finalHeight;
-        }
+            return GetHeight(zoneId, x, y, z);
 
-        // 1. If an NPC can fly, the height is taken from the spawner's position.
+        // 1. Flying NPCs stay at their designated height
         if (ai.Owner.CanFly)
-        {
-            finalHeight = ai.Owner.Spawner.Position.Z;
-            return finalHeight;
-        }
+            return ai.Owner.Spawner?.Position.Z ?? z;
 
-        // 2. For HoldPositionBehavior and IdleBehavior, the height is taken from the spawner.
+        // 2. For Idle/HoldPosition, prefer terrain height but fall back to spawner
         switch (ai.GetCurrentBehavior())
         {
             case HoldPositionBehavior:
             case IdleBehavior:
-                finalHeight = ai.Owner.Spawner.Position.Z;
-                return finalHeight;
+            {
+                var terrainHeight = GetHeight(zoneId, x, y, z);
+                if (terrainHeight > 0f)
+                    return terrainHeight;
+                return ai.Owner.Spawner?.Position.Z ?? z;
+            }
         }
 
-        // 3. Terrain height retrieval
-        finalHeight = GetHeight(zoneId, x, y, z);
-        if (finalHeight != 0/* && Math.Abs(worldHeight - Spawner.Position.Z) <= 0.1f*/)
-        {
+        // 3. General case: terrain lookup
+        var finalHeight = GetHeight(zoneId, x, y, z);
+        if (finalHeight > 0f)
             return finalHeight;
-        }
 
-        // 4. Take the default height
-        return ai.Owner.Spawner?.Position.Z ?? ai.Owner.Transform.World.Position.Z;
+        // 4. Last resort: use the NPC's current Z to avoid snapping to a wrong spawner Z
+        return z;
     }
 
     /// <summary>

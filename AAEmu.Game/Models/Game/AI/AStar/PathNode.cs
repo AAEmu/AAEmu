@@ -217,14 +217,15 @@ public class PathNode
             }
 
             // Fill in the data for the waypoint.
+            var edgeLength = (linkDescriptor.SourceNodeDescriptor.Pos - linkDescriptor.TargetNodeDescriptor.Pos).Length();
             var neighbourNode = new PathNode
             {
                 CurrentTargetPos = linkDescriptor.TargetNodeDescriptor.Pos,
                 Position = linkDescriptor.TargetNodeDescriptor.Pos,
                 EndPointPos = pathNode.EndPointPos,
                 CameFrom = pathNode,
-                PathLengthFromStart = (linkDescriptor.SourceNodeDescriptor.Pos - pathNode.EndPointPos).Length(), // GetDistanceFromStart(linkDescriptor.SourceNodeDescriptor.Pos),
-                PathLengthToEnd = (linkDescriptor.TargetNodeDescriptor.Pos - pathNode.EndPointPos).Length() // GetHeuristicPathLength(linkDescriptor.TargetNodeDescriptor.Pos)
+                PathLengthFromStart = pathNode.PathLengthFromStart + edgeLength,
+                PathLengthToEnd = (linkDescriptor.TargetNodeDescriptor.Pos - pathNode.EndPointPos).Length()
             };
 
             result.Add(neighbourNode);

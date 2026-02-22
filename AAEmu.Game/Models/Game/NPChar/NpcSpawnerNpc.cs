@@ -69,10 +69,19 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         if (!npc.CanFly)
         {
-            var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(npcSpawner.Position.AsPositionVector());// WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y, npcSpawner.Position.Z);
-            if (Math.Abs(npcSpawner.Position.Z - newZ) < 1f)
+            var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(npcSpawner.Position.AsPositionVector());
+            if (newZ > 0f)
             {
-                npcSpawner.Position.Z = newZ;
+                // If NPC is above terrain (floating), snap to ground (up to 50m tolerance for structures)
+                if (npcSpawner.Position.Z > newZ && npcSpawner.Position.Z - newZ < 50f)
+                {
+                    npcSpawner.Position.Z = newZ;
+                }
+                // If NPC is slightly underground (within 5m), snap to terrain surface
+                else if (newZ > npcSpawner.Position.Z && newZ - npcSpawner.Position.Z < 5f)
+                {
+                    npcSpawner.Position.Z = newZ;
+                }
             }
         }
 

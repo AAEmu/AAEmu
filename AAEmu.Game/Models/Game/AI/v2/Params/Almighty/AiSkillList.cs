@@ -12,8 +12,8 @@ public class AiSkillList
     public int HealthRangeMax { get; set; }
     public float TimeRangeStart { get; set; }
     public float TimeRangeEnd { get; set; }
-    public bool Restoration { get; set; }
-    public bool GoReturn { get; set; }
+    public bool Restoration { get; set; } = true;
+    public bool GoReturn { get; set; } = true;
     public List<AiSkill> StartAiSkills { get; set; }
     public List<SkillList> SkillLists { get; set; }
 
@@ -38,8 +38,10 @@ public class AiSkillList
 
         if (table["options"] is LuaTable options)
         {
-            Restoration = Convert.ToBoolean(options["restoration"]);
-            GoReturn = Convert.ToBoolean(options["goReturn"]);
+            if (options["restoration"] != null)
+                Restoration = Convert.ToBoolean(options["restoration"]);
+            if (options["goReturn"] != null)
+                GoReturn = Convert.ToBoolean(options["goReturn"]);
         }
 
         StartAiSkills = [];

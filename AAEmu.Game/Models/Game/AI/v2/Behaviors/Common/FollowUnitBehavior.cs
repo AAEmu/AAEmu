@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Models;
+﻿using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
@@ -43,7 +44,18 @@ public class FollowUnitBehavior : BaseCombatBehavior
         var moveFlags = Ai.GetRealMovementFlags(moveSpeed);
         moveSpeed *= delta.Milliseconds / 1000.0;
         Ai.Owner.MoveTowards(Ai.AiFollowUnitObj.Transform.World.Position, (float)moveSpeed, moveFlags);
-        Ai.IdlePosition = Ai.Owner.Transform.World.Position;
+
+        // Update idle position with terrain-corrected Z to prevent storing floating positions
+        var currentPos = Ai.Owner.Transform.World.Position;
+        var terrainZ = WorldManager.Instance.GetHeight(
+            Ai.Owner.Transform.ZoneId,
+            currentPos.X,
+            currentPos.Y,
+            currentPos.Z);
+        if (terrainZ > 0f && !Ai.Owner.CanFly)
+            Ai.IdlePosition = currentPos with { Z = terrainZ };
+        else
+            Ai.IdlePosition = currentPos;
     }
 
     public override void Exit()
