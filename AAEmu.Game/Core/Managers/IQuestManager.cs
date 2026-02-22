@@ -17,4 +17,5 @@ public interface IQuestManager
     QuestTemplate GetTemplate(uint id);
     void Load();
     void EnqueueEvaluation(Quest quest);
+    int RemoveQuestTimer(uint ownerId, uint questId);
 }

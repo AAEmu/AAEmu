@@ -10,4 +10,5 @@ public interface IIndunManager
     bool InstanceHasChannels(uint zoneId);
     bool RequestSystemInstance(Character character, uint zoneId, uint channelId, out Dungeon dungeon);
     void DoIndunActions(uint startActionId, WorldInstance worldInstance);
+    Dungeon CreateSystemInstance(Character character, uint zoneKey, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0);
 }

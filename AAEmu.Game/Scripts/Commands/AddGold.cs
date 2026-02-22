@@ -35,7 +35,7 @@ public class AddGold : ICommand
             return;
         }
 
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstarg);
+        var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
         var argGold = 0;
         var argSilver = 0;

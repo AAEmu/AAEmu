@@ -22,6 +22,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public Dictionary<long, BaseMail> _allPlayerMails;
+    public Dictionary<long, BaseMail> AllPlayerMails => _allPlayerMails;
     private List<long> _deletedMailIds = [];
     // Unused: private object _lock = new();
 
@@ -320,13 +321,13 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         return tempMails;
     }
 
-    public static bool NotifyNewMailByNameIfOnline(BaseMail m, string receiverName)
+    public bool NotifyNewMailByNameIfOnline(BaseMail m, string receiverName)
     {
         Logger.Trace($"NotifyNewMailByNameIfOnline() - {receiverName}");
         // If unread and ready to deliver
         if (m.Header.Status != MailStatus.Read && m.Body.RecvDate <= DateTime.UtcNow && m.IsDelivered == false)
         {
-            var player = WorldManager.Instance.GetCharacter(receiverName);
+            var player = worldManager.GetCharacter(receiverName);
             if (player != null)
             {
                 // TODO: Mia mail stuff
@@ -341,10 +342,10 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         return false;
     }
 
-    public static bool NotifyDeleteMailByNameIfOnline(BaseMail m, string receiverName)
+    public bool NotifyDeleteMailByNameIfOnline(BaseMail m, string receiverName)
     {
         Logger.Trace($"NotifyDeleteMailByNameIfOnline() - {receiverName}");
-        var player = WorldManager.Instance.GetCharacter(receiverName);
+        var player = worldManager.GetCharacter(receiverName);
         if (player != null)
         {
             if (m.Header.Status != MailStatus.Read)
@@ -453,7 +454,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             }
         }
 
-        if (!HousingManager.PayWeeklyTax(house))
+        if (!HousingManager.Instance.PayWeeklyTax(house))
             Logger.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
         else
         {

@@ -30,7 +30,7 @@ public class Height : ICommand
         var targetPlayer = character;
         if (args.Length > 0)
         {
-            targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
+            targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
         }
 
         var floorHeight = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);

@@ -74,7 +74,7 @@ public class BaseMail
         Send();
 
         if (originalSender != null && originalSender.IsOnline)
-            MailManager.NotifyNewMailByNameIfOnline(this, originalSender.Name);
+            MailManager.Instance.NotifyNewMailByNameIfOnline(this, originalSender.Name);
 
         // TODO
         return true;

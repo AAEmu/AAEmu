@@ -299,7 +299,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
                         sphere.Radius = float.Parse(l4.AsSpan(7), NumberStyles.Float, CultureInfo.InvariantCulture);
                         // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
                         // convert coordinates from local to world, immediately when reading the path from the file
-                        sphere.Xyz = ZoneManager.ConvertToWorldCoordinates(zoneId, sphere.Xyz);
+                        sphere.Xyz = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, sphere.Xyz);
                         if (!sphereQuests.TryGetValue(sphere.ComponentId, out var value))
                         {
                             var sphereList = new List<SphereQuest> { sphere };

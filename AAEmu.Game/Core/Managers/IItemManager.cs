@@ -57,4 +57,5 @@ public interface IItemManager
     bool UnwrapItem(Character character, SlotType slotType, byte slot, ulong itemId);
     ItemSet GetItemSet(uint itemSetId);
     SlotType GetContainerSlotTypeByContainerId(ulong dbId);
+    (int, int, int) Save(MySql.Data.MySqlClient.MySqlConnection connection, MySql.Data.MySqlClient.MySqlTransaction transaction);
 }

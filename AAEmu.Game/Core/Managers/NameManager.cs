@@ -8,10 +8,10 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class NameManager(CharacterManager characterManager = null) : Singleton<NameManager>, INameManager
+public partial class NameManager(ICharacterManager characterManager = null) : Singleton<NameManager>, INameManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly CharacterManager _characterManager = characterManager ?? CharacterManager.Instance;
+    private readonly ICharacterManager _characterManager = characterManager;
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterIds = [];
     private Dictionary<string, uint> _characterNames = [];

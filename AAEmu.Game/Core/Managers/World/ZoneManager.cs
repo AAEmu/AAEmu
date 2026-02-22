@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class ZoneManager : Singleton<ZoneManager>, IZoneManager
+public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, IZoneManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -207,9 +207,9 @@ public class ZoneManager : Singleton<ZoneManager>, IZoneManager
         }
     }
 
-    public static Vector2 GetZoneOriginCell(uint zoneId)
+    public Vector2 GetZoneOriginCell(uint zoneId)
     {
-        var world = WorldManager.Instance.GetWorldTemplateByZoneKey(zoneId);
+        var world = worldManager.GetWorldTemplateByZoneKey(zoneId);
         if (world?.XmlWorldZones.TryGetValue(zoneId, out var xmlZone) ?? false)
         {
             return new Vector2(xmlZone.OriginX, xmlZone.OriginY);
@@ -223,7 +223,7 @@ public class ZoneManager : Singleton<ZoneManager>, IZoneManager
     /// <param name="zoneId">zoneKey</param>
     /// <param name="point">offset inside the zone</param>
     /// <returns></returns>
-    public static Vector3 ConvertToWorldCoordinates(uint zoneId, Vector3 point)
+    public Vector3 ConvertToWorldCoordinates(uint zoneId, Vector3 point)
     {
         var origin = GetZoneOriginCell(zoneId);
 
@@ -249,7 +249,7 @@ public class ZoneManager : Singleton<ZoneManager>, IZoneManager
     /// </summary>
     /// <param name="doodad"></param>
     /// <returns>Returns true if the doodad can have a growth time bonus, false if out of climate, or no climate defined for the doodad</returns>
-    public static bool DoodadHasMatchingClimate(Doodad doodad)
+    public bool DoodadHasMatchingClimate(Doodad doodad)
     {
         // If no climate defined, then don't give a bonus
         if (doodad.Template.ClimateId == Climate.Any || doodad.Template.ClimateId == Climate.Any)
@@ -259,13 +259,13 @@ public class ZoneManager : Singleton<ZoneManager>, IZoneManager
         if (doodad.Transform.ZoneId <= 0)
         {
             // If ZoneId wasn't set yet, calculate it
-            var zoneId = WorldManager.Instance.GetZoneId(doodad.ParentWorld.Template, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y);
+            var zoneId = worldManager.GetZoneId(doodad.ParentWorld.Template, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y);
             doodad.Transform.ZoneId = zoneId;
         }
-        var zone = ZoneManager.Instance.GetZoneByKey(doodad.Transform.ZoneId);
+        var zone = GetZoneByKey(doodad.Transform.ZoneId);
 
         // Get the climates list for this zone
-        var zoneClimates = ZoneManager.Instance.GetClimatesByZone(zone);
+        var zoneClimates = GetClimatesByZone(zone);
 
         // Check if it's in there
         return zoneClimates.Contains(doodad.Template.ClimateId);

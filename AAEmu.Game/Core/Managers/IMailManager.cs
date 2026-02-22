@@ -2,6 +2,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 
+using MySql.Data.MySqlClient;
+
 namespace AAEmu.Game.Core.Managers;
 
 public interface IMailManager
@@ -19,4 +21,6 @@ public interface IMailManager
     bool PayChargeMoney(Character character, long mailId, bool autoUseAAPoint);
     void DeleteHouseMails(uint houseId);
     List<BaseMail> GetMyHouseMails(uint houseId);
+    (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
+    Dictionary<long, BaseMail> AllPlayerMails { get; }
 }

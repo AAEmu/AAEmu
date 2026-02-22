@@ -88,25 +88,25 @@ public class TestHouse : ICommand
             else if (a0 == "settaxpaid")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddDays(21);
-                HousingManager.UpdateTaxInfo(house);
+                HousingManager.Instance.UpdateTaxInfo(house);
                 CommandManager.SendNormalText(this, messageOutput, $"Set {house.Name} as tax paid");
             }
             else if (a0 == "settaxdue")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddDays(14);
-                HousingManager.UpdateTaxInfo(house);
+                HousingManager.Instance.UpdateTaxInfo(house);
                 CommandManager.SendNormalText(this, messageOutput, $"Set {house.Name} as tax due");
             }
             else if (a0 == "settaxoverdue")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddDays(7);
-                HousingManager.UpdateTaxInfo(house);
+                HousingManager.Instance.UpdateTaxInfo(house);
                 CommandManager.SendNormalText(this, messageOutput, $"Set {house.Name} as tax overdue");
             }
             else if (a0 == "setdemosoon")
             {
                 house.ProtectionEndDate = DateTime.UtcNow.AddSeconds(20);
-                HousingManager.UpdateTaxInfo(house);
+                HousingManager.Instance.UpdateTaxInfo(house);
                 CommandManager.SendNormalText(this, messageOutput,
                     $"Set {house.Name} to demolished in about 20 seconds");
             }
@@ -159,7 +159,7 @@ public class TestHouse : ICommand
                         return;
                     }
 
-                    if (HousingManager.SetForSale(house, price, buyerId, null))
+                    if (HousingManager.Instance.SetForSale(house, price, buyerId, null))
                     {
                         CommandManager.SendNormalText(this, messageOutput,
                             $"Setting {house.Name} for sale with a price of {price} to buy for {buyer}.");
@@ -178,7 +178,7 @@ public class TestHouse : ICommand
                     }
 
                     // Remove sale (for GM commands we don't return certificates)
-                    if (HousingManager.CancelForSale(house, false))
+                    if (HousingManager.Instance.CancelForSale(house, false))
                     {
                         CommandManager.SendNormalText(this, messageOutput, $"{house.Name} is no longer for sale");
                     }

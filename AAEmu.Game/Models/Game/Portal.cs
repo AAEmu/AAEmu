@@ -25,7 +25,7 @@ public class Portal : PacketMarshaler
         stream.Write(Id);
         stream.Write(Name); // TODO max length 128
         stream.Write(ZoneId);
-        var origin = ZoneId != 0 ? ZoneManager.GetZoneOriginCell(ZoneId) : Vector2.Zero;
+        var origin = ZoneId != 0 ? ZoneManager.Instance.GetZoneOriginCell(ZoneId) : Vector2.Zero;
         var offX = X - origin.X * 1024f;
         var offY = Y - origin.Y * 1024f;
         stream.Write(offX);

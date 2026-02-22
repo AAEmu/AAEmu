@@ -40,7 +40,7 @@ public class TestHeight : ICommand
         var firstarg = 0;
         if (args.Length > 0)
         {
-            targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out firstarg);
+            targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out firstarg);
         }
 
         if (args.Length > firstarg && args[firstarg] == "testpos")

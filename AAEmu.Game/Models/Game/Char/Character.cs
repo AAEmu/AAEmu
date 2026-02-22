@@ -2775,7 +2775,7 @@ public partial class Character : Unit, ICharacter
             LastPacketActivityTime = DateTime.UtcNow;
 
             // Remove character
-            EnterWorldManager.LeaveWorldTask(null, LeaveWorldTargetType.CharacterSelect, this);
+            EnterWorldManager.Instance.LeaveWorldTask(null, LeaveWorldTargetType.CharacterSelect, this);
 
             // If this character is still linked, then unlink it from the connection
             if (Connection != null && Connection.ActiveChar == this)

@@ -157,7 +157,7 @@ public class GameConnection
                 var character = Character.Load(connection, id, AccountId);
                 if (character == null)
                     continue; // TODO ...
-                if (!CharacterManager.CheckForDeletedCharactersDeletion(character, this, connection))
+                if (!CharacterManager.Instance.CheckForDeletedCharactersDeletion(character, this, connection))
                 {
                     Characters.Add(character.Id, character);
                 }

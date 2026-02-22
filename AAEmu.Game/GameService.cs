@@ -176,6 +176,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         // LaborPowerManager.Initialize();
         TimedRewardsManager.Instance.Initialize();
+        AccountManager.Instance.Initialize();
 
         DuelManager.Initialize();
         InstantGameManager.Instance.Initialize();
@@ -200,7 +201,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         WorldManager.Instance.Initialize();
 
-        CharacterManager.CheckForDeletedCharacters();
+        CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
 
         GameNetwork.Instance.Start();

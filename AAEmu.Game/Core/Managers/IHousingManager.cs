@@ -6,6 +6,8 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 
+using MySql.Data.MySqlClient;
+
 namespace AAEmu.Game.Core.Managers;
 
 public interface IHousingManager
@@ -28,7 +30,9 @@ public interface IHousingManager
     bool CancelForSale(ushort houseTlId, bool returnCertificates = true);
     bool BuyHouse(ushort houseTlId, uint money, Character character);
     void CheckHousingTaxes();
+    void UpdateTaxInfo(House house);
     bool DecorateHouse(Character player, ushort houseTlId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId);
     void HousingToggleAllowRecover(Character character, ushort houseTl);
     House GetHouseAtLocation(float x, float y);
+    (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
 }

@@ -76,7 +76,7 @@ public sealed class NameManagerTests : IDisposable
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<CharacterManager>();
+        var mockCharacterManager = new Mock<ICharacterManager>();
         mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(false);
         var sut = new NameManager(mockCharacterManager.Object);
 
@@ -98,7 +98,7 @@ public sealed class NameManagerTests : IDisposable
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<CharacterManager>();
+        var mockCharacterManager = new Mock<ICharacterManager>();
         mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(true);
         var sut = new NameManager(mockCharacterManager.Object);
 
@@ -140,7 +140,7 @@ public sealed class NameManagerTests : IDisposable
     {
         // Arrange
         var charName = providedName.NormalizeName();
-        var mockCharacterManager = new Mock<CharacterManager>();
+        var mockCharacterManager = new Mock<ICharacterManager>();
         var sut = new NameManager(mockCharacterManager.Object);
 
         sut.Load([], [], []);
@@ -159,7 +159,7 @@ public sealed class NameManagerTests : IDisposable
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<CharacterManager>();
+        var mockCharacterManager = new Mock<ICharacterManager>();
         mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(true);
         var sut = new NameManager(mockCharacterManager.Object);
 

@@ -33,7 +33,7 @@ public class AddXP : ICommand
             return;
         }
 
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
+        var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
 
         var xpToAdd = 0;
         if (int.TryParse(args[firstArg + 0], out var parseXp))

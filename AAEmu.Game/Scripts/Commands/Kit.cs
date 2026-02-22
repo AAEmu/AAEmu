@@ -84,7 +84,7 @@ public class AddKit : ICommand
             return;
         }
 
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
+        var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
 
         var kitName = string.Empty;
         var itemsAdded = 0;

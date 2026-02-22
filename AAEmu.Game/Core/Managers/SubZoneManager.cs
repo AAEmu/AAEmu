@@ -101,7 +101,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                         }
                                     }
 
-                                    var worldOrigins = ZoneManager.GetZoneOriginCell(zoneId);
+                                    var worldOrigins = ZoneManager.Instance.GetZoneOriginCell(zoneId);
 
                                     var cellOffset = new Point { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
 
@@ -223,7 +223,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                         }
                                     }
 
-                                    var worldOrigins = ZoneManager.GetZoneOriginCell(zoneId);
+                                    var worldOrigins = ZoneManager.Instance.GetZoneOriginCell(zoneId);
 
                                     var cellOffset = new Point { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
 

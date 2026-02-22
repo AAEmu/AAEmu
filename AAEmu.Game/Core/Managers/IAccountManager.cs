@@ -18,4 +18,5 @@ public interface IAccountManager
     void UpdateTickTimes(uint accountId, DateTime newTime, bool updateLabor, bool updateCredits, bool updateLoyalty);
     void UpdateDivineClock(uint accountId, uint timeElapsed, uint timesTaken);
     (uint, uint) GetDivineClock(uint accountId);
+    void Initialize();
 }

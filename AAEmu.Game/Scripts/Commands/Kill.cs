@@ -29,7 +29,7 @@ public class Kill : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, null, out var _);
+        var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, null, out var _);
         var playerTarget = character.CurrentTarget;
         if (playerTarget is Unit aUnit)
         {

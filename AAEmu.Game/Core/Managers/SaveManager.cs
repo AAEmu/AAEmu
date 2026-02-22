@@ -11,7 +11,13 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class SaveManager : Singleton<SaveManager>, ISaveManager
+public class SaveManager(
+    ITaskManager taskManager,
+    IHousingManager housingManager,
+    IMailManager mailManager,
+    IItemManager itemManager,
+    IAuctionManager auctionManager,
+    IWorldManager worldManager) : Singleton<SaveManager>, ISaveManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -50,7 +56,7 @@ public class SaveManager : Singleton<SaveManager>, ISaveManager
     {
         // Logger.Warn("SaveTickStart: Started");
         saveTask = new SaveTickStartTask();
-        TaskManager.Instance.Schedule(saveTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
+        taskManager.Schedule(saveTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
     }
 
     public bool DoSave()
@@ -72,17 +78,17 @@ public class SaveManager : Singleton<SaveManager>, ISaveManager
                     using (var transaction = connection.BeginTransaction())
                     {
                         // Houses
-                        var savedHouses = HousingManager.Instance.Save(connection, transaction);
+                        var savedHouses = housingManager.Save(connection, transaction);
                         // Mail
-                        var savedMails = MailManager.Instance.Save(connection, transaction);
+                        var savedMails = mailManager.Save(connection, transaction);
                         // Items
-                        var saveItems = ItemManager.Instance.Save(connection, transaction);
+                        var saveItems = itemManager.Save(connection, transaction);
                         //Auction House
-                        var savedAuctionHouse = AuctionManager.Instance.Save(connection, transaction);
+                        var savedAuctionHouse = auctionManager.Save(connection, transaction);
 
                         // Characters
                         var savedCharacters = 0;
-                        foreach (var c in WorldManager.Instance.GetAllCharacters())
+                        foreach (var c in worldManager.GetAllCharacters())
                         {
                             if (c.Save(connection, transaction))
                                 savedCharacters++;
@@ -92,7 +98,7 @@ public class SaveManager : Singleton<SaveManager>, ISaveManager
 
                         // Slaves
                         var savedSlaves = 0;
-                        foreach (var worldInstance in WorldManager.Instance.GetWorlds())
+                        foreach (var worldInstance in worldManager.GetWorlds())
                         {
                             foreach (var slave in worldInstance.GetAllSlaves())
                             {

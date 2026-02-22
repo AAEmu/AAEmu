@@ -27,4 +27,7 @@ public interface IWorldManager
     List<uint> GetZoneKeysByWorldId(uint worldId);
 
     void BroadcastPacketToServer(GamePacket packet);
+    Character GetTargetOrSelf(Character character, string targetName, out int firstNonNameArgument);
+    bool TryRemoveCharacter(uint playerObjId);
+    void Initialize();
 }

@@ -5,6 +5,8 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
+using MySql.Data.MySqlClient;
+
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 public interface ICharacterManager
@@ -21,4 +23,10 @@ public interface ICharacterManager
     void Create(GameConnection connection, string name, Race race, Gender gender, uint[] bodyItems, UnitCustomModelParams customModel, AbilityType ability1, AbilityType ability2, AbilityType ability3, byte level);
     bool IsCharacterPendingDeletion(string name);
     void StartOnlineTracking();
+    void PlayerRoll(Character player, int max);
+    void DeleteCharacterAssets(Character character, bool fullWipe);
+    bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection);
+    void CheckForDeletedCharacters();
+    void SetDeleteCharacter(GameConnection gameConnection, uint characterId);
+    void SetRestoreCharacter(GameConnection gameConnection, uint characterId);
 }
