@@ -63,11 +63,6 @@ public sealed class GameService : IHostedService, IDisposable
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        // --- World base (explicit: needed before all other Load() calls) ---
-        WorldIdManager.Instance.Initialize();
-        WorldManager.Instance.Load();
-        FeaturesManager.Initialize();
-
         // --- ID managers ---
         // All ID managers implement ILoadable and are handled by the orchestrator in Stage 2.
         // SkillTlIdManager.Instance.Initialize(); // static class, not migrated

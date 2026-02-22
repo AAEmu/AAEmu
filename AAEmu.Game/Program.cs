@@ -368,7 +368,7 @@ public static class Program
                 services.AddSingleton<VisitedSubZoneIdManager>();
                 services.AddSingleton<IVisitedSubZoneIdManager>(sp => sp.GetRequiredService<VisitedSubZoneIdManager>());
 
-                services.AddSingleton(_ => WorldIdManager.Instance);
+                services.AddSingleton<WorldIdManager>();
                 services.AddSingleton<IWorldIdManager>(sp => sp.GetRequiredService<WorldIdManager>());
 
                 // -- Lazy<T> wrappers for circular-dep break patterns --

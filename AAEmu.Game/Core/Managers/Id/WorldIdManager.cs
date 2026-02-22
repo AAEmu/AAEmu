@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class WorldIdManager() : IdManager("WorldIdManager", FirstId, LastId, Obj
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { } };
 
-    public static WorldIdManager Instance => _instance ?? (_instance = new WorldIdManager());
+    public static WorldIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<WorldIdManager>() ?? new WorldIdManager();
 }

@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public interface IWorldManager
+public interface IWorldManager : ILoadable
 {
     WorldInstance MainWorld { get; set; }
 
