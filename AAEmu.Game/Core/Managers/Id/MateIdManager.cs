@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class MateIdManager() : IdManager("MateIdManager", FirstId, LastId, ObjTa
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "mates", "id" } };
 
-    public static MateIdManager Instance => _instance ?? (_instance = new MateIdManager());
+    public static MateIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<MateIdManager>() ?? new MateIdManager();
 }

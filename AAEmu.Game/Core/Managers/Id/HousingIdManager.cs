@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class HousingIdManager() : IdManager("HousingIdManager", FirstId, LastId,
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "housings", "id" } };
 
-    public static HousingIdManager Instance => _instance ?? (_instance = new HousingIdManager());
+    public static HousingIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<HousingIdManager>() ?? new HousingIdManager();
 }

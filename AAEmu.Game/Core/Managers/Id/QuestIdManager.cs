@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class QuestIdManager() : IdManager("QuestIdManager", FirstId, LastId, Obj
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "quests", "id" } };
 
-    public static QuestIdManager Instance => _instance ?? (_instance = new QuestIdManager());
+    public static QuestIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<QuestIdManager>() ?? new QuestIdManager();
 }

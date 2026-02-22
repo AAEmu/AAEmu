@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class PrivateBookIdManager() : IdManager("PrivateBookIdManager", FirstId,
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "portal_book_coords", "id" } };
 
-    public static PrivateBookIdManager Instance => _instance ?? (_instance = new PrivateBookIdManager());
+    public static PrivateBookIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<PrivateBookIdManager>() ?? new PrivateBookIdManager();
 }

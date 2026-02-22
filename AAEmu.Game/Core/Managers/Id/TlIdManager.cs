@@ -1,4 +1,7 @@
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class TlIdManager() : IdManager("TlIdManager", FirstId, LastId, ObjTables
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { } };
 
-    public static TlIdManager Instance => _instance ?? (_instance = new TlIdManager());
+    public static TlIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<TlIdManager>() ?? new TlIdManager();
 }

@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class ShipyardIdManager() : IdManager("ShipyardIdManager", FirstId, LastI
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "shipyards", "id" } };
 
-    public static ShipyardIdManager Instance => _instance ?? (_instance = new ShipyardIdManager());
+    public static ShipyardIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<ShipyardIdManager>() ?? new ShipyardIdManager();
 }

@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class UccIdManager() : IdManager("UccIdManager", FirstId, LastId, ObjTabl
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "uccs", "id" } };
 
-    public static UccIdManager Instance => _instance ?? (_instance = new UccIdManager());
+    public static UccIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<UccIdManager>() ?? new UccIdManager();
 }

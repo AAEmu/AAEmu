@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class TeamIdManager() : IdManager("TeamIdManager", FirstId, LastId, ObjTa
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { } };
 
-    public static TeamIdManager Instance => _instance ?? (_instance = new TeamIdManager());
+    public static TeamIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<TeamIdManager>() ?? new TeamIdManager();
 }

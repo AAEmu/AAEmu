@@ -74,27 +74,8 @@ public sealed class GameService : IHostedService, IDisposable
         FeaturesManager.Initialize();
 
         // --- ID managers ---
-        // ObjectIdManager, ItemIdManager, ContainerIdManager, DoodadIdManager, CharacterIdManager
-        // are ILoadable and handled by the orchestrator in Stage 2.
-        TradeIdManager.Instance.Initialize();
-        FamilyIdManager.Instance.Initialize();
-        ExpeditionIdManager.Instance.Initialize();
-        VisitedSubZoneIdManager.Instance.Initialize();
-        PrivateBookIdManager.Instance.Initialize();
-        FriendIdManager.Instance.Initialize();
-        MateIdManager.Instance.Initialize();
-        HousingIdManager.Instance.Initialize();
-        HousingTldManager.Instance.Initialize();
-        TeamIdManager.Instance.Initialize();
-        QuestIdManager.Instance.Initialize();
-        MailIdManager.Instance.Initialize();
-        UccIdManager.Instance.Initialize();
-        MusicIdManager.Instance.Initialize();
-        ShipyardIdManager.Instance.Initialize();
-        // SkillTlIdManager.Instance.Initialize();
-        AuctionIdManager.Instance.Initialize();
-        GimmickIdManager.Instance.Initialize();
-        TlIdManager.Instance.Initialize();
+        // All ID managers implement ILoadable and are handled by the orchestrator in Stage 2.
+        // SkillTlIdManager.Instance.Initialize(); // static class, not migrated
 
         // --- Stage 1: Pre-load special steps ---
         // TODO: Implement lazy loading for heightmaps
