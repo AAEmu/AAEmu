@@ -961,6 +961,16 @@ public class Skill
                     }
                 }
 
+                // For AoE skills, prevent negative effects from hitting non-attackable targets (including self)
+                if (Template.TargetAreaRadius > 0 && !unit.CanAttack(target))
+                {
+                    if (effect.Template is DamageEffect or ManaBurnEffect ||
+                        (effect.Template is BuffEffect { Buff.Kind: BuffKind.Bad }))
+                    {
+                        continue;
+                    }
+                }
+
                 // Position check
                 if (effect.Front && !effect.Back && !MathUtil.IsFront(caster, target))
                 {
