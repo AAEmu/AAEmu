@@ -360,7 +360,6 @@ public class PortalManager : Singleton<PortalManager>
         }
 
         portalNpc.InitializeSpawnBuffs();
-        portalNpc.UpdateGearBonuses(null, null);
 
         portalNpc.Hp = portalNpc.MaxHp;
         portalNpc.Mp = portalNpc.MaxMp;

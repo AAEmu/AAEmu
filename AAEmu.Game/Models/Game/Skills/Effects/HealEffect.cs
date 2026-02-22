@@ -144,7 +144,7 @@ public class HealEffect : EffectTemplate
         var oldHp = trg.Hp;
         trg.Hp += value;
         trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
-        trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+        trg.BroadcastPacket(new SCUnitPointsPacket(trg), true);
 
         trg.Events.OnHealed(this, new OnHealedArgs { Healer = (Unit)caster, HealAmount = value });
         trg.PostUpdateCurrentHp(trg, oldHp, trg.Hp, KillReason.Unknown);

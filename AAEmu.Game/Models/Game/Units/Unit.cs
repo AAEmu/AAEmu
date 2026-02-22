@@ -70,6 +70,16 @@ public class Unit : BaseUnit, IUnit
 
     public DateTime LastCombatActivity { get; set; }
 
+    /// <summary>
+    /// Returns the precise health value for client packets (Hp * 100, scaled for NPC bonus differences).
+    /// </summary>
+    public virtual int GetPreciseHealth() => Hp * 100;
+
+    /// <summary>
+    /// Returns the precise mana value for client packets (Mp * 100, scaled for NPC bonus differences).
+    /// </summary>
+    public virtual int GetPreciseMana() => Mp * 100;
+
     protected bool _isUnderWater;
 
     public virtual bool IsUnderWater
@@ -334,7 +344,7 @@ public class Unit : BaseUnit, IUnit
 
         Hp = Math.Max(Hp - value, 0);
 
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+        BroadcastPacket(new SCUnitPointsPacket(this), true);
 
         PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
     }
@@ -423,7 +433,7 @@ public class Unit : BaseUnit, IUnit
 
         //else
         //StartRegen();
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        BroadcastPacket(new SCUnitPointsPacket(this), true);
     }
 
     public virtual void DoDie(BaseUnit killer, KillReason killReason)
@@ -954,7 +964,7 @@ public class Unit : BaseUnit, IUnit
         return WeaponWieldKind.None;
     }
 
-    public void UpdateGearBonuses(Item itemAdded, Item itemRemoved)
+    public virtual void UpdateGearBonuses(Item itemAdded, Item itemRemoved)
     {
         // We use index 1 for gear bonuses. Will make this a constant later, or do it properly. Right now the expected behavior is to have key == buff id, which doesn't work when you have items.
         Bonuses[1] = [];

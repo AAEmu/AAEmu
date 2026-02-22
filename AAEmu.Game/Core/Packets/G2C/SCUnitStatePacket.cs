@@ -157,8 +157,8 @@ public class SCUnitStatePacket : GamePacket
 
         stream.Write(_unit.ModelParams);
         stream.WriteBc(0);
-        stream.Write(_unit.Hp * 100); // preciseHealth
-        stream.Write(_unit.Mp * 100); // preciseMana
+        stream.Write(_unit.GetPreciseHealth()); // preciseHealth
+        stream.Write(_unit.GetPreciseMana()); // preciseMana
 
         #region AttachPoint1
         switch (_unit)

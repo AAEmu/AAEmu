@@ -43,7 +43,7 @@ public class ReturnStateBehavior : BaseCombatBehavior
             Ai.Owner.PostUpdateCurrentHp(Ai.Owner, Ai.Owner.Hp, Ai.Owner.MaxHp, KillReason.Unknown);
             Ai.Owner.Hp = Ai.Owner.MaxHp;
             Ai.Owner.Mp = Ai.Owner.MaxMp;
-            Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
+            Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner), true);
         }
 
         //var alwaysTeleportOnReturn = false; // TODO: get from params

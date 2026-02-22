@@ -123,8 +123,13 @@ public class NpcManager : Singleton<NpcManager>
                 SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, slot, 0, template.BodyItems[i].NpcOnly);
         }
 
+        // Capture base MaxHp/MaxMp before bonuses for client HP display scaling.
+        // The client calculates NPC MaxHp from the base formula only (without server-side bonuses),
+        // so we need to know the base values to scale preciseHealth correctly.
+        npc.BaseMaxHp = npc.MaxHp;
+        npc.BaseMaxMp = npc.MaxMp;
+
         npc.InitializeSpawnBuffs();
-        npc.UpdateGearBonuses(null, null);
 
         npc.Hp = npc.MaxHp;
         npc.Mp = npc.MaxMp;

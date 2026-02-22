@@ -145,6 +145,37 @@ public partial class Npc : Unit
     }
     public MoveTypeAlertness CurrentAlertness { get; set; }
 
+    /// <summary>
+    /// MaxHp computed from base formula before bonuses are applied.
+    /// Used to scale preciseHealth for client display (client calculates MaxHp without server bonuses).
+    /// </summary>
+    public int BaseMaxHp { get; set; }
+
+    /// <summary>
+    /// MaxMp computed from base formula before bonuses are applied.
+    /// </summary>
+    public int BaseMaxMp { get; set; }
+
+    public override int GetPreciseHealth()
+    {
+        if (BaseMaxHp > 0 && MaxHp > 0 && BaseMaxHp != MaxHp)
+            return (int)((long)Hp * BaseMaxHp * 100 / MaxHp);
+        return Hp * 100;
+    }
+
+    public override int GetPreciseMana()
+    {
+        if (BaseMaxMp > 0 && MaxMp > 0 && BaseMaxMp != MaxMp)
+            return (int)((long)Mp * BaseMaxMp * 100 / MaxMp);
+        return Mp * 100;
+    }
+
+    /// <summary>
+    /// NPCs should not receive equipment bonuses — their stats come from formulas only.
+    /// Equipment on NPCs is purely cosmetic (visual model).
+    /// </summary>
+    public override void UpdateGearBonuses(Item itemAdded, Item itemRemoved) { }
+
     #region Attributes
     [UnitAttribute(UnitAttribute.Str)]
     public int Str
@@ -1034,7 +1065,7 @@ public partial class Npc : Unit
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        character.SendPacket(new SCUnitPointsPacket(this));
 
         base.AddVisibleObject(character);
     }
