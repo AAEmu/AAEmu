@@ -79,7 +79,6 @@ public sealed class GameService : IHostedService, IDisposable
         ContainerIdManager.Instance.Initialize();
         ItemIdManager.Instance.Initialize();
         DoodadIdManager.Instance.Initialize();
-        ChatManager.Instance.Initialize();  // unmigrated
         CharacterIdManager.Instance.Initialize();
         FamilyIdManager.Instance.Initialize();
         ExpeditionIdManager.Instance.Initialize();
@@ -103,7 +102,6 @@ public sealed class GameService : IHostedService, IDisposable
         // --- Stage 1: Pre-load special steps ---
         // TODO: Implement lazy loading for heightmaps
         var heightmapTask = Task.Run(WorldManager.Instance.LoadHeightmaps, cancellationToken);
-        AnimationManager.Instance.Load();  // unmigrated; must complete before SkillManager.Load()
 
         // --- Stage 2: Orchestrated parallel Load() ---
         // Managers implementing ILoadable are sorted by constructor dep graph and run in parallel batches.
@@ -130,8 +128,6 @@ public sealed class GameService : IHostedService, IDisposable
         TaskManager.Instance.Start();
 
         // --- Stage 4: Orchestrated parallel Initialize() ---
-        DuelManager.Initialize();       // explicit – static call
-        SpecialtyManager.Initialize();  // explicit – static call
         await _orchestrator.RunInitializeAsync();
 
         // --- Stage 5: World creation + network ---
