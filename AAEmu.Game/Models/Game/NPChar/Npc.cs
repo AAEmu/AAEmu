@@ -4,6 +4,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
@@ -31,6 +32,12 @@ public partial class Npc : Unit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
     public NpcSpawner Spawner { get; set; }
+
+    /// <summary>
+    /// Z position before the last gravity snap. Used by NpcGravity to detect
+    /// and prevent Z oscillation (flickering between two height values).
+    /// </summary>
+    internal float LastGravityZ { get; set; }
 
     /// <summary>
     /// This is the "Idle Animation Id" that is used in UnitModelChangePosture, it can change depending on the time of the day
@@ -81,12 +88,6 @@ public partial class Npc : Unit
     }
 
     public bool CanFly { get; set; } // TODO: mark NPCs that can fly so that they don't land on the ground when calculating the Z height
-
-    /// <summary>
-    /// Current downward fall velocity in units/second. Used by the NPC gravity system.
-    /// Reset to 0 when the NPC is on the ground.
-    /// </summary>
-    public float FallVelocity { get; set; }
 
     /// <summary>
     /// Tagging works differently to Aggro and has its own system
@@ -369,6 +370,11 @@ public partial class Npc : Unit
                 FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId)
             };
             var res = (int)formula.Evaluate(parameters);
+
+            // Flytrap NPCs (stationary turrets/statues) get 51x HP since they can't move
+            if (Template.AiFileId == (int)AiParamType.Flytrap)
+                res *= 51;
+
             foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -1328,16 +1334,24 @@ public partial class Npc : Unit
 
         if (!CanFly)
         {
-            // Ground NPCs: Z is determined by terrain, not by interpolation
-            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, newZ);
+            // Ground NPCs: Z is determined by collision/terrain at the new XY position.
+            // Use the NPC's CURRENT Z as hint (not the interpolated newZ) so that
+            // floor-aware height sources (GeoData) return the correct floor level.
+            // Interpolated Z points between floors and causes NPCs to teleport.
+            var currentZ = Transform.Local.Position.Z;
+            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
             if (terrainZ > 0f)
                 newZ = terrainZ;
             else
-                newZ = Transform.Local.Position.Z; // No terrain data — keep current Z
+                newZ = currentZ; // No terrain data — keep current Z
         }
         else
         {
-            newZ = WorldManager.Instance.GetReferenceHeight(Ai, newX, newY, newZ, Transform.ZoneId);
+            // CanFly NPCs: free 3D movement
+            // Aquatic NPCs (spawned below ocean level): clamp to ocean surface
+            const float oceanLevel = 95f;
+            if ((Spawner?.Position.Z ?? newZ) < oceanLevel && newZ > oceanLevel)
+                newZ = oceanLevel;
         }
 
         Transform.Local.SetPosition(newX, newY, newZ);
@@ -1383,7 +1397,10 @@ public partial class Npc : Unit
             if (terrainZ > 0f && refZ < terrainZ)
                 refZ = terrainZ;
         }
-        oldPosition.Z = refZ;
+
+        if (refZ > 0f)
+            oldPosition.Z = refZ;
+
         Transform.Local.SetPosition(oldPosition);
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
@@ -1422,7 +1439,6 @@ public partial class Npc : Unit
 
     public void StopMovement()
     {
-        FallVelocity = 0f; // Reset fall state when explicitly stopping
         var oldPosition = Transform.Local.ClonePosition();
         var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
         if (!CanFly)
@@ -1431,7 +1447,10 @@ public partial class Npc : Unit
             if (terrainZ > 0f && refZ < terrainZ)
                 refZ = terrainZ;
         }
-        oldPosition.Z = refZ;
+
+        if (refZ > 0f)
+            oldPosition.Z = refZ;
+
         Transform.Local.SetPosition(oldPosition);
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);

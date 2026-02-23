@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
@@ -108,7 +109,9 @@ internal class Track : Patrol
             }
             else // other
             {
-                moveType.Z = npc.ParentWorld.Template.GeoData.GetHeight(npc.Transform.World.Position); // WorldManager.Instance.GetHeight(npc.Transform);
+                var resolvedZ = WorldManager.Instance.GetHeight(npc.Transform.ZoneId,
+                    npc.Transform.World.Position.X, npc.Transform.World.Position.Y, npc.Transform.World.Position.Z);
+                moveType.Z = resolvedZ > 0f ? resolvedZ : npc.Transform.World.Position.Z;
             }
 
             // looks in the direction of movement

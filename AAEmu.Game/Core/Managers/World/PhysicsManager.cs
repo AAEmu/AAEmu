@@ -38,9 +38,9 @@ public class PhysicsManager
     internal Thread _thread;
 
     /// <summary>
-    /// The physics engine's World
+    /// The physics engine's World (for dynamic objects like boats)
     /// </summary>
-    internal Jitter2.World _physWorld;
+    public Jitter2.World PhysWorld { get; private set; }
 
     internal Buoyancy _buoyancy;
     internal bool ThreadRunning { get; set; }
@@ -65,10 +65,10 @@ public class PhysicsManager
     /// </summary>
     public void Initialize()
     {
-        _physWorld = new Jitter2.World();
-        _physWorld.Gravity = new JVector(0, -9.81f, 0);
+        PhysWorld = new Jitter2.World();
+        PhysWorld.Gravity = new JVector(0, -9.81f, 0);
 
-        _buoyancy = new Buoyancy(_physWorld) {
+        _buoyancy = new Buoyancy(PhysWorld) {
             FluidBox = new JBoundingBox(
                 new JVector(0, 0, 0), // Bottom
                 new JVector(SimulationWorld.Template.CellX * WorldManager.CELL_SIZE, SimulationWorld.Template.OceanLevel, SimulationWorld.Template.CellY * WorldManager.CELL_SIZE) // Surface
@@ -119,8 +119,8 @@ public class PhysicsManager
 
             var heightmap = new Heightmap(hmapTerrain);
             WorldHeightMapTester = new HeightmapTester(heightmap);
-            _physWorld.BroadPhaseFilter = new HeightmapDetection(_physWorld, WorldHeightMapTester);
-            _physWorld.DynamicTree.AddProxy(WorldHeightMapTester, false);
+            PhysWorld.BroadPhaseFilter = new HeightmapDetection(PhysWorld, WorldHeightMapTester);
+            PhysWorld.DynamicTree.AddProxy(WorldHeightMapTester, false);
         }
         catch (Exception e)
         {
@@ -195,7 +195,7 @@ public class PhysicsManager
 
                     // 3. Step the physics world
                     // Potentially step multiple times to catch up if we were running behind.
-                    _physWorld.Step((float)physicsTotalDelta.TotalSeconds, false);
+                    PhysWorld.Step((float)physicsTotalDelta.TotalSeconds, false);
 
                     // 4. Sync positions and broadcast outside lock
                     // body, velocity, isMoving
@@ -314,7 +314,7 @@ public class PhysicsManager
         var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
-        var ctrl = new ShipController(_physWorld, shipModel, waterLevel: DefaultWaterLevel);
+        var ctrl = new ShipController(PhysWorld, shipModel, waterLevel: DefaultWaterLevel);
 
         ctrl.Build(initialPosition: pos, initialOrientation: rot);
 
@@ -340,7 +340,7 @@ public class PhysicsManager
         var rigidBody = slave.RigidBody;
         rigidBody.SetActivationState(false);
         EnqueueRemoveBody(rigidBody);
-        _physWorld.Remove(rigidBody);
+        PhysWorld.Remove(rigidBody);
         _buoyancy.Remove(rigidBody);
         slave.RigidBody = null;
 
@@ -480,7 +480,7 @@ public class PhysicsManager
 
         var penetration = slave.CachedFloorLevel - boatBottom;
         slave.RigidBody.Position += new JVector(0, penetration, 0); // Move the boat upwards to put the center level with the floor
-        var collisionForce = _physWorld.Gravity * -1f;
+        var collisionForce = PhysWorld.Gravity * -1f;
         slave.RigidBody.AddForce(collisionForce);
 
         // Gradually reduce speed
@@ -499,7 +499,10 @@ public class PhysicsManager
         ThreadRunning = false;
     }
 
-    public void Dispose() => _physWorld?.Dispose();
+    public void Dispose()
+    {
+        PhysWorld?.Dispose();
+    }
 
     /// <summary>
     /// Helper function to check water bodies

@@ -78,7 +78,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCnEncoder.Net" />
     <PackageReference Include="Discord.Net" />
+    <PackageReference Include="DotRecast.Core" />
+    <PackageReference Include="DotRecast.Recast" />
+    <PackageReference Include="DotRecast.Detour" />
     <PackageReference Include="Jace" />
     <PackageReference Include="Jitter2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
@@ -94,6 +98,9 @@
     <PackageReference Include="NLog" />
     <PackageReference Include="NLua" />
     <PackageReference Include="OSVersionExt.NetStd" />
+    <PackageReference Include="Pfim" />
+    <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
  
 </Project>

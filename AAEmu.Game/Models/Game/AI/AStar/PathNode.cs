@@ -66,6 +66,7 @@ public class PathNode
 
     /// <summary>
     /// Basic method of route calculation.
+    /// Uses DotRecast navmesh if available, falls back to BAI A*.
     /// </summary>
     /// <param name="world"></param>
     /// <param name="start"></param>
@@ -73,11 +74,25 @@ public class PathNode
     /// <returns></returns>
     public List<Vector3> FindPath(WorldInstance world, Vector3 start, Vector3 goal)
     {
+        // Try navmesh pathfinding first (DotRecast) — fast and accurate
+        if (world.NavMesh?.HasData == true)
+        {
+            var navPath = world.NavMesh.FindPath(start, goal);
+            if (navPath.Count > 0)
+            {
+                EndPointPos = goal;
+                Position = navPath[0];
+                CurrentTargetPos = Vector3.Zero;
+                return navPath;
+            }
+        }
+
+        // Fallback: BAI A* pathfinding
         // Find the nearest point from the start point in the list of geodata points and start the search from it.
-        var posStart = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
+        var posStart = world.Template.GeoData?.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
         if (posStart != null)
             start = posStart.Pos; // replace it with the nearest point from the geodata
-        var posEnd = world.Template.GeoData.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
+        var posEnd = world.Template.GeoData?.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
         if (posEnd != null)
             goal = posEnd.Pos;// replace it with the nearest point from the geodata
         EndPointPos = goal;

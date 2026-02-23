@@ -101,6 +101,132 @@ public class WorldTemplate
     public AiGeoDataManager GeoData { get; set; }
 
     /// <summary>
+    /// Custom building floor zones (loaded from building_floors.json)
+    /// </summary>
+    public BuildingFloorManager BuildingFloors { get; set; }
+
+    /// <summary>
+    /// Brush bounding boxes indexed by path tile (256x256 units).
+    /// Populated from object.dat during cell loading.
+    /// </summary>
+    private readonly ConcurrentDictionary<(uint, uint), List<BrushBounds>> _brushBoundsIndex = new();
+    private readonly Lock _brushLock = new();
+
+    /// <summary>
+    /// Adds a brush bounding box to the spatial index.
+    /// </summary>
+    public void AddBrushBounds(BrushBounds bounds)
+    {
+        // Index by the path tile that contains the brush center
+        var cx = (bounds.MinX + bounds.MaxX) / 2f;
+        var cy = (bounds.MinY + bounds.MaxY) / 2f;
+        var tileX = (uint)MathF.Floor(cx / 256f);
+        var tileY = (uint)MathF.Floor(cy / 256f);
+
+        var list = _brushBoundsIndex.GetOrAdd((tileX, tileY), _ => []);
+        lock (_brushLock)
+        {
+            list.Add(bounds);
+        }
+    }
+
+    /// <summary>
+    /// Gets the floor height from brush bounding boxes at the given position.
+    /// Returns 0 if no brush contains this position.
+    /// </summary>
+    public float GetBrushFloorHeight(float x, float y, float z)
+    {
+        var tileX = (uint)MathF.Floor(x / 256f);
+        var tileY = (uint)MathF.Floor(y / 256f);
+
+        var bestZ = 0f;
+        var bestDist = float.MaxValue;
+
+        // Check current tile and adjacent tiles (brush may span tile boundaries)
+        for (var dy = -1; dy <= 1; dy++)
+        for (var dx = -1; dx <= 1; dx++)
+        {
+            var tx = (uint)((int)tileX + dx);
+            var ty = (uint)((int)tileY + dy);
+
+            if (!_brushBoundsIndex.TryGetValue((tx, ty), out var brushes))
+                continue;
+
+            lock (_brushLock)
+            {
+                foreach (var b in brushes)
+                {
+                    // Check if point is inside brush XY bounds
+                    if (x < b.MinX || x > b.MaxX || y < b.MinY || y > b.MaxY)
+                        continue;
+
+                    // Point is inside brush XY. Check vertical containment.
+                    // The NPC should be between the floor (MinZ) and ceiling (MaxZ).
+                    if (z < b.MinZ - 5f || z > b.MaxZ + 5f)
+                        continue;
+
+                    // Find the brush floor closest to current Z (from below)
+                    var dist = MathF.Abs(z - b.MinZ);
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        bestZ = b.MinZ;
+                    }
+                }
+            }
+        }
+
+        return bestZ;
+    }
+
+    /// <summary>
+    /// Gets all brush bounds near a position for debug visualization.
+    /// </summary>
+    public List<BrushBounds> GetNearbyBrushBounds(float x, float y, float radius)
+    {
+        var result = new List<BrushBounds>();
+        var radiusSq = radius * radius;
+
+        var minTileX = (uint)MathF.Floor((x - radius) / 256f);
+        var maxTileX = (uint)MathF.Floor((x + radius) / 256f);
+        var minTileY = (uint)MathF.Floor((y - radius) / 256f);
+        var maxTileY = (uint)MathF.Floor((y + radius) / 256f);
+
+        for (var ty = minTileY; ty <= maxTileY; ty++)
+        for (var tx = minTileX; tx <= maxTileX; tx++)
+        {
+            if (!_brushBoundsIndex.TryGetValue((tx, ty), out var brushes))
+                continue;
+
+            lock (_brushLock)
+            {
+                foreach (var b in brushes)
+                {
+                    var cx = (b.MinX + b.MaxX) / 2f;
+                    var cy = (b.MinY + b.MaxY) / 2f;
+                    var dx = x - cx;
+                    var dy = y - cy;
+                    if (dx * dx + dy * dy <= radiusSq)
+                        result.Add(b);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public int BrushBoundsCount
+    {
+        get
+        {
+            var count = 0;
+            foreach (var list in _brushBoundsIndex.Values)
+                count += list.Count;
+            return count;
+        }
+    }
+
+    /// <summary>
     /// ZoneKey, BaiLoader
     /// </summary>
     public Dictionary<uint, BaseBaiLoader> ZoneBaiLoader { get; init; } = [];

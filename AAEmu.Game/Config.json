@@ -16,15 +16,15 @@
         "Port": 1280
     },
     "LoginNetwork": {
-        "Host": "%login_host%",
-        "Port": "%login_port%"
+        "Host": "127.0.0.1",
+        "Port": "1234"
     },
     "Connections": {
         "MySQLProvider": {
-            "Host": "%db_host%",
-            "Port": "%db_port%",
-            "User": "%db_user%",
-            "Password": "%db_password%",
+            "Host": "localhost",
+            "Port": "3306",
+            "User": "root",
+            "Password": "root",
             "Database": "aaemu_game"
         }
     },

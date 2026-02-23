@@ -14,10 +14,10 @@
 	"Connections": {
 		"MySQLProvider": {
 			"Database": "aaemu_login",
-			"Host": "%db_host%",
-			"Password": "%db_password%",
-			"Port": "%db_port%",
-			"User": "%db_user%"
+			"Host": "localhost",
+			"Password": "root",
+			"Port": "3306",
+			"User": "root"
 		}
 	}
 }

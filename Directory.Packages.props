@@ -3,7 +3,11 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="BCnEncoder.Net" Version="2.2.1" />
     <PackageVersion Include="Discord.Net" Version="3.16.0" />
+    <PackageVersion Include="DotRecast.Core" Version="2025.2.1" />
+    <PackageVersion Include="DotRecast.Recast" Version="2025.2.1" />
+    <PackageVersion Include="DotRecast.Detour" Version="2025.2.1" />
     <PackageVersion Include="Jace" Version="1.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
@@ -29,7 +33,10 @@
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
     <PackageVersion Include="OSVersionExt.NetStd" Version="3.0.1" />
+    <PackageVersion Include="Pfim" Version="0.11.4" />
+    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageVersion Include="System.Drawing.Primitives" Version="4.3.0" />
+    <PackageVersion Include="System.IO.Hashing" Version="10.0.2" />
     <PackageVersion Include="System.Numerics.Vectors" Version="4.6.0" />
     <PackageVersion Include="System.Private.Uri" Version="4.3.2" />
     <PackageVersion Include="System.Runtime.Loader" Version="4.3.0" />

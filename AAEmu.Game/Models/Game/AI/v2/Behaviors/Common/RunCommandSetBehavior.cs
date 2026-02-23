@@ -15,8 +15,11 @@ public class RunCommandSetBehavior : BaseCombatBehavior
 {
     public override void Enter()
     {
-        Ai.Owner.CurrentGameStance = GameStanceType.Combat;
-        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Combat;
+        // RunCommandSet is a spawn transition state (FollowPath, UseSkill, etc.),
+        // NOT real combat. Using Combat alertness here disabled spawner Z protection
+        // in NpcGravity, causing NPCs to teleport to wrong floors via GeoData.
+        Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
+        Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
     }
 
     public override void Tick(TimeSpan delta)

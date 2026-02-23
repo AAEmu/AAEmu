@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.CryEngine.Loaders;
+using AAEmu.Game.Models.CryEngine.Objects;
 using Jitter2.LinearMath;
 using NLog;
 
@@ -26,6 +27,26 @@ public class WorldCell
     /// Bai files data to use in this cell
     /// </summary>
     public BaseBaiLoader[,] BaiLoader { get; set; }
+
+    /// <summary>
+    /// Parsed object.dat data (kept in memory for mesh loading)
+    /// </summary>
+    public ObjectsFile LoadedObjectDat { get; set; }
+
+    /// <summary>
+    /// Parsed visareas.dat data
+    /// </summary>
+    public VisAreasFile LoadedVisAreasDat { get; set; }
+
+    /// <summary>
+    /// Material list (material_list.dat) — maps MaterialId to .mtl path
+    /// </summary>
+    public MaterialsListFile MaterialListFiles { get; set; }
+
+    /// <summary>
+    /// Static objects list (statobjs.dat) — maps PathId to .cgf path
+    /// </summary>
+    public MaterialsFile StatObjsFiles { get; set; }
 
     /// <summary>
     /// Bounding box for use in Jitter
@@ -117,8 +138,16 @@ public class WorldCell
             HeightMap = new ushort[WorldManager.CELL_HMAP_RESOLUTION, WorldManager.CELL_HMAP_RESOLUTION];
             // Load data
             LoadBaiFiles();
+            LoadObjectDat();
             Loaded = LoadCellHeightMapFromClientData();
             Loading = false;
+
+            // Queue navmesh tile build (needs both heightmap + object.dat loaded)
+            if (Loaded)
+            {
+                foreach (var worldInstance in WorldManager.Instance.GetWorldsByTemplate(Template.Id).ToArray())
+                    worldInstance.NavMesh?.QueueBuildTile(this);
+            }
         }
         return this;
     }
@@ -232,5 +261,107 @@ public class WorldCell
         var xx = (int)(x - CellOffset.X) / 2;
         var yy = (int)(y - CellOffset.Y) / 2;
         return GetHeightMapDataInCell(xx, yy);
+    }
+
+    /// <summary>
+    /// Loads object.dat and auxiliary data files from this cell's client data.
+    /// Extracts brush bounding boxes and prepares data for 3D mesh loading.
+    /// </summary>
+    private void LoadObjectDat()
+    {
+        var cellFileName = $"{CellX:000}_{CellY:000}";
+        var cellFolder = Path.Combine("game", "worlds", Template.Name, "cells", cellFileName);
+
+        // Load material_list.dat (maps MaterialId -> .mtl path)
+        var materialListFile = Path.Combine(cellFolder, "client", "material_list.dat");
+        if (ClientFileManager.FileExists(materialListFile))
+        {
+            var materialList = new MaterialsListFile(materialListFile);
+            materialList.ReadFile();
+            MaterialListFiles = materialList;
+        }
+
+        // Load statobjs.dat (maps PathId -> .cgf model path)
+        var statObjFile = Path.Combine(cellFolder, "client", "statobjs.dat");
+        if (ClientFileManager.FileExists(statObjFile))
+        {
+            var statObjs = new MaterialsFile(statObjFile);
+            statObjs.ReadFile();
+            StatObjsFiles = statObjs;
+        }
+
+        // Load object.dat
+        var objectDatFile = Path.Combine(cellFolder, "client", "object.dat");
+        if (ClientFileManager.FileExists(objectDatFile))
+        {
+            var objects = new ObjectsFile(objectDatFile);
+            if (objects.ReadFile())
+                LoadedObjectDat = objects;
+            else if (objects.AssetPathsList.Count > 0 || objects.PrefabsList.Count > 0)
+                Logger.Error($"Error loading {objectDatFile}, only {objects.AssetPathsList.Count} assets and {objects.PrefabsList.Count} prefabs read");
+        }
+
+        // Load visareas.dat
+        var visAreasDatFile = Path.Combine(cellFolder, "client", "visareas.dat");
+        if (ClientFileManager.FileExists(visAreasDatFile))
+        {
+            var visObjects = new VisAreasFile(visAreasDatFile);
+            if (visObjects.ReadFile())
+                LoadedVisAreasDat = visObjects;
+            else if (visObjects.AssetPathsList.Count > 0 || visObjects.PrefabsList.Count > 0 || visObjects.VisAreas.Count > 0)
+                Logger.Error($"Error loading {visAreasDatFile}");
+        }
+
+        // Extract brush bounding boxes (AABB index, fast pre-filter)
+        if (LoadedObjectDat != null)
+            ExtractBrushBounds(LoadedObjectDat);
+
+    }
+
+    /// <summary>
+    /// Extracts AABB brush bounds from parsed object.dat and stores in WorldTemplate index.
+    /// </summary>
+    private void ExtractBrushBounds(ObjectsFile objectsFile)
+    {
+        var cellOffsetX = CellX * WorldManager.CELL_SIZE;
+        var cellOffsetY = CellY * WorldManager.CELL_SIZE;
+        var brushCount = 0;
+        const float MinBrushSize = 3f;
+
+        foreach (var prefab in objectsFile.PrefabsList)
+        {
+            if (prefab is not ObjectDataType1Brush brush)
+                continue;
+
+            var posX = cellOffsetX + brush.Matrix3X4.M14;
+            var posY = cellOffsetY + brush.Matrix3X4.M24;
+            var posZ = brush.Matrix3X4.M34;
+
+            var minX = posX + brush.StartPos.X;
+            var maxX = posX + brush.EndPos.X;
+            var minY = posY + brush.StartPos.Y;
+            var maxY = posY + brush.EndPos.Y;
+            var minZ = posZ + brush.StartPos.Z;
+            var maxZ = posZ + brush.EndPos.Z;
+
+            var sizeX = maxX - minX;
+            var sizeY = maxY - minY;
+            var sizeZ = maxZ - minZ;
+            if (sizeX < MinBrushSize && sizeY < MinBrushSize)
+                continue;
+            if (sizeZ < 1f)
+                continue;
+
+            Template.AddBrushBounds(new BrushBounds
+            {
+                MinX = minX, MaxX = maxX,
+                MinY = minY, MaxY = maxY,
+                MinZ = minZ, MaxZ = maxZ
+            });
+            brushCount++;
+        }
+
+        if (brushCount > 0)
+            Logger.Debug($"Loaded {brushCount} brush bounds from cell {CellX:000}_{CellY:000}");
     }
 }

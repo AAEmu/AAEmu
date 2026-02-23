@@ -11,7 +11,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -437,6 +436,9 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // Create and start the actual physics engine
         world.StartPhysics();
 
+        // Create navmesh manager for height queries and pathfinding
+        world.StartNavMesh();
+
         // Quest sphere handling instance
         world.SphereQuestManager = new SphereQuestManager(world);
         world.SphereQuestManager.Initialize();
@@ -528,6 +530,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             worldTemplate.GeoData.Load();
         }
+
+        // Custom building floor zones
+        worldTemplate.BuildingFloors = new BuildingFloorManager();
+        worldTemplate.BuildingFloors.Load(worldName);
 
         // Mark "main_world" as the DefaultWorldId
         if (worldName == "main_world")
@@ -686,33 +692,42 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (world == null)
             return 0f;
 
-        // HeightMaps provide continuous terrain height at any X,Y — best for ground level
-        var heightMapZ = 0f;
+        // 1. Custom building floor zones (highest priority, manually mapped)
+        var customFloorZ = world.BuildingFloors?.GetFloorHeight(x, y, z) ?? 0f;
+        if (customFloorZ > 0f)
+            return customFloorZ;
+
+        // 2. NavMesh query — authoritative height from pre-baked navmesh surface
+        var worldInstances = GetWorldsByTemplate(world.Id);
+        if (worldInstances.Count > 0)
+        {
+            var navMeshZ = worldInstances[0].NavMesh?.GetHeight(x, y, z) ?? 0f;
+            if (navMeshZ > 0f)
+                return navMeshZ;
+        }
+
+        // 3. GeoData navmesh — BAI mesh is floor-aware, handles interiors and stairs correctly
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
+            if (geoDataZ > 0f)
+                return geoDataZ;
+        }
+
+        // 4. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
         if (AppConfiguration.Instance.HeightMapsEnable)
         {
             try
             {
-                heightMapZ = world.GetHeight(x, y);
+                var heightMapZ = world.GetHeight(x, y);
+                if (heightMapZ > 0f)
+                    return heightMapZ;
             }
             catch
             {
-                heightMapZ = 0f;
+                // ignored
             }
         }
-
-        // GeoData provides navmesh node heights — may include structures (bridges, platforms)
-        var geoDataZ = 0f;
-        if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
-        }
-
-        // Prefer HeightMap — it's continuous and accurate for any X,Y terrain position.
-        // GeoData is sparse (navmesh nodes) and only used as fallback.
-        if (heightMapZ > 0f)
-            return heightMapZ;
-        if (geoDataZ > 0f)
-            return geoDataZ;
 
         return 0f;
     }
@@ -761,33 +776,20 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public float GetReferenceHeight(NpcAi ai, float x, float y, float z, uint zoneId)
     {
-        // 0. Null safety
         if (ai == null)
             return GetHeight(zoneId, x, y, z);
 
-        // 1. Flying NPCs stay at their designated height
+        // Flying NPCs stay at their designated height
         if (ai.Owner.CanFly)
             return ai.Owner.Spawner?.Position.Z ?? z;
 
-        // 2. For Idle/HoldPosition, prefer terrain height but fall back to spawner
-        switch (ai.GetCurrentBehavior())
-        {
-            case HoldPositionBehavior:
-            case IdleBehavior:
-            {
-                var terrainHeight = GetHeight(zoneId, x, y, z);
-                if (terrainHeight > 0f)
-                    return terrainHeight;
-                return ai.Owner.Spawner?.Position.Z ?? z;
-            }
-        }
-
-        // 3. General case: terrain lookup
+        // Height chain: BuildingFloors → NavMesh (terrain only) → GeoData → HeightMap
         var finalHeight = GetHeight(zoneId, x, y, z);
+
         if (finalHeight > 0f)
             return finalHeight;
 
-        // 4. Last resort: use the NPC's current Z to avoid snapping to a wrong spawner Z
+        // Last resort: use the NPC's current Z
         return z;
     }
 

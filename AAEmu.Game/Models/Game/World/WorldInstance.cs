@@ -63,6 +63,11 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     public PhysicsManager Physics { get; private set; }
 
     /// <summary>
+    /// NavMesh handler for height queries and pathfinding
+    /// </summary>
+    public NavMeshManager NavMesh { get; private set; }
+
+    /// <summary>
     /// Water definitions
     /// </summary>
     public WaterBodies Water { get; set; }
@@ -346,6 +351,15 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     }
 
     /// <summary>
+    /// Creates the navmesh manager for this world instance
+    /// </summary>
+    public void StartNavMesh()
+    {
+        Logger.Debug($"Starting navmesh manager for instance {this}");
+        NavMesh = new NavMeshManager(this);
+    }
+
+    /// <summary>
     /// Loads water body date for this world
     /// </summary>
     public void LoadWaterBodies()
@@ -363,8 +377,10 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
             Water = newWater;
         }
     }
+
+
     #endregion PhysicalProperties
-    
+
     #region GetGameObjects
     /// <summary>
     /// Get GameObject by its ObjId

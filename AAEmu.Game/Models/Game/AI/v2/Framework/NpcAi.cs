@@ -147,10 +147,10 @@ $"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is
             || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
         if (HasPersistentAi() || (Owner?.Region?.HasPlayerActivity() ?? false))
         {
-            // Apply gravity before behavior tick; skip behavior if actively falling
-            var isFalling = NpcGravity.ApplyGravity(Owner, delta);
-            if (!isFalling)
-                _currentBehavior?.Tick(delta);
+            // Apply gravity (Z adjustment only) — independent of behavior
+            NpcGravity.ApplyGravity(Owner, delta);
+            // Always run behavior tick — gravity handles Z, behavior handles XY/combat
+            _currentBehavior?.Tick(delta);
 
             // If aggro table is populated, check if current aggro targets need to be cleared
             if (Owner?.AggroTable.Count <= 0)

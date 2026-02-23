@@ -76,6 +76,91 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     }
 
     /// <summary>
+    /// Gets the floor height of a building at the given position using NavigationModifier
+    /// data from areasmission BAI files. Returns 0 if the position is not inside any building.
+    /// Finds the closest floor to the given Z, supporting multi-floor buildings.
+    /// </summary>
+    public float GetBuildingFloorHeight(Vector3 pos)
+    {
+        var bai = worldTemplate.GetBaiByPos(pos);
+        if (bai == null)
+            return 0f;
+
+        var bestFloor = 0f;
+        var bestDist = float.MaxValue;
+
+        foreach (var areaMission in bai.AreasMissionReaders)
+        {
+            foreach (var area in areaMission.NavigationModifiers)
+            {
+                if (area.BuildingId <= 0)
+                    continue;
+
+                if (!IsInPolygon(pos, area.Points))
+                    continue;
+
+                // MinZ is the floor height; Height is the volume thickness (maxZ - minZ)
+                var floorHeight = (float)area.MinZ;
+                var dist = MathF.Abs(pos.Z - floorHeight);
+
+                if (dist < bestDist)
+                {
+                    bestFloor = floorHeight;
+                    bestDist = dist;
+                }
+            }
+        }
+
+        return bestFloor;
+    }
+
+    /// <summary>
+    /// Gets interior floor height using type-4 netmission nodes (floating interior floors).
+    /// These nodes represent elevated walkable surfaces inside buildings that are above
+    /// the terrain heightmap. Used as a fallback when NavigationModifier polygons
+    /// don't cover the area. Returns 0 if no suitable interior node is found nearby.
+    /// </summary>
+    /// <param name="pos">Position to check</param>
+    /// <param name="maxRadius2D">Maximum 2D distance to search for type-4 nodes (default 5 units)</param>
+    public float GetInteriorFloorHeight(Vector3 pos, float maxRadius2D = 5f)
+    {
+        var bai = worldTemplate.GetBaiByPos(pos);
+        if (bai == null)
+            return 0f;
+
+        var bestZ = 0f;
+        var bestDist2D = maxRadius2D * maxRadius2D; // squared for comparison
+        var heightMapZ = worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y));
+
+        foreach (var netMission in bai.NetMissionReaders)
+        {
+            foreach (var (_, node) in netMission.NodeDescriptorList)
+            {
+                // Only type 4 nodes represent interior/elevated floor positions
+                if (node.Type != 4)
+                    continue;
+
+                // Only consider nodes that are significantly above the terrain heightmap
+                // This avoids ground-level type-4 nodes from interfering with outdoor NPCs
+                if (node.Pos.Z <= heightMapZ + 1.0f)
+                    continue;
+
+                var dx = node.Pos.X - pos.X;
+                var dy = node.Pos.Y - pos.Y;
+                var dist2D = dx * dx + dy * dy;
+
+                if (dist2D < bestDist2D)
+                {
+                    bestDist2D = dist2D;
+                    bestZ = node.Pos.Z;
+                }
+            }
+        }
+
+        return bestZ;
+    }
+
+    /// <summary>
     /// Get the center of the triangle (intersection of the medians)
     /// </summary>
     /// <param name="point1"></param>

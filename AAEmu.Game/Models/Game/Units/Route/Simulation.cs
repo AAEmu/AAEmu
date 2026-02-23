@@ -391,7 +391,14 @@ public class Simulation : Patrol
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
             var (newX, newY, newZ) = PositionAndRotation.AddDistanceToFront(travelDist, targetDist, npc.Transform.Local.Position, target);
 
-            newZ = WorldManager.Instance.GetReferenceHeight(npc.Ai, newX, newY, newZ, npc.Transform.ZoneId);
+            // Use the NPC's current Z as hint (not the interpolated newZ) so that
+            // floor-aware height sources (GeoData) return the correct floor level.
+            var currentZ = npc.Transform.Local.Position.Z;
+            var refZ = WorldManager.Instance.GetReferenceHeight(npc.Ai, newX, newY, currentZ, npc.Transform.ZoneId);
+            if (refZ > 0f)
+                newZ = refZ;
+            else
+                newZ = currentZ;
             npc.Transform.Local.SetPosition(newX, newY, newZ);
 
             var angle = MathUtil.CalculateAngleFrom(npc.Transform.Local.Position, target);

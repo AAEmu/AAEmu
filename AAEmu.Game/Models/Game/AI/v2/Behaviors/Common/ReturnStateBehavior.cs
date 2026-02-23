@@ -205,17 +205,19 @@ public class ReturnStateBehavior : BaseCombatBehavior
 
         var zoneId = Ai.Owner.Transform.ZoneId;
 
-        // Correct current position if floating
+        // Correct current position if floating slightly above ground (max 5m correction).
+        // Larger differences likely mean GetHeight returned an unreliable value
+        // (e.g., NavModifier MinZ of a building volume, not the actual floor).
         var currentPos = Ai.Owner.Transform.World.Position;
         var terrainZ = WorldManager.Instance.GetHeight(zoneId, currentPos.X, currentPos.Y, currentPos.Z);
-        if (terrainZ > 0f && currentPos.Z > terrainZ + 0.5f)
+        if (terrainZ > 0f && currentPos.Z > terrainZ + 0.5f && currentPos.Z - terrainZ < 5f)
         {
             Ai.Owner.Transform.Local.SetHeight(terrainZ);
         }
 
-        // Correct stored IdlePosition if floating
+        // Correct stored IdlePosition if floating slightly (same 5m limit)
         var idleTerrainZ = WorldManager.Instance.GetHeight(zoneId, Ai.IdlePosition.X, Ai.IdlePosition.Y, Ai.IdlePosition.Z);
-        if (idleTerrainZ > 0f && Ai.IdlePosition.Z > idleTerrainZ + 0.5f)
+        if (idleTerrainZ > 0f && Ai.IdlePosition.Z > idleTerrainZ + 0.5f && Ai.IdlePosition.Z - idleTerrainZ < 5f)
         {
             Ai.IdlePosition = Ai.IdlePosition with { Z = idleTerrainZ };
         }

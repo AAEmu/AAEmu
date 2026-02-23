@@ -83,6 +83,17 @@ public class WorldConfig
     public bool PreLoadTerrain { get; set; }
 
     /// <summary>
+    /// When enabled, loads 3D brush models (.cgf) from game_pak for accurate floor detection via raycasting.
+    /// </summary>
+    public bool LoadBrushModels { get; set; }
+
+    /// <summary>
+    /// Minimum rough size of brush objects to load. Objects smaller than this are skipped.
+    /// Set to 0 to load all brushes.
+    /// </summary>
+    public float LoadBrushMinimumSize { get; set; } = 15f;
+
+    /// <summary>
     /// Maximum number of instances that can be created (includes system instances)
     /// </summary>
     public uint MaxInstances { get; set; } = 32;
