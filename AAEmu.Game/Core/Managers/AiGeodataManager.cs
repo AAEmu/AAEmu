@@ -117,19 +117,22 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     /// <summary>
     /// Gets interior floor height using type-4 netmission nodes (floating interior floors).
     /// These nodes represent elevated walkable surfaces inside buildings that are above
-    /// the terrain heightmap. Used as a fallback when NavigationModifier polygons
-    /// don't cover the area. Returns 0 if no suitable interior node is found nearby.
+    /// the terrain heightmap. Selects the node whose Z is closest to the input position Z
+    /// (Z-proximity), so multi-floor buildings return the correct floor for the NPC's
+    /// current height. Returns 0 if no suitable node is found nearby.
     /// </summary>
-    /// <param name="pos">Position to check</param>
-    /// <param name="maxRadius2D">Maximum 2D distance to search for type-4 nodes (default 5 units)</param>
-    public float GetInteriorFloorHeight(Vector3 pos, float maxRadius2D = 5f)
+    /// <param name="pos">Position to check (Z used for floor proximity)</param>
+    /// <param name="maxRadius2D">Maximum 2D distance to search for type-4 nodes</param>
+    /// <param name="maxZDifference">Maximum Z difference allowed (avoids picking wrong floor)</param>
+    public float GetInteriorFloorHeight(Vector3 pos, float maxRadius2D = 5f, float maxZDifference = 10f)
     {
         var bai = worldTemplate.GetBaiByPos(pos);
         if (bai == null)
             return 0f;
 
         var bestZ = 0f;
-        var bestDist2D = maxRadius2D * maxRadius2D; // squared for comparison
+        var bestZDist = float.MaxValue;
+        var maxDist2DSq = maxRadius2D * maxRadius2D;
         var heightMapZ = worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y));
 
         foreach (var netMission in bai.NetMissionReaders)
@@ -149,13 +152,24 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                 var dy = node.Pos.Y - pos.Y;
                 var dist2D = dx * dx + dy * dy;
 
-                if (dist2D < bestDist2D)
+                if (dist2D > maxDist2DSq)
+                    continue;
+
+                // Pick by Z-proximity: the node whose Z is closest to input Z.
+                // This ensures multi-floor buildings return the correct floor.
+                var zDist = MathF.Abs(node.Pos.Z - pos.Z);
+                if (zDist < bestZDist)
                 {
-                    bestDist2D = dist2D;
+                    bestZDist = zDist;
                     bestZ = node.Pos.Z;
                 }
             }
         }
+
+        // Only return if the best match is within the Z tolerance.
+        // Prevents picking a distant floor (e.g. NPC on ground, node on 3rd floor).
+        if (bestZDist > maxZDifference)
+            return 0f;
 
         return bestZ;
     }

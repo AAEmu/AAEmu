@@ -722,7 +722,20 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
-        // 3. GeoData navmesh — BAI mesh is floor-aware, handles interiors and stairs correctly
+        // 3. BAI Type-4 interior floor nodes — elevated walkable surfaces (bridges,
+        //    docks, platforms) that GeoData/HeightMap can't represent. Z-proximity
+        //    selection ensures the correct floor is picked for multi-story buildings.
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            var type4Z = world.GeoData?.GetInteriorFloorHeight(new Vector3(x, y, z)) ?? 0f;
+            if (type4Z > 0f)
+            {
+                source = "Type4Floor";
+                return type4Z;
+            }
+        }
+
+        // 4. GeoData navmesh — BAI mesh for general walkable surface height
         if (AppConfiguration.Instance.World.GeoDataMode)
         {
             var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
@@ -733,7 +746,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
-        // 4. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
+        // 5. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
         if (AppConfiguration.Instance.HeightMapsEnable)
         {
             try

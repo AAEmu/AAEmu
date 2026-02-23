@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Models;
+﻿using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units.Movements;
 
@@ -42,9 +43,30 @@ public class HoldPositionBehavior : BaseCombatBehavior
         Ai.Owner.StopMovement();
         Ai.Owner.CurrentTarget = Ai.Owner;
 
+        // One-time ground snap (same as IdleBehavior)
+        SnapToGround();
+
         //_lastTick        = DateTime.UtcNow;
         _lastSkillCheck = DateTime.UtcNow;
         _isFollowingNpc = false;
+    }
+
+    private void SnapToGround()
+    {
+        if (Ai.Owner.CanFly)
+            return;
+
+        var pos = Ai.Owner.Transform.World.Position;
+        var groundZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, pos.X, pos.Y, pos.Z);
+        if (groundZ <= 0f)
+            return;
+
+        var diff = MathF.Abs(pos.Z - groundZ);
+        if (diff > 0.05f && diff < 3f)
+        {
+            Ai.Owner.Transform.Local.SetHeight(groundZ);
+            Ai.IdlePosition = Ai.IdlePosition with { Z = groundZ };
+        }
     }
 
     public override void Tick(TimeSpan delta)
