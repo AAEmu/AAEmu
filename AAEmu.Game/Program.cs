@@ -156,10 +156,11 @@ public static class Program
         [
             // Add the old main Config.json file
             Path.Combine(FileManager.AppPath, "Config.json"),
-            Path.Combine(FileManager.AppPath, "Config.Local.json"),
             // Get files inside the Configurations folder
             ..Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json",
-                SearchOption.AllDirectories).Order()
+                SearchOption.AllDirectories).Order(),
+            // Override all other config with the local file if it exists
+            Path.Combine(FileManager.AppPath, "Config.Local.json")
         ];
 
         var configurationBuilder = new ConfigurationBuilder();
