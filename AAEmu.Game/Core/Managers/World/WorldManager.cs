@@ -688,6 +688,16 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <returns></returns>
     public float GetHeight(uint zoneKey, float x, float y, float z)
     {
+        return GetHeightWithSource(zoneKey, x, y, z, out _);
+    }
+
+    /// <summary>
+    /// Same as GetHeight but also returns which source provided the result.
+    /// Used by TraceZ debugging to identify why an NPC's Z changed.
+    /// </summary>
+    public float GetHeightWithSource(uint zoneKey, float x, float y, float z, out string source)
+    {
+        source = "none";
         var world = GetWorldTemplateByZoneKey(zoneKey);
         if (world == null)
             return 0f;
@@ -695,7 +705,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // 1. Custom building floor zones (highest priority, manually mapped)
         var customFloorZ = world.BuildingFloors?.GetFloorHeight(x, y, z) ?? 0f;
         if (customFloorZ > 0f)
+        {
+            source = "BuildingFloor";
             return customFloorZ;
+        }
 
         // 2. NavMesh query — authoritative height from pre-baked navmesh surface
         var worldInstances = GetWorldsByTemplate(world.Id);
@@ -703,7 +716,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             var navMeshZ = worldInstances[0].NavMesh?.GetHeight(x, y, z) ?? 0f;
             if (navMeshZ > 0f)
+            {
+                source = "NavMesh";
                 return navMeshZ;
+            }
         }
 
         // 3. GeoData navmesh — BAI mesh is floor-aware, handles interiors and stairs correctly
@@ -711,7 +727,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
             if (geoDataZ > 0f)
+            {
+                source = "GeoData";
                 return geoDataZ;
+            }
         }
 
         // 4. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
@@ -721,7 +740,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 var heightMapZ = world.GetHeight(x, y);
                 if (heightMapZ > 0f)
+                {
+                    source = "HeightMap";
                     return heightMapZ;
+                }
             }
             catch
             {

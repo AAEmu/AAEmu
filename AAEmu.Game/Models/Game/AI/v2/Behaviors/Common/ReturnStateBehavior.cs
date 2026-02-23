@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
@@ -195,32 +194,16 @@ public class ReturnStateBehavior : BaseCombatBehavior
     }
 
     /// <summary>
-    /// Corrects the Z coordinate of the NPC's current and idle positions
-    /// to match the terrain height, preventing NPCs from floating after return.
+    /// Restores the NPC to its original idle (spawner) Z position on return completion.
+    /// IdlePosition is authoritative — it reflects the spawner's designed coordinates.
     /// </summary>
     private void CorrectIdlePositionZ()
     {
         if (Ai.Owner.CanFly)
             return;
 
-        var zoneId = Ai.Owner.Transform.ZoneId;
-
-        // Correct current position if floating slightly above ground (max 5m correction).
-        // Larger differences likely mean GetHeight returned an unreliable value
-        // (e.g., NavModifier MinZ of a building volume, not the actual floor).
-        var currentPos = Ai.Owner.Transform.World.Position;
-        var terrainZ = WorldManager.Instance.GetHeight(zoneId, currentPos.X, currentPos.Y, currentPos.Z);
-        if (terrainZ > 0f && currentPos.Z > terrainZ + 0.5f && currentPos.Z - terrainZ < 5f)
-        {
-            Ai.Owner.Transform.Local.SetHeight(terrainZ);
-        }
-
-        // Correct stored IdlePosition if floating slightly (same 5m limit)
-        var idleTerrainZ = WorldManager.Instance.GetHeight(zoneId, Ai.IdlePosition.X, Ai.IdlePosition.Y, Ai.IdlePosition.Z);
-        if (idleTerrainZ > 0f && Ai.IdlePosition.Z > idleTerrainZ + 0.5f && Ai.IdlePosition.Z - idleTerrainZ < 5f)
-        {
-            Ai.IdlePosition = Ai.IdlePosition with { Z = idleTerrainZ };
-        }
+        // Restore NPC to spawner's designed Z (IdlePosition is set at spawn time)
+        Ai.Owner.Transform.Local.SetHeight(Ai.IdlePosition.Z);
     }
 
     public override void Exit()

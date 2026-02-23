@@ -399,6 +399,13 @@ public class Simulation : Patrol
                 newZ = refZ;
             else
                 newZ = currentZ;
+
+            if (npc.TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
+            {
+                WorldManager.Instance.GetHeightWithSource(npc.Transform.ZoneId, newX, newY, currentZ, out var src);
+                Logger.Warn($"[TraceZ] Sim.MoveTo NPC {npc.TemplateId}:{npc.ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={src}) at ({newX:F1},{newY:F1}) target=({target.X:F1},{target.Y:F1},{target.Z:F1})");
+            }
+
             npc.Transform.Local.SetPosition(newX, newY, newZ);
 
             var angle = MathUtil.CalculateAngleFrom(npc.Transform.Local.Position, target);

@@ -40,6 +40,12 @@ public partial class Npc : Unit
     internal float LastGravityZ { get; set; }
 
     /// <summary>
+    /// When true, every Z modification is logged with source info.
+    /// Toggle with /tracez command targeting this NPC.
+    /// </summary>
+    internal bool TraceZ { get; set; }
+
+    /// <summary>
     /// This is the "Idle Animation Id" that is used in UnitModelChangePosture, it can change depending on the time of the day
     /// </summary>
     public uint AnimActionId
@@ -1337,13 +1343,24 @@ public partial class Npc : Unit
             // Ground NPCs: Z is determined by collision/terrain at the new XY position.
             // Use the NPC's CURRENT Z as hint (not the interpolated newZ) so that
             // floor-aware height sources (GeoData) return the correct floor level.
-            // Interpolated Z points between floors and causes NPCs to teleport.
             var currentZ = Transform.Local.Position.Z;
-            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
+            string heightSource = null;
+            float terrainZ;
+            if (TraceZ)
+            {
+                terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
+            }
+            else
+            {
+                terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
+            }
             if (terrainZ > 0f)
                 newZ = terrainZ;
             else
                 newZ = currentZ; // No terrain data — keep current Z
+
+            if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
+                Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
         }
         else
         {

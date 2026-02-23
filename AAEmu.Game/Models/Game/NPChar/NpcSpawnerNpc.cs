@@ -67,36 +67,17 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId} at Position: {npcSpawner.Position}");
 
-        if (!npc.CanFly)
+        if (!npc.CanFly && npcSpawner.Position.Z <= 0f)
         {
+            // Only detect height for spawners with NO explicit Z (Z=0 in JSON).
+            // Spawners with explicit Z are set by designers — never modify them.
             var spawnPos = npcSpawner.Position.AsPositionVector();
-            var originalZ = npcSpawner.Position.Z;
             var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, spawnPos.X, spawnPos.Y, spawnPos.Z);
-
             if (newZ > 0f)
             {
-                if (originalZ <= 0f)
-                {
-                    // Spawner has no Z (not specified in JSON) — use detected height
-                    npcSpawner.Position.Z = newZ;
-                }
-                else
-                {
-                    // Spawner has explicit Z set by designers — only make small corrections.
-                    // Snap DOWN max 2m (slight floating above terrain).
-                    // Snap UP max 2m (slightly underground).
-                    // Keep window small to avoid snapping to wrong floors in buildings
-                    // (typical floor spacing is 3-4m).
-                    var diff = originalZ - newZ;
-                    if (diff > 0f && diff < 2f)
-                        npcSpawner.Position.Z = newZ;
-                    else if (diff < 0f && diff > -2f)
-                        npcSpawner.Position.Z = newZ;
-                }
+                npcSpawner.Position.Z = newZ;
+                Logger.Debug($"[SpawnZ] NPC {MemberId} at ({spawnPos.X:F1},{spawnPos.Y:F1}): no Z in file → detected={newZ:F2}");
             }
-
-            if (MathF.Abs(npcSpawner.Position.Z - originalZ) > 0.1f)
-                Logger.Debug($"[SpawnZ] NPC {MemberId} at ({spawnPos.X:F1},{spawnPos.Y:F1}): fileZ={originalZ:F2} → getHeight={newZ:F2} → finalZ={npcSpawner.Position.Z:F2}");
         }
 
         npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);

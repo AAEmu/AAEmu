@@ -115,6 +115,13 @@ public abstract class NpcAi
             return;
 
         Logger.Trace($"Npc {Owner.TemplateId}:{Owner.ObjId} leaving behavior {_currentBehavior?.GetType().Name ?? "none"}, Entering behavior {behavior?.GetType().Name ?? "none"}");
+
+        if (Owner.TraceZ)
+        {
+            var pos = Owner.Transform.Local.Position;
+            Logger.Warn($"[TraceZ] BehaviorChange NPC {Owner.TemplateId}:{Owner.ObjId} | {_currentBehavior?.GetType().Name ?? "none"} → {behavior?.GetType().Name ?? "none"} | Z={pos.Z:F2} at ({pos.X:F1},{pos.Y:F1}) spawnerZ={Owner.Spawner?.Position.Z:F2} idleZ={IdlePosition.Z:F2}");
+        }
+
         _currentBehavior?.Exit();
         _currentBehavior = behavior;
         _currentBehavior?.Enter();
