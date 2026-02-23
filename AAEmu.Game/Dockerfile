@@ -25,6 +25,7 @@ RUN apk add --no-cache openssl mysql-client
 
 WORKDIR app
 COPY --from=builder /app/publish ./
+COPY ./SQL/patches/compact ./SQL/patches/compact
 
 EXPOSE 1239 1250
 ENTRYPOINT ["dotnet", "AAEmu.Game.dll"]

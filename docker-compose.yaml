@@ -87,7 +87,7 @@ services:
         restart: unless-stopped
         volumes:
           - "./.server_files/AAEmu.Game/ClientData:/app/ClientData:ro"
-          - "./.server_files/AAEmu.Game/Data:/app/Data:ro"
+          - "./.server_files/AAEmu.Game/Data:/app/Data"
           - "./.server_files/AAEmu.Game/Configurations:/app/Configurations:ro"
           - "./.server_files/AAEmu.Game/Config.json:/app/Config.json:ro"
         environment:
