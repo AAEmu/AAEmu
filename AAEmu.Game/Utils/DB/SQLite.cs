@@ -29,4 +29,26 @@ public static class SQLite
 
         return connection;
     }
+
+    public static SqliteConnection CreateWriteConnection(string directory = "Data", string sqlite = "compact.sqlite3")
+    {
+        var dbPath = Path.Combine(FileManager.AppPath, directory, sqlite);
+        if (!File.Exists(dbPath))
+        {
+            Logger.Fatal("Server database does not exist: {0} !", dbPath);
+            throw new FileNotFoundException("Server database does not exist: " + dbPath);
+        }
+        var connection = new SqliteConnection($"Data Source=file:{dbPath}; Mode=ReadWrite");
+        try
+        {
+            connection.Open();
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Error on SQLite connect (ReadWrite): {0}", e.Message);
+            throw;
+        }
+
+        return connection;
+    }
 }

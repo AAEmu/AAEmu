@@ -83,6 +83,14 @@ public static class Program
             return 1;
         }
 
+        // Apply any pending SQLite patches from SQL/patches/compact/
+        if (!SQLiteDatabaseUpdater.Run())
+        {
+            Logger.Fatal("SQLite migration failed! Check the patch files in SQL/patches/compact/");
+            LogManager.Flush();
+            return 1;
+        }
+
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
         var builder = new HostBuilder()
