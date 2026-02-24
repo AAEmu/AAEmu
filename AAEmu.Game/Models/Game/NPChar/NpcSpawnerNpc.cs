@@ -67,29 +67,15 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId} at Position: {npcSpawner.Position}");
 
-        if (!npc.CanFly)
+        if (!npc.CanFly && npcSpawner.Position.Z <= 0f)
         {
+            // No explicit Z in spawner data — detect ground height
             var spawnPos = npcSpawner.Position.AsPositionVector();
             var newZ = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, spawnPos.X, spawnPos.Y, spawnPos.Z);
             if (newZ > 0f)
             {
-                if (npcSpawner.Position.Z <= 0f)
-                {
-                    // No explicit Z in spawner data — use detected ground height
-                    npcSpawner.Position.Z = newZ;
-                    Logger.Debug($"[SpawnZ] NPC {MemberId} at ({spawnPos.X:F1},{spawnPos.Y:F1}): no Z in file → detected={newZ:F2}");
-                }
-                else
-                {
-                    // Explicit Z — snap to ground if close (< 3m), preserving intentional
-                    // elevations (balconies, upper floors, etc.)
-                    var diff = MathF.Abs(npcSpawner.Position.Z - newZ);
-                    if (diff > 0.05f && diff < 3f)
-                    {
-                        Logger.Debug($"[SpawnZ] NPC {MemberId} at ({spawnPos.X:F1},{spawnPos.Y:F1}): explicit Z={npcSpawner.Position.Z:F2} → ground={newZ:F2} (diff={diff:F2})");
-                        npcSpawner.Position.Z = newZ;
-                    }
-                }
+                npcSpawner.Position.Z = newZ;
+                Logger.Debug($"[SpawnZ] NPC {MemberId} at ({spawnPos.X:F1},{spawnPos.Y:F1}): no Z in file → detected={newZ:F2}");
             }
         }
 

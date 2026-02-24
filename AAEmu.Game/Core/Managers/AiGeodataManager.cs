@@ -351,49 +351,55 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
     }
 
     /// <summary>
-    /// Gets height using navmesh data
+    /// Gets height using BAI navmesh data with Z-aware multi-layer selection.
+    /// Collects all nearby nodes within 2D range, then picks the one whose Z
+    /// is closest to the NPC's current Z. This correctly handles multi-layer
+    /// scenarios (bridges over roads, docks over water, multi-floor buildings).
     /// </summary>
-    /// <param name="pos"></param>
-    /// <returns></returns>
     public float GetHeight(Vector3 pos)
     {
         try
         {
-            var closestPoint = Vector3.Zero;
-            var closestDistance2D = float.MaxValue;
+            const float maxDist2D = 5f;
+            const float maxDist2DSq = maxDist2D * maxDist2D;
 
-            // Only use NetMission walkable nodes for terrain height.
-            // VertexMission contains obstacle positions (rocks, trees, fences)
-            // whose Z represents the obstacle top, NOT walkable ground.
             var bai = worldTemplate.GetBaiByPos(pos);
-            if (bai != null)
+            if (bai == null)
+                return worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y));
+
+            var bestZ = 0f;
+            var bestScore = float.MaxValue;
+            var found = false;
+
+            foreach (var netMission in bai.NetMissionReaders)
             {
-                foreach (var netMission in bai.NetMissionReaders)
+                foreach (var (_, node) in netMission.NodeDescriptorList)
                 {
-                    foreach (var (_, nodeDescriptor) in netMission.NodeDescriptorList)
+                    var dx = node.Pos.X - pos.X;
+                    var dy = node.Pos.Y - pos.Y;
+                    var dist2DSq = dx * dx + dy * dy;
+
+                    if (dist2DSq > maxDist2DSq)
+                        continue;
+
+                    // Score: prefer nodes whose Z is closest to current Z,
+                    // with slight 2D distance bias to break ties
+                    var zDist = MathF.Abs(node.Pos.Z - pos.Z);
+                    var score = zDist + MathF.Sqrt(dist2DSq) * 0.1f;
+
+                    if (score < bestScore)
                     {
-                        var dx = nodeDescriptor.Pos.X - pos.X;
-                        var dy = nodeDescriptor.Pos.Y - pos.Y;
-                        var dist2D = dx * dx + dy * dy;
-                        if (dist2D < closestDistance2D)
-                        {
-                            closestDistance2D = dist2D;
-                            closestPoint = nodeDescriptor.Pos;
-                            if (closestDistance2D < 0.01f)
-                                return closestPoint.Z;
-                        }
+                        bestScore = score;
+                        bestZ = node.Pos.Z;
+                        found = true;
                     }
                 }
             }
 
-            // If nearest walkable node is too far (>5 units in 2D), its height
-            // is unreliable for this position — fall back to heightmap
-            if (closestDistance2D > 5f * 5f || closestDistance2D >= float.MaxValue)
-            {
+            if (!found)
                 return worldTemplate.GetRawHeightMapHeight((int)MathF.Round(pos.X), (int)MathF.Round(pos.Y));
-            }
 
-            return closestPoint.Z;
+            return bestZ;
         }
         catch
         {

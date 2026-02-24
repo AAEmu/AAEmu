@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
@@ -195,31 +194,15 @@ public class ReturnStateBehavior : BaseCombatBehavior
     }
 
     /// <summary>
-    /// Corrects the NPC's Z position on return completion using ground height query.
-    /// Falls back to IdlePosition.Z if no ground data is available.
+    /// Restores the NPC's Z to the spawner's designed idle position.
+    /// No height query — trust the spawner data / A* pathfinding Z.
     /// </summary>
     private void CorrectIdlePositionZ()
     {
         if (Ai.Owner.CanFly)
             return;
 
-        var idlePos = Ai.IdlePosition;
-        var groundZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, idlePos.X, idlePos.Y, idlePos.Z);
-
-        if (groundZ > 0f)
-        {
-            // Use ground-detected Z — more accurate than spawner's designed Z
-            var diff = MathF.Abs(idlePos.Z - groundZ);
-            if (diff > 0.05f && diff < 3f)
-                Ai.IdlePosition = idlePos with { Z = groundZ };
-
-            Ai.Owner.Transform.Local.SetHeight(Ai.IdlePosition.Z);
-        }
-        else
-        {
-            // No ground data — fall back to idle position Z
-            Ai.Owner.Transform.Local.SetHeight(idlePos.Z);
-        }
+        Ai.Owner.Transform.Local.SetHeight(Ai.IdlePosition.Z);
     }
 
     public override void Exit()

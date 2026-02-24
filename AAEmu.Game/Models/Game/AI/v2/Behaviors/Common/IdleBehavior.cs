@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -45,32 +44,8 @@ public class IdleBehavior : BaseCombatBehavior
         if (Ai.Owner.CurrentTarget != null)
             Ai.Owner.SendPacketToPlayers([Ai.Owner.CurrentTarget], new SCAggroTargetChangedPacket(Ai.Owner.ObjId, 0));
 
-        // One-time ground snap: correct Z to match terrain/navmesh surface.
-        // This fixes NPCs that clip through or float above the ground after
-        // spawning with slightly-off Z values or drifting during combat.
-        SnapToGround();
-
         if (Ai.Owner is { } npc)
             npc.Events.InIdle(this, new InIdleArgs { Owner = npc });
-    }
-
-    private void SnapToGround()
-    {
-        if (Ai.Owner.CanFly)
-            return;
-
-        var pos = Ai.Owner.Transform.World.Position;
-        var groundZ = WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, pos.X, pos.Y, pos.Z);
-        if (groundZ <= 0f)
-            return;
-
-        var diff = MathF.Abs(pos.Z - groundZ);
-        if (diff > 0.05f && diff < 3f)
-        {
-            Ai.Owner.Transform.Local.SetHeight(groundZ);
-            // Update idle position so ReturnState also uses the corrected Z
-            Ai.IdlePosition = Ai.IdlePosition with { Z = groundZ };
-        }
     }
 
     public override void Tick(TimeSpan delta)
