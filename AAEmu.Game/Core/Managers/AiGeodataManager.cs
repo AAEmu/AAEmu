@@ -42,6 +42,15 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                     if (IsInPolygon(point, forbiddenArea.Points))
                         return true;
                 }
+
+                foreach (var designerArea in areaMission.DesignerForbiddenAreasList)
+                {
+                    if (IsInPolygon(point, designerArea.Points))
+                        return true;
+                }
+
+                // ForbiddenBoundaries are world-edge boundary lines, not enclosed forbidden zones.
+                // IsInPolygon is wrong for them — use LinePassesThroughForbiddenArea instead.
             }
         }
         return false;
@@ -552,6 +561,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                     return true;
             }
         }
+
         return false;
     }
 

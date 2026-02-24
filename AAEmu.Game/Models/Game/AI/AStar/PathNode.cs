@@ -80,10 +80,18 @@ public class PathNode
             var navPath = world.NavMesh.FindPath(start, goal);
             if (navPath.Count > 0)
             {
-                EndPointPos = goal;
-                Position = navPath[0];
-                CurrentTargetPos = Vector3.Zero;
-                return navPath;
+                // Validate: if NavMesh path endpoint doesn't reach the goal's elevation,
+                // it means NavMesh lacks building/stair data for this route.
+                // Fall back to BAI A* which has proper stair/ramp nodes.
+                var pathEndZ = navPath[^1].Z;
+                if (MathF.Abs(pathEndZ - goal.Z) <= 3f)
+                {
+                    EndPointPos = goal;
+                    Position = navPath[0];
+                    CurrentTargetPos = Vector3.Zero;
+                    return navPath;
+                }
+                // NavMesh path stays at ground level — try BAI A* for stairs
             }
         }
 

@@ -1,8 +1,10 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
 using System.Numerics;
 using AAEmu.Commons.Exceptions;
 using NLog;
 using AAEmu.Game.IO;
+using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Readers;
 using AAEmu.Game.Models.Game.World;
@@ -19,6 +21,8 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
     public List<NetMissionReader> HideMissionReaders { get; } = [];
     public List<RoadMissionReader> RoadMissionReaders { get; } = [];
     public List<FlightMissionReader> FlightMissionReaders { get; } = [];
+    public List<Volume3dMissionReader> Volume3dMissionReaders { get; } = [];
+    public List<AiTagPoint> TagPoints { get; } = [];
 
     /// <summary>
     /// Loads .bai files data from a given zone or path folder
@@ -253,6 +257,44 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 }
             }
 
+            // Volume3dMission*.bai (3D voxel navigation for instances)
+            var v3dFiles = GetFiles("v3dmission*.bai", zoneOrPathsFolder);
+            foreach (var v3dFile in v3dFiles)
+            {
+                var v3dFolderName = Path.GetFileName(Path.GetDirectoryName(v3dFile)) ?? "";
+                if (string.IsNullOrWhiteSpace(v3dFolderName))
+                    continue;
+
+                var fileStream = ClientFileManager.GetFileStream(v3dFile);
+                if (fileStream == null || fileStream.Length <= 20)
+                {
+                    fileStream?.Dispose();
+                    continue;
+                }
+
+                var (zoneKey, _, _) = GetZoneAndOffsetsByName(v3dFolderName);
+                var targetOffset = GetTargetOffsetByZoneOrPath(zoneKey, 0, 0);
+
+                try
+                {
+                    var v3d = new Volume3dMissionReader(fileStream, zoneKey);
+                    v3d.ReaderPointOffset = targetOffset;
+                    v3d.ReadFile();
+                    Volume3dMissionReaders.Add(v3d);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"V3D File Exception: {ex}, in {v3dFile}");
+                }
+                finally
+                {
+                    fileStream.Dispose();
+                }
+            }
+
+            // tags.txt (AI smart object tag points)
+            LoadTagsFile(zoneOrPathsFolder);
+
             //LabelLoading.Text = "Done Loading .bai";
         }
         catch (Exception ex)
@@ -308,14 +350,70 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
 
     private void ClearData()
     {
-        // New
-        // AreasMissionReader.UsedAreaNames.Clear();
         AreasMissionReaders.Clear();
         NetMissionReaders.Clear();
         VertexMissionReaders.Clear();
         HideMissionReaders.Clear();
         RoadMissionReaders.Clear();
         FlightMissionReaders.Clear();
+        Volume3dMissionReaders.Clear();
+        TagPoints.Clear();
+    }
+
+    /// <summary>
+    /// Loads tags.txt from the zone folder (AI smart object interaction points).
+    /// Format: CSV lines with 6 floats: X,Y,Z,dirX,dirY,dirZ
+    /// </summary>
+    private void LoadTagsFile(string zoneOrPathsFolder)
+    {
+        var worldFolder = Path.Combine("game", "worlds", ParentWorldTemplate.Name);
+        var rootFolder = worldFolder;
+        if (!string.IsNullOrWhiteSpace(zoneOrPathsFolder))
+            rootFolder = Path.Combine(rootFolder, zoneOrPathsFolder.Contains('_') ? "paths" : "zone", zoneOrPathsFolder);
+
+        var tagsFiles = ClientFileManager.GetFilesInDirectory(rootFolder, "tags.txt", false);
+        foreach (var tagsFile in tagsFiles)
+        {
+            var contents = ClientFileManager.GetFileAsString(tagsFile);
+            if (string.IsNullOrWhiteSpace(contents))
+                continue;
+
+            var loadedCount = 0;
+            foreach (var line in contents.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed))
+                    continue;
+
+                var parts = trimmed.Split(',');
+                if (parts.Length < 6)
+                    continue;
+
+                try
+                {
+                    var tag = new AiTagPoint
+                    {
+                        Pos = new Vector3(
+                            float.Parse(parts[0], CultureInfo.InvariantCulture),
+                            float.Parse(parts[1], CultureInfo.InvariantCulture),
+                            float.Parse(parts[2], CultureInfo.InvariantCulture)),
+                        Dir = new Vector3(
+                            float.Parse(parts[3], CultureInfo.InvariantCulture),
+                            float.Parse(parts[4], CultureInfo.InvariantCulture),
+                            float.Parse(parts[5], CultureInfo.InvariantCulture))
+                    };
+                    TagPoints.Add(tag);
+                    loadedCount++;
+                }
+                catch (FormatException)
+                {
+                    // Skip malformed lines
+                }
+            }
+
+            if (loadedCount > 0)
+                Logger.Debug($"Loaded {loadedCount} AI tag points from {tagsFile}");
+        }
     }
 
     public NodeDescriptor FindClosestNetMissionNode(Vector3 pos)

@@ -13,6 +13,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 public class ReturnStateBehavior : BaseCombatBehavior
 {
     private DateTime _timeoutTime;
+    private DateTime _lastPathRecalcTime;
     private bool _enter;
 
     public override void Enter()
@@ -91,6 +92,12 @@ public class ReturnStateBehavior : BaseCombatBehavior
             var wallBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
                 .LinePassesThroughForbiddenArea(currentPos, Ai.IdlePosition) ?? false;
 
+            // Steep elevation = structure/stairs between NPC and idle position → need A*.
+            var heightDiff = MathF.Abs(Ai.IdlePosition.Z - currentPos.Z);
+            var elevationBlocked = !Ai.Owner.CanFly && heightDiff > 3f && (distanceToIdle < 1f || heightDiff / distanceToIdle > 0.5f);
+            if (!wallBlocked && elevationBlocked)
+                wallBlocked = true;
+
             if (!wallBlocked)
             {
                 // Clear path — straight line to idle position
@@ -100,68 +107,69 @@ public class ReturnStateBehavior : BaseCombatBehavior
             }
             else
             {
-                // Wall detected on full line — check if the IMMEDIATE path is also blocked.
-                // On ramps, the full line may clip distant forbidden areas, but the next
-                // few meters are clear. In that case, prefer straight-line movement.
-                var dirToIdle = Vector3.Normalize(Ai.IdlePosition - currentPos);
-                var checkDist = MathF.Min(5f, (float)distanceToIdle);
-                var shortTarget = currentPos + dirToIdle * checkDist;
-                var immediateBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
-                    .LinePassesThroughForbiddenArea(currentPos, shortTarget) ?? false;
+                // When blocked by elevation, skip the immediate check — the whole path
+                // needs A* to find stairs/ramps.
+                var useAStar = elevationBlocked;
 
-                if (!immediateBlocked)
+                if (!useAStar)
                 {
-                    // Immediate path is clear — wall is far ahead (ramp / distant obstacle)
-                    Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
-                    if (Ai.PathNode?.FoundPath?.Count > 0)
-                        Ai.PathNode.FoundPath = [];
-                }
-                else if (Ai.PathNode != null)
-                {
-                    // Wall also blocks immediate path — use A* to navigate around
-                    if (Ai.PathNode.FoundPath.Count == 0)
-                    {
-                        Ai.PathNode.StartPointPos = currentPos;
-                        Ai.PathNode.EndPointPos = Ai.IdlePosition;
-                        Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-                        var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, currentPos, Ai.IdlePosition);
-                        resList.Add(Ai.IdlePosition);
-                        Ai.PathNode.FoundPath = Ai.Owner.ParentWorld.Template.GeoData.ReducePath(resList, 10);
-                    }
+                    // Forbidden-area wall: check if the IMMEDIATE path is also blocked.
+                    var dirToIdle = Vector3.Normalize(Ai.IdlePosition - currentPos);
+                    var checkDist = MathF.Min(5f, (float)distanceToIdle);
+                    var shortTarget = currentPos + dirToIdle * checkDist;
+                    var immediateBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
+                        .LinePassesThroughForbiddenArea(currentPos, shortTarget) ?? false;
 
-                    if (Ai.PathNode.FoundPath.Count > 0)
+                    if (!immediateBlocked)
                     {
-                        // Re-check line of sight — if clear, drop A* and go straight
-                        var nowClear = !(Ai.Owner.ParentWorld?.Template?.GeoData?
-                            .LinePassesThroughForbiddenArea(currentPos, Ai.IdlePosition) ?? false);
-                        if (nowClear)
-                        {
+                        Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                        if (Ai.PathNode?.FoundPath?.Count > 0)
                             Ai.PathNode.FoundPath = [];
-                            Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
-                        }
-                        else
+                    }
+                    else
+                    {
+                        useAStar = true;
+                    }
+                }
+
+                if (useAStar)
+                {
+                    if (Ai.PathNode != null)
+                    {
+                        if (Ai.PathNode.FoundPath.Count == 0 && DateTime.UtcNow > _lastPathRecalcTime.AddSeconds(2))
                         {
+                            Ai.PathNode.StartPointPos = currentPos;
+                            Ai.PathNode.EndPointPos = Ai.IdlePosition;
+                            Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
+                            var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, currentPos, Ai.IdlePosition);
+                            resList.Add(Ai.IdlePosition);
+                            Ai.PathNode.FoundPath = Ai.Owner.ParentWorld.Template.GeoData.ReducePath(resList, 10);
+                            _lastPathRecalcTime = DateTime.UtcNow;
+                        }
+
+                        if (Ai.PathNode.FoundPath.Count > 0)
+                        {
+                            // Follow A* waypoints to completion — don't abandon mid-path
                             var nextPoint = Ai.PathNode.FoundPath.Peek();
                             var distToPoint = MathUtil.CalculateDistance(currentPos, nextPoint, true);
                             if (distToPoint > 1.0f)
                             {
-                                Ai.Owner.MoveTowards(nextPoint, (float)moveSpeed, moveFlags);
+                                Ai.Owner.MoveTowards(nextPoint, (float)moveSpeed, moveFlags, followTerrain: false);
                             }
                             else
                             {
                                 Ai.PathNode.FoundPath.Dequeue();
                             }
                         }
+                        else
+                        {
+                            Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                        }
                     }
                     else
                     {
                         Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
                     }
-                }
-                else
-                {
-                    // No PathNode — direct movement only
-                    Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
                 }
             }
         }

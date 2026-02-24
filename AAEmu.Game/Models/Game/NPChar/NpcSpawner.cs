@@ -84,12 +84,12 @@ public class NpcSpawner : Spawner<Npc>
                     DespawnNpcs();
                     didAction = true;
                 }
-                else if (!IsPlayerInSpawnRadius() && CurrentSpawnCount > 0)
-                {
-                    //Logger.Debug($"[SpawnerId={SpawnerId}, UnitId={UnitId}] Despawning NPCs...");
-                    DespawnNpcsNow();
-                    didAction = true;
-                }
+                // Proximity-based despawn disabled — all NPCs stay spawned
+                // else if (!IsPlayerInSpawnRadius() && CurrentSpawnCount > 0)
+                // {
+                //     DespawnNpcsNow();
+                //     didAction = true;
+                // }
 
                 if (!didAction && CanSpawnNpcs())
                 {

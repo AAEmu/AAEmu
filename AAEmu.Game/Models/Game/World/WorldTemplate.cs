@@ -3,6 +3,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
+using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Xml;
@@ -236,6 +237,67 @@ public class WorldTemplate
     public Dictionary<(uint, uint), BaseBaiLoader> PathBaiLoader { get; init; } = [];
 
     /// <summary>
+    /// NPC position maps from map_data/npc_map/ (zoneName -> entries)
+    /// </summary>
+    public Dictionary<string, List<ClientData.NpcMapEntry>> NpcMaps { get; init; } = [];
+
+    /// <summary>
+    /// Cover points spatial index by tile (256x256 units)
+    /// </summary>
+    private readonly ConcurrentDictionary<(uint, uint), List<ClientData.CoverPoint>> _coverPointIndex = new();
+    private readonly Lock _coverLock = new();
+
+    public void AddCoverPoint(ClientData.CoverPoint point)
+    {
+        var tileX = (uint)MathF.Floor(point.Pos.X / 256f);
+        var tileY = (uint)MathF.Floor(point.Pos.Y / 256f);
+        var list = _coverPointIndex.GetOrAdd((tileX, tileY), _ => []);
+        lock (_coverLock)
+        {
+            list.Add(point);
+        }
+    }
+
+    public List<ClientData.CoverPoint> GetNearbyCoverPoints(float x, float y, float radius)
+    {
+        var result = new List<ClientData.CoverPoint>();
+        var radiusSq = radius * radius;
+        var minTileX = (uint)MathF.Floor((x - radius) / 256f);
+        var maxTileX = (uint)MathF.Floor((x + radius) / 256f);
+        var minTileY = (uint)MathF.Floor((y - radius) / 256f);
+        var maxTileY = (uint)MathF.Floor((y + radius) / 256f);
+
+        for (var ty = minTileY; ty <= maxTileY; ty++)
+        for (var tx = minTileX; tx <= maxTileX; tx++)
+        {
+            if (!_coverPointIndex.TryGetValue((tx, ty), out var points))
+                continue;
+            lock (_coverLock)
+            {
+                foreach (var p in points)
+                {
+                    var dx = x - p.Pos.X;
+                    var dy = y - p.Pos.Y;
+                    if (dx * dx + dy * dy <= radiusSq)
+                        result.Add(p);
+                }
+            }
+        }
+        return result;
+    }
+
+    public int CoverPointCount
+    {
+        get
+        {
+            var count = 0;
+            foreach (var list in _coverPointIndex.Values)
+                count += list.Count;
+            return count;
+        }
+    }
+
+    /// <summary>
     /// Gets heightmap height at target position (not smoothened)
     /// </summary>
     /// <param name="x"></param>
@@ -356,6 +418,32 @@ public class WorldTemplate
             zoneBaiLoader.LoadBaiFilesFromFolder(zoneKey.ToString());
             ZoneBaiLoader.Add(zoneKey, zoneBaiLoader);
         }
+    }
+
+    /// <summary>
+    /// Loads NPC position maps from map_data/npc_map/ in the world folder.
+    /// Called alongside LoadZoneBaiFiles() during world initialization.
+    /// </summary>
+    public void LoadNpcMaps()
+    {
+        if (!AppConfiguration.Instance.World.GeoDataMode)
+            return;
+
+        var npcMapDir = Path.Combine("game", "worlds", Name, "map_data", "npc_map");
+        var npcMapFiles = ClientFileManager.GetFilesInDirectory(npcMapDir, "*.dat", false);
+        foreach (var npcMapPath in npcMapFiles)
+        {
+            var mapFile = new NpcMapFile(npcMapPath);
+            if (mapFile.ReadFile() && mapFile.Entries.Count > 0)
+            {
+                var zoneName = Path.GetFileNameWithoutExtension(npcMapPath);
+                NpcMaps[zoneName] = mapFile.Entries;
+                Logger.Debug($"Loaded {mapFile.Entries.Count} npc_map entries from {zoneName}");
+            }
+        }
+
+        if (NpcMaps.Count > 0)
+            Logger.Info($"Loaded npc_map data for {NpcMaps.Count} zones in {Name}");
     }
 
     public BaseBaiLoader GetBaiByPos(Vector3 pos)

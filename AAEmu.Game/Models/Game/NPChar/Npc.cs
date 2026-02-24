@@ -1298,7 +1298,7 @@ public partial class Npc : Unit
     /// <param name="actorFlags">ActorFlags to use for the movement packet</param>
     /// <param name="rangeTolerance">Makes the function return true if target distance is less than or equil to this value</param>
     /// <returns>True if withing rangeTolerance of other</returns>
-    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
+    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f, bool followTerrain = true)
     {
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
@@ -1340,27 +1340,29 @@ public partial class Npc : Unit
 
         if (!CanFly)
         {
-            // Ground NPCs: Z is determined by collision/terrain at the new XY position.
-            // Use the NPC's CURRENT Z as hint (not the interpolated newZ) so that
-            // floor-aware height sources (GeoData) return the correct floor level.
-            var currentZ = Transform.Local.Position.Z;
-            string heightSource = null;
-            float terrainZ;
-            if (TraceZ)
+            if (followTerrain)
             {
-                terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
-            }
-            else
-            {
-                terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
-            }
-            if (terrainZ > 0f)
-                newZ = terrainZ;
-            else
-                newZ = currentZ; // No terrain data — keep current Z
+                // Straight-line movement: query terrain/navmesh height at new XY.
+                var currentZ = Transform.Local.Position.Z;
+                string heightSource = null;
+                float terrainZ;
+                if (TraceZ)
+                {
+                    terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
+                }
+                else
+                {
+                    terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
+                }
+                if (terrainZ > 0f)
+                    newZ = terrainZ;
+                else
+                    newZ = currentZ;
 
-            if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
-                Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
+                if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
+                    Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
+            }
+            // else: following A*/NavMesh waypoints — trust the interpolated Z from the waypoint
         }
         else
         {
