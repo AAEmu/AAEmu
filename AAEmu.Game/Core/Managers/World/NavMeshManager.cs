@@ -699,5 +699,108 @@ public class NavMeshManager
     /// </summary>
     public bool HasData => TileCount > 0;
 
+    /// <summary>
+    /// Exports all navmesh detail triangles as game-coordinate vertices.
+    /// Each triangle is returned as 3 Vector3 in game space (X, Y, Z where Z=height).
+    /// tileX/tileZ identify which navmesh tile the triangle belongs to.
+    /// </summary>
+    public List<(Vector3 v0, Vector3 v1, Vector3 v2, int tileX, int tileZ)> GetAllDetailTriangles()
+    {
+        var result = new List<(Vector3, Vector3, Vector3, int, int)>();
+        if (_navMesh == null)
+            return result;
+
+        lock (_navMesh)
+        {
+            for (var i = 0; i < _navMesh.GetMaxTiles(); i++)
+            {
+                var tile = _navMesh.GetTile(i);
+                if (tile?.data == null)
+                    continue;
+
+                var meshData = tile.data;
+                var header = meshData.header;
+
+                // Use detail mesh triangles for accurate surface representation
+                if (meshData.detailMeshes != null && meshData.detailTris != null)
+                {
+                    for (var j = 0; j < header.polyCount; j++)
+                    {
+                        var poly = meshData.polys[j];
+                        var dm = meshData.detailMeshes[j];
+
+                        for (var k = 0; k < dm.triCount; k++)
+                        {
+                            var triBase = (dm.triBase + k) * 4;
+                            var triVerts = new Vector3[3];
+
+                            for (var m = 0; m < 3; m++)
+                            {
+                                var vi = meshData.detailTris[triBase + m];
+                                float vx, vy, vz;
+
+                                if (vi < poly.vertCount)
+                                {
+                                    // Base polygon vertex
+                                    var baseIdx = poly.verts[vi] * 3;
+                                    vx = meshData.verts[baseIdx];
+                                    vy = meshData.verts[baseIdx + 1];
+                                    vz = meshData.verts[baseIdx + 2];
+                                }
+                                else
+                                {
+                                    // Detail vertex
+                                    var detailIdx = (dm.vertBase + vi - poly.vertCount) * 3;
+                                    vx = meshData.detailVerts[detailIdx];
+                                    vy = meshData.detailVerts[detailIdx + 1];
+                                    vz = meshData.detailVerts[detailIdx + 2];
+                                }
+
+                                // DotRecast Y-up → game: X=X, Y=Z, Z=Y(height)
+                                triVerts[m] = new Vector3(vx, vz, vy);
+                            }
+
+                            result.Add((triVerts[0], triVerts[1], triVerts[2], header.x, header.y));
+                        }
+                    }
+                }
+                else
+                {
+                    // No detail mesh — triangulate base polygons (fan from vertex 0)
+                    for (var j = 0; j < header.polyCount; j++)
+                    {
+                        var poly = meshData.polys[j];
+                        if (poly.vertCount < 3) continue;
+
+                        var v0Idx = poly.verts[0] * 3;
+                        var v0 = new Vector3(
+                            meshData.verts[v0Idx],
+                            meshData.verts[v0Idx + 2],
+                            meshData.verts[v0Idx + 1]);
+
+                        for (var k = 1; k < poly.vertCount - 1; k++)
+                        {
+                            var v1Idx = poly.verts[k] * 3;
+                            var v2Idx = poly.verts[k + 1] * 3;
+
+                            var v1 = new Vector3(
+                                meshData.verts[v1Idx],
+                                meshData.verts[v1Idx + 2],
+                                meshData.verts[v1Idx + 1]);
+                            var v2 = new Vector3(
+                                meshData.verts[v2Idx],
+                                meshData.verts[v2Idx + 2],
+                                meshData.verts[v2Idx + 1]);
+
+                            result.Add((v0, v1, v2, header.x, header.y));
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
     #endregion Query
 }
