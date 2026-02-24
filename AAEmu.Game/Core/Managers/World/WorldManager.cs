@@ -710,21 +710,22 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             return customFloorZ;
         }
 
-        // 2. NavMesh query — authoritative height from pre-baked navmesh surface
-        var worldInstances = GetWorldsByTemplate(world.Id);
-        if (worldInstances.Count > 0)
+        // 2. GeoData navmesh — BAI mesh with Z-aware multi-layer selection.
+        //    Runs BEFORE NavMesh because it supports multiple height layers
+        //    (bridges, docks, platforms). NavMesh is terrain-only (single layer)
+        //    and would incorrectly snap elevated NPCs to ground level.
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            var navMeshZ = worldInstances[0].NavMesh?.GetHeight(x, y, z) ?? 0f;
-            if (navMeshZ > 0f)
+            var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
+            if (geoDataZ > 0f)
             {
-                source = "NavMesh";
-                return navMeshZ;
+                source = "GeoData";
+                return geoDataZ;
             }
         }
 
-        // 3. BAI Type-4 interior floor nodes — elevated walkable surfaces (bridges,
-        //    docks, platforms) that GeoData/HeightMap can't represent. Z-proximity
-        //    selection ensures the correct floor is picked for multi-story buildings.
+        // 3. BAI Type-4 interior floor nodes — elevated walkable surfaces that
+        //    may not have nearby GeoData nodes (sparse coverage areas).
         if (AppConfiguration.Instance.World.GeoDataMode)
         {
             var type4Z = world.GeoData?.GetInteriorFloorHeight(new Vector3(x, y, z)) ?? 0f;
@@ -735,14 +736,16 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
-        // 4. GeoData navmesh — BAI mesh for general walkable surface height
-        if (AppConfiguration.Instance.World.GeoDataMode)
+        // 4. NavMesh query — terrain-only DotRecast navmesh (single layer).
+        //    Safe fallback for outdoor areas not covered by BAI GeoData.
+        var worldInstances = GetWorldsByTemplate(world.Id);
+        if (worldInstances.Count > 0)
         {
-            var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
-            if (geoDataZ > 0f)
+            var navMeshZ = worldInstances[0].NavMesh?.GetHeight(x, y, z) ?? 0f;
+            if (navMeshZ > 0f)
             {
-                source = "GeoData";
-                return geoDataZ;
+                source = "NavMesh";
+                return navMeshZ;
             }
         }
 

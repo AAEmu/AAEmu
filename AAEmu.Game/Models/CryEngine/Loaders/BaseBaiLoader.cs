@@ -17,6 +17,8 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
     public List<NetMissionReader> NetMissionReaders { get; } = [];
     public List<VertexMissionReader> VertexMissionReaders { get; } = [];
     public List<NetMissionReader> HideMissionReaders { get; } = [];
+    public List<RoadMissionReader> RoadMissionReaders { get; } = [];
+    public List<FlightMissionReader> FlightMissionReaders { get; } = [];
 
     /// <summary>
     /// Loads .bai files data from a given zone or path folder
@@ -187,6 +189,70 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 }
             }
 
+            // RoadMission*.bai
+            var roadFiles = GetFiles("roadmission*.bai", zoneOrPathsFolder);
+            foreach (var roadFile in roadFiles)
+            {
+                var roadFolderName = Path.GetFileName(Path.GetDirectoryName(roadFile)) ?? "";
+                if (string.IsNullOrWhiteSpace(roadFolderName))
+                    continue;
+
+                var (zoneKey, pathBlockX, pathBlockY) = GetZoneAndOffsetsByName(roadFolderName);
+                var targetOffset = GetTargetOffsetByZoneOrPath(zoneKey, pathBlockX, pathBlockY);
+
+                var fileStream = ClientFileManager.GetFileStream(roadFile);
+                if (fileStream == null)
+                    continue;
+
+                try
+                {
+                    var road = new RoadMissionReader(fileStream, zoneKey);
+                    road.ReaderPointOffset = targetOffset;
+                    road.ReadFile();
+                    RoadMissionReaders.Add(road);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"Road File Exception: {ex}, in {roadFile}");
+                }
+                finally
+                {
+                    fileStream.Dispose();
+                }
+            }
+
+            // FlightMission*.bai
+            var flightFiles = GetFiles("flightmission*.bai", zoneOrPathsFolder);
+            foreach (var flightFile in flightFiles)
+            {
+                var flightFolderName = Path.GetFileName(Path.GetDirectoryName(flightFile)) ?? "";
+                if (string.IsNullOrWhiteSpace(flightFolderName))
+                    continue;
+
+                var (zoneKey, pathBlockX, pathBlockY) = GetZoneAndOffsetsByName(flightFolderName);
+                var targetOffset = GetTargetOffsetByZoneOrPath(zoneKey, pathBlockX, pathBlockY);
+
+                var fileStream = ClientFileManager.GetFileStream(flightFile);
+                if (fileStream == null)
+                    continue;
+
+                try
+                {
+                    var flight = new FlightMissionReader(fileStream, zoneKey);
+                    flight.ReaderPointOffset = targetOffset;
+                    flight.ReadFile();
+                    FlightMissionReaders.Add(flight);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"Flight File Exception: {ex}, in {flightFile}");
+                }
+                finally
+                {
+                    fileStream.Dispose();
+                }
+            }
+
             //LabelLoading.Text = "Done Loading .bai";
         }
         catch (Exception ex)
@@ -248,6 +314,8 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
         NetMissionReaders.Clear();
         VertexMissionReaders.Clear();
         HideMissionReaders.Clear();
+        RoadMissionReaders.Clear();
+        FlightMissionReaders.Clear();
     }
 
     public NodeDescriptor FindClosestNetMissionNode(Vector3 pos)
