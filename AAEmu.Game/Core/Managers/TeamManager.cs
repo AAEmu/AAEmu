@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
@@ -77,7 +78,9 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         foreach (var character in characters)
         {
-            if (!character.InParty)
+            // Skip hostile players (friendly and neutral can be invited, supports custom nations)
+            var relation = owner.GetRelationStateTo(character);
+            if (!character.InParty && relation is RelationState.Friendly or RelationState.Neutral)
                 AskToJoin(owner, "", teamId, false, character);
         }
     }
@@ -87,6 +90,14 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         var target = targetObj ?? worldManager.GetCharacter(targetName);
         if (target == null) return;
         // TODO - CONFIG INVITE DISABLED
+
+        // Only hostile players cannot be invited (friendly and neutral are allowed, supports custom nations)
+        if (owner.GetRelationStateTo(target) == RelationState.Hostile)
+        {
+            owner.SendErrorMessage(ErrorMessageType.TeamInviteRefused);
+            return;
+        }
+
 
         var activeTeam = GetActiveTeam(teamId);
         if (GetActiveInvitation(target.Id) != null)
