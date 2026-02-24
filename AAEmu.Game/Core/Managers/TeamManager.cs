@@ -77,7 +77,8 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         foreach (var character in characters)
         {
-            if (!character.InParty)
+            // Skip players from a different mother faction (e.g. Nuia, Haranya, Pirate)
+            if (!character.InParty && character.Faction.MotherId == owner.Faction.MotherId)
                 AskToJoin(owner, "", teamId, false, character);
         }
     }
@@ -87,6 +88,13 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         var target = targetObj ?? worldManager.GetCharacter(targetName);
         if (target == null) return;
         // TODO - CONFIG INVITE DISABLED
+
+        // Check if both players are in the same mother faction (e.g. Nuia, Haranya, Pirate)
+        if (owner.Faction.MotherId != target.Faction.MotherId)
+        {
+            owner.SendErrorMessage(ErrorMessageType.TeamInviteRefused);
+            return;
+        }
 
         var activeTeam = GetActiveTeam(teamId);
         if (GetActiveInvitation(target.Id) != null)
