@@ -16,6 +16,8 @@ public class MaterialsFile(string fileName)
         try
         {
             using var sourceFs = ClientFileManager.GetFileStream(FileName);
+            if (sourceFs == null)
+                return false;
             using var fs = new MemoryStream();
             sourceFs.CopyTo(fs);
             if (fs.Length <= 4)

@@ -369,6 +369,14 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // Then spawn the rest
         MainWorld.SpawnManager.SpawnAll();
 
+        // Wait for all spawn tasks (NPCs, doodads, transfers, etc.) to complete
+        if (MainWorld.SpawnManager.SpawnTasks.Count > 0)
+        {
+            Logger.Info("Waiting for all spawn tasks to complete...");
+            Task.WhenAll(MainWorld.SpawnManager.SpawnTasks).GetAwaiter().GetResult();
+            Logger.Info($"All spawn tasks completed ({GameService.TimeSinceStart} since server start)");
+        }
+
         // Mirage Island
         // _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName("arche_mall_world").ZoneKeys.First(), 0, true, 1);
 
@@ -737,7 +745,28 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
-        // 4. NavMesh query — terrain-only DotRecast navmesh (single layer).
+        // 4. BAI NavModifier building floor zones — polygon-based building floors
+        //    from areasmission BAI data. Catches buildings the GeoData nodes miss.
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            var buildingFloorZ = world.GeoData?.GetBuildingFloorHeight(new Vector3(x, y, z)) ?? 0f;
+            if (buildingFloorZ > 0f)
+            {
+                source = "BuildingFloorBAI";
+                return buildingFloorZ;
+            }
+        }
+
+        // 5. Brush bounding boxes — structural collision objects (walls, platforms, etc.)
+        //    AABB-based, less precise than BAI but covers areas without GeoData.
+        var brushFloorZ = world.GetBrushFloorHeight(x, y, z);
+        if (brushFloorZ > 0f)
+        {
+            source = "BrushFloor";
+            return brushFloorZ;
+        }
+
+        // 6. NavMesh query — terrain-only DotRecast navmesh (single layer).
         //    Safe fallback for outdoor areas not covered by BAI GeoData.
         var worldInstances = GetWorldsByTemplate(world.Id);
         if (worldInstances.Count > 0)
@@ -750,7 +779,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
-        // 5. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
+        // 7. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
         if (AppConfiguration.Instance.HeightMapsEnable)
         {
             try

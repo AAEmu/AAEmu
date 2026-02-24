@@ -1298,7 +1298,7 @@ public partial class Npc : Unit
     /// <param name="actorFlags">ActorFlags to use for the movement packet</param>
     /// <param name="rangeTolerance">Makes the function return true if target distance is less than or equil to this value</param>
     /// <returns>True if withing rangeTolerance of other</returns>
-    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f, bool followTerrain = true)
+    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
     {
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
@@ -1340,29 +1340,26 @@ public partial class Npc : Unit
 
         if (!CanFly)
         {
-            if (followTerrain)
+            // Always resolve Z from terrain/navmesh — never trust interpolated Z.
+            // A* provides the XY route; GetHeight provides the authoritative Z.
+            var currentZ = Transform.Local.Position.Z;
+            string heightSource = null;
+            float terrainZ;
+            if (TraceZ)
             {
-                // Straight-line movement: query terrain/navmesh height at new XY.
-                var currentZ = Transform.Local.Position.Z;
-                string heightSource = null;
-                float terrainZ;
-                if (TraceZ)
-                {
-                    terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
-                }
-                else
-                {
-                    terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
-                }
-                if (terrainZ > 0f)
-                    newZ = terrainZ;
-                else
-                    newZ = currentZ;
-
-                if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
-                    Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
+                terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
             }
-            // else: following A*/NavMesh waypoints — trust the interpolated Z from the waypoint
+            else
+            {
+                terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
+            }
+            if (terrainZ > 0f)
+                newZ = terrainZ;
+            else
+                newZ = currentZ;
+
+            if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
+                Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
         }
         else
         {
@@ -1507,14 +1504,23 @@ public partial class Npc : Unit
 
     public void FindPath(Unit abuser)
     {
-        Ai.PathNode.StartPointPos = new Vector3(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-        Ai.PathNode.EndPointPos = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
+        var startPos = Ai.Owner.Transform.World.Position;
+        var endPos = abuser.Transform.World.Position;
 
+        Ai.PathNode.StartPointPos = startPos;
+        Ai.PathNode.EndPointPos = endPos;
         Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-        var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
-        resList.Add(abuser.Transform.World.Position);
-        var reducedPath = ParentWorld.Template.GeoData.ReducePath(resList, 10);
-        Ai.PathNode.FoundPath = reducedPath;
+
+        // FindPath already adds the goal and applies DouglasPeucker smoothing.
+        // ReducePath does additional waypoint skipping for straighter lines.
+        // Use NavMesh raycast for reduction when available (geometry-aware);
+        // fall back to ForbiddenArea-based reduction otherwise.
+        var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, startPos, endPos);
+        var navMesh = ParentWorld?.NavMesh;
+        if (navMesh?.HasData == true)
+            Ai.PathNode.FoundPath = AiGeoDataManager.ReducePathNavMesh(resList, 10, navMesh);
+        else
+            Ai.PathNode.FoundPath = ParentWorld.Template.GeoData.ReducePath(resList, 10);
         Logger.Debug($"NPC {Ai.Owner.ObjId} pathfinding to target: {Ai.PathNode.FoundPath.Count}/{resList.Count} steps");
     }
 

@@ -75,7 +75,10 @@ public class TestNavMesh : ICommand
             AddDoodadMarker(world, v3, stonePostDoodad);
         }
         messageOutput.SendMessage($"Reduced:");
-        var reducedPath = world.Template.GeoData.ReducePath(foundPath.ToList(), 10).ToList();
+        var navMesh = world.NavMesh;
+        var reducedPath = (navMesh?.HasData == true
+            ? AiGeoDataManager.ReducePathNavMesh(foundPath.ToList(), 10, navMesh)
+            : world.Template.GeoData.ReducePath(foundPath.ToList(), 10)).ToList();
         //reducedPath.Insert(0, npc.Transform.World.Position);
         //reducedPath.Add(character.Transform.World.Position);
         foreach (var v3 in reducedPath)

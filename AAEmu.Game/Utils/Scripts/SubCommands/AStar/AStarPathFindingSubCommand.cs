@@ -34,7 +34,10 @@ public class AStarPathFindingSubCommand : SubCommandBase
             var resList = npc.Ai.PathNode.FindPath(npc.ParentWorld, npc.Ai.PathNode.StartPointPos, npc.Ai.PathNode.EndPointPos);
             if (resList.Count > 0 && npc.Ai.PathNode.StartPointPos != resList[0]) // Skip the first node in this list if not on it
                 resList.RemoveAt(0);
-            var reducedList = npc.ParentWorld.Template.GeoData.ReducePath(resList, 10);
+            var navMesh = npc.ParentWorld?.NavMesh;
+            var reducedList = navMesh?.HasData == true
+                ? AiGeoDataManager.ReducePathNavMesh(resList, 10, navMesh)
+                : npc.ParentWorld.Template.GeoData.ReducePath(resList, 10);
             npc.Ai.PathNode.FoundPath = reducedList;
 
             character.SendMessage($"AStar: points found Total: {resList?.Count ?? 0}");

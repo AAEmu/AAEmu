@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.CryEngine.Entities;
 using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Mission;
@@ -20,7 +21,7 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
 
     public List<LinkDescriptor> GetAvailablePoints(NodeDescriptor point)
     {
-        return point.NetMission.LinkDescriptorList.Where(l => l.SourceNode == point.Id).ToList() ?? [];
+        return point.NetMission.LinksBySourceNode.TryGetValue(point.Id, out var links) ? links : [];
     }
 
     #region A point in a polygon
@@ -493,6 +494,43 @@ public class AiGeoDataManager(WorldTemplate worldTemplate)
                 if (LinePassesThroughForbiddenArea(startNode, endNode) == false)
                 {
                     // If clear, directly put this point as next, and move the check index
+                    res.Enqueue(endNode);
+                    startNodeIndex = endNodeIndex;
+                    break;
+                }
+            }
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// Reduces a NavMesh path by skipping intermediate waypoints when a direct
+    /// NavMesh raycast confirms walkability. Uses Raycast instead of
+    /// ForbiddenArea checks since the NavMesh surface already encodes obstacles.
+    /// </summary>
+    public static Queue<Vector3> ReducePathNavMesh(List<Vector3> foundPath, int maxNodeSkipCount,
+        NavMeshManager navMesh)
+    {
+        var res = new Queue<Vector3>();
+        for (var startNodeIndex = 0; startNodeIndex < foundPath.Count; startNodeIndex++)
+        {
+            var startNode = foundPath[startNodeIndex];
+            res.Enqueue(startNode);
+            for (var endNodeIndex = startNodeIndex + maxNodeSkipCount;
+                 endNodeIndex > startNodeIndex; endNodeIndex--)
+            {
+                if (endNodeIndex >= foundPath.Count)
+                    continue;
+                var endNode = foundPath[endNodeIndex];
+                // Skip this node if the height offset is too steep
+                var delta = endNode - startNode;
+                var angleRate = delta.Length() > 0 ? delta.Z / delta.Length() : 0f;
+                if (angleRate >= 0.2f || angleRate <= -0.5f)
+                    continue;
+                // NavMesh raycast: if walkable line-of-sight, skip intermediate nodes
+                if (navMesh.Raycast(startNode, endNode))
+                {
                     res.Enqueue(endNode);
                     startNodeIndex = endNodeIndex;
                     break;

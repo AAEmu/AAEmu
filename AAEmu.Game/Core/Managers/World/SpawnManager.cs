@@ -829,7 +829,7 @@ public class SpawnManager(WorldInstance parentWorld)
     public void SpawnAll()
     {
         Logger.Info("Spawning NPCs...");
-        //Task.Run(SpawnAllNpcs);
+        SpawnTasks.Add(Task.Run(SpawnAllNpcs));
 
         Logger.Info("Spawning Doodads...");
         SpawnTasks.Add(Task.Run(() =>

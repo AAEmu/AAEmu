@@ -10,6 +10,7 @@ public class NetMissionReader : BaiReader
 
     public ConcurrentDictionary<long, NodeDescriptor> NodeDescriptorList { get; set; } = new();
     public List<LinkDescriptor> LinkDescriptorList { get; set; } = [];
+    public Dictionary<long, List<LinkDescriptor>> LinksBySourceNode { get; set; } = [];
     public Navigation Navigation { get; set; }
     public BBox BBox { get; set; }
 
@@ -81,5 +82,10 @@ public class NetMissionReader : BaiReader
             linkDescriptor.TargetNodeDescriptor = this.NodeDescriptorList.GetValueOrDefault(linkDescriptor.TargetNode);
             LinkDescriptorList.Add(linkDescriptor);
         }
+
+        // Build source-node index for O(1) neighbor lookup
+        LinksBySourceNode = LinkDescriptorList
+            .GroupBy(l => l.SourceNode)
+            .ToDictionary(g => g.Key, g => g.ToList());
     }
 }

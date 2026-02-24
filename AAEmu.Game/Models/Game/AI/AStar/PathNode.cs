@@ -1,9 +1,10 @@
-﻿// https://lsreg.ru/realizaciya-algoritma-poiska-a-na-c/
+// https://lsreg.ru/realizaciya-algoritma-poiska-a-na-c/
 
 using System.Collections.ObjectModel;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
@@ -11,11 +12,13 @@ namespace AAEmu.Game.Models.Game.AI.AStar;
 
 /// <summary>
 /// Reusable A* pathfinder.
+/// NavMesh-first (smooth polygon pathfinding from terrain + brush geometry),
+/// with BAI A* fallback for multi-layer scenarios (bridges, docks, 2nd floors).
 /// </summary>
 public class PathNode
 {
     /// <summary>
-    /// Current zone.Id 
+    /// Current zone.Id
     /// </summary>
     public uint ZoneKey { get; set; }
 
@@ -66,180 +69,235 @@ public class PathNode
 
     /// <summary>
     /// Basic method of route calculation.
-    /// Uses DotRecast navmesh if available, falls back to BAI A*.
+    /// NavMesh-first (smooth polygon A* from terrain + brush collision geometry).
+    /// Falls back to BAI A* for multi-layer scenarios or when NavMesh has no data.
     /// </summary>
-    /// <param name="world"></param>
-    /// <param name="start"></param>
-    /// <param name="goal"></param>
-    /// <returns></returns>
     public List<Vector3> FindPath(WorldInstance world, Vector3 start, Vector3 goal)
     {
-        // Try navmesh pathfinding first (DotRecast) — fast and accurate
+        // --- Strategy 1: NavMesh A* (primary) ---
+        // DotRecast navmesh built from heightmap + brush collision meshes provides
+        // smooth paths that naturally avoid walls, cliffs, and structures.
+        // Single-layer limitation: cannot represent bridges over roads.
         if (world.NavMesh?.HasData == true)
         {
-            var navPath = world.NavMesh.FindPath(start, goal);
-            if (navPath.Count > 0)
+            // Multi-layer detection: if NPC's Z is significantly above/below the
+            // NavMesh surface, it's on an elevated structure (bridge, dock, 2nd floor)
+            // that NavMesh's single layer can't represent. Fall through to BAI.
+            var navStartZ = world.NavMesh.GetHeight(start.X, start.Y, start.Z);
+            var navGoalZ = world.NavMesh.GetHeight(goal.X, goal.Y, goal.Z);
+            var startOnMesh = navStartZ > 0f && MathF.Abs(start.Z - navStartZ) < 5f;
+            var goalOnMesh = navGoalZ > 0f && MathF.Abs(goal.Z - navGoalZ) < 5f;
+
+            if (startOnMesh && goalOnMesh)
             {
-                // Validate: if NavMesh path endpoint doesn't reach the goal's elevation,
-                // it means NavMesh lacks building/stair data for this route.
-                // Fall back to BAI A* which has proper stair/ramp nodes.
-                var pathEndZ = navPath[^1].Z;
-                if (MathF.Abs(pathEndZ - goal.Z) <= 3f)
+                var navPath = world.NavMesh.FindPath(start, goal);
+                if (navPath.Count > 0)
                 {
                     EndPointPos = goal;
                     Position = navPath[0];
                     CurrentTargetPos = Vector3.Zero;
                     return navPath;
                 }
-                // NavMesh path stays at ground level — try BAI A* for stairs
             }
         }
 
-        // Fallback: BAI A* pathfinding
-        // Find the nearest point from the start point in the list of geodata points and start the search from it.
-        var posStart = world.Template.GeoData?.FindСlosestToTheCurrent(ZoneKey, new Vector3(start.X, start.Y, start.Z));
-        if (posStart != null)
-            start = posStart.Pos; // replace it with the nearest point from the geodata
-        var posEnd = world.Template.GeoData?.FindСlosestToTheCurrent(ZoneKey, new Vector3(goal.X, goal.Y, goal.Z));
-        if (posEnd != null)
-            goal = posEnd.Pos;// replace it with the nearest point from the geodata
-        EndPointPos = goal;
-        var rawDistance = Vector3.Distance(start, goal);
+        // --- Strategy 2: BAI A* (fallback) ---
+        // Used when: NPC is on elevated layer (bridge/dock), NavMesh has no data,
+        // or NavMesh.FindPath failed (disconnected mesh regions).
+        var baiPath = FindPathBai(world, start, goal);
+        if (baiPath.Count > 0)
+        {
+            var refined = RefinePathWithNavMesh(world, baiPath);
+            EndPointPos = goal;
+            Position = refined[0];
+            CurrentTargetPos = Vector3.Zero;
+            return refined;
+        }
 
-        // Step 1.
+        // --- Strategy 3: NavMesh without multi-layer check (last resort) ---
+        // If BAI also failed, try NavMesh anyway even with Z mismatch.
+        // An imperfect path is better than no path at all.
+        if (world.NavMesh?.HasData == true)
+        {
+            var navPath = world.NavMesh.FindPath(start, goal);
+            if (navPath.Count > 0)
+            {
+                EndPointPos = goal;
+                Position = navPath[0];
+                CurrentTargetPos = Vector3.Zero;
+                return navPath;
+            }
+        }
+
+        return [];
+    }
+
+    /// <summary>
+    /// Runs BAI A* pathfinding over the waypoint graph from netmission BAI files.
+    /// Returns empty list if no BAI data exists near start/goal.
+    /// </summary>
+    private List<Vector3> FindPathBai(WorldInstance world, Vector3 start, Vector3 goal)
+    {
+        // Find the nearest BAI nodes to start and goal
+        var posStart = world.Template.GeoData?.FindСlosestToTheCurrent(ZoneKey, start);
+        var posEnd = world.Template.GeoData?.FindСlosestToTheCurrent(ZoneKey, goal);
+
+        // No BAI data nearby — can't use BAI pathfinding
+        if (posStart == null || posEnd == null)
+            return [];
+
+        // If nearest nodes are too far from actual positions, BAI coverage is poor here
+        if ((posStart.Pos - start).Length() > 30f || (posEnd.Pos - goal).Length() > 30f)
+            return [];
+
+        var baiStart = posStart.Pos;
+        var baiGoal = posEnd.Pos;
+        EndPointPos = goal;
+        var rawDistance = Vector3.Distance(baiStart, baiGoal);
+
         var closedSet = new Collection<PathNode>();
         var openSet = new Collection<PathNode>();
 
-        // Step 2.
         var startNode = new PathNode
         {
-            CurrentTargetPos = posStart?.Pos ?? start,
-            Position = start,
-            EndPointPos = goal,
+            CurrentTargetPos = posStart.Pos,
+            Position = baiStart,
+            EndPointPos = baiGoal,
             CameFrom = null,
             PathLengthFromStart = 0,
-            PathLengthToEnd = GetHeuristicPathLength(start)
+            PathLengthToEnd = Vector3.Distance(baiStart, baiGoal)
         };
         openSet.Add(startNode);
 
-        var maxLoopsLeft = (int)MathF.Ceiling(rawDistance * 10) + 50; // This is to prevent the pathfinder from traveling too far off
+        var maxLoopsLeft = (int)MathF.Ceiling(rawDistance * 10) + 50;
         while (openSet.Count > 0)
         {
             maxLoopsLeft--;
 
-            // Step 3.
             var currentNode = openSet.OrderBy(node => node.EstimateFullPathLength).First();
 
-            // Step 4.
-            if (currentNode.Position.Equals(goal) || maxLoopsLeft <= 0)
+            if (currentNode.Position.Equals(baiGoal) || maxLoopsLeft <= 0)
             {
                 var result = GetPathForNode(currentNode);
-                // Leave the nearest point taken from geodata instead of the point from where we are going
-                // result[0] = pos1; // replace the first and the last point with the real one
-                // result[^1] = pos2;
-                // Let's add the target coordinates to the found points
-                result.Add(EndPointPos);
+                // Add the actual goal position (not the snapped BAI node)
+                result.Add(goal);
                 result = AiGeoDataManager.DouglasPeuckerReduction(result, 2.0);
-                Position = result[0];
-                CurrentTargetPos = Vector3.Zero;
                 return result;
             }
 
-            // Step 5.
             openSet.Remove(currentNode);
             closedSet.Add(currentNode);
 
-            // Step 6.
             foreach (var neighbourNode in GetNeighbours(world, currentNode))
             {
-                // Step 7.
                 if (closedSet.Any(node => node.Position.Equals(neighbourNode.Position)))
-                {
                     continue;
-                }
 
                 var openNode = openSet.FirstOrDefault(node => node.Position.Equals(neighbourNode.Position));
-                // Step 8.
                 if (openNode == null)
                 {
                     openSet.Add(neighbourNode);
                 }
                 else if (openNode.PathLengthFromStart > neighbourNode.PathLengthFromStart)
                 {
-                    // Step 9.
                     openNode.CameFrom = currentNode;
                     openNode.PathLengthFromStart = neighbourNode.PathLengthFromStart;
                 }
             }
         }
-        // Step 10.
+
         return [];
     }
 
     /// <summary>
-    /// G: Function for the distance from the starting point to the current point.
+    /// Refines a BAI waypoint path using DotRecast NavMesh for smoother movement.
+    /// NavMesh includes all brush structures (stairs, ramps, walls, platforms),
+    /// so raycast and FindPath work correctly across elevation changes.
+    /// Only skips refinement for true multi-layer overlaps (bridge over road)
+    /// where NavMesh is single-layer and can't represent both surfaces.
     /// </summary>
-    /// <param name="to"></param>
-    /// <returns></returns>
-    private float GetDistanceFromStart(Vector3 to)
+    private static List<Vector3> RefinePathWithNavMesh(WorldInstance world, List<Vector3> baiPath)
     {
-        var fromVector = new Vector3(StartPointPos.X, StartPointPos.Y, StartPointPos.Z);
-        var toVector = new Vector3(to.X, to.Y, to.Z);
-        return MathUtil.CalculateDistance(fromVector, toVector);
+        if (baiPath.Count < 2 || world.NavMesh?.HasData != true)
+            return baiPath;
+
+        var refined = new List<Vector3> { baiPath[0] };
+
+        for (var i = 0; i < baiPath.Count - 1; i++)
+        {
+            var a = baiPath[i];
+            var b = baiPath[i + 1];
+            var dist2D = MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
+
+            // Try NavMesh raycast first — includes stairs, ramps, all brush geometry
+            if (dist2D < 50f && world.NavMesh.Raycast(a, b))
+            {
+                // Clear line on NavMesh — just add endpoint (smooth direct movement)
+                refined.Add(b);
+                continue;
+            }
+
+            // NavMesh blocked or long segment: try NavMesh.FindPath for smooth sub-path
+            if (dist2D > 5f)
+            {
+                var subPath = world.NavMesh.FindPath(a, b);
+                if (subPath.Count > 1)
+                {
+                    // Validate sub-path endpoint reaches target Z reasonably.
+                    // NavMesh includes stairs so large Z changes are expected.
+                    // Only reject if endpoint Z is wildly off (wrong floor/layer).
+                    var endpointZDiff = MathF.Abs(subPath[^1].Z - b.Z);
+                    if (endpointZDiff < 5f)
+                    {
+                        // Skip first point of sub-path (it's ~= a, already in refined)
+                        for (var j = 1; j < subPath.Count; j++)
+                            refined.Add(subPath[j]);
+                        continue;
+                    }
+                }
+            }
+
+            // Fallback: keep the BAI waypoint
+            refined.Add(b);
+        }
+
+        return refined;
     }
 
     /// <summary>
     /// H: Estimates the distance to the target.
     /// </summary>
-    /// <param name="from"></param>
-    /// <returns></returns>
     private float GetHeuristicPathLength(Vector3 from)
     {
-        // point-to-point distance
-        var fromVector = new Vector3(from.X, from.Y, from.Z);
-        var toVector = new Vector3(EndPointPos.X, EndPointPos.Y, EndPointPos.Z);
-        return MathUtil.CalculateDistance(fromVector, toVector);
+        return Vector3.Distance(from, EndPointPos);
     }
 
     /// <summary>
-    /// Obtaining a list of neighbors
+    /// Obtaining a list of neighbors from BAI graph edges.
     /// </summary>
-    /// <param name="world"></param>
-    /// <param name="pathNode"></param>
-    /// <returns></returns>
     private Collection<PathNode> GetNeighbours(WorldInstance world, PathNode pathNode)
     {
         var result = new Collection<PathNode>();
 
-        // Check which navmesh file is valid at this position
         var bai = world.Template.GetBaiByPos(pathNode.CurrentTargetPos);
         if (bai == null)
-        {
             return result;
-        }
 
-        // Find the nearest node
         var nearestNode = bai.FindClosestNetMissionNode(pathNode.CurrentTargetPos);
         if (nearestNode == null)
-        {
-            // Was not able to find a nearby node
-            // TODO: create a fall-back system
             return result;
-        }
 
-        // The adjacent points are the points where you can go.
         var neighbourPoints = world.Template.GeoData.GetAvailablePoints(nearestNode);
 
         foreach (var linkDescriptor in neighbourPoints)
         {
-            // Checking that the point falls within the forbidden area where it is not allowed to walk.
-            if (world.Template.GeoData.CheckImpossibleWalk(linkDescriptor.TargetNodeDescriptor.Pos))
-            {
-                //ViewPoint(point.Position, 858u); // let's show the point for debugging purposes
+            if (linkDescriptor.TargetNodeDescriptor == null)
                 continue;
-            }
 
-            // Fill in the data for the waypoint.
+            // Skip forbidden zones
+            if (world.Template.GeoData.CheckImpossibleWalk(linkDescriptor.TargetNodeDescriptor.Pos))
+                continue;
+
             var edgeLength = (linkDescriptor.SourceNodeDescriptor.Pos - linkDescriptor.TargetNodeDescriptor.Pos).Length();
             var neighbourNode = new PathNode
             {
@@ -258,10 +316,8 @@ public class PathNode
     }
 
     /// <summary>
-    /// Obtaining a route. The route is represented as a list of point coordinates.
+    /// Reconstructs the path by tracing back from the goal node via CameFrom pointers.
     /// </summary>
-    /// <param name="pathNode"></param>
-    /// <returns></returns>
     private static List<Vector3> GetPathForNode(PathNode pathNode)
     {
         var result = new List<Vector3>();
@@ -269,7 +325,6 @@ public class PathNode
         while (currentNode != null)
         {
             result.Add(currentNode.Position);
-            //ViewPoint(currentNode.Position, 5014u); // let's show the point for debugging purposes
             currentNode = currentNode.CameFrom;
         }
         result.Reverse();

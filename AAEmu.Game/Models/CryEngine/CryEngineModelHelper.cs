@@ -45,17 +45,33 @@ public static class CryEngineModelHelper
 
         if (!CryEngineModels.TryGetValue(key, out var modelData))
         {
-            materialFile = Path.ChangeExtension(materialFile, ".mtl");
-            modelData = new CgfConverter.CryEngine(
-                modelFileName,
-                // new CgfConverter.PackFileSystem.RealFileSystem(rootDir),
-                new AaGamePakFileSystem(),
-                null,
-                /* ClientFileManager.FileExists(materialFile) ? materialFile : */ null
-            );
+            if (!IO.ClientFileManager.FileExists(modelFileName))
+            {
+                Logger.Warn($"MakeModel: file not found in pak: '{modelFileName}'");
+                CryEngineModelsFailedPaths.Add(key);
+                return [];
+            }
 
-            modelData.ProcessCryengineFiles();
-            CryEngineModels.TryAdd(key, modelData);
+            try
+            {
+                materialFile = Path.ChangeExtension(materialFile, ".mtl");
+                modelData = new CgfConverter.CryEngine(
+                    modelFileName,
+                    // new CgfConverter.PackFileSystem.RealFileSystem(rootDir),
+                    new AaGamePakFileSystem(),
+                    null,
+                    /* ClientFileManager.FileExists(materialFile) ? materialFile : */ null
+                );
+
+                modelData.ProcessCryengineFiles();
+                CryEngineModels.TryAdd(key, modelData);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"MakeModel: exception loading '{modelFileName}': {ex.Message}");
+                CryEngineModelsFailedPaths.Add(key);
+                return [];
+            }
         }
 
         // Prefer physics proxy geometry (collision mesh used by the game client).
@@ -66,7 +82,9 @@ public static class CryEngineModelHelper
 
         if (triangleList.Count <= 0)
         {
-            Logger.Debug($"Failed to create triangle list for {inputFile}");
+            var modelCount = modelData.Models?.Count ?? 0;
+            var nodeCount = modelData.NodeMap?.Count ?? 0;
+            Logger.Debug($"Failed to create triangle list for {inputFile} (models={modelCount}, nodes={nodeCount})");
             CryEngineModelsFailedPaths.Add(key);
         }
         CryEngineModelsTriangleListCache.TryAdd(key, triangleList);
@@ -77,6 +95,8 @@ public static class CryEngineModelHelper
     /// Extracts collision geometry from ChunkCompiledPhysicalProxies (physics proxy meshes).
     /// These are the simplified collision shapes used by the game client for player-world collision,
     /// and are more accurate for floor detection than the visual render mesh.
+    /// Only processes the first model that has proxies — .cgf + .cgfm are loaded as separate
+    /// models but share the same physics geometry, so processing both causes duplication.
     /// </summary>
     public static List<JTriangle> CreateTriangleListFromPhysicsProxies(CgfConverter.CryEngine data)
     {
@@ -117,7 +137,7 @@ public static class CryEngineModelHelper
                         var v1 = proxy.Vertices[i1];
                         var v2 = proxy.Vertices[i2];
 
-                        // Swap Y<->Z: CryEngine Y-up -> Jitter Z-up
+                        // Swap Y<->Z: CryEngine Z-up -> Y-up
                         triangleList.Add(new JTriangle(
                             new JVector(v0.X, v0.Z, v0.Y),
                             new JVector(v1.X, v1.Z, v1.Y),
@@ -125,6 +145,11 @@ public static class CryEngineModelHelper
                     }
                 }
             }
+
+            // Stop after the first model that has physics proxies.
+            // Additional models (.cgfm) contain render mesh data, not separate collision.
+            if (triangleList.Count > 0)
+                break;
         }
 
         return triangleList;
