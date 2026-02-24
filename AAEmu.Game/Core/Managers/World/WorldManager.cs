@@ -198,7 +198,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     private bool IsSpawnerActive(NpcSpawner spawner)
     {
-        return spawner.IsPlayerInSpawnRadius();
+        return true; // All NPCs spawn regardless of player proximity
     }
 
     /// <summary>
@@ -586,6 +586,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             {
                 Logger.Info($"Loading heightmap of {worldTemplate.Name}");
                 worldTemplate.LoadZoneBaiFiles();
+                worldTemplate.LoadNpcMaps();
                 if (LoadHeightMapFromClientData(worldTemplate))
                     loaded++;
             }

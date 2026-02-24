@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
+using System.Xml;
+using AAEmu.Commons.Utils.XML;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.ClientData;
@@ -47,6 +50,16 @@ public class WorldCell
     /// Static objects list (statobjs.dat) — maps PathId to .cgf path
     /// </summary>
     public MaterialsFile StatObjsFiles { get; set; }
+
+    /// <summary>
+    /// AreaShape entities from entities.xml — 3D polygon areas for navigation.
+    /// </summary>
+    public List<CellAreaShape> AreaShapes { get; set; } = [];
+
+    /// <summary>
+    /// Cover point data from cover.ctc (AI combat cover).
+    /// </summary>
+    public CoverCtcFile LoadedCoverCtc { get; set; }
 
     /// <summary>
     /// Bounding box for use in Jitter
@@ -139,6 +152,8 @@ public class WorldCell
             // Load data
             LoadBaiFiles();
             LoadObjectDat();
+            LoadEntitiesXml();
+            LoadCoverCtc();
             Loaded = LoadCellHeightMapFromClientData();
             Loading = false;
 
@@ -316,6 +331,107 @@ public class WorldCell
         if (LoadedObjectDat != null)
             ExtractBrushBounds(LoadedObjectDat);
 
+    }
+
+    /// <summary>
+    /// Loads AreaShape entities from entities.xml in this cell's client data.
+    /// Only loads entities with EntityClass="AreaShape" for navigation-related data.
+    /// </summary>
+    private void LoadEntitiesXml()
+    {
+        if (!AppConfiguration.Instance.World.GeoDataMode)
+            return;
+
+        var cellFileName = $"{CellX:000}_{CellY:000}";
+        var entitiesFile = Path.Combine("game", "worlds", Template.Name, "cells", cellFileName, "client", "entities.xml");
+        if (!ClientFileManager.FileExists(entitiesFile))
+            return;
+
+        var contents = ClientFileManager.GetFileAsString(entitiesFile);
+        if (string.IsNullOrWhiteSpace(contents))
+            return;
+
+        try
+        {
+            var doc = new XmlDocument();
+            doc.LoadXml(contents);
+
+            var entityNodes = doc.SelectNodes("/Objects/Entity[@EntityClass='AreaShape']");
+            if (entityNodes == null || entityNodes.Count == 0)
+                return;
+
+            for (var i = 0; i < entityNodes.Count; i++)
+            {
+                var node = entityNodes[i];
+                var attribs = XmlHelper.ReadNodeAttributes(node);
+
+                var shape = new CellAreaShape();
+
+                if (attribs.TryGetValue("Name", out var name))
+                    shape.Name = name;
+
+                if (attribs.TryGetValue("Pos", out var posStr))
+                    shape.Origin = XmlHelper.StringToVector3(posStr);
+
+                // Read Area element
+                var areaNode = node.SelectSingleNode("Area");
+                if (areaNode == null)
+                    continue;
+
+                var areaAttribs = XmlHelper.ReadNodeAttributes(areaNode);
+                shape.AreaId = XmlHelper.ReadAttribute(areaAttribs, "Id", 0);
+                shape.GroupId = XmlHelper.ReadAttribute(areaAttribs, "Group", 0);
+                shape.Height = XmlHelper.ReadAttribute(areaAttribs, "Height", 0f);
+
+                // Read Points
+                var pointNodes = areaNode.SelectNodes("Points/Point");
+                if (pointNodes != null)
+                {
+                    for (var j = 0; j < pointNodes.Count; j++)
+                    {
+                        var pointAttribs = XmlHelper.ReadNodeAttributes(pointNodes[j]);
+                        if (pointAttribs.TryGetValue("Pos", out var pointPosStr))
+                            shape.Points.Add(XmlHelper.StringToVector3(pointPosStr));
+                    }
+                }
+
+                if (shape.Points.Count >= 3)
+                    AreaShapes.Add(shape);
+            }
+
+            if (AreaShapes.Count > 0)
+                Logger.Trace($"Loaded {AreaShapes.Count} area shapes from cell {cellFileName}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Error loading entities.xml for cell {cellFileName}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Loads cover.ctc from this cell's client data.
+    /// Cover points are fed into the WorldTemplate spatial index for AI combat queries.
+    /// </summary>
+    private void LoadCoverCtc()
+    {
+        if (!AppConfiguration.Instance.World.GeoDataMode)
+            return;
+        if (!AppConfiguration.Instance.World.LoadCoverPoints)
+            return;
+
+        var cellFileName = $"{CellX:000}_{CellY:000}";
+        var coverFile = Path.Combine("game", "worlds", Template.Name, "cells", cellFileName, "client", "cover.ctc");
+        if (!ClientFileManager.FileExists(coverFile))
+            return;
+
+        var ctcFile = new CoverCtcFile(coverFile);
+        if (ctcFile.ReadFile())
+        {
+            LoadedCoverCtc = ctcFile;
+            // Feed any extracted cover points into the template's spatial index
+            foreach (var point in ctcFile.CoverPoints)
+                Template.AddCoverPoint(point);
+        }
     }
 
     /// <summary>

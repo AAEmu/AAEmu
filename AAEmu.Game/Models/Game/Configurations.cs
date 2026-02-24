@@ -83,6 +83,12 @@ public class WorldConfig
     public bool PreLoadTerrain { get; set; }
 
     /// <summary>
+    /// When enabled, loads cover.ctc files for AI combat cover points (experimental format).
+    /// Requires GeoDataMode = true.
+    /// </summary>
+    public bool LoadCoverPoints { get; set; }
+
+    /// <summary>
     /// When enabled, loads 3D brush models (.cgf) from game_pak for accurate floor detection via raycasting.
     /// </summary>
     public bool LoadBrushModels { get; set; }
