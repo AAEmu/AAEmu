@@ -84,10 +84,15 @@ services:
                 - LOGIN_HOST=login
                 - LOGIN_PORT=1234
         image: aaemu-game:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
         restart: unless-stopped
         volumes:
           - "./.server_files/AAEmu.Game/ClientData:/app/ClientData:ro"
           - "./.server_files/AAEmu.Game/Data:/app/Data"
+          - "./game_pak:/app/game_pak:ro"
           - "./.server_files/AAEmu.Game/Configurations:/app/Configurations:ro"
           - "./.server_files/AAEmu.Game/Config.json:/app/Config.json:ro"
         environment:

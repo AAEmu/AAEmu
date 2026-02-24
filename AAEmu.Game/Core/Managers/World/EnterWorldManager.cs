@@ -42,7 +42,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 1));
         else
         {
-            _accounts.Add(connectionId, accountId);
+            _accounts[connectionId] = accountId;
             connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 0));
         }
     }
