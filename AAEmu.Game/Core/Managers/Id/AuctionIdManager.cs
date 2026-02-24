@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class AuctionIdManager() : IdManager("AuctionIdManager", FirstId, LastId, ObjTables, Exclude)
+public class AuctionIdManager() : IdManager("AuctionIdManager", FirstId, LastId, ObjTables, Exclude), IAuctionIdManager
 {
     private static AuctionIdManager _instance;
     private const uint FirstId = 0x00000001;

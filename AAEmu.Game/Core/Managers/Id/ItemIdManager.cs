@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class ItemIdManager() : IdManager("ItemIdManager", FirstId, LastId, ObjTables, Exclude)
+public class ItemIdManager() : IdManager("ItemIdManager", FirstId, LastId, ObjTables, Exclude), IItemIdManager
 {
     private static ItemIdManager _instance;
     private const uint FirstId = 0x01000000;

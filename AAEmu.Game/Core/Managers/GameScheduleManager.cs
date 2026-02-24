@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
+using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Schedules;
 
 using NCrontab;
@@ -12,9 +13,12 @@ using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class GameScheduleManager : Singleton<GameScheduleManager>
+public class GameScheduleManager(
+    IGameDataManager gameDataManager  // ensures GameDataManager.Load() runs before this Load()
+) : Singleton<GameScheduleManager>, IGameScheduleManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private readonly IGameDataManager _gameDataManager = gameDataManager;
     private bool _loaded = false;
     private Dictionary<int, GameSchedules> _gameSchedules; // GameScheduleId, GameSchedules
     private Dictionary<int, GameScheduleSpawners> _gameScheduleSpawners;

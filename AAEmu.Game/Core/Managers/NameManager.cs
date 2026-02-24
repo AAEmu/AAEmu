@@ -8,10 +8,9 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class NameManager(CharacterManager characterManager = null) : Singleton<NameManager>
+public partial class NameManager(Lazy<ICharacterManager> characterManager = null) : Singleton<NameManager>, INameManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private readonly CharacterManager _characterManager = characterManager ?? CharacterManager.Instance;
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterIds = [];
     private Dictionary<string, uint> _characterNames = [];
@@ -102,7 +101,7 @@ public partial class NameManager(CharacterManager characterManager = null) : Sin
     {
         if (_characterNames.TryGetValue(name, out var existingId))
         {
-            if (_characterManager.IsCharacterPendingDeletion(name))
+            if (characterManager?.Value.IsCharacterPendingDeletion(name) == true)
                 return CharacterCreateError.Failed;
 
             return CharacterCreateError.NameAlreadyExists;

@@ -5,7 +5,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class LocalizationManager : Singleton<LocalizationManager>
+public class LocalizationManager : Singleton<LocalizationManager>, ILocalizationManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

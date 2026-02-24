@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class FamilyIdManager() : IdManager("FamilyIdManager", FirstId, LastId, ObjTables, Exclude, true)
+public class FamilyIdManager() : IdManager("FamilyIdManager", FirstId, LastId, ObjTables, Exclude, true), IFamilyIdManager
 {
     private static FamilyIdManager _instance;
     private const uint FirstId = 0x00000001;

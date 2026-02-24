@@ -7,6 +7,7 @@ using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
@@ -27,7 +28,12 @@ using NLog;
 namespace AAEmu.Game.Core.Managers.World;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class WorldManager : Singleton<WorldManager>, IWorldManager
+public class WorldManager(
+    ITickManager tickManager,
+    IWorldIdManager worldIdManager,
+    Lazy<IZoneManager> zoneManager,
+    Lazy<IIndunManager> indunManager,
+    Lazy<IFamilyManager> familyManager) : Singleton<WorldManager>, IWorldManager
 {
     /// <summary>
     /// Default World and Instance ID that will be assigned to all Transforms as a Default value
@@ -243,7 +249,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         {
             foreach (var zoneKey in worldTemplate.ZoneKeys)
             {
-                var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
+                var zone = zoneManager.Value.GetZoneByKey(zoneKey);
                 if (zone.GroupId == zoneGroupId)
                     return worldTemplate;
             }
@@ -354,7 +360,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public void Initialize()
     {
-        TickManager.Instance.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
+        tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
     }
 
     /// <summary>
@@ -376,7 +382,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // Load initial instances according to config
         foreach (var dungeonLoadConfig in AppConfiguration.Instance.Dungeons.AutoCreate)
         {
-            _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName(dungeonLoadConfig.Name).ZoneKeys.First(), dungeonLoadConfig.Channel, true, dungeonLoadConfig.Id);
+            _ = indunManager.Value.CreateSystemInstance(null, GetWorldTemplateByName(dungeonLoadConfig.Name).ZoneKeys.First(), dungeonLoadConfig.Channel, true, dungeonLoadConfig.Id);
         }
         Logger.Info($"Created static instances in {DateTime.UtcNow.Subtract(createInstanceStartTime)} ({GameService.TimeSinceStart} since server start)");
     }
@@ -414,7 +420,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         }
 
         // Create a new instance
-        var world = new WorldInstance(worldTemplate, channelId, overrideInstanceId, overrideInstanceId ? fixedInstanceId : WorldIdManager.Instance.GetNextId());
+        var world = new WorldInstance(worldTemplate, channelId, overrideInstanceId, overrideInstanceId ? fixedInstanceId : worldIdManager.GetNextId());
         _worlds.Add(world.Id, world);
 
         notifyPlayer?.SendPacket(new SCProcessingInstancePacket((int)world.Template.ZoneKeys[0]));
@@ -857,15 +863,15 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="TargetName">Possible target name</param>
     /// <param name="FirstNonNameArgument">Returns 1 if TargetName was a valid online character, 0 otherwise</param>
     /// <returns></returns>
-    public static Character GetTargetOrSelf(Character character, string TargetName, out int FirstNonNameArgument)
+    public Character GetTargetOrSelf(Character character, string targetName, out int firstNonNameArgument)
     {
-        FirstNonNameArgument = 0;
-        if (!string.IsNullOrWhiteSpace(TargetName))
+        firstNonNameArgument = 0;
+        if (!string.IsNullOrWhiteSpace(targetName))
         {
-            var player = Instance.GetCharacter(TargetName);
+            var player = GetCharacter(targetName);
             if (player != null)
             {
-                FirstNonNameArgument = 1;
+                firstNonNameArgument = 1;
                 return player;
             }
         }
@@ -1139,7 +1145,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         // Family stuff
         if (character.Family > 0)
         {
-            FamilyManager.Instance.OnCharacterLogin(character);
+            familyManager.Value.OnCharacterLogin(character);
         }
     }
 

@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class ContainerIdManager() : IdManager("ContainerIdManager", FirstId, LastId, ObjTables, Exclude)
+public class ContainerIdManager() : IdManager("ContainerIdManager", FirstId, LastId, ObjTables, Exclude), IContainerIdManager
 {
     private static ContainerIdManager _instance;
     private const uint FirstId = 0x00010000; // random value

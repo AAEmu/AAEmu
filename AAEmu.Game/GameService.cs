@@ -1,5 +1,6 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.Core.Managers;
@@ -28,6 +29,14 @@ public sealed class GameService : IHostedService, IDisposable
     public static DateTime StartTime { get; private set; } = DateTime.UtcNow;
     public static TimeSpan TimeSinceStart => DateTime.UtcNow.Subtract(StartTime);
 
+    private readonly ManagerOrchestrator _orchestrator;
+
+    public GameService(IServiceProvider serviceProvider, ManagerOrchestrator orchestrator)
+    {
+        SingletonContainer.ServiceProvider = serviceProvider;
+        _orchestrator = orchestrator;
+    }
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         Logger.Info("Starting daemon: AAEmu.Game");
@@ -52,37 +61,25 @@ public sealed class GameService : IHostedService, IDisposable
         }
 
         var stopWatch = new Stopwatch();
-
         stopWatch.Start();
 
-        // Ticks and Tasks
+        // --- Stage 0: Infrastructure ---
         TickManager.Instance.Initialize();
         TaskIdManager.Instance.Initialize();
         TaskManager.Instance.Initialize();
 
-        // World
+        // --- World base (explicit: needed before all other Load() calls) ---
         WorldIdManager.Instance.Initialize();
         WorldManager.Instance.Load();
-
-        // Feature Sets 
-        ExperienceManager.Instance.Load();
         FeaturesManager.Initialize();
-        LocalizationManager.Instance.Load();
 
+        // --- ID managers ---
         ObjectIdManager.Instance.Initialize();
         TradeIdManager.Instance.Initialize();
-
-        ZoneManager.Instance.Load();
-        // TODO: Implement lazy loading for heightmaps
-        var heightmapTask = Task.Run(() =>
-        {
-            WorldManager.Instance.LoadHeightmaps();
-        }, cancellationToken);
-
         ContainerIdManager.Instance.Initialize();
         ItemIdManager.Instance.Initialize();
         DoodadIdManager.Instance.Initialize();
-        ChatManager.Instance.Initialize();
+        ChatManager.Instance.Initialize();  // unmigrated
         CharacterIdManager.Instance.Initialize();
         FamilyIdManager.Instance.Initialize();
         ExpeditionIdManager.Instance.Initialize();
@@ -98,62 +95,26 @@ public sealed class GameService : IHostedService, IDisposable
         UccIdManager.Instance.Initialize();
         MusicIdManager.Instance.Initialize();
         ShipyardIdManager.Instance.Initialize();
-        ShipyardManager.Instance.Initialize();
         // SkillTlIdManager.Instance.Initialize();
         AuctionIdManager.Instance.Initialize();
         GimmickIdManager.Instance.Initialize();
-        IndunManager.Instance.Initialize();
-        TaxationsManager.Instance.Load();
-
-        GameDataManager.Instance.LoadGameData();
-        QuestManager.Instance.Load();
-
-        FormulaManager.Instance.Load();
-        AiPathsManager.Instance.Load();
-
         TlIdManager.Instance.Initialize();
-        SpecialtyManager.Instance.Load();
-        ItemManager.Instance.Load();
+
+        // --- Stage 1: Pre-load special steps ---
+        // TODO: Implement lazy loading for heightmaps
+        var heightmapTask = Task.Run(WorldManager.Instance.LoadHeightmaps, cancellationToken);
+        AnimationManager.Instance.Load();  // unmigrated; must complete before SkillManager.Load()
+
+        // --- Stage 2: Orchestrated parallel Load() ---
+        // Managers implementing ILoadable are sorted by constructor dep graph and run in parallel batches.
+        await _orchestrator.RunLoadAsync();
+
+        // --- Stage 3: Post-load special steps ---
+        GameDataManager.Instance.PostLoadGameData();
         ItemManager.Instance.LoadUserItems();
-        AnimationManager.Instance.Load();
-        PlotManager.Instance.Load();
-        SkillManager.Instance.Load();
-        CraftManager.Instance.Load();
-        // MateManager.Instance.Load();
-        // SlaveManager.Instance.Load(); // Moved to WorldInstance
-        TeamManager.Instance.Load();
-        AuctionManager.Instance.Load();
-        MailManager.Instance.Load();
-        ExpressTextManager.Instance.Load();
-
-        NameManager.Instance.Load();
-        FactionManager.Instance.Load();
-        ExpeditionManager.Instance.Load();
-        CharacterManager.Instance.Load();
-        FamilyManager.Instance.Load();
-        PortalManager.Instance.Load();
-        FriendMananger.Instance.Load();
-        ModelManager.Instance.Load();
-
-        AIManager.Instance.Initialize();
-
-        GameScheduleManager.Instance.Load();
-        NpcManager.Instance.Load();
-
-        DoodadManager.Instance.Load();
-        ShipyardManager.Instance.Load();
-
-        SubZoneManager.Instance.Load();
-        PublicFarmManager.Instance.Load();
-
-        // SpawnManager.Instance.Load(); // Moved to world instance
-
-        AccessLevelManager.Instance.Load();
-        CashShopManager.Instance.Load();
         CashShopManager.Instance.EnabledShop();
-        UccManager.Instance.Load();
-        MusicManager.Instance.Load();
 
+        // --- Scripts ---
         if (AppConfiguration.Instance.Scripts.LoadStrategy == ScriptsConfig.LoadStrategyType.Compilation)
         {
             ScriptCompiler.Compile();
@@ -161,40 +122,30 @@ public sealed class GameService : IHostedService, IDisposable
         else
         {
             // (Preferred for debugging)
-            // Use reflection to load scripts 
+            // Use reflection to load scripts
             ScriptReflector.Reflect();
         }
 
         TimeManager.Instance.Start();
         TaskManager.Instance.Start();
 
-        // LaborPowerManager.Initialize();
-        TimedRewardsManager.Instance.Initialize();
+        // --- Stage 4: Orchestrated parallel Initialize() ---
+        DuelManager.Initialize();       // explicit – static call
+        SpecialtyManager.Initialize();  // explicit – static call
+        await _orchestrator.RunInitializeAsync();
 
-        DuelManager.Initialize();
-        InstantGameManager.Instance.Initialize();
-        SaveManager.Instance.Initialize();
-        AreaTriggerManager.Instance.Initialize();
-        SpecialtyManager.Initialize();
-        CashShopManager.Instance.Initialize();
-        GameDataManager.Instance.PostLoadGameData();
-        FishSchoolManager.Instance.Initialize();
-        RadarManager.Instance.Initialize();
-        ManaRegenManager.Instance.Initialize();
-        PublicFarmManager.Instance.Initialize();
-
+        // --- Stage 5: World creation + network ---
         if (heightmapTask != null && !heightmapTask.IsCompleted)
         {
             Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
             await heightmapTask;
         }
 
-        // Start main_world and other static instance
+        // Start main_world and other static instances
         WorldManager.Instance.CreateStaticInstances();
-
         WorldManager.Instance.Initialize();
 
-        CharacterManager.CheckForDeletedCharacters();
+        CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
 
         GameNetwork.Instance.Start();

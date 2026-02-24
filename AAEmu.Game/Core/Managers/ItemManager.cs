@@ -27,7 +27,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ItemManager : Singleton<ItemManager>
+public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManager, IContainerIdManager containerIdManager, ILocalizationManager localizationManager, ITaskManager taskManager, IWorldManager worldManager) : Singleton<ItemManager>, IItemManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
@@ -439,7 +439,7 @@ public class ItemManager : Singleton<ItemManager>
         ItemTimerLock = new();
         LastTimerCheck = DateTime.UtcNow;
 
-        SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
+        skillManager.OnSkillsLoaded += OnSkillsLoaded;
         using (var connection = SQLite.CreateConnection())
         {
             Logger.Info("Loading item templates ...");
@@ -1408,7 +1408,7 @@ public class ItemManager : Singleton<ItemManager>
                     invalidItemCount++;
                     i.Value.Name = "invalid_item_" + i.Value.Id;
                 }
-                i.Value.searchString = (i.Value.Name + " " + LocalizationManager.Instance.Get("items", "name", i.Value.Id)).ToLower();
+                i.Value.searchString = (i.Value.Name + " " + localizationManager.Get("items", "name", i.Value.Id)).ToLower();
             }
 
             Logger.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
@@ -1607,7 +1607,7 @@ public class ItemManager : Singleton<ItemManager>
         return (updateCount, deleteCount, containerUpdateCount);
     }
 
-    internal SlotType GetContainerSlotTypeByContainerId(ulong dbId)
+    public SlotType GetContainerSlotTypeByContainerId(ulong dbId)
     {
         _allPersistentContainers.TryGetValue(dbId, out var container);
 
@@ -1689,7 +1689,7 @@ public class ItemManager : Singleton<ItemManager>
         lock (_allPersistentContainers)
         {
             res = _allPersistentContainers.Remove(idToRemove);
-            ContainerIdManager.Instance.ReleaseId(idToRemove);
+            containerIdManager.ReleaseId(idToRemove);
         }
 
         // Remove deleted container from DB
@@ -1874,18 +1874,18 @@ public class ItemManager : Singleton<ItemManager>
 
         Logger.Info("Starting Timed Items Task ...");
         var itemTimerTask = new ItemTimerTask();
-        TaskManager.Instance.Schedule(itemTimerTask, null, TimeSpan.FromSeconds(1));
+        taskManager.Schedule(itemTimerTask, null, TimeSpan.FromSeconds(1));
 
         _loadedUserItems = true;
     }
 
     /// <summary>
-    /// Gets a new itemID for use on new items, will also remove it from the deleted itemIDs list. Use this instead of directly calling ItemIdManager.Instance.GetNextId();
+    /// Gets a new itemID for use on new items, will also remove it from the deleted itemIDs list. Use this instead of directly calling itemIdManager.GetNextId();
     /// </summary>
     /// <returns>A new itemID</returns>
     private ulong GetNewId()
     {
-        var itemId = ItemIdManager.Instance.GetNextId();
+        var itemId = itemIdManager.GetNextId();
         lock (_removedItems)
         {
             if (itemId != 0 && _removedItems.Contains(itemId))
@@ -1895,7 +1895,7 @@ public class ItemManager : Singleton<ItemManager>
     }
 
     /// <summary>
-    /// Releases a itemId for re-use, will also add it to the removed items list, use instead of ItemIdManager.Instance.ReleaseId();
+    /// Releases a itemId for re-use, will also add it to the removed items list, use instead of itemIdManager.ReleaseId();
     /// </summary>
     /// <param name="itemId">itemId of the item to be freed up</param>
     public void ReleaseId(ulong itemId)
@@ -1910,7 +1910,7 @@ public class ItemManager : Singleton<ItemManager>
             _allItems.Remove(itemId);
         }
         // This should be the only place where ItemId ReleaseId should be called directly
-        ItemIdManager.Instance.ReleaseId((uint)itemId);
+        itemIdManager.ReleaseId((uint)itemId);
     }
 
     [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
@@ -1924,7 +1924,7 @@ public class ItemManager : Singleton<ItemManager>
     {
         foreach (var procTemplate in _itemProcTemplates.Values)
         {
-            procTemplate.SkillTemplate = SkillManager.Instance.GetSkillTemplate(procTemplate.SkillId);
+            procTemplate.SkillTemplate = skillManager.GetSkillTemplate(procTemplate.SkillId);
         }
     }
 
@@ -2021,7 +2021,7 @@ public class ItemManager : Singleton<ItemManager>
         // even before you get the welcome message when logging in. (you can see it in the logs)
         // It only does this for items in your inventory, equipment and warehouse,
         // it is for example possible to have one in your mailbox, and it will immediately expire when you take it out.
-        var onlinePlayers = WorldManager.Instance.GetAllCharacters();
+        var onlinePlayers = worldManager.GetAllCharacters();
         var res = 0;
         foreach (var character in onlinePlayers)
         {

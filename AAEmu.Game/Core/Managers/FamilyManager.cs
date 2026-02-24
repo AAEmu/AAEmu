@@ -10,7 +10,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FamilyManager : Singleton<FamilyManager>
+public class FamilyManager(IWorldManager worldManager, IChatManager chatManager, IFamilyIdManager familyIdManager) : Singleton<FamilyManager>, IFamilyManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -92,9 +92,9 @@ public class FamilyManager : Singleton<FamilyManager>
     /// <param name="inviter"></param>
     /// <param name="invitedCharacterName"></param>
     /// <param name="title"></param>
-    public static void InviteToFamily(Character inviter, string invitedCharacterName, string title)
+    public void InviteToFamily(Character inviter, string invitedCharacterName, string title)
     {
-        var invited = WorldManager.Instance.GetCharacter(invitedCharacterName);
+        var invited = worldManager.GetCharacter(invitedCharacterName);
         if (invited is { Family: 0 })
             invited.SendPacket(new SCFamilyInvitationPacket(inviter.Id, inviter.Name, 1, title));
     }
@@ -111,7 +111,7 @@ public class FamilyManager : Singleton<FamilyManager>
         if (!join)
             return;
 
-        var invitor = WorldManager.Instance.GetCharacterById(invitorId);
+        var invitor = worldManager.GetCharacterById(invitorId);
         if (invitor == null) return;
 
         if (invitor.Family == 0)
@@ -132,7 +132,7 @@ public class FamilyManager : Singleton<FamilyManager>
     {
         var family = new Family
         {
-            Id = FamilyIdManager.Instance.GetNextId()
+            Id = familyIdManager.GetNextId()
         };
 
         AddFamilyMember(family, invitor);
@@ -169,7 +169,7 @@ public class FamilyManager : Singleton<FamilyManager>
         _familyMembers.Add(member.Id, member);
         character.Family = family.Id;
 
-        ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(character);
+        chatManager.GetFamilyChat(family.Id)?.JoinChannel(character);
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ public class FamilyManager : Singleton<FamilyManager>
             // Update Member field and send family packets
             member.Character = character;
 
-            ChatManager.Instance.GetFamilyChat(family.Id)?.JoinChannel(character);
+            chatManager.GetFamilyChat(family.Id)?.JoinChannel(character);
             character.SendPacket(new SCFamilyDescPacket(family));
             family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, member.Id, true));
         }
@@ -206,7 +206,7 @@ public class FamilyManager : Singleton<FamilyManager>
         var member = family.GetMember(character);
         member.Character = null;
 
-        ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(character);
+        chatManager.GetFamilyChat(family.Id)?.LeaveChannel(character);
         family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, character.Id, false), character.Id);
     }
 
@@ -223,7 +223,7 @@ public class FamilyManager : Singleton<FamilyManager>
 
         character.SendPacket(new SCFamilyRemovedPacket(family.Id));
         family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, false, character.Id));
-        ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(character);
+        chatManager.GetFamilyChat(family.Id)?.LeaveChannel(character);
 
         if (family.Members.Count < 2)
             DisbandFamily(family);
@@ -244,7 +244,7 @@ public class FamilyManager : Singleton<FamilyManager>
             var member = family.Members[i];
             if (member.Character != null)
             {
-                ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(member.Character);
+                chatManager.GetFamilyChat(family.Id)?.LeaveChannel(member.Character);
                 member.Character.SendPacket(removed);
                 member.Character.Family = 0;
             }
@@ -271,7 +271,7 @@ public class FamilyManager : Singleton<FamilyManager>
         if (kickerMember.Role != 1) return; // Only the steward can kick
 
         // Load kicked character
-        var kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
+        var kickedCharacter = worldManager.GetCharacterById(kickedId);
         var isOnline = false;
         if (kickedCharacter != null)
         {
@@ -291,7 +291,7 @@ public class FamilyManager : Singleton<FamilyManager>
 
         if (isOnline)
         {
-            ChatManager.Instance.GetFamilyChat(family.Id)?.LeaveChannel(kickedCharacter);
+            chatManager.GetFamilyChat(family.Id)?.LeaveChannel(kickedCharacter);
             kickedCharacter.SendPacket(new SCFamilyRemovedPacket(family.Id));
         }
 

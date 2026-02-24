@@ -11,7 +11,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class InstantGameManager : Singleton<InstantGameManager>
+public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameManager
 {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 

@@ -104,7 +104,7 @@ public class CofferActions : ICommand
                     $"[|nd;@DOODAD_NAME({coffer.TemplateId})|r][{coffer.ItemContainer.ContainerType}] {coffer.ItemContainer.Items.Count} entries");
                 break;
             case "close":
-                if (!DoodadManager.CloseCofferDoodad(null, coffer.ObjId))
+                if (!DoodadManager.Instance.CloseCofferDoodad(null, coffer.ObjId))
                 {
                     CommandManager.SendErrorText(this, messageOutput, $"Failed to close coffer {coffer.ObjId} ?");
                 }

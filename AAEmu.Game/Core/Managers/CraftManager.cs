@@ -5,7 +5,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class CraftManager : Singleton<CraftManager>
+public class CraftManager : Singleton<CraftManager>, ICraftManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

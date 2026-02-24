@@ -2,7 +2,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class TlIdManager() : IdManager("TlIdManager", FirstId, LastId, ObjTables, Exclude)
+public class TlIdManager() : IdManager("TlIdManager", FirstId, LastId, ObjTables, Exclude), ITlIdManager
 {
     private static TlIdManager _instance;
     private const uint FirstId = 0x00000001;

@@ -13,6 +13,6 @@ public class CSFamilyInviteMemberPacket() : GamePacket(CSOffsets.CSFamilyInviteM
 
         Logger.Debug("FamilyInviteMember, Name: {0}, Title: {1}", name, title);
 
-        FamilyManager.InviteToFamily(Connection.ActiveChar, name, title);
+        FamilyManager.Instance.InviteToFamily(Connection.ActiveChar, name, title);
     }
 }

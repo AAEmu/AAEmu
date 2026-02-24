@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class QuestIdManager() : IdManager("QuestIdManager", FirstId, LastId, ObjTables, Exclude)
+public class QuestIdManager() : IdManager("QuestIdManager", FirstId, LastId, ObjTables, Exclude), IQuestIdManager
 {
     private static QuestIdManager _instance;
     private const uint FirstId = 0x00000001;

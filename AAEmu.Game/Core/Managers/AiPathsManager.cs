@@ -6,7 +6,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class AiPathsManager : Singleton<AiPathsManager>
+public class AiPathsManager : Singleton<AiPathsManager>, IAiPathsManager
 {
     private readonly string PathFileFolder = Path.Combine("Data", "Path");
     private const string PathFileExt = ".path";

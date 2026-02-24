@@ -32,7 +32,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class DoodadManager : Singleton<DoodadManager>
+public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager doodadIdManager, IItemManager itemManager, Lazy<IHousingManager> housingManager, ISusManager susManager) : Singleton<DoodadManager>, IDoodadManager
 {
     private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
 
@@ -2802,7 +2802,7 @@ public class DoodadManager : Singleton<DoodadManager>
         }
         doodad.ParentWorld = parentWorld;
 
-        doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
+        doodad.ObjId = bcId > 0 ? bcId : objectIdManager.GetNextId();
         doodad.TemplateId = template.Id; // copy the templateId
         doodad.Template = template;
         doodad.OwnerObjId = ownerObject?.ObjId ?? 0;
@@ -2985,12 +2985,12 @@ public class DoodadManager : Singleton<DoodadManager>
     /// <summary>
     /// Saves and creates a doodad
     /// </summary>
-    public static Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid)
+    public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid)
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
         // NOTE: If you would ever want to use player housing outside of main_world, you'll need to modify this
-        var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
+        var targetHouse = housingManager.Value.GetHouseAtLocation(x, y);
 
         // Create doodad
         var doodad = Instance.Create(character.ParentWorld, 0, id, character, true);
@@ -3023,7 +3023,7 @@ public class DoodadManager : Singleton<DoodadManager>
         }
 
         // Consume item
-        var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
+        var items = itemManager.GetItemIdsFromDoodad(id);
         var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
 
         if (preferredItem == null)
@@ -3059,12 +3059,12 @@ public class DoodadManager : Singleton<DoodadManager>
         return doodad;
     }
 
-    public static bool OpenCofferDoodad(Character character, uint objId)
+    public bool OpenCofferDoodad(Character character, uint objId)
     {
         var doodad = character.ParentWorld.GetDoodad(objId);
         if (doodad is not DoodadCoffer coffer)
         {
-            SusManager.Instance.LogActivity(SusManager.CategoryCheating, character, $"{character.Name} tried to open doodad {objId} as a Coffer");
+            susManager.LogActivity(SusManager.CategoryCheating, character, $"{character.Name} tried to open doodad {objId} as a Coffer");
             return false;
         }
 
@@ -3088,12 +3088,12 @@ public class DoodadManager : Singleton<DoodadManager>
         return true;
     }
 
-    public static bool CloseCofferDoodad(Character character, uint objId)
+    public bool CloseCofferDoodad(Character character, uint objId)
     {
         var doodad = character.ParentWorld.GetDoodad(objId);
         if (doodad is not DoodadCoffer coffer)
         {
-            SusManager.Instance.LogActivity(SusManager.CategoryCheating, character, $"{character.Name} tried to close doodad {objId} as a Coffer");
+            susManager.LogActivity(SusManager.CategoryCheating, character, $"{character.Name} tried to close doodad {objId} as a Coffer");
             return false;
         }
 
@@ -3182,25 +3182,25 @@ public class DoodadManager : Singleton<DoodadManager>
                 return;
             }
         }
-        DoodadIdManager.Instance.ReleaseId(dbId); // Free up the Id
+        doodadIdManager.ReleaseId(dbId); // Free up the Id
 
         // Handle attached items
         if (attachedItemId > 0)
         {
-            var item = ItemManager.Instance.GetItemByItemId(attachedItemId);
+            var item = itemManager.GetItemByItemId(attachedItemId);
             if (item != null)
             {
                 item._holdingContainer = null;
-                ItemManager.Instance.ReleaseId(item.Id);
+                itemManager.ReleaseId(item.Id);
             }
         }
 
         // Delete attached container
         if (attachedContainer > 0)
         {
-            var container = ItemManager.Instance.GetItemContainerByDbId(attachedContainer);
+            var container = itemManager.GetItemContainerByDbId(attachedContainer);
             if (container != null)
-                ItemManager.Instance.DeleteItemContainer(container);
+                itemManager.DeleteItemContainer(container);
         }
     }
 

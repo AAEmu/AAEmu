@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class DoodadIdManager() : IdManager("DoodadIdManager", FirstId, LastId, ObjTables, Exclude)
+public class DoodadIdManager() : IdManager("DoodadIdManager", FirstId, LastId, ObjTables, Exclude), IDoodadIdManager
 {
     private static DoodadIdManager _instance;
     private const uint FirstId = 0x00000001;

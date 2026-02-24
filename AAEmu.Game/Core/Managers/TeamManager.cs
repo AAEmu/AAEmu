@@ -10,7 +10,7 @@ using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class TeamManager : Singleton<TeamManager>
+public class TeamManager(IWorldManager worldManager, IChatManager chatManager, ITeamIdManager teamIdManager) : Singleton<TeamManager>, ITeamManager
 {
     /*
      * TODO:
@@ -84,7 +84,7 @@ public class TeamManager : Singleton<TeamManager>
 
     public void AskToJoin(Character owner, string targetName, uint teamId, bool isParty, Character targetObj = null)
     {
-        var target = targetObj ?? WorldManager.Instance.GetCharacter(targetName);
+        var target = targetObj ?? worldManager.GetCharacter(targetName);
         if (target == null) return;
         // TODO - CONFIG INVITE DISABLED
 
@@ -190,20 +190,20 @@ public class TeamManager : Singleton<TeamManager>
         var activeTeam = GetActiveTeam(teamId);
         if (activeTeam == null || activeTeam.OwnerId != owner.Id) return;
 
-        var t1 = WorldManager.Instance.GetCharacterById(targetId);
-        var t2 = WorldManager.Instance.GetCharacterById(target2Id);
+        var t1 = worldManager.GetCharacterById(targetId);
+        var t2 = worldManager.GetCharacterById(target2Id);
         if (t1 != null)
-            ChatManager.Instance.GetPartyChat(activeTeam, t1).LeaveChannel(t1);
+            chatManager.GetPartyChat(activeTeam, t1).LeaveChannel(t1);
         if (t2 != null)
-            ChatManager.Instance.GetPartyChat(activeTeam, t2).LeaveChannel(t2);
+            chatManager.GetPartyChat(activeTeam, t2).LeaveChannel(t2);
 
         if (activeTeam.MoveMember(targetId, target2Id, fromIndex, toIndex))
         {
             activeTeam.BroadcastPacket(new SCTeamMemberMovedPacket(teamId, targetId, target2Id, fromIndex, toIndex));
             if (t1 != null)
-                ChatManager.Instance.GetPartyChat(activeTeam, t1).JoinChannel(t1);
+                chatManager.GetPartyChat(activeTeam, t1).JoinChannel(t1);
             if (t2 != null)
-                ChatManager.Instance.GetPartyChat(activeTeam, t2).JoinChannel(t2);
+                chatManager.GetPartyChat(activeTeam, t2).JoinChannel(t2);
         }
     }
 
@@ -254,7 +254,7 @@ public class TeamManager : Singleton<TeamManager>
 
         var newTeam = new Team
         {
-            Id = TeamIdManager.Instance.GetNextId(),
+            Id = teamIdManager.GetNextId(),
             OwnerId = activeInvitation.Owner.Id,
             IsParty = activeInvitation.IsParty
         };
@@ -269,11 +269,11 @@ public class TeamManager : Singleton<TeamManager>
         newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, activeInvitation.Owner.LocalPingPosition, 0));
         if (!newTeam.IsParty)
         {
-            ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(activeInvitation.Owner);
-            ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(activeInvitation.Target);
+            chatManager.GetRaidChat(newTeam).JoinChannel(activeInvitation.Owner);
+            chatManager.GetRaidChat(newTeam).JoinChannel(activeInvitation.Target);
         }
-        ChatManager.Instance.GetPartyChat(newTeam, activeInvitation.Owner).JoinChannel(activeInvitation.Owner);
-        ChatManager.Instance.GetPartyChat(newTeam, activeInvitation.Target).JoinChannel(activeInvitation.Target);
+        chatManager.GetPartyChat(newTeam, activeInvitation.Owner).JoinChannel(activeInvitation.Owner);
+        chatManager.GetPartyChat(newTeam, activeInvitation.Target).JoinChannel(activeInvitation.Target);
         // Trigger events
         activeInvitation.Owner.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Owner });
         activeInvitation.Target.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Target });
@@ -289,7 +289,7 @@ public class TeamManager : Singleton<TeamManager>
 
         var newTeam = new Team
         {
-            Id = TeamIdManager.Instance.GetNextId(),
+            Id = teamIdManager.GetNextId(),
             OwnerId = character.Id,
             IsParty = true
         };
@@ -302,8 +302,8 @@ public class TeamManager : Singleton<TeamManager>
         newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, character.LocalPingPosition, 0));
 
         if (!newTeam.IsParty)
-            ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(character);
-        ChatManager.Instance.GetPartyChat(newTeam, character).JoinChannel(character);
+            chatManager.GetRaidChat(newTeam).JoinChannel(character);
+        chatManager.GetPartyChat(newTeam, character).JoinChannel(character);
         // Trigger events
         character.Events?.OnTeamJoin(character, new OnTeamJoinArgs { Team = newTeam, Player = character });
     }
@@ -321,8 +321,8 @@ public class TeamManager : Singleton<TeamManager>
 
         // Remove from ChatManager channels
         if (!activeTeam.IsParty)
-            ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
-        ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
+            chatManager.GetRaidChat(activeTeam).LeaveChannel(unit);
+        chatManager.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
 
         if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
         {
@@ -346,7 +346,7 @@ public class TeamManager : Singleton<TeamManager>
             // Send Leave info the team
             activeTeam.BroadcastPacket(new SCTeamMemberLeavedPacket(teamId, targetId, riskyAction == RiskyAction.Kick));
             // Find the target, and send its leave info
-            var target = WorldManager.Instance.GetCharacterById(targetId);
+            var target = worldManager.GetCharacterById(targetId);
             if (target != null)
             {
                 target.InParty = false;
@@ -374,8 +374,8 @@ public class TeamManager : Singleton<TeamManager>
                 if (member?.Character != null)
                 {
                     if (!activeTeam.IsParty)
-                        ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(member.Character);
-                    ChatManager.Instance.GetPartyChat(activeTeam, member.Character).LeaveChannel(member.Character);
+                        chatManager.GetRaidChat(activeTeam).LeaveChannel(member.Character);
+                    chatManager.GetPartyChat(activeTeam, member.Character).LeaveChannel(member.Character);
 
                     if (member.Character.IsOnline)
                     {
@@ -390,7 +390,7 @@ public class TeamManager : Singleton<TeamManager>
             _activeTeams.Remove(teamId);
         }
         // TODO: Add this to a timer or trigger instead of calling on a party/raid disband. But is good enough and functional for now
-        ChatManager.Instance.CleanUpChannels();
+        chatManager.CleanUpChannels();
     }
 
     public void MakeTeamOwner(Character unit, uint teamId, uint memberId)
@@ -412,7 +412,7 @@ public class TeamManager : Singleton<TeamManager>
         activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
         foreach (var m in activeTeam.Members)
             if (m != null && m.Character != null)
-                ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(m.Character);
+                chatManager.GetRaidChat(activeTeam).JoinChannel(m.Character);
         // TODO: Handle raids in dungeons
     }
 
@@ -524,8 +524,8 @@ public class TeamManager : Singleton<TeamManager>
             return;
         }
         if (!activeTeam.IsParty)
-            ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
-        ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
+            chatManager.GetRaidChat(activeTeam).LeaveChannel(unit);
+        chatManager.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
         AskRiskyTeam(source, activeTeam.Id, unit.Id, leaveType);
     }
 
@@ -552,8 +552,8 @@ public class TeamManager : Singleton<TeamManager>
         activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newInfo, Team.GetParty(activeTeam.GetIndex(unit.Id))));
         //activeTeam.BroadcastPacket(new SCRefreshTeamMemberPacket(activeTeam.Id, unit.Id, unit.ObjId));
         if (!activeTeam.IsParty)
-            ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(unit);
-        ChatManager.Instance.GetPartyChat(activeTeam, unit).JoinChannel(unit);
+            chatManager.GetRaidChat(activeTeam).JoinChannel(unit);
+        chatManager.GetPartyChat(activeTeam, unit).JoinChannel(unit);
     }
 
     public void Load()

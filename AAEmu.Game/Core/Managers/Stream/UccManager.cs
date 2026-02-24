@@ -16,7 +16,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.Stream;
 
-public class UccManager : Singleton<UccManager>
+public class UccManager : Singleton<UccManager>, IUccManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, Ucc> _uploadQueue;

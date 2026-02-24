@@ -1,6 +1,12 @@
 ﻿using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.Stream;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
 using AAEmu.Game.Services;
 using AAEmu.Game.Services.WebApi;
@@ -98,9 +104,288 @@ public static class Program
             .ConfigureServices((hostContext, services) =>
             {
                 services.AddOptions();
+
+                // -- Hosted services --
                 services.AddSingleton<IHostedService, GameService>();
                 services.AddSingleton<IHostedService, WebApiService>();
                 services.AddSingleton<IHostedService, DiscordBotService>();
+
+                // -- Singleton<T>-based managers (AAEmu.Game.Core.Managers) --
+                services.AddSingleton<AccessLevelManager>();
+                services.AddSingleton<IAccessLevelManager>(sp => sp.GetRequiredService<AccessLevelManager>());
+
+                services.AddSingleton<AccountManager>();
+                services.AddSingleton<IAccountManager>(sp => sp.GetRequiredService<AccountManager>());
+
+                services.AddSingleton<AIManager>();
+                services.AddSingleton<IAIManager>(sp => sp.GetRequiredService<AIManager>());
+
+                services.AddSingleton<AiPathsManager>();
+                services.AddSingleton<IAiPathsManager>(sp => sp.GetRequiredService<AiPathsManager>());
+
+                services.AddSingleton<AnimationManager>();
+                services.AddSingleton<IAnimationManager>(sp => sp.GetRequiredService<AnimationManager>());
+
+                services.AddSingleton<AuctionManager>();
+                services.AddSingleton<IAuctionManager>(sp => sp.GetRequiredService<AuctionManager>());
+
+                services.AddSingleton<CashShopManager>();
+                services.AddSingleton<ICashShopManager>(sp => sp.GetRequiredService<CashShopManager>());
+
+                services.AddSingleton<ChatManager>();
+                services.AddSingleton<IChatManager>(sp => sp.GetRequiredService<ChatManager>());
+
+                services.AddSingleton<CommandManager>();
+                services.AddSingleton<ICommandManager>(sp => sp.GetRequiredService<CommandManager>());
+
+                services.AddSingleton<CraftManager>();
+                services.AddSingleton<ICraftManager>(sp => sp.GetRequiredService<CraftManager>());
+
+                services.AddSingleton<DuelManager>();
+                services.AddSingleton<IDuelManager>(sp => sp.GetRequiredService<DuelManager>());
+
+                services.AddSingleton<EffectTaskManager>();
+                services.AddSingleton<IEffectTaskManager>(sp => sp.GetRequiredService<EffectTaskManager>());
+
+                services.AddSingleton<ExpeditionManager>();
+                services.AddSingleton<IExpeditionManager>(sp => sp.GetRequiredService<ExpeditionManager>());
+
+                services.AddSingleton<ExperienceManager>();
+                services.AddSingleton<IExperienceManager>(sp => sp.GetRequiredService<ExperienceManager>());
+
+                services.AddSingleton<ExpressTextManager>();
+                services.AddSingleton<IExpressTextManager>(sp => sp.GetRequiredService<ExpressTextManager>());
+
+                services.AddSingleton<FamilyManager>();
+                services.AddSingleton<IFamilyManager>(sp => sp.GetRequiredService<FamilyManager>());
+
+                services.AddSingleton<FeaturesManager>();
+                services.AddSingleton<IFeaturesManager>(sp => sp.GetRequiredService<FeaturesManager>());
+
+                services.AddSingleton<FishSchoolManager>();
+                services.AddSingleton<IFishSchoolManager>(sp => sp.GetRequiredService<FishSchoolManager>());
+
+                services.AddSingleton<FormulaManager>();
+                services.AddSingleton<IFormulaManager>(sp => sp.GetRequiredService<FormulaManager>());
+
+                services.AddSingleton<FriendMananger>();
+                services.AddSingleton<IFriendManager>(sp => sp.GetRequiredService<FriendMananger>());
+
+                services.AddSingleton<GameScheduleManager>();
+                services.AddSingleton<IGameScheduleManager>(sp => sp.GetRequiredService<GameScheduleManager>());
+
+                services.AddSingleton<HousingManager>();
+                services.AddSingleton<IHousingManager>(sp => sp.GetRequiredService<HousingManager>());
+
+                services.AddSingleton<IndunManager>();
+                services.AddSingleton<IIndunManager>(sp => sp.GetRequiredService<IndunManager>());
+
+                services.AddSingleton<InstantGameManager>();
+                services.AddSingleton<IInstantGameManager>(sp => sp.GetRequiredService<InstantGameManager>());
+
+                services.AddSingleton<ItemManager>();
+                services.AddSingleton<IItemManager>(sp => sp.GetRequiredService<ItemManager>());
+
+                services.AddSingleton<LocalizationManager>();
+                services.AddSingleton<ILocalizationManager>(sp => sp.GetRequiredService<LocalizationManager>());
+
+                services.AddSingleton<MailManager>();
+                services.AddSingleton<IMailManager>(sp => sp.GetRequiredService<MailManager>());
+
+                services.AddSingleton<ManaRegenManager>();
+                services.AddSingleton<IManaRegenManager>(sp => sp.GetRequiredService<ManaRegenManager>());
+
+                services.AddSingleton<ModelManager>();
+                services.AddSingleton<IModelManager>(sp => sp.GetRequiredService<ModelManager>());
+
+                services.AddSingleton<MusicManager>();
+                services.AddSingleton<IMusicManager>(sp => sp.GetRequiredService<MusicManager>());
+
+                services.AddSingleton<NameManager>();
+                services.AddSingleton<INameManager>(sp => sp.GetRequiredService<NameManager>());
+
+                services.AddSingleton<PlotManager>();
+                services.AddSingleton<IPlotManager>(sp => sp.GetRequiredService<PlotManager>());
+
+                services.AddSingleton<PortalManager>();
+                services.AddSingleton<IPortalManager>(sp => sp.GetRequiredService<PortalManager>());
+
+                services.AddSingleton<PublicFarmManager>();
+                services.AddSingleton<IPublicFarmManager>(sp => sp.GetRequiredService<PublicFarmManager>());
+
+                services.AddSingleton<QuestManager>();
+                services.AddSingleton<IQuestManager>(sp => sp.GetRequiredService<QuestManager>());
+
+                services.AddSingleton<RadarManager>();
+                services.AddSingleton<IRadarManager>(sp => sp.GetRequiredService<RadarManager>());
+
+                services.AddSingleton<SaveManager>();
+                services.AddSingleton<ISaveManager>(sp => sp.GetRequiredService<SaveManager>());
+
+                services.AddSingleton<ShipyardManager>();
+                services.AddSingleton<IShipyardManager>(sp => sp.GetRequiredService<ShipyardManager>());
+
+                services.AddSingleton<SkillManager>();
+                services.AddSingleton<ISkillManager>(sp => sp.GetRequiredService<SkillManager>());
+
+                services.AddSingleton<SubZoneManager>();
+                services.AddSingleton<ISubZoneManager>(sp => sp.GetRequiredService<SubZoneManager>());
+
+                services.AddSingleton<SusManager>();
+                services.AddSingleton<ISusManager>(sp => sp.GetRequiredService<SusManager>());
+
+                services.AddSingleton<TaskManager>();
+                services.AddSingleton<ITaskManager>(sp => sp.GetRequiredService<TaskManager>());
+
+                services.AddSingleton<TaxationsManager>();
+                services.AddSingleton<ITaxationsManager>(sp => sp.GetRequiredService<TaxationsManager>());
+
+                services.AddSingleton<TeamManager>();
+                services.AddSingleton<ITeamManager>(sp => sp.GetRequiredService<TeamManager>());
+
+                services.AddSingleton<TickManager>();
+                services.AddSingleton<ITickManager>(sp => sp.GetRequiredService<TickManager>());
+
+                services.AddSingleton<TimedRewardsManager>();
+                services.AddSingleton<ITimedRewardsManager>(sp => sp.GetRequiredService<TimedRewardsManager>());
+
+                services.AddSingleton<TimeManager>();
+                services.AddSingleton<ITimeManager>(sp => sp.GetRequiredService<TimeManager>());
+
+                services.AddSingleton<TradeManager>();
+                services.AddSingleton<ITradeManager>(sp => sp.GetRequiredService<TradeManager>());
+
+                // -- Singleton<T>-based managers (AAEmu.Game.Core.Managers.UnitManagers) --
+                services.AddSingleton<CharacterManager>();
+                services.AddSingleton<ICharacterManager>(sp => sp.GetRequiredService<CharacterManager>());
+
+                services.AddSingleton<DoodadManager>();
+                services.AddSingleton<IDoodadManager>(sp => sp.GetRequiredService<DoodadManager>());
+
+                services.AddSingleton<NpcManager>();
+                services.AddSingleton<INpcManager>(sp => sp.GetRequiredService<NpcManager>());
+
+                // -- Singleton<T>-based managers (AAEmu.Game.Core.Managers.World) --
+                services.AddSingleton<AreaTriggerManager>();
+                services.AddSingleton<IAreaTriggerManager>(sp => sp.GetRequiredService<AreaTriggerManager>());
+
+                services.AddSingleton<EnterWorldManager>();
+                services.AddSingleton<IEnterWorldManager>(sp => sp.GetRequiredService<EnterWorldManager>());
+
+                services.AddSingleton<FactionManager>();
+                services.AddSingleton<IFactionManager>(sp => sp.GetRequiredService<FactionManager>());
+
+                services.AddSingleton<SpecialtyManager>();
+                services.AddSingleton<ISpecialtyManager>(sp => sp.GetRequiredService<SpecialtyManager>());
+
+                services.AddSingleton<StreamManager>();
+                services.AddSingleton<IStreamManager>(sp => sp.GetRequiredService<StreamManager>());
+
+                services.AddSingleton<WorldManager>();
+                services.AddSingleton<IWorldManager>(sp => sp.GetRequiredService<WorldManager>());
+
+                services.AddSingleton<ZoneManager>();
+                services.AddSingleton<IZoneManager>(sp => sp.GetRequiredService<ZoneManager>());
+
+                // -- Singleton<T>-based managers (AAEmu.Game.Core.Managers.Stream) --
+                services.AddSingleton<UccManager>();
+                services.AddSingleton<IUccManager>(sp => sp.GetRequiredService<UccManager>());
+
+                // -- Singleton<T>-based managers (AAEmu.Game.GameData.Framework) --
+                services.AddSingleton<GameDataManager>();
+                services.AddSingleton<IGameDataManager>(sp => sp.GetRequiredService<GameDataManager>());
+
+                // -- IdManagers (own static Instance, factory pattern) --
+                services.AddSingleton(_ => AuctionIdManager.Instance);
+                services.AddSingleton<IAuctionIdManager>(sp => sp.GetRequiredService<AuctionIdManager>());
+
+                services.AddSingleton(_ => CharacterIdManager.Instance);
+                services.AddSingleton<ICharacterIdManager>(sp => sp.GetRequiredService<CharacterIdManager>());
+
+                services.AddSingleton(_ => ContainerIdManager.Instance);
+                services.AddSingleton<IContainerIdManager>(sp => sp.GetRequiredService<ContainerIdManager>());
+
+                services.AddSingleton(_ => DoodadIdManager.Instance);
+                services.AddSingleton<IDoodadIdManager>(sp => sp.GetRequiredService<DoodadIdManager>());
+
+                services.AddSingleton(_ => ExpeditionIdManager.Instance);
+                services.AddSingleton<IExpeditionIdManager>(sp => sp.GetRequiredService<ExpeditionIdManager>());
+
+                services.AddSingleton(_ => FamilyIdManager.Instance);
+                services.AddSingleton<IFamilyIdManager>(sp => sp.GetRequiredService<FamilyIdManager>());
+
+                services.AddSingleton(_ => FriendIdManager.Instance);
+                services.AddSingleton<IFriendIdManager>(sp => sp.GetRequiredService<FriendIdManager>());
+
+                services.AddSingleton(_ => GimmickIdManager.Instance);
+                services.AddSingleton<IGimmickIdManager>(sp => sp.GetRequiredService<GimmickIdManager>());
+
+                services.AddSingleton(_ => HousingIdManager.Instance);
+                services.AddSingleton<IHousingIdManager>(sp => sp.GetRequiredService<HousingIdManager>());
+
+                services.AddSingleton(_ => HousingTldManager.Instance);
+                services.AddSingleton<IHousingTldManager>(sp => sp.GetRequiredService<HousingTldManager>());
+
+                services.AddSingleton(_ => ItemIdManager.Instance);
+                services.AddSingleton<IItemIdManager>(sp => sp.GetRequiredService<ItemIdManager>());
+
+                services.AddSingleton(_ => MailIdManager.Instance);
+                services.AddSingleton<IMailIdManager>(sp => sp.GetRequiredService<MailIdManager>());
+
+                services.AddSingleton(_ => MateIdManager.Instance);
+                services.AddSingleton<IMateIdManager>(sp => sp.GetRequiredService<MateIdManager>());
+
+                services.AddSingleton(_ => MusicIdManager.Instance);
+                services.AddSingleton<IMusicIdManager>(sp => sp.GetRequiredService<MusicIdManager>());
+
+                services.AddSingleton(_ => ObjectIdManager.Instance);
+                services.AddSingleton<IObjectIdManager>(sp => sp.GetRequiredService<ObjectIdManager>());
+
+                services.AddSingleton(_ => PrivateBookIdManager.Instance);
+                services.AddSingleton<IPrivateBookIdManager>(sp => sp.GetRequiredService<PrivateBookIdManager>());
+
+                services.AddSingleton(_ => QuestIdManager.Instance);
+                services.AddSingleton<IQuestIdManager>(sp => sp.GetRequiredService<QuestIdManager>());
+
+                services.AddSingleton(_ => ShipyardIdManager.Instance);
+                services.AddSingleton<IShipyardIdManager>(sp => sp.GetRequiredService<ShipyardIdManager>());
+
+                services.AddSingleton(_ => TaskIdManager.Instance);
+                services.AddSingleton<ITaskIdManager>(sp => sp.GetRequiredService<TaskIdManager>());
+
+                services.AddSingleton(_ => TeamIdManager.Instance);
+                services.AddSingleton<ITeamIdManager>(sp => sp.GetRequiredService<TeamIdManager>());
+
+                services.AddSingleton(_ => TlIdManager.Instance);
+                services.AddSingleton<ITlIdManager>(sp => sp.GetRequiredService<TlIdManager>());
+
+                services.AddSingleton(_ => TradeIdManager.Instance);
+                services.AddSingleton<ITradeIdManager>(sp => sp.GetRequiredService<TradeIdManager>());
+
+                services.AddSingleton(_ => UccIdManager.Instance);
+                services.AddSingleton<IUccIdManager>(sp => sp.GetRequiredService<UccIdManager>());
+
+                services.AddSingleton(_ => VisitedSubZoneIdManager.Instance);
+                services.AddSingleton<IVisitedSubZoneIdManager>(sp => sp.GetRequiredService<VisitedSubZoneIdManager>());
+
+                services.AddSingleton(_ => WorldIdManager.Instance);
+                services.AddSingleton<IWorldIdManager>(sp => sp.GetRequiredService<WorldIdManager>());
+
+                // -- Lazy<T> wrappers for circular-dep break patterns --
+                // MS DI does NOT auto-wrap registered types in Lazy<T>; they must be registered explicitly.
+                // WorldManager takes these three as Lazy<T> to break the circular dependency.
+                services.AddSingleton(sp => new Lazy<IZoneManager>(sp.GetRequiredService<IZoneManager>));
+                services.AddSingleton(sp => new Lazy<IIndunManager>(sp.GetRequiredService<IIndunManager>));
+                services.AddSingleton(sp => new Lazy<IFamilyManager>(sp.GetRequiredService<IFamilyManager>));
+                // NameManager ↔ CharacterManager circular dep: NameManager takes Lazy<ICharacterManager>.
+                services.AddSingleton(sp => new Lazy<ICharacterManager>(sp.GetRequiredService<ICharacterManager>));
+                // HousingManager ↔ MailManager circular dep: MailManager takes Lazy<IHousingManager>.
+                services.AddSingleton(sp => new Lazy<IHousingManager>(sp.GetRequiredService<IHousingManager>));
+
+                // -- Orchestrator --
+                // Expose the ServiceCollection itself so ManagerOrchestrator can inspect registrations.
+                services.AddSingleton(_ => services);
+                services.AddSingleton<ManagerOrchestrator>();
             });
 
         try

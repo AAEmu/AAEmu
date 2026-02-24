@@ -7,7 +7,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ExperienceManager : Singleton<ExperienceManager>
+public class ExperienceManager : Singleton<ExperienceManager>, IExperienceManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

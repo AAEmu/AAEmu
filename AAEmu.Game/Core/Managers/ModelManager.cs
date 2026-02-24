@@ -6,7 +6,7 @@ using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ModelManager : Singleton<ModelManager>
+public class ModelManager : Singleton<ModelManager>, IModelManager
 {
 
     private Dictionary<string, Dictionary<uint, Model>> _models;

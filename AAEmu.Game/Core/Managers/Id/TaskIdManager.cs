@@ -2,7 +2,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class TaskIdManager() : IdManager("TaskIdManager", FirstId, LastId, ObjTables, Exclude)
+public class TaskIdManager() : IdManager("TaskIdManager", FirstId, LastId, ObjTables, Exclude), ITaskIdManager
 {
     private static TaskIdManager _instance;
     private const uint FirstId = 0x00000001;

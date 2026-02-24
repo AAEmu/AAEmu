@@ -5,7 +5,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class AIManager : Singleton<AIManager>
+public class AIManager : Singleton<AIManager>, IAIManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _initialized = false;

@@ -4,7 +4,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class AreaTriggerManager : Singleton<AreaTriggerManager>
+public class AreaTriggerManager : Singleton<AreaTriggerManager>, IAreaTriggerManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

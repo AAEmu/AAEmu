@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IQuestManager
+public interface IQuestManager : ILoadable
 {
     void FailQuest(ICharacter owner, uint questId);
     bool CheckGroupItem(uint groupId, uint itemId);
@@ -15,6 +15,6 @@ public interface IQuestManager
     List<uint> GetGroupItems(uint groupId);
     QuestSupplies GetSupplies(byte level);
     QuestTemplate GetTemplate(uint id);
-    void Load();
     void EnqueueEvaluation(Quest quest);
+    int RemoveQuestTimer(uint ownerId, uint questId);
 }

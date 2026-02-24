@@ -29,7 +29,7 @@ public class Revive : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
+        var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
         if (targetPlayer != null)
         {
             if (targetPlayer.Hp == 0)

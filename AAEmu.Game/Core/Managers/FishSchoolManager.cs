@@ -7,7 +7,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FishSchoolManager : Singleton<FishSchoolManager>
+public class FishSchoolManager : Singleton<FishSchoolManager>, IFishSchoolManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     /// <summary>

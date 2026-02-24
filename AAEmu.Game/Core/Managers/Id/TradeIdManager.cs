@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class TradeIdManager() : IdManager("TradeIdManager", FirstId, LastId, ObjTables, Exclude)
+public class TradeIdManager() : IdManager("TradeIdManager", FirstId, LastId, ObjTables, Exclude), ITradeIdManager
 {
     private static TradeIdManager _instance;
     private const uint FirstId = 0x00000001;

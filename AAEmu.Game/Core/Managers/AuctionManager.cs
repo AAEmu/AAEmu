@@ -19,7 +19,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class AuctionManager : Singleton<AuctionManager>
+public class AuctionManager(IItemManager itemManager, INameManager nameManager, IAuctionIdManager auctionIdManager, ILocalizationManager localizationManager, ITaskManager taskManager) : Singleton<AuctionManager>, IAuctionManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -32,7 +32,7 @@ public class AuctionManager : Singleton<AuctionManager>
     {
         if (AuctionLots.ContainsKey(itemToRemove.Id))
         {
-            var newItem = ItemManager.Instance.GetItemByItemId(itemToRemove.Item.Id);
+            var newItem = itemManager.GetItemByItemId(itemToRemove.Item.Id);
             if (newItem != null)
             {
                 /*
@@ -57,7 +57,7 @@ public class AuctionManager : Singleton<AuctionManager>
                 }
 
                 var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
-                var buyerId = NameManager.Instance.GetCharacterId(buyer);
+                var buyerId = nameManager.GetCharacterId(buyer);
                 buyMail.FinalizeForSaleBuyer(buyerId);
                 buyMail.Send();
             }
@@ -78,7 +78,7 @@ public class AuctionManager : Singleton<AuctionManager>
         }
 
         // Item did not sell by end of the timer.
-        var newItem = ItemManager.Instance.GetItemByItemId(itemToRemove.Item.Id);
+        var newItem = itemManager.GetItemByItemId(itemToRemove.Item.Id);
         if (newItem != null)
         {
             // var itemList = new Item[10].ToList();
@@ -117,7 +117,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
         var moneyToSubtract = auctionLot.DirectMoney * .1f;
         // var itemList = new Item[10].ToList();
-        var newItem = ItemManager.Instance.Create(auctionLot.Item.TemplateId, auctionLot.Item.Count, auctionLot.Item.Grade);
+        var newItem = itemManager.Create(auctionLot.Item.TemplateId, auctionLot.Item.Count, auctionLot.Item.Grade);
         if (newItem != null)
         {
             // itemList[0] = newItem;
@@ -270,9 +270,9 @@ public class AuctionManager : Singleton<AuctionManager>
         player.SendPacket(new SCAuctionLowestPricePacket(templateId, itemGrade, DirectMoney));
     }
 
-    private static string GetLocalizedItemNameById(uint id)
+    private string GetLocalizedItemNameById(uint id)
     {
-        return LocalizationManager.Instance.Get("items", "name", id, ItemManager.Instance.GetTemplate(id).Name ?? "");
+        return localizationManager.Get("items", "name", id, itemManager.GetTemplate(id).Name ?? "");
     }
 
     /* Unused
@@ -298,7 +298,7 @@ public class AuctionManager : Singleton<AuctionManager>
             return;
         }
 
-        AuctionIdManager.Instance.ReleaseId((uint)itemToRemove.Id);
+        auctionIdManager.ReleaseId((uint)itemToRemove.Id);
         _deletedAuctionItemIds.Add((long)itemToRemove.Id);
         if (!AuctionLots.TryRemove(itemToRemove.Id, out _))
         {
@@ -352,7 +352,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
         var newAuctionLot = new AuctionLot
         {
-            Id = AuctionIdManager.Instance.GetNextId(), Duration = duration, Item = itemToList, EndTime = DateTime.UtcNow.AddHours(timeLeft),
+            Id = auctionIdManager.GetNextId(), Duration = duration, Item = itemToList, EndTime = DateTime.UtcNow.AddHours(timeLeft),
             WorldId = 1,
             ClientId = playerId,
             ClientName = playerName,
@@ -394,7 +394,7 @@ public class AuctionManager : Singleton<AuctionManager>
                             {
                                 Id = reader.GetUInt64("id"),
                                 Duration = (AuctionDuration)reader.GetByte("duration"), // 8 is 6 hours, 9 is 12 hours, 10 is 24 hours, 11 is 48 hours
-                                Item = ItemManager.Instance.GetItemByItemId(reader.GetUInt32("item_id")),
+                                Item = itemManager.GetItemByItemId(reader.GetUInt32("item_id")),
                                 PostDate = reader.GetDateTime("post_date"),
                                 EndTime = reader.GetDateTime("end_time"),
                                 WorldId = reader.GetByte("world_id"),
@@ -418,7 +418,7 @@ public class AuctionManager : Singleton<AuctionManager>
                 }
             }
             var auctionTask = new AuctionHouseTask();
-            TaskManager.Instance.Schedule(auctionTask, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+            taskManager.Schedule(auctionTask, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
         }
         catch (Exception ex)
         {
@@ -457,7 +457,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
                 if (lot.Item._holdingContainer != null)
                 {
-                    lot.Item.SlotType = ItemManager.Instance.GetContainerSlotTypeByContainerId(lot.Item._holdingContainer.ContainerId);
+                    lot.Item.SlotType = itemManager.GetContainerSlotTypeByContainerId(lot.Item._holdingContainer.ContainerId);
                 }
 
                 if (lot.Item.SlotType != SlotType.None)
@@ -654,7 +654,7 @@ public class AuctionManager : Singleton<AuctionManager>
 
     public void PostLotOnAuction(Character player, uint npcId, uint npcId2, ulong itemId, int startPrice, int buyoutPrice, AuctionDuration duration)
     {
-        var item = ItemManager.Instance.GetItemByItemId(itemId);
+        var item = itemManager.GetItemByItemId(itemId);
         if (item == null)
         {
             return;

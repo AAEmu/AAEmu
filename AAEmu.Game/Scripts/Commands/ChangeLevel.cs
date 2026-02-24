@@ -38,7 +38,7 @@ public class ChangeLevel : ICommand
             return;
         }
 
-        var targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out var firstArg);
+        var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
 
         byte level = 0;
         if (byte.TryParse(args[firstArg + 0], out var parseLevel))

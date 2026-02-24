@@ -10,6 +10,6 @@ public class CSLeaveWorldPacket() : GamePacket(CSOffsets.CSLeaveWorldPacket, 1)
     public override void Read(PacketStream stream)
     {
         var leaveWorldTarget = (LeaveWorldTargetType)stream.ReadByte();
-        EnterWorldManager.Leave(Connection, leaveWorldTarget);
+        EnterWorldManager.Instance.Leave(Connection, leaveWorldTarget);
     }
 }

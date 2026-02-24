@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class FriendIdManager() : IdManager("FriendIdManager", FirstId, LastId, ObjTables, Exclude)
+public class FriendIdManager() : IdManager("FriendIdManager", FirstId, LastId, ObjTables, Exclude), IFriendIdManager
 {
     private static FriendIdManager _instance;
     private const uint FirstId = 0x00000001;

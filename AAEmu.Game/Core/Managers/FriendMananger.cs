@@ -11,7 +11,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FriendMananger : Singleton<FriendMananger>
+public class FriendMananger : Singleton<FriendMananger>, IFriendManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, FriendTemplate> _allFriends; // temp id, template

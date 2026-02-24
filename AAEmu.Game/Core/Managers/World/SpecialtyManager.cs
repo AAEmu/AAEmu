@@ -13,7 +13,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class SpecialtyManager : Singleton<SpecialtyManager>
+public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 

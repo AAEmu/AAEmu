@@ -15,7 +15,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class DuelManager : Singleton<DuelManager>
+public class DuelManager : Singleton<DuelManager>, IDuelManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -26,12 +26,7 @@ public class DuelManager : Singleton<DuelManager>
 
     // there can be several duels at the same time
     private readonly ConcurrentDictionary<uint, Duel> _duels = new();
-    public Dictionary<uint, FactionsEnum> _saveFactions { get; set; } = [];
-
-    protected DuelManager()
-    {
-        //
-    }
+    public Dictionary<uint, FactionsEnum> SaveFactions { get; set; } = [];
 
     public static bool Initialize()
     {
@@ -110,13 +105,13 @@ public class DuelManager : Singleton<DuelManager>
     private void SetFaction(Unit ower, FactionsEnum factionId)
     {
         // change the faction temporarily
-        if (_saveFactions.ContainsKey(ower.Id))
+        if (SaveFactions.ContainsKey(ower.Id))
         {
-            _saveFactions[ower.Id] = ower.Faction.Id;
+            SaveFactions[ower.Id] = ower.Faction.Id;
         }
         else
         {
-            _saveFactions.Add(ower.Id, ower.Faction.Id);
+            SaveFactions.Add(ower.Id, ower.Faction.Id);
         }
 
         ower.SetFaction(factionId);
@@ -125,8 +120,8 @@ public class DuelManager : Singleton<DuelManager>
     private void RestoreFaction(Unit owner)
     {
         // restore the fraction
-        owner.SetFaction(_saveFactions[owner.Id]);
-        _saveFactions.Remove(owner.Id);
+        owner.SetFaction(SaveFactions[owner.Id]);
+        SaveFactions.Remove(owner.Id);
     }
 
     public void DuelStart(uint id)

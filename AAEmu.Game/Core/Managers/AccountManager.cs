@@ -12,17 +12,16 @@ namespace AAEmu.Game.Core.Managers;
 /// <summary>
 /// Manages Connections and Game Account settings
 /// </summary>
-public class AccountManager : Singleton<AccountManager>
+public class AccountManager(ITickManager tickManager, ITimedRewardsManager timedRewardsManager) : Singleton<AccountManager>, IAccountManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly ConcurrentDictionary<uint, GameConnection> _accounts;
+    private readonly ConcurrentDictionary<uint, GameConnection> _accounts = new();
     private readonly Dictionary<uint, object> _locks = [];
 
-    public AccountManager()
+    public void Initialize()
     {
-        _accounts = new ConcurrentDictionary<uint, GameConnection>();
-        TickManager.Instance.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
+        tickManager.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
     }
 
     public void Add(GameConnection connection)
@@ -35,10 +34,10 @@ public class AccountManager : Singleton<AccountManager>
         if (lastLogin < DateTime.UtcNow.Date)
         {
             // Logged in for a new day
-            TimedRewardsManager.Instance.DoDailyAccountLogin(connection.AccountId);
+            timedRewardsManager.DoDailyAccountLogin(connection.AccountId);
         }
         // Add offline labor
-        TimedRewardsManager.Instance.AddOfflineLabor(connection, lastLogin, accountDetails.Labor);
+        timedRewardsManager.AddOfflineLabor(connection, lastLogin, accountDetails.Labor);
     }
 
     private void RemoveDeadConnections(TimeSpan delta)

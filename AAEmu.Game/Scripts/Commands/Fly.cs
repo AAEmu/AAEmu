@@ -51,7 +51,7 @@ public class Fly : ICommand
         var firstArg = 0;
         if (args.Length > 0)
         {
-            targetPlayer = WorldManager.GetTargetOrSelf(character, args[0], out firstArg);
+            targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out firstArg);
         }
 
         var isFlying = !GetCacheState(targetPlayer.Id); // We cache the playerId, not the ObjectId

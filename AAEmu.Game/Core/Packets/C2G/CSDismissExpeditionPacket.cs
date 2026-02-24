@@ -10,6 +10,6 @@ public class CSDismissExpeditionPacket() : GamePacket(CSOffsets.CSDismissExpedit
     {
         Logger.Debug("DismissExpedition");
         // Empty struct
-        ExpeditionManager.Disband(Connection.ActiveChar);
+        ExpeditionManager.Instance.Disband(Connection.ActiveChar);
     }
 }

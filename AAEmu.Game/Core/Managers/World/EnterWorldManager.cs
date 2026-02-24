@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Packets.G2C;
@@ -14,19 +15,21 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class EnterWorldManager : Singleton<EnterWorldManager>
+public class EnterWorldManager(
+    IAccountManager accountManager,
+    IStreamManager streamManager,
+    IQuestManager questManager,
+    ITeamManager teamManager,
+    IChatManager chatManager,
+    IFamilyManager familyManager,
+    IWorldManager worldManager) : Singleton<EnterWorldManager>, IEnterWorldManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     /// <summary>
     /// List of connected accounts (connection token, accountId)
     /// </summary>
-    private readonly Dictionary<uint, uint> _accounts;
-
-    protected EnterWorldManager()
-    {
-        _accounts = [];
-    }
+    private readonly Dictionary<uint, uint> _accounts = [];
 
     /// <summary>
     /// Adds an account to the connection list and notifies the login server the client is connected
@@ -38,7 +41,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
         var connection = LoginNetwork.Instance.GetConnection();
         var gsId = AppConfiguration.Instance.Id;
 
-        if (AccountManager.Instance.Contains(accountId))
+        if (accountManager.Contains(accountId))
             connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 1));
         else
         {
@@ -65,8 +68,8 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
                 connection.AccountId = accountId;
                 connection.State = GameState.Lobby;
 
-                AccountManager.Instance.Add(connection);
-                StreamManager.Instance.AddToken(connection.AccountId, connection.Id);
+                accountManager.Add(connection);
+                streamManager.AddToken(connection.AccountId, connection.Id);
 
                 var port = AppConfiguration.Instance.StreamNetwork.Port;
                 var gm = connection.GetAttribute("gmFlag") != null;
@@ -94,7 +97,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="leaveWorldTargetType"></param>
-    public static void Leave(GameConnection connection, LeaveWorldTargetType leaveWorldTargetType)
+    public void Leave(GameConnection connection, LeaveWorldTargetType leaveWorldTargetType)
     {
         switch (leaveWorldTargetType)
         {
@@ -129,7 +132,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
                     connection.LeaveTask = Task.Run(async () =>
                     {
                         await Task.Delay(logoutTime, token);
-                        LeaveWorldTask(connection, leaveWorldTargetType, connection.ActiveChar);
+                        Instance.LeaveWorldTask(connection, leaveWorldTargetType, connection.ActiveChar);
                     }, token);
                 }
 
@@ -158,7 +161,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
     /// <param name="connection"></param>
     /// <param name="leaveWorldTarget"></param>
     /// <param name="activeChar"></param>
-    public static void LeaveWorldTask(GameConnection connection, LeaveWorldTargetType leaveWorldTarget, Character activeChar)
+    public void LeaveWorldTask(GameConnection connection, LeaveWorldTargetType leaveWorldTarget, Character activeChar)
     {
         if (activeChar != null)
         {
@@ -167,7 +170,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             activeChar.LeaveTime = DateTime.UtcNow;
 
             // Remove all remaining quest timer tasks
-            QuestManager.Instance.RemoveQuestTimer(activeChar.Id, 0);
+            questManager.RemoveQuestTimer(activeChar.Id, 0);
 
             // Despawn and unmount everybody from owned Mates
             activeChar.ParentWorld.MateManager.RemoveAndDespawnAllActiveOwnedMates(activeChar);
@@ -177,14 +180,14 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
             activeChar.ForceDismount(/*AttachUnitReason.PrefabChanged*/); // Dismounting a mount because of unsummoning sends "10" for this
 
             // Remove from Team (raid/party)
-            TeamManager.Instance.MemberRemoveFromTeam(activeChar, activeChar, RiskyAction.Leave);
+            teamManager.MemberRemoveFromTeam(activeChar, activeChar, RiskyAction.Leave);
 
             // Remove from all Chat
-            ChatManager.Instance.LeaveAllChannels(activeChar);
+            chatManager.LeaveAllChannels(activeChar);
 
             // Handle Family
             if (activeChar.Family > 0)
-                FamilyManager.Instance.OnCharacterLogout(activeChar);
+                familyManager.OnCharacterLogout(activeChar);
 
             // Handle Guild
             activeChar.Expedition?.OnCharacterLogout(activeChar);
@@ -204,7 +207,7 @@ public class EnterWorldManager : Singleton<EnterWorldManager>
                 subscriber.Dispose();
 
             // Remove from server
-            WorldManager.Instance.TryRemoveCharacter(activeChar.ObjId);
+            worldManager.TryRemoveCharacter(activeChar.ObjId);
         }
 
         GameConnection.SaveAndRemoveFromWorld(activeChar);

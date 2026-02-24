@@ -11,6 +11,6 @@ public class CSInviteToExpeditionPacket() : GamePacket(CSOffsets.CSInviteToExped
         var name = stream.ReadString();
 
         Logger.Debug("InviteToExpedition, Name: {0}", name);
-        ExpeditionManager.Invite(Connection, name);
+        ExpeditionManager.Instance.Invite(Connection, name);
     }
 }

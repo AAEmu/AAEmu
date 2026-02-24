@@ -28,7 +28,18 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
-public class CharacterManager : Singleton<CharacterManager>
+public class CharacterManager(
+    IWorldManager worldManager,
+    IAccountManager accountManager,
+    INameManager nameManager,
+    ICharacterIdManager characterIdManager,
+    IFactionManager factionManager,
+    ISkillManager skillManager,
+    IItemManager itemManager,
+    IHousingManager housingManager,
+    IFamilyManager familyManager,
+    IMailManager mailManager,
+    ITaskManager taskManager) : Singleton<CharacterManager>, ICharacterManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -389,7 +400,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 var point = charTemplate.Pos.Clone();
                 // Recalculate ZoneId as this isn't included in the config
                 // Always use main_world Id for this
-                point.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.Instance.GetWorldTemplateByName("main_world"), charTemplate.Pos.X, charTemplate.Pos.Y);
+                point.ZoneId = worldManager.GetZoneId(worldManager.GetWorldTemplateByName("main_world"), charTemplate.Pos.X, charTemplate.Pos.Y);
                 // Convert the json's degrees to rads
                 point.Roll = point.Roll.DegToRad();
                 point.Pitch = point.Pitch.DegToRad();
@@ -416,7 +427,7 @@ public class CharacterManager : Singleton<CharacterManager>
         Logger.Info("Loaded {0} character templates", _templates.Count);
     }
 
-    public static void PlayerRoll(Character player, int max)
+    public void PlayerRoll(Character player, int max)
     {
         var roll = Random.Shared.Next(1, max);
         player.BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"{player.Name} rolled {roll}."), true);
@@ -424,14 +435,14 @@ public class CharacterManager : Singleton<CharacterManager>
 
     public int GetEffectiveAccessLevel(Character character)
     {
-        var accountDetails = AccountManager.Instance.GetAccountDetails(character.AccountId);
+        var accountDetails = accountManager.GetAccountDetails(character.AccountId);
         return Math.Max(character.AccessLevel, accountDetails.AccessLevel);
     }
 
     public void Create(GameConnection connection, string name, Race race, Gender gender, uint[] bodyItems, UnitCustomModelParams customModel, AbilityType ability1, AbilityType ability2, AbilityType ability3, byte level)
     {
         name = name.NormalizeName();
-        var nameValidationCode = NameManager.Instance.ValidateCharacterName(name);
+        var nameValidationCode = nameManager.ValidateCharacterName(name);
         if (nameValidationCode != CharacterCreateError.Ok)
         {
             connection.SendPacket(new SCCharacterCreationFailedPacket(nameValidationCode));
@@ -445,17 +456,17 @@ public class CharacterManager : Singleton<CharacterManager>
             Logger.Error($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}, Name {name}, Class {ability1}, {ability2}, {ability3}");
         }
 
-        var accountDetails = AccountManager.Instance.GetAccountDetails(connection.AccountId);
+        var accountDetails = accountManager.GetAccountDetails(connection.AccountId);
 
         // Get default access level for all users 
         var useAccessLevel = AppConfiguration.Instance.Account.AccessLevelDefault;
 
         // If it's the first character created, use first character access level settings 
-        if (NameManager.Instance.NoNamesRegistered())
+        if (nameManager.NoNamesRegistered())
             useAccessLevel = Math.Max(AppConfiguration.Instance.Account.AccessLevelFirstCharacter, useAccessLevel);
 
-        var characterId = CharacterIdManager.Instance.GetNextId();
-        NameManager.Instance.AddCharacter(characterId, name, connection.AccountId);
+        var characterId = characterIdManager.GetNextId();
+        nameManager.AddCharacter(characterId, name, connection.AccountId);
         var template = GetTemplate(race, gender);
 
         var character = new Character(customModel)
@@ -466,7 +477,7 @@ public class CharacterManager : Singleton<CharacterManager>
         };
         character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
         character.Level = level;
-        character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
+        character.Faction = factionManager.GetFaction(template.FactionId);
         character.FactionName = "";
         character.AccessLevel = useAccessLevel;
         // character.LaborPower = (short)AppConfiguration.Instance.Labor.Default;
@@ -514,7 +525,7 @@ public class CharacterManager : Singleton<CharacterManager>
         foreach (var item in items.Supplies)
         {
             character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
-            //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
+            //var createdItem = itemManager.Create(item.Id, item.Amount, item.Grade);
             //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
             character.SetAction(slot, ActionSlotType.ItemType, item.Id);
@@ -526,7 +537,7 @@ public class CharacterManager : Singleton<CharacterManager>
             foreach (var item in items.Supplies)
             {
                 character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
-                //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
+                //var createdItem = itemManager.Create(item.Id, item.Amount, item.Grade);
                 //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
 
                 character.SetAction(slot, ActionSlotType.ItemType, item.Id);
@@ -541,7 +552,7 @@ public class CharacterManager : Singleton<CharacterManager>
             character.Actability.Actabilities.Add(id, new Actability(actabilityTemplate));
 
         character.Skills = new CharacterSkills(character);
-        foreach (var skill in SkillManager.Instance.GetDefaultSkills())
+        foreach (var skill in skillManager.GetDefaultSkills())
         {
             if (!skill.AddToSlot)
                 continue;
@@ -551,7 +562,7 @@ public class CharacterManager : Singleton<CharacterManager>
         slot = 1;
         while (character.Slots[slot].Type != ActionSlotType.None)
             slot++;
-        foreach (var skill in SkillManager.Instance.GetStartAbilitySkills(character.Ability1))
+        foreach (var skill in skillManager.GetStartAbilitySkills(character.Ability1))
         {
             character.Skills.AddSkill(skill, 1, false);
             character.SetAction(slot, ActionSlotType.Spell, skill.Id);
@@ -578,8 +589,8 @@ public class CharacterManager : Singleton<CharacterManager>
             // There is no actual response for internal DB saving error for the client.
             // Just send a generic Failed error (Name already in use for pending deletion)
             connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
-            CharacterIdManager.Instance.ReleaseId(characterId);
-            NameManager.Instance.RemoveCharacterId(characterId);
+            characterIdManager.ReleaseId(characterId);
+            nameManager.RemoveCharacterId(characterId);
             // TODO release items...
             DeleteCharacterAssets(character, true);
         }
@@ -590,11 +601,11 @@ public class CharacterManager : Singleton<CharacterManager>
     /// </summary>
     /// <param name="character">Character to delete assets from</param>
     /// <param name="fullWipe">Do owned items need to be actually deleted</param>
-    public static void DeleteCharacterAssets(Character character, bool fullWipe)
+    public void DeleteCharacterAssets(Character character, bool fullWipe)
     {
         // Demolish owned houses
         var myHouses = new Dictionary<uint, House>();
-        if (HousingManager.Instance.GetByCharacterId(myHouses, character.Id) > 0)
+        if (housingManager.GetByCharacterId(myHouses, character.Id) > 0)
         {
             foreach (var (houseId, house) in myHouses)
             {
@@ -602,7 +613,7 @@ public class CharacterManager : Singleton<CharacterManager>
                 // force expire the house
                 // This should technically kill the house, and return the minimum amount of furniture
                 house.ProtectionEndDate = DateTime.UtcNow.AddDays(-21);
-                HousingManager.UpdateTaxInfo(house);
+                housingManager.UpdateTaxInfo(house);
             }
         }
 
@@ -612,14 +623,14 @@ public class CharacterManager : Singleton<CharacterManager>
 
         // Remove from Family
         if (character.Family > 0)
-            FamilyManager.Instance.LeaveFamily(character);
+            familyManager.LeaveFamily(character);
 
         // TODO: Remove from player nation
         // TODO: Delete leadership
 
         // Return all mails to sender (if needed)
         // The main reason we do this is so other people's items wouldn't get delete if fullWipe is enabled
-        foreach (var (mailId, mail) in MailManager.Instance._allPlayerMails)
+        foreach (var (mailId, mail) in mailManager.AllPlayerMails)
         {
             if (mail.CanReturnMail() && !mail.ReturnToSender())
                 Logger.Warn(
@@ -644,7 +655,7 @@ public class CharacterManager : Singleton<CharacterManager>
     /// <param name="gameConnection"></param>
     /// <param name="dbConnection"></param>
     /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
-    public static bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
+    public bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
     {
         if (character.DeleteTime > DateTime.MinValue && character.DeleteTime <= DateTime.UtcNow)
         {
@@ -655,8 +666,8 @@ public class CharacterManager : Singleton<CharacterManager>
                 if (AppConfiguration.Instance.Account.DeleteReleaseName)
                 {
                     deletedName = "!" + character.Name;
-                    NameManager.Instance.RemoveCharacterId(character.Id);
-                    NameManager.Instance.AddCharacter(character.Id, deletedName, character.AccountId);
+                    nameManager.RemoveCharacterId(character.Id);
+                    nameManager.AddCharacter(character.Id, deletedName, character.AccountId);
                 }
 
                 command.Connection = dbConnection;
@@ -691,7 +702,7 @@ public class CharacterManager : Singleton<CharacterManager>
         return false;
     }
 
-    public static void CheckForDeletedCharacters()
+    public void CheckForDeletedCharacters()
     {
         var nextCheckTime = DateTime.MaxValue;
         var deleteList = new List<(uint, uint)>(); // charId, accountId
@@ -749,7 +760,7 @@ public class CharacterManager : Singleton<CharacterManager>
         if (nextCheckTime < DateTime.MaxValue)
         {
             var deleteCheckTask = new CharacterDeleteTask();
-            TaskManager.Instance?.Schedule(deleteCheckTask, nextCheckTime - DateTime.UtcNow);
+            taskManager.Schedule(deleteCheckTask, nextCheckTime - DateTime.UtcNow);
             Logger.Debug("CheckForDeletedCharacters - Next delete scheduled at " + nextCheckTime.ToString());
         }
         else
@@ -758,7 +769,7 @@ public class CharacterManager : Singleton<CharacterManager>
         }
     }
 
-    public static void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
+    public void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
     {
         if (gameConnection.Characters.TryGetValue(characterId, out var character))
         {
@@ -806,7 +817,7 @@ public class CharacterManager : Singleton<CharacterManager>
         CheckForDeletedCharacters();
     }
 
-    public static void SetRestoreCharacter(GameConnection gameConnection, uint characterId)
+    public void SetRestoreCharacter(GameConnection gameConnection, uint characterId)
     {
         if (gameConnection.Characters.TryGetValue(characterId, out var character))
         {
@@ -864,12 +875,12 @@ public class CharacterManager : Singleton<CharacterManager>
         return result;
     }
 
-    private static void SetEquipItemTemplate(Inventory inventory, uint templateId, EquipmentItemSlot slot, byte grade)
+    private void SetEquipItemTemplate(Inventory inventory, uint templateId, EquipmentItemSlot slot, byte grade)
     {
         Item item = null;
         if (templateId > 0)
         {
-            item = ItemManager.Instance.Create(templateId, 1, grade);
+            item = itemManager.Create(templateId, 1, grade);
             item.SlotType = SlotType.Equipment;
             item.Slot = (int)slot;
         }
@@ -942,6 +953,6 @@ public class CharacterManager : Singleton<CharacterManager>
     public void StartOnlineTracking()
     {
         var onlineTrackerTasks = new CharacterOnlineTrackingTask();
-        TaskManager.Instance.Schedule(onlineTrackerTasks, TimeSpan.Zero, CharacterOnlineTrackingTask.CheckPrecision);
+        taskManager.Schedule(onlineTrackerTasks, TimeSpan.Zero, CharacterOnlineTrackingTask.CheckPrecision);
     }
 }

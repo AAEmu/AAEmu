@@ -21,6 +21,6 @@ public class DispelTask(Buff buff) : Task
         {
             return;
         }
-        EffectTaskManager.AddDispelTask(eff, eff.Tick);
+        EffectTaskManager.Instance.AddDispelTask(eff, eff.Tick);
     }
 }

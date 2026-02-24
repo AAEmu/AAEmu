@@ -8,7 +8,7 @@ using Task = AAEmu.Game.Models.Tasks.Task;
 namespace AAEmu.Game.Core.Managers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class TaskManager : Singleton<TaskManager>, ITaskManager
+public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITaskManager
 {
     private readonly ConcurrentDictionary<uint, Task> _queue = new();
     private readonly HashSet<uint> _taskIds = [];
@@ -24,7 +24,7 @@ public class TaskManager : Singleton<TaskManager>, ITaskManager
 
     public void Start()
     {
-        TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(50), true);
+        tickManager.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(50), true);
     }
 
     public void Stop()

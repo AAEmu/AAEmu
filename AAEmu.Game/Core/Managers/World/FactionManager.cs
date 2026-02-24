@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class FactionManager : Singleton<FactionManager>
+public class FactionManager(ILocalizationManager localizationManager) : Singleton<FactionManager>, IFactionManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
@@ -48,7 +48,7 @@ public class FactionManager : Singleton<FactionManager>
                         var faction = new SystemFaction
                         {
                             Id = (FactionsEnum)reader.GetUInt32("id"),
-                            Name = LocalizationManager.Instance.Get("system_factions", "name", reader.GetUInt32("id")),
+                            Name = localizationManager.Get("system_factions", "name", reader.GetUInt32("id")),
                             OwnerName = reader.GetString("owner_name"),
                             UnitOwnerType = (sbyte)reader.GetInt16("owner_type_id"),
                             OwnerId = reader.GetUInt32("owner_id"),

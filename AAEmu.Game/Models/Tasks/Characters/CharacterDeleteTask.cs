@@ -12,7 +12,7 @@ public class CharacterDeleteTask : Task
         {
             try
             {
-                CharacterManager.CheckForDeletedCharacters();
+                CharacterManager.Instance.CheckForDeletedCharacters();
             }
             catch
             {

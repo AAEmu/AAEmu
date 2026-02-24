@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class ShipyardIdManager() : IdManager("ShipyardIdManager", FirstId, LastId, ObjTables, Exclude)
+public class ShipyardIdManager() : IdManager("ShipyardIdManager", FirstId, LastId, ObjTables, Exclude), IShipyardIdManager
 {
     private static ShipyardIdManager _instance;
     private const uint FirstId = 0x00000001;

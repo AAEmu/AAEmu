@@ -2,7 +2,7 @@
 
 namespace AAEmu.Game.Core.Managers.Id;
 
-public class PrivateBookIdManager() : IdManager("PrivateBookIdManager", FirstId, LastId, ObjTables, Exclude)
+public class PrivateBookIdManager() : IdManager("PrivateBookIdManager", FirstId, LastId, ObjTables, Exclude), IPrivateBookIdManager
 {
     private static PrivateBookIdManager _instance;
     private const uint FirstId = 0x00001000;

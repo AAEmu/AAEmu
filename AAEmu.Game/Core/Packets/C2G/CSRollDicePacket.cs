@@ -10,6 +10,6 @@ public class CSRollDicePacket() : GamePacket(CSOffsets.CSRollDicePacket, 1)
     {
 
         var max = stream.ReadUInt32();
-        CharacterManager.PlayerRoll(Connection.ActiveChar, int.Parse(max.ToString()));
+        CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, int.Parse(max.ToString()));
     }
 }

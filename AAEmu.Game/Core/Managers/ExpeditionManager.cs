@@ -18,7 +18,7 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class ExpeditionManager : Singleton<ExpeditionManager>
+public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamManager teamManager, IWorldManager worldManager, IChatManager chatManager) : Singleton<ExpeditionManager>, IExpeditionManager
 {
     //private ExpeditionConfig _config;
     private Regex _nameRegex;
@@ -27,11 +27,11 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
     public IEnumerable<Expedition> Expeditions { get => _expeditions.Values; }
 
-    public static Expedition Create(string name, Character owner)
+    private Expedition Create(string name, Character owner)
     {
         var expedition = new Expedition
         {
-            Id = (FactionsEnum)ExpeditionIdManager.Instance.GetNextId(),
+            Id = (FactionsEnum)expeditionIdManager.GetNextId(),
             MotherId = owner.Faction.Id,
             Name = name,
             OwnerId = owner.Id,
@@ -200,7 +200,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             }
 
         // ----------------- Conditions, can change this...
-        var team = TeamManager.Instance.GetActiveTeamByUnit(owner.Id);
+        var team = teamManager.GetActiveTeamByUnit(owner.Id);
         if (team == null)// || !team.IsParty)
         {
             // We send the same error on number of party members when we don't have a party
@@ -267,13 +267,13 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
             new SCFactionCreatedPacket(expedition, owner.ObjId, [(owner.ObjId, owner.Id, owner.Name)])
         );
 
-        WorldManager.Instance.BroadcastPacketToServer(new SCFactionListPacket(expedition));
+        worldManager.BroadcastPacketToServer(new SCFactionListPacket(expedition));
         owner.BroadcastPacket(
             new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
             true
         );
 
-        ChatManager.Instance.GetGuildChat(expedition).JoinChannel(owner);
+        chatManager.GetGuildChat(expedition).JoinChannel(owner);
         SendExpeditionInfo(owner);
         // owner.Save(); // Moved to SaveMananger
 
@@ -298,7 +298,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         Save(expedition);
     }
 
-    public static void Invite(GameConnection connection, string invitedName)
+    public void Invite(GameConnection connection, string invitedName)
     {
         var inviter = connection.ActiveChar;
 
@@ -306,7 +306,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         if (inviterMember == null || !inviter.Expedition.GetPolicyByRole(inviterMember.Role).Invite)
             return;
 
-        var invited = WorldManager.Instance.GetCharacter(invitedName);
+        var invited = worldManager.GetCharacter(invitedName);
         if (invited == null) return;
         if (invited.Expedition != null) return;
 
@@ -382,7 +382,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         Save(expedition);
     }
 
-    public static void Kick(GameConnection connection, uint kickedId)
+    public void Kick(GameConnection connection, uint kickedId)
     {
         var character = connection.ActiveChar;
         var expedition = character.Expedition;
@@ -397,7 +397,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
 
         expedition.RemoveMember(kicked);
 
-        var kickedChar = WorldManager.Instance.GetCharacterById(kickedId);
+        var kickedChar = worldManager.GetCharacterById(kickedId);
 
         var changedPacket = new SCUnitExpeditionChangedPacket(kickedChar?.ObjId ?? 0,
             kicked.CharacterId, character.Name, kicked.Name, (uint)expedition.Id, 0, true);
@@ -467,7 +467,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         Save(expedition);
     }
 
-    public static bool Disband(Character owner)
+    public bool Disband(Character owner)
     {
         var guild = owner.Expedition;
         if (guild == null)
@@ -484,7 +484,7 @@ public class ExpeditionManager : Singleton<ExpeditionManager>
         }
         for (var i = guild.Members.Count - 1; i >= 0; i--)
         {
-            var c = WorldManager.Instance.GetCharacterById(guild.Members[i].CharacterId);
+            var c = worldManager.GetCharacterById(guild.Members[i].CharacterId);
             if (c != null)
             {
                 if (c.IsOnline)
