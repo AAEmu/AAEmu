@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
@@ -88,89 +89,73 @@ public class ReturnStateBehavior : BaseCombatBehavior
 
         if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            // Same logic as combat: straight line by default, A* only when wall blocks path
-            var wallBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
-                .LinePassesThroughForbiddenArea(currentPos, Ai.IdlePosition) ?? false;
-
-            // Steep elevation = structure/stairs between NPC and idle position → need A*.
-            var heightDiff = MathF.Abs(Ai.IdlePosition.Z - currentPos.Z);
-            var elevationBlocked = !Ai.Owner.CanFly && heightDiff > 3f && (distanceToIdle < 1f || heightDiff / distanceToIdle > 0.5f);
-            if (!wallBlocked && elevationBlocked)
-                wallBlocked = true;
-
-            if (!wallBlocked)
+            // NavMesh Raycast checks if path crosses collision walls (brush meshes
+            // + forbidden area walls). Falls back to ForbiddenArea polygon check
+            // when NavMesh has no poly data near the NPC.
+            var navMesh = Ai.Owner.ParentWorld?.NavMesh;
+            bool pathClear;
+            if (navMesh?.HasData == true && navMesh.TryRaycast(currentPos, Ai.IdlePosition, out var raycastClear))
             {
-                // Clear path — straight line to idle position
+                pathClear = raycastClear;
+            }
+            else
+            {
+                pathClear = !(Ai.Owner.ParentWorld?.Template?.GeoData?
+                    .LinePassesThroughForbiddenArea(currentPos, Ai.IdlePosition) ?? false);
+
+                if (pathClear && !Ai.Owner.CanFly)
+                {
+                    var heightDiff = MathF.Abs(Ai.IdlePosition.Z - currentPos.Z);
+                    if (heightDiff > 3f && (distanceToIdle < 1f || heightDiff / distanceToIdle > 0.5f))
+                        pathClear = false;
+                }
+            }
+
+            if (pathClear)
+            {
+                // Clear line of sight — straight line to idle position
                 Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
                 if (Ai.PathNode?.FoundPath?.Count > 0)
                     Ai.PathNode.FoundPath = [];
             }
+            else if (Ai.PathNode != null)
+            {
+                // Blocked — use A* (BAI-first with NavMesh refinement)
+                if (Ai.PathNode.FoundPath.Count == 0 && DateTime.UtcNow > _lastPathRecalcTime.AddSeconds(2))
+                {
+                    Ai.PathNode.StartPointPos = currentPos;
+                    Ai.PathNode.EndPointPos = Ai.IdlePosition;
+                    Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
+                    var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, currentPos, Ai.IdlePosition);
+                    if (navMesh?.HasData == true)
+                        Ai.PathNode.FoundPath = AiGeoDataManager.ReducePathNavMesh(resList, 10, navMesh);
+                    else
+                        Ai.PathNode.FoundPath = Ai.Owner.ParentWorld.Template.GeoData.ReducePath(resList, 10);
+                    _lastPathRecalcTime = DateTime.UtcNow;
+                }
+
+                if (Ai.PathNode.FoundPath.Count > 0)
+                {
+                    var nextPoint = Ai.PathNode.FoundPath.Peek();
+                    var distToPoint = MathUtil.CalculateDistance(currentPos, nextPoint, true);
+                    if (distToPoint > 1.0f)
+                    {
+                        Ai.Owner.MoveTowards(nextPoint, (float)moveSpeed, moveFlags);
+                    }
+                    else
+                    {
+                        Ai.PathNode.FoundPath.Dequeue();
+                    }
+                }
+                else
+                {
+                    // Path empty — go straight (best effort)
+                    Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
+                }
+            }
             else
             {
-                // When blocked by elevation, skip the immediate check — the whole path
-                // needs A* to find stairs/ramps.
-                var useAStar = elevationBlocked;
-
-                if (!useAStar)
-                {
-                    // Forbidden-area wall: check if the IMMEDIATE path is also blocked.
-                    var dirToIdle = Vector3.Normalize(Ai.IdlePosition - currentPos);
-                    var checkDist = MathF.Min(5f, (float)distanceToIdle);
-                    var shortTarget = currentPos + dirToIdle * checkDist;
-                    var immediateBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
-                        .LinePassesThroughForbiddenArea(currentPos, shortTarget) ?? false;
-
-                    if (!immediateBlocked)
-                    {
-                        Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
-                        if (Ai.PathNode?.FoundPath?.Count > 0)
-                            Ai.PathNode.FoundPath = [];
-                    }
-                    else
-                    {
-                        useAStar = true;
-                    }
-                }
-
-                if (useAStar)
-                {
-                    if (Ai.PathNode != null)
-                    {
-                        if (Ai.PathNode.FoundPath.Count == 0 && DateTime.UtcNow > _lastPathRecalcTime.AddSeconds(2))
-                        {
-                            Ai.PathNode.StartPointPos = currentPos;
-                            Ai.PathNode.EndPointPos = Ai.IdlePosition;
-                            Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-                            var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, currentPos, Ai.IdlePosition);
-                            resList.Add(Ai.IdlePosition);
-                            Ai.PathNode.FoundPath = Ai.Owner.ParentWorld.Template.GeoData.ReducePath(resList, 10);
-                            _lastPathRecalcTime = DateTime.UtcNow;
-                        }
-
-                        if (Ai.PathNode.FoundPath.Count > 0)
-                        {
-                            // Follow A* waypoints to completion — don't abandon mid-path
-                            var nextPoint = Ai.PathNode.FoundPath.Peek();
-                            var distToPoint = MathUtil.CalculateDistance(currentPos, nextPoint, true);
-                            if (distToPoint > 1.0f)
-                            {
-                                Ai.Owner.MoveTowards(nextPoint, (float)moveSpeed, moveFlags, followTerrain: false);
-                            }
-                            else
-                            {
-                                Ai.PathNode.FoundPath.Dequeue();
-                            }
-                        }
-                        else
-                        {
-                            Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
-                        }
-                    }
-                    else
-                    {
-                        Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
-                    }
-                }
+                Ai.Owner.MoveTowards(Ai.IdlePosition, (float)moveSpeed, moveFlags);
             }
         }
         else

@@ -18,8 +18,10 @@ public class AaGamePakFileSystem: IPackFileSystem
     public Stream GetStream(string path)
     {
         using var s = ClientFileManager.GetFileStream(path);
+        if (s == null)
+            return null;
         var ms = new MemoryStream();
-        s?.CopyTo(ms);
+        s.CopyTo(ms);
         ms.Seek(0, SeekOrigin.Begin);
         return ms;
     }

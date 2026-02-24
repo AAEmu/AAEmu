@@ -13,6 +13,8 @@ public class MaterialsListFile(string fileStreamFile)
         try
         {
             using var sourceFs = ClientFileManager.GetFileStream(fileStreamFile);
+            if (sourceFs == null)
+                return;
             using var fs = new MemoryStream();
             sourceFs.CopyTo(fs);
             if (fs.Length <= 4)
@@ -20,6 +22,7 @@ public class MaterialsListFile(string fileStreamFile)
                 // File too small contain data
                 return;
             }
+            fs.Seek(0, SeekOrigin.Begin);
 
             using var br = new BinaryReader(fs);
             var count = br.ReadUInt32();

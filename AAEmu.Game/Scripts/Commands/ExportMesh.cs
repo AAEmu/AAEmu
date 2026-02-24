@@ -5,6 +5,7 @@ using System.Text;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.CryEngine;
 using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Objects;
@@ -779,10 +780,15 @@ public class ExportMesh : ICommand
                 cell.VerifyCellLoaded();
 
                 if (cell.LoadedObjectDat == null || cell.StatObjsFiles == null || cell.MaterialListFiles == null)
+                {
+                    Logger.Warn($"[ExportMesh] Cell ({cellX},{cellY}): ObjectDat={cell.LoadedObjectDat != null}, StatObjs={cell.StatObjsFiles != null}, MatList={cell.MaterialListFiles != null}");
                     continue;
+                }
 
                 var cellOffsetX = (float)(cellX * WorldManager.CELL_SIZE);
                 var cellOffsetY = (float)(cellY * WorldManager.CELL_SIZE);
+
+                Logger.Info($"[ExportMesh] Cell ({cellX},{cellY}): {cell.LoadedObjectDat.PrefabsList.Count} prefabs, {cell.StatObjsFiles.MaterialList.Count} statobjs, {cell.MaterialListFiles.MaterialsList.Count} materials");
 
                 foreach (var objectData in cell.LoadedObjectDat.PrefabsList)
                 {
@@ -812,13 +818,18 @@ public class ExportMesh : ICommand
                     // Load collision triangles (cached, in Jitter Y-up local model space)
                     var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath);
                     if (triangles == null || triangles.Count == 0)
+                    {
+                        var exists = ClientFileManager.FileExists(modelPath);
+                        Logger.Warn($"[ExportMesh] brush_meshes: MakeModel returned empty for '{modelPath}' (exists in pak: {exists})");
                         continue;
+                    }
 
-                    // Build rotation matrix (same Y<->Z swap as NavMeshManager.AddBrushTriangles)
+                    // Build rotation matrix: CryEngine Z-up column-vector → DotRecast Y-up
+                    // v.X=lx, v.Y=lz, v.Z=ly (model verts are Y↔Z swapped)
                     var m = brush.Matrix3X4;
-                    var r00 = m.M11; var r01 = m.M31; var r02 = m.M21;
-                    var r10 = m.M13; var r11 = m.M33; var r12 = m.M23;
-                    var r20 = m.M12; var r21 = m.M32; var r22 = m.M22;
+                    var r00 = m.M11; var r01 = m.M13; var r02 = m.M12;
+                    var r10 = m.M31; var r11 = m.M33; var r12 = m.M32;
+                    var r20 = m.M21; var r21 = m.M23; var r22 = m.M22;
 
                     // Translation (Y-up): brushX=M14, brushY(height)=M34, brushZ(depth)=M24
                     var tx = m.M14 + cellOffsetX;
@@ -883,12 +894,16 @@ public class ExportMesh : ICommand
 
                         var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath);
                         if (triangles == null || triangles.Count == 0)
+                        {
+                            var exists = ClientFileManager.FileExists(modelPath);
+                            Logger.Warn($"[ExportMesh] visarea brush: MakeModel returned empty for '{modelPath}' (exists in pak: {exists})");
                             continue;
+                        }
 
                         var m = brush.Matrix3X4;
-                        var r00 = m.M11; var r01 = m.M31; var r02 = m.M21;
-                        var r10 = m.M13; var r11 = m.M33; var r12 = m.M23;
-                        var r20 = m.M12; var r21 = m.M32; var r22 = m.M22;
+                        var r00 = m.M11; var r01 = m.M13; var r02 = m.M12;
+                        var r10 = m.M31; var r11 = m.M33; var r12 = m.M32;
+                        var r20 = m.M21; var r21 = m.M23; var r22 = m.M22;
 
                         var tx = m.M14 + cellOffsetX;
                         var ty = m.M34;

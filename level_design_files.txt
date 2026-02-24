@@ -1,0 +1,1 @@
+game/worlds/main_world/cells/014_022/client/statobjs.dat

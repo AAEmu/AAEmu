@@ -1290,7 +1290,7 @@ public class AAPak
     /// <returns>Returns true if the file was found</returns>
     public bool GetFileByName(string filename, out AAPakFileInfo fileInfo)
     {
-        var fn = ToPakSlashes(filename);
+        var fn = ToPakSlashes(filename).ToLowerInvariant();
         var found = pakFiles.TryGetValue(fn, out fileInfo);
         if (!found)
         {
@@ -1363,7 +1363,7 @@ public class AAPak
     /// <returns>Returns a SubStream of file within the pak</returns>
     public Stream ExportFileAsStreamCloned(string fileName)
     {
-        if (GetFileByName(fileName, out var file) == true)
+        if (GetFileByName(fileName, out var file))
         {
 #pragma warning disable CA2000 // Dispose objects before losing scope
             var fs = new FileStream(_gpFilePath, FileMode.Open, FileAccess.Read);
@@ -1371,7 +1371,7 @@ public class AAPak
             if (fs.Length > 0)
                 return new SubStream(fs, file.offset, file.size);
         }
-        return new MemoryStream();
+        return null;
     }
 
     /// <summary>

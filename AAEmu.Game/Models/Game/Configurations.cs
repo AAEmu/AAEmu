@@ -97,7 +97,7 @@ public class WorldConfig
     /// Minimum rough size of brush objects to load. Objects smaller than this are skipped.
     /// Set to 0 to load all brushes.
     /// </summary>
-    public float LoadBrushMinimumSize { get; set; } = 15f;
+    public float LoadBrushMinimumSize { get; set; } = 3f;
 
     /// <summary>
     /// Maximum number of instances that can be created (includes system instances)

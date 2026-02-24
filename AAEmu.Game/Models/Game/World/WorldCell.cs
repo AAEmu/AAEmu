@@ -164,6 +164,12 @@ public class WorldCell
                     worldInstance.NavMesh?.QueueBuildTile(this);
             }
         }
+        else
+        {
+            // Another thread is loading this cell — wait for it to finish
+            while (Loading && !Loaded)
+                Thread.Sleep(50);
+        }
         return this;
     }
 
@@ -330,6 +336,14 @@ public class WorldCell
         // Extract brush bounding boxes (AABB index, fast pre-filter)
         if (LoadedObjectDat != null)
             ExtractBrushBounds(LoadedObjectDat);
+
+        // Diagnostic: log what was loaded for this cell
+        var statCount = StatObjsFiles?.MaterialList.Count ?? -1;
+        var matCount = MaterialListFiles?.MaterialsList.Count ?? -1;
+        var objCount = LoadedObjectDat?.PrefabsList.Count ?? -1;
+        var visCount = LoadedVisAreasDat?.PrefabsList.Count ?? -1;
+        if (objCount > 0)
+            Logger.Debug($"Cell ({CellX},{CellY}): objects={objCount}, statobjs={statCount}, materials={matCount}, visareas={visCount}");
 
     }
 

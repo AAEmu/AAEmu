@@ -89,6 +89,15 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
             var polygonArea = new PolygonArea(ZoneId);
             ReadDesignerPaths(polygonArea);
         }
+
+        if (DesignerPathsList.Count > 0)
+        {
+            var typeCounts = DesignerPathsList
+                .GroupBy(p => p.NavigationType)
+                .Select(g => $"{g.Key}={g.Count()}")
+                .ToArray();
+            Logger.Info($"BAI zone={ZoneId}: {DesignerPathsList.Count} DesignerPaths loaded — {string.Join(", ", typeCounts)}");
+        }
     }
 
     private void ReadDesignerPaths(PolygonArea polygonArea)
@@ -112,6 +121,7 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
         {
             DesignerPathsList.Add(polygonArea);
             UsedAreaNames.Add(polygonArea.Name);
+            Logger.Trace($"DesignerPath zone={ZoneId}: '{polygonArea.Name}' navType={polygonArea.NavigationType}({(int)polygonArea.NavigationType}) type={polygonArea.Type} height={polygonArea.Height:F1} points={polygonArea.Points.Count} lightLevel={polygonArea.AiLightLevel}");
         }
     }
 

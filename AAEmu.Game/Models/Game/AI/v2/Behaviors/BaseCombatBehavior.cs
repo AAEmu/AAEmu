@@ -143,113 +143,87 @@ public abstract class BaseCombatBehavior : Behavior
             }
             else
             {
-                // Check line of sight: is there a wall between NPC and target?
                 var npcPos = Ai.Owner.Transform.World.Position;
                 var targetPos = target.Transform.World.Position;
-                var wallBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
-                    .LinePassesThroughForbiddenArea(npcPos, targetPos) ?? false;
 
-                // Steep elevation = structure/stairs between NPC and target → need A*.
-                // Use slope check: gentle hills (low slope) are fine for straight-line,
-                // but stairs/walls (high slope) need pathfinding.
-                var heightDiff = MathF.Abs(targetPos.Z - npcPos.Z);
-                var dist2D = MathUtil.CalculateDistance(npcPos, targetPos, true);
-                var elevationBlocked = !Ai.Owner.CanFly && heightDiff > 3f && (dist2D < 1f || heightDiff / dist2D > 0.5f);
-                if (!wallBlocked && elevationBlocked)
-                    wallBlocked = true;
-
-                if (!wallBlocked)
+                // NavMesh Raycast checks if path crosses collision walls (brush meshes
+                // + forbidden area walls). Falls back to ForbiddenArea polygon check
+                // when NavMesh has no poly data near the NPC (tile not built yet, edge of map).
+                var navMesh = Ai.Owner.ParentWorld?.NavMesh;
+                bool pathClear;
+                if (navMesh?.HasData == true && navMesh.TryRaycast(npcPos, targetPos, out var raycastClear))
                 {
-                    // Clear path — straight line to target
+                    // NavMesh answered reliably — use its result
+                    pathClear = raycastClear;
+                }
+                else
+                {
+                    // No NavMesh or no poly near NPC — use ForbiddenArea fallback
+                    pathClear = !(Ai.Owner.ParentWorld?.Template?.GeoData?
+                        .LinePassesThroughForbiddenArea(npcPos, targetPos) ?? false);
+
+                    if (pathClear && !Ai.Owner.CanFly)
+                    {
+                        var heightDiff = MathF.Abs(targetPos.Z - npcPos.Z);
+                        var dist2D = MathUtil.CalculateDistance(npcPos, targetPos, true);
+                        if (heightDiff > 3f && (dist2D < 1f || heightDiff / dist2D > 0.5f))
+                            pathClear = false;
+                    }
+                }
+
+                if (pathClear)
+                {
+                    // Clear line of sight — no walls between NPC and target
                     Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
                     if (Ai.PathNode?.FoundPath?.Count > 0)
                         Ai.PathNode.FoundPath = [];
                 }
+                else if (Ai.PathNode != null)
+                {
+                    // Blocked by wall — use A* pathfinding to navigate around
+                    var targetMoved = (Ai.PathNode.EndPointPos - targetPos).Length() > 3f;
+                    var noPath = Ai.PathNode.FoundPath.Count == 0;
+                    var cooldownElapsed = DateTime.UtcNow > _lastPathRecalcTime.AddSeconds(2);
+
+                    if ((targetMoved || noPath) && cooldownElapsed)
+                    {
+                        var stopWatch = new Stopwatch();
+                        stopWatch.Start();
+                        Ai.Owner.FindPath((Unit)target);
+                        stopWatch.Stop();
+                        _lastPathRecalcTime = DateTime.UtcNow;
+                        if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
+                            Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
+                    }
+
+                    // Follow A* waypoints
+                    if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
+                    {
+                        var nextPathPoint = Ai.PathNode.FoundPath.Peek();
+                        var distToPoint = MathUtil.CalculateDistance(npcPos, nextPathPoint, true);
+                        if (distToPoint > 1.0f)
+                        {
+                            Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags);
+                        }
+                        else
+                        {
+                            Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
+                        }
+                    }
+                    else
+                    {
+                        // No A* path — target unreachable, return to spawn
+                        Ai.Owner.ClearAllAggro();
+                        Ai.GoToReturn();
+                        return;
+                    }
+                }
                 else
                 {
-                    // When blocked by elevation, skip the immediate check — the whole path
-                    // needs A* to find stairs/ramps. The immediate check only helps with
-                    // distant forbidden-area walls on otherwise flat terrain.
-                    var useAStar = elevationBlocked;
-
-                    if (!useAStar)
-                    {
-                        // Forbidden-area wall: check if the IMMEDIATE path is also blocked.
-                        // On ramps, the full line may clip distant forbidden areas, but the next
-                        // few meters are clear. In that case, prefer straight-line movement.
-                        var dirToTarget = Vector3.Normalize(targetPos - npcPos);
-                        var checkDist = MathF.Min(5f, (float)distanceToTarget);
-                        var shortTarget = npcPos + dirToTarget * checkDist;
-                        var immediateBlocked = Ai.Owner.ParentWorld?.Template?.GeoData?
-                            .LinePassesThroughForbiddenArea(npcPos, shortTarget) ?? false;
-
-                        if (!immediateBlocked)
-                        {
-                            // Immediate path is clear — wall is far ahead (ramp / distant obstacle)
-                            Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
-                            if (Ai.PathNode?.FoundPath?.Count > 0)
-                                Ai.PathNode.FoundPath = [];
-                        }
-                        else
-                        {
-                            useAStar = true;
-                        }
-                    }
-
-                    if (useAStar)
-                    {
-                        if (Ai.PathNode != null)
-                        {
-                            // Use A* to navigate around walls / up stairs
-                            var targetMoved = (Ai.PathNode.EndPointPos - targetPos).Length() > 3f;
-                            var noPath = Ai.PathNode.FoundPath.Count == 0;
-                            var cooldownElapsed = DateTime.UtcNow > _lastPathRecalcTime.AddSeconds(2);
-
-                            if ((targetMoved || noPath) && cooldownElapsed)
-                            {
-                                Ai.PathNode.FoundPath = [];
-                                var stopWatch = new Stopwatch();
-                                stopWatch.Start();
-                                Ai.Owner.FindPath((Unit)target);
-                                stopWatch.Stop();
-                                _lastPathRecalcTime = DateTime.UtcNow;
-                                if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
-                                    Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
-                                Ai.PathNode.EndPointPos = targetPos;
-                            }
-
-                            // Follow A* waypoints to completion — don't abandon mid-path
-                            if (Ai.PathNode.FoundPath.Count > 0 && !Ai.PathNode.FoundPath.Peek().Equals(Vector3.Zero))
-                            {
-                                var nextPathPoint = Ai.PathNode.FoundPath.Peek();
-                                var currentPos = Ai.Owner.Transform.World.Position;
-                                var distToPoint = MathUtil.CalculateDistance(currentPos, nextPathPoint, true);
-                                if (distToPoint > 1.0f)
-                                {
-                                    Ai.Owner.MoveTowards(nextPathPoint, (float)speed, moveFlags, followTerrain: false);
-                                }
-                                else
-                                {
-                                    Ai.PathNode.CurrentTargetPos = Ai.PathNode.FoundPath.Dequeue();
-                                }
-                            }
-                            else
-                            {
-                                // No A* path available — target is unreachable.
-                                // Give up combat and return to spawn instead of clipping through structures.
-                                Ai.Owner.ClearAllAggro();
-                                Ai.GoToReturn();
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            // No PathNode — target is unreachable, return to spawn.
-                            Ai.Owner.ClearAllAggro();
-                            Ai.GoToReturn();
-                            return;
-                        }
-                    }
+                    // No PathNode available — return to spawn
+                    Ai.Owner.ClearAllAggro();
+                    Ai.GoToReturn();
+                    return;
                 }
             }
         }
