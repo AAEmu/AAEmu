@@ -97,7 +97,15 @@ public class WorldConfig
     /// Minimum rough size of brush objects to load. Objects smaller than this are skipped.
     /// Set to 0 to load all brushes.
     /// </summary>
-    public float LoadBrushMinimumSize { get; set; } = 3f;
+    public float LoadBrushMinimumSize { get; set; } = 1f;
+
+    /// <summary>
+    /// Maximum number of triangles per brush model to add to the navmesh.
+    /// Models exceeding this are skipped to avoid bloating navmesh build time.
+    /// Physics proxy meshes (simplified collision) rarely exceed 500 triangles.
+    /// Set to 0 to disable the limit.
+    /// </summary>
+    public int LoadBrushMaxTriangles { get; set; } = 0;
 
     /// <summary>
     /// Maximum number of instances that can be created (includes system instances)
