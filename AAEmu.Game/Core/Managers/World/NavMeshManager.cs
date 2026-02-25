@@ -133,13 +133,23 @@ public class NavMeshManager
         // visareas.dat contains interior structural geometry (floors, stairs) not present in object.dat.
         // CryEngine portal volumes inside visareas.dat have 90° X-rotation (M33≈0) and are skipped
         // via the portalOrientation filter in AddBrushTriangles.
+        var objBrushCount = 0;
+        var visBrushCount = 0;
         if (AppConfiguration.Instance.World.LoadBrushModels && cell.LoadedObjectDat != null)
         {
-            HashSet<(int pathId, int matrixHash, int unused)> processedBrushes = [];
-            AddBrushTriangles(cell, cell.LoadedObjectDat.PrefabsList, verts, faces, processedBrushes);
-            if (cell.LoadedVisAreasDat != null)
-                AddBrushTriangles(cell, cell.LoadedVisAreasDat.PrefabsList, verts, faces, processedBrushes);
+            // Position-based dedup: quantize world position to 0.1m grid to catch
+            // float precision differences between object.dat and visareas.dat copies.
+            HashSet<(int pathId, int px, int py, int pz)> processedBrushes = [];
+            objBrushCount = AddBrushTriangles(cell, cell.LoadedObjectDat.PrefabsList, verts, faces, processedBrushes);
+            if (cell.LoadedVisAreasDat != null && AppConfiguration.Instance.World.LoadVisAreasBrushes)
+                visBrushCount = AddBrushTriangles(cell, cell.LoadedVisAreasDat.PrefabsList, verts, faces, processedBrushes);
         }
+
+        // Add voxel terrain mesh (Type 6) — carved caves, shaped cliffs, terrain modifications.
+        // Voxels contain embedded compressed mesh data that's already parsed by ObjectDataType6Voxel.
+        var voxelCount = 0;
+        if (cell.LoadedObjectDat != null)
+            voxelCount = AddVoxelTriangles(cell, cell.LoadedObjectDat.PrefabsList, verts, faces);
 
         // NOTE: ForbiddenAreas are NOT added as navmesh walls here.
         // They're handled by AiGeodataManager.LinePassesThroughForbiddenArea and
@@ -224,7 +234,8 @@ public class NavMeshManager
         Logger.Info($"NavMesh: Built cell ({cell.CellX},{cell.CellY}) — " +
                     $"{tilesBuilt}/{TilesPerCellSide * TilesPerCellSide} tiles, " +
                     $"{totalVerts} verts, {totalPolys} polys, " +
-                    $"{inputVertCount} input verts, {inputTriCount} input tris — " +
+                    $"{inputVertCount} input verts, {inputTriCount} input tris, " +
+                    $"brushes: obj={objBrushCount} vis={visBrushCount}, voxels={voxelCount} — " +
                     $"{sw.ElapsedMilliseconds}ms");
     }
 
@@ -370,16 +381,18 @@ public class NavMeshManager
     /// walkability via agent slope/height/climb parameters.
     /// Coordinates are in DotRecast Y-up: (gameX, gameZ_height, gameY).
     /// Uses processedBrushes set to skip duplicate brushes across object.dat and visareas.dat.
+    /// Returns the number of brushes actually added.
     /// </summary>
-    private static void AddBrushTriangles(WorldCell cell, IEnumerable<ObjectDataBase> prefabsList,
+    private static int AddBrushTriangles(WorldCell cell, IEnumerable<ObjectDataBase> prefabsList,
         List<float> verts, List<int> faces,
-        HashSet<(int pathId, int matrixHash, int unused)> processedBrushes)
+        HashSet<(int pathId, int px, int py, int pz)> processedBrushes)
     {
         if (cell.StatObjsFiles == null || cell.MaterialListFiles == null)
-            return;
+            return 0;
 
         var cellOffsetX = (float)(cell.CellX * WorldManager.CELL_SIZE);
         var cellOffsetY = (float)(cell.CellY * WorldManager.CELL_SIZE);
+        var brushCount = 0;
 
         foreach (var objectData in prefabsList)
         {
@@ -408,18 +421,14 @@ public class NavMeshManager
             if (modelPath == "game/objects/nodraw" || materialPath == "game/objects/nodraw")
                 continue;
 
-            // Deduplicate: full matrix hash to catch same brush in object.dat + visareas.dat
+            // Deduplicate by quantized world position (0.1m grid).
+            // Object.dat and visareas.dat may contain the same brush with tiny float
+            // precision differences in the matrix — exact hash would miss these duplicates.
             var m = brush.Matrix3X4;
-            var mHash = HashCode.Combine(
-                BitConverter.SingleToInt32Bits(m.M11), BitConverter.SingleToInt32Bits(m.M12),
-                BitConverter.SingleToInt32Bits(m.M13), BitConverter.SingleToInt32Bits(m.M14));
-            var mHash2 = HashCode.Combine(mHash,
-                BitConverter.SingleToInt32Bits(m.M21), BitConverter.SingleToInt32Bits(m.M22),
-                BitConverter.SingleToInt32Bits(m.M23), BitConverter.SingleToInt32Bits(m.M24));
-            var mHash3 = HashCode.Combine(mHash2,
-                BitConverter.SingleToInt32Bits(m.M31), BitConverter.SingleToInt32Bits(m.M32),
-                BitConverter.SingleToInt32Bits(m.M33), BitConverter.SingleToInt32Bits(m.M34));
-            if (!processedBrushes.Add((brush.PathId, mHash3, 0)))
+            var worldX = m.M14 + cellOffsetX;
+            var worldY = m.M24 + cellOffsetY;
+            var worldZ = m.M34;
+            if (!processedBrushes.Add((brush.PathId, (int)(worldX * 10f), (int)(worldY * 10f), (int)(worldZ * 10f))))
                 continue;
 
             // Load triangles (cached, in Jitter/DotRecast Y-up local model space)
@@ -471,7 +480,89 @@ public class NavMeshManager
                 faces.Add(idx + 1);
                 faces.Add(idx + 2);
             }
+
+            brushCount++;
         }
+
+        return brushCount;
+    }
+
+    /// <summary>
+    /// Extracts mesh triangles from Type 6 voxel objects (terrain modifications like caves, cliffs).
+    /// Voxels contain embedded compressed mesh data parsed by ObjectDataType6Voxel.
+    /// Transforms vertices by the voxel's Matrix3x4 + cell offset to DotRecast Y-up world coords.
+    /// Returns the number of voxels actually added.
+    /// </summary>
+    private static int AddVoxelTriangles(WorldCell cell, IEnumerable<ObjectDataBase> prefabsList,
+        List<float> verts, List<int> faces)
+    {
+        var cellOffsetX = (float)(cell.CellX * WorldManager.CELL_SIZE);
+        var cellOffsetY = (float)(cell.CellY * WorldManager.CELL_SIZE);
+        var voxelCount = 0;
+
+        foreach (var objectData in prefabsList)
+        {
+            if (objectData is not ObjectDataType6Voxel voxel)
+                continue;
+
+            // Parse the compressed mesh data (decompresses zlib, reads vertices + indices)
+            if (!voxel.Parse())
+                continue;
+
+            var reader = voxel.MeshReader;
+            if (reader == null || reader.Vertices.Count < 3 || reader.Indices.Count < 3)
+                continue;
+
+            // Build rotation matrix: same coordinate swap as brushes.
+            // CryEngine Z-up → DotRecast Y-up, vertices may be in model-local Z-up space.
+            var m = voxel.Matrix3X4;
+            var r00 = m.M11; var r01 = m.M13; var r02 = m.M12;
+            var r10 = m.M31; var r11 = m.M33; var r12 = m.M32;
+            var r20 = m.M21; var r21 = m.M23; var r22 = m.M22;
+
+            var tx = m.M14 + cellOffsetX;
+            var ty = m.M34;
+            var tz = m.M24 + cellOffsetY;
+
+            // Voxel vertices are Vector3 — treat same as brush JVector (model-local, Y↔Z swapped)
+            for (var i = 0; i + 2 < reader.Indices.Count; i += 3)
+            {
+                var i0 = reader.Indices[i];
+                var i1 = reader.Indices[i + 1];
+                var i2 = reader.Indices[i + 2];
+
+                if (i0 >= reader.Vertices.Count || i1 >= reader.Vertices.Count || i2 >= reader.Vertices.Count)
+                    continue;
+
+                var v0 = reader.Vertices[i0];
+                var v1 = reader.Vertices[i1];
+                var v2 = reader.Vertices[i2];
+
+                // Transform: world = rotation * local + translation
+                // Local vertices: v.X=lx, v.Y=lz(height), v.Z=ly (Y↔Z swapped like brush models)
+                var wx0 = r00 * v0.X + r01 * v0.Y + r02 * v0.Z + tx;
+                var wy0 = r10 * v0.X + r11 * v0.Y + r12 * v0.Z + ty;
+                var wz0 = r20 * v0.X + r21 * v0.Y + r22 * v0.Z + tz;
+                var wx1 = r00 * v1.X + r01 * v1.Y + r02 * v1.Z + tx;
+                var wy1 = r10 * v1.X + r11 * v1.Y + r12 * v1.Z + ty;
+                var wz1 = r20 * v1.X + r21 * v1.Y + r22 * v1.Z + tz;
+                var wx2 = r00 * v2.X + r01 * v2.Y + r02 * v2.Z + tx;
+                var wy2 = r10 * v2.X + r11 * v2.Y + r12 * v2.Z + ty;
+                var wz2 = r20 * v2.X + r21 * v2.Y + r22 * v2.Z + tz;
+
+                var idx = verts.Count / 3;
+                verts.Add(wx0); verts.Add(wy0); verts.Add(wz0);
+                verts.Add(wx1); verts.Add(wy1); verts.Add(wz1);
+                verts.Add(wx2); verts.Add(wy2); verts.Add(wz2);
+                faces.Add(idx);
+                faces.Add(idx + 1);
+                faces.Add(idx + 2);
+            }
+
+            voxelCount++;
+        }
+
+        return voxelCount;
     }
 
     /// <summary>
@@ -564,12 +655,14 @@ public class NavMeshManager
     /// <param name="y">Game world Y</param>
     /// <param name="z">Game world Z (height)</param>
     /// <summary>
-    /// Maximum vertical distance between query Z and result Z.
-    /// With brush collision meshes creating multiple floors, a large extent would
-    /// snap to the wrong floor. 10m is enough to find the current floor surface
-    /// while avoiding cross-floor snapping.
+    /// Maximum vertical distance between query Z and result Z for GetHeight.
+    /// NPCs are always within ~1m of their surface (Z is corrected every move step),
+    /// so 2m is sufficient to find the surface below without accidentally snapping
+    /// to a higher floor (e.g. 2nd floor 3-5m above the current position).
+    /// A larger value (e.g. 10m) caused NPCs to snap to the wrong floor in
+    /// multi-level buildings and fly over staircases.
     /// </summary>
-    private const float VerticalSearchExtent = 10.0f;
+    private const float VerticalSearchExtent = 2.0f;
 
     public float GetHeight(float x, float y, float z)
     {
@@ -586,8 +679,25 @@ public class NavMeshManager
             if (status.Failed() || nearestRef == 0)
                 return 0f;
 
-            // nearestPt.Y is height in DotRecast Y-up = game Z
-            return nearestPt.Y;
+            // Prefer GetPolyHeight: interpolates from detail mesh vertices at the exact XZ
+            // position, which is more accurate than nearestPt.Y (quantized poly mesh).
+            // Falls back to nearestPt.Y if the query point is outside the polygon boundary.
+            float returnZ;
+            if (_navQuery.GetPolyHeight(nearestRef, new RcVec3f(pos.X, nearestPt.Y, pos.Z), out var exactH).Succeeded()
+                && exactH > 0f)
+                returnZ = exactH;
+            else
+                returnZ = nearestPt.Y;
+
+            // Reject surfaces more than AgentMaxClimb (1m) above the query Z.
+            // Stair treads rise ~0.3m per step; 1m allows any single climbable step.
+            // This prevents an NPC on the ground floor from being snapped up to a
+            // higher floor (e.g. during combat when the player is on a platform above).
+            // Downward snapping is unrestricted — allows detecting ground below.
+            if (returnZ > pos.Y + AgentMaxClimb)
+                return 0f;
+
+            return returnZ;
         }
     }
 

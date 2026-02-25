@@ -262,13 +262,13 @@ public class WorldCell
     public float GetHeightMapDataInCell(int heightMapDataX, int heightMapDataY)
     {
         if (HeightMap == null ||
-            heightMapDataX < 0 || heightMapDataX > WorldManager.CELL_HMAP_RESOLUTION ||
-            heightMapDataY < 0 || heightMapDataY > WorldManager.CELL_HMAP_RESOLUTION)
+            heightMapDataX < 0 || heightMapDataX >= WorldManager.CELL_HMAP_RESOLUTION ||
+            heightMapDataY < 0 || heightMapDataY >= WorldManager.CELL_HMAP_RESOLUTION)
         {
             return 0f; // out of bounds or not loaded
         }
 
-        return (float)(HeightMap[heightMapDataX, heightMapDataX] / Template.HeightMaxCoefficient);
+        return (float)(HeightMap[heightMapDataX, heightMapDataY] / Template.HeightMaxCoefficient);
     }
 
     /// <summary>

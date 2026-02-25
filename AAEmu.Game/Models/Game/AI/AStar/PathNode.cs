@@ -294,9 +294,11 @@ public class PathNode
             if (linkDescriptor.TargetNodeDescriptor == null)
                 continue;
 
-            // Skip forbidden zones
-            if (world.Template.GeoData.CheckImpossibleWalk(linkDescriptor.TargetNodeDescriptor.Pos))
-                continue;
+            // NOTE: ForbiddenArea checks disabled — the navmesh already encodes walkable
+            // geometry correctly. ForbiddenArea polygons from BAI often cover building
+            // interiors where NPCs SHOULD navigate (staircases, corridors).
+            // if (world.Template.GeoData.CheckImpossibleWalk(linkDescriptor.TargetNodeDescriptor.Pos))
+            //     continue;
 
             var edgeLength = (linkDescriptor.SourceNodeDescriptor.Pos - linkDescriptor.TargetNodeDescriptor.Pos).Length();
             var neighbourNode = new PathNode

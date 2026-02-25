@@ -100,10 +100,12 @@ public class ReturnStateBehavior : BaseCombatBehavior
             }
             else
             {
-                pathClear = !(Ai.Owner.ParentWorld?.Template?.GeoData?
-                    .LinePassesThroughForbiddenArea(currentPos, Ai.IdlePosition) ?? false);
+                // ForbiddenArea fallback disabled — navmesh is the authoritative source.
+                // ForbiddenArea polygons often cover building interiors (including staircases),
+                // causing NPCs to unnecessarily trigger full pathfinding or abort returns.
+                pathClear = true;
 
-                if (pathClear && !Ai.Owner.CanFly)
+                if (!Ai.Owner.CanFly)
                 {
                     var heightDiff = MathF.Abs(Ai.IdlePosition.Z - currentPos.Z);
                     if (heightDiff > 3f && (distanceToIdle < 1f || heightDiff / distanceToIdle > 0.5f))

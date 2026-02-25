@@ -1377,12 +1377,21 @@ public partial class Npc : Unit
         Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
         var (rx, ry, rz) = Transform.Local.ToRollPitchYawSBytesMovement();
 
+        // VelZ: proportional to terrain slope so client interpolates height between ticks.
+        // Without this, client assumes flat movement → NPC floats on uphill / clips on downhill.
+        var xyDist = MathF.Sqrt(
+            (newX - oldPosition.X) * (newX - oldPosition.X) +
+            (newY - oldPosition.Y) * (newY - oldPosition.Y));
+        short velZValue = 0;
+        if (xyDist > 0.01f)
+            velZValue = (short)Math.Clamp((newZ - oldPosition.Z) / xyDist * 4000f, -4000, 4000);
+
         moveType.X = Transform.Local.Position.X;
         moveType.Y = Transform.Local.Position.Y;
         moveType.Z = Transform.Local.Position.Z;
         moveType.VelX = (short)velX;
         moveType.VelY = (short)velY;
-        //moveType.VelZ = (short)velZ;
+        moveType.VelZ = velZValue;
         moveType.RotationX = rx;
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
@@ -1405,8 +1414,20 @@ public partial class Npc : Unit
 
     public void LookTowards(Vector3 other, byte flags = 4)
     {
-        // Don't recalculate Z here — only rotation changes, position stays the same.
-        // Z is managed by: spawner (initial), MoveTowards (during movement), NpcGravity (every tick).
+        var oldPosition = Transform.Local.ClonePosition();
+        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        if (!CanFly)
+        {
+            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
+            if (terrainZ > 0f && refZ < terrainZ)
+                refZ = terrainZ;
+        }
+
+        if (refZ > 0f)
+            oldPosition.Z = refZ;
+
+        Transform.Local.SetPosition(oldPosition);
+
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
         var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
@@ -1436,14 +1457,27 @@ public partial class Npc : Unit
         moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
+        CheckMovedPosition(oldPosition);
+        //SetPosition(Position);
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
 
     public void StopMovement()
     {
-        // Don't recalculate Z here — the NPC's current position is authoritative.
-        // Z is managed by: spawner (initial), MoveTowards (during movement), NpcGravity (every tick).
-        // Recalculating Z when stopping would pull building-floor NPCs to terrain height.
+        var oldPosition = Transform.Local.ClonePosition();
+        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        if (!CanFly)
+        {
+            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
+            if (terrainZ > 0f && refZ < terrainZ)
+                refZ = terrainZ;
+        }
+
+        if (refZ > 0f)
+            oldPosition.Z = refZ;
+
+        Transform.Local.SetPosition(oldPosition);
+
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
         moveType.X = Transform.Local.Position.X;
         moveType.Y = Transform.Local.Position.Y;
