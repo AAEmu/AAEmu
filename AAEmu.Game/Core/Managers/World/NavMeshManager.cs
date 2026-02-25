@@ -3,6 +3,7 @@ using System.Numerics;
 
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.CryEngine;
+using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Objects;
 using AAEmu.Game.Models.Game.World;
 
@@ -20,8 +21,8 @@ namespace AAEmu.Game.Core.Managers.World;
 
 /// <summary>
 /// Per-WorldInstance navmesh manager. Builds DotRecast navmesh tiles from
-/// heightmap + brush collision mesh data, provides instant height queries and
-/// A* pathfinding over the navmesh surface.
+/// BAI type 2 terrain topology + brush collision mesh data, provides instant
+/// height queries and A* pathfinding over the navmesh surface.
 /// </summary>
 public class NavMeshManager
 {
@@ -43,7 +44,7 @@ public class NavMeshManager
     private const float AgentHeight = 2.0f;
     private const float AgentRadius = 0.5f;
     private const float AgentMaxClimb = 1.0f;
-    private const float AgentMaxSlope = 50.0f;
+    private const float AgentMaxSlope = 75.0f;  // raised from 50° — stairs/ramps in ArcheAge often exceed 50°
     private const int NavTileSize = 512;             // voxels per tile edge (512 * 0.5 = 256m per tile)
     private const int MaxTiles = 4096;               // max tiles (16 tiles/cell × ~250 cells)
     private const int MaxPolysPerTile = 65535;
@@ -112,42 +113,39 @@ public class NavMeshManager
     }
 
     /// <summary>
-    /// Builds navmesh tiles from a cell's heightmap + brush collision meshes.
+    /// Builds navmesh tiles from a cell's BAI type 2 terrain + brush collision meshes.
     /// Each 1024m game cell produces 4x4 = 16 navmesh tiles (256m each).
-    /// Brush meshes provide building/stair/ramp geometry; multi-floor Z issues
-    /// are handled by the GetHeight priority chain (7 sources) rather than navmesh alone.
+    /// BAI type 2 provides authored terrain topology; brush meshes provide full
+    /// building geometry (floors, stairs, walls). DotRecast determines walkability
+    /// via agent slope/height/climb parameters.
     /// </summary>
     private void BuildTileFromCell(WorldCell cell)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
-        // 1. Collect ALL geometry for this cell (heightmap + brushes)
+        // 1. Collect ALL geometry for this cell (BAI terrain + brushes)
         var verts = new List<float>();
         var faces = new List<int>();
 
-        AddHeightmapTriangles(cell, verts, faces);
+        AddBaiType2Triangles(cell, verts, faces);
 
-        // Add brush collision walls (vertical faces only — floors/roofs/stairs filtered out)
-        // Track processed brush positions to avoid duplicates between object.dat and visareas.dat
-        HashSet<(int pathId, int txBits, int tzBits)> processedBrushes = null;
+        // Add brush collision triangles from object.dat + visareas.dat.
+        // visareas.dat contains interior structural geometry (floors, stairs) not present in object.dat.
+        // CryEngine portal volumes inside visareas.dat have 90° X-rotation (M33≈0) and are skipped
+        // via the portalOrientation filter in AddBrushTriangles.
         if (AppConfiguration.Instance.World.LoadBrushModels && cell.LoadedObjectDat != null)
         {
-            processedBrushes = [];
+            HashSet<(int pathId, int matrixHash, int unused)> processedBrushes = [];
             AddBrushTriangles(cell, cell.LoadedObjectDat.PrefabsList, verts, faces, processedBrushes);
+            if (cell.LoadedVisAreasDat != null)
+                AddBrushTriangles(cell, cell.LoadedVisAreasDat.PrefabsList, verts, faces, processedBrushes);
         }
 
-        // Add indoor/visarea brush collision meshes (building interiors), skipping duplicates
-        if (AppConfiguration.Instance.World.LoadBrushModels && cell.LoadedVisAreasDat != null)
-        {
-            processedBrushes ??= [];
-            AddBrushTriangles(cell, cell.LoadedVisAreasDat.PrefabsList, verts, faces, processedBrushes);
-        }
-
-        // Add forbidden areas as tall walls — NPCs cannot enter these zones
-        if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            AddForbiddenAreaWalls(cell, verts, faces);
-        }
+        // NOTE: ForbiddenAreas are NOT added as navmesh walls here.
+        // They're handled by AiGeodataManager.LinePassesThroughForbiddenArea and
+        // CheckImpossibleWalk in the BAI A* system. Adding them as physical walls
+        // caused 20m barriers to block staircase geometry that was correctly built
+        // from brush collision meshes.
 
         if (verts.Count == 0)
         {
@@ -181,7 +179,7 @@ public class NavMeshManager
             AgentHeight,        // agentHeight
             AgentRadius,        // agentRadius
             AgentMaxClimb,      // agentMaxClimb
-            8,                  // regionMinSize
+            2,                  // regionMinSize — lowered from 8: stair treads are small regions (~2-4 cells)
             20,                 // regionMergeSize
             12.0f,              // edgeMaxLen
             1.3f,               // edgeMaxError
@@ -189,7 +187,9 @@ public class NavMeshManager
             6.0f,               // detailSampleDist
             1.0f,               // detailSampleMaxError
             true,               // filterLowHangingObstacles
-            true,               // filterLedgeSpans
+            false,              // filterLedgeSpans — disabled: stair treads have adjacent drops (outer edge) and
+                                //   would be filtered as "ledges". Building floors/stairs need this off so elevated
+                                //   surfaces with drop-offs remain walkable. Outdoor cliff edges are acceptable.
             true,               // filterWalkableLowHeightSpans
             walkableAreaMod,    // walkableAreaMod
             true                // buildMeshDetail
@@ -302,66 +302,63 @@ public class NavMeshManager
     }
 
     /// <summary>
-    /// Generates terrain triangles from the cell's heightmap.
+    /// Extracts BAI type 2 (terrain topology) triangles from the cell's BAI data.
+    /// These are authored navmesh triangles from CryEngine that represent the walkable
+    /// terrain surface, replacing the raw heightmap grid.
     /// Coordinates are in DotRecast Y-up: (gameX, gameZ_height, gameY).
     /// </summary>
-    private static void AddHeightmapTriangles(WorldCell cell, List<float> verts, List<int> faces)
+    private static void AddBaiType2Triangles(WorldCell cell, List<float> verts, List<int> faces)
     {
-        if (cell.HeightMap == null)
-            return;
+        // Deduplicate BAI loaders — zone-mode assigns the same loader to all 16 positions
+        var visitedLoaders = new HashSet<BaseBaiLoader>();
 
-        var cellWorldX = (float)(cell.CellX * WorldManager.CELL_SIZE);
-        var cellWorldY = (float)(cell.CellY * WorldManager.CELL_SIZE);
-        var coeff = cell.Template.HeightMaxCoefficient;
-
-        // HeightMap is 512x512, each sample covers 2m x 2m
-        // Generate a triangle grid with stride of 2 samples (4m) for detail
-        // This gives 256x256 = 65K quads = 131K triangles per cell
-        const int stride = 2; // sample stride (2 samples = 4m)
-        const int resolution = WorldManager.CELL_HMAP_RESOLUTION; // 512
-
-        // Pre-compute vertex grid
-        var gridW = resolution / stride + 1;
-        var gridH = resolution / stride + 1;
-        var baseVertIndex = verts.Count / 3;
-
-        for (var gy = 0; gy < gridH; gy++)
+        for (var by = 0; by < 4; by++)
         {
-            var sy = Math.Min(gy * stride, resolution - 1);
-            var worldY = cellWorldY + sy * 2f;
-
-            for (var gx = 0; gx < gridW; gx++)
+            for (var bx = 0; bx < 4; bx++)
             {
-                var sx = Math.Min(gx * stride, resolution - 1);
-                var worldX = cellWorldX + sx * 2f;
-                var height = (float)(cell.HeightMap[sx, sy] / coeff);
+                var baiLoader = cell.BaiLoader[bx, by];
+                if (baiLoader == null || !visitedLoaders.Add(baiLoader))
+                    continue;
 
-                // DotRecast Y-up: (gameX, height, gameY)
-                verts.Add(worldX);
-                verts.Add(height);
-                verts.Add(worldY);
-            }
-        }
+                foreach (var netMission in baiLoader.NetMissionReaders)
+                {
+                    // Find matching VertexMission for vertex data (paired by ZoneId)
+                    var vertexMission = baiLoader.VertexMissionReaders
+                        .FirstOrDefault(v => v.ZoneId == netMission.ZoneId);
 
-        // Generate triangle indices
-        for (var gy = 0; gy < gridH - 1; gy++)
-        {
-            for (var gx = 0; gx < gridW - 1; gx++)
-            {
-                var i00 = baseVertIndex + gy * gridW + gx;
-                var i10 = i00 + 1;
-                var i01 = i00 + gridW;
-                var i11 = i01 + 1;
+                    if (vertexMission == null || vertexMission.ObstacleDataDescriptorList.Count == 0)
+                        continue;
 
-                // Triangle 1: (00, 10, 01)
-                faces.Add(i00);
-                faces.Add(i10);
-                faces.Add(i01);
+                    var obstacles = vertexMission.ObstacleDataDescriptorList;
 
-                // Triangle 2: (10, 11, 01)
-                faces.Add(i10);
-                faces.Add(i11);
-                faces.Add(i01);
+                    foreach (var (_, node) in netMission.NodeDescriptorList)
+                    {
+                        // Only type 2 = terrain/topology walkable surface
+                        if (node.Type != 2)
+                            continue;
+
+                        // Validate obstacle indices
+                        if (node.Obstacle.Length < 3 ||
+                            node.Obstacle[0] < 0 || node.Obstacle[0] >= obstacles.Count ||
+                            node.Obstacle[1] < 0 || node.Obstacle[1] >= obstacles.Count ||
+                            node.Obstacle[2] < 0 || node.Obstacle[2] >= obstacles.Count)
+                            continue;
+
+                        // Get triangle vertices (already in world coordinates — ReaderPointOffset pre-applied)
+                        var v0 = obstacles[node.Obstacle[0]].Pos;
+                        var v1 = obstacles[node.Obstacle[1]].Pos;
+                        var v2 = obstacles[node.Obstacle[2]].Pos;
+
+                        // Game (X, Y, Z) → DotRecast Y-up (X, Z_height, Y)
+                        var idx = verts.Count / 3;
+                        verts.Add(v0.X); verts.Add(v0.Z); verts.Add(v0.Y);
+                        verts.Add(v1.X); verts.Add(v1.Z); verts.Add(v1.Y);
+                        verts.Add(v2.X); verts.Add(v2.Z); verts.Add(v2.Y);
+                        faces.Add(idx);
+                        faces.Add(idx + 1);
+                        faces.Add(idx + 2);
+                    }
+                }
             }
         }
     }
@@ -369,12 +366,14 @@ public class NavMeshManager
     /// <summary>
     /// Extracts collision triangles from brushes in a prefabs list,
     /// transforms them to world coordinates, and adds to the vertex/face lists.
+    /// ALL faces are included (floors, stairs, walls) — DotRecast determines
+    /// walkability via agent slope/height/climb parameters.
     /// Coordinates are in DotRecast Y-up: (gameX, gameZ_height, gameY).
     /// Uses processedBrushes set to skip duplicate brushes across object.dat and visareas.dat.
     /// </summary>
     private static void AddBrushTriangles(WorldCell cell, IEnumerable<ObjectDataBase> prefabsList,
         List<float> verts, List<int> faces,
-        HashSet<(int pathId, int txBits, int tzBits)> processedBrushes)
+        HashSet<(int pathId, int matrixHash, int unused)> processedBrushes)
     {
         if (cell.StatObjsFiles == null || cell.MaterialListFiles == null)
             return;
@@ -392,6 +391,11 @@ public class NavMeshManager
             if (roughSize < AppConfiguration.Instance.World.LoadBrushMinimumSize)
                 continue;
 
+            // Skip CryEngine portal/occlusion volumes: their M33≈0 means the object's local Z-axis
+            // is nearly horizontal — these are flat portal quads, not walkable geometry.
+            if (Math.Abs(brush.Matrix3X4.M33) < 0.1f)
+                continue;
+
             // Resolve paths
             if (brush.PathId < 0 || brush.PathId >= cell.StatObjsFiles.MaterialList.Count)
                 continue;
@@ -404,22 +408,38 @@ public class NavMeshManager
             if (modelPath == "game/objects/nodraw" || materialPath == "game/objects/nodraw")
                 continue;
 
-            // Deduplicate: same model at same world position = same brush
-            var txBits = BitConverter.SingleToInt32Bits(brush.Matrix3X4.M14);
-            var tzBits = BitConverter.SingleToInt32Bits(brush.Matrix3X4.M24);
-            if (!processedBrushes.Add((brush.PathId, txBits, tzBits)))
+            // Deduplicate: full matrix hash to catch same brush in object.dat + visareas.dat
+            var m = brush.Matrix3X4;
+            var mHash = HashCode.Combine(
+                BitConverter.SingleToInt32Bits(m.M11), BitConverter.SingleToInt32Bits(m.M12),
+                BitConverter.SingleToInt32Bits(m.M13), BitConverter.SingleToInt32Bits(m.M14));
+            var mHash2 = HashCode.Combine(mHash,
+                BitConverter.SingleToInt32Bits(m.M21), BitConverter.SingleToInt32Bits(m.M22),
+                BitConverter.SingleToInt32Bits(m.M23), BitConverter.SingleToInt32Bits(m.M24));
+            var mHash3 = HashCode.Combine(mHash2,
+                BitConverter.SingleToInt32Bits(m.M31), BitConverter.SingleToInt32Bits(m.M32),
+                BitConverter.SingleToInt32Bits(m.M33), BitConverter.SingleToInt32Bits(m.M34));
+            if (!processedBrushes.Add((brush.PathId, mHash3, 0)))
                 continue;
 
             // Load triangles (cached, in Jitter/DotRecast Y-up local model space)
-            var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath);
+            var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath, out var usedPhysicsProxy);
             if (triangles == null || triangles.Count == 0)
                 continue;
+
+            // Only filter by triangle count for visual mesh fallbacks.
+            // Physics proxy geometry is intentional collision data — always include regardless of count.
+            var maxTris = AppConfiguration.Instance.World.LoadBrushMaxTriangles;
+            if (!usedPhysicsProxy && maxTris > 0 && triangles.Count > maxTris)
+            {
+                Logger.Trace($"[NavMesh] Skipping '{modelPath}' — visual mesh {triangles.Count} tris exceeds limit {maxTris}");
+                continue;
+            }
 
             // Build rotation matrix: CryEngine Z-up column-vector convention → DotRecast Y-up
             // CryEngine: wx = M11*lx + M12*ly + M13*lz, wy = M21*..., wz = M31*...
             // DotRecast: outX=wx, outY=wz(height), outZ=wy(depth)
             // Model vertices are Y↔Z swapped: v.X=lx, v.Y=lz, v.Z=ly
-            var m = brush.Matrix3X4;
             var r00 = m.M11; var r01 = m.M13; var r02 = m.M12;
             var r10 = m.M31; var r11 = m.M33; var r12 = m.M32;
             var r20 = m.M21; var r21 = m.M23; var r22 = m.M22;
@@ -442,19 +462,6 @@ public class NavMeshManager
                 var wx2 = r00 * tri.V2.X + r01 * tri.V2.Y + r02 * tri.V2.Z + tx;
                 var wy2 = r10 * tri.V2.X + r11 * tri.V2.Y + r12 * tri.V2.Z + ty;
                 var wz2 = r20 * tri.V2.X + r21 * tri.V2.Y + r22 * tri.V2.Z + tz;
-
-                // Face normal filter: keep only WALLS (steep faces), skip floors/roofs/stairs.
-                // In Y-up space, horizontal faces have |normalY| ≈ 1.
-                // Skip faces where normalY² > 50% of total normal length² (angle < 45° from horizontal).
-                // This keeps brush geometry as collision walls only — terrain heightmap is the walking surface.
-                var e1x = wx1 - wx0; var e1y = wy1 - wy0; var e1z = wz1 - wz0;
-                var e2x = wx2 - wx0; var e2y = wy2 - wy0; var e2z = wz2 - wz0;
-                var nx = e1y * e2z - e1z * e2y;
-                var ny = e1z * e2x - e1x * e2z;
-                var nz = e1x * e2y - e1y * e2x;
-                var nLenSq = nx * nx + ny * ny + nz * nz;
-                if (nLenSq > 0.001f && ny * ny / nLenSq > 0.5f)
-                    continue; // horizontal face (floor/roof/stair) — skip
 
                 var idx = verts.Count / 3;
                 verts.Add(wx0); verts.Add(wy0); verts.Add(wz0);

@@ -711,63 +711,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (world == null)
             return 0f;
 
-        // 1. Custom building floor zones (highest priority, manually mapped)
-        var customFloorZ = world.BuildingFloors?.GetFloorHeight(x, y, z) ?? 0f;
-        if (customFloorZ > 0f)
-        {
-            source = "BuildingFloor";
-            return customFloorZ;
-        }
-
-        // 2. GeoData navmesh — BAI mesh with Z-aware multi-layer selection.
-        //    Runs BEFORE NavMesh because it supports multiple height layers
-        //    (bridges, docks, platforms). NavMesh is terrain-only (single layer)
-        //    and would incorrectly snap elevated NPCs to ground level.
-        if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
-            if (geoDataZ > 0f)
-            {
-                source = "GeoData";
-                return geoDataZ;
-            }
-        }
-
-        // 3. BAI Type-4 interior floor nodes — elevated walkable surfaces that
-        //    may not have nearby GeoData nodes (sparse coverage areas).
-        if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            var type4Z = world.GeoData?.GetInteriorFloorHeight(new Vector3(x, y, z)) ?? 0f;
-            if (type4Z > 0f)
-            {
-                source = "Type4Floor";
-                return type4Z;
-            }
-        }
-
-        // 4. BAI NavModifier building floor zones — polygon-based building floors
-        //    from areasmission BAI data. Catches buildings the GeoData nodes miss.
-        if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            var buildingFloorZ = world.GeoData?.GetBuildingFloorHeight(new Vector3(x, y, z)) ?? 0f;
-            if (buildingFloorZ > 0f)
-            {
-                source = "BuildingFloorBAI";
-                return buildingFloorZ;
-            }
-        }
-
-        // 5. Brush bounding boxes — structural collision objects (walls, platforms, etc.)
-        //    AABB-based, less precise than BAI but covers areas without GeoData.
-        var brushFloorZ = world.GetBrushFloorHeight(x, y, z);
-        if (brushFloorZ > 0f)
-        {
-            source = "BrushFloor";
-            return brushFloorZ;
-        }
-
-        // 6. NavMesh query — terrain-only DotRecast navmesh (single layer).
-        //    Safe fallback for outdoor areas not covered by BAI GeoData.
+        // 1. NavMesh (brush meshes + terrain) — DotRecast navmesh, primary height source.
         var worldInstances = GetWorldsByTemplate(world.Id);
         if (worldInstances.Count > 0)
         {
@@ -779,7 +723,18 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
-        // 7. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
+        // 2. BAI Type-2 GeoData navmesh — fallback for areas where navmesh tiles aren't built yet.
+        if (AppConfiguration.Instance.World.GeoDataMode)
+        {
+            var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
+            if (geoDataZ > 0f)
+            {
+                source = "GeoData";
+                return geoDataZ;
+            }
+        }
+
+        // 3. HeightMap bilinear interpolation — terrain fallback.
         if (AppConfiguration.Instance.HeightMapsEnable)
         {
             try

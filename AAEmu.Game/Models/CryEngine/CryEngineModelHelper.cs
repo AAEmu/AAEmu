@@ -23,10 +23,25 @@ public static class CryEngineModelHelper
     public static ConcurrentDictionary<string, CgfConverter.CryEngine> CryEngineModels { get; } = [];
     public static ConcurrentDictionary<string, List<JTriangle>> CryEngineModelsTriangleListCache { get; } = [];
     public static ConcurrentBag<string> CryEngineModelsFailedPaths { get; } = [];
+    // Tracks whether each cached model's triangles came from a physics proxy (true) or visual mesh fallback (false).
+    private static readonly ConcurrentDictionary<string, bool> CryEngineModelsHasPhysicsProxy = new();
     // public static Dictionary<string, ImageTexture> CryEngineTextureCache { get; } = [];
     // private static object _textureCacheLock = new();
 
+    /// <summary>
+    /// Backward-compatible overload — does not expose whether physics proxy was used.
+    /// </summary>
     public static List<JTriangle> MakeModel(string modelFileName, string materialFile)
+        => MakeModel(modelFileName, materialFile, out _);
+
+    /// <summary>
+    /// Loads collision geometry for a CGF model.
+    /// <paramref name="usedPhysicsProxy"/> is true when geometry came from ChunkCompiledPhysicalProxies
+    /// (explicit simplified collision mesh) and false when the visual mesh fallback was used.
+    /// Callers should only apply triangle-count filters for visual mesh fallbacks — physics proxy
+    /// geometry represents intentional collision shapes regardless of triangle count.
+    /// </summary>
+    public static List<JTriangle> MakeModel(string modelFileName, string materialFile, out bool usedPhysicsProxy)
     {
         var key = modelFileName.Replace('\\', '/').ToLower();
         var inputFile = modelFileName.Replace('/', Path.DirectorySeparatorChar);
@@ -34,12 +49,14 @@ public static class CryEngineModelHelper
         // Stops failed models from trying to load multiple times.
         if (CryEngineModelsFailedPaths.Contains(key))
         {
+            usedPhysicsProxy = false;
             return [];
         }
 
         // Return directly from triangleList cache if possible
         if (CryEngineModelsTriangleListCache.TryGetValue(key, out var triangleList))
         {
+            usedPhysicsProxy = CryEngineModelsHasPhysicsProxy.GetValueOrDefault(key, false);
             return triangleList;
         }
 
@@ -49,6 +66,7 @@ public static class CryEngineModelHelper
             {
                 Logger.Warn($"MakeModel: file not found in pak: '{modelFileName}'");
                 CryEngineModelsFailedPaths.Add(key);
+                usedPhysicsProxy = false;
                 return [];
             }
 
@@ -70,15 +88,24 @@ public static class CryEngineModelHelper
             {
                 Logger.Warn($"MakeModel: exception loading '{modelFileName}': {ex.Message}");
                 CryEngineModelsFailedPaths.Add(key);
+                usedPhysicsProxy = false;
                 return [];
             }
         }
 
-        // Prefer physics proxy geometry (collision mesh used by the game client).
-        // Fall back to visual mesh if no physics proxies are available.
-        triangleList = CreateTriangleListFromPhysicsProxies(modelData);
-        if (triangleList.Count <= 0)
+        // Prefer physics proxy geometry (explicit collision mesh).
+        // Fall back to visual mesh (LOD0 only) for structural objects that have no physics proxy.
+        var physicsTriangles = CreateTriangleListFromPhysicsProxies(modelData);
+        if (physicsTriangles.Count > 0)
+        {
+            triangleList = physicsTriangles;
+            usedPhysicsProxy = true;
+        }
+        else
+        {
             triangleList = CreateTriangleListFromCryEngineData(modelData, out _);
+            usedPhysicsProxy = false;
+        }
 
         if (triangleList.Count <= 0)
         {
@@ -87,6 +114,7 @@ public static class CryEngineModelHelper
             Logger.Debug($"Failed to create triangle list for {inputFile} (models={modelCount}, nodes={nodeCount})");
             CryEngineModelsFailedPaths.Add(key);
         }
+        CryEngineModelsHasPhysicsProxy.TryAdd(key, usedPhysicsProxy);
         CryEngineModelsTriangleListCache.TryAdd(key, triangleList);
         return triangleList;
     }
@@ -152,6 +180,18 @@ public static class CryEngineModelHelper
                 break;
         }
 
+        // When no proxy is found, log chunk types so we can diagnose whether
+        // the proxy chunk exists but wasn't parsed, or simply doesn't exist.
+        if (triangleList.Count == 0 && (data.Models?.Count ?? 0) > 0)
+        {
+            var chunkTypes = data.Models
+                .SelectMany(m => m.ChunkMap.Values)
+                .Select(c => c.ChunkType.ToString())
+                .Distinct()
+                .OrderBy(t => t);
+            Logger.Debug($"[PhysProxy] No proxy found in '{data.InputFile}' — chunk types: [{string.Join(", ", chunkTypes)}]");
+        }
+
         return triangleList;
     }
 
@@ -176,9 +216,16 @@ public static class CryEngineModelHelper
 
         var triangleList = new List<JTriangle>();
 
-        // Add object to show in scene
+        // Only process nodes from the first model (the main .cgf).
+        // Additional models (.cgfm) are LOD variants — processing them causes duplicate geometry.
+        var primaryModel = (data.Models?.Count ?? 0) > 0 ? data.Models[0] : null;
+
         foreach (var node in data.NodeMap.Values)
         {
+            // Skip nodes from secondary models (LOD .cgfm files)
+            if (primaryModel != null && node._model != primaryModel)
+                continue;
+
             if (node.ObjectChunk == null)
             {
                 Logger.Warn($"Skipped node with missing Object {node.Name}");
@@ -371,56 +418,35 @@ public static class CryEngineModelHelper
 
                 // Now write out the faces info based on the MtlName
 
-                for (var j = meshSubset.FirstIndex; j < meshSubset.NumIndices + meshSubset.FirstIndex; j++)
+                // Skip this subset if we have no usable vertex data
+                if (tmpVertices == null)
+                    continue;
+
+                for (var j = meshSubset.FirstIndex; j + 2 < meshSubset.FirstIndex + meshSubset.NumIndices; j += 3)
                 {
-                    //f.WriteLine("f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}", // Vertices, UVs, Normals
-                    //	tmpIndices.Indices[j] + 1 + this.CurrentVertexPosition,
-                    //	tmpIndices.Indices[j + 1] + 1 + this.CurrentVertexPosition,
-                    //	tmpIndices.Indices[j + 2] + 1 + this.CurrentVertexPosition);
+                    if (j + 2 >= tmpIndices.Indices.Length)
+                        break;
 
-                    if (j >= tmpIndices.Indices.Length - 2)
-                        continue; // Not sure how to handle the out-of-bounds indices
-
-                    var i1 = tmpIndices.Indices[j] + currentVertexPosition;
-                    var i2 = tmpIndices.Indices[j + 1] + currentVertexPosition;
-                    var i3 = tmpIndices.Indices[j + 2] + currentVertexPosition;
-
-                    // Validate range
-                    if (i1 < 0 || i2 < 0 || i3 < 0)
-                        continue;
+                    // FIX: use local indices (no currentVertexPosition offset — that's a global
+                    // accumulator but tmpVertices.Vertices is per-node, so offset was wrong)
+                    var i1 = tmpIndices.Indices[j];
+                    var i2 = tmpIndices.Indices[j + 1];
+                    var i3 = tmpIndices.Indices[j + 2];
 
                     if (i1 >= tmpVertices.Vertices.Length || i2 >= tmpVertices.Vertices.Length ||
                         i3 >= tmpVertices.Vertices.Length)
                         continue;
 
-                    if (i1 >= tmpUVs.UVs.Length || i2 >= tmpUVs.UVs.Length || i3 >= tmpUVs.UVs.Length)
-                        continue;
+                    // Apply the node transform chain to convert from node-local space to model-root space.
+                    // ChunkNode translations are stored in cm in the file and already divided by 100
+                    // (VERTEX_SCALE = 1/100) when read, so transformSoFar is in meters — correct to apply.
+                    // Single-node models have a near-identity root transform so this is a no-op for them.
+                    var v1 = System.Numerics.Vector3.Transform(tmpVertices.Vertices[i1], transformSoFar);
+                    var v2 = System.Numerics.Vector3.Transform(tmpVertices.Vertices[i2], transformSoFar);
+                    var v3 = System.Numerics.Vector3.Transform(tmpVertices.Vertices[i3], transformSoFar);
 
-                    var v1 = tmpVertices.Vertices[i1];
-                    var v2 = tmpVertices.Vertices[i2];
-                    var v3 = tmpVertices.Vertices[i3];
-
-                    var uv1 = tmpUVs.UVs[tmpIndices.Indices[j] + currentVertexPosition];
-                    var uv2 = tmpUVs.UVs[tmpIndices.Indices[j + 1] + currentVertexPosition];
-                    var uv3 = tmpUVs.UVs[tmpIndices.Indices[j + 2] + currentVertexPosition];
-
-                    /*
-                    //st.SetColor(col);
-                    st.SetUV(new Vector2(uv1.U, uv1.V));
-                    st.AddVertex(new Vector3(v1.X, v1.Z, v1.Y));
-
-                    //st.SetColor(col);
-                    st.SetUV(new Vector2(uv2.U, uv2.V));
-                    st.AddVertex(new Vector3(v2.X, v2.Z, v2.Y));
-
-                    //st.SetColor(col);
-                    st.SetUV(new Vector2(uv3.U, uv3.V));
-                    st.AddVertex(new Vector3(v3.X, v3.Z, v3.Y));
-                    */
-                    
+                    // Convert CryEngine Z-up → Y-up (swap Y and Z)
                     tl.Add(new JTriangle(new JVector(v1.X, v1.Z, v1.Y), new JVector(v2.X, v2.Z, v2.Y), new JVector(v3.X, v3.Z, v3.Y)));
-
-                    j += 2;
                 }
 
                 tempVertexPosition +=
@@ -457,8 +483,12 @@ public static class CryEngineModelHelper
         }
         else
         {
-            // TODO: What should this be?
-            return node.Transform;
+            // Root node: return Identity — vertices in root-level mesh chunks are already
+            // in model-root space. Child nodes accumulate their transforms up to (but not
+            // including) the root's own transform, placing them in model-root space correctly.
+            // Applying the root's transform would introduce any unintended pivot offset that
+            // the model exporter left on the root node.
+            return Matrix4x4.Identity;
         }
     }
 }

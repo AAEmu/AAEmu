@@ -4,6 +4,7 @@ using System.Text;
 
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.CryEngine;
@@ -66,6 +67,7 @@ public class ExportMesh : ICommand
         var brushCount = ExportBrushBoxes(world, pos, radius, exportDir);
         var (forbiddenCount, designerCount) = ExportForbiddenAreas(world, pos, radius, exportDir);
         var (brushMeshCount, brushTriCount) = ExportBrushMeshes(world, pos, radius, exportDir);
+        var diagCount = ExportBrushDiagnostic(world, pos, radius, exportDir);
 
         Log(messageOutput, $"Export complete → {exportDir}");
         Log(messageOutput, $"  terrain.obj: {terrainVerts} vertices");
@@ -78,6 +80,7 @@ public class ExportMesh : ICommand
         Log(messageOutput, $"  brush_boxes.obj: {brushCount} brush AABB boxes");
         Log(messageOutput, $"  brush_meshes.obj: {brushMeshCount} brushes ({brushTriCount} triangles)");
         Log(messageOutput, $"  forbidden_areas.obj: {forbiddenCount} forbidden + {designerCount} designer areas");
+        Log(messageOutput, $"  brush_diagnostic.csv: {diagCount} brush instances (for duplicate analysis)");
     }
 
     private void Log(IMessageOutput messageOutput, string text)
@@ -764,6 +767,8 @@ public class ExportMesh : ICommand
         var totalTriangles = 0;
         var vertIndex = 0;
         var radiusSq = radius * radius;
+        // Track processed brushes to deduplicate identical instances within object.dat
+        var processedBrushes = new HashSet<(int pathId, int matrixHash)>();
 
         // Find cells that overlap the radius
         var minCellX = Math.Max(0, (int)((center.X - radius) / WorldManager.CELL_SIZE));
@@ -795,6 +800,10 @@ public class ExportMesh : ICommand
                     if (objectData is not ObjectDataType1Brush brush)
                         continue;
 
+                    // Skip portal/occlusion volumes: M33≈0 means local Z is nearly horizontal
+                    if (Math.Abs(brush.Matrix3X4.M33) < 0.1f)
+                        continue;
+
                     // Resolve paths
                     if (brush.PathId < 0 || brush.PathId >= cell.StatObjsFiles.MaterialList.Count)
                         continue;
@@ -807,6 +816,22 @@ public class ExportMesh : ICommand
                     if (modelPath == "game/objects/nodraw" || materialPath == "game/objects/nodraw")
                         continue;
 
+                    // Deduplicate: full matrix hash to catch same brush in object.dat + visareas.dat
+                    {
+                        var bm = brush.Matrix3X4;
+                        var h1 = HashCode.Combine(
+                            BitConverter.SingleToInt32Bits(bm.M11), BitConverter.SingleToInt32Bits(bm.M12),
+                            BitConverter.SingleToInt32Bits(bm.M13), BitConverter.SingleToInt32Bits(bm.M14));
+                        var h2 = HashCode.Combine(h1,
+                            BitConverter.SingleToInt32Bits(bm.M21), BitConverter.SingleToInt32Bits(bm.M22),
+                            BitConverter.SingleToInt32Bits(bm.M23), BitConverter.SingleToInt32Bits(bm.M24));
+                        var h3 = HashCode.Combine(h2,
+                            BitConverter.SingleToInt32Bits(bm.M31), BitConverter.SingleToInt32Bits(bm.M32),
+                            BitConverter.SingleToInt32Bits(bm.M33), BitConverter.SingleToInt32Bits(bm.M34));
+                        if (!processedBrushes.Add((brush.PathId, h3)))
+                            continue;
+                    }
+
                     // Check if brush center is within radius (using world-space position)
                     var brushWorldX = cellOffsetX + brush.Matrix3X4.M14;
                     var brushWorldY = cellOffsetY + brush.Matrix3X4.M24;
@@ -816,11 +841,19 @@ public class ExportMesh : ICommand
                         continue;
 
                     // Load collision triangles (cached, in Jitter Y-up local model space)
-                    var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath);
+                    var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath, out var usedPhysicsProxy);
                     if (triangles == null || triangles.Count == 0)
                     {
                         var exists = ClientFileManager.FileExists(modelPath);
                         Logger.Warn($"[ExportMesh] brush_meshes: MakeModel returned empty for '{modelPath}' (exists in pak: {exists})");
+                        continue;
+                    }
+
+                    // Only filter visual mesh fallbacks by triangle count — physics proxies always included.
+                    var maxTris = AppConfiguration.Instance.World.LoadBrushMaxTriangles;
+                    if (!usedPhysicsProxy && maxTris > 0 && triangles.Count > maxTris)
+                    {
+                        Logger.Warn($"[ExportMesh] SKIPPED visual mesh (>{maxTris} tris={triangles.Count}): {modelPath}");
                         continue;
                     }
 
@@ -866,12 +899,17 @@ public class ExportMesh : ICommand
                     brushCount++;
                 }
 
-                // Also export visareas brushes (indoor objects)
+                // Also export visareas brushes (interior floors, stairs not in object.dat).
+                // CryEngine portal volumes (M33≈0) are skipped — they are flat quads with 90° X-rotation.
                 if (cell.LoadedVisAreasDat != null)
                 {
                     foreach (var objectData in cell.LoadedVisAreasDat.PrefabsList)
                     {
                         if (objectData is not ObjectDataType1Brush brush)
+                            continue;
+
+                        // Skip portal/occlusion volumes: M33≈0 means local Z is nearly horizontal
+                        if (Math.Abs(brush.Matrix3X4.M33) < 0.1f)
                             continue;
 
                         if (brush.PathId < 0 || brush.PathId >= cell.StatObjsFiles.MaterialList.Count)
@@ -885,6 +923,22 @@ public class ExportMesh : ICommand
                         if (modelPath == "game/objects/nodraw" || materialPath == "game/objects/nodraw")
                             continue;
 
+                        // Deduplicate: skip if already exported from object.dat
+                        {
+                            var bm = brush.Matrix3X4;
+                            var h1 = HashCode.Combine(
+                                BitConverter.SingleToInt32Bits(bm.M11), BitConverter.SingleToInt32Bits(bm.M12),
+                                BitConverter.SingleToInt32Bits(bm.M13), BitConverter.SingleToInt32Bits(bm.M14));
+                            var h2 = HashCode.Combine(h1,
+                                BitConverter.SingleToInt32Bits(bm.M21), BitConverter.SingleToInt32Bits(bm.M22),
+                                BitConverter.SingleToInt32Bits(bm.M23), BitConverter.SingleToInt32Bits(bm.M24));
+                            var h3 = HashCode.Combine(h2,
+                                BitConverter.SingleToInt32Bits(bm.M31), BitConverter.SingleToInt32Bits(bm.M32),
+                                BitConverter.SingleToInt32Bits(bm.M33), BitConverter.SingleToInt32Bits(bm.M34));
+                            if (!processedBrushes.Add((brush.PathId, h3)))
+                                continue;
+                        }
+
                         var brushWorldX = cellOffsetX + brush.Matrix3X4.M14;
                         var brushWorldY = cellOffsetY + brush.Matrix3X4.M24;
                         var ddx = brushWorldX - center.X;
@@ -892,11 +946,15 @@ public class ExportMesh : ICommand
                         if (ddx * ddx + ddy * ddy > radiusSq)
                             continue;
 
-                        var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath);
+                        var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath, out var usedPhysicsProxyV);
                         if (triangles == null || triangles.Count == 0)
+                            continue;
+
+                        // Only filter visual mesh fallbacks
+                        var maxTrisV = AppConfiguration.Instance.World.LoadBrushMaxTriangles;
+                        if (!usedPhysicsProxyV && maxTrisV > 0 && triangles.Count > maxTrisV)
                         {
-                            var exists = ClientFileManager.FileExists(modelPath);
-                            Logger.Warn($"[ExportMesh] visarea brush: MakeModel returned empty for '{modelPath}' (exists in pak: {exists})");
+                            Logger.Warn($"[ExportMesh] SKIPPED visarea visual mesh (>{maxTrisV} tris={triangles.Count}): {modelPath}");
                             continue;
                         }
 
@@ -909,22 +967,17 @@ public class ExportMesh : ICommand
                         var ty = m.M34;
                         var tz = m.M24 + cellOffsetY;
 
-                        var roughSize = Vector3.Distance(brush.StartPos, brush.EndPos);
                         sb.AppendLine($"g visarea_brush_{brushCount}");
                         sb.AppendLine($"# model: {modelPath} (visarea)");
-                        sb.AppendLine($"# material: {materialPath}");
                         sb.AppendLine($"# world pos: ({brushWorldX:F1}, {brushWorldY:F1}, {brush.Matrix3X4.M34:F1})");
-                        sb.AppendLine($"# rough size: {roughSize:F1}");
 
                         var baseIdx = vertIndex + 1;
-
                         foreach (var tri in triangles)
                         {
                             WriteTransformedVertex(sb, tri.V0, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
                             WriteTransformedVertex(sb, tri.V1, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
                             WriteTransformedVertex(sb, tri.V2, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
                         }
-
                         for (var i = 0; i < triangles.Count; i++)
                         {
                             var fi = baseIdx + i * 3;
@@ -941,6 +994,81 @@ public class ExportMesh : ICommand
 
         File.WriteAllText(Path.Combine(exportDir, "brush_meshes.obj"), sb.ToString());
         return (brushCount, totalTriangles);
+    }
+
+    /// <summary>
+    /// Exports a CSV diagnostic of all brush instances within radius, showing source file,
+    /// model path, world position, matrix values, and rough size. Use this to identify
+    /// duplicate brushes within a single file or across object.dat / visareas.dat.
+    /// </summary>
+    private static int ExportBrushDiagnostic(WorldTemplate world, Vector3 center, float radius, string exportDir)
+    {
+        var csv = new StringBuilder(1024 * 1024);
+        csv.AppendLine("Source,CellX,CellY,PathId,ModelPath,WorldX,WorldY,WorldZ,RoughSize,M11,M12,M13,M14,M21,M22,M23,M24,M31,M32,M33,M34");
+
+        var count = 0;
+        var radiusSq = radius * radius;
+
+        var minCellX = Math.Max(0, (int)((center.X - radius) / WorldManager.CELL_SIZE));
+        var maxCellX = Math.Min(world.CellX - 1, (int)((center.X + radius) / WorldManager.CELL_SIZE));
+        var minCellY = Math.Max(0, (int)((center.Y - radius) / WorldManager.CELL_SIZE));
+        var maxCellY = Math.Min(world.CellY - 1, (int)((center.Y + radius) / WorldManager.CELL_SIZE));
+
+        for (var cellY = minCellY; cellY <= maxCellY; cellY++)
+        {
+            for (var cellX = minCellX; cellX <= maxCellX; cellX++)
+            {
+                var cell = world.GetCell(cellX, cellY);
+                if (cell == null) continue;
+                cell.VerifyCellLoaded();
+
+                if (cell.StatObjsFiles == null || cell.MaterialListFiles == null)
+                    continue;
+
+                var cellOffsetX = (float)(cellX * WorldManager.CELL_SIZE);
+                var cellOffsetY = (float)(cellY * WorldManager.CELL_SIZE);
+
+                void DumpBrushes(IEnumerable<ObjectDataBase> prefabs, string source)
+                {
+                    foreach (var obj in prefabs)
+                    {
+                        if (obj is not ObjectDataType1Brush brush)
+                            continue;
+                        if (brush.PathId < 0 || brush.PathId >= cell.StatObjsFiles.MaterialList.Count)
+                            continue;
+
+                        var modelPath = cell.StatObjsFiles.MaterialList[brush.PathId];
+                        var wx = cellOffsetX + brush.Matrix3X4.M14;
+                        var wy = cellOffsetY + brush.Matrix3X4.M24;
+                        var wz = brush.Matrix3X4.M34;
+
+                        var ddx = wx - center.X;
+                        var ddy = wy - center.Y;
+                        if (ddx * ddx + ddy * ddy > radiusSq)
+                            continue;
+
+                        var roughSize = Vector3.Distance(brush.StartPos, brush.EndPos);
+                        var m = brush.Matrix3X4;
+                        csv.AppendLine(string.Join(",",
+                            source, cellX, cellY, brush.PathId,
+                            $"\"{modelPath}\"",
+                            $"{wx:F2}", $"{wy:F2}", $"{wz:F2}", $"{roughSize:F2}",
+                            $"{m.M11:F4}", $"{m.M12:F4}", $"{m.M13:F4}", $"{m.M14:F4}",
+                            $"{m.M21:F4}", $"{m.M22:F4}", $"{m.M23:F4}", $"{m.M24:F4}",
+                            $"{m.M31:F4}", $"{m.M32:F4}", $"{m.M33:F4}", $"{m.M34:F4}"));
+                        count++;
+                    }
+                }
+
+                if (cell.LoadedObjectDat != null)
+                    DumpBrushes(cell.LoadedObjectDat.PrefabsList, "object.dat");
+                if (cell.LoadedVisAreasDat != null)
+                    DumpBrushes(cell.LoadedVisAreasDat.PrefabsList, "visareas.dat");
+            }
+        }
+
+        File.WriteAllText(Path.Combine(exportDir, "brush_diagnostic.csv"), csv.ToString());
+        return count;
     }
 
     /// <summary>
