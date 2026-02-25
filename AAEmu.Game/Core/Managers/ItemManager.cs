@@ -97,6 +97,11 @@ public class ItemManager : Singleton<ItemManager>
         return _grades.GetValueOrDefault(grade);
     }
 
+    public IReadOnlyDictionary<int, GradeTemplate> GetAllGradeTemplates()
+    {
+        return _grades;
+    }
+
     public Holdable GetHoldable(uint id)
     {
         return _holdables.GetValueOrDefault(id);

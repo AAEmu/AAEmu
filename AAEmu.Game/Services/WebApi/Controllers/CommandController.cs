@@ -31,16 +31,28 @@ internal class CommandController : BaseController
         if (character == null)
             return BadRequestJson(new ErrorModel($"Character \"{commandCharacter}\" not found"));
 
-        CommandManager.Instance.Handle(character, commandLine, out var messageOutput);
-
-        var commandResult = new
+        // Temporarily elevate access level for WebAPI commands (admin panel)
+        // so all commands work regardless of character's in-game access level
+        var originalAccessLevel = character.AccessLevel;
+        character.AccessLevel = Math.Max(character.AccessLevel, 100);
+        try
         {
-            commandLine,
-            commandCharacter,
-            messageOutput.Messages,
-            messageOutput.ErrorMessages
-        };
+            CommandManager.Instance.Handle(character, commandLine, out var messageOutput);
 
-        return OkJson(commandResult);
+            var commandResult = new
+            {
+                commandLine,
+                commandCharacter,
+                messageOutput.Messages,
+                messageOutput.ErrorMessages
+            };
+
+            return OkJson(commandResult);
+        }
+        finally
+        {
+            // Restore original access level
+            character.AccessLevel = originalAccessLevel;
+        }
     }
 }

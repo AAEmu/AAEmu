@@ -12,6 +12,7 @@ public class TickManager : Singleton<TickManager>
     public TickEventHandler OnTick = new();
     private bool DoTickLoop = true;
     private Thread TickThread;
+    private static readonly Stopwatch HandlerStopwatch = new();
 
     private void TickLoop()
     {
@@ -43,6 +44,7 @@ public class TickManager : Singleton<TickManager>
     public class TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate, bool useAsync)
     {
         public TickEventHandler.OnTickEvent Event { get; } = ev;
+        public string HandlerName { get; } = $"{ev.Target?.GetType().Name ?? "?"}.{ev.Method.Name}";
         public TimeSpan LastExecution { get; set; }
         public TimeSpan TickRate { get; } = tickRate;
         public Task ActiveTask { get; set; }
@@ -96,15 +98,26 @@ public class TickManager : Singleton<TickManager>
                         if (ev.ActiveTask == null || ev.ActiveTask.IsCompleted)
                         {
                             ev.LastExecution = _sw.Elapsed;
+                            var evCapture = ev;
+                            var deltaCapture = delta;
                             ev.ActiveTask = Task.Run(() =>
                             {
+                                var asw = Stopwatch.StartNew();
                                 try
                                 {
-                                    ev.Event(delta);
+                                    evCapture.Event(deltaCapture);
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
+                                    Logger.Error("[{0}] {1}\n{2}", evCapture.HandlerName, e.Message, e.StackTrace);
+                                }
+                                finally
+                                {
+                                    asw.Stop();
+                                    if (asw.ElapsedMilliseconds > 5000)
+                                        Logger.Error("TickHandler {0} (async) took {1}ms — possible freeze source!", evCapture.HandlerName, asw.ElapsedMilliseconds);
+                                    else if (asw.ElapsedMilliseconds > 500)
+                                        Logger.Warn("TickHandler {0} (async) took {1}ms", evCapture.HandlerName, asw.ElapsedMilliseconds);
                                 }
                             });
                         }
@@ -112,13 +125,22 @@ public class TickManager : Singleton<TickManager>
                     else
                     {
                         ev.LastExecution = _sw.Elapsed;
+                        var hsw = Stopwatch.StartNew();
                         try
                         {
                             ev.Event(delta);
                         }
                         catch (Exception e)
                         {
-                            Logger.Error("{0}\n{1}", e.Message, e.StackTrace);
+                            Logger.Error("[{0}] {1}\n{2}", ev.HandlerName, e.Message, e.StackTrace);
+                        }
+                        finally
+                        {
+                            hsw.Stop();
+                            if (hsw.ElapsedMilliseconds > 5000)
+                                Logger.Error("TickHandler {0} (sync) took {1}ms — BLOCKING TICK THREAD!", ev.HandlerName, hsw.ElapsedMilliseconds);
+                            else if (hsw.ElapsedMilliseconds > 200)
+                                Logger.Warn("TickHandler {0} (sync) took {1}ms", ev.HandlerName, hsw.ElapsedMilliseconds);
                         }
                     }
                 }

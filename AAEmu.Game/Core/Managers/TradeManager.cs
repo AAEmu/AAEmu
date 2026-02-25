@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Services.WebApi.Controllers;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -385,6 +386,42 @@ public class TradeManager : Singleton<TradeManager>
         owner.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksOwner, []));
         target.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksTarget, []));
         Logger.Info($"Trade Id:{tradeId} finished. Owner {owner.Name} ({owner.Id}) Items/Money: {tradeInfo.OwnerItems.Count}/{tradeInfo.OwnerMoneyPutup} <=> Target {target.Name} ({target.Id}) Items/Money: {tradeInfo.TargetItems.Count}/{tradeInfo.TargetMoneyPutup}");
+
+        // Log high-value gold trades (>= 1000 gold = 10,000,000 copper)
+        const int goldTradeThreshold = 10_000_000;
+        if (tradeInfo.OwnerMoneyPutup >= goldTradeThreshold)
+        {
+            GoldAuditController.LogTradeGold(new TradeGoldRecord
+            {
+                TradeId = tradeId,
+                SenderName = owner.Name,
+                SenderId = owner.Id,
+                ReceiverName = target.Name,
+                ReceiverId = target.Id,
+                CopperAmount = tradeInfo.OwnerMoneyPutup,
+                Direction = "owner→target",
+                Timestamp = DateTime.UtcNow,
+                OwnerItemCount = tradeInfo.OwnerItems.Count,
+                TargetItemCount = tradeInfo.TargetItems.Count,
+            });
+        }
+        if (tradeInfo.TargetMoneyPutup >= goldTradeThreshold)
+        {
+            GoldAuditController.LogTradeGold(new TradeGoldRecord
+            {
+                TradeId = tradeId,
+                SenderName = target.Name,
+                SenderId = target.Id,
+                ReceiverName = owner.Name,
+                ReceiverId = owner.Id,
+                CopperAmount = tradeInfo.TargetMoneyPutup,
+                Direction = "target→owner",
+                Timestamp = DateTime.UtcNow,
+                OwnerItemCount = tradeInfo.OwnerItems.Count,
+                TargetItemCount = tradeInfo.TargetItems.Count,
+            });
+        }
+
         if (hasErrors > 0)
         {
             Logger.Error($"{hasErrors}item(s) could not be trade for tradeId: {tradeId} between {owner.Name} ({owner.Id}) and {target.Name} ({target.Id}), possible exploit or modified client!");

@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Procs;
@@ -335,7 +336,7 @@ public class DamageEffect : EffectTemplate
                     break;
             }
         }
-        var value = (int)(finalDamage * reductionMul);
+        var value = (int)(finalDamage * reductionMul * (float)AppConfiguration.Instance.World.DamageRate);
         var absorbed = (int)(finalDamage * (1.0f - reductionMul));
         var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
         var manaStolen = (int)(value * (ManaStealRatio / 100.0f));

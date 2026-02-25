@@ -121,6 +121,16 @@ public class WorldConfig
     /// Server-side Actability Points multiplier (on top of buffs)
     /// </summary>
     public double ActabilityRate { get; set; } = 1.0;
+
+    /// <summary>
+    /// Global damage multiplier applied to all damage calculations (1.0 = default)
+    /// </summary>
+    public double DamageRate { get; set; } = 1.0;
+
+    /// <summary>
+    /// Global regrade success rate multiplier. Values above 1.0 increase success chance, below 1.0 decrease it (1.0 = default)
+    /// </summary>
+    public double RegradeRate { get; set; } = 1.0;
 }
 
 public class DungeonLoadConfig
