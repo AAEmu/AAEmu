@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -181,6 +182,25 @@ public class GradeEnchant : SpecialEffectAction
                 charmInfo.AddDowngradeMul)
             : gradeTemplate.EnchantDowngradeRatio;
 
+        // Apply global regrade rate multiplier from server config
+        var regradeRate = AppConfiguration.Instance.World.RegradeRate;
+        if (regradeRate != 1.0)
+        {
+            successChance = Math.Clamp((int)(successChance * regradeRate), 0, 10000);
+            greatSuccessChance = Math.Clamp((int)(greatSuccessChance * regradeRate), 0, 10000);
+            breakChance = Math.Clamp((int)(breakChance / regradeRate), 0, 10000);
+            downgradeChance = Math.Clamp((int)(downgradeChance / regradeRate), 0, 10000);
+        }
+
+        // Diagnostic logging for regrade rolls
+        Logger.Info("RollRegrade Grade={0} Order={1} | Chances: success={2} greatSuccess={3} break={4} downgrade={5} | Rolls: success={6} greatSuccess={7} break={8} downgrade={9} | isLucky={10} useCharm={11} regradeRate={12}",
+            gradeTemplate.Grade, gradeTemplate.GradeOrder,
+            successChance, greatSuccessChance, breakChance, downgradeChance,
+            successRoll, greatSuccessRoll, breakRoll, downgradeRoll,
+            isLucky, useCharm, regradeRate);
+
+        GradeEnchantResult result;
+
         if (successRoll < successChance)
         {
             if (isLucky && greatSuccessRoll < greatSuccessChance)
@@ -188,31 +208,38 @@ public class GradeEnchant : SpecialEffectAction
                 // TODO : Refactor
                 var increase = useCharm ? 2 + charmInfo.AddGreatSuccessGrade : 2;
                 item.Grade = (byte)GetNextGrade(gradeTemplate, increase).Grade;
-                return GradeEnchantResult.GreatSuccess;
+                result = GradeEnchantResult.GreatSuccess;
             }
-
-            item.Grade = (byte)GetNextGrade(gradeTemplate, 1).Grade;
-            return GradeEnchantResult.Success;
+            else
+            {
+                item.Grade = (byte)GetNextGrade(gradeTemplate, 1).Grade;
+                result = GradeEnchantResult.Success;
+            }
         }
-
-        if (breakRoll < breakChance)
+        else if (breakRoll < breakChance)
         {
-            return GradeEnchantResult.Break;
+            result = GradeEnchantResult.Break;
         }
-
-        if (downgradeRoll < downgradeChance)
+        else if (downgradeRoll < downgradeChance)
         {
             var newGrade = (byte)Random.Shared.Next(gradeTemplate.EnchantDowngradeMin, gradeTemplate.EnchantDowngradeMax);
             if (newGrade < 0)
             {
-                return GradeEnchantResult.Fail;
+                result = GradeEnchantResult.Fail;
             }
-
-            item.Grade = newGrade;
-            return GradeEnchantResult.Downgrade;
+            else
+            {
+                item.Grade = newGrade;
+                result = GradeEnchantResult.Downgrade;
+            }
+        }
+        else
+        {
+            result = GradeEnchantResult.Fail;
         }
 
-        return GradeEnchantResult.Fail;
+        Logger.Info("RollRegrade RESULT={0} | Item Grade: {1} -> {2}", result, gradeTemplate.Grade, item.Grade);
+        return result;
     }
 
     private static int GoldCost(GradeTemplate gradeTemplate, Item item, int ItemType)

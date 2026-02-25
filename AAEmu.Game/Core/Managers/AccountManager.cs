@@ -22,7 +22,7 @@ public class AccountManager : Singleton<AccountManager>
     public AccountManager()
     {
         _accounts = new ConcurrentDictionary<uint, GameConnection>();
-        TickManager.Instance.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
+        TickManager.Instance.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30), true);
     }
 
     public void Add(GameConnection connection)

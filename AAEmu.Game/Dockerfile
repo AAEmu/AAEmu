@@ -21,7 +21,7 @@ ARG DB_PORT
 ARG DB_USER
 ARG DB_PASSWORD
 
-RUN apk add --no-cache openssl mysql-client
+RUN apk add --no-cache openssl-dev mysql-client-dev || apk add --no-cache libssl3 mariadb-client || true
 
 WORKDIR app
 COPY --from=builder /app/publish ./

@@ -26,7 +26,7 @@ public class InstantGameManager : Singleton<InstantGameManager>
     public void Initialize()
     {
         // 15 seconds between each matchmaking query
-        TickManager.Instance.OnTick.Subscribe(BattlefieldTick, TimeSpan.FromSeconds(15));
+        TickManager.Instance.OnTick.Subscribe(BattlefieldTick, TimeSpan.FromSeconds(15), true);
     }
 
     public void ApplyToBattlefield(uint battlefieldId, InstantCorps corps, Character character)

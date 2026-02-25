@@ -148,9 +148,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
     /// <param name="delta"></param>
     private void ActiveRegionTick(TimeSpan delta)
     {
-        var sw = new Stopwatch();
-        sw.Start();
-
+        // Fast path: only process characters, mates, slaves (lightweight)
         // Players
         foreach (var character in GetAllCharacters())
             character.OnActiveRegionTick(delta);
@@ -164,22 +162,26 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             // Vehicles
             foreach (var slave in world.GetAllSlaves())
                 slave.OnActiveRegionTick(delta);
+        }
+    }
 
+    private void SpawnerRegionTick(TimeSpan delta)
+    {
+        // Heavy path: process all NPC spawners (can take seconds with 38K+ spawners)
+        var sw = new Stopwatch();
+        sw.Start();
+
+        foreach (var world in _worlds.Values)
+        {
             var npcSpawners = world.SpawnManager.GetAllSpawners();
-
-            // Spawner filtering
-            if (sw.ElapsedMilliseconds > 50)
-            {
-                Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
-            }
 
             var activeSpawners = npcSpawners.Values.SelectMany(x => x)
                 .Where(spawner => spawner.Template != null && IsSpawnerActive(spawner))
                 .ToList();
 
-            // Consistent processing of spawners
             if (sw.ElapsedMilliseconds > 50)
             {
+                Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
                 Logger.Debug($"Processed {activeSpawners.Count} active spawners...");
             }
 
@@ -192,7 +194,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         sw.Stop();
         if (sw.ElapsedMilliseconds > 100)
         {
-            Logger.Warn($"ActiveRegionTick took {sw.ElapsedMilliseconds} ms");
+            Logger.Warn($"SpawnerRegionTick took {sw.ElapsedMilliseconds} ms");
         }
     }
 
@@ -353,7 +355,10 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
 
     public void Initialize()
     {
+        // Player/mate/slave ticks — lightweight, runs every 1s on tick thread
         TickManager.Instance.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
+        // Spawner updates — heavy (38K+ spawners), runs every 5s on async thread
+        TickManager.Instance.OnTick.Subscribe(SpawnerRegionTick, TimeSpan.FromSeconds(5), true);
     }
 
     /// <summary>
