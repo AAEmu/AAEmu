@@ -64,10 +64,9 @@ public class ExportMesh : ICommand
         var (perType, skipped) = ExportBaiTrianglesByType(world, pos, radius, exportDir);
         var (roadCount, roadNodeCount) = ExportRoads(world, pos, radius, exportDir);
         var flightSpanCount = ExportFlightSpans(world, pos, radius, exportDir);
-        var brushCount = ExportBrushBoxes(world, pos, radius, exportDir);
-        var (forbiddenCount, designerCount) = ExportForbiddenAreas(world, pos, radius, exportDir);
         var (brushMeshCount, brushTriCount) = ExportBrushMeshes(world, pos, radius, exportDir);
         var diagCount = ExportBrushDiagnostic(world, pos, radius, exportDir);
+        var npcCount = ExportNpcs(character, pos, radius, exportDir);
 
         Log(messageOutput, $"Export complete → {exportDir}");
         Log(messageOutput, $"  terrain.obj: {terrainVerts} vertices");
@@ -77,10 +76,9 @@ public class ExportMesh : ICommand
         Log(messageOutput, $"  ({skipped} triangles skipped - bad obstacle indices)");
         Log(messageOutput, $"  roads.obj: {roadCount} roads ({roadNodeCount} nodes)");
         Log(messageOutput, $"  flight_spans.obj: {flightSpanCount} spans");
-        Log(messageOutput, $"  brush_boxes.obj: {brushCount} brush AABB boxes");
         Log(messageOutput, $"  brush_meshes.obj: {brushMeshCount} brushes ({brushTriCount} triangles)");
-        Log(messageOutput, $"  forbidden_areas.obj: {forbiddenCount} forbidden + {designerCount} designer areas");
         Log(messageOutput, $"  brush_diagnostic.csv: {diagCount} brush instances (for duplicate analysis)");
+        Log(messageOutput, $"  npcs.obj: {npcCount} NPCs + player marker");
     }
 
     private void Log(IMessageOutput messageOutput, string text)
@@ -579,176 +577,6 @@ public class ExportMesh : ICommand
     }
 
     /// <summary>
-    /// Exports brush bounding boxes (AABB) as wireframe-style boxes.
-    /// These represent the collision volumes of static objects (buildings, rocks, walls).
-    /// </summary>
-    private static int ExportBrushBoxes(WorldTemplate world, Vector3 center, float radius, string exportDir)
-    {
-        var sb = new StringBuilder(1024 * 1024);
-        sb.AppendLine("# AAEmu Brush Bounding Boxes (AABB)");
-        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-        sb.AppendLine("# Centered at origin, Y-up (OBJ standard)");
-        sb.AppendLine();
-
-        var brushes = world.GetNearbyBrushBounds(center.X, center.Y, radius);
-        var vertIndex = 0;
-
-        foreach (var b in brushes)
-        {
-            // Convert to centered + Y-up coordinates
-            var x0 = b.MinX - center.X;
-            var x1 = b.MaxX - center.X;
-            var z0 = b.MinY - center.Y; // game Y → OBJ Z
-            var z1 = b.MaxY - center.Y;
-            var y0 = b.MinZ - center.Z; // game Z (height) → OBJ Y
-            var y1 = b.MaxZ - center.Z;
-
-            // 8-vertex box
-            var baseIdx = vertIndex + 1;
-            sb.AppendLine(FormatVertex(x0, y0, z0)); // 0: min corner bottom
-            sb.AppendLine(FormatVertex(x1, y0, z0)); // 1
-            sb.AppendLine(FormatVertex(x1, y0, z1)); // 2
-            sb.AppendLine(FormatVertex(x0, y0, z1)); // 3
-            sb.AppendLine(FormatVertex(x0, y1, z0)); // 4: min corner top
-            sb.AppendLine(FormatVertex(x1, y1, z0)); // 5
-            sb.AppendLine(FormatVertex(x1, y1, z1)); // 6
-            sb.AppendLine(FormatVertex(x0, y1, z1)); // 7
-
-            // 6 faces
-            sb.AppendLine($"f {baseIdx} {baseIdx + 3} {baseIdx + 2} {baseIdx + 1}");     // bottom
-            sb.AppendLine($"f {baseIdx + 4} {baseIdx + 5} {baseIdx + 6} {baseIdx + 7}"); // top
-            sb.AppendLine($"f {baseIdx} {baseIdx + 1} {baseIdx + 5} {baseIdx + 4}");     // front
-            sb.AppendLine($"f {baseIdx + 1} {baseIdx + 2} {baseIdx + 6} {baseIdx + 5}"); // right
-            sb.AppendLine($"f {baseIdx + 2} {baseIdx + 3} {baseIdx + 7} {baseIdx + 6}"); // back
-            sb.AppendLine($"f {baseIdx + 3} {baseIdx} {baseIdx + 4} {baseIdx + 7}");     // left
-
-            vertIndex += 8;
-        }
-
-        File.WriteAllText(Path.Combine(exportDir, "brush_boxes.obj"), sb.ToString());
-        return brushes.Count;
-    }
-
-    /// <summary>
-    /// Exports BAI forbidden areas as extruded wall polygons.
-    /// Each forbidden area is a 2D polygon — we extrude it vertically (3m walls)
-    /// to visualize where NPCs cannot walk.
-    /// </summary>
-    private static (int forbidden, int designer) ExportForbiddenAreas(WorldTemplate world, Vector3 center, float radius, string exportDir)
-    {
-        var sb = new StringBuilder(512 * 1024);
-        sb.AppendLine("# AAEmu BAI Forbidden Areas (extruded as walls)");
-        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-        sb.AppendLine("# Centered at origin, Y-up (OBJ standard)");
-        sb.AppendLine();
-
-        var forbiddenCount = 0;
-        var designerCount = 0;
-        var vertIndex = 0;
-        var radiusSq = radius * radius;
-        var visitedLoaders = new HashSet<BaseBaiLoader>();
-
-        const float wallHeight = 5f; // extrude walls 5m high for visualization
-
-        var minPathX = (int)((center.X - radius) / 256);
-        var maxPathX = (int)((center.X + radius) / 256);
-        var minPathY = (int)((center.Y - radius) / 256);
-        var maxPathY = (int)((center.Y + radius) / 256);
-
-        for (var py = minPathY; py <= maxPathY; py++)
-        {
-            for (var px = minPathX; px <= maxPathX; px++)
-            {
-                var tileCenter = new Vector3(px * 256 + 128, py * 256 + 128, center.Z);
-                var bai = world.GetBaiByPos(tileCenter);
-                if (bai == null || !visitedLoaders.Add(bai))
-                    continue;
-
-                foreach (var areaMission in bai.AreasMissionReaders)
-                {
-                    // Process both forbidden and designer forbidden areas
-                    foreach (var (areaList, isDesigner) in new[]
-                    {
-                        (areaMission.ForbiddenAreasList, false),
-                        (areaMission.DesignerForbiddenAreasList, true)
-                    })
-                    {
-                        foreach (var area in areaList)
-                        {
-                            if (area.Points.Count < 3)
-                                continue;
-
-                            // Check if any point is within radius
-                            var inRange = false;
-                            foreach (var p in area.Points)
-                            {
-                                var dx = p.X - center.X;
-                                var dy = p.Y - center.Y;
-                                if (dx * dx + dy * dy <= radiusSq)
-                                {
-                                    inRange = true;
-                                    break;
-                                }
-                            }
-                            if (!inRange) continue;
-
-                            var label = isDesigner ? "DesignerForbidden" : "Forbidden";
-                            sb.AppendLine($"# {label}: {area.Name} ({area.Points.Count} pts)");
-
-                            // Use Z from the polygon points (floor level), or estimate from terrain
-                            var baseZ = area.Points[0].Z;
-                            var topZ = baseZ + wallHeight;
-
-                            var baseIdx = vertIndex + 1;
-                            var n = area.Points.Count;
-
-                            // Bottom ring vertices
-                            foreach (var p in area.Points)
-                            {
-                                sb.AppendLine(FormatVertex(p.X - center.X, baseZ - center.Z, p.Y - center.Y));
-                                vertIndex++;
-                            }
-
-                            // Top ring vertices
-                            foreach (var p in area.Points)
-                            {
-                                sb.AppendLine(FormatVertex(p.X - center.X, topZ - center.Z, p.Y - center.Y));
-                                vertIndex++;
-                            }
-
-                            // Bottom face (fan triangulation)
-                            for (var i = 1; i < n - 1; i++)
-                                sb.AppendLine($"f {baseIdx} {baseIdx + i} {baseIdx + i + 1}");
-
-                            // Top face (reversed winding)
-                            var topBase = baseIdx + n;
-                            for (var i = 1; i < n - 1; i++)
-                                sb.AppendLine($"f {topBase} {topBase + i + 1} {topBase + i}");
-
-                            // Side wall quads (connect bottom edge to top edge)
-                            for (var i = 0; i < n; i++)
-                            {
-                                var next = (i + 1) % n;
-                                var b0 = baseIdx + i;
-                                var b1 = baseIdx + next;
-                                var t0 = topBase + i;
-                                var t1 = topBase + next;
-                                sb.AppendLine($"f {b0} {b1} {t1} {t0}");
-                            }
-
-                            if (isDesigner) designerCount++;
-                            else forbiddenCount++;
-                        }
-                    }
-                }
-            }
-        }
-
-        File.WriteAllText(Path.Combine(exportDir, "forbidden_areas.obj"), sb.ToString());
-        return (forbiddenCount, designerCount);
-    }
-
-    /// <summary>
     /// Exports actual brush collision meshes (.cgf) as OBJ triangles.
     /// Each brush is labeled with its .cgf model path so you can identify
     /// stairs, ramps, platforms, etc. in Blender.
@@ -1091,6 +919,90 @@ public class ExportMesh : ICommand
         // Center on player: DotRecast X=gameX, Y=gameZ(height), Z=gameY
         // OBJ format uses the same Y-up convention
         sb.AppendLine(FormatVertex(wx - center.X, wy - center.Z, wz - center.Y));
+    }
+
+    /// <summary>
+    /// Exports NPCs as small diamond markers in OBJ format for visualization.
+    /// Each NPC is a 6-vertex diamond (1m wide, 2m tall) at its world position,
+    /// labeled with ObjId, TemplateId, and AI name.
+    /// Also exports the player position as a separate marker.
+    /// </summary>
+    private static int ExportNpcs(Character character, Vector3 center, float radius, string exportDir)
+    {
+        var sb = new StringBuilder(256 * 1024);
+        sb.AppendLine("# AAEmu NPC Positions");
+        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Each NPC is a diamond marker (6 verts, 8 faces)");
+        sb.AppendLine();
+
+        var npcCount = 0;
+        var vertIndex = 0;
+        var radiusSq = radius * radius;
+
+        var world = character.ParentWorld;
+        if (world == null)
+            goto writeFile;
+
+        // Export player position first
+        {
+            var pp = character.Transform.World.Position;
+            sb.AppendLine($"g player_{character.Name}");
+            sb.AppendLine($"# Player: {character.Name} at ({pp.X:F1}, {pp.Y:F1}, {pp.Z:F1})");
+            WriteDiamondMarker(sb, ref vertIndex, pp.X - center.X, pp.Z - center.Z, pp.Y - center.Y, 1.5f);
+        }
+
+        // Export all NPCs within radius
+        foreach (var npc in world.GetAllNpcs())
+        {
+            var npcPos = npc.Transform.World.Position;
+            var dx = npcPos.X - center.X;
+            var dy = npcPos.Y - center.Y;
+            if (dx * dx + dy * dy > radiusSq)
+                continue;
+
+            var aiName = npc.Ai?.GetType().Name ?? "NoAi";
+            sb.AppendLine($"g npc_{npc.ObjId}");
+            sb.AppendLine($"# NPC ObjId={npc.ObjId} TemplateId={npc.TemplateId} AI={aiName}");
+            sb.AppendLine($"# Pos: ({npcPos.X:F1}, {npcPos.Y:F1}, {npcPos.Z:F1})");
+
+            // OBJ Y-up: game X→X, game Z(height)→Y, game Y→Z
+            WriteDiamondMarker(sb, ref vertIndex, npcPos.X - center.X, npcPos.Z - center.Z, npcPos.Y - center.Y, 1.0f);
+            npcCount++;
+        }
+
+        writeFile:
+        File.WriteAllText(Path.Combine(exportDir, "npcs.obj"), sb.ToString());
+        return npcCount;
+    }
+
+    /// <summary>
+    /// Writes a diamond marker (octahedron) at the given OBJ Y-up position.
+    /// 6 vertices (top, bottom, 4 cardinal), 8 triangular faces.
+    /// </summary>
+    private static void WriteDiamondMarker(StringBuilder sb, ref int vertIndex, float x, float y, float z, float size)
+    {
+        var half = size * 0.5f;
+        var baseIdx = vertIndex + 1; // OBJ 1-indexed
+
+        // 6 vertices: top, bottom, +X, -X, +Z, -Z
+        sb.AppendLine(FormatVertex(x, y + size, z));         // 0: top
+        sb.AppendLine(FormatVertex(x, y, z));                // 1: bottom
+        sb.AppendLine(FormatVertex(x + half, y + half, z));  // 2: +X
+        sb.AppendLine(FormatVertex(x - half, y + half, z));  // 3: -X
+        sb.AppendLine(FormatVertex(x, y + half, z + half));  // 4: +Z
+        sb.AppendLine(FormatVertex(x, y + half, z - half));  // 5: -Z
+
+        // 8 triangular faces (upper 4 + lower 4)
+        sb.AppendLine($"f {baseIdx} {baseIdx + 2} {baseIdx + 4}");
+        sb.AppendLine($"f {baseIdx} {baseIdx + 4} {baseIdx + 3}");
+        sb.AppendLine($"f {baseIdx} {baseIdx + 3} {baseIdx + 5}");
+        sb.AppendLine($"f {baseIdx} {baseIdx + 5} {baseIdx + 2}");
+        sb.AppendLine($"f {baseIdx + 1} {baseIdx + 4} {baseIdx + 2}");
+        sb.AppendLine($"f {baseIdx + 1} {baseIdx + 3} {baseIdx + 4}");
+        sb.AppendLine($"f {baseIdx + 1} {baseIdx + 5} {baseIdx + 3}");
+        sb.AppendLine($"f {baseIdx + 1} {baseIdx + 2} {baseIdx + 5}");
+
+        vertIndex += 6;
     }
 
     private static string FormatVertex(float x, float y, float z)

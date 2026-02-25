@@ -1415,16 +1415,13 @@ public partial class Npc : Unit
     public void LookTowards(Vector3 other, byte flags = 4)
     {
         var oldPosition = Transform.Local.ClonePosition();
-        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+
         if (!CanFly)
         {
             var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
-            if (terrainZ > 0f && refZ < terrainZ)
-                refZ = terrainZ;
+            if (terrainZ > 0f)
+                oldPosition.Z = terrainZ;
         }
-
-        if (refZ > 0f)
-            oldPosition.Z = refZ;
 
         Transform.Local.SetPosition(oldPosition);
 
@@ -1465,16 +1462,13 @@ public partial class Npc : Unit
     public void StopMovement()
     {
         var oldPosition = Transform.Local.ClonePosition();
-        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+
         if (!CanFly)
         {
             var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
-            if (terrainZ > 0f && refZ < terrainZ)
-                refZ = terrainZ;
+            if (terrainZ > 0f)
+                oldPosition.Z = terrainZ;
         }
-
-        if (refZ > 0f)
-            oldPosition.Z = refZ;
 
         Transform.Local.SetPosition(oldPosition);
 

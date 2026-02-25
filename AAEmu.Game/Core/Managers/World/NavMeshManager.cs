@@ -13,8 +13,6 @@ using DotRecast.Detour;
 using DotRecast.Recast;
 using DotRecast.Recast.Geom;
 
-using Jitter2.LinearMath;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
@@ -113,21 +111,27 @@ public class NavMeshManager
     }
 
     /// <summary>
-    /// Builds navmesh tiles from a cell's BAI type 2 terrain + brush collision meshes.
+    /// Builds navmesh tiles from BAI walkable surfaces + brush collision meshes + voxels.
     /// Each 1024m game cell produces 4x4 = 16 navmesh tiles (256m each).
-    /// BAI type 2 provides authored terrain topology; brush meshes provide full
-    /// building geometry (floors, stairs, walls). DotRecast determines walkability
-    /// via agent slope/height/climb parameters.
+    /// BAI (types 0-3) provides the authored single-layer walkable surface (terrain, stairs, docks);
+    /// brush meshes provide detailed structural collision (floors, walls, stair steps);
+    /// voxels provide terrain modifications (caves, cliffs).
+    /// NO heightmap terrain: heightmap creates a flat surface UNDER elevated brushes (stairs, docks),
+    /// causing a dual-surface problem where DotRecast picks the lowest layer and NPCs fall through.
     /// </summary>
     private void BuildTileFromCell(WorldCell cell)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
-        // 1. Collect ALL geometry for this cell (BAI terrain + brushes)
+        // 1. Collect ALL geometry for this cell (BAI terrain + brushes + voxels)
         var verts = new List<float>();
         var faces = new List<int>();
 
-        AddBaiType2Triangles(cell, verts, faces);
+        // BAI walkable triangles (types 0-3): the CryEngine authored single-layer navigation mesh.
+        // Provides terrain, stairs, docks, bridges — all as one surface without overlapping layers.
+        // NO heightmap: heightmap is flat under stairs/docks and creates a competing lower surface
+        // that DotRecast's single-layer build picks instead, causing NPCs to fall through structures.
+        var baiTriCount = AddBaiWalkableTriangles(cell, verts, faces);
 
         // Add brush collision triangles from object.dat + visareas.dat.
         // visareas.dat contains interior structural geometry (floors, stairs) not present in object.dat.
@@ -235,7 +239,7 @@ public class NavMeshManager
                     $"{tilesBuilt}/{TilesPerCellSide * TilesPerCellSide} tiles, " +
                     $"{totalVerts} verts, {totalPolys} polys, " +
                     $"{inputVertCount} input verts, {inputTriCount} input tris, " +
-                    $"brushes: obj={objBrushCount} vis={visBrushCount}, voxels={voxelCount} — " +
+                    $"bai={baiTriCount}, brushes: obj={objBrushCount} vis={visBrushCount}, voxels={voxelCount} — " +
                     $"{sw.ElapsedMilliseconds}ms");
     }
 
@@ -313,15 +317,17 @@ public class NavMeshManager
     }
 
     /// <summary>
-    /// Extracts BAI type 2 (terrain topology) triangles from the cell's BAI data.
-    /// These are authored navmesh triangles from CryEngine that represent the walkable
-    /// terrain surface, replacing the raw heightmap grid.
+    /// Extracts ALL BAI walkable triangles (types 0-3) from the cell's BAI data.
+    /// These are authored navmesh triangles from CryEngine representing the single-layer
+    /// walkable surface: terrain, stairs, docks, bridges, platforms.
+    /// Types 4+ (forbidden, removable) are excluded.
     /// Coordinates are in DotRecast Y-up: (gameX, gameZ_height, gameY).
+    /// Returns the number of triangles added.
     /// </summary>
-    private static void AddBaiType2Triangles(WorldCell cell, List<float> verts, List<int> faces)
+    private static int AddBaiWalkableTriangles(WorldCell cell, List<float> verts, List<int> faces)
     {
-        // Deduplicate BAI loaders — zone-mode assigns the same loader to all 16 positions
         var visitedLoaders = new HashSet<BaseBaiLoader>();
+        var count = 0;
 
         for (var by = 0; by < 4; by++)
         {
@@ -333,7 +339,6 @@ public class NavMeshManager
 
                 foreach (var netMission in baiLoader.NetMissionReaders)
                 {
-                    // Find matching VertexMission for vertex data (paired by ZoneId)
                     var vertexMission = baiLoader.VertexMissionReaders
                         .FirstOrDefault(v => v.ZoneId == netMission.ZoneId);
 
@@ -344,18 +349,16 @@ public class NavMeshManager
 
                     foreach (var (_, node) in netMission.NodeDescriptorList)
                     {
-                        // Only type 2 = terrain/topology walkable surface
-                        if (node.Type != 2)
+                        // Include all walkable types (0-3). Types 4+ are forbidden/removable.
+                        if (node.Type > 3)
                             continue;
 
-                        // Validate obstacle indices
                         if (node.Obstacle.Length < 3 ||
                             node.Obstacle[0] < 0 || node.Obstacle[0] >= obstacles.Count ||
                             node.Obstacle[1] < 0 || node.Obstacle[1] >= obstacles.Count ||
                             node.Obstacle[2] < 0 || node.Obstacle[2] >= obstacles.Count)
                             continue;
 
-                        // Get triangle vertices (already in world coordinates — ReaderPointOffset pre-applied)
                         var v0 = obstacles[node.Obstacle[0]].Pos;
                         var v1 = obstacles[node.Obstacle[1]].Pos;
                         var v2 = obstacles[node.Obstacle[2]].Pos;
@@ -368,10 +371,13 @@ public class NavMeshManager
                         faces.Add(idx);
                         faces.Add(idx + 1);
                         faces.Add(idx + 2);
+                        count++;
                     }
                 }
             }
         }
+
+        return count;
     }
 
     /// <summary>
@@ -565,84 +571,6 @@ public class NavMeshManager
         return voxelCount;
     }
 
-    /// <summary>
-    /// Transforms a JVector vertex by rotation matrix + translation and appends to the vertex list.
-    /// </summary>
-    private static void AddTransformedVertex(List<float> verts, JVector v,
-        float r00, float r01, float r02,
-        float r10, float r11, float r12,
-        float r20, float r21, float r22,
-        float tx, float ty, float tz)
-    {
-        // rotation * v + translation (all in Y-up space)
-        verts.Add(r00 * v.X + r01 * v.Y + r02 * v.Z + tx);
-        verts.Add(r10 * v.X + r11 * v.Y + r12 * v.Z + ty);
-        verts.Add(r20 * v.X + r21 * v.Y + r22 * v.Z + tz);
-    }
-
-    /// <summary>
-    /// Adds tall vertical walls along the perimeter of each BAI forbidden area.
-    /// This prevents the navmesh from having walkable polygons crossing into forbidden zones.
-    /// NPCs will path around the walls instead of through the forbidden area.
-    /// </summary>
-    private static void AddForbiddenAreaWalls(WorldCell cell, List<float> verts, List<int> faces)
-    {
-        const float wallHeight = 20f; // tall enough to block any agent
-
-        // Iterate all BAI loaders in this cell (4x4 grid of path sectors)
-        foreach (var bai in cell.BaiLoader)
-        {
-            if (bai == null)
-                continue;
-
-            foreach (var areaMission in bai.AreasMissionReaders)
-            {
-                AddForbiddenWallsFromList(areaMission.ForbiddenAreasList, verts, faces, wallHeight);
-                AddForbiddenWallsFromList(areaMission.DesignerForbiddenAreasList, verts, faces, wallHeight);
-            }
-        }
-    }
-
-    private static void AddForbiddenWallsFromList(
-        List<Models.CryEngine.Mission.AiShape> areas,
-        List<float> verts, List<int> faces, float wallHeight)
-    {
-        foreach (var area in areas)
-        {
-            if (area.Points.Count < 3)
-                continue;
-
-            // Create vertical wall quads along each edge of the polygon
-            for (var i = 0; i < area.Points.Count; i++)
-            {
-                var p0 = area.Points[i];
-                var p1 = area.Points[(i + 1) % area.Points.Count];
-
-                // Base height: use the point's Z (ground level from BAI data)
-                var baseY0 = p0.Z;
-                var baseY1 = p1.Z;
-                var topY0 = baseY0 + wallHeight;
-                var topY1 = baseY1 + wallHeight;
-
-                // DotRecast Y-up: (gameX, gameZ_height, gameY)
-                var idx = verts.Count / 3;
-
-                // Bottom-left (p0 base)
-                verts.Add(p0.X); verts.Add(baseY0); verts.Add(p0.Y);
-                // Bottom-right (p1 base)
-                verts.Add(p1.X); verts.Add(baseY1); verts.Add(p1.Y);
-                // Top-right (p1 top)
-                verts.Add(p1.X); verts.Add(topY1); verts.Add(p1.Y);
-                // Top-left (p0 top)
-                verts.Add(p0.X); verts.Add(topY0); verts.Add(p0.Y);
-
-                // Two triangles for the quad
-                faces.Add(idx);     faces.Add(idx + 1); faces.Add(idx + 2);
-                faces.Add(idx);     faces.Add(idx + 2); faces.Add(idx + 3);
-            }
-        }
-    }
-
     #endregion Build
 
     #region Query
@@ -656,13 +584,11 @@ public class NavMeshManager
     /// <param name="z">Game world Z (height)</param>
     /// <summary>
     /// Maximum vertical distance between query Z and result Z for GetHeight.
-    /// NPCs are always within ~1m of their surface (Z is corrected every move step),
-    /// so 2m is sufficient to find the surface below without accidentally snapping
-    /// to a higher floor (e.g. 2nd floor 3-5m above the current position).
-    /// A larger value (e.g. 10m) caused NPCs to snap to the wrong floor in
-    /// multi-level buildings and fly over staircases.
+    /// With single-layer navmesh there's only ONE surface per XZ position — no risk
+    /// of snapping to the wrong floor. 10m allows finding the navmesh surface even
+    /// when the NPC spawns with an incorrect Z from the database.
     /// </summary>
-    private const float VerticalSearchExtent = 2.0f;
+    private const float VerticalSearchExtent = 10.0f;
 
     public float GetHeight(float x, float y, float z)
     {
@@ -682,22 +608,11 @@ public class NavMeshManager
             // Prefer GetPolyHeight: interpolates from detail mesh vertices at the exact XZ
             // position, which is more accurate than nearestPt.Y (quantized poly mesh).
             // Falls back to nearestPt.Y if the query point is outside the polygon boundary.
-            float returnZ;
             if (_navQuery.GetPolyHeight(nearestRef, new RcVec3f(pos.X, nearestPt.Y, pos.Z), out var exactH).Succeeded()
                 && exactH > 0f)
-                returnZ = exactH;
-            else
-                returnZ = nearestPt.Y;
+                return exactH;
 
-            // Reject surfaces more than AgentMaxClimb (1m) above the query Z.
-            // Stair treads rise ~0.3m per step; 1m allows any single climbable step.
-            // This prevents an NPC on the ground floor from being snapped up to a
-            // higher floor (e.g. during combat when the player is on a platform above).
-            // Downward snapping is unrestricted — allows detecting ground below.
-            if (returnZ > pos.Y + AgentMaxClimb)
-                return 0f;
-
-            return returnZ;
+            return nearestPt.Y;
         }
     }
 
