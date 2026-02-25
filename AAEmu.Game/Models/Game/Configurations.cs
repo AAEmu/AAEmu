@@ -108,6 +108,13 @@ public class WorldConfig
     public int LoadBrushMaxTriangles { get; set; } = 0;
 
     /// <summary>
+    /// When enabled, loads brushes from visareas.dat (interior geometry) in addition to object.dat.
+    /// Disable this to diagnose phantom/duplicate brush structures in the navmesh.
+    /// visareas.dat contains indoor rendering volumes; some brushes may duplicate object.dat entries.
+    /// </summary>
+    public bool LoadVisAreasBrushes { get; set; } = true;
+
+    /// <summary>
     /// Maximum number of instances that can be created (includes system instances)
     /// </summary>
     public uint MaxInstances { get; set; } = 32;

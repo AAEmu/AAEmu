@@ -158,11 +158,11 @@ public abstract class BaseCombatBehavior : Behavior
                 }
                 else
                 {
-                    // No NavMesh or no poly near NPC — use ForbiddenArea fallback
-                    pathClear = !(Ai.Owner.ParentWorld?.Template?.GeoData?
-                        .LinePassesThroughForbiddenArea(npcPos, targetPos) ?? false);
+                    // ForbiddenArea fallback disabled — navmesh is the authoritative source.
+                    // ForbiddenArea polygons often cover building interiors where NPCs should navigate.
+                    pathClear = true;
 
-                    if (pathClear && !Ai.Owner.CanFly)
+                    if (!Ai.Owner.CanFly)
                     {
                         var heightDiff = MathF.Abs(targetPos.Z - npcPos.Z);
                         var dist2D = MathUtil.CalculateDistance(npcPos, targetPos, true);
@@ -212,18 +212,16 @@ public abstract class BaseCombatBehavior : Behavior
                     }
                     else
                     {
-                        // No A* path — target unreachable, return to spawn
-                        Ai.Owner.ClearAllAggro();
-                        Ai.GoToReturn();
-                        return;
+                        // No A* path yet — move straight toward target (best effort).
+                        // Return is handled by ShouldReturn distance check in attack behaviors,
+                        // not by pathfinding failure.
+                        Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
                     }
                 }
                 else
                 {
-                    // No PathNode available — return to spawn
-                    Ai.Owner.ClearAllAggro();
-                    Ai.GoToReturn();
-                    return;
+                    // No PathNode available — move straight (best effort)
+                    Ai.Owner.MoveTowards(targetPos, (float)speed, moveFlags, range);
                 }
             }
         }
