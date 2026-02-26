@@ -21,7 +21,6 @@ public class ShowFloor : ICommand
     private const uint StonePostDoodad = 5622u;      // Custom floor zone corners
     private const uint CrescentFlagDoodad = 4763u;   // BAI NavModifier corners
     private const uint CombatFlagDoodad = 5014u;     // BAI type-4 interior nodes
-    private const uint ScarecrowDoodad = 13013u;     // Brush bounding box corners
 
     public void OnLoad()
     {
@@ -156,20 +155,7 @@ public class ShowFloor : ICommand
             }
         }
 
-        // 4. Brush bounding boxes (from object.dat) — scarecrows at corners
-        var brushCount = 0;
-        var nearbyBrushes = world.GetNearbyBrushBounds(pos.X, pos.Y, radius);
-        foreach (var b in nearbyBrushes)
-        {
-            // Place markers at the 4 bottom corners of the AABB
-            AddMarker(worldInstance, new Vector3(b.MinX, b.MinY, b.MinZ), ScarecrowDoodad);
-            AddMarker(worldInstance, new Vector3(b.MaxX, b.MinY, b.MinZ), ScarecrowDoodad);
-            AddMarker(worldInstance, new Vector3(b.MinX, b.MaxY, b.MinZ), ScarecrowDoodad);
-            AddMarker(worldInstance, new Vector3(b.MaxX, b.MaxY, b.MinZ), ScarecrowDoodad);
-            brushCount += 4;
-        }
-
-        var total = customCount + navModCount + type4Count + brushCount;
+        var total = customCount + navModCount + type4Count;
         CommandManager.SendNormalText(this, messageOutput,
             $"|cFF00FFFF=== ShowFloor: {total} markers placed (radius {radius:F0}u) ===|r");
         CommandManager.SendNormalText(this, messageOutput,
@@ -178,8 +164,6 @@ public class ShowFloor : ICommand
             $"  |cFFFFFF00Crescent flags|r: {navModCount} (BAI NavModifier corners)");
         CommandManager.SendNormalText(this, messageOutput,
             $"  |cFFFFFF00Combat flags|r: {type4Count} (BAI type-4 interior nodes)");
-        CommandManager.SendNormalText(this, messageOutput,
-            $"  |cFFFFFF00Scarecrows|r: {brushCount} (object.dat brush bounds, {nearbyBrushes.Count} brushes)");
 
         if (total == 0)
         {

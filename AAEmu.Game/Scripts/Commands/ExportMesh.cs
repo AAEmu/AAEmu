@@ -4,16 +4,15 @@ using System.Text;
 
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.CryEngine;
 using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Objects;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
 using Jitter2.LinearMath;
 
@@ -25,6 +24,10 @@ public class ExportMesh : ICommand
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    // Center offset: subtracted from all OBJ coordinates so player is at origin in Blender.
+    // Set in Execute() before calling export functions. OBJ Y-up convention.
+    private static float _cx, _cy, _cz;
+
     public string[] CommandNames { get; set; } = ["exportmesh", "em"];
 
     public void OnLoad()
@@ -35,8 +38,9 @@ public class ExportMesh : ICommand
     public string GetCommandLineHelp() => "[radius=500]";
 
     public string GetCommandHelpText() =>
-        "Exports terrain heightmap, BAI Type4 nodes, and NavigationModifier floors " +
-        "as OBJ files for visualization in Blender/MeshLab.";
+        "Exports all server-side mesh data as OBJ files for visualization in Blender. " +
+        "All coordinates are absolute world (Y-up OBJ convention). " +
+        "Includes terrain, BAI, brushes, navmesh, roads, NPCs.";
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
@@ -53,11 +57,17 @@ public class ExportMesh : ICommand
             return;
         }
 
+        // Center all exports on the player so Blender viewport shows the mesh at origin
+        _cx = pos.X;          // game X → OBJ X
+        _cy = pos.Z;          // game Z (height) → OBJ Y
+        _cz = pos.Y;          // game Y → OBJ Z
+
         var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         var exportDir = Path.Combine(FileManager.AppPath, "Data", "Exports", $"exportmesh_{timestamp}");
         Directory.CreateDirectory(exportDir);
 
         Log(messageOutput, $"Exporting mesh data within {radius}m of ({pos.X:F0}, {pos.Y:F0}, {pos.Z:F0})...");
+        Log(messageOutput, $"  Player is at origin (0,0,0) in Blender");
 
         var terrainVerts = ExportTerrain(world, pos, radius, exportDir);
         var navModCount = ExportNavModifiers(world, pos, radius, exportDir);
@@ -65,8 +75,8 @@ public class ExportMesh : ICommand
         var (roadCount, roadNodeCount) = ExportRoads(world, pos, radius, exportDir);
         var flightSpanCount = ExportFlightSpans(world, pos, radius, exportDir);
         var (brushMeshCount, brushTriCount) = ExportBrushMeshes(world, pos, radius, exportDir);
-        var diagCount = ExportBrushDiagnostic(world, pos, radius, exportDir);
         var npcCount = ExportNpcs(character, pos, radius, exportDir);
+        var navMeshTriCount = ExportNavMeshPolygons(character, pos, radius, exportDir);
 
         Log(messageOutput, $"Export complete → {exportDir}");
         Log(messageOutput, $"  terrain.obj: {terrainVerts} vertices");
@@ -77,8 +87,8 @@ public class ExportMesh : ICommand
         Log(messageOutput, $"  roads.obj: {roadCount} roads ({roadNodeCount} nodes)");
         Log(messageOutput, $"  flight_spans.obj: {flightSpanCount} spans");
         Log(messageOutput, $"  brush_meshes.obj: {brushMeshCount} brushes ({brushTriCount} triangles)");
-        Log(messageOutput, $"  brush_diagnostic.csv: {diagCount} brush instances (for duplicate analysis)");
         Log(messageOutput, $"  npcs.obj: {npcCount} NPCs + player marker");
+        Log(messageOutput, $"  navmesh.obj: {navMeshTriCount} triangles (built navmesh surface)");
     }
 
     private void Log(IMessageOutput messageOutput, string text)
@@ -89,26 +99,24 @@ public class ExportMesh : ICommand
 
     /// <summary>
     /// Exports heightmap terrain as triangulated OBJ mesh.
-    /// Uses stride=2 (4m resolution) for a good balance of detail and file size.
-    /// Coordinates are centered on player position and use OBJ Y-up convention.
+    /// Uses stride=2 (4m resolution). Absolute world coordinates, Y-up.
     /// </summary>
     private static int ExportTerrain(WorldTemplate world, Vector3 center, float radius, string exportDir)
     {
-        const int stride = 2; // 2 samples = 4m resolution
-        const int resolution = WorldManager.CELL_HMAP_RESOLUTION; // 512
-        var gridW = resolution / stride + 1; // vertices per cell edge
+        const int stride = 2;
+        const int resolution = WorldManager.CELL_HMAP_RESOLUTION;
+        var gridW = resolution / stride + 1;
 
         var sb = new StringBuilder(4 * 1024 * 1024);
         sb.AppendLine("# AAEmu Terrain Heightmap Export");
-        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-        sb.AppendLine("# Centered at origin, Y-up (OBJ standard)");
+        sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Absolute world coordinates, Y-up (OBJ standard)");
         sb.AppendLine();
 
         var totalVerts = 0;
         var radiusSq = radius * radius;
         var coeff = world.HeightMaxCoefficient;
 
-        // Find cells that overlap the radius
         var minCellX = Math.Max(0, (int)((center.X - radius) / WorldManager.CELL_SIZE));
         var maxCellX = Math.Min(world.CellX - 1, (int)((center.X + radius) / WorldManager.CELL_SIZE));
         var minCellY = Math.Max(0, (int)((center.Y - radius) / WorldManager.CELL_SIZE));
@@ -129,7 +137,6 @@ public class ExportMesh : ICommand
 
                 sb.AppendLine($"# Cell ({cellX}, {cellY})");
 
-                // Generate vertices
                 for (var gy = 0; gy < gridW; gy++)
                 {
                     var sy = Math.Min(gy * stride, resolution - 1);
@@ -139,22 +146,18 @@ public class ExportMesh : ICommand
                     {
                         var sx = Math.Min(gx * stride, resolution - 1);
                         var worldX = cellWorldX + sx * 2f;
-
                         var height = (float)(cell.HeightMap[sx, sy] / coeff);
 
-                        // OBJ Y-up: game X→OBJ X, game Z(height)→OBJ Y, game Y→OBJ Z
-                        // Centered on player position
-                        sb.AppendLine(FormatVertex(worldX - center.X, height - center.Z, worldY - center.Y));
+                        // Game X→OBJ X, game Z(height)→OBJ Y, game Y→OBJ Z
+                        sb.AppendLine(FmtV(worldX, height, worldY));
                         totalVerts++;
                     }
                 }
 
-                // Generate faces (two triangles per quad, 1-indexed)
                 for (var gy = 0; gy < gridW - 1; gy++)
                 {
                     for (var gx = 0; gx < gridW - 1; gx++)
                     {
-                        // Check if quad center is within radius
                         var qcx = cellWorldX + (gx * stride + stride) * 2f;
                         var qcy = cellWorldY + (gy * stride + stride) * 2f;
                         var qdx = qcx - center.X;
@@ -162,13 +165,13 @@ public class ExportMesh : ICommand
                         if (qdx * qdx + qdy * qdy > radiusSq)
                             continue;
 
-                        var i00 = baseVertIndex + gy * gridW + gx + 1; // OBJ is 1-indexed
+                        var i00 = baseVertIndex + gy * gridW + gx + 1;
                         var i10 = i00 + 1;
                         var i01 = i00 + gridW;
                         var i11 = i01 + 1;
 
-                        sb.AppendLine($"f {i00} {i10} {i11}");
-                        sb.AppendLine($"f {i00} {i11} {i01}");
+                        sb.AppendLine($"f {i00} {i11} {i10}");
+                        sb.AppendLine($"f {i00} {i01} {i11}");
                     }
                 }
             }
@@ -178,27 +181,22 @@ public class ExportMesh : ICommand
         return totalVerts;
     }
 
-    // Node type names from CryEngine BAI format
     private static readonly string[] NodeTypeNames =
     [
-        "Walkable0",       // 0 - EWayPointNodeType0
-        "Walkable1",       // 1 - EWayPointNodeType1
-        "Walkable2",       // 2 - EWayPointNodeType2
-        "Walkable3",       // 3 - EWayPointNodeType3
-        "Forbidden",       // 4 - Forbidden area
-        "ForbiddenDesign", // 5 - Designer-marked forbidden
-        "Removable",       // 6 - Removable
+        "Walkable0", "Walkable1", "Walkable2", "Walkable3",
+        "Forbidden", "ForbiddenDesign", "Removable",
     ];
 
     /// <summary>
     /// Exports NavigationModifier building floor polygons as OBJ faces.
-    /// Each polygon is triangulated using fan from the first vertex.
+    /// Absolute world coordinates.
     /// </summary>
     private static int ExportNavModifiers(WorldTemplate world, Vector3 center, float radius, string exportDir)
     {
         var sb = new StringBuilder(256 * 1024);
         sb.AppendLine("# AAEmu NavigationModifier Building Floor Zones");
-        sb.AppendLine($"# Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Absolute world coordinates, Y-up");
         sb.AppendLine();
 
         var polyCount = 0;
@@ -229,7 +227,6 @@ public class ExportMesh : ICommand
                         if (area.BuildingId <= 0 || area.Points.Count < 3)
                             continue;
 
-                        // Check if any polygon point is within radius
                         var inRange = false;
                         foreach (var p in area.Points)
                         {
@@ -244,32 +241,27 @@ public class ExportMesh : ICommand
                         if (!inRange) continue;
 
                         var floorZ = (float)area.MinZ;
-                        var baseIdx = vertIndex + 1; // OBJ 1-indexed
+                        var baseIdx = vertIndex + 1;
 
                         sb.AppendLine($"# BuildingId={area.BuildingId} MinZ={area.MinZ:F1} MaxZ={area.MaxZ:F1}");
 
-                        // Write vertices at floor height (centered + Y-up)
                         foreach (var p in area.Points)
                         {
-                            sb.AppendLine(FormatVertex(p.X - center.X, floorZ - center.Z, p.Y - center.Y));
+                            sb.AppendLine(FmtV(p.X, floorZ, p.Y));
                             vertIndex++;
                         }
 
-                        // Also write vertices at ceiling height for volume visualization
                         var ceilZ = (float)area.MaxZ;
                         foreach (var p in area.Points)
                         {
-                            sb.AppendLine(FormatVertex(p.X - center.X, ceilZ - center.Z, p.Y - center.Y));
+                            sb.AppendLine(FmtV(p.X, ceilZ, p.Y));
                             vertIndex++;
                         }
 
                         var n = area.Points.Count;
-
-                        // Floor face (fan triangulation)
                         for (var i = 1; i < n - 1; i++)
                             sb.AppendLine($"f {baseIdx} {baseIdx + i} {baseIdx + i + 1}");
 
-                        // Ceiling face
                         var ceilBase = baseIdx + n;
                         for (var i = 1; i < n - 1; i++)
                             sb.AppendLine($"f {ceilBase} {ceilBase + i + 1} {ceilBase + i}");
@@ -286,12 +278,10 @@ public class ExportMesh : ICommand
 
     /// <summary>
     /// Exports BAI triangulation mesh split by node type into separate OBJ files.
-    /// Each NetMission node has a Type (0-6) and 3 obstacle indices forming a triangle.
-    /// Produces: bai_type0.obj, bai_type1.obj, ... for each type that has triangles.
+    /// Absolute world coordinates.
     /// </summary>
     private static (Dictionary<int, int> perType, int skipped) ExportBaiTrianglesByType(WorldTemplate world, Vector3 center, float radius, string exportDir)
     {
-        // Per-type builders: StringBuilder + vertex index counter
         var builders = new Dictionary<int, (StringBuilder sb, int vertIndex)>();
         var perTypeCount = new Dictionary<int, int>();
         var skippedCount = 0;
@@ -305,8 +295,8 @@ public class ExportMesh : ICommand
                 var typeName = type < NodeTypeNames.Length ? NodeTypeNames[type] : $"Unknown{type}";
                 var sb = new StringBuilder(1024 * 1024);
                 sb.AppendLine($"# AAEmu BAI Triangulation - Type {type} ({typeName})");
-                sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-                sb.AppendLine("# Centered at origin, Y-up (OBJ standard)");
+                sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+                sb.AppendLine("# Absolute world coordinates, Y-up");
                 sb.AppendLine();
                 builders[type] = (sb, 0);
                 perTypeCount[type] = 0;
@@ -314,7 +304,6 @@ public class ExportMesh : ICommand
             return builders[type].sb;
         }
 
-        // Scan path tiles (256m each) within radius
         var minPathX = (int)((center.X - radius) / 256);
         var maxPathX = (int)((center.X + radius) / 256);
         var minPathY = (int)((center.Y - radius) / 256);
@@ -363,10 +352,11 @@ public class ExportMesh : ICommand
                         var v1 = obstacles[node.Obstacle[1]].Pos;
                         var v2 = obstacles[node.Obstacle[2]].Pos;
 
-                        var baseIdx = vi + 1; // OBJ 1-indexed
-                        sb.AppendLine(FormatVertex(v0.X - center.X, v0.Z - center.Z, v0.Y - center.Y));
-                        sb.AppendLine(FormatVertex(v1.X - center.X, v1.Z - center.Z, v1.Y - center.Y));
-                        sb.AppendLine(FormatVertex(v2.X - center.X, v2.Z - center.Z, v2.Y - center.Y));
+                        var baseIdx = vi + 1;
+                        // Game X→OBJ X, game Z(height)→OBJ Y, game Y→OBJ Z
+                        sb.AppendLine(FmtV(v0.X, v0.Z, v0.Y));
+                        sb.AppendLine(FmtV(v1.X, v1.Z, v1.Y));
+                        sb.AppendLine(FmtV(v2.X, v2.Z, v2.Y));
                         sb.AppendLine($"f {baseIdx} {baseIdx + 1} {baseIdx + 2}");
 
                         builders[type] = (sb, vi + 3);
@@ -376,7 +366,6 @@ public class ExportMesh : ICommand
             }
         }
 
-        // Write each type to its own file
         foreach (var (type, (sb, _)) in builders)
         {
             File.WriteAllText(Path.Combine(exportDir, $"bai_type{type}.obj"), sb.ToString());
@@ -386,16 +375,14 @@ public class ExportMesh : ICommand
     }
 
     /// <summary>
-    /// Exports BAI roads as ribbon meshes. Each road is a strip of quads connecting
-    /// consecutive nodes, using the node width to create left/right edges perpendicular
-    /// to the road direction.
+    /// Exports BAI roads as ribbon meshes. Absolute world coordinates.
     /// </summary>
     private static (int roads, int nodes) ExportRoads(WorldTemplate world, Vector3 center, float radius, string exportDir)
     {
         var sb = new StringBuilder(512 * 1024);
         sb.AppendLine("# AAEmu BAI Roads");
-        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-        sb.AppendLine("# Centered at origin, Y-up (OBJ standard)");
+        sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Absolute world coordinates, Y-up");
         sb.AppendLine();
 
         var roadCount = 0;
@@ -425,7 +412,6 @@ public class ExportMesh : ICommand
                         if (road.RoadNodeList.Count < 2)
                             continue;
 
-                        // Check if any node is within radius
                         var inRange = false;
                         foreach (var node in road.RoadNodeList)
                         {
@@ -442,14 +428,12 @@ public class ExportMesh : ICommand
                         sb.AppendLine($"# Road: {road.Name} ({road.RoadNodeList.Count} nodes)");
                         var baseIdx = vertIndex + 1;
 
-                        // Generate left/right vertices for each node
                         for (var i = 0; i < road.RoadNodeList.Count; i++)
                         {
                             var node = road.RoadNodeList[i];
                             var halfW = (float)(node.Width * 0.5);
                             if (halfW < 0.1f) halfW = 1f;
 
-                            // Direction perpendicular to road
                             Vector3 perp;
                             if (i < road.RoadNodeList.Count - 1)
                             {
@@ -467,19 +451,17 @@ public class ExportMesh : ICommand
                             var left = node.Pos + perp;
                             var right = node.Pos - perp;
 
-                            // Y-up: game X→X, game Z→Y (height), game Y→Z
-                            sb.AppendLine(FormatVertex(left.X - center.X, left.Z - center.Z, left.Y - center.Y));
-                            sb.AppendLine(FormatVertex(right.X - center.X, right.Z - center.Z, right.Y - center.Y));
+                            sb.AppendLine(FmtV(left.X, left.Z, left.Y));
+                            sb.AppendLine(FmtV(right.X, right.Z, right.Y));
                             vertIndex += 2;
                         }
 
-                        // Generate quad faces between consecutive node pairs
                         for (var i = 0; i < road.RoadNodeList.Count - 1; i++)
                         {
-                            var i0 = baseIdx + i * 2;     // left current
-                            var i1 = i0 + 1;              // right current
-                            var i2 = i0 + 2;              // left next
-                            var i3 = i0 + 3;              // right next
+                            var i0 = baseIdx + i * 2;
+                            var i1 = i0 + 1;
+                            var i2 = i0 + 2;
+                            var i3 = i0 + 3;
                             sb.AppendLine($"f {i0} {i2} {i3} {i1}");
                         }
 
@@ -495,15 +477,15 @@ public class ExportMesh : ICommand
     }
 
     /// <summary>
-    /// Exports BAI flight navigation spans as vertical columns (box per span).
-    /// Each span has X, Y, MinZ, MaxZ defining a flight volume in the air.
+    /// Exports BAI flight navigation spans as vertical columns.
+    /// Absolute world coordinates.
     /// </summary>
     private static int ExportFlightSpans(WorldTemplate world, Vector3 center, float radius, string exportDir)
     {
         var sb = new StringBuilder(512 * 1024);
         sb.AppendLine("# AAEmu BAI Flight Navigation Spans");
-        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-        sb.AppendLine("# Centered at origin, Y-up (OBJ standard)");
+        sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Absolute world coordinates, Y-up");
         sb.AppendLine();
 
         var spanCount = 0;
@@ -539,27 +521,24 @@ public class ExportMesh : ICommand
 
                         var r = (float)span.MaxRadius;
                         if (r < 0.5f) r = 2f;
-                        var x = (float)(span.X - center.X);
-                        var z = (float)(span.Y - center.Y); // game Y → OBJ Z
-                        var yMin = (float)(span.MinZ - center.Z); // height → OBJ Y
-                        var yMax = (float)(span.MaxZ - center.Z);
+                        // Game coords → OBJ Y-up absolute
+                        var x = (float)span.X;
+                        var z = (float)span.Y;      // game Y → OBJ Z
+                        var yMin = (float)span.MinZ; // game Z → OBJ Y
+                        var yMax = (float)span.MaxZ;
 
-                        // 8-vertex box (bottom 4 + top 4)
                         var baseIdx = vertIndex + 1;
-                        sb.AppendLine(FormatVertex(x - r, yMin, z - r));
-                        sb.AppendLine(FormatVertex(x + r, yMin, z - r));
-                        sb.AppendLine(FormatVertex(x + r, yMin, z + r));
-                        sb.AppendLine(FormatVertex(x - r, yMin, z + r));
-                        sb.AppendLine(FormatVertex(x - r, yMax, z - r));
-                        sb.AppendLine(FormatVertex(x + r, yMax, z - r));
-                        sb.AppendLine(FormatVertex(x + r, yMax, z + r));
-                        sb.AppendLine(FormatVertex(x - r, yMax, z + r));
+                        sb.AppendLine(FmtV(x - r, yMin, z - r));
+                        sb.AppendLine(FmtV(x + r, yMin, z - r));
+                        sb.AppendLine(FmtV(x + r, yMin, z + r));
+                        sb.AppendLine(FmtV(x - r, yMin, z + r));
+                        sb.AppendLine(FmtV(x - r, yMax, z - r));
+                        sb.AppendLine(FmtV(x + r, yMax, z - r));
+                        sb.AppendLine(FmtV(x + r, yMax, z + r));
+                        sb.AppendLine(FmtV(x - r, yMax, z + r));
 
-                        // Bottom face
                         sb.AppendLine($"f {baseIdx} {baseIdx + 3} {baseIdx + 2} {baseIdx + 1}");
-                        // Top face
                         sb.AppendLine($"f {baseIdx + 4} {baseIdx + 5} {baseIdx + 6} {baseIdx + 7}");
-                        // Side faces
                         sb.AppendLine($"f {baseIdx} {baseIdx + 1} {baseIdx + 5} {baseIdx + 4}");
                         sb.AppendLine($"f {baseIdx + 1} {baseIdx + 2} {baseIdx + 6} {baseIdx + 5}");
                         sb.AppendLine($"f {baseIdx + 2} {baseIdx + 3} {baseIdx + 7} {baseIdx + 6}");
@@ -577,28 +556,24 @@ public class ExportMesh : ICommand
     }
 
     /// <summary>
-    /// Exports actual brush collision meshes (.cgf) as OBJ triangles.
-    /// Each brush is labeled with its .cgf model path so you can identify
-    /// stairs, ramps, platforms, etc. in Blender.
-    /// Uses LoadBrushMinimumSize=0 to include ALL brushes regardless of size.
+    /// Exports brush collision meshes (.cgf physics proxies) as OBJ triangles.
+    /// Uses the same transform as NavMeshManager (which produces correct navmesh).
+    /// Absolute world coordinates in DotRecast Y-up (= OBJ Y-up).
     /// </summary>
     private static (int brushes, int triangles) ExportBrushMeshes(WorldTemplate world, Vector3 center, float radius, string exportDir)
     {
         var sb = new StringBuilder(8 * 1024 * 1024);
         sb.AppendLine("# AAEmu Brush Collision Meshes (.cgf physics proxies)");
-        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-        sb.AppendLine("# Each 'g' group is a brush object with its .cgf model path");
-        sb.AppendLine("# Centered at origin, Y-up (OBJ standard)");
+        sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Absolute world coordinates, Y-up");
         sb.AppendLine();
 
         var brushCount = 0;
         var totalTriangles = 0;
         var vertIndex = 0;
         var radiusSq = radius * radius;
-        // Track processed brushes to deduplicate identical instances within object.dat
         var processedBrushes = new HashSet<(int pathId, int matrixHash)>();
 
-        // Find cells that overlap the radius
         var minCellX = Math.Max(0, (int)((center.X - radius) / WorldManager.CELL_SIZE));
         var maxCellX = Math.Min(world.CellX - 1, (int)((center.X + radius) / WorldManager.CELL_SIZE));
         var minCellY = Math.Max(0, (int)((center.Y - radius) / WorldManager.CELL_SIZE));
@@ -613,26 +588,28 @@ public class ExportMesh : ICommand
                 cell.VerifyCellLoaded();
 
                 if (cell.LoadedObjectDat == null || cell.StatObjsFiles == null || cell.MaterialListFiles == null)
-                {
-                    Logger.Warn($"[ExportMesh] Cell ({cellX},{cellY}): ObjectDat={cell.LoadedObjectDat != null}, StatObjs={cell.StatObjsFiles != null}, MatList={cell.MaterialListFiles != null}");
                     continue;
-                }
 
                 var cellOffsetX = (float)(cellX * WorldManager.CELL_SIZE);
                 var cellOffsetY = (float)(cellY * WorldManager.CELL_SIZE);
 
-                Logger.Info($"[ExportMesh] Cell ({cellX},{cellY}): {cell.LoadedObjectDat.PrefabsList.Count} prefabs, {cell.StatObjsFiles.MaterialList.Count} statobjs, {cell.MaterialListFiles.MaterialsList.Count} materials");
+                // Process both object.dat and visareas.dat brushes
+                var sources = new List<(IEnumerable<ObjectDataBase> prefabs, string tag)>
+                {
+                    (cell.LoadedObjectDat.PrefabsList, "brush")
+                };
+                if (cell.LoadedVisAreasDat != null)
+                    sources.Add((cell.LoadedVisAreasDat.PrefabsList, "visarea"));
 
-                foreach (var objectData in cell.LoadedObjectDat.PrefabsList)
+                foreach (var (prefabs, tag) in sources)
+                foreach (var objectData in prefabs)
                 {
                     if (objectData is not ObjectDataType1Brush brush)
                         continue;
 
-                    // Skip portal/occlusion volumes: M33≈0 means local Z is nearly horizontal
                     if (Math.Abs(brush.Matrix3X4.M33) < 0.1f)
                         continue;
 
-                    // Resolve paths
                     if (brush.PathId < 0 || brush.PathId >= cell.StatObjsFiles.MaterialList.Count)
                         continue;
                     if (brush.MaterialId < 0 || brush.MaterialId >= cell.MaterialListFiles.MaterialsList.Count)
@@ -644,7 +621,7 @@ public class ExportMesh : ICommand
                     if (modelPath == "game/objects/nodraw" || materialPath == "game/objects/nodraw")
                         continue;
 
-                    // Deduplicate: full matrix hash to catch same brush in object.dat + visareas.dat
+                    // Deduplicate
                     {
                         var bm = brush.Matrix3X4;
                         var h1 = HashCode.Combine(
@@ -660,7 +637,6 @@ public class ExportMesh : ICommand
                             continue;
                     }
 
-                    // Check if brush center is within radius (using world-space position)
                     var brushWorldX = cellOffsetX + brush.Matrix3X4.M14;
                     var brushWorldY = cellOffsetY + brush.Matrix3X4.M24;
                     var dx = brushWorldX - center.X;
@@ -668,54 +644,52 @@ public class ExportMesh : ICommand
                     if (dx * dx + dy * dy > radiusSq)
                         continue;
 
-                    // Load collision triangles (cached, in Jitter Y-up local model space)
                     var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath, out var usedPhysicsProxy);
                     if (triangles == null || triangles.Count == 0)
-                    {
-                        var exists = ClientFileManager.FileExists(modelPath);
-                        Logger.Warn($"[ExportMesh] brush_meshes: MakeModel returned empty for '{modelPath}' (exists in pak: {exists})");
                         continue;
-                    }
-
-                    // Only filter visual mesh fallbacks by triangle count — physics proxies always included.
                     var maxTris = AppConfiguration.Instance.World.LoadBrushMaxTriangles;
                     if (!usedPhysicsProxy && maxTris > 0 && triangles.Count > maxTris)
-                    {
-                        Logger.Warn($"[ExportMesh] SKIPPED visual mesh (>{maxTris} tris={triangles.Count}): {modelPath}");
                         continue;
-                    }
 
-                    // Build rotation matrix: CryEngine Z-up column-vector → DotRecast Y-up
-                    // v.X=lx, v.Y=lz, v.Z=ly (model verts are Y↔Z swapped)
+                    // Same rotation matrix as NavMeshManager.BuildTileFromCell
+                    // CryEngine Z-up column-vector → DotRecast/OBJ Y-up
+                    // Model verts from MakeModel are Y↔Z swapped: v.X=lx, v.Y=lz, v.Z=ly
                     var m = brush.Matrix3X4;
                     var r00 = m.M11; var r01 = m.M13; var r02 = m.M12;
                     var r10 = m.M31; var r11 = m.M33; var r12 = m.M32;
                     var r20 = m.M21; var r21 = m.M23; var r22 = m.M22;
 
-                    // Translation (Y-up): brushX=M14, brushY(height)=M34, brushZ(depth)=M24
+                    // Translation: DotRecast X=M14+cellX, Y(height)=M34, Z(depth)=M24+cellY
                     var tx = m.M14 + cellOffsetX;
                     var ty = m.M34;
                     var tz = m.M24 + cellOffsetY;
 
-                    var roughSize = Vector3.Distance(brush.StartPos, brush.EndPos);
-                    sb.AppendLine($"g brush_{brushCount}");
+                    sb.AppendLine($"g {tag}_{brushCount}");
                     sb.AppendLine($"# model: {modelPath}");
-                    sb.AppendLine($"# material: {materialPath}");
                     sb.AppendLine($"# world pos: ({brushWorldX:F1}, {brushWorldY:F1}, {brush.Matrix3X4.M34:F1})");
-                    sb.AppendLine($"# rough size: {roughSize:F1}");
 
-                    var baseIdx = vertIndex + 1; // OBJ 1-indexed
+                    var baseIdx = vertIndex + 1;
 
                     foreach (var tri in triangles)
                     {
-                        // Transform each vertex: world = rotation * local + translation
-                        // Then center on player position for OBJ
-                        WriteTransformedVertex(sb, tri.V0, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
-                        WriteTransformedVertex(sb, tri.V1, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
-                        WriteTransformedVertex(sb, tri.V2, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
+                        // Transform: world = rotation * local + translation
+                        // Output directly in DotRecast Y-up = OBJ Y-up absolute coords
+                        var wx0 = r00 * tri.V0.X + r01 * tri.V0.Y + r02 * tri.V0.Z + tx;
+                        var wy0 = r10 * tri.V0.X + r11 * tri.V0.Y + r12 * tri.V0.Z + ty;
+                        var wz0 = r20 * tri.V0.X + r21 * tri.V0.Y + r22 * tri.V0.Z + tz;
+                        sb.AppendLine(FmtV(wx0, wy0, wz0));
+
+                        var wx1 = r00 * tri.V1.X + r01 * tri.V1.Y + r02 * tri.V1.Z + tx;
+                        var wy1 = r10 * tri.V1.X + r11 * tri.V1.Y + r12 * tri.V1.Z + ty;
+                        var wz1 = r20 * tri.V1.X + r21 * tri.V1.Y + r22 * tri.V1.Z + tz;
+                        sb.AppendLine(FmtV(wx1, wy1, wz1));
+
+                        var wx2 = r00 * tri.V2.X + r01 * tri.V2.Y + r02 * tri.V2.Z + tx;
+                        var wy2 = r10 * tri.V2.X + r11 * tri.V2.Y + r12 * tri.V2.Z + ty;
+                        var wz2 = r20 * tri.V2.X + r21 * tri.V2.Y + r22 * tri.V2.Z + tz;
+                        sb.AppendLine(FmtV(wx2, wy2, wz2));
                     }
 
-                    // Write faces
                     for (var i = 0; i < triangles.Count; i++)
                     {
                         var fi = baseIdx + i * 3;
@@ -726,97 +700,6 @@ public class ExportMesh : ICommand
                     totalTriangles += triangles.Count;
                     brushCount++;
                 }
-
-                // Also export visareas brushes (interior floors, stairs not in object.dat).
-                // CryEngine portal volumes (M33≈0) are skipped — they are flat quads with 90° X-rotation.
-                if (cell.LoadedVisAreasDat != null)
-                {
-                    foreach (var objectData in cell.LoadedVisAreasDat.PrefabsList)
-                    {
-                        if (objectData is not ObjectDataType1Brush brush)
-                            continue;
-
-                        // Skip portal/occlusion volumes: M33≈0 means local Z is nearly horizontal
-                        if (Math.Abs(brush.Matrix3X4.M33) < 0.1f)
-                            continue;
-
-                        if (brush.PathId < 0 || brush.PathId >= cell.StatObjsFiles.MaterialList.Count)
-                            continue;
-                        if (brush.MaterialId < 0 || brush.MaterialId >= cell.MaterialListFiles.MaterialsList.Count)
-                            continue;
-
-                        var modelPath = cell.StatObjsFiles.MaterialList[brush.PathId];
-                        var materialPath = cell.MaterialListFiles.MaterialsList[brush.MaterialId];
-
-                        if (modelPath == "game/objects/nodraw" || materialPath == "game/objects/nodraw")
-                            continue;
-
-                        // Deduplicate: skip if already exported from object.dat
-                        {
-                            var bm = brush.Matrix3X4;
-                            var h1 = HashCode.Combine(
-                                BitConverter.SingleToInt32Bits(bm.M11), BitConverter.SingleToInt32Bits(bm.M12),
-                                BitConverter.SingleToInt32Bits(bm.M13), BitConverter.SingleToInt32Bits(bm.M14));
-                            var h2 = HashCode.Combine(h1,
-                                BitConverter.SingleToInt32Bits(bm.M21), BitConverter.SingleToInt32Bits(bm.M22),
-                                BitConverter.SingleToInt32Bits(bm.M23), BitConverter.SingleToInt32Bits(bm.M24));
-                            var h3 = HashCode.Combine(h2,
-                                BitConverter.SingleToInt32Bits(bm.M31), BitConverter.SingleToInt32Bits(bm.M32),
-                                BitConverter.SingleToInt32Bits(bm.M33), BitConverter.SingleToInt32Bits(bm.M34));
-                            if (!processedBrushes.Add((brush.PathId, h3)))
-                                continue;
-                        }
-
-                        var brushWorldX = cellOffsetX + brush.Matrix3X4.M14;
-                        var brushWorldY = cellOffsetY + brush.Matrix3X4.M24;
-                        var ddx = brushWorldX - center.X;
-                        var ddy = brushWorldY - center.Y;
-                        if (ddx * ddx + ddy * ddy > radiusSq)
-                            continue;
-
-                        var triangles = CryEngineModelHelper.MakeModel(modelPath, materialPath, out var usedPhysicsProxyV);
-                        if (triangles == null || triangles.Count == 0)
-                            continue;
-
-                        // Only filter visual mesh fallbacks
-                        var maxTrisV = AppConfiguration.Instance.World.LoadBrushMaxTriangles;
-                        if (!usedPhysicsProxyV && maxTrisV > 0 && triangles.Count > maxTrisV)
-                        {
-                            Logger.Warn($"[ExportMesh] SKIPPED visarea visual mesh (>{maxTrisV} tris={triangles.Count}): {modelPath}");
-                            continue;
-                        }
-
-                        var m = brush.Matrix3X4;
-                        var r00 = m.M11; var r01 = m.M13; var r02 = m.M12;
-                        var r10 = m.M31; var r11 = m.M33; var r12 = m.M32;
-                        var r20 = m.M21; var r21 = m.M23; var r22 = m.M22;
-
-                        var tx = m.M14 + cellOffsetX;
-                        var ty = m.M34;
-                        var tz = m.M24 + cellOffsetY;
-
-                        sb.AppendLine($"g visarea_brush_{brushCount}");
-                        sb.AppendLine($"# model: {modelPath} (visarea)");
-                        sb.AppendLine($"# world pos: ({brushWorldX:F1}, {brushWorldY:F1}, {brush.Matrix3X4.M34:F1})");
-
-                        var baseIdx = vertIndex + 1;
-                        foreach (var tri in triangles)
-                        {
-                            WriteTransformedVertex(sb, tri.V0, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
-                            WriteTransformedVertex(sb, tri.V1, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
-                            WriteTransformedVertex(sb, tri.V2, r00, r01, r02, r10, r11, r12, r20, r21, r22, tx, ty, tz, center);
-                        }
-                        for (var i = 0; i < triangles.Count; i++)
-                        {
-                            var fi = baseIdx + i * 3;
-                            sb.AppendLine($"f {fi} {fi + 1} {fi + 2}");
-                        }
-
-                        vertIndex += triangles.Count * 3;
-                        totalTriangles += triangles.Count;
-                        brushCount++;
-                    }
-                }
             }
         }
 
@@ -825,114 +708,65 @@ public class ExportMesh : ICommand
     }
 
     /// <summary>
-    /// Exports a CSV diagnostic of all brush instances within radius, showing source file,
-    /// model path, world position, matrix values, and rough size. Use this to identify
-    /// duplicate brushes within a single file or across object.dat / visareas.dat.
+    /// Exports the built navmesh surface (what the server actually uses for height/pathfinding).
+    /// Uses NavMeshManager.GetAllDetailTriangles() which returns game-coordinate triangles.
     /// </summary>
-    private static int ExportBrushDiagnostic(WorldTemplate world, Vector3 center, float radius, string exportDir)
+    private static int ExportNavMeshPolygons(Character character, Vector3 center, float radius, string exportDir)
     {
-        var csv = new StringBuilder(1024 * 1024);
-        csv.AppendLine("Source,CellX,CellY,PathId,ModelPath,WorldX,WorldY,WorldZ,RoughSize,M11,M12,M13,M14,M21,M22,M23,M24,M31,M32,M33,M34");
-
-        var count = 0;
-        var radiusSq = radius * radius;
-
-        var minCellX = Math.Max(0, (int)((center.X - radius) / WorldManager.CELL_SIZE));
-        var maxCellX = Math.Min(world.CellX - 1, (int)((center.X + radius) / WorldManager.CELL_SIZE));
-        var minCellY = Math.Max(0, (int)((center.Y - radius) / WorldManager.CELL_SIZE));
-        var maxCellY = Math.Min(world.CellY - 1, (int)((center.Y + radius) / WorldManager.CELL_SIZE));
-
-        for (var cellY = minCellY; cellY <= maxCellY; cellY++)
+        var worldInstance = character.ParentWorld;
+        if (worldInstance?.NavMesh == null || !worldInstance.NavMesh.HasData)
         {
-            for (var cellX = minCellX; cellX <= maxCellX; cellX++)
-            {
-                var cell = world.GetCell(cellX, cellY);
-                if (cell == null) continue;
-                cell.VerifyCellLoaded();
-
-                if (cell.StatObjsFiles == null || cell.MaterialListFiles == null)
-                    continue;
-
-                var cellOffsetX = (float)(cellX * WorldManager.CELL_SIZE);
-                var cellOffsetY = (float)(cellY * WorldManager.CELL_SIZE);
-
-                void DumpBrushes(IEnumerable<ObjectDataBase> prefabs, string source)
-                {
-                    foreach (var obj in prefabs)
-                    {
-                        if (obj is not ObjectDataType1Brush brush)
-                            continue;
-                        if (brush.PathId < 0 || brush.PathId >= cell.StatObjsFiles.MaterialList.Count)
-                            continue;
-
-                        var modelPath = cell.StatObjsFiles.MaterialList[brush.PathId];
-                        var wx = cellOffsetX + brush.Matrix3X4.M14;
-                        var wy = cellOffsetY + brush.Matrix3X4.M24;
-                        var wz = brush.Matrix3X4.M34;
-
-                        var ddx = wx - center.X;
-                        var ddy = wy - center.Y;
-                        if (ddx * ddx + ddy * ddy > radiusSq)
-                            continue;
-
-                        var roughSize = Vector3.Distance(brush.StartPos, brush.EndPos);
-                        var m = brush.Matrix3X4;
-                        csv.AppendLine(string.Join(",",
-                            source, cellX, cellY, brush.PathId,
-                            $"\"{modelPath}\"",
-                            $"{wx:F2}", $"{wy:F2}", $"{wz:F2}", $"{roughSize:F2}",
-                            $"{m.M11:F4}", $"{m.M12:F4}", $"{m.M13:F4}", $"{m.M14:F4}",
-                            $"{m.M21:F4}", $"{m.M22:F4}", $"{m.M23:F4}", $"{m.M24:F4}",
-                            $"{m.M31:F4}", $"{m.M32:F4}", $"{m.M33:F4}", $"{m.M34:F4}"));
-                        count++;
-                    }
-                }
-
-                if (cell.LoadedObjectDat != null)
-                    DumpBrushes(cell.LoadedObjectDat.PrefabsList, "object.dat");
-                if (cell.LoadedVisAreasDat != null)
-                    DumpBrushes(cell.LoadedVisAreasDat.PrefabsList, "visareas.dat");
-            }
+            File.WriteAllText(Path.Combine(exportDir, "navmesh.obj"), "# No navmesh data available\n");
+            return 0;
         }
 
-        File.WriteAllText(Path.Combine(exportDir, "brush_diagnostic.csv"), csv.ToString());
-        return count;
+        var sb = new StringBuilder(8 * 1024 * 1024);
+        sb.AppendLine("# AAEmu Built NavMesh Surface (server collision)");
+        sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Absolute world coordinates, Y-up");
+        sb.AppendLine();
+
+        var triCount = 0;
+        var vertIndex = 0;
+        var radiusSq = radius * radius;
+
+        var allTris = worldInstance.NavMesh.GetAllDetailTriangles();
+
+        foreach (var (v0, v1, v2, tileX, tileZ, tileLayer) in allTris)
+        {
+            // v0/v1/v2 are in game coords (X, Y, Z where Z=height)
+            // Check if triangle center is within radius
+            var cx = (v0.X + v1.X + v2.X) / 3f;
+            var cy = (v0.Y + v1.Y + v2.Y) / 3f;
+            var dx = cx - center.X;
+            var dy = cy - center.Y;
+            if (dx * dx + dy * dy > radiusSq)
+                continue;
+
+            var baseIdx = vertIndex + 1;
+            // Game X→OBJ X, game Z(height)→OBJ Y, game Y→OBJ Z
+            sb.AppendLine(FmtV(v0.X, v0.Z, v0.Y));
+            sb.AppendLine(FmtV(v1.X, v1.Z, v1.Y));
+            sb.AppendLine(FmtV(v2.X, v2.Z, v2.Y));
+            sb.AppendLine($"f {baseIdx} {baseIdx + 1} {baseIdx + 2}");
+
+            vertIndex += 3;
+            triCount++;
+        }
+
+        File.WriteAllText(Path.Combine(exportDir, "navmesh.obj"), sb.ToString());
+        return triCount;
     }
 
     /// <summary>
-    /// Transforms a JVector vertex by rotation matrix + translation, centers on player,
-    /// and writes to StringBuilder in OBJ format.
-    /// Output is in Y-up OBJ convention (already matching DotRecast/Jitter space).
-    /// </summary>
-    private static void WriteTransformedVertex(StringBuilder sb, JVector v,
-        float r00, float r01, float r02,
-        float r10, float r11, float r12,
-        float r20, float r21, float r22,
-        float tx, float ty, float tz,
-        Vector3 center)
-    {
-        // rotation * v + translation (all in Y-up space: X, Y=height, Z=depth)
-        var wx = r00 * v.X + r01 * v.Y + r02 * v.Z + tx;
-        var wy = r10 * v.X + r11 * v.Y + r12 * v.Z + ty;
-        var wz = r20 * v.X + r21 * v.Y + r22 * v.Z + tz;
-
-        // Center on player: DotRecast X=gameX, Y=gameZ(height), Z=gameY
-        // OBJ format uses the same Y-up convention
-        sb.AppendLine(FormatVertex(wx - center.X, wy - center.Z, wz - center.Y));
-    }
-
-    /// <summary>
-    /// Exports NPCs as small diamond markers in OBJ format for visualization.
-    /// Each NPC is a 6-vertex diamond (1m wide, 2m tall) at its world position,
-    /// labeled with ObjId, TemplateId, and AI name.
-    /// Also exports the player position as a separate marker.
+    /// Exports NPCs as diamond markers. Absolute world coordinates.
     /// </summary>
     private static int ExportNpcs(Character character, Vector3 center, float radius, string exportDir)
     {
         var sb = new StringBuilder(256 * 1024);
         sb.AppendLine("# AAEmu NPC Positions");
-        sb.AppendLine($"# Game Center: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
-        sb.AppendLine("# Each NPC is a diamond marker (6 verts, 8 faces)");
+        sb.AppendLine($"# Near: ({center.X:F1}, {center.Y:F1}, {center.Z:F1}) Radius: {radius}");
+        sb.AppendLine("# Absolute world coordinates, Y-up");
         sb.AppendLine();
 
         var npcCount = 0;
@@ -943,15 +777,14 @@ public class ExportMesh : ICommand
         if (world == null)
             goto writeFile;
 
-        // Export player position first
+        // Player marker
         {
             var pp = character.Transform.World.Position;
             sb.AppendLine($"g player_{character.Name}");
             sb.AppendLine($"# Player: {character.Name} at ({pp.X:F1}, {pp.Y:F1}, {pp.Z:F1})");
-            WriteDiamondMarker(sb, ref vertIndex, pp.X - center.X, pp.Z - center.Z, pp.Y - center.Y, 1.5f);
+            WriteDiamondMarker(sb, ref vertIndex, pp.X, pp.Z, pp.Y, 1.5f);
         }
 
-        // Export all NPCs within radius
         foreach (var npc in world.GetAllNpcs())
         {
             var npcPos = npc.Transform.World.Position;
@@ -965,8 +798,7 @@ public class ExportMesh : ICommand
             sb.AppendLine($"# NPC ObjId={npc.ObjId} TemplateId={npc.TemplateId} AI={aiName}");
             sb.AppendLine($"# Pos: ({npcPos.X:F1}, {npcPos.Y:F1}, {npcPos.Z:F1})");
 
-            // OBJ Y-up: game X→X, game Z(height)→Y, game Y→Z
-            WriteDiamondMarker(sb, ref vertIndex, npcPos.X - center.X, npcPos.Z - center.Z, npcPos.Y - center.Y, 1.0f);
+            WriteDiamondMarker(sb, ref vertIndex, npcPos.X, npcPos.Z, npcPos.Y, 1.0f);
             npcCount++;
         }
 
@@ -975,24 +807,18 @@ public class ExportMesh : ICommand
         return npcCount;
     }
 
-    /// <summary>
-    /// Writes a diamond marker (octahedron) at the given OBJ Y-up position.
-    /// 6 vertices (top, bottom, 4 cardinal), 8 triangular faces.
-    /// </summary>
     private static void WriteDiamondMarker(StringBuilder sb, ref int vertIndex, float x, float y, float z, float size)
     {
         var half = size * 0.5f;
-        var baseIdx = vertIndex + 1; // OBJ 1-indexed
+        var baseIdx = vertIndex + 1;
 
-        // 6 vertices: top, bottom, +X, -X, +Z, -Z
-        sb.AppendLine(FormatVertex(x, y + size, z));         // 0: top
-        sb.AppendLine(FormatVertex(x, y, z));                // 1: bottom
-        sb.AppendLine(FormatVertex(x + half, y + half, z));  // 2: +X
-        sb.AppendLine(FormatVertex(x - half, y + half, z));  // 3: -X
-        sb.AppendLine(FormatVertex(x, y + half, z + half));  // 4: +Z
-        sb.AppendLine(FormatVertex(x, y + half, z - half));  // 5: -Z
+        sb.AppendLine(FmtV(x, y + size, z));
+        sb.AppendLine(FmtV(x, y, z));
+        sb.AppendLine(FmtV(x + half, y + half, z));
+        sb.AppendLine(FmtV(x - half, y + half, z));
+        sb.AppendLine(FmtV(x, y + half, z + half));
+        sb.AppendLine(FmtV(x, y + half, z - half));
 
-        // 8 triangular faces (upper 4 + lower 4)
         sb.AppendLine($"f {baseIdx} {baseIdx + 2} {baseIdx + 4}");
         sb.AppendLine($"f {baseIdx} {baseIdx + 4} {baseIdx + 3}");
         sb.AppendLine($"f {baseIdx} {baseIdx + 3} {baseIdx + 5}");
@@ -1005,8 +831,6 @@ public class ExportMesh : ICommand
         vertIndex += 6;
     }
 
-    private static string FormatVertex(float x, float y, float z)
-    {
-        return $"v {x.ToString("F2", CultureInfo.InvariantCulture)} {y.ToString("F2", CultureInfo.InvariantCulture)} {z.ToString("F2", CultureInfo.InvariantCulture)}";
-    }
+    private static string FmtV(float x, float y, float z)
+        => $"v {(x - _cx).ToString("F2", CultureInfo.InvariantCulture)} {(y - _cy).ToString("F2", CultureInfo.InvariantCulture)} {(z - _cz).ToString("F2", CultureInfo.InvariantCulture)}";
 }

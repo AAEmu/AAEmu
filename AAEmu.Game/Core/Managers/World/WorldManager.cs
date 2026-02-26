@@ -574,14 +574,28 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             return true;
         }
 
+        // Parallel cell loading using all CPU cores.
+        var cellsToLoad = new List<WorldCell>();
         for (var cellY = 0; cellY < worldTemplate.CellY; cellY++)
-            for (var cellX = 0; cellX < worldTemplate.CellX; cellX++)
-            {
-                worldTemplate.Cells[cellX, cellY].VerifyCellLoaded();
-                //LoadCellHeightMapFromClientData(worldTemplate, cellX, cellY, version);
-            }
+        for (var cellX = 0; cellX < worldTemplate.CellX; cellX++)
+            cellsToLoad.Add(worldTemplate.Cells[cellX, cellY]);
 
-        Logger.Info($"{worldTemplate.Name} heightmap loaded");
+        var loaded = 0;
+        var total = cellsToLoad.Count;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        Parallel.ForEach(cellsToLoad,
+            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+            cell =>
+            {
+                cell.VerifyCellLoaded();
+                var done = Interlocked.Increment(ref loaded);
+                if (done % 50 == 0)
+                    Logger.Info($"PreLoadTerrain: {done}/{total} cells loaded ({sw.ElapsedMilliseconds / 1000}s)");
+            });
+
+        sw.Stop();
+        Logger.Info($"{worldTemplate.Name} heightmap loaded — {loaded} cells in {sw.ElapsedMilliseconds / 1000}s");
         return true;
     }
 

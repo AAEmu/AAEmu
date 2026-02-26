@@ -115,6 +115,14 @@ public class WorldConfig
     public bool LoadVisAreasBrushes { get; set; } = true;
 
     /// <summary>
+    /// When enabled, builds brush/voxel geometry into a separate navmesh layer (tileLayer=1)
+    /// instead of merging with BAI terrain (tileLayer=0). This allows NPCs to walk on
+    /// bridges/platforms without falling through to the terrain below.
+    /// Disable to revert to single-layer build for debugging.
+    /// </summary>
+    public bool NavMeshMultiLayer { get; set; } = true;
+
+    /// <summary>
     /// Maximum number of instances that can be created (includes system instances)
     /// </summary>
     public uint MaxInstances { get; set; } = 32;

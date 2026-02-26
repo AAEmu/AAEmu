@@ -96,6 +96,12 @@ public partial class Npc : Unit
     public bool CanFly { get; set; } // TODO: mark NPCs that can fly so that they don't land on the ground when calculating the Z height
 
     /// <summary>
+    /// Cached navmesh polygon reference for MoveAlongSurface optimization.
+    /// Reset to 0 on teleport/spawn to force re-query.
+    /// </summary>
+    public long NavMeshPolyRef { get; set; }
+
+    /// <summary>
     /// Tagging works differently to Aggro and has its own system
     /// </summary>
     public Tagging CharacterTagging { get; set; }
@@ -1340,26 +1346,106 @@ public partial class Npc : Unit
 
         if (!CanFly)
         {
-            // Always resolve Z from terrain/navmesh — never trust interpolated Z.
-            // A* provides the XY route; GetHeight provides the authoritative Z.
-            var currentZ = Transform.Local.Position.Z;
-            string heightSource = null;
-            float terrainZ;
-            if (TraceZ)
-            {
-                terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
-            }
-            else
-            {
-                terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
-            }
-            if (terrainZ > 0f)
-                newZ = terrainZ;
-            else
-                newZ = currentZ;
+            var currentPos = Transform.Local.Position;
+            var navMesh = ParentWorld?.NavMesh;
 
-            if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
-                Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
+            // Try MoveAlongSurface first — constrains entire movement (XY + Z) to navmesh surface.
+            // NPC slides along walls instead of clipping through them.
+            var polyRef = NavMeshPolyRef;
+            var constrained = navMesh?.MoveAlongSurface(
+                currentPos.X, currentPos.Y, currentPos.Z,
+                newX, newY, newZ, ref polyRef);
+
+            if (constrained.HasValue)
+            {
+                NavMeshPolyRef = polyRef;
+                newX = constrained.Value.X;
+                newY = constrained.Value.Y;
+                newZ = constrained.Value.Z;
+            }
+            else
+            {
+                // MoveAlongSurface failed — NPC is not on the navmesh.
+                // Like the client's GetFloorPos fallback: try building floor first
+                // (indoor entrance detection), then terrain heightmap.
+                NavMeshPolyRef = 0;
+
+                // Indoor: check if NPC is inside a building zone (by BuildingId)
+                var buildingZ = ParentWorld?.Template.GeoData?.GetBuildingFloorHeight(
+                    new Vector3(newX, newY, currentPos.Z)) ?? 0f;
+                if (buildingZ > 0f && MathF.Abs(currentPos.Z - buildingZ) < 5f)
+                {
+                    // Inside building — use building floor Z
+                    newZ = buildingZ;
+                }
+                else
+                {
+                    // Outdoor fallback: use terrain heightmap
+                    var hmZ = ParentWorld?.Template.GetHeight(newX, newY) ?? 0f;
+                    if (hmZ > 0f)
+                    {
+                        newZ = hmZ;
+                    }
+                    else
+                    {
+                        // No height data at all — don't move
+                        newX = currentPos.X;
+                        newY = currentPos.Y;
+                        newZ = currentPos.Z;
+                    }
+                }
+            }
+
+            // Heightmap floor guarantee: ensure NPC is never below terrain surface.
+            // The client's BeautifyPath uses GetTerrainElevation for all outdoor waypoints.
+            // NavMesh voxelization can produce Z slightly below terrain (cellHeight=0.2m).
+            try
+            {
+                var terrainZ = ParentWorld?.Template.GetHeight(newX, newY) ?? 0f;
+                if (terrainZ > 0f && newZ < terrainZ)
+                    newZ = terrainZ;
+            }
+            catch
+            {
+                // Heightmap not available — keep current Z
+            }
+
+            // Crowd control: prevent NPC stacking (like client's ai_CrowdControlInPathfind).
+            // Apply small repulsion from nearby NPCs so they spread out naturally.
+            const float separationRadius = 1.5f;
+            const float maxRepulsion = 0.3f;
+            var nearbyNpcs = WorldManager.GetAround<Npc>(this, separationRadius);
+            if (nearbyNpcs.Count > 0)
+            {
+                var repelX = 0f;
+                var repelY = 0f;
+                foreach (var nearby in nearbyNpcs)
+                {
+                    var dx = newX - nearby.Transform.Local.Position.X;
+                    var dy = newY - nearby.Transform.Local.Position.Y;
+                    var dist2D = MathF.Sqrt(dx * dx + dy * dy);
+                    if (dist2D < separationRadius && dist2D > 0.01f)
+                    {
+                        var strength = (separationRadius - dist2D) / separationRadius * maxRepulsion;
+                        repelX += dx / dist2D * strength;
+                        repelY += dy / dist2D * strength;
+                    }
+                }
+
+                if (MathF.Abs(repelX) > 0.01f || MathF.Abs(repelY) > 0.01f)
+                {
+                    newX += repelX;
+                    newY += repelY;
+                    // Re-apply floor guarantee after lateral offset
+                    try
+                    {
+                        var floorZ = ParentWorld?.Template.GetHeight(newX, newY) ?? 0f;
+                        if (floorZ > 0f && newZ < floorZ)
+                            newZ = floorZ;
+                    }
+                    catch { }
+                }
+            }
         }
         else
         {
@@ -1414,23 +1500,11 @@ public partial class Npc : Unit
 
     public void LookTowards(Vector3 other, byte flags = 4)
     {
-        var oldPosition = Transform.Local.ClonePosition();
-
-        if (!CanFly)
-        {
-            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
-            if (terrainZ > 0f)
-                oldPosition.Z = terrainZ;
-        }
-
-        Transform.Local.SetPosition(oldPosition);
-
+        // No Z re-resolution — current Z is authoritative from MoveTowards/spawn.
+        // Re-querying GetHeight here caused NPCs to snap to wrong navmesh layer.
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
         var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
-        //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
-
-        // TODO: Implement Transform.World to do proper movement
         Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
         var (rx, ry, rz) = Transform.Local.ToRollPitchYawSBytesMovement();
 
@@ -1454,24 +1528,12 @@ public partial class Npc : Unit
         moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
-        CheckMovedPosition(oldPosition);
-        //SetPosition(Position);
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
 
     public void StopMovement()
     {
-        var oldPosition = Transform.Local.ClonePosition();
-
-        if (!CanFly)
-        {
-            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
-            if (terrainZ > 0f)
-                oldPosition.Z = terrainZ;
-        }
-
-        Transform.Local.SetPosition(oldPosition);
-
+        // No Z re-resolution — current Z is authoritative from MoveTowards/spawn.
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
         moveType.X = Transform.Local.Position.X;
         moveType.Y = Transform.Local.Position.Y;
