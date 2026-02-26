@@ -1,7 +1,7 @@
 ﻿{
     "ClientData": {
         "Sources": [
-            "C:/Users/gutor/Documents/AAEmu/game_pak"
+            "/app/ClientData/game_pak"
         ]
     }
 }
