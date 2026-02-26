@@ -93,6 +93,8 @@ public class PathNode
                 var navPath = world.NavMesh.FindPath(start, goal);
                 if (navPath.Count > 0)
                 {
+                    navPath = world.NavMesh.BeautifyPath(navPath);
+                    ResolvePathHeight(world, navPath);
                     EndPointPos = goal;
                     Position = navPath[0];
                     CurrentTargetPos = Vector3.Zero;
@@ -108,6 +110,9 @@ public class PathNode
         if (baiPath.Count > 0)
         {
             var refined = RefinePathWithNavMesh(world, baiPath);
+            if (world.NavMesh?.HasData == true)
+                refined = world.NavMesh.BeautifyPath(refined);
+            ResolvePathHeight(world, refined);
             EndPointPos = goal;
             Position = refined[0];
             CurrentTargetPos = Vector3.Zero;
@@ -122,6 +127,8 @@ public class PathNode
             var navPath = world.NavMesh.FindPath(start, goal);
             if (navPath.Count > 0)
             {
+                navPath = world.NavMesh.BeautifyPath(navPath);
+                ResolvePathHeight(world, navPath);
                 EndPointPos = goal;
                 Position = navPath[0];
                 CurrentTargetPos = Vector3.Zero;
@@ -332,5 +339,50 @@ public class PathNode
         result.Reverse();
 
         return result;
+    }
+
+    /// <summary>
+    /// Resolves Z for each waypoint matching the client's height resolution pipeline:
+    /// - Outdoor: Z = terrain heightmap (client's BeautifyPath calls GetTerrainElevation)
+    /// - On structure: Z = navmesh height (when significantly above terrain = building/stairs)
+    /// - Indoor: Z = building floor height from BAI NavModifiers with BuildingId
+    /// Also ensures Z is never below terrain (floor guarantee).
+    /// </summary>
+    private static void ResolvePathHeight(WorldInstance world, List<Vector3> path)
+    {
+        for (var i = 0; i < path.Count; i++)
+        {
+            var wp = path[i];
+            try
+            {
+                var hmZ = world.Template.GetHeight(wp.X, wp.Y);
+                if (hmZ <= 0f)
+                    continue;
+
+                // Check if this waypoint is inside a building (indoor)
+                var buildingZ = world.Template.GeoData?.GetBuildingFloorHeight(wp) ?? 0f;
+                if (buildingZ > 0f && MathF.Abs(wp.Z - buildingZ) < 5f)
+                {
+                    // Indoor: use building floor Z from BAI NavModifiers
+                    path[i] = new Vector3(wp.X, wp.Y, buildingZ);
+                    continue;
+                }
+
+                // Check if waypoint is on an elevated structure (navmesh Z > terrain + 2m)
+                if (wp.Z > hmZ + 2f)
+                {
+                    // On structure (stairs, ramp, platform): keep navmesh Z
+                    // but ensure it's still above terrain
+                    continue;
+                }
+
+                // Outdoor: use terrain heightmap Z (like client's BeautifyPath)
+                path[i] = new Vector3(wp.X, wp.Y, hmZ);
+            }
+            catch
+            {
+                // Heightmap/GeoData not available — keep current Z
+            }
+        }
     }
 }

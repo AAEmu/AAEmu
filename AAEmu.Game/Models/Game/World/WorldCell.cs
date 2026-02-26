@@ -130,7 +130,7 @@ public class WorldCell
                 var pathBaiLoader = new BaseBaiLoader(Template);
                 pathBaiLoader.LoadBaiFilesFromFolder(pathFolder); // (x != 0 || y != 0)
                 BaiLoader[x, y] = pathBaiLoader;
-                Template.PathBaiLoader.Add((pathX, pathY), pathBaiLoader);
+                Template.PathBaiLoader.TryAdd((pathX, pathY), pathBaiLoader);
             }
         }
     }
@@ -139,37 +139,38 @@ public class WorldCell
     /// Checks if the cell is loaded and loads it if it hasn't 
     /// </summary>
     /// <returns></returns>
+    private readonly object _loadLock = new();
+
     public WorldCell VerifyCellLoaded()
     {
         if (Loaded)
             return this;
 
-        if (!Loading)
+        lock (_loadLock)
         {
-            Loading = true;
-            // Assign heightmap array
-            HeightMap = new ushort[WorldManager.CELL_HMAP_RESOLUTION, WorldManager.CELL_HMAP_RESOLUTION];
-            // Load data
-            LoadBaiFiles();
-            LoadObjectDat();
-            LoadEntitiesXml();
-            LoadCoverCtc();
-            Loaded = LoadCellHeightMapFromClientData();
-            Loading = false;
-
-            // Queue navmesh tile build (needs both heightmap + object.dat loaded)
             if (Loaded)
+                return this;
+
+            if (!Loading)
             {
-                foreach (var worldInstance in WorldManager.Instance.GetWorldsByTemplate(Template.Id).ToArray())
-                    worldInstance.NavMesh?.QueueBuildTile(this);
+                Loading = true;
+                HeightMap = new ushort[WorldManager.CELL_HMAP_RESOLUTION, WorldManager.CELL_HMAP_RESOLUTION];
+                LoadBaiFiles();
+                LoadObjectDat();
+                LoadEntitiesXml();
+                LoadCoverCtc();
+                Loaded = LoadCellHeightMapFromClientData();
+                Loading = false;
+
+                // Queue navmesh tile build (needs both heightmap + object.dat loaded)
+                if (Loaded)
+                {
+                    foreach (var worldInstance in WorldManager.Instance.GetWorldsByTemplate(Template.Id).ToArray())
+                        worldInstance.NavMesh?.QueueBuildTile(this);
+                }
             }
         }
-        else
-        {
-            // Another thread is loading this cell — wait for it to finish
-            while (Loading && !Loaded)
-                Thread.Sleep(50);
-        }
+
         return this;
     }
 
@@ -333,10 +334,6 @@ public class WorldCell
                 Logger.Error($"Error loading {visAreasDatFile}");
         }
 
-        // Extract brush bounding boxes (AABB index, fast pre-filter)
-        if (LoadedObjectDat != null)
-            ExtractBrushBounds(LoadedObjectDat);
-
         // Diagnostic: log what was loaded for this cell
         var statCount = StatObjsFiles?.MaterialList.Count ?? -1;
         var matCount = MaterialListFiles?.MaterialsList.Count ?? -1;
@@ -448,50 +445,4 @@ public class WorldCell
         }
     }
 
-    /// <summary>
-    /// Extracts AABB brush bounds from parsed object.dat and stores in WorldTemplate index.
-    /// </summary>
-    private void ExtractBrushBounds(ObjectsFile objectsFile)
-    {
-        var cellOffsetX = CellX * WorldManager.CELL_SIZE;
-        var cellOffsetY = CellY * WorldManager.CELL_SIZE;
-        var brushCount = 0;
-        const float MinBrushSize = 3f;
-
-        foreach (var prefab in objectsFile.PrefabsList)
-        {
-            if (prefab is not ObjectDataType1Brush brush)
-                continue;
-
-            var posX = cellOffsetX + brush.Matrix3X4.M14;
-            var posY = cellOffsetY + brush.Matrix3X4.M24;
-            var posZ = brush.Matrix3X4.M34;
-
-            var minX = posX + brush.StartPos.X;
-            var maxX = posX + brush.EndPos.X;
-            var minY = posY + brush.StartPos.Y;
-            var maxY = posY + brush.EndPos.Y;
-            var minZ = posZ + brush.StartPos.Z;
-            var maxZ = posZ + brush.EndPos.Z;
-
-            var sizeX = maxX - minX;
-            var sizeY = maxY - minY;
-            var sizeZ = maxZ - minZ;
-            if (sizeX < MinBrushSize && sizeY < MinBrushSize)
-                continue;
-            if (sizeZ < 1f)
-                continue;
-
-            Template.AddBrushBounds(new BrushBounds
-            {
-                MinX = minX, MaxX = maxX,
-                MinY = minY, MaxY = maxY,
-                MinZ = minZ, MaxZ = maxZ
-            });
-            brushCount++;
-        }
-
-        if (brushCount > 0)
-            Logger.Debug($"Loaded {brushCount} brush bounds from cell {CellX:000}_{CellY:000}");
-    }
 }

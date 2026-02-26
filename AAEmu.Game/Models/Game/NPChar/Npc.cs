@@ -1475,9 +1475,6 @@ public partial class Npc : Unit
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
         var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
-        //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
-
-        // TODO: Implement Transform.World to do proper movement
         Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
         var (rx, ry, rz) = Transform.Local.ToRollPitchYawSBytesMovement();
 
@@ -1501,8 +1498,6 @@ public partial class Npc : Unit
         moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
-        CheckMovedPosition(oldPosition);
-        //SetPosition(Position);
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
 

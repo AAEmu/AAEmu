@@ -3,7 +3,6 @@ using System.Numerics;
 
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.CryEngine;
-using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Objects;
 using AAEmu.Game.Models.Game.World;
 
@@ -13,15 +12,13 @@ using DotRecast.Detour;
 using DotRecast.Recast;
 using DotRecast.Recast.Geom;
 
-using Jitter2.LinearMath;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
 /// <summary>
 /// Per-WorldInstance navmesh manager. Builds DotRecast navmesh tiles from
-/// BAI type 2 terrain topology + brush collision mesh data, provides instant
+/// heightmap terrain + brush collision mesh data, provides instant
 /// height queries and A* pathfinding over the navmesh surface.
 /// </summary>
 public class NavMeshManager
@@ -32,6 +29,11 @@ public class NavMeshManager
     private DtNavMesh _navMesh;
     private DtNavMeshQuery _navQuery;
     private readonly IDtQueryFilter _filter = new DtQueryDefaultFilter();
+
+    // ReaderWriterLockSlim: queries (GetHeight, FindPath, Raycast) acquire read lock (concurrent),
+    // tile mutations (AddTile, RemoveTile, ImportNavMesh) acquire write lock (exclusive).
+    // This prevents AI tick freezes caused by navmesh build blocking height queries.
+    private readonly ReaderWriterLockSlim _navLock = new();
 
     private readonly WorldInstance _world;
     private readonly ConcurrentQueue<WorldCell> _buildQueue = new();
@@ -46,7 +48,7 @@ public class NavMeshManager
     private const float AgentMaxClimb = 1.0f;
     private const float AgentMaxSlope = 75.0f;  // raised from 50° — stairs/ramps in ArcheAge often exceed 50°
     private const int NavTileSize = 512;             // voxels per tile edge (512 * 0.5 = 256m per tile)
-    private const int MaxTiles = 4096;               // max tiles (16 tiles/cell × ~250 cells)
+    private const int MaxTiles = 8192;               // max tiles (16 tiles/cell × 2 layers × ~250 cells)
     private const int MaxPolysPerTile = 65535;
     private const int VertsPerPoly = 6;
 
@@ -57,10 +59,23 @@ public class NavMeshManager
     /// </summary>
     private const int TilesPerCellSide = WorldManager.CELL_SIZE / (int)(NavTileSize * NavCellSize); // 4
 
+    /// <summary>
+    /// True if the navmesh was loaded from a cached .bin file instead of built from geometry.
+    /// When true, QueueBuildTile is skipped (cache already has all tiles).
+    /// </summary>
+    public bool LoadedFromCache { get; private set; }
+
     public NavMeshManager(WorldInstance world)
     {
         _world = world;
         InitNavMesh();
+        TryLoadCache();
+
+        // If not loaded from cache, queue build for any cells already loaded by PreLoadTerrain.
+        // PreLoadTerrain runs before WorldInstance exists, so QueueBuildTile couldn't be called
+        // during cell loading. We catch up here.
+        if (!LoadedFromCache)
+            QueueAllLoadedCells();
     }
 
     private void InitNavMesh()
@@ -80,13 +95,98 @@ public class NavMeshManager
         _navQuery = new DtNavMeshQuery(_navMesh);
     }
 
+    /// <summary>
+    /// Returns the cache file path for this world's navmesh: Data/NavMesh/{worldName}.bin
+    /// </summary>
+    public string GetCachePath()
+    {
+        var worldName = _world.Template?.Name ?? $"world_{_world.Template?.Id}";
+        return Path.Combine(AAEmu.Commons.IO.FileManager.AppPath, "Data", "NavMesh", $"{worldName}.bin");
+    }
+
+    /// <summary>
+    /// Tries to load navmesh from cache file on disk. If successful, sets LoadedFromCache=true
+    /// and QueueBuildTile calls will be skipped.
+    /// </summary>
+    private void TryLoadCache()
+    {
+        var cachePath = GetCachePath();
+        if (!File.Exists(cachePath))
+            return;
+
+        try
+        {
+            if (ImportNavMesh(cachePath))
+            {
+                LoadedFromCache = true;
+                Logger.Info($"NavMesh: Loaded {TileCount} tiles from cache: {cachePath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, $"NavMesh: Failed to load cache from {cachePath}, will build from geometry");
+        }
+    }
+
+    /// <summary>
+    /// Saves the current navmesh to the cache file for automatic loading on next boot.
+    /// Creates the Data/NavMesh/ directory if it doesn't exist.
+    /// </summary>
+    public bool SaveCache()
+    {
+        var cachePath = GetCachePath();
+        var dir = Path.GetDirectoryName(cachePath);
+        if (dir != null)
+            Directory.CreateDirectory(dir);
+
+        return ExportNavMesh(cachePath);
+    }
+
     #region Build
 
     /// <summary>
+    /// Queues navmesh build for all cells that were already loaded (e.g., by PreLoadTerrain).
+    /// Called once during NavMeshManager construction to catch up on cells loaded before
+    /// the WorldInstance/NavMeshManager existed.
+    /// </summary>
+    private void QueueAllLoadedCells()
+    {
+        var template = _world.Template;
+        if (template == null)
+            return;
+
+        var count = 0;
+        for (var cy = 0; cy < template.CellY; cy++)
+        for (var cx = 0; cx < template.CellX; cx++)
+        {
+            var cell = template.Cells[cx, cy];
+            if (cell?.Loaded == true)
+            {
+                _buildQueue.Enqueue(cell);
+                count++;
+            }
+        }
+
+        if (count > 0)
+        {
+            Logger.Info($"NavMesh: Queued {count} pre-loaded cells for build");
+            lock (_buildLock)
+            {
+                if (_buildTask is null or { IsCompleted: true })
+                    _buildTask = Task.Run(ProcessBuildQueue);
+            }
+        }
+    }
+
+    /// <summary>
     /// Queue a cell for async navmesh tile building.
+    /// Skipped when navmesh was loaded from cache (all tiles already present).
     /// </summary>
     public void QueueBuildTile(WorldCell cell)
     {
+        if (LoadedFromCache)
+            return;
+
         _buildQueue.Enqueue(cell);
 
         lock (_buildLock)
@@ -97,6 +197,8 @@ public class NavMeshManager
         }
     }
 
+    private int _cellsBuiltSinceLastSave;
+
     private void ProcessBuildQueue()
     {
         while (_buildQueue.TryDequeue(out var cell))
@@ -104,78 +206,101 @@ public class NavMeshManager
             try
             {
                 BuildTileFromCell(cell);
+                _cellsBuiltSinceLastSave++;
+
+                // Auto-save navmesh cache every 200 cells to protect against crashes.
+                // The .bin is saved incrementally so progress is never lost.
+                if (_cellsBuiltSinceLastSave >= 200 && HasData)
+                {
+                    _cellsBuiltSinceLastSave = 0;
+                    try
+                    {
+                        SaveCache();
+                        Logger.Info($"NavMesh: Auto-saved cache ({TileCount} tiles)");
+                    }
+                    catch (Exception saveEx)
+                    {
+                        Logger.Warn(saveEx, "NavMesh: Auto-save failed");
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, $"Failed to build navmesh tile for cell ({cell.CellX}, {cell.CellY})");
             }
         }
+
+        // Final save after all cells are processed
+        if (HasData)
+        {
+            try
+            {
+                SaveCache();
+                Logger.Info($"NavMesh: Build complete — saved cache ({TileCount} tiles) to {GetCachePath()}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "NavMesh: Final auto-save failed");
+            }
+        }
     }
 
     /// <summary>
-    /// Builds navmesh tiles from a cell's BAI type 2 terrain + brush collision meshes.
+    /// Builds navmesh tiles from heightmap terrain + brush collision meshes + voxels.
     /// Each 1024m game cell produces 4x4 = 16 navmesh tiles (256m each).
-    /// BAI type 2 provides authored terrain topology; brush meshes provide full
-    /// building geometry (floors, stairs, walls). DotRecast determines walkability
-    /// via agent slope/height/climb parameters.
+    /// Heightmap provides complete terrain coverage as the ground surface;
+    /// brush meshes provide structural collision (building floors, walls, stair steps);
+    /// voxels provide terrain modifications (caves, cliffs).
+    /// In single-layer mode, heightmap quads under brush footprints are excluded
+    /// so brush mesh surfaces take priority (avoids dual-surface conflicts).
     /// </summary>
     private void BuildTileFromCell(WorldCell cell)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
+        var multiLayer = AppConfiguration.Instance.World.NavMeshMultiLayer;
 
-        // 1. Collect ALL geometry for this cell (BAI terrain + brushes)
-        var verts = new List<float>();
-        var faces = new List<int>();
+        // --- Layer 0: Heightmap terrain + brush meshes (combined) ---
+        var terrainVerts = new List<float>();
+        var terrainFaces = new List<int>();
 
-        AddBaiType2Triangles(cell, verts, faces);
+        // Feed both terrain and brushes into the same geometry — Recast voxelizes the
+        // combined mesh and determines the walkable surface naturally.
+        // No AABB filtering needed: heightmap is the actual ground, brushes add structure on top.
+        var terrainTriCount = AddHeightmapTriangles(cell, terrainVerts, terrainFaces);
 
-        // Add brush collision triangles from object.dat + visareas.dat.
-        // visareas.dat contains interior structural geometry (floors, stairs) not present in object.dat.
-        // CryEngine portal volumes inside visareas.dat have 90° X-rotation (M33≈0) and are skipped
-        // via the portalOrientation filter in AddBrushTriangles.
+        // --- Layer 1 (multi-layer) or merged (single-layer): Brush + voxel geometry ---
+        var brushVerts = new List<float>();
+        var brushFaces = new List<int>();
         var objBrushCount = 0;
         var visBrushCount = 0;
+        var voxelCount = 0;
+
         if (AppConfiguration.Instance.World.LoadBrushModels && cell.LoadedObjectDat != null)
         {
-            // Position-based dedup: quantize world position to 0.1m grid to catch
-            // float precision differences between object.dat and visareas.dat copies.
             HashSet<(int pathId, int px, int py, int pz)> processedBrushes = [];
-            objBrushCount = AddBrushTriangles(cell, cell.LoadedObjectDat.PrefabsList, verts, faces, processedBrushes);
+            var targetVerts = multiLayer ? brushVerts : terrainVerts;
+            var targetFaces = multiLayer ? brushFaces : terrainFaces;
+            objBrushCount = AddBrushTriangles(cell, cell.LoadedObjectDat.PrefabsList, targetVerts, targetFaces, processedBrushes);
             if (cell.LoadedVisAreasDat != null && AppConfiguration.Instance.World.LoadVisAreasBrushes)
-                visBrushCount = AddBrushTriangles(cell, cell.LoadedVisAreasDat.PrefabsList, verts, faces, processedBrushes);
+                visBrushCount = AddBrushTriangles(cell, cell.LoadedVisAreasDat.PrefabsList, targetVerts, targetFaces, processedBrushes);
         }
 
-        // Add voxel terrain mesh (Type 6) — carved caves, shaped cliffs, terrain modifications.
-        // Voxels contain embedded compressed mesh data that's already parsed by ObjectDataType6Voxel.
-        var voxelCount = 0;
         if (cell.LoadedObjectDat != null)
-            voxelCount = AddVoxelTriangles(cell, cell.LoadedObjectDat.PrefabsList, verts, faces);
+        {
+            var targetVerts = multiLayer ? brushVerts : terrainVerts;
+            var targetFaces = multiLayer ? brushFaces : terrainFaces;
+            voxelCount = AddVoxelTriangles(cell, cell.LoadedObjectDat.PrefabsList, targetVerts, targetFaces);
+        }
 
-        // NOTE: ForbiddenAreas are NOT added as navmesh walls here.
-        // They're handled by AiGeodataManager.LinePassesThroughForbiddenArea and
-        // CheckImpossibleWalk in the BAI A* system. Adding them as physical walls
-        // caused 20m barriers to block staircase geometry that was correctly built
-        // from brush collision meshes.
-
-        if (verts.Count == 0)
+        if (terrainVerts.Count == 0 && brushVerts.Count == 0)
         {
             Logger.Trace($"NavMesh: cell ({cell.CellX},{cell.CellY}) has no geometry, skipping");
             return;
         }
 
-        var vertArray = verts.ToArray();
-        var faceArray = faces.ToArray();
-        var inputVertCount = verts.Count / 3;
-        var inputTriCount = faces.Count / 3;
-
-        // 2. Create input geometry provider (shared across all sub-tiles)
-        var geom = new SimpleInputGeomProvider(vertArray, faceArray);
-        var bmin = geom.GetMeshBoundsMin();
-        var bmax = geom.GetMeshBoundsMax();
-
-        // 3. Build RcConfig (shared across all sub-tiles)
+        // --- Build config (shared across all tiles) ---
         var walkableAreaMod = new RcAreaModification(RcRecast.RC_WALKABLE_AREA);
-        var borderSize = (int)MathF.Ceiling(AgentRadius / NavCellSize);
+        var borderSize = (int)MathF.Ceiling(AgentRadius / NavCellSize) + 3;
 
         var cfg = new RcConfig(
             true,               // useTiles
@@ -189,7 +314,7 @@ public class NavMeshManager
             AgentHeight,        // agentHeight
             AgentRadius,        // agentRadius
             AgentMaxClimb,      // agentMaxClimb
-            2,                  // regionMinSize — lowered from 8: stair treads are small regions (~2-4 cells)
+            8,                  // regionMinSize — filters out tiny walkable patches on walls/ledges
             20,                 // regionMergeSize
             12.0f,              // edgeMaxLen
             1.3f,               // edgeMaxError
@@ -197,53 +322,83 @@ public class NavMeshManager
             6.0f,               // detailSampleDist
             1.0f,               // detailSampleMaxError
             true,               // filterLowHangingObstacles
-            false,              // filterLedgeSpans — disabled: stair treads have adjacent drops (outer edge) and
-                                //   would be filtered as "ledges". Building floors/stairs need this off so elevated
-                                //   surfaces with drop-offs remain walkable. Outdoor cliff edges are acceptable.
+            true,               // filterLedgeSpans — marks wall tops/ledges with steep drops as non-walkable
             true,               // filterWalkableLowHeightSpans
             walkableAreaMod,    // walkableAreaMod
             true                // buildMeshDetail
         );
 
-        // 4. Build 4x4 = 16 sub-tiles per cell
-        // Tile coordinates: baseTileX = cellX * 4, baseTileZ = cellY * 4
         var baseTileX = cell.CellX * TilesPerCellSide;
         var baseTileZ = cell.CellY * TilesPerCellSide;
         var totalPolys = 0;
         var totalVerts = 0;
         var tilesBuilt = 0;
 
-        for (var sz = 0; sz < TilesPerCellSide; sz++)
+        // --- Build layer 0 tiles (heightmap terrain + brushes in single-layer mode) ---
+        if (terrainVerts.Count > 0)
         {
+            var terrainGeom = new SimpleInputGeomProvider(terrainVerts.ToArray(), terrainFaces.ToArray());
+            var bmin0 = terrainGeom.GetMeshBoundsMin();
+
+            for (var sz = 0; sz < TilesPerCellSide; sz++)
             for (var sx = 0; sx < TilesPerCellSide; sx++)
             {
-                var tileX = baseTileX + sx;
-                var tileZ = baseTileZ + sz;
-
-                if (BuildSingleTile(geom, cfg, bmin, bmax, tileX, tileZ,
-                        out var polyCount, out var vertCount))
+                try
                 {
-                    totalPolys += polyCount;
-                    totalVerts += vertCount;
-                    tilesBuilt++;
+                    if (BuildSingleTile(terrainGeom, cfg, bmin0, baseTileX + sx, baseTileZ + sz, 0,
+                            out var pc, out var vc))
+                    {
+                        totalPolys += pc;
+                        totalVerts += vc;
+                        tilesBuilt++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"NavMesh: tile ({baseTileX + sx},{baseTileZ + sz}) L0 failed: {ex.Message}");
+                }
+            }
+        }
+
+        // --- Build layer 1 tiles (brush/voxel) — only if multi-layer AND geometry exists ---
+        if (multiLayer && brushVerts.Count > 0)
+        {
+            var brushGeom = new SimpleInputGeomProvider(brushVerts.ToArray(), brushFaces.ToArray());
+            var bmin1 = brushGeom.GetMeshBoundsMin();
+
+            for (var sz = 0; sz < TilesPerCellSide; sz++)
+            for (var sx = 0; sx < TilesPerCellSide; sx++)
+            {
+                try
+                {
+                    if (BuildSingleTile(brushGeom, cfg, bmin1, baseTileX + sx, baseTileZ + sz, 1,
+                            out var pc, out var vc))
+                    {
+                        totalPolys += pc;
+                        totalVerts += vc;
+                        tilesBuilt++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"NavMesh: tile ({baseTileX + sx},{baseTileZ + sz}) L1 failed: {ex.Message}");
                 }
             }
         }
 
         sw.Stop();
         Logger.Info($"NavMesh: Built cell ({cell.CellX},{cell.CellY}) — " +
-                    $"{tilesBuilt}/{TilesPerCellSide * TilesPerCellSide} tiles, " +
-                    $"{totalVerts} verts, {totalPolys} polys, " +
-                    $"{inputVertCount} input verts, {inputTriCount} input tris, " +
-                    $"brushes: obj={objBrushCount} vis={visBrushCount}, voxels={voxelCount} — " +
-                    $"{sw.ElapsedMilliseconds}ms");
+                    $"{tilesBuilt} tiles, {totalVerts} verts, {totalPolys} polys, " +
+                    $"terrain={terrainTriCount}, brushes: obj={objBrushCount} vis={visBrushCount}, voxels={voxelCount}" +
+                    $"{(multiLayer ? " [multi-layer]" : "")} — {sw.ElapsedMilliseconds}ms");
     }
 
     /// <summary>
-    /// Builds a single navmesh tile from the shared geometry provider.
+    /// Builds a single navmesh tile from the geometry provider.
+    /// tileLayer allows multiple tiles at the same (tileX, tileZ) for multi-floor support.
     /// </summary>
     private bool BuildSingleTile(SimpleInputGeomProvider geom, RcConfig cfg,
-        RcVec3f bmin, RcVec3f bmax, int tileX, int tileZ,
+        RcVec3f bmin, int tileX, int tileZ, int tileLayer,
         out int polyCount, out int vertCount)
     {
         polyCount = 0;
@@ -251,6 +406,7 @@ public class NavMeshManager
 
         // bmin must be world origin (0,0,0) for X/Z so that
         // RcBuilderConfig computes tile bounds as: origin + tileX * tileSize * cellSize.
+        var bmax = geom.GetMeshBoundsMax();
         var worldBmin = new RcVec3f(0f, bmin.Y, 0f);
         var bcfg = new RcBuilderConfig(cfg, worldBmin, bmax, tileX, tileZ);
         var builder = new RcBuilder();
@@ -290,7 +446,7 @@ public class NavMeshManager
             walkableClimb = AgentMaxClimb,
             tileX = tileX,
             tileZ = tileZ,
-            tileLayer = 0,
+            tileLayer = tileLayer,
             buildBvTree = true
         };
 
@@ -298,14 +454,16 @@ public class NavMeshManager
         if (meshData == null)
             return false;
 
-        // Add tile to navmesh (thread-safe via lock)
-        lock (_navMesh)
+        // Add tile to navmesh — write lock (exclusive, blocks queries briefly)
+        _navLock.EnterWriteLock();
+        try
         {
-            var existingRef = _navMesh.GetTileRefAt(tileX, 0, tileZ);
+            var existingRef = _navMesh.GetTileRefAt(tileX, tileZ, tileLayer);
             if (existingRef != 0)
                 _navMesh.RemoveTile(existingRef);
             _navMesh.AddTile(meshData, 0, 0, out _);
         }
+        finally { _navLock.ExitWriteLock(); }
 
         polyCount = pmesh.npolys;
         vertCount = pmesh.nverts;
@@ -313,65 +471,62 @@ public class NavMeshManager
     }
 
     /// <summary>
-    /// Extracts BAI type 2 (terrain topology) triangles from the cell's BAI data.
-    /// These are authored navmesh triangles from CryEngine that represent the walkable
-    /// terrain surface, replacing the raw heightmap grid.
-    /// Coordinates are in DotRecast Y-up: (gameX, gameZ_height, gameY).
+    /// Generates terrain mesh from the cell's heightmap and adds triangles to the vertex/face lists.
+    /// Provides complete ground coverage. Combined with brush meshes, Recast voxelizes
+    /// both and determines the walkable surface naturally.
+    /// Coordinates are in DotRecast Y-up: (gameX, height, gameY).
+    /// Returns the number of triangles added.
     /// </summary>
-    private static void AddBaiType2Triangles(WorldCell cell, List<float> verts, List<int> faces)
+    private static int AddHeightmapTriangles(WorldCell cell, List<float> verts, List<int> faces)
     {
-        // Deduplicate BAI loaders — zone-mode assigns the same loader to all 16 positions
-        var visitedLoaders = new HashSet<BaseBaiLoader>();
+        if (cell.HeightMap == null)
+            return 0;
 
-        for (var by = 0; by < 4; by++)
+        var cellOffsetX = (float)(cell.CellX * WorldManager.CELL_SIZE);
+        var cellOffsetY = (float)(cell.CellY * WorldManager.CELL_SIZE);
+        var coeff = cell.Template.HeightMaxCoefficient;
+        const int resolution = WorldManager.CELL_HMAP_RESOLUTION; // 512
+        const int stride = 2; // 2 heightmap pixels = 4m per quad
+        var gridW = resolution / stride + 1; // 257 vertices per side
+        var baseVertIndex = verts.Count / 3;
+        var count = 0;
+
+        // Add all grid vertices (shared between quads for efficiency)
+        for (var gy = 0; gy < gridW; gy++)
         {
-            for (var bx = 0; bx < 4; bx++)
+            var sy = Math.Min(gy * stride, resolution - 1);
+            var worldY = cellOffsetY + sy * 2f;
+
+            for (var gx = 0; gx < gridW; gx++)
             {
-                var baiLoader = cell.BaiLoader[bx, by];
-                if (baiLoader == null || !visitedLoaders.Add(baiLoader))
-                    continue;
+                var sx = Math.Min(gx * stride, resolution - 1);
+                var worldX = cellOffsetX + sx * 2f;
+                var height = (float)(cell.HeightMap[sx, sy] / coeff);
 
-                foreach (var netMission in baiLoader.NetMissionReaders)
-                {
-                    // Find matching VertexMission for vertex data (paired by ZoneId)
-                    var vertexMission = baiLoader.VertexMissionReaders
-                        .FirstOrDefault(v => v.ZoneId == netMission.ZoneId);
-
-                    if (vertexMission == null || vertexMission.ObstacleDataDescriptorList.Count == 0)
-                        continue;
-
-                    var obstacles = vertexMission.ObstacleDataDescriptorList;
-
-                    foreach (var (_, node) in netMission.NodeDescriptorList)
-                    {
-                        // Only type 2 = terrain/topology walkable surface
-                        if (node.Type != 2)
-                            continue;
-
-                        // Validate obstacle indices
-                        if (node.Obstacle.Length < 3 ||
-                            node.Obstacle[0] < 0 || node.Obstacle[0] >= obstacles.Count ||
-                            node.Obstacle[1] < 0 || node.Obstacle[1] >= obstacles.Count ||
-                            node.Obstacle[2] < 0 || node.Obstacle[2] >= obstacles.Count)
-                            continue;
-
-                        // Get triangle vertices (already in world coordinates — ReaderPointOffset pre-applied)
-                        var v0 = obstacles[node.Obstacle[0]].Pos;
-                        var v1 = obstacles[node.Obstacle[1]].Pos;
-                        var v2 = obstacles[node.Obstacle[2]].Pos;
-
-                        // Game (X, Y, Z) → DotRecast Y-up (X, Z_height, Y)
-                        var idx = verts.Count / 3;
-                        verts.Add(v0.X); verts.Add(v0.Z); verts.Add(v0.Y);
-                        verts.Add(v1.X); verts.Add(v1.Z); verts.Add(v1.Y);
-                        verts.Add(v2.X); verts.Add(v2.Z); verts.Add(v2.Y);
-                        faces.Add(idx);
-                        faces.Add(idx + 1);
-                        faces.Add(idx + 2);
-                    }
-                }
+                // DotRecast Y-up: (gameX, height, gameY)
+                verts.Add(worldX);
+                verts.Add(height);
+                verts.Add(worldY);
             }
         }
+
+        // Add quad faces (2 triangles per quad)
+        for (var gy = 0; gy < gridW - 1; gy++)
+        {
+            for (var gx = 0; gx < gridW - 1; gx++)
+            {
+                var i00 = baseVertIndex + gy * gridW + gx;
+                var i10 = i00 + 1;
+                var i01 = i00 + gridW;
+                var i11 = i01 + 1;
+
+                faces.Add(i00); faces.Add(i11); faces.Add(i10);
+                faces.Add(i00); faces.Add(i01); faces.Add(i11);
+                count += 2;
+            }
+        }
+
+        return count;
     }
 
     /// <summary>
@@ -436,14 +591,11 @@ public class NavMeshManager
             if (triangles == null || triangles.Count == 0)
                 continue;
 
-            // Only filter by triangle count for visual mesh fallbacks.
-            // Physics proxy geometry is intentional collision data — always include regardless of count.
+            // Physics proxy = real collision → always include.
+            // Visual mesh fallback = limit triangle count to avoid oversized decorative geometry.
             var maxTris = AppConfiguration.Instance.World.LoadBrushMaxTriangles;
             if (!usedPhysicsProxy && maxTris > 0 && triangles.Count > maxTris)
-            {
-                Logger.Trace($"[NavMesh] Skipping '{modelPath}' — visual mesh {triangles.Count} tris exceeds limit {maxTris}");
                 continue;
-            }
 
             // Build rotation matrix: CryEngine Z-up column-vector convention → DotRecast Y-up
             // CryEngine: wx = M11*lx + M12*ly + M13*lz, wy = M21*..., wz = M31*...
@@ -565,84 +717,6 @@ public class NavMeshManager
         return voxelCount;
     }
 
-    /// <summary>
-    /// Transforms a JVector vertex by rotation matrix + translation and appends to the vertex list.
-    /// </summary>
-    private static void AddTransformedVertex(List<float> verts, JVector v,
-        float r00, float r01, float r02,
-        float r10, float r11, float r12,
-        float r20, float r21, float r22,
-        float tx, float ty, float tz)
-    {
-        // rotation * v + translation (all in Y-up space)
-        verts.Add(r00 * v.X + r01 * v.Y + r02 * v.Z + tx);
-        verts.Add(r10 * v.X + r11 * v.Y + r12 * v.Z + ty);
-        verts.Add(r20 * v.X + r21 * v.Y + r22 * v.Z + tz);
-    }
-
-    /// <summary>
-    /// Adds tall vertical walls along the perimeter of each BAI forbidden area.
-    /// This prevents the navmesh from having walkable polygons crossing into forbidden zones.
-    /// NPCs will path around the walls instead of through the forbidden area.
-    /// </summary>
-    private static void AddForbiddenAreaWalls(WorldCell cell, List<float> verts, List<int> faces)
-    {
-        const float wallHeight = 20f; // tall enough to block any agent
-
-        // Iterate all BAI loaders in this cell (4x4 grid of path sectors)
-        foreach (var bai in cell.BaiLoader)
-        {
-            if (bai == null)
-                continue;
-
-            foreach (var areaMission in bai.AreasMissionReaders)
-            {
-                AddForbiddenWallsFromList(areaMission.ForbiddenAreasList, verts, faces, wallHeight);
-                AddForbiddenWallsFromList(areaMission.DesignerForbiddenAreasList, verts, faces, wallHeight);
-            }
-        }
-    }
-
-    private static void AddForbiddenWallsFromList(
-        List<Models.CryEngine.Mission.AiShape> areas,
-        List<float> verts, List<int> faces, float wallHeight)
-    {
-        foreach (var area in areas)
-        {
-            if (area.Points.Count < 3)
-                continue;
-
-            // Create vertical wall quads along each edge of the polygon
-            for (var i = 0; i < area.Points.Count; i++)
-            {
-                var p0 = area.Points[i];
-                var p1 = area.Points[(i + 1) % area.Points.Count];
-
-                // Base height: use the point's Z (ground level from BAI data)
-                var baseY0 = p0.Z;
-                var baseY1 = p1.Z;
-                var topY0 = baseY0 + wallHeight;
-                var topY1 = baseY1 + wallHeight;
-
-                // DotRecast Y-up: (gameX, gameZ_height, gameY)
-                var idx = verts.Count / 3;
-
-                // Bottom-left (p0 base)
-                verts.Add(p0.X); verts.Add(baseY0); verts.Add(p0.Y);
-                // Bottom-right (p1 base)
-                verts.Add(p1.X); verts.Add(baseY1); verts.Add(p1.Y);
-                // Top-right (p1 top)
-                verts.Add(p1.X); verts.Add(topY1); verts.Add(p1.Y);
-                // Top-left (p0 top)
-                verts.Add(p0.X); verts.Add(topY0); verts.Add(p0.Y);
-
-                // Two triangles for the quad
-                faces.Add(idx);     faces.Add(idx + 1); faces.Add(idx + 2);
-                faces.Add(idx);     faces.Add(idx + 2); faces.Add(idx + 3);
-            }
-        }
-    }
-
     #endregion Build
 
     #region Query
@@ -656,13 +730,11 @@ public class NavMeshManager
     /// <param name="z">Game world Z (height)</param>
     /// <summary>
     /// Maximum vertical distance between query Z and result Z for GetHeight.
-    /// NPCs are always within ~1m of their surface (Z is corrected every move step),
-    /// so 2m is sufficient to find the surface below without accidentally snapping
-    /// to a higher floor (e.g. 2nd floor 3-5m above the current position).
-    /// A larger value (e.g. 10m) caused NPCs to snap to the wrong floor in
-    /// multi-level buildings and fly over staircases.
+    /// With single-layer navmesh there's only ONE surface per XZ position — no risk
+    /// of snapping to the wrong floor. 10m allows finding the navmesh surface even
+    /// when the NPC spawns with an incorrect Z from the database.
     /// </summary>
-    private const float VerticalSearchExtent = 2.0f;
+    private const float VerticalSearchExtent = 5.0f;
 
     public float GetHeight(float x, float y, float z)
     {
@@ -673,32 +745,104 @@ public class NavMeshManager
         var pos = new RcVec3f(x, z, y);
         var extents = new RcVec3f(2f, VerticalSearchExtent, 2f);
 
-        lock (_navMesh)
+        _navLock.EnterReadLock();
+        try
         {
             var status = _navQuery.FindNearestPoly(pos, extents, _filter, out var nearestRef, out var nearestPt, out _);
             if (status.Failed() || nearestRef == 0)
                 return 0f;
 
-            // Prefer GetPolyHeight: interpolates from detail mesh vertices at the exact XZ
-            // position, which is more accurate than nearestPt.Y (quantized poly mesh).
-            // Falls back to nearestPt.Y if the query point is outside the polygon boundary.
-            float returnZ;
             if (_navQuery.GetPolyHeight(nearestRef, new RcVec3f(pos.X, nearestPt.Y, pos.Z), out var exactH).Succeeded()
                 && exactH > 0f)
-                returnZ = exactH;
-            else
-                returnZ = nearestPt.Y;
+                return exactH;
 
-            // Reject surfaces more than AgentMaxClimb (1m) above the query Z.
-            // Stair treads rise ~0.3m per step; 1m allows any single climbable step.
-            // This prevents an NPC on the ground floor from being snapped up to a
-            // higher floor (e.g. during combat when the player is on a platform above).
-            // Downward snapping is unrestricted — allows detecting ground below.
-            if (returnZ > pos.Y + AgentMaxClimb)
+            return nearestPt.Y;
+        }
+        finally { _navLock.ExitReadLock(); }
+    }
+
+    /// <summary>
+    /// Fast height query using a cached polygon reference. Avoids FindNearestPoly.
+    /// Returns the navmesh surface height (game Z), or 0 if the poly ref is invalid.
+    /// </summary>
+    public float GetHeightOnPoly(float x, float y, float z, long polyRef)
+    {
+        if (_navMesh == null || polyRef == 0)
+            return 0f;
+
+        _navLock.EnterReadLock();
+        try
+        {
+            if (!_navMesh.IsValidPolyRef(polyRef))
                 return 0f;
 
-            return returnZ;
+            // Game → DotRecast Y-up
+            var pos = new RcVec3f(x, z, y);
+            if (_navQuery.GetPolyHeight(polyRef, pos, out var h).Succeeded() && h > 0f)
+                return h; // DotRecast Y = game Z (height)
+
+            return 0f;
         }
+        finally { _navLock.ExitReadLock(); }
+    }
+
+    /// <summary>
+    /// Moves from start toward end constrained to the navmesh surface.
+    /// The movement slides along walls instead of clipping through them.
+    /// Returns the constrained position in game coords, or null if not on navmesh.
+    /// If polyRef is provided (non-zero), uses it as the starting polygon (avoids FindNearestPoly).
+    /// On success, updates polyRef to the polygon the agent ended up on.
+    /// </summary>
+    public Vector3? MoveAlongSurface(float startX, float startY, float startZ,
+        float endX, float endY, float endZ, ref long polyRef)
+    {
+        if (_navMesh == null)
+            return null;
+
+        // Game → DotRecast Y-up
+        var startPos = new RcVec3f(startX, startZ, startY);
+        var endPos = new RcVec3f(endX, endZ, endY);
+
+        _navLock.EnterReadLock();
+        try
+        {
+            var startRef = polyRef;
+
+            // If no cached poly ref, find it
+            if (startRef == 0 || !_navMesh.IsValidPolyRef(startRef))
+            {
+                var extents = new RcVec3f(2f, VerticalSearchExtent, 2f);
+                var status = _navQuery.FindNearestPoly(startPos, extents, _filter,
+                    out startRef, out var snappedPos, out _);
+                if (status.Failed() || startRef == 0)
+                    return null;
+
+                // Use the snapped position as start (on the navmesh surface)
+                startPos = snappedPos;
+            }
+
+            // Move constrained to navmesh surface
+            Span<long> visited = stackalloc long[16];
+            var moveStatus = _navQuery.MoveAlongSurface(startRef, startPos, endPos, _filter,
+                out var resultPos, visited, out var visitedCount, 16);
+
+            if (moveStatus.Failed())
+                return null;
+
+            // Update cached poly ref to the last polygon visited
+            if (visitedCount > 0)
+                polyRef = visited[visitedCount - 1];
+            else
+                polyRef = startRef;
+
+            // Get exact height on the result polygon
+            if (_navQuery.GetPolyHeight(polyRef, resultPos, out var exactH).Succeeded() && exactH > 0f)
+                resultPos = new RcVec3f(resultPos.X, exactH, resultPos.Z);
+
+            // DotRecast Y-up → game: X=X, Y=Z, Z=Y(height)
+            return new Vector3(resultPos.X, resultPos.Z, resultPos.Y);
+        }
+        finally { _navLock.ExitReadLock(); }
     }
 
     /// <summary>
@@ -714,9 +858,10 @@ public class NavMeshManager
         // Game → DotRecast Y-up
         var startPos = new RcVec3f(start.X, start.Z, start.Y);
         var endPos = new RcVec3f(end.X, end.Z, end.Y);
-        var extents = new RcVec3f(5f, 10f, 5f);
+        var extents = new RcVec3f(5f, VerticalSearchExtent, 5f);
 
-        lock (_navMesh)
+        _navLock.EnterReadLock();
+        try
         {
             _navQuery.FindNearestPoly(startPos, extents, _filter, out var startRef, out _, out _);
             _navQuery.FindNearestPoly(endPos, extents, _filter, out var endRef, out _, out _);
@@ -724,7 +869,6 @@ public class NavMeshManager
             if (startRef == 0 || endRef == 0)
                 return result;
 
-            // Find polygon path
             var path = new long[256];
             _navQuery.FindPath(startRef, endRef, startPos, endPos, _filter,
                 path.AsSpan(), out var pathCount, path.Length);
@@ -732,17 +876,51 @@ public class NavMeshManager
             if (pathCount <= 0)
                 return result;
 
-            // Find straight path (actual waypoints with correct Z)
             var straightPath = new DtStraightPath[256];
             _navQuery.FindStraightPath(startPos, endPos, path.AsSpan(0, pathCount),
                 pathCount, straightPath.AsSpan(), out var straightPathCount, 256, 0);
 
-            // Convert DotRecast Y-up → game coords
             for (var i = 0; i < straightPathCount; i++)
             {
                 var p = straightPath[i].pos;
-                result.Add(new Vector3(p.X, p.Z, p.Y)); // game(X, Y, Z) = RC(X, Z, Y)
+                result.Add(new Vector3(p.X, p.Z, p.Y));
             }
+        }
+        finally { _navLock.ExitReadLock(); }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Smooths a path by removing unnecessary waypoints using navmesh raycasts.
+    /// Equivalent to the client's BeautifyPath unbending: for each waypoint, tries to
+    /// shortcut to the farthest reachable waypoint via clear line of sight on navmesh.
+    /// This produces shorter, more natural paths (like the client's triangle-edge unbending).
+    /// </summary>
+    public List<Vector3> BeautifyPath(List<Vector3> path)
+    {
+        if (path.Count <= 2 || _navMesh == null)
+            return path;
+
+        var result = new List<Vector3> { path[0] };
+        var current = 0;
+
+        while (current < path.Count - 1)
+        {
+            // Try to shortcut as far ahead as possible (greedy)
+            var farthest = current + 1;
+
+            for (var ahead = path.Count - 1; ahead > current + 1; ahead--)
+            {
+                if (Raycast(path[current], path[ahead]))
+                {
+                    farthest = ahead;
+                    break;
+                }
+            }
+
+            result.Add(path[farthest]);
+            current = farthest;
         }
 
         return result;
@@ -774,19 +952,20 @@ public class NavMeshManager
         var endPos = new RcVec3f(end.X, end.Z, end.Y);
         var extents = new RcVec3f(5f, VerticalSearchExtent, 5f);
 
-        lock (_navMesh)
+        _navLock.EnterReadLock();
+        try
         {
             var status = _navQuery.FindNearestPoly(startPos, extents, _filter, out var startRef, out _, out _);
             if (status.Failed() || startRef == 0)
-                return false; // no navmesh data here — caller should use fallback
+                return false;
 
             var path = new long[256];
             _navQuery.Raycast(startRef, startPos, endPos, _filter, out var t, out _, path.AsSpan(), out _, path.Length);
 
-            // t >= 1.0 means the ray reached the end position (no wall hit)
             clear = t >= 1.0f;
-            return true; // navmesh answered — result is reliable
+            return true;
         }
+        finally { _navLock.ExitReadLock(); }
     }
 
     /// <summary>
@@ -798,7 +977,8 @@ public class NavMeshManager
         {
             if (_navMesh == null) return 0;
             var count = 0;
-            lock (_navMesh)
+            _navLock.EnterReadLock();
+            try
             {
                 for (var i = 0; i < _navMesh.GetMaxTiles(); i++)
                 {
@@ -807,6 +987,7 @@ public class NavMeshManager
                         count++;
                 }
             }
+            finally { _navLock.ExitReadLock(); }
             return count;
         }
     }
@@ -821,13 +1002,14 @@ public class NavMeshManager
     /// Each triangle is returned as 3 Vector3 in game space (X, Y, Z where Z=height).
     /// tileX/tileZ identify which navmesh tile the triangle belongs to.
     /// </summary>
-    public List<(Vector3 v0, Vector3 v1, Vector3 v2, int tileX, int tileZ)> GetAllDetailTriangles()
+    public List<(Vector3 v0, Vector3 v1, Vector3 v2, int tileX, int tileZ, int tileLayer)> GetAllDetailTriangles()
     {
-        var result = new List<(Vector3, Vector3, Vector3, int, int)>();
+        var result = new List<(Vector3, Vector3, Vector3, int, int, int)>();
         if (_navMesh == null)
             return result;
 
-        lock (_navMesh)
+        _navLock.EnterReadLock();
+        try
         {
             for (var i = 0; i < _navMesh.GetMaxTiles(); i++)
             {
@@ -877,7 +1059,7 @@ public class NavMeshManager
                                 triVerts[m] = new Vector3(vx, vz, vy);
                             }
 
-                            result.Add((triVerts[0], triVerts[1], triVerts[2], header.x, header.y));
+                            result.Add((triVerts[0], triVerts[1], triVerts[2], header.x, header.y, header.layer));
                         }
                     }
                 }
@@ -909,15 +1091,143 @@ public class NavMeshManager
                                 meshData.verts[v2Idx + 2],
                                 meshData.verts[v2Idx + 1]);
 
-                            result.Add((v0, v1, v2, header.x, header.y));
+                            result.Add((v0, v1, v2, header.x, header.y, header.layer));
                         }
                     }
                 }
             }
         }
+        finally { _navLock.ExitReadLock(); }
 
         return result;
     }
 
+    /// <summary>
+    /// Returns navmesh polygon edges near a position in game-space coordinates.
+    /// Boundary edges (no neighbor) and internal edges are separated for different visualization.
+    /// </summary>
+    public (List<(Vector3 a, Vector3 b)> boundary, List<(Vector3 a, Vector3 b)> inner)
+        GetPolygonEdgesNear(float x, float y, float z, float radius)
+    {
+        var boundary = new List<(Vector3, Vector3)>();
+        var inner = new List<(Vector3, Vector3)>();
+        if (_navMesh == null) return (boundary, inner);
+
+        var radiusSq = radius * radius;
+
+        _navLock.EnterReadLock();
+        try
+        {
+            for (var i = 0; i < _navMesh.GetMaxTiles(); i++)
+            {
+                var tile = _navMesh.GetTile(i);
+                if (tile?.data == null) continue;
+
+                var header = tile.data.header;
+                // Quick tile AABB reject (DotRecast Y-up: bmin/bmax)
+                // Convert game pos to DotRecast to compare with tile bounds
+                var tileCenterX = (header.bmin.X + header.bmax.X) * 0.5f;
+                var tileCenterZ = (header.bmin.Z + header.bmax.Z) * 0.5f;
+                var tileHalfX = (header.bmax.X - header.bmin.X) * 0.5f + radius;
+                var tileHalfZ = (header.bmax.Z - header.bmin.Z) * 0.5f + radius;
+                if (MathF.Abs(x - tileCenterX) > tileHalfX || MathF.Abs(y - tileCenterZ) > tileHalfZ)
+                    continue;
+
+                for (var j = 0; j < header.polyCount; j++)
+                {
+                    var poly = tile.data.polys[j];
+                    if (poly.GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
+                        continue;
+
+                    for (var k = 0; k < poly.vertCount; k++)
+                    {
+                        var k2 = (k + 1) % poly.vertCount;
+                        var idx0 = poly.verts[k] * 3;
+                        var idx1 = poly.verts[k2] * 3;
+
+                        // DotRecast Y-up verts → game coords: X=X, Y=Z, Z=Y
+                        var a = new Vector3(
+                            tile.data.verts[idx0],
+                            tile.data.verts[idx0 + 2],
+                            tile.data.verts[idx0 + 1]);
+                        var b = new Vector3(
+                            tile.data.verts[idx1],
+                            tile.data.verts[idx1 + 2],
+                            tile.data.verts[idx1 + 1]);
+
+                        // Check midpoint distance to player
+                        var mx = (a.X + b.X) * 0.5f - x;
+                        var my = (a.Y + b.Y) * 0.5f - y;
+                        if (mx * mx + my * my > radiusSq) continue;
+
+                        var isBoundary = poly.neis[k] == 0;
+                        if (isBoundary)
+                            boundary.Add((a, b));
+                        else
+                            inner.Add((a, b));
+                    }
+                }
+            }
+        }
+        finally { _navLock.ExitReadLock(); }
+
+        return (boundary, inner);
+    }
+
     #endregion Query
+
+    #region Serialization
+
+    /// <summary>
+    /// Exports the built navmesh to a binary file using DotRecast's native format.
+    /// The file can be loaded back via ImportNavMesh, or opened in Recast demo tools.
+    /// </summary>
+    public bool ExportNavMesh(string filePath)
+    {
+        if (_navMesh == null || !HasData)
+            return false;
+
+        _navLock.EnterReadLock();
+        try
+        {
+            using var fs = File.Create(filePath);
+            using var writer = new BinaryWriter(fs);
+            var meshWriter = new DotRecast.Detour.Io.DtMeshSetWriter();
+            meshWriter.Write(writer, _navMesh, RcByteOrder.LITTLE_ENDIAN, true);
+        }
+        finally { _navLock.ExitReadLock(); }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Imports a navmesh from a binary file, replacing the current navmesh entirely.
+    /// The file must be in DotRecast/Recast Navigation binary format.
+    /// </summary>
+    public bool ImportNavMesh(string filePath)
+    {
+        if (!File.Exists(filePath))
+            return false;
+
+        using var fs = File.OpenRead(filePath);
+        using var reader = new BinaryReader(fs);
+        var meshReader = new DotRecast.Detour.Io.DtMeshSetReader();
+        var loadedMesh = meshReader.Read(reader, VertsPerPoly);
+
+        if (loadedMesh == null)
+            return false;
+
+        _navLock.EnterWriteLock();
+        try
+        {
+            _navMesh = loadedMesh;
+            _navQuery = new DtNavMeshQuery(_navMesh);
+        }
+        finally { _navLock.ExitWriteLock(); }
+
+        Logger.Info($"NavMesh: Imported {TileCount} tiles from {filePath}");
+        return true;
+    }
+
+    #endregion Serialization
 }

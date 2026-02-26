@@ -95,19 +95,7 @@ $"CustomFloorZone: |cFF00FF00{customZ:F2}|r" +
                 (customZ > 0f ? " (HIT)" : " (miss)"));
         }
 
-        // 1c. Brush bounding box floor (from object.dat AABB)
-        if (world != null)
-        {
-            var brushZ = world.GetBrushFloorHeight(pos.X, pos.Y, pos.Z);
-            Log(messageOutput,
-$"BrushFloor (AABB): |cFF00FF00{brushZ:F2}|r" +
-                (brushZ > 0f ? " (HIT)" : " (miss)"));
-
-            Log(messageOutput,
-$"Total brush bounds in world: {world.BrushBoundsCount}");
-        }
-
-        // 1d. NavMesh height query
+        // 1c. NavMesh height query
         var worldInstance = character.ParentWorld;
         if (worldInstance?.NavMesh != null)
         {

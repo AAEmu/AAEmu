@@ -574,14 +574,28 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             return true;
         }
 
+        // Parallel cell loading using all CPU cores.
+        var cellsToLoad = new List<WorldCell>();
         for (var cellY = 0; cellY < worldTemplate.CellY; cellY++)
-            for (var cellX = 0; cellX < worldTemplate.CellX; cellX++)
-            {
-                worldTemplate.Cells[cellX, cellY].VerifyCellLoaded();
-                //LoadCellHeightMapFromClientData(worldTemplate, cellX, cellY, version);
-            }
+        for (var cellX = 0; cellX < worldTemplate.CellX; cellX++)
+            cellsToLoad.Add(worldTemplate.Cells[cellX, cellY]);
 
-        Logger.Info($"{worldTemplate.Name} heightmap loaded");
+        var loaded = 0;
+        var total = cellsToLoad.Count;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        Parallel.ForEach(cellsToLoad,
+            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+            cell =>
+            {
+                cell.VerifyCellLoaded();
+                var done = Interlocked.Increment(ref loaded);
+                if (done % 50 == 0)
+                    Logger.Info($"PreLoadTerrain: {done}/{total} cells loaded ({sw.ElapsedMilliseconds / 1000}s)");
+            });
+
+        sw.Stop();
+        Logger.Info($"{worldTemplate.Name} heightmap loaded — {loaded} cells in {sw.ElapsedMilliseconds / 1000}s");
         return true;
     }
 
@@ -716,39 +730,31 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
         if (world == null)
             return 0f;
 
-        // 1. Merged NavMesh + GeoData — query both, pick closest to current Z.
-        //    NavMesh (DotRecast): terrain + brush collision meshes = best for cities/buildings.
-        //    GeoData (BAI type 2): authored terrain with multi-layer Z = best for bridges/docks.
-        //    When both answer, the one closest to the NPC's current Z wins.
+        // 1. NavMesh first — most accurate (built from actual geometry: BAI + brush + voxel).
+        //    Previously merged with GeoData via "closest to current Z", but this caused
+        //    NPCs to stay at ground level near stairs: GeoData's ground-level BAI nodes
+        //    were always closer to NPC's current Z than the navmesh's elevated surface,
+        //    creating a feedback loop where the NPC could never climb.
         var navMeshZ = 0f;
         var worldInstances = GetWorldsByTemplate(world.Id);
         if (worldInstances.Count > 0)
             navMeshZ = worldInstances[0].NavMesh?.GetHeight(x, y, z) ?? 0f;
 
-        var geoDataZ = 0f;
-        if (AppConfiguration.Instance.World.GeoDataMode)
-            geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
-
-        if (navMeshZ > 0f && geoDataZ > 0f)
-        {
-            // Both sources answered — pick the one closest to current Z
-            if (MathF.Abs(navMeshZ - z) <= MathF.Abs(geoDataZ - z))
-            {
-                source = "NavMesh";
-                return navMeshZ;
-            }
-            source = "GeoData";
-            return geoDataZ;
-        }
         if (navMeshZ > 0f)
         {
             source = "NavMesh";
             return navMeshZ;
         }
-        if (geoDataZ > 0f)
+
+        // 2. GeoData fallback — for areas without navmesh coverage
+        if (AppConfiguration.Instance.World.GeoDataMode)
         {
-            source = "GeoData";
-            return geoDataZ;
+            var geoDataZ = world.GeoData?.GetHeight(new Vector3(x, y, z)) ?? 0f;
+            if (geoDataZ > 0f)
+            {
+                source = "GeoData";
+                return geoDataZ;
+            }
         }
 
         // 3. BAI Type-4 interior floor nodes — elevated walkable surfaces that
@@ -775,16 +781,7 @@ public class WorldManager : Singleton<WorldManager>, IWorldManager
             }
         }
 
-        // 5. Brush bounding boxes — structural collision objects (walls, platforms, etc.)
-        //    AABB-based, less precise than BAI but covers areas without GeoData.
-        var brushFloorZ = world.GetBrushFloorHeight(x, y, z);
-        if (brushFloorZ > 0f)
-        {
-            source = "BrushFloor";
-            return brushFloorZ;
-        }
-
-        // 6. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
+        // 5. HeightMap bilinear interpolation — fallback for outdoor areas without GeoData
         if (AppConfiguration.Instance.HeightMapsEnable)
         {
             try

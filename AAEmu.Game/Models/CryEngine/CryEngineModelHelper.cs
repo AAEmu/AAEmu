@@ -418,8 +418,26 @@ public static class CryEngineModelHelper
 
                 // Now write out the faces info based on the MtlName
 
-                // Skip this subset if we have no usable vertex data
-                if (tmpVertices == null)
+                // Choose vertex source: separate Vertices data (legacy) or VertsUVs (3.7+).
+                // VertsUVs vertices are bounding-box compressed and need decompression.
+                if (tmpVertices == null && tmpVertsUVs == null)
+                    continue;
+
+                // Precompute VertsUVs bounding box decompression parameters
+                var useVertsUVs = tmpVertices == null;
+                var bbMultiplier = System.Numerics.Vector3.One;
+                var bbCenter = System.Numerics.Vector3.Zero;
+                if (useVertsUVs)
+                {
+                    bbMultiplier = System.Numerics.Vector3.Abs((tmpMesh.MinBound - tmpMesh.MaxBound) / 2f);
+                    if (bbMultiplier.X < 1) bbMultiplier.X = 1;
+                    if (bbMultiplier.Y < 1) bbMultiplier.Y = 1;
+                    if (bbMultiplier.Z < 1) bbMultiplier.Z = 1;
+                    bbCenter = (tmpMesh.MinBound + tmpMesh.MaxBound) / 2f;
+                }
+
+                var vertArray = useVertsUVs ? tmpVertsUVs.Vertices : tmpVertices.Vertices;
+                if (vertArray == null)
                     continue;
 
                 for (var j = meshSubset.FirstIndex; j + 2 < meshSubset.FirstIndex + meshSubset.NumIndices; j += 3)
@@ -427,23 +445,27 @@ public static class CryEngineModelHelper
                     if (j + 2 >= tmpIndices.Indices.Length)
                         break;
 
-                    // FIX: use local indices (no currentVertexPosition offset — that's a global
-                    // accumulator but tmpVertices.Vertices is per-node, so offset was wrong)
                     var i1 = tmpIndices.Indices[j];
                     var i2 = tmpIndices.Indices[j + 1];
                     var i3 = tmpIndices.Indices[j + 2];
 
-                    if (i1 >= tmpVertices.Vertices.Length || i2 >= tmpVertices.Vertices.Length ||
-                        i3 >= tmpVertices.Vertices.Length)
+                    if (i1 >= vertArray.Length || i2 >= vertArray.Length || i3 >= vertArray.Length)
                         continue;
 
-                    // Apply the node transform chain to convert from node-local space to model-root space.
-                    // ChunkNode translations are stored in cm in the file and already divided by 100
-                    // (VERTEX_SCALE = 1/100) when read, so transformSoFar is in meters — correct to apply.
-                    // Single-node models have a near-identity root transform so this is a no-op for them.
-                    var v1 = System.Numerics.Vector3.Transform(tmpVertices.Vertices[i1], transformSoFar);
-                    var v2 = System.Numerics.Vector3.Transform(tmpVertices.Vertices[i2], transformSoFar);
-                    var v3 = System.Numerics.Vector3.Transform(tmpVertices.Vertices[i3], transformSoFar);
+                    // Get vertices — VertsUVs needs bounding box decompression first
+                    System.Numerics.Vector3 v1, v2, v3;
+                    if (useVertsUVs)
+                    {
+                        v1 = System.Numerics.Vector3.Transform(vertArray[i1] * bbMultiplier + bbCenter, transformSoFar);
+                        v2 = System.Numerics.Vector3.Transform(vertArray[i2] * bbMultiplier + bbCenter, transformSoFar);
+                        v3 = System.Numerics.Vector3.Transform(vertArray[i3] * bbMultiplier + bbCenter, transformSoFar);
+                    }
+                    else
+                    {
+                        v1 = System.Numerics.Vector3.Transform(vertArray[i1], transformSoFar);
+                        v2 = System.Numerics.Vector3.Transform(vertArray[i2], transformSoFar);
+                        v3 = System.Numerics.Vector3.Transform(vertArray[i3], transformSoFar);
+                    }
 
                     // Convert CryEngine Z-up → Y-up (swap Y and Z)
                     tl.Add(new JTriangle(new JVector(v1.X, v1.Z, v1.Y), new JVector(v2.X, v2.Z, v2.Y), new JVector(v3.X, v3.Z, v3.Y)));
@@ -483,12 +505,11 @@ public static class CryEngineModelHelper
         }
         else
         {
-            // Root node: return Identity — vertices in root-level mesh chunks are already
-            // in model-root space. Child nodes accumulate their transforms up to (but not
-            // including) the root's own transform, placing them in model-root space correctly.
-            // Applying the root's transform would introduce any unintended pivot offset that
-            // the model exporter left on the root node.
-            return Matrix4x4.Identity;
+            // Root node: include its Transform so child nodes accumulate the full chain.
+            // For single-node models the root transform is typically Identity (no effect).
+            // For multi-node models, skipping the root transform would place child meshes
+            // in wrong positions, causing brush collision geometry to be displaced.
+            return node.Transform;
         }
     }
 }

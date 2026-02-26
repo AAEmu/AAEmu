@@ -213,8 +213,9 @@ public class ReturnStateBehavior : BaseCombatBehavior
     }
 
     /// <summary>
-    /// Restores the NPC's Z to the spawner's designed idle position.
-    /// No height query — trust the spawner data / A* pathfinding Z.
+    /// Restores the NPC's Z to the idle position height.
+    /// MoveAlongSurface in MoveTowards already constrains Z to navmesh during movement,
+    /// so we just snap to the stored idle Z when arriving.
     /// </summary>
     private void CorrectIdlePositionZ()
     {

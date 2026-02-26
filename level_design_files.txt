@@ -1,1 +1,15 @@
-game/worlds/main_world/cells/014_022/client/statobjs.dat
+game/worlds/main_world/cells/020_008/client/big_object.dat
+game/worlds/main_world/cells/020_008/client/brush.dat
+game/worlds/main_world/cells/020_008/client/entities.xml
+game/worlds/main_world/cells/020_008/client/leveldata.xml
+game/worlds/main_world/cells/020_008/client/levelinfo.xml
+game/worlds/main_world/cells/020_008/client/material_list.dat
+game/worlds/main_world/cells/020_008/client/materials.dat
+game/worlds/main_world/cells/020_008/client/object.dat
+game/worlds/main_world/cells/020_008/client/resourcelist.txt
+game/worlds/main_world/cells/020_008/client/shaderslist.txt
+game/worlds/main_world/cells/020_008/client/statobjs.dat
+game/worlds/main_world/cells/020_008/client/terrain/cover.ctc
+game/worlds/main_world/cells/020_008/client/terrain/heightmap.dat
+game/worlds/main_world/cells/020_008/client/vegetation.dat
+game/worlds/main_world/cells/020_008/client/visareas.dat
