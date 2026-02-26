@@ -452,6 +452,12 @@ public class SkillManager : Singleton<SkillManager>, ISkillManager
 
             Logger.Info("Loaded {0} skills", _skills.Count);
 
+            // Kraken Tentacle Slam: extend max range from 60 to 100m so it can hit
+            // targets at the intended distance. The DB value (60) is too short for the
+            // Kraken's large model/hitbox.
+            if (_skills.TryGetValue(14076u, out var tentacleSlam))
+                tentacleSlam.MaxRange = 100;
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM default_skills";

@@ -36,7 +36,8 @@ public class BigMonsterRoamingAiCharacter : NpcAi
             .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.BigMonsterAttack)
             .AddTransition(TransitionEvent.OnTalk, BehaviorKind.Talk);
 
-        AddBehavior(BehaviorKind.ReturnState, new ReturnStateBehavior());
+        AddBehavior(BehaviorKind.ReturnState, new ReturnStateBehavior())
+            .AddTransition(TransitionEvent.OnAggroTargetChanged, BehaviorKind.BigMonsterAttack);
         AddBehavior(BehaviorKind.Dead, new DeadBehavior());
         AddBehavior(BehaviorKind.Despawning, new DespawningBehavior());
         AddBehavior(BehaviorKind.Idle, new IdleBehavior());

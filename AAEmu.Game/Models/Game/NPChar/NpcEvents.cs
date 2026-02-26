@@ -200,7 +200,7 @@ public partial class Npc
         var skills = NpcGameData.Instance.GetNpSkills(npc.TemplateId, SkillUseConditionKind.OnDeath);
         if (skills == null) { return; }
 
-        Logger.Trace($"Npc objId={npc.ObjId}, templateId={npc.TemplateId} has died.");
+        Logger.Debug($"Npc objId={npc.ObjId}, templateId={npc.TemplateId} has died. OnDeath skills count={skills.Count}");
 
         //UnregisterNpcEvents(npc);
         //UnregisterIndunEvents();
@@ -224,7 +224,7 @@ public partial class Npc
                 npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // выполняем один раз
             }
 
-            Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
+            Logger.Debug($"Npc={npc.ObjId}:{npc.TemplateId} using OnDeath skill={skill.Id}, hasPlot={skill.Template.Plot != null}");
             skill.Use(npc, skillCaster, skillTarget, null, true, out _);
         }
     }

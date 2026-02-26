@@ -198,54 +198,58 @@ public class Skill
                 return SkillResult.Success;
         }
 
-        // Check if target is within range
-        var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
-        var targetDist = unit.GetDistanceTo(target, true);
-
-        var minRangeCheck = Template.MinRange * 1.0;
-        var maxRangeCheck = skillRange;
-
-        // HackFix: for quest Unblock the Spring ( 3707 ), unable to use the boulder because of being "too close"
-        // The range of skill Remove Stone ( 16462 ) is defined as 100~200 which can't possibly be correct 
-        if (Template.TargetType == SkillTargetType.Doodad && Template.MinRange >= 100)
+        // Check if target is within range (skip for Self-target skills — target is the caster itself,
+        // so distance is always 0 and range checks would incorrectly block AoE skills with MinRange > 0)
+        if (Template.TargetType != SkillTargetType.Self)
         {
-            minRangeCheck = Template.MinRange / 100.0;
-        }
+            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
+            var targetDist = unit.GetDistanceTo(target, true);
 
-        // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
-        // TODO: Do a check based on model size or bounding box instead
+            var minRangeCheck = Template.MinRange * 1.0;
+            var maxRangeCheck = skillRange;
 
-        // If weapon is used to calculate range, use that
-        if (Template.WeaponSlotForRangeId > 0)
-        {
-            var minWeaponRange = 0.0f; // Fist default
-            var maxWeaponRange = 3.0f; // Fist default
-            if (unit.Equipment.GetItemBySlot(Template.WeaponSlotForRangeId)?.Template is WeaponTemplate weaponTemplate)
+            // HackFix: for quest Unblock the Spring ( 3707 ), unable to use the boulder because of being "too close"
+            // The range of skill Remove Stone ( 16462 ) is defined as 100~200 which can't possibly be correct 
+            if (Template.TargetType == SkillTargetType.Doodad && Template.MinRange >= 100)
             {
-                minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
-                maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+                minRangeCheck = Template.MinRange / 100.0;
             }
 
-            minRangeCheck = minWeaponRange;
-            maxRangeCheck = maxWeaponRange;
-        }
+            // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
+            // TODO: Do a check based on model size or bounding box instead
 
-        if (targetDist < minRangeCheck)
-        {
-            SkillTlIdManager.ReleaseId(TlId);
-            TlId = 0;
-            Logger.Info($"TooCloseRange targetDist={targetDist}, minRangeCheck={minRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
-            return SkillResult.TooCloseRange;
-        }
+            // If weapon is used to calculate range, use that
+            if (Template.WeaponSlotForRangeId > 0)
+            {
+                var minWeaponRange = 0.0f; // Fist default
+                var maxWeaponRange = 3.0f; // Fist default
+                if (unit.Equipment.GetItemBySlot(Template.WeaponSlotForRangeId)?.Template is WeaponTemplate weaponTemplate)
+                {
+                    minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
+                    maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+                }
 
-        // TODO: Remove exception for doodads
-        // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
-        if (targetDist > maxRangeCheck && target is not Doodad && target is not Slave)
-        {
-            SkillTlIdManager.ReleaseId(TlId);
-            TlId = 0;
-            Logger.Info($"TooFarRange targetDist={targetDist}, maxRangeCheck={maxRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
-            return SkillResult.TooFarRange;
+                minRangeCheck = minWeaponRange;
+                maxRangeCheck = maxWeaponRange;
+            }
+
+            if (targetDist < minRangeCheck)
+            {
+                SkillTlIdManager.ReleaseId(TlId);
+                TlId = 0;
+                Logger.Info($"TooCloseRange targetDist={targetDist}, minRangeCheck={minRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
+                return SkillResult.TooCloseRange;
+            }
+
+            // TODO: Remove exception for doodads
+            // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
+            if (targetDist > maxRangeCheck && target is not Doodad && target is not Slave)
+            {
+                SkillTlIdManager.ReleaseId(TlId);
+                TlId = 0;
+                Logger.Info($"TooFarRange targetDist={targetDist}, maxRangeCheck={maxRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
+                return SkillResult.TooFarRange;
+            }
         }
 
         if (character is { AccessLevel: < 100 })
@@ -799,13 +803,19 @@ public class Skill
             buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow);
         }
 
-        var totalDelay = 0;
+        // CombatSyncTime represents the animation point where the effect should trigger.
+        // EffectDelay is a flat override delay. These should NOT be additive — use the
+        // larger of the two as the base timing, then add projectile travel time on top.
+        var baseDelay = 0;
+        if (Template.FireAnim != null && Template.UseAnimTime)
+            baseDelay = (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
         if (Template.EffectDelay > 0)
-            totalDelay += Template.EffectDelay;
+            baseDelay = Math.Max(baseDelay, Template.EffectDelay);
+
+        var totalDelay = baseDelay;
+        // Projectile travel time is additive on top of the animation/effect timing
         if (Template.EffectSpeed > 0)
             totalDelay += (int)(unit.GetDistanceTo(target) / Template.EffectSpeed * 1000.0f);
-        if (Template.FireAnim != null && Template.UseAnimTime)
-            totalDelay += (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
 
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
         {

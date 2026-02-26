@@ -54,7 +54,7 @@ public class GimmickSpawner : Spawner<Gimmick>
     {
         // DefaultConstructor for JSON reading
     }
-    public GimmickSpawner(WorldInstance parentWorld, SpawnGimmickEffect sgEffect, BaseUnit caster)
+    public GimmickSpawner(WorldInstance parentWorld, SpawnGimmickEffect sgEffect, BaseUnit caster, BaseUnit positionSource = null)
     {
         ParentWorld = parentWorld;
         GimmickId = sgEffect.GimmickId;
@@ -77,7 +77,10 @@ public class GimmickSpawner : Spawner<Gimmick>
         var gimmick = ParentWorld.GimmickManager.Create(GimmickId);
         gimmick.Spawner = this;
         gimmick.Spawner.RespawnTime = 0; // don't respawn
-        gimmick.Transform = caster.Transform.CloneDetached(gimmick);
+        // Use positionSource (e.g. random area target) for gimmick placement if provided,
+        // otherwise fall back to caster position.
+        var transformSource = positionSource ?? caster;
+        gimmick.Transform = transformSource.Transform.CloneDetached(gimmick);
         gimmick.EntityGuid = 0;
         gimmick.SpawnerUnitId = caster.ObjId;
         gimmick.GrasperUnitId = 0;

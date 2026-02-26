@@ -145,15 +145,30 @@ public abstract class Behavior
             return SkillResult.CooldownTime;
         }
 
-        var targetDist = Ai.Owner.GetDistanceTo(target);
-        if (targetDist < skill.Template.MinRange)
+        // Self-target skills (AoE centered on caster) skip MinRange but still check MaxRange.
+        // Without the MaxRange check, the AI wastes AoE skills when the target is far beyond
+        // the skill's effective radius, causing long useless delays.
+        if (skill.Template.TargetType != SkillTargetType.Self)
         {
-            return SkillResult.TooCloseRange;
-        }
+            var targetDist = Ai.Owner.GetDistanceTo(target);
+            if (targetDist < skill.Template.MinRange)
+            {
+                return SkillResult.TooCloseRange;
+            }
 
-        if (targetDist > skill.Template.MaxRange)
+            if (targetDist > skill.Template.MaxRange)
+            {
+                return SkillResult.TooFarRange;
+            }
+        }
+        else if (skill.Template.MaxRange > 0)
         {
-            return SkillResult.TooFarRange;
+            // Self-target: no MinRange (AoE centered on caster), but check MaxRange
+            var targetDist = Ai.Owner.GetDistanceTo(target);
+            if (targetDist > skill.Template.MaxRange)
+            {
+                return SkillResult.TooFarRange;
+            }
         }
 
         _nextTimeToDelay = delay;
@@ -236,14 +251,24 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Arbitrary value
-            var maxHeightGap = Ai.Owner.CanFly ? Ai.Owner.ModelSize * Ai.Owner.Scale * 3.5f : Ai.Owner.ModelSize * Ai.Owner.Scale * 1.5f;
+            // Arbitrary value — aquatic/underwater creatures need larger vertical tolerance
+            // since they fight surface players from depth (similar to flying mobs)
+            float maxHeightGap;
+            if (Ai.Owner.CanFly)
+                maxHeightGap = Ai.Owner.ModelSize * Ai.Owner.Scale * 3.5f;
+            else if (Ai.Owner is Npc npcOwner && npcOwner.IsAquatic)
+                maxHeightGap = Ai.Owner.ModelSize * Ai.Owner.Scale * 3.5f;
+            else
+                maxHeightGap = Ai.Owner.ModelSize * Ai.Owner.Scale * 1.5f;
 
             // Check if in front, and not too far up or down
-            if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) &&
-                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
+            var isFront = MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale);
+            var heightGap = Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z);
+            var canAttack = Ai.Owner.CanAttack(unit);
+            var canSee = Ai.Owner.CanSeeTarget(unit);
+            if (isFront && heightGap < maxHeightGap)
             {
-                if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
+                if (canAttack && (rangeOfUnit < 1f || canSee))
                 {
                     OnEnemySeen(unit);
                     res = true;
@@ -255,7 +280,7 @@ public abstract class Behavior
                 // If you're breathing down their neck, they will also start attacking you if they can
                 if (rangeOfUnit < 1.5f * Ai.Owner.Template.SightRangeScale)
                 {
-                    if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 0.5f || Ai.Owner.CanSeeTarget(unit)))
+                    if (canAttack && (rangeOfUnit < 0.5f || canSee))
                     {
                         OnEnemySeen(unit);
                         res = true;
@@ -311,12 +336,18 @@ public abstract class Behavior
             if (unit.IsDead || unit.Hp <= 0)
                 continue; // not counting dead Npc
 
-            // Arbitrary value 
-            var maxHeightGap = Ai.Owner.CanFly ? Ai.Owner.ModelSize * Ai.Owner.Scale * 4f : Ai.Owner.ModelSize * Ai.Owner.Scale * 1.75f;
+            // Arbitrary value — aquatic/underwater creatures need larger vertical tolerance
+            float maxAlertHeightGap;
+            if (Ai.Owner.CanFly)
+                maxAlertHeightGap = Ai.Owner.ModelSize * Ai.Owner.Scale * 4f;
+            else if (Ai.Owner is Npc npcAlertOwner && npcAlertOwner.IsAquatic)
+                maxAlertHeightGap = Ai.Owner.ModelSize * Ai.Owner.Scale * 4f;
+            else
+                maxAlertHeightGap = Ai.Owner.ModelSize * Ai.Owner.Scale * 1.75f;
 
             // Check if in front, and not too far up or down
             if (MathUtil.IsFront(Ai.Owner, unit, Ai.Owner.Template.SightFovScale) &&
-                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxHeightGap)
+                Math.Abs(Ai.Owner.Transform.World.Position.Z - unit.Transform.World.Position.Z) < maxAlertHeightGap)
             {
                 if (Ai.Owner.CanAttack(unit) && (rangeOfUnit < 1f || Ai.Owner.CanSeeTarget(unit)))
                 {

@@ -96,6 +96,12 @@ public partial class Npc : Unit
     public bool CanFly { get; set; } // TODO: mark NPCs that can fly so that they don't land on the ground when calculating the Z height
 
     /// <summary>
+    /// True if this NPC is aquatic (spawned at or below ocean level). Aquatic NPCs use CanFly
+    /// for free movement but should use Swim stance and stay clamped to water level.
+    /// </summary>
+    public bool IsAquatic { get; set; }
+
+    /// <summary>
     /// Tagging works differently to Aggro and has its own system
     /// </summary>
     public Tagging CharacterTagging { get; set; }
@@ -132,6 +138,18 @@ public partial class Npc : Unit
         get => _currentGameStance;
         set
         {
+            // Underwater creatures always use Swim stance (even if CanFly is false).
+            // Must run BEFORE the equality check so that the initial Combat → CoSwim
+            // override happens even when the field initializer is already Combat.
+            if (IsAquatic)
+            {
+                var aquaticStance = value == GameStanceType.Combat ? GameStanceType.CoSwim : GameStanceType.Swim;
+                if (TemplateId == 7607) // Kraken debug
+                    NLog.LogManager.GetCurrentClassLogger().Warn($"[KrakenStance] ObjId={ObjId}, Requested={value}, Overriding to={aquaticStance}, IsAquatic={IsAquatic}");
+                _currentGameStance = aquaticStance;
+                return;
+            }
+
             if (_currentGameStance == value)
                 return;
 
@@ -153,33 +171,9 @@ public partial class Npc : Unit
     public MoveTypeAlertness CurrentAlertness { get; set; }
 
     /// <summary>
-    /// MaxHp computed from base formula before bonuses are applied.
-    /// Used to scale preciseHealth for client display (client calculates MaxHp without server bonuses).
-    /// </summary>
-    public int BaseMaxHp { get; set; }
-
-    /// <summary>
-    /// MaxMp computed from base formula before bonuses are applied.
-    /// </summary>
-    public int BaseMaxMp { get; set; }
-
-    public override int GetPreciseHealth()
-    {
-        if (BaseMaxHp > 0 && MaxHp > 0 && BaseMaxHp != MaxHp)
-            return (int)((long)Hp * BaseMaxHp * 100 / MaxHp);
-        return Hp * 100;
-    }
-
-    public override int GetPreciseMana()
-    {
-        if (BaseMaxMp > 0 && MaxMp > 0 && BaseMaxMp != MaxMp)
-            return (int)((long)Mp * BaseMaxMp * 100 / MaxMp);
-        return Mp * 100;
-    }
-
-    /// <summary>
-    /// NPCs should not receive equipment bonuses — their stats come from formulas only.
-    /// Equipment on NPCs is purely cosmetic (visual model).
+    /// NPC gear bonuses are intentionally a no-op. The client applies NPC buffs and
+    /// equipment bonuses on its own when computing MaxHp/MaxMp, so GetPreciseHealth
+    /// (inherited from Unit: Hp * 100) already matches the client's expectations.
     /// </summary>
     public override void UpdateGearBonuses(Item itemAdded, Item itemRemoved) { }
 
@@ -1101,10 +1095,17 @@ public partial class Npc : Unit
         // player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
 
         // check self buff tags
-        if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
+        if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight))
         {
             ClearAggroOfUnit(unit);
             return;
+        }
+
+        // If NPC is returning, allow aggro to be added so it can re-engage in combat.
+        // The Returning buff is removed when transitioning back to attack behavior.
+        if (Buffs.CheckBuffTag((uint)TagsEnum.Returning))
+        {
+            Buffs.RemoveBuff((uint)BuffConstants.NpcReturn);
         }
 
         // check target buff tags
@@ -1325,6 +1326,16 @@ public partial class Npc : Unit
         if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
             return false;
 
+        // Aquatic NPCs: project the target to the NPC's swim depth so the movement
+        // direction is purely horizontal. Without this, the 3D vector from NPC (Z=80)
+        // to player (Z=100) has a vertical component that reduces horizontal travel
+        // speed and can cause the client to interpolate the NPC above water.
+        if (IsAquatic && !CanFly)
+        {
+            var swimZ = Spawner?.Position.Z ?? Transform.Local.Position.Z;
+            other = new Vector3(other.X, other.Y, swimZ);
+        }
+
         var oldPosition = Transform.Local.ClonePosition();
 
         var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
@@ -1340,34 +1351,55 @@ public partial class Npc : Unit
 
         if (!CanFly)
         {
-            // Always resolve Z from terrain/navmesh — never trust interpolated Z.
-            // A* provides the XY route; GetHeight provides the authoritative Z.
-            var currentZ = Transform.Local.Position.Z;
-            string heightSource = null;
-            float terrainZ;
-            if (TraceZ)
+            if (IsAquatic)
             {
-                terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
+                // Underwater creatures (e.g. Kraken) should stay at their spawn depth,
+                // not snap to terrain/ocean surface height.
+                var spawnZ = Spawner?.Position.Z ?? Transform.Local.Position.Z;
+                newZ = spawnZ;
             }
             else
             {
-                terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
-            }
-            if (terrainZ > 0f)
-                newZ = terrainZ;
-            else
-                newZ = currentZ;
+                // Always resolve Z from terrain/navmesh — never trust interpolated Z.
+                // A* provides the XY route; GetHeight provides the authoritative Z.
+                var currentZ = Transform.Local.Position.Z;
+                string heightSource = null;
+                float terrainZ;
+                if (TraceZ)
+                {
+                    terrainZ = WorldManager.Instance.GetHeightWithSource(Transform.ZoneId, newX, newY, currentZ, out heightSource);
+                }
+                else
+                {
+                    terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, currentZ);
+                }
+                if (terrainZ > 0f)
+                    newZ = terrainZ;
+                else
+                    newZ = currentZ;
 
-            if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
-                Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
+                if (TraceZ && MathF.Abs(newZ - currentZ) > 0.1f)
+                    Logger.Warn($"[TraceZ] MoveTowards NPC {TemplateId}:{ObjId} | Z: {currentZ:F2} → {newZ:F2} (source={heightSource}) at ({newX:F1},{newY:F1}) target=({other.X:F1},{other.Y:F1},{other.Z:F1})");
+            }
         }
         else
         {
             // CanFly NPCs: free 3D movement
-            // Aquatic NPCs (spawned below ocean level): clamp to ocean surface
+            // Aquatic NPCs (spawned below ocean level): clamp to ocean surface or spawn depth
             const float oceanLevel = 95f;
-            if ((Spawner?.Position.Z ?? newZ) < oceanLevel && newZ > oceanLevel)
+            if (IsAquatic)
+            {
+                // Aquatic NPCs should NOT chase the target's Z above water.
+                // Keep them at their spawn depth or ocean level (whichever is shallower).
+                var spawnZ = Spawner?.Position.Z ?? newZ;
+                var maxZ = Math.Min(oceanLevel, spawnZ + 5f); // small tolerance above spawn
+                if (newZ > maxZ)
+                    newZ = Math.Max(spawnZ, Math.Min(maxZ, oceanLevel));
+            }
+            else if ((Spawner?.Position.Z ?? newZ) < oceanLevel && newZ > oceanLevel)
+            {
                 newZ = oceanLevel;
+            }
         }
 
         Transform.Local.SetPosition(newX, newY, newZ);
@@ -1379,12 +1411,16 @@ public partial class Npc : Unit
 
         // VelZ: proportional to terrain slope so client interpolates height between ticks.
         // Without this, client assumes flat movement → NPC floats on uphill / clips on downhill.
-        var xyDist = MathF.Sqrt(
-            (newX - oldPosition.X) * (newX - oldPosition.X) +
-            (newY - oldPosition.Y) * (newY - oldPosition.Y));
         short velZValue = 0;
-        if (xyDist > 0.01f)
-            velZValue = (short)Math.Clamp((newZ - oldPosition.Z) / xyDist * 4000f, -4000, 4000);
+        if (!IsAquatic)
+        {
+            var xyDist = MathF.Sqrt(
+                (newX - oldPosition.X) * (newX - oldPosition.X) +
+                (newY - oldPosition.Y) * (newY - oldPosition.Y));
+            if (xyDist > 0.01f)
+                velZValue = (short)Math.Clamp((newZ - oldPosition.Z) / xyDist * 4000f, -4000, 4000);
+        }
+        // Aquatic NPCs: VelZ=0 prevents client from interpolating the NPC above water
 
         moveType.X = Transform.Local.Position.X;
         moveType.Y = Transform.Local.Position.Y;
@@ -1415,16 +1451,24 @@ public partial class Npc : Unit
     public void LookTowards(Vector3 other, byte flags = 4)
     {
         var oldPosition = Transform.Local.ClonePosition();
-        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
-        if (!CanFly)
+        if (IsAquatic && !CanFly)
         {
-            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
-            if (terrainZ > 0f && refZ < terrainZ)
-                refZ = terrainZ;
+            // Aquatic NPCs stay at spawn depth
+            oldPosition.Z = Spawner?.Position.Z ?? oldPosition.Z;
         }
+        else
+        {
+            var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+            if (!CanFly)
+            {
+                var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
+                if (terrainZ > 0f && refZ < terrainZ)
+                    refZ = terrainZ;
+            }
 
-        if (refZ > 0f)
-            oldPosition.Z = refZ;
+            if (refZ > 0f)
+                oldPosition.Z = refZ;
+        }
 
         Transform.Local.SetPosition(oldPosition);
 
@@ -1453,7 +1497,7 @@ public partial class Npc : Unit
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Stance = CurrentGameStance;
         moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
@@ -1465,16 +1509,24 @@ public partial class Npc : Unit
     public void StopMovement()
     {
         var oldPosition = Transform.Local.ClonePosition();
-        var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
-        if (!CanFly)
+        if (IsAquatic && !CanFly)
         {
-            var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
-            if (terrainZ > 0f && refZ < terrainZ)
-                refZ = terrainZ;
+            // Aquatic NPCs stay at spawn depth
+            oldPosition.Z = Spawner?.Position.Z ?? oldPosition.Z;
         }
+        else
+        {
+            var refZ = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+            if (!CanFly)
+            {
+                var terrainZ = WorldManager.Instance.GetHeight(Transform.ZoneId, oldPosition.X, oldPosition.Y, oldPosition.Z);
+                if (terrainZ > 0f && refZ < terrainZ)
+                    refZ = terrainZ;
+            }
 
-        if (refZ > 0f)
-            oldPosition.Z = refZ;
+            if (refZ > 0f)
+                oldPosition.Z = refZ;
+        }
 
         Transform.Local.SetPosition(oldPosition);
 

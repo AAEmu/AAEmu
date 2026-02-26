@@ -123,16 +123,13 @@ public class NpcManager : Singleton<NpcManager>
                 SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, slot, 0, template.BodyItems[i].NpcOnly);
         }
 
-        // Capture base MaxHp/MaxMp before bonuses for client HP display scaling.
-        // The client calculates NPC MaxHp from the base formula only (without server-side bonuses),
-        // so we need to know the base values to scale preciseHealth correctly.
-        npc.BaseMaxHp = npc.MaxHp;
-        npc.BaseMaxMp = npc.MaxMp;
-
         npc.InitializeSpawnBuffs();
 
         npc.Hp = npc.MaxHp;
         npc.Mp = npc.MaxMp;
+
+        if (npc.TemplateId == 7607) // Kraken debug
+            Logger.Warn($"[KrakenHP] MaxHp={npc.MaxHp}, Hp={npc.Hp}, PreciseHealth={npc.GetPreciseHealth()}, Sta={npc.Sta}, BonusCount={npc.Bonuses.Count}, EquipItems={npc.Equipment.Items.Count(i => i != null)}");
 
         if (npc.Template.AiFileId > 0)
         {

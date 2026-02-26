@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.AStar;
+using AAEmu.Game.Models.Game.AI.v2.Behaviors;
 using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
 using AAEmu.Game.Models.Game.AI.v2.Controls;
 using AAEmu.Game.Models.Game.AI.v2.Params;
@@ -152,20 +153,30 @@ $"Trying to set Npc {Owner.TemplateId}:{Owner.ObjId} current behavior, but it is
     {
         /*if ((!Owner?.Region?.IsEmpty() ?? false)
             || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
-        if (HasPersistentAi() || (Owner?.Region?.HasPlayerActivity() ?? false))
+        // NPCs in combat must keep ticking even when the region has no players nearby,
+        // otherwise they can never detect that the target left range and trigger a reset.
+        // Region player activity covers only ~64m, far less than boss return distances.
+        if (HasPersistentAi() || (Owner?.Region?.HasPlayerActivity() ?? false) || (Owner?.IsInBattle ?? false))
         {
             // Apply gravity (Z adjustment only) — independent of behavior
             NpcGravity.ApplyGravity(Owner, delta);
             // Always run behavior tick — gravity handles Z, behavior handles XY/combat
             _currentBehavior?.Tick(delta);
 
-            // If aggro table is populated, check if current aggro targets need to be cleared
+            // If aggro table is empty and we're in a combat behavior, let the behavior handle it.
+            // Only trigger OnNoAggroTarget from here if the current behavior is NOT a combat behavior
+            // (avoids double-triggering when BigMonsterAttackBehavior already calls OnNoAggroTarget).
             if (Owner?.AggroTable.Count <= 0)
             {
                 if (Owner.IsDead || GetCurrentBehavior() is DeadBehavior)
                     return;
 
-                OnNoAggroTarget();
+                // Combat behaviors handle their own aggro checks in Tick().
+                // Only force return for non-combat states (e.g. roaming that somehow lost aggro).
+                if (_currentBehavior is not BaseCombatBehavior)
+                {
+                    OnNoAggroTarget();
+                }
                 return;
             }
 

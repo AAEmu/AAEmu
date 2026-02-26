@@ -64,6 +64,15 @@ public class ModelManager : Singleton<ModelManager>
         return model is ActorModel { MovementId: 2 };
     }
 
+    public bool IsUnderwaterCreature(uint modelId)
+    {
+        if (!_modelTypes.TryGetValue(modelId, out var modelType))
+            return false;
+        if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))
+            return false;
+        return model is ActorModel { UnderwaterCreature: true };
+    }
+
     public void Load()
     {
         if (_loaded)
@@ -95,7 +104,8 @@ public class ModelManager : Singleton<ModelManager>
                             Id = reader.GetUInt32("id"),
                             Radius = reader.GetFloat("radius"),
                             Height = reader.GetFloat("height"),
-                            MovementId = reader.GetInt32("movement_id")
+                            MovementId = reader.GetInt32("movement_id"),
+                            UnderwaterCreature = reader.GetBoolean("underwater_creature", true)
                         };
 
                         _models["ActorModel"].TryAdd(model.Id, model);

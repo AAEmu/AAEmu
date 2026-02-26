@@ -27,7 +27,10 @@ public class ReturnStateBehavior : BaseCombatBehavior
         Ai.Owner.SetTarget(null);
         // TODO: Ai.Owner.DisableAggro();
 
-        Ai.Owner.IsInBattle = false;
+        // Keep IsInBattle true during return so NpcAi.Tick() continues ticking.
+        // Without this, the AI stops ticking when the player leaves the 64m region,
+        // and the NPC gets stuck in ReturnState forever (can't walk back or timeout).
+        // IsInBattle is cleared when the return completes (OnCompletedReturnNoTeleport).
         Ai.Owner.CurrentGameStance = GameStanceType.Relaxed;
         Ai.Owner.CurrentAlertness = MoveTypeAlertness.Idle;
         Ai.Owner.BroadcastPacket(new SCUnitModelPostureChangedPacket(Ai.Owner, Ai.Owner.AnimActionId, false), false);
@@ -60,6 +63,26 @@ public class ReturnStateBehavior : BaseCombatBehavior
         if (Ai.Param is { GoReturnState: false })
         {
             OnCompletedReturnNoTeleport();
+        }
+
+        // Aquatic bosses stay at their spawn position — they never chase. Skip the walking
+        // return entirely to prevent visual artifacts (boss flying above water surface).
+        // Snap directly to IdlePosition and complete.
+        if (Ai.Owner.IsAquatic)
+        {
+            Ai.Owner.Transform.Local.SetPosition(Ai.IdlePosition.X, Ai.IdlePosition.Y, Ai.IdlePosition.Z);
+            Ai.Owner.StopMovement();
+            OnCompletedReturnNoTeleport();
+            return;
+        }
+
+        // If already at idle position, complete immediately.
+        // This prevents getting stuck in ReturnState when there's nothing to walk back to.
+        var distToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Transform.World.Position);
+        if (distToIdle < 5f)
+        {
+            OnCompletedReturnNoTeleport();
+            return;
         }
 
         if (Ai.PathNode?.FoundPath?.Count > 0)
@@ -184,6 +207,7 @@ public class ReturnStateBehavior : BaseCombatBehavior
 
     public void OnCompletedReturnNoTeleport()
     {
+        Ai.Owner.IsInBattle = false;
         CorrectIdlePositionZ();
         Ai.GoToIdle();
     }

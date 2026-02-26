@@ -131,7 +131,14 @@ public abstract class BaseCombatBehavior : Behavior
             range -= 1f; // Fix that ID=7927, Plateau Earth Elemental can hit with a melee attack
         }
 
-        var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
+        // Use 2D distance for range checks to match skill range filtering (which also uses 2D).
+        // 3D distance caused mismatches for aquatic bosses where Z difference is significant.
+        var distanceToTarget = Ai.Owner.GetDistanceTo(target, false);
+
+        // Determine minimum combat distance: if PreferedCombatDist is set, NPC should try
+        // to maintain that distance. This prevents large bosses from getting stuck at close range.
+        var prefCombatDist = Ai.Param?.PreferedCombatDist ?? 0f;
+        var minCombatDist = prefCombatDist > 0 ? prefCombatDist * 0.5f : 0f;
 
         if (AppConfiguration.Instance.World.GeoDataMode && target != null)
         {
@@ -229,6 +236,23 @@ public abstract class BaseCombatBehavior : Behavior
         {
             if (distanceToTarget > range && target != null)
                 Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
+            else if (minCombatDist > 0 && distanceToTarget < minCombatDist && target != null)
+            {
+                // Too close — back off to preferred combat distance so skills can be used
+                var npcPos = Ai.Owner.Transform.World.Position;
+                var targetPos = target.Transform.World.Position;
+                var dir = npcPos - targetPos;
+                if (dir.LengthSquared() > 0.01f)
+                {
+                    dir = Vector3.Normalize(dir);
+                    var retreatTarget = targetPos + dir * prefCombatDist;
+                    Ai.Owner.MoveTowards(retreatTarget, (float)speed, moveFlags);
+                }
+                else
+                {
+                    Ai.Owner.StopMovement();
+                }
+            }
             else
                 Ai.Owner.StopMovement();
         }
@@ -246,7 +270,9 @@ public abstract class BaseCombatBehavior : Behavior
     {
         get
         {
-            return Ai.Owner.SkillTask != null || Ai.Owner.ActivePlotState != null;
+            return Ai.Owner.SkillTask != null
+                || Ai.Owner.ActivePlotState != null
+                || (Ai.Owner.ActiveSkillController?.State == SkillController.SCState.Running);
         }
     }
 
@@ -309,6 +335,10 @@ public abstract class BaseCombatBehavior : Behavior
         var aggroList = Ai.Owner.AggroTable.Values;
         var abusers = aggroList.OrderByDescending(o => o.TotalAggro).Select(o => o.Owner).ToList();
 
+        var isKraken = Ai.Owner.TemplateId == 7607;
+        if (isKraken && abusers.Count == 0)
+            Logger.Warn($"[KrakenAI] UpdateTarget: AggroTable is EMPTY!");
+
         foreach (var abuser in abusers)
         {
             //Ai.Owner.LookTowards(abuser.Transform.World.Position); // Prevents archers from escaping (they spin around all the time)
@@ -322,26 +352,56 @@ public abstract class BaseCombatBehavior : Behavior
                         // TODO: find the path to abuser
                         Ai.Owner.FindPath(abuser);
                     }
-                    Ai.Owner.CurrentAggroTarget = abuser;
-                    Ai.Owner.SetTarget(abuser);
-                    UpdateAggroHelp(abuser);
+                    // Only update target if it actually changed to avoid spamming
+                    // SCTargetChangedPacket every AI tick (causes visual stuttering)
+                    if (Ai.Owner.CurrentAggroTarget != abuser)
+                    {
+                        Ai.Owner.CurrentAggroTarget = abuser;
+                        Ai.Owner.SetTarget(abuser);
+                        UpdateAggroHelp(abuser);
+                    }
                     return true;
                 }
             }
             else
             {
-                if (Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
+                // Use distance-based aggro instead of region-neighbor visibility.
+                // Region neighbors only cover ~192m (REGION_SIZE=64 * NEIGHBORHOOD=2),
+                // which is too restrictive for boss NPCs with large return distances
+                // (e.g., Kraken with returnDistance=800). Keep aggro as long as the
+                // target is within returnDistance; ShouldReturn handles the leash.
+                var returnDist = Math.Max(
+                    Math.Max(Ai.Owner.Template.ReturnDistance, Ai.Owner.Template.AbsoluteReturnDistance),
+                    200f); // minimum 200m fallback for NPCs without explicit return distance
+                var distToAbuser = MathUtil.CalculateDistance(
+                    Ai.Owner.Transform.World.Position, abuser.Transform.World.Position, true);
+                var isVisible = distToAbuser <= returnDist;
+                var isDead = abuser.IsDead;
+                if (isVisible && !isDead)
                 {
                     // check that such a Npc is in the database, there are cases that it is in the game, but not in the database
                     var currentTarget = abuser.ObjId > 0 ? Ai.Owner.ParentWorld.GetUnit(abuser.ObjId) : null;
                     if (currentTarget == null)
+                    {
+                        if (isKraken)
+                            Logger.Warn($"[KrakenAI] UpdateTarget: GetUnit({abuser.ObjId}) returned null for abuser {abuser.Name}");
                         continue;
+                    }
 
-                    Ai.Owner.CurrentAggroTarget = abuser;
-                    Ai.Owner.SetTarget(abuser);
-                    UpdateAggroHelp(abuser);
+                    // Only update target if it actually changed to avoid spamming
+                    // SCTargetChangedPacket every AI tick (causes visual stuttering)
+                    if (Ai.Owner.CurrentAggroTarget != abuser)
+                    {
+                        Ai.Owner.CurrentAggroTarget = abuser;
+                        Ai.Owner.SetTarget(abuser);
+                        UpdateAggroHelp(abuser);
+                    }
                     return true;
                 }
+                if (isKraken)
+                    Logger.Warn($"[KrakenAI] UpdateTarget: Clearing aggro for {abuser.Name}({abuser.ObjId}), Visible={isVisible}, IsDead={isDead}, " +
+                        $"Dist={distToAbuser:F1}, ReturnDist={returnDist:F1}, " +
+                        $"OwnerRegion={Ai.Owner.Region?.Id}, AbuserRegion={abuser.Region?.Id}");
             }
             Ai.Owner.ClearAggroOfUnit(abuser);
         }

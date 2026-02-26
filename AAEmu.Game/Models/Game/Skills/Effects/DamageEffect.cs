@@ -89,6 +89,23 @@ public class DamageEffect : EffectTemplate
         trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackedEtc);
         caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackEtc);
 
+        // Kraken (TemplateId 7607) is immune to all player damage except ship weapons.
+        // Ship weapon attacks come from characters seated on a Slave (ship).
+        // Aggro is still added so the boss faces and uses skills against the attacker.
+        // The aquatic ShouldReturn logic (maxSkillRange + 30m) prevents reset loops.
+        if (trg is Npc krakenNpc && krakenNpc.TemplateId == 7607
+            && caster is Character attackerChar
+            && !(attackerChar.Transform.Parent?.GameObject is Units.Slave))
+        {
+            krakenNpc.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
+
+            target.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 1, 0)
+            {
+                HitType = SkillHitType.Immune
+            }, false);
+            return;
+        }
+
         if (target.Buffs.CheckDamageImmune(DamageType))
         {
             target.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 1, 0)

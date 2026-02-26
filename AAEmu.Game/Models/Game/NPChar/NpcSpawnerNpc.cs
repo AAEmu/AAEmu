@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -97,6 +98,21 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         npc.Spawner = npcSpawner;
         npc.Spawner.RespawnTime = (int)Random.Shared.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
+
+        // Determine if this NPC is aquatic (underwater creature or spawned below ocean level).
+        // Aquatic NPCs should use Swim stance and stay clamped to water depth to prevent flying.
+        const float oceanLevel = 95f;
+        var isUnderwater = ModelManager.Instance.IsUnderwaterCreature(npc.Template.ModelId);
+        if (isUnderwater || (npc.CanFly && npcSpawner.Position.Z < oceanLevel))
+        {
+            npc.IsAquatic = true;
+            // Re-trigger stance setter so IsAquatic override applies to the initial stance
+            npc.CurrentGameStance = npc.CurrentGameStance;
+        }
+
+        if (npc.TemplateId == 7607) // Kraken debug
+            Logger.Warn($"[KrakenSpawn] ObjId={npc.ObjId}, ModelId={npc.Template.ModelId}, IsUnderwater={isUnderwater}, CanFly={npc.CanFly}, SpawnZ={npcSpawner.Position.Z}, IsAquatic={npc.IsAquatic}");
+
         npc.Spawn();
 
         var world = WorldManager.Instance.GetWorld(npc.Transform.InstanceId);

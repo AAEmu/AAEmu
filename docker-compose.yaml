@@ -107,10 +107,11 @@ services:
                 - path: ./AAEmu.Game
                   action: rebuild
         healthcheck:
-            test: ["CMD-SHELL", "mysql aaemu_game -h db -u root -p${DB_PASSWORD} --ssl-mode=DISABLED -e 'SELECT 1' || exit 1"]
-            interval: 10s
-            timeout: 5s
-            retries: 30
+            test: ["CMD-SHELL", "wget -qO- --timeout=5 http://localhost:1280/status || exit 1"]
+            interval: 30s
+            timeout: 10s
+            retries: 20
+            start_period: 300s
         depends_on:
             db:
               condition: service_healthy

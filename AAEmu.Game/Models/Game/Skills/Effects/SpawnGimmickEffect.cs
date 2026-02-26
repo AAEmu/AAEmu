@@ -34,17 +34,16 @@ public class SpawnGimmickEffect : EffectTemplate
         var casterUnit = (Unit)caster;
 
         if (casterUnit == null)
-        // if (casterUnit?.CurrentTarget == null)
             return;
 
-        //if (npc.Gimmick != null)
-        //    return; // don't spawn another Gimmick until the current one disappears
+        Logger.Debug($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}, skill={(castObj as CastSkill)?.SkillId}, " +
+            $"caster={caster.ObjId} pos=({caster.Transform.World.Position.X:F1},{caster.Transform.World.Position.Y:F1},{caster.Transform.World.Position.Z:F1}), " +
+            $"target={target?.ObjId} pos=({target?.Transform?.World.Position.X:F1},{target?.Transform?.World.Position.Y:F1},{target?.Transform?.World.Position.Z:F1})");
 
-        Logger.Trace($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}, skill={(castObj as CastSkill)?.SkillId}");
-
-        var spawner = new GimmickSpawner(caster.ParentWorld, this, caster);
-
-        // casterUnit.Gimmick = spawner.Spawn(0);
+        // Use target as the position source when available (e.g. plot random area targeting),
+        // so gimmicks spawn at the targeted position rather than at the caster.
+        var positionSource = (target != null && target != caster) ? target : null;
+        var spawner = new GimmickSpawner(caster.ParentWorld, this, caster, positionSource);
 
         if (casterUnit.Gimmick == null)
             return;

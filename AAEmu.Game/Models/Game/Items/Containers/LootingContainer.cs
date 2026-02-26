@@ -194,11 +194,16 @@ public class LootingContainer(IBaseUnit owner)
             {
                 var lootPack = LootGameData.Instance.GetPack(lootPackDropping.LootPackId);
                 if (lootPack == null)
+                {
+                    Logger.Warn($"LootingContainer: LootPack {lootPackDropping.LootPackId} not found for NPC {npc.TemplateId}");
                     continue;
-                lootPackResults.AddRange(lootPack.GeneratePackNewV2(lootDropRate, lootGoldRate, killer as Character, ActabilityType.None));
-                // var items = lootPack.GenerateNpcPackItems(ref baseId, killer, lootDropRate, lootGoldRate);
-                // RegisterItems(items);
+                }
+                var packItems = lootPack.GeneratePackNewV2(lootDropRate, lootGoldRate, killer as Character, ActabilityType.None);
+                Logger.Debug($"LootingContainer: NPC {npc.TemplateId} pack {lootPackDropping.LootPackId} generated {packItems.Count} items (dropRate={lootDropRate:F2})");
+                lootPackResults.AddRange(packItems);
             }
+
+            Logger.Debug($"LootingContainer: NPC {npc.TemplateId} total loot results: {lootPackResults.Count} items from {lootPackDroppingNpcs.Count} packs");
 
             // New Loot, i guess both loops can be optimzed....
             var groups = lootPackResults.GroupBy(x => x.lootGroupOrigin).Select(x => x.Key).ToList();
@@ -211,6 +216,11 @@ public class LootingContainer(IBaseUnit owner)
                     foreach (var singleItemInGroup in selectByGroup)
                     {
                         var item = ItemManager.Instance.Create(singleItemInGroup.itemId, singleItemInGroup.count, singleItemInGroup.grade, false);
+                        if (item == null)
+                        {
+                            Logger.Warn($"LootingContainer: ItemManager.Create returned null for itemId={singleItemInGroup.itemId}, count={singleItemInGroup.count}, grade={singleItemInGroup.grade}. Skipping.");
+                            continue;
+                        }
                         resultsToAdd.Add(item);
                     }
                     RegisterItems(resultsToAdd);
