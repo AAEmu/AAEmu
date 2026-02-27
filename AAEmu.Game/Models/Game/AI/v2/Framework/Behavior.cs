@@ -94,8 +94,10 @@ public abstract class Behavior
             pickedSkillId = skills[Random.Shared.Next(skills.Count)].SkillId;
         }
 
-        // Hackfix for Melee attack. Needs to look at the held weapon (if any) or default to 3m
-        if (pickedSkillId == 2 && targetDist > 4.0f)
+        // For NPCs, skip the melee range hackfix — the proper range check happens
+        // inside Skill.Use(). The AI already handles MoveInRange to close distance.
+        // For players, keep the 4m fist range fallback.
+        if (pickedSkillId == 2 && targetDist > 4.0f && Ai.Owner is not Npc)
         {
             return SkillResult.TooFarRange;
         }
@@ -426,15 +428,13 @@ public abstract class Behavior
 
     public void SetWeaponRange(Skill skill, BaseUnit target)
     {
-        var unit = (Unit)target;
-        // Check if target is within range
+        // Use the caster's equipment (Ai.Owner) — not the target's — to determine
+        // weapon range. The NPC needs to know its OWN attack range for MoveInRange.
+        var unit = (Unit)Ai.Owner;
         var skillRange = Ai.Owner.ApplySkillModifiers(skill, SkillAttribute.Range, skill.Template.MaxRange);
 
         var minRangeCheck = skill.Template.MinRange * 1.0;
         var maxRangeCheck = skillRange;
-
-        // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
-        // TODO: Do a check based on model size or bounding box instead
 
         // If weapon is used to calculate range, use that
         if (skill.Template.WeaponSlotForRangeId > 0)
@@ -445,6 +445,13 @@ public abstract class Behavior
             {
                 minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
                 maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+            }
+            else if (Ai.Owner is Npc)
+            {
+                // NPCs without weapons: use skill template range instead of fist defaults.
+                // Consistent with Skill.Use() which also skips fist defaults for NPCs.
+                minWeaponRange = skill.Template.MinRange;
+                maxWeaponRange = (float)skillRange;
             }
 
             minRangeCheck = minWeaponRange;

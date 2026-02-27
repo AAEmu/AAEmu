@@ -203,7 +203,11 @@ public class Skill
         if (Template.TargetType != SkillTargetType.Self)
         {
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
-            var targetDist = unit.GetDistanceTo(target, true);
+            // NPCs use 2D distance for range checks — consistent with AI behavior
+            // (MoveInRange, PickSkillAndUseIt). Using 3D caused melee to silently
+            // fail on uneven terrain where Z difference inflated the distance.
+            var useZAxis = caster is not Npc;
+            var targetDist = unit.GetDistanceTo(target, useZAxis);
 
             var minRangeCheck = Template.MinRange * 1.0;
             var maxRangeCheck = skillRange;
@@ -221,16 +225,27 @@ public class Skill
             // If weapon is used to calculate range, use that
             if (Template.WeaponSlotForRangeId > 0)
             {
-                var minWeaponRange = 0.0f; // Fist default
-                var maxWeaponRange = 3.0f; // Fist default
-                if (unit.Equipment.GetItemBySlot(Template.WeaponSlotForRangeId)?.Template is WeaponTemplate weaponTemplate)
+                var equippedWeapon = unit.Equipment.GetItemBySlot(Template.WeaponSlotForRangeId)?.Template as WeaponTemplate;
+                if (equippedWeapon != null)
                 {
-                    minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
-                    maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+                    // Unit has a weapon equipped — use its range
+                    minRangeCheck = equippedWeapon.HoldableTemplate.MinRange;
+                    maxRangeCheck = equippedWeapon.HoldableTemplate.MaxRange;
                 }
-
-                minRangeCheck = minWeaponRange;
-                maxRangeCheck = maxWeaponRange;
+                else if (caster is Npc)
+                {
+                    // NPCs without weapons: don't apply the 3m fist default.
+                    // The AI behavior already gates melee range (4m 2D check in PickSkillAndUseIt
+                    // + MoveInRange). Using Template.MaxRange here avoids a 2D/3D distance
+                    // mismatch that causes melee to silently fail on uneven terrain.
+                    // minRangeCheck / maxRangeCheck stay at template defaults.
+                }
+                else
+                {
+                    // Players without a weapon — fist defaults
+                    minRangeCheck = 0.0f;
+                    maxRangeCheck = 3.0f;
+                }
             }
 
             if (targetDist < minRangeCheck)

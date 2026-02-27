@@ -131,6 +131,13 @@ public abstract class BaseCombatBehavior : Behavior
             range -= 1f; // Fix that ID=7927, Plateau Earth Elemental can hit with a melee attack
         }
 
+        // Cap movement stop-distance to actual attack range so the NPC always closes
+        // to within striking distance. Without this, AttackStartRangeScale can place
+        // the stop-distance beyond the weapon/skill max range, creating a dead zone
+        // where the NPC neither moves nor can attack.
+        if (_maxWeaponRange > 0 && range > _maxWeaponRange)
+            range = _maxWeaponRange;
+
         // Use 2D distance for range checks to match skill range filtering (which also uses 2D).
         // 3D distance caused mismatches for aquatic bosses where Z difference is significant.
         var distanceToTarget = Ai.Owner.GetDistanceTo(target, false);
@@ -235,7 +242,9 @@ public abstract class BaseCombatBehavior : Behavior
         else
         {
             if (distanceToTarget > range && target != null)
+            {
                 Ai.Owner.MoveTowards(target.Transform.World.Position, (float)speed, moveFlags);
+            }
             else if (minCombatDist > 0 && distanceToTarget < minCombatDist && target != null)
             {
                 // Too close — back off to preferred combat distance so skills can be used

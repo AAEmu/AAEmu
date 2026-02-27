@@ -84,12 +84,6 @@ public class NpcSpawner : Spawner<Npc>
                     DespawnNpcs();
                     didAction = true;
                 }
-                // Proximity-based despawn disabled — all NPCs stay spawned
-                // else if (!IsPlayerInSpawnRadius() && CurrentSpawnCount > 0)
-                // {
-                //     DespawnNpcsNow();
-                //     didAction = true;
-                // }
 
                 if (!didAction && CanSpawnNpcs())
                 {
@@ -667,7 +661,6 @@ public class NpcSpawner : Spawner<Npc>
             Logger.Warn("Attempted to despawn a null NPC.");
             return;
         }
-
         try
         {
             lock (_spawnLock)
@@ -1321,16 +1314,33 @@ public class NpcSpawner : Spawner<Npc>
 
                 if (effect.UseSummonerAggroTarget && !effect.UseSummonerFaction)
                 {
-                    if (target is Npc)
+                    // When an NPC boss summons adds, the adds should inherit the
+                    // boss's current combat target (the player), not the skill's
+                    // caster/target (which are both the boss for self-target summons).
+                    Unit aggroTarget = null;
+
+                    if (caster is Npc npcCaster && npcCaster.CurrentTarget is Unit bossTarget
+                        && bossTarget != caster)
                     {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)target, 1);
+                        // Boss has an active combat target — transfer it to the add
+                        aggroTarget = bossTarget;
                     }
-                    else
+                    else if (target is Unit targetUnit && targetUnit != caster)
                     {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
+                        // Skill targeted a different unit (e.g. player-summoned pets)
+                        aggroTarget = targetUnit;
+                    }
+                    else if (caster is Unit casterUnit && casterUnit is not Npc)
+                    {
+                        // Player summoning — aggro the caster (original behavior)
+                        aggroTarget = casterUnit;
                     }
 
-                    npc.Ai.OnAggroTargetChanged();
+                    if (aggroTarget != null)
+                    {
+                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, aggroTarget, 1);
+                        npc.Ai.OnAggroTargetChanged();
+                    }
                 }
 
                 if (effect.LifeTime > 0)

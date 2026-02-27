@@ -40,6 +40,7 @@ public class AttackBehavior : BaseCombatBehavior
         if (Ai.Owner.CurrentTarget == null)
             return;
 
+        // Diagnostic logging for shark adds (8590/8591) to diagnose idle behavior
         if (CanStrafe && !IsUsingSkill)
             MoveInRange(Ai.Owner.CurrentTarget, delta);
 
