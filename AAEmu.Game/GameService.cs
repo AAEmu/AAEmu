@@ -63,47 +63,9 @@ public sealed class GameService : IHostedService, IDisposable
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        // --- Stage 0: Infrastructure ---
-        TickManager.Instance.Initialize();
-        TaskIdManager.Instance.Initialize();
-        TaskManager.Instance.Initialize();
-
-        // --- World base (explicit: needed before all other Load() calls) ---
-        WorldIdManager.Instance.Initialize();
-        WorldManager.Instance.Load();
-        FeaturesManager.Initialize();
-
         // --- ID managers ---
-        ObjectIdManager.Instance.Initialize();
-        TradeIdManager.Instance.Initialize();
-        ContainerIdManager.Instance.Initialize();
-        ItemIdManager.Instance.Initialize();
-        DoodadIdManager.Instance.Initialize();
-        ChatManager.Instance.Initialize();  // unmigrated
-        CharacterIdManager.Instance.Initialize();
-        FamilyIdManager.Instance.Initialize();
-        ExpeditionIdManager.Instance.Initialize();
-        VisitedSubZoneIdManager.Instance.Initialize();
-        PrivateBookIdManager.Instance.Initialize();
-        FriendIdManager.Instance.Initialize();
-        MateIdManager.Instance.Initialize();
-        HousingIdManager.Instance.Initialize();
-        HousingTldManager.Instance.Initialize();
-        TeamIdManager.Instance.Initialize();
-        QuestIdManager.Instance.Initialize();
-        MailIdManager.Instance.Initialize();
-        UccIdManager.Instance.Initialize();
-        MusicIdManager.Instance.Initialize();
-        ShipyardIdManager.Instance.Initialize();
-        // SkillTlIdManager.Instance.Initialize();
-        AuctionIdManager.Instance.Initialize();
-        GimmickIdManager.Instance.Initialize();
-        TlIdManager.Instance.Initialize();
-
-        // --- Stage 1: Pre-load special steps ---
-        // TODO: Implement lazy loading for heightmaps
-        var heightmapTask = Task.Run(WorldManager.Instance.LoadHeightmaps, cancellationToken);
-        AnimationManager.Instance.Load();  // unmigrated; must complete before SkillManager.Load()
+        // All ID managers implement ILoadable and are handled by the orchestrator in Stage 2.
+        // SkillTlIdManager.Instance.Initialize(); // static class, not migrated
 
         // --- Stage 2: Orchestrated parallel Load() ---
         // Managers implementing ILoadable are sorted by constructor dep graph and run in parallel batches.
@@ -130,17 +92,9 @@ public sealed class GameService : IHostedService, IDisposable
         TaskManager.Instance.Start();
 
         // --- Stage 4: Orchestrated parallel Initialize() ---
-        DuelManager.Initialize();       // explicit – static call
-        SpecialtyManager.Initialize();  // explicit – static call
         await _orchestrator.RunInitializeAsync();
 
         // --- Stage 5: World creation + network ---
-        if (heightmapTask != null && !heightmapTask.IsCompleted)
-        {
-            Logger.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
-            await heightmapTask;
-        }
-
         // Start main_world and other static instances
         WorldManager.Instance.CreateStaticInstances();
         WorldManager.Instance.Initialize();

@@ -27,6 +27,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
 
     private readonly object _addLock = new();
     private readonly object _remLock = new();
+    private readonly object _questStartingSpheresLock = new();
 
     public void Initialize()
     {
@@ -39,8 +40,8 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
         if (_sphereQuests == null)
             _sphereQuests = LoadQuestSpheres(parent.Template);
 
-        // Link quest starters to spheres
-        _questStartingSpheres.Clear();
+        // Link quest starters to spheres — build first, then swap atomically
+        var newStartingSpheres = new List<SphereQuestStarter>();
         foreach (var (componentId, sphereQuestList) in _sphereQuests)
         {
             // Get the relevant QuestComponentTemplate
@@ -64,10 +65,16 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
                 {
                     if (actTemplate is QuestActConAcceptSphere _)
                     {
-                        _questStartingSpheres.Add(newSphere);
+                        newStartingSpheres.Add(newSphere);
                     }
                 }
             }
+        }
+
+        lock (_questStartingSpheresLock)
+        {
+            _questStartingSpheres.Clear();
+            _questStartingSpheres.AddRange(newStartingSpheres);
         }
     }
 
@@ -168,7 +175,10 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
             }
 
             // Handle Global triggers for quest starters
-            foreach (var questStartingSphere in _questStartingSpheres)
+            List<SphereQuestStarter> startingSphereSnapshot;
+            lock (_questStartingSpheresLock)
+                startingSphereSnapshot = [.._questStartingSpheres];
+            foreach (var questStartingSphere in startingSphereSnapshot)
             {
                 // Link the region if it hasn't been done yet
                 questStartingSphere.Region ??= parent.GetRegionByPos(questStartingSphere.Sphere.Xyz);

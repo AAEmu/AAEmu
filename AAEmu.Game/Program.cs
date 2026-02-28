@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -296,79 +296,79 @@ public static class Program
                 services.AddSingleton<IGameDataManager>(sp => sp.GetRequiredService<GameDataManager>());
 
                 // -- IdManagers (own static Instance, factory pattern) --
-                services.AddSingleton(_ => AuctionIdManager.Instance);
+                services.AddSingleton<AuctionIdManager>();
                 services.AddSingleton<IAuctionIdManager>(sp => sp.GetRequiredService<AuctionIdManager>());
 
-                services.AddSingleton(_ => CharacterIdManager.Instance);
+                services.AddSingleton<CharacterIdManager>();
                 services.AddSingleton<ICharacterIdManager>(sp => sp.GetRequiredService<CharacterIdManager>());
 
-                services.AddSingleton(_ => ContainerIdManager.Instance);
+                services.AddSingleton<ContainerIdManager>();
                 services.AddSingleton<IContainerIdManager>(sp => sp.GetRequiredService<ContainerIdManager>());
 
-                services.AddSingleton(_ => DoodadIdManager.Instance);
+                services.AddSingleton<DoodadIdManager>();
                 services.AddSingleton<IDoodadIdManager>(sp => sp.GetRequiredService<DoodadIdManager>());
 
-                services.AddSingleton(_ => ExpeditionIdManager.Instance);
+                services.AddSingleton<ExpeditionIdManager>();
                 services.AddSingleton<IExpeditionIdManager>(sp => sp.GetRequiredService<ExpeditionIdManager>());
 
-                services.AddSingleton(_ => FamilyIdManager.Instance);
+                services.AddSingleton<FamilyIdManager>();
                 services.AddSingleton<IFamilyIdManager>(sp => sp.GetRequiredService<FamilyIdManager>());
 
-                services.AddSingleton(_ => FriendIdManager.Instance);
+                services.AddSingleton<FriendIdManager>();
                 services.AddSingleton<IFriendIdManager>(sp => sp.GetRequiredService<FriendIdManager>());
 
-                services.AddSingleton(_ => GimmickIdManager.Instance);
+                services.AddSingleton<GimmickIdManager>();
                 services.AddSingleton<IGimmickIdManager>(sp => sp.GetRequiredService<GimmickIdManager>());
 
-                services.AddSingleton(_ => HousingIdManager.Instance);
+                services.AddSingleton<HousingIdManager>();
                 services.AddSingleton<IHousingIdManager>(sp => sp.GetRequiredService<HousingIdManager>());
 
-                services.AddSingleton(_ => HousingTldManager.Instance);
+                services.AddSingleton<HousingTldManager>();
                 services.AddSingleton<IHousingTldManager>(sp => sp.GetRequiredService<HousingTldManager>());
 
-                services.AddSingleton(_ => ItemIdManager.Instance);
+                services.AddSingleton<ItemIdManager>();
                 services.AddSingleton<IItemIdManager>(sp => sp.GetRequiredService<ItemIdManager>());
 
-                services.AddSingleton(_ => MailIdManager.Instance);
+                services.AddSingleton<MailIdManager>();
                 services.AddSingleton<IMailIdManager>(sp => sp.GetRequiredService<MailIdManager>());
 
-                services.AddSingleton(_ => MateIdManager.Instance);
+                services.AddSingleton<MateIdManager>();
                 services.AddSingleton<IMateIdManager>(sp => sp.GetRequiredService<MateIdManager>());
 
-                services.AddSingleton(_ => MusicIdManager.Instance);
+                services.AddSingleton<MusicIdManager>();
                 services.AddSingleton<IMusicIdManager>(sp => sp.GetRequiredService<MusicIdManager>());
 
-                services.AddSingleton(_ => ObjectIdManager.Instance);
+                services.AddSingleton<ObjectIdManager>();
                 services.AddSingleton<IObjectIdManager>(sp => sp.GetRequiredService<ObjectIdManager>());
 
-                services.AddSingleton(_ => PrivateBookIdManager.Instance);
+                services.AddSingleton<PrivateBookIdManager>();
                 services.AddSingleton<IPrivateBookIdManager>(sp => sp.GetRequiredService<PrivateBookIdManager>());
 
-                services.AddSingleton(_ => QuestIdManager.Instance);
+                services.AddSingleton<QuestIdManager>();
                 services.AddSingleton<IQuestIdManager>(sp => sp.GetRequiredService<QuestIdManager>());
 
-                services.AddSingleton(_ => ShipyardIdManager.Instance);
+                services.AddSingleton<ShipyardIdManager>();
                 services.AddSingleton<IShipyardIdManager>(sp => sp.GetRequiredService<ShipyardIdManager>());
 
-                services.AddSingleton(_ => TaskIdManager.Instance);
+                services.AddSingleton<TaskIdManager>();
                 services.AddSingleton<ITaskIdManager>(sp => sp.GetRequiredService<TaskIdManager>());
 
-                services.AddSingleton(_ => TeamIdManager.Instance);
+                services.AddSingleton<TeamIdManager>();
                 services.AddSingleton<ITeamIdManager>(sp => sp.GetRequiredService<TeamIdManager>());
 
-                services.AddSingleton(_ => TlIdManager.Instance);
+                services.AddSingleton<TlIdManager>();
                 services.AddSingleton<ITlIdManager>(sp => sp.GetRequiredService<TlIdManager>());
 
-                services.AddSingleton(_ => TradeIdManager.Instance);
+                services.AddSingleton<TradeIdManager>();
                 services.AddSingleton<ITradeIdManager>(sp => sp.GetRequiredService<TradeIdManager>());
 
-                services.AddSingleton(_ => UccIdManager.Instance);
+                services.AddSingleton<UccIdManager>();
                 services.AddSingleton<IUccIdManager>(sp => sp.GetRequiredService<UccIdManager>());
 
-                services.AddSingleton(_ => VisitedSubZoneIdManager.Instance);
+                services.AddSingleton<VisitedSubZoneIdManager>();
                 services.AddSingleton<IVisitedSubZoneIdManager>(sp => sp.GetRequiredService<VisitedSubZoneIdManager>());
 
-                services.AddSingleton(_ => WorldIdManager.Instance);
+                services.AddSingleton<WorldIdManager>();
                 services.AddSingleton<IWorldIdManager>(sp => sp.GetRequiredService<WorldIdManager>());
 
                 // -- Lazy<T> wrappers for circular-dep break patterns --

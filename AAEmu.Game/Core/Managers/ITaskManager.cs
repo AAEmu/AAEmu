@@ -1,9 +1,8 @@
 ﻿namespace AAEmu.Game.Core.Managers;
 
-public interface ITaskManager
+public interface ITaskManager : IInitializable
 {
     bool Cancel(Models.Tasks.Task task);
-    void Initialize();
     void Start();
     void Stop();
     bool Schedule(Models.Tasks.Task task, TimeSpan? startTime = null, TimeSpan? repeatInterval = null, int count = -1);

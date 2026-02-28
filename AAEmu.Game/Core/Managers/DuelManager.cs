@@ -28,10 +28,9 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
     private readonly ConcurrentDictionary<uint, Duel> _duels = new();
     public Dictionary<uint, FactionsEnum> SaveFactions { get; set; } = [];
 
-    public static bool Initialize()
+    public void Initialize()
     {
         Logger.Info("Initialising Duel Manager...");
-        return true;
     }
 
     private void DuelAdd(Duel duel)

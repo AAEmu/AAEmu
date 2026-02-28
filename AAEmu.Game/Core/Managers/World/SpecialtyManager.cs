@@ -117,7 +117,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
         Logger.Info("SpecialtyManager loaded");
     }
 
-    public static void Initialize()
+    public void Initialize()
     {
         var ratioConsumeTask = new SpecialtyRatioConsumeTask();
         TaskManager.Instance.Schedule(ratioConsumeTask, TimeSpan.FromMinutes(AppConfiguration.Instance.Specialty.RatioDecreaseTickMinutes), TimeSpan.FromMinutes(AppConfiguration.Instance.Specialty.RatioDecreaseTickMinutes));

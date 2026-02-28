@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class CharacterIdManager() : IdManager("CharacterIdManager", FirstId, Las
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "characters", "id" }, { "slaves", "id" } };
 
-    public static CharacterIdManager Instance => _instance ?? (_instance = new CharacterIdManager());
+    public static CharacterIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<CharacterIdManager>() ?? new CharacterIdManager();
 }

@@ -4,16 +4,16 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FeaturesManager : Singleton<FeaturesManager>, IFeaturesManager
+public class FeaturesManager(IExperienceManager experienceManager) : Singleton<FeaturesManager>, IFeaturesManager
 {
     public static FeatureSet Fsets { get; private set; }
 
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public static void Initialize()
+    public void Initialize()
     {
         Logger.Info("Initializing Features ...");
-        Fsets = new FeatureSet { PlayerLevelLimit = ExperienceManager.Instance.MaxPlayerLevel, MateLevelLimit = ExperienceManager.Instance.MaxMateLevel };
+        Fsets = new FeatureSet { PlayerLevelLimit = experienceManager.MaxPlayerLevel, MateLevelLimit = experienceManager.MaxMateLevel };
 
         // Allow House sales
         Fsets.Set(Feature.houseSale, true);

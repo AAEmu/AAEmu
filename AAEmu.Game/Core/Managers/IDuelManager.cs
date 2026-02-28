@@ -5,7 +5,7 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IDuelManager
+public interface IDuelManager : IInitializable
 {
     Dictionary<uint, FactionsEnum> SaveFactions { get; set; }
     void DuelRequest(Character challenger, uint challengedId);

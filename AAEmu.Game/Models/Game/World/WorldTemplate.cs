@@ -107,7 +107,7 @@ public class WorldTemplate
     /// <summary>
     /// (PathX, PathY), BaiLoader
     /// </summary>
-    public Dictionary<(uint, uint), BaseBaiLoader> PathBaiLoader { get; init; } = [];
+    public ConcurrentDictionary<(uint, uint), BaseBaiLoader> PathBaiLoader { get; init; } = new();
 
     /// <summary>
     /// Gets heightmap height at target position (not smoothened)

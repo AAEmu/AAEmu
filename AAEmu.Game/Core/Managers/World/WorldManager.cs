@@ -68,7 +68,7 @@ public class WorldManager(
     /// <summary>
     /// List of loaded world instances (instanceId, WorldInstance)
     /// </summary>
-    private Dictionary<uint, WorldInstance> _worlds = [];
+    private ConcurrentDictionary<uint, WorldInstance> _worlds = new();
 
     /// <summary>
     /// WorldTemplateId by ZoneId list (zoneId, worldTemplateId)
@@ -267,7 +267,7 @@ public class WorldManager(
         if (_loaded)
             return;
 
-        _worlds = [];
+        _worlds = new();
         _worldIdByZoneKey = [];
         _worldInteractionGroups = [];
         _zoneKeysByWorldId = [];
@@ -356,6 +356,8 @@ public class WorldManager(
         #endregion
 
         _loaded = true;
+
+        LoadHeightmaps();
     }
 
     public void Initialize()
@@ -421,7 +423,8 @@ public class WorldManager(
 
         // Create a new instance
         var world = new WorldInstance(worldTemplate, channelId, overrideInstanceId, overrideInstanceId ? fixedInstanceId : worldIdManager.GetNextId());
-        _worlds.Add(world.Id, world);
+        if (!_worlds.TryAdd(world.Id, world))
+            throw new InvalidOperationException($"World instance with id {world.Id} already exists");
 
         notifyPlayer?.SendPacket(new SCProcessingInstancePacket((int)world.Template.ZoneKeys[0]));
 
@@ -1233,7 +1236,7 @@ public class WorldManager(
     /// <param name="worldInstanceId"></param>
     public void RemoveWorld(uint worldInstanceId)
     {
-        if (!_worlds.Remove(worldInstanceId))
+        if (!_worlds.TryRemove(worldInstanceId, out _))
         {
             Logger.Info($"[Dungeon] couldn't remove the dungeon id={worldInstanceId}!");
         }

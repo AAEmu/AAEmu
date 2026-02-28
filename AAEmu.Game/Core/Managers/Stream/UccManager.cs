@@ -16,7 +16,7 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.Stream;
 
-public class UccManager : Singleton<UccManager>, IUccManager
+public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUccManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, Ucc> _uploadQueue;
@@ -316,7 +316,7 @@ public class UccManager : Singleton<UccManager>, IUccManager
     public void ConfirmDefaultUcc(StreamConnection connection)
     {
         var ucc = _uploadQueue[connection.Id];
-        var id = UccIdManager.Instance.GetNextId();
+        var id = uccIdManager.GetNextId();
 
         ucc.Id = id;
         _uccs.Add(id, ucc);

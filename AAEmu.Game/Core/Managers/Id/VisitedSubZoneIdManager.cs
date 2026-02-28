@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class VisitedSubZoneIdManager() : IdManager("VisitedSubZoneIdMananger", F
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "portal_visited_district", "id" } };
 
-    public static VisitedSubZoneIdManager Instance => _instance ?? (_instance = new VisitedSubZoneIdManager());
+    public static VisitedSubZoneIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<VisitedSubZoneIdManager>() ?? new VisitedSubZoneIdManager();
 }

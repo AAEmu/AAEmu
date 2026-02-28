@@ -6,9 +6,8 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Managers;
 
-public interface IChatManager
+public interface IChatManager : IInitializable
 {
-    void Initialize();
     List<ChatChannel> ListAllChannels();
     void LeaveAllChannels(Character character);
     int CleanUpChannels();

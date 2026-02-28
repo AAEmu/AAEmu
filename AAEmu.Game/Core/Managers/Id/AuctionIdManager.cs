@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Utils;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Core.Managers.Id;
 
@@ -10,5 +13,6 @@ public class AuctionIdManager() : IdManager("AuctionIdManager", FirstId, LastId,
     private static readonly uint[] Exclude = [];
     private static readonly string[,] ObjTables = { { "auction_house", "id" } };
 
-    public static AuctionIdManager Instance => _instance ?? (_instance = new AuctionIdManager());
+    public static AuctionIdManager Instance =>
+        _instance ??= SingletonContainer.ServiceProvider?.GetService<AuctionIdManager>() ?? new AuctionIdManager();
 }

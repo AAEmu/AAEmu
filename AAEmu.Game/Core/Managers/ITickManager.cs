@@ -1,8 +1,7 @@
 namespace AAEmu.Game.Core.Managers;
 
-public interface ITickManager
+public interface ITickManager : IInitializable
 {
     TickManager.TickEventHandler OnTick { get; }
-    void Initialize();
     void Stop();
 }
