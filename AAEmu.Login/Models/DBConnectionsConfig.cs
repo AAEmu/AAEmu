@@ -15,4 +15,11 @@ public class DBConnectionsConfig
     /// </summary>
     [Required]
     public required MySqlConnectionSettings MySQLProvider { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to automatically apply database schema updates without an interactive prompt.
+    /// Intended for unattended environments such as Aspire or CI. Not recommended for production use, as it may apply
+    /// updates without proper review.
+    /// </summary>
+    public bool AutoApplyUpdates { get; set; }
 }
