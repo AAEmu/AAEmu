@@ -1,7 +1,7 @@
 # FAQ
 
 - Audience: Contributors, testers, and players
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on March 3, 2026
 - Prerequisites: None
 
 ## Project basics
@@ -42,6 +42,10 @@ Yes. Both are still supported:
 
 - [Installation & Setup](Installation-&-Setup)
 - [Docker Installation Guide](Docker-Installation-Guide)
+- [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
+
+Docker setup is generated from AppHost publish artifacts rather than a
+repository root compose file.
 
 ### Do I still insert game servers into MySQL `aaemu_login.game_servers`
 

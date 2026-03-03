@@ -1,7 +1,7 @@
 # Installation & Setup
 
 - Audience: Contributors, players, and testers
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on March 3, 2026
 - Prerequisites: `.NET 10 SDK`, required AAEmu dependencies/downloads, and
   MySQL for manual track
 
@@ -142,13 +142,18 @@ login.
 
 ## Docker workflow
 
-If you prefer containers without Aspire orchestration, see
-[Docker Installation Guide](Docker-Installation-Guide).
+Docker workflow now uses AppHost-generated compose artifacts.
+
+Use:
+
+- [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
+- [Docker Installation Guide](Docker-Installation-Guide)
 
 ## Related
 
 - [Home](Home)
 - [Dependencies and Downloads](Dependencies-and-Downloads)
 - [Aspire Development Guide](Aspire-Development-Guide)
+- [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
 - [Working with the Config.json files and server listings](Working-with-the-Config.json-files-and-server-listings)
 - [Mini troubleshoot guide](Mini-troubleshoot-guide)

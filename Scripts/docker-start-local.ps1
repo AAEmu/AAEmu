@@ -55,54 +55,21 @@ function Apply-EnvDefaults {
     Set-EnvDefault -Path $EnvFile -Name "AAEMU_DB_PASSWORD" -Value "password"
 }
 
-while ($true) {
-    $answer = (Read-Host "This script will wipe generated Aspire Docker artifacts and stop the running stack. Continue? (Y/N)").ToUpper()
-
-    if ($answer -eq "Y") {
-        Write-Host "Stopping existing AAEmu Docker stack (if any)..."
-        if ((Test-Path $ComposeFile) -and (Test-Path $EnvFile)) {
-            docker compose --project-name aaemu --env-file $EnvFile -f $ComposeFile down
-        }
-
-        if (Test-Path $AspireOutputDir) {
-            Remove-Item -Recurse -Force $AspireOutputDir
-        }
-
-        break
-    }
-    elseif ($answer -eq "N") {
-        Write-Host "Aborting installation."
-        exit 0
-    }
-    else {
-        Write-Host "Invalid input. Please enter Y or N."
-    }
-}
-
-Write-Host "Preparing Aspire output directories..."
 New-Item -ItemType Directory -Path $AspireToolDir -Force | Out-Null
 New-Item -ItemType Directory -Path $AspireOutputDir -Force | Out-Null
-Write-Host "Done"
 
-Write-Host "Installing/updating Aspire CLI..."
-if (Test-Path $AspireCli) {
-    dotnet tool update --tool-path $AspireToolDir aspire.cli --version $AspireCliVersion
-}
-else {
+if (-not (Test-Path $AspireCli)) {
+    Write-Host "Installing Aspire CLI..."
     dotnet tool install --tool-path $AspireToolDir aspire.cli --version $AspireCliVersion
 }
-Write-Host "Done"
 
-Write-Host "Generating Docker Compose artifacts from AppHost..."
-& $AspireCli publish --project $AppHostProject --output-path $AspireOutputDir --non-interactive
+if ((-not (Test-Path $ComposeFile)) -or (-not (Test-Path $EnvFile))) {
+    Write-Host "Compose artifacts not found. Generating..."
+    & $AspireCli publish --project $AppHostProject --output-path $AspireOutputDir --non-interactive
+}
+
 Apply-EnvDefaults
-Write-Host "Done"
 
-Write-Host "Aspire Docker setup done."
-Write-Host "Generated artifacts: $AspireOutputDir"
-Write-Host "Start containers: Scripts/docker-start-local.ps1"
-Write-Host "Stop containers: Scripts/docker-stop-local.ps1"
-Write-Host ""
-Write-Host "Before starting, make sure required game data exists in the repository:"
-Write-Host "- compact.sqlite3 in AAEmu.Game/Data"
-Write-Host "- game_pak path configured in AAEmu.Game/Config.Local.json (recommended)"
+Write-Host "Starting AAEmu containers..."
+docker compose --project-name aaemu --env-file $EnvFile -f $ComposeFile up -d
+Write-Host "AAEmu containers are running."

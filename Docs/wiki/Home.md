@@ -5,11 +5,12 @@ Open source server software for ArcheAge written in `.NET`.
 ## Start Here
 
 - Audience: Contributors, players, and testers
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on March 3, 2026
 - Prerequisites: None
 - Preferred local development: [Aspire Development Guide](Aspire-Development-Guide)
+- Aspire Docker publish flow: [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
 - Manual setup fallback: [Installation & Setup](Installation-&-Setup)
-- Docker setup alternative: [Docker Installation Guide](Docker-Installation-Guide)
+- Docker setup reference: [Docker Installation Guide](Docker-Installation-Guide)
 - Troubleshooting first stop: [Mini troubleshoot guide](Mini-troubleshoot-guide)
 - Need help: [Getting Help](Getting-Help)
 
@@ -19,6 +20,7 @@ Open source server software for ArcheAge written in `.NET`.
 
 - [Dependencies and Downloads](Dependencies-and-Downloads)
 - [Aspire Development Guide](Aspire-Development-Guide)
+- [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
 - [Installation & Setup](Installation-&-Setup)
 - [Docker Installation Guide](Docker-Installation-Guide)
 
@@ -58,7 +60,7 @@ Open source server software for ArcheAge written in `.NET`.
 
 ## Recent Platform Changes
 
-- `.NET Aspire` AppHost is available and is now the preferred contributor workflow.
+- `.NET Aspire` AppHost is the source of truth for orchestration and Docker publish artifacts.
 - Login server public network uses ASP.NET Core Kestrel.
 - Login server game server listings are configured via `GameServers`
   configuration (not MySQL `game_servers`).
@@ -68,6 +70,7 @@ Open source server software for ArcheAge written in `.NET`.
 ## Related
 
 - [Aspire Development Guide](Aspire-Development-Guide)
+- [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
 - [Dependencies and Downloads](Dependencies-and-Downloads)
 - [Installation & Setup](Installation-&-Setup)
 - [FAQ](FAQ)

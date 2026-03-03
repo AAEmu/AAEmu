@@ -1,17 +1,14 @@
 # Aspire Development Guide
 
 - Audience: Contributors
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on March 3, 2026
 - Prerequisites: `.NET 10 SDK`, OCI runtime, and required downloaded
   dependencies
 
 ## Why this guide exists
 
-The preferred way to run AAEmu locally is now the Aspire AppHost project.
-It simplifies local startup by orchestrating MySQL, the login server, and the
-game server.
-
-Aspire is optional. Manual and Docker workflows are still supported.
+The preferred way to run AAEmu locally is the Aspire AppHost project.
+It orchestrates MySQL, Adminer, login server, and game server.
 
 ## Prerequisites
 
@@ -44,8 +41,46 @@ Expected behavior:
 
 1. Aspire starts the MySQL container.
 1. Aspire initializes `aaemu_login` and `aaemu_game` using idempotent SQL scripts.
-1. Login server and game server start after dependencies are ready.
+1. Login and game services start after dependencies are ready.
 1. Aspire dashboard opens and shows service health/state.
+
+## Aspire Docker publishing workflow
+
+Use this path when you want Docker Compose artifacts generated from AppHost.
+
+1. Change directory to `Scripts`.
+1. Initial install:
+   - Windows: `./docker-install-local.ps1`
+   - Linux: `./docker-install-local.sh`
+1. Start containers:
+   - Windows: `./docker-start-local.ps1`
+   - Linux: `./docker-start-local.sh`
+1. Stop containers:
+   - Windows: `./docker-stop-local.ps1`
+   - Linux: `./docker-stop-local.sh`
+1. Refresh generated artifacts after updates:
+   - Windows: `./docker-update-local.ps1`
+   - Linux: `./docker-update-local.sh`
+
+Generated files are written under `.server_files/aspire/docker`.
+Scripts backfill empty `.env` values with AAEmu defaults before startup.
+
+### Services and networking in generated compose
+
+The generated compose uses explicit AAEmu service naming and an AAEmu network:
+
+- `aaemu-db`
+- `aaemu-adminer`
+- `aaemu-login`
+- `aaemu-game`
+- `aaemu-dashboard`
+- network: `aaemu-net`
+
+### Major note about package versions
+
+The Docker publishing integration currently depends on
+`Aspire.Hosting.Docker` prerelease package versions.
+This is expected and tracked in project package management.
 
 ## What Aspire wires automatically
 
@@ -85,6 +120,7 @@ In Aspire, monitor readiness from dashboard state and resource logs.
 ## Related
 
 - [Home](Home)
+- [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
 - [Dependencies and Downloads](Dependencies-and-Downloads)
 - [Installation & Setup](Installation-&-Setup)
 - [Working with the Config.json files and server listings](Working-with-the-Config.json-files-and-server-listings)

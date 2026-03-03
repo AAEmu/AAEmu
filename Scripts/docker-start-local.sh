@@ -40,47 +40,20 @@ apply_env_defaults() {
     set_env_default "$ENV_FILE" "AAEMU_DB_PASSWORD" "password"
 }
 
-while true; do
-    read -rp "This script will wipe generated Aspire Docker artifacts and stop the running stack. Continue? (Y/N): " answer
-    answer=$(echo "$answer" | tr '[:lower:]' '[:upper:]')
-
-    if [[ "$answer" == "Y" ]]; then
-        echo -e "Stopping existing AAEmu Docker stack (if any)..."
-        if [[ -f "$COMPOSE_FILE" && -f "$ENV_FILE" ]]; then
-            docker compose --project-name aaemu --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down || true
-        fi
-        rm -rf "$ASPIRE_OUTPUT_DIR"
-        break
-    elif [[ "$answer" == "N" ]]; then
-        echo -e "Aborting installation."
-        exit 0
-    else
-        echo -e "Invalid input. Please enter Y or N."
-    fi
-done
-
-echo -e "Preparing Aspire output directories..."
 mkdir -p "$ASPIRE_TOOL_DIR" "$ASPIRE_OUTPUT_DIR"
-echo -e "Done"
 
-echo -e "Installing/updating Aspire CLI..."
-if [[ -x "$ASPIRE_CLI" ]]; then
-    dotnet tool update --tool-path "$ASPIRE_TOOL_DIR" aspire.cli --version "$ASPIRE_CLI_VERSION"
-else
+if [[ ! -x "$ASPIRE_CLI" ]]; then
+    echo -e "Installing Aspire CLI..."
     dotnet tool install --tool-path "$ASPIRE_TOOL_DIR" aspire.cli --version "$ASPIRE_CLI_VERSION"
 fi
-echo -e "Done"
 
-echo -e "Generating Docker Compose artifacts from AppHost..."
-"$ASPIRE_CLI" publish --project "$APPHOST_PROJECT" --output-path "$ASPIRE_OUTPUT_DIR" --non-interactive
+if [[ ! -f "$COMPOSE_FILE" || ! -f "$ENV_FILE" ]]; then
+    echo -e "Compose artifacts not found. Generating..."
+    "$ASPIRE_CLI" publish --project "$APPHOST_PROJECT" --output-path "$ASPIRE_OUTPUT_DIR" --non-interactive
+fi
+
 apply_env_defaults
-echo -e "Done"
 
-echo -e "Aspire Docker setup done."
-echo -e "Generated artifacts: $ASPIRE_OUTPUT_DIR"
-echo -e "Start containers: Scripts/docker-start-local.sh"
-echo -e "Stop containers: Scripts/docker-stop-local.sh"
-echo -e ""
-echo -e "Before starting, make sure required game data exists in the repository:"
-echo -e "- compact.sqlite3 in AAEmu.Game/Data"
-echo -e "- game_pak path configured in AAEmu.Game/Config.Local.json (recommended)"
+echo -e "Starting AAEmu containers..."
+docker compose --project-name aaemu --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+echo -e "AAEmu containers are running."

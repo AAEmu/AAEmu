@@ -1,23 +1,24 @@
 # Docker Installation Guide
 
 - Audience: Operators and contributors
-- Last verified against: `develop` on February 28, 2026
+- Last verified against: `develop` on March 3, 2026
 - Prerequisites: Docker runtime, Git, required AAEmu data files
 
 ## When to use this guide
 
-Use this guide when you want containerized AAEmu without Aspire orchestration.
+Use this guide when you want containerized AAEmu using Aspire-generated Docker
+Compose artifacts.
 
-If you want the preferred contributor startup flow, use
+For full AppHost details, see
 [Aspire Development Guide](Aspire-Development-Guide).
 
 ## Prerequisites
 
 1. Install Git.
 1. Install Docker Desktop (Windows) or Docker Engine + Compose (Linux).
-1. Place required files where scripts expect them:
-   - `compact.sqlite3`
-   - ArcheAge `game_pak`
+1. Place required files in the repository:
+   - `compact.sqlite3` in `AAEmu.Game/Data`
+   - configure `game_pak` path (recommended in `AAEmu.Game/Config.Local.json`)
 
 ## Initial install
 
@@ -27,6 +28,19 @@ If you want the preferred contributor startup flow, use
    - Windows: `docker-install-local.ps1`
    - Linux: `docker-install-local.sh`
 
+This generates compose artifacts in `.server_files/aspire/docker`.
+
+## Start and stop
+
+From `Scripts` directory:
+
+- Start:
+  - Windows: `docker-start-local.ps1`
+  - Linux: `docker-start-local.sh`
+- Stop:
+  - Windows: `docker-stop-local.ps1`
+  - Linux: `docker-stop-local.sh`
+
 ## Update an existing install
 
 1. Change directory to `Scripts`.
@@ -34,45 +48,46 @@ If you want the preferred contributor startup flow, use
    - Windows: `docker-update-local.ps1`
    - Linux: `docker-update-local.sh`
 
-## Launch
-
-From project root:
-
-- Detached mode: `docker compose up -d`
-- Dev/watch mode: `docker compose watch`
+This stops containers, updates repository state, and regenerates compose
+artifacts from AppHost.
 
 ## Important configuration notes
 
-### Login container runtime
+### Service naming and network
 
-Login server public networking is ASP.NET Core Kestrel-based.
-The login container must use an ASP.NET runtime image.
+Generated compose uses explicit AAEmu names:
+
+- `aaemu-db`
+- `aaemu-adminer`
+- `aaemu-login`
+- `aaemu-game`
+- `aaemu-dashboard`
+- network: `aaemu-net`
+
+### Env-file values
+
+The generated `.env` file is produced by AppHost (`ConfigureEnvFile`).
+The install/start/update scripts also backfill empty values with AAEmu defaults
+(ports, compose name, network name, and local DB password) so the stack starts
+without manual editing.
 
 ### Server listing source
 
-Server listings are configuration-driven (`GameServers`) and can be injected
-through environment variables in compose, for example:
-
-```text
-GameServers__0__ID=1
-GameServers__0__Name=AAEmu.Game
-GameServers__0__Host=127.0.0.1
-GameServers__0__Port=1239
-```
-
-Do not depend on MySQL `aaemu_login.game_servers` inserts.
+Server listings are configuration-driven (`GameServers`) and should not rely on
+MySQL `aaemu_login.game_servers` inserts.
 
 ## Troubleshooting
 
-- Docker API or daemon not available: start Docker before running commands.
-- Installation script fails on Windows policy: adjust execution policy for your
-  user if needed.
-- Services start but client cannot connect: verify `GameServers` host/port and
-  exposed compose ports.
+- Docker API or daemon not available: start Docker before running scripts.
+- Script execution policy blocks PowerShell scripts: adjust user-level execution
+  policy.
+- Services start but client cannot connect: verify host port mappings from
+  generated `.server_files/aspire/docker/.env` and launcher settings.
 
 ## Related
 
 - [Home](Home)
 - [Aspire Development Guide](Aspire-Development-Guide)
+- [Aspire Docker Publishing Guide](Aspire-Docker-Publishing-Guide)
 - [Installation & Setup](Installation-&-Setup)
 - [Mini troubleshoot guide](Mini-troubleshoot-guide)

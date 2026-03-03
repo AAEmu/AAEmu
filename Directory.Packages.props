@@ -3,7 +3,9 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.MySql" Version="13.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="13.1.2-preview.1.26125.13" />
+    <!-- As of March 3, 2026, the Docker hosting package has no stable release. -->
+    <PackageVersion Include="Aspire.Hosting.MySql" Version="13.1.2" />
     <PackageVersion Include="Discord.Net" Version="3.16.0" />
     <PackageVersion Include="Jace" Version="1.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
