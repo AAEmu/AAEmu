@@ -15,6 +15,8 @@ using NLog;
 using NLog.Config;
 using NLog.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using OSVersionExtension;
 
 namespace AAEmu.Login;
@@ -71,16 +73,27 @@ public static class Program
             .AddEnvironmentVariables()
             .AddCommandLine(args);
 
+        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+
         // Configure services
         builder.Logging.ClearProviders()
-            .AddNLog()
-            .AddOpenTelemetry(logging =>
-            {
-                logging.IncludeFormattedMessage = true;
-                logging.IncludeScopes = true;
-            });
-        builder.Services.AddOpenTelemetry()
-            .UseOtlpExporter();
+            .AddNLog();
+
+        if (otlpEndpoint is not null)
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithLogging(null, options =>
+                {
+                    options.IncludeFormattedMessage = true;
+                    options.IncludeScopes = true;
+                })
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation(options =>
+                        options.Filter = ctx => !ctx.Request.Path.StartsWithSegments("/health")))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation())
+                .UseOtlpExporter();
+        }
         builder.Services.AddOptions();
         builder.Services.AddOptionsWithValidateOnStart<AppConfiguration>()
             .BindConfiguration("")
