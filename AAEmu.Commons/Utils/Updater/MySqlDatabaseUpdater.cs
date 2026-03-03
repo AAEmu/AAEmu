@@ -184,8 +184,9 @@ public static class MySqlDatabaseUpdater
     /// <param name="connection">A valid MySqlConnection</param>
     /// <param name="moduleNamePrefix">either aaemu_login or aaemu_game</param>
     /// <param name="databaseSchemaName">actual database name for this configuration</param>
+    /// <param name="autoApply">When <c>true</c>, pending updates are applied automatically without an interactive prompt.</param>
     /// <returns></returns>
-    public static bool Run(MySqlConnection connection, string moduleNamePrefix, string databaseSchemaName)
+    public static bool Run(MySqlConnection connection, string moduleNamePrefix, string databaseSchemaName, bool autoApply = false)
     {
         Logger.Debug($"Updating database for {moduleNamePrefix}");
 
@@ -257,22 +258,32 @@ public static class MySqlDatabaseUpdater
 
         if (filesToRun.Count > 0)
         {
-            Thread.Sleep(1000);
-            Console.WriteLine($"Warning, there are {filesToRun.Count} updates for the database that need to be installed first!");
-            Console.WriteLine("-----");
+            Logger.Warn($"There are {filesToRun.Count} updates for the database that need to be installed:");
             foreach (var fName in filesToRun)
+                Logger.Warn($"  > {fName}");
+
+            if (autoApply)
             {
-                Console.WriteLine($"> {fName}");
+                Logger.Info("AutoApply is enabled — applying updates automatically.");
+                if (!InstallUpdatesFiles(connection, filesToRun, doSkip: false))
+                    return false;
             }
+            else
+            {
+                Thread.Sleep(1000);
+                Console.WriteLine($"Warning, there are {filesToRun.Count} updates for the database that need to be installed first!");
+                Console.WriteLine("-----");
+                foreach (var fName in filesToRun)
+                    Console.WriteLine($"> {fName}");
+                Console.WriteLine("-----");
+                Console.Write("Please type YES (all caps) to try and automatically install the updates, type SKIP if you already installed the update manually, or press Ctrl+C here to quit: ");
+                var yesNo = Console.ReadLine();
+                if ((yesNo != "YES") && (yesNo != "SKIP"))
+                    return false;
 
-            Console.WriteLine("-----");
-            Console.Write("Please type YES (all caps) to try and automatically install the updates, type SKIP if you already installed the update manually, or press Ctrl+C here to quit: ");
-            var yesNo = Console.ReadLine();
-            if ((yesNo != "YES") && (yesNo != "SKIP"))
-                return false;
-
-            if (!InstallUpdatesFiles(connection, filesToRun, yesNo == "SKIP"))
-                return false;
+                if (!InstallUpdatesFiles(connection, filesToRun, yesNo == "SKIP"))
+                    return false;
+            }
         }
         else
         {

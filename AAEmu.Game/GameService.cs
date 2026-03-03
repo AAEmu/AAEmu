@@ -44,7 +44,8 @@ public sealed class GameService : IHostedService, IDisposable
         // Check for updates
         using (var connection = MySQL.CreateConnection())
         {
-            if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database))
+            if (!MySqlDatabaseUpdater.Run(connection, "aaemu_game", AppConfiguration.Instance.Connections.MySQLProvider.Database,
+                    AppConfiguration.Instance.Connections.AutoApplyUpdates))
             {
                 Logger.Fatal("Failed to update database!");
                 Logger.Fatal("Press Ctrl+C to quit");
