@@ -1,4 +1,10 @@
 {
+	"Logging": {
+		"LogLevel": {
+			"Microsoft.AspNetCore.Hosting.Diagnostics": "Warning",
+			"Microsoft.AspNetCore.Routing.EndpointMiddleware": "Warning"
+		}
+	},
 	"SecretKey": "test",
 	"AutoAccount": true,
 	"SkipHostResolve": false,

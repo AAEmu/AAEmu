@@ -16,6 +16,7 @@
     <PackageReference Include="NLog.Extensions.Logging" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
     <PackageReference Include="OSVersionExt.NetStd" />
   </ItemGroup>
 
