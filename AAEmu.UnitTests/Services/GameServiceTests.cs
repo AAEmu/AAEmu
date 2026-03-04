@@ -26,17 +26,21 @@ public class GameServiceTests
     public void TimeSinceStart_ReturnsTimeSpanSinceStart()
     {
         // Arrange
-        // Calling StartTime here to make sure the GameService static class is always initialized correctly
-        _ = GameService.StartTime;
-        var beforeTime = DateTime.UtcNow;
+        var startTime = GameService.StartTime;
 
         // Act
         var timeSinceStart = GameService.TimeSinceStart;
 
         // Assert
+        // Verify TimeSinceStart is non-negative
         Assert.True(timeSinceStart >= TimeSpan.Zero);
-        var expectedMax = DateTime.UtcNow.Subtract(beforeTime);
-        Assert.True(timeSinceStart <= expectedMax.Add(TimeSpan.FromMilliseconds(100)));
+
+        // Verify TimeSinceStart is consistent with the formula: DateTime.UtcNow - StartTime
+        // Allow 100ms tolerance for execution time variation
+        var expectedTimeSinceStart = DateTime.UtcNow - startTime;
+        var tolerance = TimeSpan.FromMilliseconds(100);
+        Assert.True(timeSinceStart <= expectedTimeSinceStart + tolerance);
+        Assert.True(timeSinceStart >= expectedTimeSinceStart - tolerance);
     }
 
     [Fact]
