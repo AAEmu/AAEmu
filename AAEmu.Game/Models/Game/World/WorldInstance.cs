@@ -668,7 +668,10 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
 
     public void CleanupInstance()
     {
-        // Stop respawn system
+        // Stop respawn system (check for null as SpawnManager may not be initialized in tests)
+        if (SpawnManager == null)
+            return;
+
         SpawnManager.Stop(); // Stop respawn loop
         try
         {
