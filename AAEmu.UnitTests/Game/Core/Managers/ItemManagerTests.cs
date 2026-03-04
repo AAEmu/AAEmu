@@ -209,52 +209,6 @@ public class ItemManagerTests
 
     #endregion
 
-    #region Create Item Tests - Skipped (require DI singleton initialization)
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_ValidTemplate_ReturnsItem()
-    {
-        // Test requires full DI container setup
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_InvalidTemplate_ReturnsNull()
-    {
-        // Test requires full DI container setup
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_WithGrade_AppliesGrade()
-    {
-        // Test requires full DI container setup
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_WithFixedGrade_OverridesInputGrade()
-    {
-        // Test requires full DI container setup
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_BindOnPickup_SetsSoulBoundFlag()
-    {
-        // Test requires full DI container setup
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_NormalBind_DoesNotSetSoulBoundFlag()
-    {
-        // Test requires full DI container setup
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_WithoutGenerateId_IdIsZero()
-    {
-        // Test requires full DI container setup
-    }
-
-    #endregion
-
     #region AddItem Tests
 
     [Fact]
@@ -824,13 +778,7 @@ public class ItemManagerTests
 
     #endregion
 
-    #region GetItemContainerByDbId Tests - Skipped (require ContainerIdManager singleton)
-
-    [Fact(Skip = "Requires ContainerIdManager singleton initialization")]
-    public void GetItemContainerByDbId_ContainerExists_ReturnsContainer()
-    {
-        // Test requires ContainerIdManager singleton
-    }
+    #region GetItemContainerByDbId Tests
 
     [Fact]
     public void GetItemContainerByDbId_ContainerDoesNotExist_ReturnsNull()
@@ -976,12 +924,6 @@ public class ItemManagerTests
 
     #region GetContainerSlotTypeByContainerId Tests
 
-    [Fact(Skip = "Requires ContainerIdManager singleton initialization")]
-    public void GetContainerSlotTypeByContainerId_ContainerExists_ReturnsSlotType()
-    {
-        // Test requires ContainerIdManager singleton
-    }
-
     [Fact]
     public void GetContainerSlotTypeByContainerId_ContainerDoesNotExist_ReturnsNone()
     {
@@ -1050,12 +992,6 @@ public class ItemManagerTests
 
     #region Edge Case Tests
 
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_MaxTemplateId_ReturnsItem()
-    {
-        // Test requires full DI container setup
-    }
-
     [Fact]
     public void GetTemplate_MaxUIntId_ReturnsNull()
     {
@@ -1084,18 +1020,6 @@ public class ItemManagerTests
 
         // Assert
         Assert.Null(result);
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_ZeroCount_ReturnsItem()
-    {
-        // Test requires full DI container setup
-    }
-
-    [Fact(Skip = "Requires DI singleton initialization for ItemManager.Instance")]
-    public void Create_MaxGrade_AppliesMaxGrade()
-    {
-        // Test requires full DI container setup
     }
 
     [Fact]
