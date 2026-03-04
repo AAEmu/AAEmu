@@ -91,8 +91,8 @@ public class IdManagerTests
     #region GetNextId(int count) Tests
 
     [Theory]
-    [MemberData(nameof(IdManagerFirstIdData))]
-    public void GetNextId_WithCount_ReturnsArrayOfCorrectSize(IIdManager manager, uint expectedFirstId)
+    [MemberData(nameof(IdManagerData))]
+    public void GetNextId_WithCount_ReturnsArrayOfCorrectSize(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
