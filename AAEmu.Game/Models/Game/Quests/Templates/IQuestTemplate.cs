@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests.Templates;
 public interface IQuestTemplate
 {
     uint Id { get; set; }
+    uint CategoryId { get; set; }
     bool LetItDone { get; set; }
     byte Level { get; set; }
     bool Repeatable { get; set; }
