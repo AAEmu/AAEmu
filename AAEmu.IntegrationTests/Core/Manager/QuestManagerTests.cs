@@ -1,9 +1,11 @@
-﻿using AAEmu.Commons.IO;
-using AAEmu.Commons.Utils.DB;
+﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,32 +16,31 @@ namespace AAEmu.IntegrationTests.Core.Manager;
 // Minimal test implementation to satisfy DI for ZoneManager construction
 public class TestWorldManager : IWorldManager
 {
-    public AAEmu.Game.Models.Game.World.WorldInstance MainWorld { get; set; }
+    public WorldInstance MainWorld { get; set; }
 
     public void CreateStaticInstances() { }
 
-    public AAEmu.Game.Models.Game.World.WorldInstance CreateWorldInstance(AAEmu.Game.Models.Game.World.WorldTemplate worldTemplate, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0, AAEmu.Game.Models.Game.Char.Character notifyPlayer = null) => null;
+    public WorldInstance CreateWorldInstance(WorldTemplate worldTemplate, uint channelId, bool overrideInstanceId = false, uint fixedInstanceId = 0, Character notifyPlayer = null) => null;
 
-    public AAEmu.Game.Models.Game.World.WorldTemplate CreateWorldTemplate(string worldName) => null;
+    public WorldTemplate CreateWorldTemplate(string worldName) => null;
 
-    public AAEmu.Game.Models.Game.Char.Character GetCharacterByObjId(uint id) => null;
-    public AAEmu.Game.Models.Game.Char.Character GetCharacterById(uint id) => null;
-    public AAEmu.Game.Models.Game.Char.Character GetCharacter(string name) => null;
-    public List<AAEmu.Game.Models.Game.Char.Character> GetAllCharacters() => new();
+    public Character GetCharacterByObjId(uint id) => null;
+    public Character GetCharacterById(uint id) => null;
+    public Character GetCharacter(string name) => null;
+    public List<Character> GetAllCharacters() => [];
 
-    public uint GetZoneId(AAEmu.Game.Models.Game.World.WorldTemplate worldTemplate, float x, float y) => 0;
-    public AAEmu.Game.Models.Game.World.WorldTemplate GetWorldTemplateByName(string worldName) => null;
-    public AAEmu.Game.Models.Game.World.WorldTemplate GetWorldTemplateByZoneKey(uint zoneKey) => null;
-    public AAEmu.Game.Models.Game.World.WorldInstance[] GetWorlds() => new AAEmu.Game.Models.Game.World.WorldInstance[0];
-    public AAEmu.Game.Models.Game.World.WorldInstance GetWorld(uint worldInstanceId) => null;
-    public List<uint> GetZoneKeysByWorldId(uint worldId) => new();
-    public void BroadcastPacketToServer(AAEmu.Game.Core.Network.Game.GamePacket packet) { }
-    public AAEmu.Game.Models.Game.Char.Character GetTargetOrSelf(AAEmu.Game.Models.Game.Char.Character character, string targetName, out int firstNonNameArgument) { firstNonNameArgument = 0; return character; }
+    public uint GetZoneId(WorldTemplate worldTemplate, float x, float y) => 0;
+    public WorldTemplate GetWorldTemplateByName(string worldName) => null;
+    public WorldTemplate GetWorldTemplateByZoneKey(uint zoneKey) => null;
+    public WorldInstance[] GetWorlds() => [];
+    public WorldInstance GetWorld(uint worldInstanceId) => null;
+    public List<uint> GetZoneKeysByWorldId(uint worldId) => [];
+    public void BroadcastPacketToServer(GamePacket packet) { }
+    public Character GetTargetOrSelf(Character character, string targetName, out int firstNonNameArgument) { firstNonNameArgument = 0; return character; }
     public bool TryRemoveCharacter(uint playerObjId) => false;
     public void Initialize() { }
     public void Load() { }
 }
-
 
 public class QuestManagerTests
 {
