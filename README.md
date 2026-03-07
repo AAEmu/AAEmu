@@ -118,7 +118,7 @@ This guide will help you get started with the AAEmu project both as an experienc
 
     ![image](https://github.com/AAEmu/AAEmu/assets/19890735/3cae3135-b365-48ac-89d3-4d6ee6efd0b0)
 
-2.  Go to the location where you downloaded from the repository and enter into the `AAEmu.Game\bin\Debug\net8.0` folder
+2.  Go to the location where you downloaded from the repository and enter into the `AAEmu.Game\bin\Debug\net10.0` folder
 
 3.  Find the `exampleconfig.json` file, rename it to `Config.json` and update its contents
 
@@ -160,7 +160,7 @@ This guide will help you get started with the AAEmu project both as an experienc
     }
     ```
 
-4.  Find the file `AAEmu.Game\bin\Debug\net8.0\Configurations\ClientData.json` and open it
+4.  Find the file `AAEmu.Game\bin\Debug\net10.0\Configurations\ClientData.json` and open it
 
 5.  Locate the **root folder path** where you extracted the Archeage Client, copy the full path to the `game_pak` file (should be the biggest file in the folder)
 
@@ -181,7 +181,7 @@ This guide will help you get started with the AAEmu project both as an experienc
 
 #### Login Server Configuration
 
-1.  Go to the location where you downloaded from the repository and enter into the `AAEmu.Login\bin\Debug\net8.0` folder
+1.  Go to the location where you downloaded from the repository and enter into the `AAEmu.Login\bin\Debug\net10.0` folder
 
 2.  Find the `exampleconfig.json` file, rename it to `config.json` and update its contents
 
