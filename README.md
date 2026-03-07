@@ -2,7 +2,7 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/AAEmu/AAEmu/badge.svg?branch=develop)](https://coveralls.io/github/AAEmu/AAEmu?branch=develop)
 ![Discord](https://img.shields.io/discord/479677351618281472?color=%235865F2&label=Discord&logo=Discord&logoColor=%23FFFFFF")
-
+### [Support my hobby and help me create longer!](https://boosty.to/aaemu)
 ![](https://boards.aaemu.pw/assets/files/2018-10-11/1539288486-150348-aaemu-blank-text.png)
 
 Make sure you checked our [Understanding AAEmu Components](https://github.com/NL0bP/AAEmu/wiki/Components) page to get a better understanding on each of the components you are going to use and install towards this guide.
