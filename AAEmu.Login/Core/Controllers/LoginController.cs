@@ -1,5 +1,6 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Net;
+using System.Text.RegularExpressions;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Packets.L2G;
@@ -10,7 +11,7 @@ using MySql.Data.MySqlClient;
 
 namespace AAEmu.Login.Core.Controllers;
 
-public class LoginController(
+public partial class LoginController(
     IGameController gameController,
     IOptions<AppConfiguration> appConfig,
     IMySqlConnectionFactory connectionFactory,
@@ -20,6 +21,10 @@ public class LoginController(
 
     private readonly ConcurrentDictionary<GameServerId, ConcurrentDictionary<uint, AccountId>>
         _tokens = []; // gsId, [token, accountId]
+
+    // Allows Unicode letters and digits (any script), plus _ . - @. No control characters or newlines.
+    [GeneratedRegex(@"^[\p{L}\p{Nd}_.\-@]{1,32}$")]
+    private static partial Regex UsernameRegex();
 
     /// <summary>
     /// Kr Method Auth
@@ -101,7 +106,7 @@ public class LoginController(
         var accountId = new AccountId(reader.GetUInt32("id"));
         var lastLogin = DateTime.UtcNow;
 
-        logger.LogInformation("{Username} connected.", username);
+        logger.LogInformation("{Username} connected.", username.ReplaceLineEndings(" "));
 
         await reader.CloseAsync();
 
@@ -128,6 +133,9 @@ public class LoginController(
     private async Task<LoginResult> CreateAndLoginInvalid(string username, string password, IPAddress clientIp,
         MySqlConnection connection)
     {
+        if (!UsernameRegex().IsMatch(username))
+            return new LoginResult(false, default, LoginDeniedReason.BadAccount);
+
         await using var command = connection.CreateCommand();
         command.CommandText =
             "INSERT into users (username, password, email, last_ip, last_login, created_at, updated_at) VALUES (@username, @password, @email, @last_ip, @last_login, @created_at, @updated_at)";
