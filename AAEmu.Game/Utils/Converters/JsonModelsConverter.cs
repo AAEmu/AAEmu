@@ -5,7 +5,7 @@ namespace AAEmu.Game.Utils.Converters;
 
 public class JsonModelsConverter : JsonConverter
 {
-    private readonly Dictionary<Type, JsonConverter> _converters = [];
+    private readonly Dictionary<Type, JsonConverter> _converters = new Dictionary<Type, JsonConverter>();
 
     public JsonModelsConverter()
     {
@@ -16,7 +16,7 @@ public class JsonModelsConverter : JsonConverter
     }
     public void AddConverter<T, Y>() where T : BaseJsonConverter<Y> where Y : class
     {
-        if (!_converters.ContainsKey(typeof(T)))
+        if (!_converters.ContainsKey(typeof(Y)))
         {
             _converters.Add(typeof(Y), Activator.CreateInstance<T>());
         }
