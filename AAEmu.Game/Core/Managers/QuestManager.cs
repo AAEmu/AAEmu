@@ -24,6 +24,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneManager) : Singleton<QuestManager>, IQuestManager
 {
+    private static uint QuestCategoryTutorial => 45;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
     private readonly Dictionary<uint, QuestTemplate> _questTemplates = [];
@@ -504,7 +505,9 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                 UseCompleteMessage = reader.GetBoolean("use_complete_message", true),
                 GradeId = reader.GetUInt32("grade_id", 0)
             };
-            _questTemplates.Add(template.Id, template);
+            // Skip "loading" tutorial quests
+            if (template.CategoryId != QuestCategoryTutorial)
+                _questTemplates.Add(template.Id, template);
         }
     }
 
