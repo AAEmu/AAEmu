@@ -1,5 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Nullable>enable</Nullable>
+
+    <!-- Package version — managed by release-please, do not edit manually -->
+    <Version>1.0.0</Version>
+
+    <!-- NuGet metadata -->
+    <PackageId>AAEmu.Launcher.Core</PackageId>
+    <Title>AAEmu Launcher Core</Title>
+    <Description>Core library for launching the ArcheAge game client. Handles ticket building, RC4 encryption, and shared-memory IPC for the Trion authentication protocol.</Description>
+    <Authors>AAEmu contributors</Authors>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/aaemu/AAEmu</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/aaemu/AAEmu</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>aaemu;archeage</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 </Project>

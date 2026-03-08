@@ -1,0 +1,43 @@
+name: Release Please
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    if: github.repository == 'aaemu/AAEmu'
+    outputs:
+      release_created: ${{ steps.release.outputs['AAEmu.Launcher.Core--release_created'] }}
+      tag_name: ${{ steps.release.outputs['AAEmu.Launcher.Core--tag_name'] }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Pack AAEmu.Launcher.Core
+        run: dotnet pack AAEmu.Launcher.Core/AAEmu.Launcher.Core.csproj --configuration Release --output nupkgs
+
+      - name: Push to NuGet
+        run: dotnet nuget push nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Attach to release
+        run: gh release upload ${{ needs.release-please.outputs.tag_name }} nupkgs/*.nupkg --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

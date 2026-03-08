@@ -1,0 +1,11 @@
+{
+  "packages": {
+    "AAEmu.Launcher.Core": {
+      "release-type": "dotnet",
+      "component": "AAEmu.Launcher.Core",
+      "changelog-path": "AAEmu.Launcher.Core/CHANGELOG.md",
+      "include-component-in-tag": true,
+      "paths": ["AAEmu.Launcher.Core"]
+    }
+  }
+}

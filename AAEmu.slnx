@@ -13,10 +13,13 @@
     <File Path="CONTRIBUTING.md" />
     <File Path="Directory.Build.props" />
     <File Path="docker-compose.yaml" />
+    <File Path=".github/workflows/release-please.yml" />
     <File Path="exclusion.dic" />
     <File Path="global.json" />
     <File Path="README.md" />
     <File Path="Directory.Packages.props" />
+    <File Path="release-please-config.json" />
+    <File Path=".release-please-manifest.json" />
   </Folder>
   <Folder Name="/Additional Files/Docs/">
     <File Path="Docs/Docker-Installation-Guide.md" />
