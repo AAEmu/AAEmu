@@ -496,7 +496,7 @@ public class Unit : BaseUnit, IUnit
         // if we died sitting on a horse
         if (character.Hp > 0) { return; }
 
-        var mateList = character.ParentWorld.MateManager.GetActiveMates(character.Id);
+        var mateList = character.ParentWorld.MateManager.GetActiveMates(character.Id).ToList();
         foreach (var mate in mateList)
         {
             character.Mates.DespawnMate(mate.TlId);

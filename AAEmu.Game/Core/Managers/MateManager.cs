@@ -223,7 +223,7 @@ public class MateManager(WorldInstance parentWorldInstance)
         }
         else
         {
-            Logger.Warn($"UnMountMate. No valid seat entry, mountTlId: {mateInfo.TlId}, characterObjId: {0}, attachPoint: {attachPoint}, reason: {reason}");
+            Logger.Debug($"UnMountMate. No valid seat entry, mountTlId: {mateInfo.TlId}, characterObjId: {0}, attachPoint: {attachPoint}, reason: {reason}");
         }
     }
 
