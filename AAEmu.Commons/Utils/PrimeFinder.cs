@@ -279,18 +279,29 @@ public static class PrimeFinder
     {
         if (_init)
             return;
-        _init = true;
         // The above prime numbers are formatted for human readability.
         // To find numbers fast, we sort them once and for all.
 
+        _init = true;
         Array.Sort(primeCapacities);
     }
 
     public static int NextPrime(int desiredCapacity)
     {
         var i = Array.BinarySearch(primeCapacities, desiredCapacity);
-        if (i < 0)
+        if (i >= 0)
+        {
+            // exact match: return next larger prime if available
+            i = i + 1;
+        }
+        else
+        {
             i = -i - 1;
+        }
+
+        if (i >= primeCapacities.Length)
+            throw new OverflowException($"Requested capacity {desiredCapacity} exceeds maximum available prime {primeCapacities[^1]}");
+
         return primeCapacities[i];
     }
 }

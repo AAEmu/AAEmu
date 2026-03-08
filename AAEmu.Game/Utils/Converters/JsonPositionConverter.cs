@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Models.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace AAEmu.Game.Utils.Converters;
 
@@ -8,7 +9,18 @@ public class JsonPositionConverter : BaseJsonConverter<JsonPosition>
 {
     public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
     {
-        throw new NotImplementedException();
+        var jo = JObject.Load(reader);
+        var pos = new JsonPosition
+        {
+            X = jo["X"]?.Value<float>() ?? default,
+            Y = jo["Y"]?.Value<float>() ?? default,
+            Z = jo["Z"]?.Value<float>() ?? default,
+            Roll = jo["Roll"]?.Value<float>() ?? default,
+            Yaw = jo["Yaw"]?.Value<float>() ?? default,
+            Pitch = jo["Pitch"]?.Value<float>() ?? default
+        };
+
+        return pos;
     }
 
     public override void WriteJson(JsonWriter writer, JsonPosition value, JsonSerializer serializer)

@@ -1,7 +1,6 @@
 ﻿using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
-using AAEmu.Game.Core.Managers;
 
 using NLog;
 

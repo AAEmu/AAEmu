@@ -17,7 +17,7 @@ public class BaseUnit : GameObject, IBaseUnit
 {
     public uint Id { get; set; }
     public uint TemplateId { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; set; }
     public SystemFaction Faction { get; set; }
     public SystemFaction OriginFaction { get; set; }
 
