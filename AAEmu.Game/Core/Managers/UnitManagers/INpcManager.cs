@@ -10,7 +10,7 @@ public interface INpcManager : ILoadable
     NpcTemplate GetTemplate(uint templateId);
     Dictionary<uint, NpcTemplate> GetAllTemplates();
     MerchantGoods GetGoods(uint id);
-    Npc Create(WorldInstance parentWorld, uint objectId, uint id);
+    Npc Create(WorldInstance parentWorld, uint objectId, uint templateId);
     void LoadAiParams();
     void BindSkillsToTemplate(uint templateId, List<NpcSkill> skills);
 }

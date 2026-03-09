@@ -10,15 +10,29 @@ namespace AAEmu.Game.Models.Game.NPChar;
 
 public class NpcSpawnerNpc : Spawner<Npc>
 {
+    // ReSharper disable once InconsistentNaming
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public uint NpcSpawnerTemplateId { get; set; } // spawner template id
-    public uint MemberId { get; set; } // npc template id
-    public string MemberType { get; set; } // 'Npc'
-    public float Weight { get; set; }
+    /// <summary>
+    /// NpcSpawnerTemplateId
+    /// </summary>
+    public uint NpcSpawnerTemplateId { get; init; }
+    /// <summary>
+    /// NpcTemplateId
+    /// </summary>
+    public uint MemberId { get; set; }
+    /// <summary>
+    /// MemberType should be "Npc" here
+    /// </summary>
+    public string MemberType { get; set; }
+    /// <summary>
+    /// Spawn priority weight
+    /// </summary>
+    public float Weight { get; init; }
 
     public NpcSpawnerNpc()
     {
+        //
     }
 
     /// <summary>
@@ -30,27 +44,40 @@ public class NpcSpawnerNpc : Spawner<Npc>
         NpcSpawnerTemplateId = spawnerTemplateId;
     }
 
-    public NpcSpawnerNpc(uint spawnerTemplateId, uint memberId)
+    public NpcSpawnerNpc(uint spawnerTemplateId, uint npcTemplateId)
     {
         NpcSpawnerTemplateId = spawnerTemplateId;
-        MemberId = memberId;
+        MemberId = npcTemplateId;
         MemberType = "Npc";
     }
 
-    public List<Npc> Spawn(NpcSpawner npcSpawner, uint ownerID = 0)
+    /// <summary>
+    /// Spawns Npcs from a NpcSpawner
+    /// </summary>
+    /// <param name="npcSpawner"></param>
+    /// <param name="ownerId"></param>
+    /// <returns>List of newly spawned NPCs</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public List<Npc> Spawn(NpcSpawner npcSpawner, uint ownerId = 0)
     {
         switch (MemberType)
         {
             case "Npc":
-                return SpawnNpc(npcSpawner, ownerID);
+                return SpawnNpc(npcSpawner, ownerId);
             case "NpcGroup":
-                return SpawnNpcGroup(npcSpawner, ownerID);
+                return SpawnNpcGroup(npcSpawner, ownerId);
             default:
                 throw new InvalidOperationException($"Tried spawning an unsupported line from NpcSpawnerNpc - Id: {Id}");
         }
     }
 
-    private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint ownerID = 0)
+    /// <summary>
+    /// Internal Spawn Npc function for Spawn
+    /// </summary>
+    /// <param name="npcSpawner"></param>
+    /// <param name="ownerId"></param>
+    /// <returns></returns>
+    private List<Npc> SpawnNpc(NpcSpawner npcSpawner, uint ownerId = 0)
     {
         var npcs = new List<Npc>();
         var npc = NpcManager.Instance.Create(npcSpawner.ParentWorld, 0, MemberId);
@@ -61,7 +88,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
         }
 
         npc.ParentWorld = npcSpawner.ParentWorld;
-        npc.OwnerId = ownerID;
+        npc.OwnerId = ownerId;
 
         npc.RegisterNpcEvents();
 
@@ -110,8 +137,14 @@ public class NpcSpawnerNpc : Spawner<Npc>
         return npcs;
     }
 
-    private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint ownerID = 0)
+    /// <summary>
+    /// Internal Spawn NpcGroup function for Spawn
+    /// </summary>
+    /// <param name="npcSpawner"></param>
+    /// <param name="ownerId"></param>
+    /// <returns></returns>
+    private List<Npc> SpawnNpcGroup(NpcSpawner npcSpawner, uint ownerId = 0)
     {
-        return SpawnNpc(npcSpawner, ownerID);
+        return SpawnNpc(npcSpawner, ownerId);
     }
 }
