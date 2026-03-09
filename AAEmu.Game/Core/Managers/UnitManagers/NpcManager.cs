@@ -23,52 +23,102 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelManager, IFactionManager factionManager, IItemManager itemManager, IAIManager aiManager) : Singleton<NpcManager>, INpcManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private bool _loaded = false;
+    private bool Loaded { get; set; }
 
-    private Dictionary<uint, NpcTemplate> _templates;
-    private Dictionary<uint, MerchantGoods> _goods;
-    private Dictionary<uint, TotalCharacterCustom> _totalCharacterCustoms;
-    private Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>> _itemBodyParts;
-    private Dictionary<uint, List<uint>> _tccLookup;
-    // you can provide a seed here if you want NPCs to more reliable retain their appearance between reboots, or leave out the seed to get it random every time
+    /// <summary>
+    /// This seed gets used to populate the random values for humanoid NPCs that don't have a look defined for them.
+    /// You can provide a seed here if you want NPCs to more reliable retain their appearance between reboots, or leave out the seed to get it random every time
+    /// </summary>
     private readonly Random _loadCustomRandom = new(123456789);
-    public Dictionary<uint, NpcSpawnerNpc> _npcSpawnerNpc;    // npcSpawnerId, nsn
-    public Dictionary<uint, NpcSpawnerTemplate> _npcSpawners; // npcSpawnerId, template
-    public Dictionary<uint, List<uint>> _npcMemberAndSpawnerId; // memberId, List<npcSpawnerId>
-    private static Dictionary<uint, Creature> _creatures = new();
+    /// <summary>
+    /// NPC Templates
+    /// </summary>
+    private Dictionary<uint, NpcTemplate> Templates { get; } = [];
+    /// <summary>
+    /// List of goods a merchant sells
+    /// </summary>
+    private Dictionary<uint, MerchantGoods> Goods { get; } = [];
+    /// <summary>
+    /// Definitions for custom looks of humanoid NPCs
+    /// </summary>
+    private Dictionary<uint, TotalCharacterCustom> TotalCharacterCustoms { get; } = [];
+    /// <summary>
+    /// List of body parts for a given ModelId, BodyPartTypeId, list of BodyPartTemplates
+    /// </summary>
+    private Dictionary<uint, Dictionary<uint, List<BodyPartTemplate>>> ItemBodyParts { get; } = [];
 
+    /// <summary>
+    /// Cached list of TotalCharacterCustoms
+    /// </summary>
+    private Dictionary<uint, List<uint>> TccLookup { get; } = [];
+    /// <summary>
+    /// Equip Body Parts packs
+    /// </summary>
+    private Dictionary<uint, EquipBodyPartPack> EquipPackBodyParts { get; } = [];
+    /// <summary>
+    /// Contains a list of NPC (names) loaded from data/creatures.xml, Used for getting default names in NPC related GM commands
+    /// </summary>
+    private static Dictionary<uint, Creature> Creatures { get; set; } = [];
+
+    /// <summary>
+    /// Returns the default name of a NPC as defined in data/creatures.xml
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public static string GetSpawnName(uint id)
     {
-        return _creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
+        return Creatures.TryGetValue(id, out var creature) ? creature.Title : string.Empty;
     }
 
+    /// <summary>
+    /// Checks if a given NPC Template exists
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
     public bool Exist(uint templateId)
     {
-        return _templates.ContainsKey(templateId);
+        return Templates.ContainsKey(templateId);
     }
 
+    /// <summary>
+    /// Returns the NpcTemplate for a given templateId
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <returns></returns>
     public NpcTemplate GetTemplate(uint templateId)
     {
-        if (_templates.TryGetValue(templateId, out var template))
-            return template;
-        return null;
+        return Templates.GetValueOrDefault(templateId);
     }
 
+    /// <summary>
+    /// Returns the dictionary of loaded Templates
+    /// </summary>
+    /// <returns></returns>
     public Dictionary<uint, NpcTemplate> GetAllTemplates()
     {
-        return _templates;
+        return Templates;
     }
 
+    /// <summary>
+    /// Returns a definition of goods for a given Npc merchant
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public MerchantGoods GetGoods(uint id)
     {
-        if (_goods.TryGetValue(id, out var goods))
-            return goods;
-        return null;
+        return Goods.GetValueOrDefault(id);
     }
 
-    public Npc Create(WorldInstance parentWorld, uint objectId, uint id)
+    /// <summary>
+    /// Creates a new NPC
+    /// </summary>
+    /// <param name="parentWorld">World Instance to add this NPC to</param>
+    /// <param name="objectId">Optional ObjId ot use, generate a new one if zero</param>
+    /// <param name="templateId">NPC Template to use for creation</param>
+    /// <returns></returns>
+    public Npc Create(WorldInstance parentWorld, uint objectId, uint templateId)
     {
-        var template = GetTemplate(id);
+        var template = GetTemplate(templateId);
         if (template == null)
         {
             return null;
@@ -78,8 +128,8 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
         {
             ParentWorld = parentWorld,
             ObjId = objectId > 0 ? objectId : objectIdManager.GetNextId(),
-            TemplateId = id, // duplicate Id
-            Id = id,
+            TemplateId = templateId, // duplicate Id
+            Id = templateId,
             Template = template,
             ModelId = template.ModelId,
             CanFly = modelManager.IsFlyOrSwim(template.ModelId),
@@ -95,6 +145,24 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
             template.HairId = templ.HairId;
             template.ModelParams = templ.ModelParams;
             template.BodyItems = templ.BodyItems;
+        }
+
+        // TODO: Check if we need to override some body parts if template.EquipBodiesId is set or not
+        if (template.EquipBodiesId > 0 && EquipPackBodyParts.TryGetValue(template.EquipBodiesId, out _)) // var equipBodyPartPack))
+        {
+            /*
+                if (equipBodyPartPack.HairColorId > 0)
+                    template.ModelParams.SetHairColorId(equipBodyPartPack.HairColorId);
+                if (equipBodyPartPack.FaceId > 0)
+                    template.BodyItems[(uint)EquipmentItemSlotType.Face] = (equipBodyPartPack.FaceId, false);
+                if (equipBodyPartPack.HairId > 0)
+                    template.BodyItems[(uint)EquipmentItemSlotType.Hair] = (equipBodyPartPack.HairId, false);
+                if (equipBodyPartPack.BeardId > 0)
+                    template.BodyItems[(uint)EquipmentItemSlotType.Beard] = (equipBodyPartPack.BeardId, false);
+                if (equipBodyPartPack.SkinColorId > 0)
+                    template.ModelParams.SetSkinColorId(equipBodyPartPack.SkinColorId);
+                // if (equipBodyPartPack.BodyDiffuseMapId > 0)
+            */
         }
 
         SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
@@ -143,9 +211,14 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
         return npc;
     }
 
+    /// <summary>
+    /// Returns a new NpcTemplate with a random Npc look based on the TotalCharacterCustoms list. Only fields related to look will be populated.
+    /// </summary>
+    /// <param name="template"></param>
+    /// <returns></returns>
     private NpcTemplate LoadCustom(NpcTemplate template)
     {
-        var _template = new NpcTemplate();
+        var randomTemplate = new NpcTemplate();
         var totalCustomId = template.TotalCustomId;
 
         if (totalCustomId != 0 || template.FactionId == FactionsEnum.Monstrosity || template.FactionId == FactionsEnum.Animal) // 115 - Monstrosity, 116 - Animal
@@ -162,7 +235,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
                 break;
             case Race.Dwarf: // Dwarf male
-                             //modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
+                // modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
                 break;
             case Race.Elf: // Elf male
                 modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
@@ -174,33 +247,40 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
                 break;
             case Race.Warborn: // Warborn male
-                               //modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
+                // modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
                 break;
             case Race.Fairy:
+                // Not implemented
                 break;
             case Race.Returned:
+                // Not implemented
                 break;
             default:
-                break;
+                // Invalid
+                return template;
         }
 
         var modelType = modelManager.GetModelType(template.ModelId);
 
         // choose randomly from the list totalCustomId
-        if (modelParamsId != 0 && modelType != null && modelType.SubType == "ActorModel")
+        if (modelParamsId != 0 && modelType is { SubType: "ActorModel" })
         {
             // Get all possible hair item_ids that match this model
             var hairsForThisModel = new List<uint>();
             foreach (var item in itemManager.GetAllItems())
+            {
                 if (item is BodyPartTemplate bpt && bpt.ModelId == template.ModelId && bpt.SlotTypeId == (uint)EquipmentItemSlotType.Hair)
+                {
                     hairsForThisModel.Add(bpt.ItemId);
+                }
+            }
 
             if (hairsForThisModel.Count > 0)
             {
                 // TODO: Slow, but I don't know of a better way to do this atm
-                var possibleTotalCustoms = (from tc in _totalCharacterCustoms
-                                            where tc.Value.ModelId == modelParamsId && hairsForThisModel.Contains(tc.Value.HairId)
-                                            select tc.Value.Id).ToList();
+                var possibleTotalCustoms = (from tc in TotalCharacterCustoms
+                    where tc.Value.ModelId == modelParamsId && hairsForThisModel.Contains(tc.Value.HairId)
+                    select tc.Value.Id).ToList();
 
                 // If anything in result, pick something random from it
                 if (possibleTotalCustoms.Count > 0)
@@ -221,45 +301,45 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
 
         if (totalCustomId > 0)
         {
-            var tc = _totalCharacterCustoms[totalCustomId];
+            var tc = TotalCharacterCustoms[totalCustomId];
 
-            _template.HairId = tc.HairId;
+            randomTemplate.HairId = tc.HairId;
 
-            _template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
-            _template.ModelParams
+            randomTemplate.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
+            randomTemplate.ModelParams
                 .SetModelId(tc.ModelId)
                 .SetHairColorId(tc.HairColorId)
                 .SetSkinColorId(tc.SkinColorId);
 
-            _template.ModelParams.Face.MovableDecalAssetId = tc.FaceMovableDecalAssetId;
-            _template.ModelParams.Face.MovableDecalScale = tc.FaceMovableDecalScale;
-            _template.ModelParams.Face.MovableDecalRotate = tc.FaceMovableDecalRotate;
-            _template.ModelParams.Face.MovableDecalMoveX = tc.FaceMovableDecalMoveX;
-            _template.ModelParams.Face.MovableDecalMoveY = tc.FaceMovableDecalMoveY;
+            randomTemplate.ModelParams.Face.MovableDecalAssetId = tc.FaceMovableDecalAssetId;
+            randomTemplate.ModelParams.Face.MovableDecalScale = tc.FaceMovableDecalScale;
+            randomTemplate.ModelParams.Face.MovableDecalRotate = tc.FaceMovableDecalRotate;
+            randomTemplate.ModelParams.Face.MovableDecalMoveX = tc.FaceMovableDecalMoveX;
+            randomTemplate.ModelParams.Face.MovableDecalMoveY = tc.FaceMovableDecalMoveY;
 
-            _template.ModelParams.Face.SetFixedDecalAsset(0, tc.FaceFixedDecalAsset0Id, tc.FaceFixedDecalAsset0Weight);
-            _template.ModelParams.Face.SetFixedDecalAsset(1, tc.FaceFixedDecalAsset1Id, tc.FaceFixedDecalAsset1Weight);
-            _template.ModelParams.Face.SetFixedDecalAsset(2, tc.FaceFixedDecalAsset2Id, tc.FaceFixedDecalAsset2Weight);
-            _template.ModelParams.Face.SetFixedDecalAsset(3, tc.FaceFixedDecalAsset3Id, tc.FaceFixedDecalAsset3Weight);
+            randomTemplate.ModelParams.Face.SetFixedDecalAsset(0, tc.FaceFixedDecalAsset0Id, tc.FaceFixedDecalAsset0Weight);
+            randomTemplate.ModelParams.Face.SetFixedDecalAsset(1, tc.FaceFixedDecalAsset1Id, tc.FaceFixedDecalAsset1Weight);
+            randomTemplate.ModelParams.Face.SetFixedDecalAsset(2, tc.FaceFixedDecalAsset2Id, tc.FaceFixedDecalAsset2Weight);
+            randomTemplate.ModelParams.Face.SetFixedDecalAsset(3, tc.FaceFixedDecalAsset3Id, tc.FaceFixedDecalAsset3Weight);
 
-            _template.ModelParams.Face.DiffuseMapId = tc.FaceDiffuseMapId;
-            _template.ModelParams.Face.NormalMapId = tc.FaceNormalMapId;
-            _template.ModelParams.Face.EyelashMapId = tc.FaceEyelashMapId;
-            _template.ModelParams.Face.LipColor = tc.LipColor;
-            _template.ModelParams.Face.LeftPupilColor = tc.LeftPupilColor;
-            _template.ModelParams.Face.RightPupilColor = tc.RightPupilColor;
-            _template.ModelParams.Face.EyebrowColor = tc.EyebrowColor;
-            _template.ModelParams.Face.MovableDecalWeight = tc.FaceMovableDecalWeight;
-            _template.ModelParams.Face.NormalMapWeight = tc.FaceNormalMapWeight;
-            _template.ModelParams.Face.DecoColor = tc.DecoColor;
-            _template.ModelParams.Face.Modifier = tc.Modifier;
+            randomTemplate.ModelParams.Face.DiffuseMapId = tc.FaceDiffuseMapId;
+            randomTemplate.ModelParams.Face.NormalMapId = tc.FaceNormalMapId;
+            randomTemplate.ModelParams.Face.EyelashMapId = tc.FaceEyelashMapId;
+            randomTemplate.ModelParams.Face.LipColor = tc.LipColor;
+            randomTemplate.ModelParams.Face.LeftPupilColor = tc.LeftPupilColor;
+            randomTemplate.ModelParams.Face.RightPupilColor = tc.RightPupilColor;
+            randomTemplate.ModelParams.Face.EyebrowColor = tc.EyebrowColor;
+            randomTemplate.ModelParams.Face.MovableDecalWeight = tc.FaceMovableDecalWeight;
+            randomTemplate.ModelParams.Face.NormalMapWeight = tc.FaceNormalMapWeight;
+            randomTemplate.ModelParams.Face.DecoColor = tc.DecoColor;
+            randomTemplate.ModelParams.Face.Modifier = tc.Modifier;
         }
         else
         {
-            _template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Skin);
+            randomTemplate.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Skin);
         }
 
-        foreach (var (modelId, ibp) in _itemBodyParts)
+        foreach (var (modelId, ibp) in ItemBodyParts)
         {
             if (modelId != template.ModelId) { continue; }
 
@@ -271,18 +351,18 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 switch (slotTypeId)
                 {
                     case (byte)EquipmentItemSlotType.Face:
-                        _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
+                        randomTemplate.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
                         break;
                     case (byte)EquipmentItemSlotType.Hair:
                         if (rbp.ItemId == template.HairId)
                         {
-                            _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
+                            randomTemplate.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
                         }
                         else
                         {
                             if (template.HairId != 0)
                             {
-                                _template.BodyItems[rbp.SlotTypeId - 23] = (template.HairId, rbp.NpcOnly);
+                                randomTemplate.BodyItems[rbp.SlotTypeId - 23] = (template.HairId, rbp.NpcOnly);
                             }
                         }
 
@@ -291,7 +371,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                     case (byte)EquipmentItemSlotType.Body:
                     case (byte)EquipmentItemSlotType.Glasses:
                     case (byte)EquipmentItemSlotType.Tail:
-                        _template.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
+                        randomTemplate.BodyItems[rbp.SlotTypeId - 23] = (rbp.ItemId, rbp.NpcOnly);
                         break;
                 }
             }
@@ -299,20 +379,22 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
 
         //Logger.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
 
-        return _template;
+        return randomTemplate;
     }
 
+    
     public void Load()
     {
-        if (_loaded)
+        if (Loaded)
             return;
 
-        _templates = [];
-        _goods = [];
-        _tccLookup = [];
-        _totalCharacterCustoms = [];
-        _itemBodyParts = [];
-        _creatures = Creature.GetAllCreatures();
+        Templates.Clear();
+        Goods.Clear();
+        TccLookup.Clear();
+        TotalCharacterCustoms.Clear();
+        ItemBodyParts.Clear();
+        EquipPackBodyParts.Clear();
+        Creatures = Creature.GetAllCreatures();
 
         Logger.Info("Loading npc templates...");
         using (var connection = SQLite.CreateConnection())
@@ -364,24 +446,24 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                         custom.FaceNormalMapWeight = reader.GetFloat("face_normal_map_weight");
                         custom.DecoColor = reader.GetUInt32("deco_color");
 
-                        _totalCharacterCustoms.Add(custom.Id, custom);
+                        TotalCharacterCustoms.Add(custom.Id, custom);
                     }
                 }
 
                 // Create a cached reference list by Model ID
-                foreach (var c in _totalCharacterCustoms)
+                foreach (var c in TotalCharacterCustoms)
                 {
-                    if (!_tccLookup.ContainsKey(c.Value.ModelId))
-                        _tccLookup.Add(c.Value.ModelId, []);
-                    _tccLookup[c.Value.ModelId].Add(c.Value.Id);
+                    if (!TccLookup.ContainsKey(c.Value.ModelId))
+                        TccLookup.Add(c.Value.ModelId, []);
+                    TccLookup[c.Value.ModelId].Add(c.Value.Id);
                 }
 
+                // Pre-Load body parts
                 command.CommandText = "SELECT * FROM item_body_parts";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
-                    // Pre-Load body parts
                     while (reader.Read())
                     {
                         var bp = new BodyPartTemplate();
@@ -403,11 +485,11 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             slotBodyTemplates.Add(bp);
                         }
 
-                        if (!_itemBodyParts.TryAdd(bp.ModelId, slotBodyParts))
+                        if (!ItemBodyParts.TryAdd(bp.ModelId, slotBodyParts))
                         {
-                            if (!_itemBodyParts[bp.ModelId].TryGetValue(bp.SlotTypeId, out var itemBodyTemplate))
+                            if (!ItemBodyParts[bp.ModelId].TryGetValue(bp.SlotTypeId, out var itemBodyTemplate))
                             {
-                                _itemBodyParts[bp.ModelId].Add(bp.SlotTypeId, bodyParts);
+                                ItemBodyParts[bp.ModelId].Add(bp.SlotTypeId, bodyParts);
                             }
                             else
                             {
@@ -417,6 +499,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                     }
                 }
 
+                // Load the actual Npc list
                 command.CommandText = "SELECT * from npcs";
                 command.Prepare();
                 using (var sqliteDataReader = command.ExecuteReader())
@@ -491,13 +574,13 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             ReturnWhenEnterHousingArea = reader.GetBoolean("return_when_enter_housing_area", true),
                             LookConverter = reader.GetBoolean("look_converter", true),
                             UseDDCMSMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true),
-                            CrowdEffect = reader.GetBoolean("crowd_effect", true)
+                            CrowdEffect = reader.GetBoolean("crowd_effect", true),
+                            EquipBodiesId = reader.GetUInt32("equip_bodies_id", 0),
+                            EquipClothsId = reader.GetUInt32("equip_cloths_id", 0),
+                            EquipWeaponsId = reader.GetUInt32("equip_weapons_id", 0),
+                            TotalCustomId = reader.GetUInt32("total_custom_id", 0)
                         };
 
-                        var bodyPack = reader.GetInt32("equip_bodies_id", 0);
-                        var clothPack = reader.GetInt32("equip_cloths_id", 0);
-                        var weaponPack = reader.GetInt32("equip_weapons_id", 0);
-                        template.TotalCustomId = reader.GetUInt32("total_custom_id", 0);
                         using (var command2 = connection.CreateCommand())
                         {
                             command2.CommandText = "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
@@ -514,14 +597,14 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             }
                         }
 
-                        _templates.Add(template.Id, template);
+                        Templates.Add(template.Id, template);
 
-                        if (clothPack > 0)
+                        if (template.EquipClothsId > 0)
                         {
                             using (var command2 = connection.CreateCommand())
                             {
                                 command2.CommandText = "SELECT * FROM equip_pack_cloths WHERE id=@id";
-                                command2.Parameters.AddWithValue("id", clothPack);
+                                command2.Parameters.AddWithValue("id", template.EquipClothsId);
                                 command2.Prepare();
                                 using (var sqliteReader2 = command2.ExecuteReader())
                                 using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
@@ -557,12 +640,12 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             }
                         }
 
-                        if (weaponPack > 0)
+                        if (template.EquipWeaponsId > 0)
                         {
                             using (var command2 = connection.CreateCommand())
                             {
                                 command2.CommandText = "SELECT * FROM equip_pack_weapons WHERE id=@id";
-                                command2.Parameters.AddWithValue("id", weaponPack);
+                                command2.Parameters.AddWithValue("id", template.EquipWeaponsId);
                                 command2.Prepare();
                                 using (var sqliteReader2 = command2.ExecuteReader())
                                 using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
@@ -582,7 +665,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             }
                         }
 
-                        if (template.TotalCustomId > 0 && _totalCharacterCustoms.TryGetValue(template.TotalCustomId, out var tc))
+                        if (template.TotalCustomId > 0 && TotalCharacterCustoms.TryGetValue(template.TotalCustomId, out var tc))
                         {
                             template.HairId = tc.HairId;
 
@@ -647,7 +730,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             }
                         }
 
-                        foreach (var (modelId, ibp) in _itemBodyParts)
+                        foreach (var (modelId, ibp) in ItemBodyParts)
                         {
                             if (modelId != template.ModelId) { continue; }
 
@@ -688,6 +771,35 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 }
             }
 
+            // This table seems to no longer be in some of the later versions
+            // Load body part packs (probably not used)
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM equip_pack_body_parts";
+                command.Prepare();
+                using (var sqliteDataReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new EquipBodyPartPack
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            ModelId = reader.GetUInt32("model_id"),
+                            HairColorId = reader.GetUInt32("hair_color_id"),
+                            FaceId = reader.GetUInt32("face_id"),
+                            HairId = reader.GetUInt32("hair_id"),
+                            BeardId = reader.GetUInt32("beard_id"),
+                            SkinColorId = reader.GetUInt32("skin_color_id"),
+                            BodyDiffuseMapId =  reader.GetUInt32("body_diffuse_map_id"),
+                        };
+                        EquipPackBodyParts.Add(template.Id, template);
+                    }
+                }
+            }
+
+            // Load Unit modifiers for NPCs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Npc'";
@@ -698,7 +810,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                     while (reader.Read())
                     {
                         var npcId = reader.GetUInt32("owner_id");
-                        if (!_templates.TryGetValue(npcId, out var npc))
+                        if (!Templates.TryGetValue(npcId, out var npc))
                             continue;
                         var template = new BonusTemplate
                         {
@@ -711,6 +823,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 }
             }
 
+            // Load initial Npc buffs
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM npc_initial_buffs";
@@ -721,13 +834,14 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                     {
                         var id = reader.GetUInt32("npc_id");
                         var buffId = reader.GetUInt32("buff_id");
-                        if (!_templates.TryGetValue(id, out var template))
+                        if (!Templates.TryGetValue(id, out var template))
                             continue;
                         template.Buffs.Add(buffId);
                     }
                 }
             }
 
+            // Load merchant list
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM merchants";
@@ -737,14 +851,17 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                     while (reader.Read())
                     {
                         var id = reader.GetUInt32("npc_id");
-                        if (!_templates.TryGetValue(id, out var template))
+                        if (!Templates.TryGetValue(id, out var template))
                             continue;
                         template.MerchantPackId = reader.GetUInt32("merchant_pack_id");
                     }
                 }
             }
 
-            Logger.Info("Loaded {0} npc templates", _templates.Count);
+            // Done loading main Npc data
+            Logger.Info($"Loaded {Templates.Count} npc templates");
+
+            // Loading merchant stuff
             Logger.Info("Loading merchant packs...");
             using (var command = connection.CreateCommand())
             {
@@ -755,33 +872,44 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                     while (reader.Read())
                     {
                         var id = reader.GetUInt32("merchant_pack_id");
-                        if (!_goods.ContainsKey(id))
-                            _goods.Add(id, new MerchantGoods(id));
+                        if (!Goods.ContainsKey(id))
+                            Goods.Add(id, new MerchantGoods(id));
 
                         var itemId = reader.GetUInt32("item_id");
                         var grade = reader.GetByte("grade_id");
 
-                        _goods[id].AddItemToStock(itemId, grade);
+                        Goods[id].AddItemToStock(itemId, grade);
                     }
                 }
             }
 
-            Logger.Info("Loaded {0} merchant packs", _goods.Count);
+            Logger.Info($"Loaded {Goods.Count} merchant packs");
         }
 
-        NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();
+        // NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();
 
-        _loaded = true;
+        Loaded = true;
     }
 
+    /// <summary>
+    /// Load AI settings from AiGameData into the Npc templates
+    /// </summary>
     public void LoadAiParams()
     {
-        foreach (var npc in _templates.Values)
+        foreach (var npc in Templates.Values)
         {
             npc.AiParams = AiGameData.Instance.GetAiParamsForId((uint)npc.NpcAiParamId);
         }
     }
 
+    /// <summary>
+    /// Populate items based on Npc template Id and slot
+    /// </summary>
+    /// <param name="npc"></param>
+    /// <param name="templateId"></param>
+    /// <param name="slot"></param>
+    /// <param name="grade"></param>
+    /// <param name="npcOnly"></param>
     private void SetEquipItemTemplate(Npc npc, uint templateId, EquipmentItemSlot slot, byte grade = 0, bool npcOnly = false)
     {
         if (npcOnly && npc.Equipment.GetItemBySlot((int)slot) != null)
@@ -799,9 +927,14 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
         npc.Equipment.AddOrMoveExistingItem(0, item, (int)slot);
     }
 
+    /// <summary>
+    /// Attaches a list of skills to a Npc template
+    /// </summary>
+    /// <param name="templateId"></param>
+    /// <param name="skills"></param>
     public void BindSkillsToTemplate(uint templateId, List<NpcSkill> skills)
     {
-        if (!_templates.TryGetValue(templateId, out var value))
+        if (!Templates.TryGetValue(templateId, out var value))
             return;
         value.BindSkills(skills);
     }

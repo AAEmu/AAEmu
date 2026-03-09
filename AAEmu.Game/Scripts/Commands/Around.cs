@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -32,8 +33,7 @@ public class Around : ICommand
                "Note: Only lists objects in viewing range of you (recommended maximum radius of 100).";
     }
 
-    private static int ShowObjectData(Character character, GameObject go, int index, string indexPrefix, bool verbose,
-        IMessageOutput messageOutput)
+    private static int ShowObjectData(GameObject go, int index, string indexPrefix, bool verbose, IMessageOutput messageOutput)
     {
         var indexStr = indexPrefix;
         if (indexStr != string.Empty)
@@ -73,7 +73,7 @@ public class Around : ICommand
         // Cycle Children
         for (var i = 0; i < go.Transform.Children.Count; i++)
         {
-            ShowObjectData(character, go.Transform.Children[i]?.GameObject, i, indexStr, verbose, messageOutput);
+            ShowObjectData(go.Transform.Children[i]?.GameObject, i, indexStr, verbose, messageOutput);
         }
 
         return 1 + go.Transform.Children.Count;
@@ -165,8 +165,35 @@ public class Around : ICommand
                 // character.SendMessage(sb.ToString());
                 messageOutput.SendMessage($"[{CommandNames[0]}] Character count: {characters.Count}");
                 break;
+            case "npcspawner":
+                // Grab all spawner info and put them into one list
+                var npcSpawners = character.ParentWorld.SpawnManager.GetAllSpawners().Values.SelectMany(x => x).ToList();
 
-            case "all":
+                messageOutput.SendMessage($"[{CommandNames[0]}] NPC Spawners");
+                var si = 0;
+                foreach (var npcSpawner in npcSpawners)
+                {
+                    if (MathUtil.GetDistance(npcSpawner.Position.AsPositionVector(), character.Transform.World.Position) > radius)
+                    {
+                        continue;
+                    }
+                    si++;
+                    messageOutput.SendMessage($"#{si + 1} -> TemplateId: {npcSpawner.Template.Id}");
+                    foreach (var npcSpawnerSpawnableNpc in npcSpawner.SpawnableNpcs)
+                    {
+                        messageOutput.SendMessage($"#{si + 1} -> Spawnable NPC: {npcSpawnerSpawnableNpc.MemberId} - {npcSpawnerSpawnableNpc.MemberType} - @NPC_NAME({npcSpawnerSpawnableNpc.MemberId})");
+                    }
+                    if (verbose)
+                    {
+                        messageOutput.SendMessage($"#{si + 1} -> {npcSpawner.Position.AsPositionVector()}");
+                    }
+                }
+
+                // character.SendMessage(sb.ToString());
+                messageOutput.SendMessage($"[{CommandNames[0]}] NPC Spawner count: {si}");
+                break;
+
+            // case "all":
             default:
                 var go = WorldManager.GetAround<GameObject>(character, radius);
 
@@ -176,7 +203,7 @@ public class Around : ICommand
                 {
                     if (go[i].Transform.Parent == null)
                     {
-                        c += ShowObjectData(character, go[i], i, "", verbose, messageOutput);
+                        c += ShowObjectData(go[i], i, "", verbose, messageOutput);
                     }
                 }
 
