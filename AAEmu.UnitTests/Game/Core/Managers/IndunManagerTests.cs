@@ -1,13 +1,12 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class IndunManagerTests
 {
-    [Fact]
+    [Test]
     public void Initialize_SubscribesToTickManager()
     {
         var mockTick = new Mock<ITickManager>();

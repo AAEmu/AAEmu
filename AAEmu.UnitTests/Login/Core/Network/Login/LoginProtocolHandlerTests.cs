@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using AAEmu.Login.Core.Network.Login;
-using Xunit;
 
 namespace AAEmu.UnitTests.Login.Core.Network.Login;
 
@@ -8,8 +7,8 @@ public class LoginProtocolHandlerTests
 {
     private readonly LoginProtocolHandler _cut = new();
 
-    [Fact]
-    public void TryParsePacket_ValidData_ReturnsTrue()
+    [Test]
+    public async Task TryParsePacket_ValidData_ReturnsTrue()
     {
         // Arrange
         const ushort PacketType = 42;
@@ -26,16 +25,16 @@ public class LoginProtocolHandlerTests
         var result = _cut.TryParsePacket(ref buffer, out var parsedType, out var packet);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(PacketType, parsedType);
-        Assert.NotNull(packet);
-        Assert.Equal(4, packet.Count);
-        Assert.Equal(8, buffer.Start.GetInteger());
-        Assert.Equal(8, buffer.End.GetInteger());
+        await Assert.That(result).IsTrue();
+        await Assert.That(parsedType).IsEqualTo(PacketType);
+        await Assert.That(packet).IsNotNull();
+        await Assert.That(packet.Count).IsEqualTo(4);
+        await Assert.That(buffer.Start.GetInteger()).IsEqualTo(8);
+        await Assert.That(buffer.End.GetInteger()).IsEqualTo(8);
     }
 
-    [Fact]
-    public void TryParsePacket_ValidDataFollowedByPartialData_MutatesBuffer()
+    [Test]
+    public async Task TryParsePacket_ValidDataFollowedByPartialData_MutatesBuffer()
     {
         // Arrange
         const ushort PacketType = 42;
@@ -53,16 +52,16 @@ public class LoginProtocolHandlerTests
         var result = _cut.TryParsePacket(ref buffer, out var parsedType, out var packet);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(PacketType, parsedType);
-        Assert.NotNull(packet);
-        Assert.Equal(4, packet.Count);
-        Assert.Equal(8, buffer.Start.GetInteger());
-        Assert.Equal(10, buffer.End.GetInteger());
+        await Assert.That(result).IsTrue();
+        await Assert.That(parsedType).IsEqualTo(PacketType);
+        await Assert.That(packet).IsNotNull();
+        await Assert.That(packet.Count).IsEqualTo(4);
+        await Assert.That(buffer.Start.GetInteger()).IsEqualTo(8);
+        await Assert.That(buffer.End.GetInteger()).IsEqualTo(10);
     }
 
-    [Fact]
-    public void TryParsePacket_InsufficientData_ReturnsFalse()
+    [Test]
+    public async Task TryParsePacket_InsufficientData_ReturnsFalse()
     {
         // Arrange (buffer has only 2 bytes which isn't enough to read the length)
         var buffer = new ReadOnlySequence<byte>([0x02, 0x00]);
@@ -71,11 +70,11 @@ public class LoginProtocolHandlerTests
         var result = _cut.TryParsePacket(ref buffer, out _, out _);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void TryParsePacket_InsufficientData_DoesNotMutateBuffer()
+    [Test]
+    public async Task TryParsePacket_InsufficientData_DoesNotMutateBuffer()
     {
         // Arrange (buffer has only 2 bytes which isn't enough to read the length)
         var originalBuffer = new ReadOnlySequence<byte>([0x02, 0x00]);
@@ -85,11 +84,11 @@ public class LoginProtocolHandlerTests
         _ = _cut.TryParsePacket(ref buffer, out _, out _);
 
         // Assert
-        Assert.Equal(originalBuffer, buffer);
+        await Assert.That(buffer).IsEqualTo(originalBuffer);
     }
 
-    [Fact]
-    public void TryParsePacket_EmptyBuffer_ReturnsFalse()
+    [Test]
+    public async Task TryParsePacket_EmptyBuffer_ReturnsFalse()
     {
         // Arrange (empty buffer)
         var buffer = new ReadOnlySequence<byte>([]);
@@ -98,11 +97,11 @@ public class LoginProtocolHandlerTests
         var result = _cut.TryParsePacket(ref buffer, out _, out _);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void TryParsePacket_EmptyBuffer_DoesNotMutateBuffer()
+    [Test]
+    public async Task TryParsePacket_EmptyBuffer_DoesNotMutateBuffer()
     {
         // Arrange (empty buffer)
         var originalBuffer = new ReadOnlySequence<byte>([]);
@@ -112,11 +111,11 @@ public class LoginProtocolHandlerTests
         _ = _cut.TryParsePacket(ref buffer, out _, out _);
 
         // Assert
-        Assert.Equal(originalBuffer, buffer);
+        await Assert.That(buffer).IsEqualTo(originalBuffer);
     }
 
-    [Fact]
-    public void TryParsePacket_LargePacketSize_ReturnsTrue()
+    [Test]
+    public async Task TryParsePacket_LargePacketSize_ReturnsTrue()
     {
         // Arrange (a large packet with length 65535 bytes, but valid type and data)
         const ushort PacketType = 42;
@@ -132,8 +131,8 @@ public class LoginProtocolHandlerTests
         var result = _cut.TryParsePacket(ref buffer, out var parsedType, out var packet);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(PacketType, parsedType);
-        Assert.Equal(65533, packet.Count);
+        await Assert.That(result).IsTrue();
+        await Assert.That(parsedType).IsEqualTo(PacketType);
+        await Assert.That(packet.Count).IsEqualTo(65533);
     }
 }

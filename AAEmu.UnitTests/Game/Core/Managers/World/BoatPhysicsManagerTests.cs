@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -15,8 +16,6 @@ using Jitter2.LinearMath;
 
 using Moq;
 
-using Xunit;
-
 namespace AAEmu.UnitTests.Game.Core.Managers.World
 {
     public class BoatPhysicsManagerTests
@@ -32,8 +31,16 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
 
         public BoatPhysicsManagerTests()
         {
-            WorldIdManager.Instance.Initialize();
-            NpcManager.Instance.Load();
+            var worldIdManager = new WorldIdManager();
+            worldIdManager.Initialize();
+
+            var npcManager = new NpcManager(
+                Mock.Of<IObjectIdManager>(),
+                Mock.Of<IModelManager>(),
+                Mock.Of<IFactionManager>(),
+                Mock.Of<IItemManager>(),
+                Mock.Of<IAIManager>());
+            npcManager.Load();
             _worldTemplate = new WorldTemplate()
             {
                 CellX = 1,
@@ -100,7 +107,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         }
 
         //[Fact]
-        public void Initialize_Should_Initialize_Physics_World()
+        public async Task Initialize_Should_Initialize_Physics_World()
         {
             // Arrange
             _mockWorld.Setup(w => w.Template.Name).Returns("main_world");
@@ -111,13 +118,13 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             _boatPhysicsManager.Initialize();
 
             // Assert
-            Assert.NotNull(_boatPhysicsManager._physWorld);
-            Assert.NotNull(_boatPhysicsManager._buoyancy);
+            await Assert.That(_boatPhysicsManager._physWorld).IsNotNull();
+            await Assert.That(_boatPhysicsManager._buoyancy).IsNotNull();
             //_mockWorld.Verify(w => w.HeightMaps, Times.Once);
         }
 
         //[Fact]
-        public void StartPhysics_WhenCalled_StartsPhysicsThread()
+        public async Task StartPhysics_WhenCalled_StartsPhysicsThread()
         {
             // Arrange
             _mockWorld.Object.Template.Name = "main_world";
@@ -127,19 +134,19 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             _boatPhysicsManager.StartPhysics();
 
             // Assert
-            Assert.True(_boatPhysicsManager.ThreadRunning);
+            await Assert.That(_boatPhysicsManager.ThreadRunning).IsTrue();
 
             // Verify that the thread is started
-            Assert.NotNull(_boatPhysicsManager._thread);
+            await Assert.That(_boatPhysicsManager._thread).IsNotNull();
 
-            Assert.NotEqual("Physics-main_world", _boatPhysicsManager._thread.Name);
-            Assert.Equal("Physics-???", _boatPhysicsManager._thread.Name);
+            await Assert.That(_boatPhysicsManager._thread.Name).IsNotEqualTo("Physics-main_world");
+            await Assert.That(_boatPhysicsManager._thread.Name).IsEqualTo("Physics-???");
 
             _boatPhysicsManager.Stop();
         }
 
         //[Fact]
-        public void RemoveShip_WhenCalled_RemovesRigidBodyFromPhysicsWorld()
+        public async Task RemoveShip_WhenCalled_RemovesRigidBodyFromPhysicsWorld()
         {
             // Arrange
             _boatPhysicsManager._physWorld = new Jitter2.World();
@@ -160,23 +167,23 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             _boatPhysicsManager.RemoveShip(_mockSlave.Object);
 
             // Assert
-            Assert.False(_mockRigidBody.Object.IsActive);
-            Assert.DoesNotContain(_mockRigidBody.Object, _boatPhysicsManager._physWorld.RigidBodies);
+            await Assert.That(_mockRigidBody.Object.IsActive).IsFalse();
+            await Assert.That(_boatPhysicsManager._physWorld.RigidBodies).DoesNotContain(_mockRigidBody.Object);
         }
 
         //[Fact]
-        public void GetRollAngle_WhenCalled_ReturnsRollAngle()
+        public async Task GetRollAngle_WhenCalled_ReturnsRollAngle()
         {
             // Arrange
             var orientation = JMatrix.CreateRotationY(45f.DegToRad()); // 45 градусов
             var rollAngle = Math.Round(PhysicsManager.GetRollAngle(orientation).RadToDeg());
 
             // Assert
-            Assert.Equal(45f, rollAngle);
+            await Assert.That(rollAngle).IsEqualTo(45f);
         }
 
         //[Fact]
-        public void Stop_WhenCalled_StopsPhysicsThread()
+        public async Task Stop_WhenCalled_StopsPhysicsThread()
         {
             // Arrange
             _boatPhysicsManager.ThreadRunning = true;
@@ -186,7 +193,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             _boatPhysicsManager.Stop();
 
             // Assert
-            Assert.False(_boatPhysicsManager.ThreadRunning);
+            await Assert.That(_boatPhysicsManager.ThreadRunning).IsFalse();
         }
 
         /*
@@ -219,7 +226,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
 
         //[Theory]
         //[ClassData(typeof(WaterTestDataGenerator))]        
-        public void TestCustomWater(Vector3 position, bool expected)
+        public async Task TestCustomWater(Vector3 position, bool expected)
         {
             // Check that the CustomWater method correctly defines the water area
             // _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
@@ -228,42 +235,42 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             var area = position.ToJVector();
             var isWater = _boatPhysicsManager.CustomWater(ref area);
 
-            Assert.Equal(isWater, expected);
+            await Assert.That(expected).IsEqualTo(isWater);
         }
 
         //[Fact]
-        public void TestGetRollAngle()
+        public async Task TestGetRollAngle()
         {
             // Проверяем вычисление угла крена из ориентации
             var orientation = JMatrix.Identity;
             var rollAngle = PhysicsManager.GetRollAngle(orientation);
 
-            Assert.Equal(0f, rollAngle);
+            await Assert.That(rollAngle).IsEqualTo(0f);
         }
 
         //[Fact]
-        public void TestGetYawPitchRollFromJMatrix()
+        public async Task TestGetYawPitchRollFromJMatrix()
         {
             // Проверяем извлечение углов поворота из матрицы
             var mat = JMatrix.Identity;
             var (yaw, pitch, roll) = PhysicsManager.GetYawPitchRollFromJMatrix(mat);
 
-            Assert.Equal(0f, yaw);
-            Assert.Equal(0f, pitch);
-            Assert.Equal(0f, roll);
+            await Assert.That(yaw).IsEqualTo(0f);
+            await Assert.That(pitch).IsEqualTo(0f);
+            await Assert.That(roll).IsEqualTo(0f);
         }
 
         //[Fact]
-        public void TestJMatrixToQuaternion()
+        public async Task TestJMatrixToQuaternion()
         {
             // Проверяем преобразование матрицы в кватернион
             var matrix = JMatrix.Identity;
             var quaternion = PhysicsManager.JMatrixToQuaternion(matrix);
 
-            Assert.Equal(0f, quaternion.X);
-            Assert.Equal(0f, quaternion.Y);
-            Assert.Equal(0f, quaternion.Z);
-            Assert.Equal(1f, quaternion.W);
+            await Assert.That(quaternion.X).IsEqualTo(0f);
+            await Assert.That(quaternion.Y).IsEqualTo(0f);
+            await Assert.That(quaternion.Z).IsEqualTo(0f);
+            await Assert.That(quaternion.W).IsEqualTo(1f);
         }
 
         //[Fact]

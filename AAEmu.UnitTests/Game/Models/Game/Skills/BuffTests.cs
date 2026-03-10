@@ -1,11 +1,8 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
@@ -24,11 +21,11 @@ public class BuffTests
     }
 
     private static Buff CreateBuff(
-        Mock<BaseUnit>? ownerMock = null,
-        Mock<BaseUnit>? casterMock = null,    
-        SkillCaster? skillCaster = null,
-        BuffTemplate? template = null,
-        Skill? skill = null,
+        Mock<BaseUnit> ownerMock = null,
+        Mock<BaseUnit> casterMock = null,    
+        SkillCaster skillCaster = null,
+        BuffTemplate template = null,
+        Skill skill = null,
         DateTime? startTime = null)
     {
         var mockOwner = ownerMock ?? CreateMockOwner();
@@ -43,8 +40,8 @@ public class BuffTests
 
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_WithParameters_SetsPropertiesCorrectly()
+    [Test]
+    public async Task Constructor_WithParameters_SetsPropertiesCorrectly()
     {
         // Arrange
         var mockOwner = CreateMockOwner();
@@ -58,41 +55,49 @@ public class BuffTests
         var buff = new Buff(mockOwner.Object, mockCaster.Object, skillCaster, template, skill, startTime);
 
         // Assert
-        Assert.NotNull(buff);
-        Assert.NotNull(buff.Owner);
-        Assert.Equal(skillCaster, buff.SkillCaster);
-        Assert.Equal(template, buff.Template);
-        Assert.Equal(skill, buff.Skill);
-        Assert.Equal(startTime, buff.StartTime);
-        Assert.Equal(DateTime.MinValue, buff.EndTime);
-        Assert.Equal(1u, buff.AbLevel);
-        Assert.Equal(EffectState.Created, buff.State);
-        Assert.False(buff.InUse);
-        Assert.Equal(0, buff.Duration);
-        Assert.Equal(0.0, buff.Tick);
-        Assert.Equal(0, buff.Charge);
-        Assert.False(buff.Passive);
-        Assert.NotNull(buff.Events);
-        Assert.NotNull(buff.Triggers);
-        Assert.NotNull(buff.saveFactions);
+        await Assert.That(buff).IsNotNull();
+        await Assert.That(buff.Owner).IsNotNull();
+        await Assert.That(buff.SkillCaster).IsEqualTo(skillCaster);
+        await Assert.That(buff.Template).IsEqualTo(template);
+        await Assert.That(buff.Skill).IsEqualTo(skill);
+        await Assert.That(buff.StartTime).IsEqualTo(startTime);
+        await Assert.That(buff.EndTime).IsEqualTo(DateTime.MinValue);
+        await Assert.That(buff.AbLevel).IsEqualTo(1u);
+        await Assert.That(buff.State).IsEqualTo(EffectState.Created);
+        await Assert.That(buff.InUse).IsFalse();
+        await Assert.That(buff.Duration).IsEqualTo(0);
+        await Assert.That(buff.Tick).IsEqualTo(0.0);
+        await Assert.That(buff.Charge).IsEqualTo(0);
+        await Assert.That(buff.Passive).IsFalse();
+        await Assert.That(buff.Events).IsNotNull();
+        await Assert.That(buff.Triggers).IsNotNull();
+        await Assert.That(buff.saveFactions).IsNotNull();
     }
 
-    [Fact]
-    public void Constructor_WithNullParameters_DoesNotThrow()
+    [Test]
+    public async Task Constructor_WithNullParameters_DoesNotThrow()
     {
         // Act & Assert
-        var exception = Record.Exception(() => new Buff(null!, null!, null!, null!, null!, DateTime.UtcNow));
+        Exception? exception = null;
+        try
+        {
+            new Buff(null!, null!, null!, null!, null!, DateTime.UtcNow);
+        }
+        catch (Exception e)
+        {
+            exception = e;
+        }
 
         // Assert - constructor should not throw even with nulls
-        Assert.Null(exception);
+        await Assert.That(exception).IsNull();
     }
 
     #endregion
 
     #region Property Tests
 
-    [Fact]
-    public void Index_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Index_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -101,11 +106,11 @@ public class BuffTests
         buff.Index = 5u;
 
         // Assert
-        Assert.Equal(5u, buff.Index);
+        await Assert.That(buff.Index).IsEqualTo(5u);
     }
 
-    [Fact]
-    public void State_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task State_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -114,11 +119,11 @@ public class BuffTests
         buff.State = EffectState.Acting;
 
         // Assert
-        Assert.Equal(EffectState.Acting, buff.State);
+        await Assert.That(buff.State).IsEqualTo(EffectState.Acting);
     }
 
-    [Fact]
-    public void InUse_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task InUse_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -127,11 +132,11 @@ public class BuffTests
         buff.InUse = true;
 
         // Assert
-        Assert.True(buff.InUse);
+        await Assert.That(buff.InUse).IsTrue();
     }
 
-    [Fact]
-    public void Duration_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Duration_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -140,11 +145,11 @@ public class BuffTests
         buff.Duration = 10000;
 
         // Assert
-        Assert.Equal(10000, buff.Duration);
+        await Assert.That(buff.Duration).IsEqualTo(10000);
     }
 
-    [Fact]
-    public void Tick_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Tick_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -153,11 +158,11 @@ public class BuffTests
         buff.Tick = 500.5;
 
         // Assert
-        Assert.Equal(500.5, buff.Tick);
+        await Assert.That(buff.Tick).IsEqualTo(500.5);
     }
 
-    [Fact]
-    public void Charge_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Charge_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -166,11 +171,11 @@ public class BuffTests
         buff.Charge = 3;
 
         // Assert
-        Assert.Equal(3, buff.Charge);
+        await Assert.That(buff.Charge).IsEqualTo(3);
     }
 
-    [Fact]
-    public void Passive_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Passive_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -179,11 +184,11 @@ public class BuffTests
         buff.Passive = true;
 
         // Assert
-        Assert.True(buff.Passive);
+        await Assert.That(buff.Passive).IsTrue();
     }
 
-    [Fact]
-    public void AbLevel_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task AbLevel_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -192,19 +197,19 @@ public class BuffTests
         buff.AbLevel = 10u;
 
         // Assert
-        Assert.Equal(10u, buff.AbLevel);
+        await Assert.That(buff.AbLevel).IsEqualTo(10u);
     }
 
     #endregion
 
     #region IsEnded Tests
 
-    [Theory]
-    [InlineData(EffectState.Finished, true)]
-    [InlineData(EffectState.Finishing, true)]
-    [InlineData(EffectState.Created, false)]
-    [InlineData(EffectState.Acting, false)]
-    public void IsEnded_ReturnsCorrectValue(EffectState state, bool expected)
+    [Test]
+    [Arguments(EffectState.Finished, true)]
+    [Arguments(EffectState.Finishing, true)]
+    [Arguments(EffectState.Created, false)]
+    [Arguments(EffectState.Acting, false)]
+    public async Task IsEnded_ReturnsCorrectValue(EffectState state, bool expected)
     {
         // Arrange
         var buff = CreateBuff();
@@ -214,15 +219,15 @@ public class BuffTests
         var result = buff.IsEnded();
 
         // Assert
-        Assert.Equal(expected, result);
+        await Assert.That(result).IsEqualTo(expected);
     }
 
     #endregion
 
     #region GetTimeLeft Tests
 
-    [Fact]
-    public void GetTimeLeft_WithZeroDuration_ReturnsNegativeOne()
+    [Test]
+    public async Task GetTimeLeft_WithZeroDuration_ReturnsNegativeOne()
     {
         // Arrange
         var buff = CreateBuff();
@@ -232,11 +237,11 @@ public class BuffTests
         var result = buff.GetTimeLeft();
 
         // Assert
-        Assert.Equal(-1, result);
+        await Assert.That(result).IsEqualTo(-1);
     }
 
-    [Fact]
-    public void GetTimeLeft_WithPositiveDuration_ReturnsTimeLeft()
+    [Test]
+    public async Task GetTimeLeft_WithPositiveDuration_ReturnsTimeLeft()
     {
         // Arrange
         var buff = CreateBuff();
@@ -247,12 +252,12 @@ public class BuffTests
         var result = buff.GetTimeLeft();
 
         // Assert
-        Assert.True(result >= 0);
-        Assert.True(result <= 5000); // Should be around 5 seconds left
+        await Assert.That(result >= 0).IsTrue();
+        await Assert.That(result <= 5000).IsTrue(); // Should be around 5 seconds left
     }
 
-    [Fact]
-    public void GetTimeLeft_WithExpiredDuration_ReturnsZero()
+    [Test]
+    public async Task GetTimeLeft_WithExpiredDuration_ReturnsZero()
     {
         // Arrange
         var buff = CreateBuff();
@@ -263,15 +268,15 @@ public class BuffTests
         var result = buff.GetTimeLeft();
 
         // Assert
-        Assert.Equal(0, result);
+        await Assert.That(result).IsEqualTo(0);
     }
 
     #endregion
 
     #region GetTimeElapsed Tests
 
-    [Fact]
-    public void GetTimeElapsed_ReturnsPositiveValue()
+    [Test]
+    public async Task GetTimeElapsed_ReturnsPositiveValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -281,11 +286,11 @@ public class BuffTests
         var result = buff.GetTimeElapsed();
 
         // Assert
-        Assert.True(result >= 3000);
+        await Assert.That(result >= 3000).IsTrue();
     }
 
-    [Fact]
-    public void GetTimeElapsed_AtStartTime_ReturnsZero()
+    [Test]
+    public async Task GetTimeElapsed_AtStartTime_ReturnsZero()
     {
         // Arrange
         var buff = CreateBuff();
@@ -295,15 +300,15 @@ public class BuffTests
         var result = buff.GetTimeElapsed();
 
         // Assert
-        Assert.True(result >= 0);
+        await Assert.That(result >= 0).IsTrue();
     }
 
     #endregion
 
     #region WriteData Tests
 
-    [Fact]
-    public void WriteData_WritesCorrectData()
+    [Test]
+    public async Task WriteData_WritesCorrectData()
     {
         // Arrange
         var buff = CreateBuff();
@@ -317,19 +322,19 @@ public class BuffTests
         buff.WriteData(stream);
 
         // Assert
-        Assert.NotNull(stream);
+        await Assert.That(stream).IsNotNull();
     }
 
     #endregion
 
     #region ConsumeCharge Tests
 
-    [Theory]
-    [InlineData(10, 5, 5, 0)]  // charge=10, consume=5 -> new charge=5, returned=0
-    [InlineData(3, 5, 0, 2)]  // charge=3, consume=5 -> new charge=0, returned=2
-    [InlineData(0, 5, 0, 5)]  // charge=0, consume=5 -> new charge=0, returned=5
-    [InlineData(5, 5, 0, 0)]  // charge=5, consume=5 -> new charge=0, returned=0
-    public void ConsumeCharge_ReturnsCorrectValue(int initialCharge, int consumeValue, int expectedCharge, int expectedReturned)
+    [Test]
+    [Arguments(10, 5, 5, 0)]  // charge=10, consume=5 -> new charge=5, returned=0
+    [Arguments(3, 5, 0, 2)]  // charge=3, consume=5 -> new charge=0, returned=2
+    [Arguments(0, 5, 0, 5)]  // charge=0, consume=5 -> new charge=0, returned=5
+    [Arguments(5, 5, 0, 0)]  // charge=5, consume=5 -> new charge=0, returned=0
+    public async Task ConsumeCharge_ReturnsCorrectValue(int initialCharge, int consumeValue, int expectedCharge, int expectedReturned)
     {
         // Arrange
         var buff = CreateBuff();
@@ -339,27 +344,27 @@ public class BuffTests
         var result = buff.ConsumeCharge(consumeValue);
 
         // Assert
-        Assert.Equal(expectedCharge, buff.Charge);
-        Assert.Equal(expectedReturned, result);
+        await Assert.That(buff.Charge).IsEqualTo(expectedCharge);
+        await Assert.That(result).IsEqualTo(expectedReturned);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
-    public void SaveFactions_InitializeAsEmpty()
+    [Test]
+    public async Task SaveFactions_InitializeAsEmpty()
     {
         // Arrange & Act
         var buff = CreateBuff();
 
         // Assert
-        Assert.NotNull(buff.saveFactions);
-        Assert.Empty(buff.saveFactions);
+        await Assert.That(buff.saveFactions).IsNotNull();
+        await Assert.That(buff.saveFactions).IsEmpty();
     }
 
-    [Fact]
-    public void Skill_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Skill_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -369,11 +374,11 @@ public class BuffTests
         buff.Skill = skill;
 
         // Assert
-        Assert.Equal(skill, buff.Skill);
+        await Assert.That(buff.Skill).IsEqualTo(skill);
     }
 
-    [Fact]
-    public void Template_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Template_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -383,11 +388,11 @@ public class BuffTests
         buff.Template = template;
 
         // Assert
-        Assert.Equal(template, buff.Template);
+        await Assert.That(buff.Template).IsEqualTo(template);
     }
 
-    [Fact]
-    public void SkillCaster_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task SkillCaster_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var buff = CreateBuff();
@@ -397,7 +402,7 @@ public class BuffTests
         buff.SkillCaster = skillCaster;
 
         // Assert
-        Assert.Equal(skillCaster, buff.SkillCaster);
+        await Assert.That(buff.SkillCaster).IsEqualTo(skillCaster);
     }
 
     #endregion

@@ -1,4 +1,3 @@
-using Xunit;
 
 using AAEmu.Game.Models.Game.Units;
 
@@ -6,8 +5,8 @@ namespace AAEmu.UnitTests.Game.Models.Game.Units;
 
 public class UnitCooldownsTests
 {
-    [Fact]
-    public void AddCooldown_ShouldAddCooldown_WhenSkillNotExists()
+    [Test]
+    public async Task AddCooldown_ShouldAddCooldown_WhenSkillNotExists()
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -18,11 +17,11 @@ public class UnitCooldownsTests
         cooldowns.AddCooldown(skillId, duration);
 
         // Assert
-        Assert.True(cooldowns.Cooldowns.ContainsKey(skillId));
+        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsTrue();
     }
 
-    [Fact]
-    public void AddCooldown_ShouldNotDuplicate_WhenSkillAlreadyExists()
+    [Test]
+    public async Task AddCooldown_ShouldNotDuplicate_WhenSkillAlreadyExists()
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -35,11 +34,11 @@ public class UnitCooldownsTests
         cooldowns.AddCooldown(skillId, duration2);
 
         // Assert
-        Assert.Single(cooldowns.Cooldowns);
+        await Assert.That(cooldowns.Cooldowns).HasSingleItem();
     }
 
-    [Fact]
-    public void CheckCooldown_ShouldReturnFalse_WhenSkillNotExists()
+    [Test]
+    public async Task CheckCooldown_ShouldReturnFalse_WhenSkillNotExists()
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -49,11 +48,11 @@ public class UnitCooldownsTests
         var result = cooldowns.CheckCooldown(skillId);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void CheckCooldown_ShouldReturnTrue_WhenCooldownIsActive()
+    [Test]
+    public async Task CheckCooldown_ShouldReturnTrue_WhenCooldownIsActive()
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -67,11 +66,11 @@ public class UnitCooldownsTests
         var result = cooldowns.CheckCooldown(skillId);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void CheckCooldown_ShouldReturnFalseAndRemove_WhenCooldownExpired()
+    [Test]
+    public async Task CheckCooldown_ShouldReturnFalseAndRemove_WhenCooldownExpired()
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -84,12 +83,12 @@ public class UnitCooldownsTests
         var result = cooldowns.CheckCooldown(skillId);
 
         // Assert
-        Assert.False(result);
-        Assert.False(cooldowns.Cooldowns.ContainsKey(skillId));
+        await Assert.That(result).IsFalse();
+        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsFalse();
     }
 
-    [Fact]
-    public void RemoveCooldown_ShouldRemoveSkill_WhenExists()
+    [Test]
+    public async Task RemoveCooldown_ShouldRemoveSkill_WhenExists()
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -100,10 +99,10 @@ public class UnitCooldownsTests
         cooldowns.RemoveCooldown(skillId);
 
         // Assert
-        Assert.False(cooldowns.Cooldowns.ContainsKey(skillId));
+        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsFalse();
     }
 
-    [Fact]
+    [Test]
     public void RemoveCooldown_ShouldNotThrow_WhenSkillNotExists()
     {
         // Arrange
@@ -114,12 +113,12 @@ public class UnitCooldownsTests
         cooldowns.RemoveCooldown(skillId);
     }
 
-    [Theory]
-    [InlineData(0u)]
-    [InlineData(1u)]
-    [InlineData(100u)]
-    [InlineData(999999u)]
-    public void AddCooldown_ShouldAcceptVariousSkillIds(uint skillId)
+    [Test]
+    [Arguments(0u)]
+    [Arguments(1u)]
+    [Arguments(100u)]
+    [Arguments(999999u)]
+    public async Task AddCooldown_ShouldAcceptVariousSkillIds(uint skillId)
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -129,15 +128,15 @@ public class UnitCooldownsTests
         cooldowns.AddCooldown(skillId, duration);
 
         // Assert
-        Assert.True(cooldowns.Cooldowns.ContainsKey(skillId));
+        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsTrue();
     }
 
-    [Theory]
-    [InlineData(0u)]
-    [InlineData(100u)]
-    [InlineData(60000u)]
-    [InlineData(uint.MaxValue)]
-    public void CheckCooldown_ShouldHandleVariousDurations(uint duration)
+    [Test]
+    [Arguments(0u)]
+    [Arguments(100u)]
+    [Arguments(60000u)]
+    [Arguments(uint.MaxValue)]
+    public async Task CheckCooldown_ShouldHandleVariousDurations(uint duration)
     {
         // Arrange
         var cooldowns = new UnitCooldowns();
@@ -147,13 +146,13 @@ public class UnitCooldownsTests
         {
             cooldowns.Cooldowns.TryAdd(skillId, DateTime.UtcNow.AddMilliseconds(duration));
             var result = cooldowns.CheckCooldown(skillId);
-            Assert.True(result);
+            await Assert.That(result).IsTrue();
         }
         else
         {
             cooldowns.Cooldowns.TryAdd(skillId, DateTime.UtcNow.AddMilliseconds(duration));
             var result = cooldowns.CheckCooldown(skillId);
-            Assert.False(result);
+            await Assert.That(result).IsFalse();
         }
     }
 }

@@ -10,16 +10,14 @@ using AAEmu.Game.Models.Game.Units;
 
 using Moq;
 
-using Xunit;
-
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class ItemManagerTests
 {
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_DoesNotCallDependencies()
+    [Test]
+    public async Task Constructor_DoesNotCallDependencies()
     {
         // Arrange
         var mockSkill = new Mock<ISkillManager>();
@@ -39,7 +37,7 @@ public class ItemManagerTests
             mockWorld.Object);
 
         // Assert
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockSkill.VerifyNoOtherCalls();
         mockItemId.VerifyNoOtherCalls();
         mockContainerId.VerifyNoOtherCalls();
@@ -52,8 +50,8 @@ public class ItemManagerTests
 
     #region GetTemplate Tests
 
-    [Fact]
-    public void GetTemplate_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -71,15 +69,15 @@ public class ItemManagerTests
         var result = manager.GetTemplate(100);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(100u, result.Id);
-        Assert.Equal("Test Item", result.Name);
-        Assert.Equal(10, result.Level);
-        Assert.Equal(50, result.Price);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(100u);
+        await Assert.That(result.Name).IsEqualTo("Test Item");
+        await Assert.That(result.Level).IsEqualTo(10);
+        await Assert.That(result.Price).IsEqualTo(50);
     }
 
-    [Fact]
-    public void GetTemplate_TemplateDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_TemplateDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -90,11 +88,11 @@ public class ItemManagerTests
         var result = manager.GetTemplate(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetTemplate_ZeroId_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_ZeroId_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -105,11 +103,11 @@ public class ItemManagerTests
         var result = manager.GetTemplate(0);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetTemplate_MultipleTemplates_ReturnsCorrectTemplate()
+    [Test]
+    public async Task GetTemplate_MultipleTemplates_ReturnsCorrectTemplate()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -126,17 +124,17 @@ public class ItemManagerTests
         SetPrivateField(manager, "_templates", templates);
 
         // Act & Assert
-        Assert.Equal(template1, manager.GetTemplate(1));
-        Assert.Equal(template2, manager.GetTemplate(2));
-        Assert.Equal(template3, manager.GetTemplate(3));
+        await Assert.That(manager.GetTemplate(1)).IsEqualTo(template1);
+        await Assert.That(manager.GetTemplate(2)).IsEqualTo(template2);
+        await Assert.That(manager.GetTemplate(3)).IsEqualTo(template3);
     }
 
     #endregion
 
     #region GetItemByItemId Tests
 
-    [Fact]
-    public void GetItemByItemId_ItemExists_ReturnsItem()
+    [Test]
+    public async Task GetItemByItemId_ItemExists_ReturnsItem()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -148,14 +146,14 @@ public class ItemManagerTests
         var result = manager.GetItemByItemId(1000);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1000ul, result.Id);
-        Assert.Equal(100u, result.TemplateId);
-        Assert.Equal(5, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1000ul);
+        await Assert.That(result.TemplateId).IsEqualTo(100u);
+        await Assert.That(result.Count).IsEqualTo(5);
     }
 
-    [Fact]
-    public void GetItemByItemId_ItemDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetItemByItemId_ItemDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -166,11 +164,11 @@ public class ItemManagerTests
         var result = manager.GetItemByItemId(9999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetItemByItemId_ZeroId_ReturnsNull()
+    [Test]
+    public async Task GetItemByItemId_ZeroId_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -181,11 +179,11 @@ public class ItemManagerTests
         var result = manager.GetItemByItemId(0);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetItemByItemId_MultipleItems_ReturnsCorrectItem()
+    [Test]
+    public async Task GetItemByItemId_MultipleItems_ReturnsCorrectItem()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -202,17 +200,17 @@ public class ItemManagerTests
         SetPrivateField(manager, "_allItems", allItems);
 
         // Act & Assert
-        Assert.Equal(item1, manager.GetItemByItemId(100));
-        Assert.Equal(item2, manager.GetItemByItemId(200));
-        Assert.Equal(item3, manager.GetItemByItemId(300));
+        await Assert.That(manager.GetItemByItemId(100)).IsEqualTo(item1);
+        await Assert.That(manager.GetItemByItemId(200)).IsEqualTo(item2);
+        await Assert.That(manager.GetItemByItemId(300)).IsEqualTo(item3);
     }
 
     #endregion
 
     #region AddItem Tests
 
-    [Fact]
-    public void AddItem_ValidItem_AddsToCollection()
+    [Test]
+    public async Task AddItem_ValidItem_AddsToCollection()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -224,12 +222,12 @@ public class ItemManagerTests
         var result = manager.AddItem(item);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(item, manager.GetItemByItemId(2000));
+        await Assert.That(result).IsTrue();
+        await Assert.That(manager.GetItemByItemId(2000)).IsEqualTo(item);
     }
 
-    [Fact]
-    public void AddItem_DuplicateItem_ReturnsFalse()
+    [Test]
+    public async Task AddItem_DuplicateItem_ReturnsFalse()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -242,10 +240,10 @@ public class ItemManagerTests
         var result = manager.AddItem(item2);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
+    [Test]
     public void AddItem_NullItem_ThrowsArgumentNullException()
     {
         // Arrange
@@ -259,8 +257,8 @@ public class ItemManagerTests
 
     #region GetAllItems Tests
 
-    [Fact]
-    public void GetAllItems_HasTemplates_ReturnsAllTemplates()
+    [Test]
+    public async Task GetAllItems_HasTemplates_ReturnsAllTemplates()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -280,14 +278,14 @@ public class ItemManagerTests
         var result = manager.GetAllItems();
 
         // Assert
-        Assert.Equal(3, result.Count);
-        Assert.Contains(template1, result);
-        Assert.Contains(template2, result);
-        Assert.Contains(template3, result);
+        await Assert.That(result.Count).IsEqualTo(3);
+        await Assert.That(result).Contains(template1);
+        await Assert.That(result).Contains(template2);
+        await Assert.That(result).Contains(template3);
     }
 
-    [Fact]
-    public void GetAllItems_NoTemplates_ReturnsEmptyList()
+    [Test]
+    public async Task GetAllItems_NoTemplates_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -298,15 +296,15 @@ public class ItemManagerTests
         var result = manager.GetAllItems();
 
         // Assert
-        Assert.Empty(result);
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetGradeTemplate Tests
 
-    [Fact]
-    public void GetGradeTemplate_GradeExists_ReturnsTemplate()
+    [Test]
+    public async Task GetGradeTemplate_GradeExists_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -323,14 +321,14 @@ public class ItemManagerTests
         var result = manager.GetGradeTemplate(5);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(5, result.Grade);
-        Assert.Equal(100, result.HoldableDps);
-        Assert.Equal(2, result.StatMultiplier);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Grade).IsEqualTo(5);
+        await Assert.That(result.HoldableDps).IsEqualTo(100);
+        await Assert.That(result.StatMultiplier).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetGradeTemplate_GradeDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetGradeTemplate_GradeDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -341,15 +339,15 @@ public class ItemManagerTests
         var result = manager.GetGradeTemplate(99);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetArmorGradeBuff Tests
 
-    [Fact]
-    public void GetArmorGradeBuff_BuffExists_ReturnsBuff()
+    [Test]
+    public async Task GetArmorGradeBuff_BuffExists_ReturnsBuff()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -376,13 +374,13 @@ public class ItemManagerTests
         var result = manager.GetArmorGradeBuff(ArmorType.Cloth, ItemGrade.Heroic);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
-        Assert.Equal(1000u, result.BuffId);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
+        await Assert.That(result.BuffId).IsEqualTo(1000u);
     }
 
-    [Fact]
-    public void GetArmorGradeBuff_ArmorTypeDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetArmorGradeBuff_ArmorTypeDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -393,11 +391,11 @@ public class ItemManagerTests
         var result = manager.GetArmorGradeBuff(ArmorType.Cloth, ItemGrade.Heroic);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetArmorGradeBuff_GradeDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetArmorGradeBuff_GradeDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -411,15 +409,15 @@ public class ItemManagerTests
         var result = manager.GetArmorGradeBuff(ArmorType.Cloth, ItemGrade.Heroic);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetUnitModifiers Tests
 
-    [Fact]
-    public void GetUnitModifiers_ModifiersExist_ReturnsModifiers()
+    [Test]
+    public async Task GetUnitModifiers_ModifiersExist_ReturnsModifiers()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -438,14 +436,14 @@ public class ItemManagerTests
         var result = manager.GetUnitModifiers(100);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-        Assert.Equal(10, result[0].Value);
-        Assert.Equal(UnitAttribute.Str, result[0].Attribute);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
+        await Assert.That(result[0].Value).IsEqualTo(10);
+        await Assert.That(result[0].Attribute).IsEqualTo(UnitAttribute.Str);
     }
 
-    [Fact]
-    public void GetUnitModifiers_NoModifiers_ReturnsEmptyList()
+    [Test]
+    public async Task GetUnitModifiers_NoModifiers_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -456,12 +454,12 @@ public class ItemManagerTests
         var result = manager.GetUnitModifiers(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void GetUnitModifiers_EmptyModifiers_ReturnsEmptyList()
+    [Test]
+    public async Task GetUnitModifiers_EmptyModifiers_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -475,16 +473,16 @@ public class ItemManagerTests
         var result = manager.GetUnitModifiers(100);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetItemProcTemplate Tests
 
-    [Fact]
-    public void GetItemProcTemplate_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetItemProcTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -502,15 +500,15 @@ public class ItemManagerTests
         var result = manager.GetItemProcTemplate(50);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(50u, result.Id);
-        Assert.Equal(100u, result.SkillId);
-        Assert.Equal(50u, result.ChanceRate);
-        Assert.Equal(30u, result.CooldownSec);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(50u);
+        await Assert.That(result.SkillId).IsEqualTo(100u);
+        await Assert.That(result.ChanceRate).IsEqualTo(50u);
+        await Assert.That(result.CooldownSec).IsEqualTo(30u);
     }
 
-    [Fact]
-    public void GetItemProcTemplate_TemplateDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetItemProcTemplate_TemplateDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -521,15 +519,15 @@ public class ItemManagerTests
         var result = manager.GetItemProcTemplate(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetEquippedItemSet Tests
 
-    [Fact]
-    public void GetEquippedItemSet_SetExists_ReturnsSet()
+    [Test]
+    public async Task GetEquippedItemSet_SetExists_ReturnsSet()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -546,14 +544,14 @@ public class ItemManagerTests
         var result = manager.GetEquippedItemSet(10);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(10u, result.Id);
-        Assert.Single(result.Bonuses);
-        Assert.Equal(3, result.Bonuses.First().NumPieces);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(10u);
+        await Assert.That(result.Bonuses).HasSingleItem();
+        await Assert.That(result.Bonuses.First().NumPieces).IsEqualTo(3);
     }
 
-    [Fact]
-    public void GetEquippedItemSet_SetDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetEquippedItemSet_SetDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -564,15 +562,15 @@ public class ItemManagerTests
         var result = manager.GetEquippedItemSet(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetItemSet Tests
 
-    [Fact]
-    public void GetItemSet_SetExists_ReturnsSet()
+    [Test]
+    public async Task GetItemSet_SetExists_ReturnsSet()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -589,13 +587,13 @@ public class ItemManagerTests
         var result = manager.GetItemSet(20);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(20u, result.Id);
-        Assert.Equal("Test Set", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(20u);
+        await Assert.That(result.Name).IsEqualTo("Test Set");
     }
 
-    [Fact]
-    public void GetItemSet_SetDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetItemSet_SetDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -606,15 +604,15 @@ public class ItemManagerTests
         var result = manager.GetItemSet(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetSocketChance Tests
 
-    [Fact]
-    public void GetSocketChance_ChanceExists_ReturnsChance()
+    [Test]
+    public async Task GetSocketChance_ChanceExists_ReturnsChance()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -630,11 +628,11 @@ public class ItemManagerTests
         var result = manager.GetSocketChance(0); // 0 + 1 = 1
 
         // Assert
-        Assert.Equal(100u, result);
+        await Assert.That(result).IsEqualTo(100u);
     }
 
-    [Fact]
-    public void GetSocketChance_ChanceDoesNotExist_ReturnsZero()
+    [Test]
+    public async Task GetSocketChance_ChanceDoesNotExist_ReturnsZero()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -645,15 +643,15 @@ public class ItemManagerTests
         var result = manager.GetSocketChance(10);
 
         // Assert
-        Assert.Equal(0u, result);
+        await Assert.That(result).IsEqualTo(0u);
     }
 
     #endregion
 
     #region GetItemIdsFromDoodad Tests
 
-    [Fact]
-    public void GetItemIdsFromDoodad_DoodadExists_ReturnsItemIds()
+    [Test]
+    public async Task GetItemIdsFromDoodad_DoodadExists_ReturnsItemIds()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -672,15 +670,15 @@ public class ItemManagerTests
         var result = manager.GetItemIdsFromDoodad(100);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(3, result.Count);
-        Assert.Contains(1u, result);
-        Assert.Contains(2u, result);
-        Assert.Contains(3u, result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(3);
+        await Assert.That(result).Contains(1u);
+        await Assert.That(result).Contains(2u);
+        await Assert.That(result).Contains(3u);
     }
 
-    [Fact]
-    public void GetItemIdsFromDoodad_DoodadDoesNotExist_ReturnsEmptyList()
+    [Test]
+    public async Task GetItemIdsFromDoodad_DoodadDoesNotExist_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -691,16 +689,16 @@ public class ItemManagerTests
         var result = manager.GetItemIdsFromDoodad(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetGradeDistributions Tests
 
-    [Fact]
-    public void GetGradeDistributions_DistributionExists_ReturnsDistribution()
+    [Test]
+    public async Task GetGradeDistributions_DistributionExists_ReturnsDistribution()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -719,14 +717,14 @@ public class ItemManagerTests
         var result = manager.GetGradeDistributions(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1, result.Id);
-        Assert.Equal("Common", result.Name);
-        Assert.Equal(50, result.Weight0);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1);
+        await Assert.That(result.Name).IsEqualTo("Common");
+        await Assert.That(result.Weight0).IsEqualTo(50);
     }
 
-    [Fact]
-    public void GetGradeDistributions_DistributionDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetGradeDistributions_DistributionDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -737,15 +735,15 @@ public class ItemManagerTests
         var result = manager.GetGradeDistributions(99);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetItemTemplateFromItemId Tests
 
-    [Fact]
-    public void GetItemTemplateFromItemId_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetItemTemplateFromItemId_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -757,12 +755,12 @@ public class ItemManagerTests
         var result = manager.GetItemTemplateFromItemId(100);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(100u, result.Id);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(100u);
     }
 
-    [Fact]
-    public void GetItemTemplateFromItemId_TemplateDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetItemTemplateFromItemId_TemplateDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -773,15 +771,15 @@ public class ItemManagerTests
         var result = manager.GetItemTemplateFromItemId(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetItemContainerByDbId Tests
 
-    [Fact]
-    public void GetItemContainerByDbId_ContainerDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetItemContainerByDbId_ContainerDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -792,15 +790,15 @@ public class ItemManagerTests
         var result = manager.GetItemContainerByDbId(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region ReleaseId Tests
 
-    [Fact]
-    public void ReleaseId_ValidId_RemovesFromItems()
+    [Test]
+    public async Task ReleaseId_ValidId_RemovesFromItems()
     {
         // Arrange
         var mockItemId = new Mock<IItemIdManager>();
@@ -815,13 +813,13 @@ public class ItemManagerTests
         manager.ReleaseId(3000);
 
         // Assert
-        Assert.Null(manager.GetItemByItemId(3000));
-        Assert.Contains(3000ul, removedItems);
+        await Assert.That(manager.GetItemByItemId(3000)).IsNull();
+        await Assert.That(removedItems).Contains(3000ul);
         mockItemId.Verify(x => x.ReleaseId(3000), Times.Once);
     }
 
-    [Fact]
-    public void ReleaseId_ZeroId_DoesNotAddToRemoved()
+    [Test]
+    public async Task ReleaseId_ZeroId_DoesNotAddToRemoved()
     {
         // Arrange
         var mockItemId = new Mock<IItemIdManager>();
@@ -835,15 +833,15 @@ public class ItemManagerTests
         manager.ReleaseId(0);
 
         // Assert
-        Assert.DoesNotContain(0ul, removedItems);
+        await Assert.That(removedItems).DoesNotContain(0ul);
     }
 
     #endregion
 
     #region IsAutoEquipTradePack Tests
 
-    [Fact]
-    public void IsAutoEquipTradePack_ValidTradePack_ReturnsTrue()
+    [Test]
+    public async Task IsAutoEquipTradePack_ValidTradePack_ReturnsTrue()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -860,11 +858,11 @@ public class ItemManagerTests
         var result = manager.IsAutoEquipTradePack(100);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsAutoEquipTradePack_NotBackpack_ReturnsFalse()
+    [Test]
+    public async Task IsAutoEquipTradePack_NotBackpack_ReturnsFalse()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -881,11 +879,11 @@ public class ItemManagerTests
         var result = manager.IsAutoEquipTradePack(100);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void IsAutoEquipTradePack_BindOnEquip_ReturnsFalse()
+    [Test]
+    public async Task IsAutoEquipTradePack_BindOnEquip_ReturnsFalse()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -902,11 +900,11 @@ public class ItemManagerTests
         var result = manager.IsAutoEquipTradePack(100);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void IsAutoEquipTradePack_InvalidTemplate_ReturnsFalse()
+    [Test]
+    public async Task IsAutoEquipTradePack_InvalidTemplate_ReturnsFalse()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -917,15 +915,15 @@ public class ItemManagerTests
         var result = manager.IsAutoEquipTradePack(999);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region GetContainerSlotTypeByContainerId Tests
 
-    [Fact]
-    public void GetContainerSlotTypeByContainerId_ContainerDoesNotExist_ReturnsNone()
+    [Test]
+    public async Task GetContainerSlotTypeByContainerId_ContainerDoesNotExist_ReturnsNone()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -936,15 +934,15 @@ public class ItemManagerTests
         var result = manager.GetContainerSlotTypeByContainerId(999);
 
         // Assert
-        Assert.Equal(SlotType.None, result);
+        await Assert.That(result).IsEqualTo(SlotType.None);
     }
 
     #endregion
 
     #region Config Value Tests
 
-    [Fact]
-    public void GetDurabilityRepairCostFactor_ReturnsFactor()
+    [Test]
+    public async Task GetDurabilityRepairCostFactor_ReturnsFactor()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -955,11 +953,11 @@ public class ItemManagerTests
         var result = manager.GetDurabilityRepairCostFactor();
 
         // Assert
-        Assert.Equal(0.5f, result);
+        await Assert.That(result).IsEqualTo(0.5f);
     }
 
-    [Fact]
-    public void GetDurabilityConst_ReturnsConst()
+    [Test]
+    public async Task GetDurabilityConst_ReturnsConst()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -970,11 +968,11 @@ public class ItemManagerTests
         var result = manager.GetDurabilityConst();
 
         // Assert
-        Assert.Equal(100f, result);
+        await Assert.That(result).IsEqualTo(100f);
     }
 
-    [Fact]
-    public void GetItemStatConst_ReturnsConst()
+    [Test]
+    public async Task GetItemStatConst_ReturnsConst()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -985,15 +983,15 @@ public class ItemManagerTests
         var result = manager.GetItemStatConst();
 
         // Assert
-        Assert.Equal(50, result);
+        await Assert.That(result).IsEqualTo(50);
     }
 
     #endregion
 
     #region Edge Case Tests
 
-    [Fact]
-    public void GetTemplate_MaxUIntId_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_MaxUIntId_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -1004,11 +1002,11 @@ public class ItemManagerTests
         var result = manager.GetTemplate(uint.MaxValue);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetItemByItemId_MaxULongId_ReturnsNull()
+    [Test]
+    public async Task GetItemByItemId_MaxULongId_ReturnsNull()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -1019,11 +1017,11 @@ public class ItemManagerTests
         var result = manager.GetItemByItemId(ulong.MaxValue);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void AddItem_MaxCountItem_AddsSuccessfully()
+    [Test]
+    public async Task AddItem_MaxCountItem_AddsSuccessfully()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -1035,12 +1033,12 @@ public class ItemManagerTests
         var result = manager.AddItem(item);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(int.MaxValue, manager.GetItemByItemId(8000).Count);
+        await Assert.That(result).IsTrue();
+        await Assert.That(manager.GetItemByItemId(8000).Count).IsEqualTo(int.MaxValue);
     }
 
-    [Fact]
-    public void GetAllItems_LargeCollection_ReturnsAllItems()
+    [Test]
+    public async Task GetAllItems_LargeCollection_ReturnsAllItems()
     {
         // Arrange
         var manager = CreateItemManager();
@@ -1055,7 +1053,7 @@ public class ItemManagerTests
         var result = manager.GetAllItems();
 
         // Assert
-        Assert.Equal(1000, result.Count);
+        await Assert.That(result.Count).IsEqualTo(1000);
     }
 
     #endregion

@@ -1,15 +1,14 @@
 ﻿using AAEmu.Game.Services.WebApi;
 using AAEmu.Game.Services.WebApi.Controllers;
 using NetCoreServer;
-using Xunit;
 
 namespace AAEmu.UnitTests.Services.WebApi;
 
 public class RouteMapperTests
 {
 
-    [Fact]
-    public Task GetRoute_WhenSimpleRoute_ShouldFindAndMatch()
+    [Test]
+    public async Task GetRoute_WhenSimpleRoute_ShouldFindAndMatch()
     {
         // Arrange
         var routeMapper = new RouteMapper();
@@ -19,21 +18,19 @@ public class RouteMapperTests
         var (route, matches) = routeMapper.GetRoute("/world/logged-characters", HttpMethod.Get);
 
         // Assert
-        Assert.NotNull(route);
-        Assert.NotNull(matches);
-        Assert.Single(matches);
-        Assert.Equal("/world/logged-characters", route.Path);
-
-        return Task.CompletedTask;
+        await Assert.That(route).IsNotNull();
+        await Assert.That(matches).IsNotNull();
+        await Assert.That(matches).HasSingleItem();
+        await Assert.That(route.Path).IsEqualTo("/world/logged-characters");
     }
 
-    [Theory]
-    [InlineData("/world/logged-characters")]
-    [InlineData("/world/LOGGED-CHARACTERS")]
-    [InlineData("/WORLD/LOGGED-CHARACTERS")]
-    [InlineData("/WORLD/LOGGED-charactERS")]
-    [InlineData("/WOrLD/LOggED-charactERS")]
-    public Task GetRoute_WhenSimpleRoute_CaseInsensitiveShouldFindAndMatch(string path)
+    [Test]
+    [Arguments("/world/logged-characters")]
+    [Arguments("/world/LOGGED-CHARACTERS")]
+    [Arguments("/WORLD/LOGGED-CHARACTERS")]
+    [Arguments("/WORLD/LOGGED-charactERS")]
+    [Arguments("/WOrLD/LOggED-charactERS")]
+    public async Task GetRoute_WhenSimpleRoute_CaseInsensitiveShouldFindAndMatch(string path)
     {
         // Arrange
         var routeMapper = new RouteMapper();
@@ -43,16 +40,14 @@ public class RouteMapperTests
         var (route, matches) = routeMapper.GetRoute(path, HttpMethod.Get);
 
         // Assert
-        Assert.NotNull(route);
-        Assert.NotNull(matches);
-        Assert.Single(matches);
-        Assert.Equal("/world/logged-characters", route.Path, true);
-
-        return Task.CompletedTask;
+        await Assert.That(route).IsNotNull();
+        await Assert.That(matches).IsNotNull();
+        await Assert.That(matches).HasSingleItem();
+        await Assert.That(route.Path).IsEqualTo("/world/logged-characters", StringComparer.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public Task GetRoute_WhenRegexRoutes_ShouldFindAndMatch()
+    [Test]
+    public async Task GetRoute_WhenRegexRoutes_ShouldFindAndMatch()
     {
         // Arrange
         var routeMapper = new RouteMapper();
@@ -62,17 +57,15 @@ public class RouteMapperTests
         var (route, matches) = routeMapper.GetRoute("/world/logged-characters", HttpMethod.Get);
 
         // Assert
-        Assert.NotNull(route);
-        Assert.NotNull(matches);
-        Assert.Single(matches);
-        Assert.Equal("logged-characters", matches[0].Groups[1].Value);
-        Assert.Equal("/world/logged-characters", matches[0].Groups[0].Value);
-
-        return Task.CompletedTask;
+        await Assert.That(route).IsNotNull();
+        await Assert.That(matches).IsNotNull();
+        await Assert.That(matches).HasSingleItem();
+        await Assert.That(matches[0].Groups[1].Value).IsEqualTo("logged-characters");
+        await Assert.That(matches[0].Groups[0].Value).IsEqualTo("/world/logged-characters");
     }
 
-    [Fact]
-    public Task GetRoute_WhenNotFound_ShouldReturnNull()
+    [Test]
+    public async Task GetRoute_WhenNotFound_ShouldReturnNull()
     {
         // Arrange
         var routeMapper = new RouteMapper();
@@ -82,10 +75,8 @@ public class RouteMapperTests
         var (route, matches) = routeMapper.GetRoute("not-found", HttpMethod.Get);
 
         // Assert
-        Assert.Null(route);
-        Assert.Null(matches);
-
-        return Task.CompletedTask;
+        await Assert.That(route).IsNull();
+        await Assert.That(matches).IsNull();
     }
     internal sealed class MyController : BaseController
     {
@@ -105,4 +96,3 @@ public class RouteMapperTests
         }
     }
 }
-

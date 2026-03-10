@@ -7,7 +7,6 @@ using AAEmu.Login.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Login.Core.Controllers;
 
@@ -53,32 +52,32 @@ public class GameControllerTests
         return (new InternalConnection(mock.Object), mock);
     }
 
-    [Fact]
-    public void Load_VisibleServer_IsAvailableViaGetGameServer()
+    [Test]
+    public async Task Load_VisibleServer_IsAvailableViaGetGameServer()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
 
         sut.Load();
 
         var server = sut.GetGameServer(s_gsId1);
-        Assert.NotNull(server);
-        Assert.Equal("World1", server.Name);
-        Assert.Equal("127.0.0.1", server.Host);
-        Assert.Equal(1234, server.Port);
+        await Assert.That(server).IsNotNull();
+        await Assert.That(server!.Name).IsEqualTo("World1");
+        await Assert.That(server.Host).IsEqualTo("127.0.0.1");
+        await Assert.That(server.Port).IsEqualTo((ushort)1234);
     }
 
-    [Fact]
-    public void Load_HiddenServer_IsNotAvailableViaGetGameServer()
+    [Test]
+    public async Task Load_HiddenServer_IsNotAvailableViaGetGameServer()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "HiddenWorld", "127.0.0.1", 1234, true)));
 
         sut.Load();
 
-        Assert.Null(sut.GetGameServer(s_gsId1));
+        await Assert.That(sut.GetGameServer(s_gsId1)).IsNull();
     }
 
-    [Fact]
-    public void Load_MixedServers_OnlyLoadsVisibleOnes()
+    [Test]
+    public async Task Load_MixedServers_OnlyLoadsVisibleOnes()
     {
         var sut = CreateSut(MakeConfig(
             (s_gsId1.Value, "Visible", "127.0.0.1", 1234, false),
@@ -86,31 +85,31 @@ public class GameControllerTests
 
         sut.Load();
 
-        Assert.NotNull(sut.GetGameServer(s_gsId1));
-        Assert.Null(sut.GetGameServer(s_gsId2));
+        await Assert.That(sut.GetGameServer(s_gsId1)).IsNotNull();
+        await Assert.That(sut.GetGameServer(s_gsId2)).IsNull();
     }
 
-    [Fact]
-    public void GetGameServer_UnknownId_ReturnsNull()
+    [Test]
+    public async Task GetGameServer_UnknownId_ReturnsNull()
     {
         var sut = CreateSut(MakeConfig());
 
-        Assert.Null(sut.GetGameServer(s_gsId1));
+        await Assert.That(sut.GetGameServer(s_gsId1)).IsNull();
     }
 
-    [Fact]
-    public void TryGetParentId_NoMirrorRegistered_ReturnsFalse()
+    [Test]
+    public async Task TryGetParentId_NoMirrorRegistered_ReturnsFalse()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
         sut.Load();
 
         var found = sut.TryGetParentId(s_gsId1, out _);
 
-        Assert.False(found);
+        await Assert.That(found).IsFalse();
     }
 
-    [Fact]
-    public void TryGetParentId_AfterAddWithMirror_ReturnsTrueWithParentId()
+    [Test]
+    public async Task TryGetParentId_AfterAddWithMirror_ReturnsTrueWithParentId()
     {
         var sut = CreateSut(MakeConfig(
             (s_gsId1.Value, "World1", "127.0.0.1", 1234, false),
@@ -120,23 +119,23 @@ public class GameControllerTests
 
         var found = sut.TryGetParentId(s_gsId2, out var parentId);
 
-        Assert.True(found);
-        Assert.Equal(s_gsId1, parentId);
+        await Assert.That(found).IsTrue();
+        await Assert.That(parentId).IsEqualTo(s_gsId1);
     }
 
-    [Fact]
-    public void Add_KnownServerId_MakesServerActive()
+    [Test]
+    public async Task Add_KnownServerId_MakesServerActive()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
         sut.Load();
 
         sut.Add(s_gsId1, [], CreateConnection());
 
-        Assert.True(sut.GetGameServer(s_gsId1)!.Active);
+        await Assert.That(sut.GetGameServer(s_gsId1)!.Active).IsTrue();
     }
 
-    [Fact]
-    public void Add_WithMirrors_MakesMirrorServersActive()
+    [Test]
+    public async Task Add_WithMirrors_MakesMirrorServersActive()
     {
         var sut = CreateSut(MakeConfig(
             (s_gsId1.Value, "World1", "127.0.0.1", 1234, false),
@@ -146,12 +145,12 @@ public class GameControllerTests
 
         sut.Add(s_gsId1, [s_gsId2, s_gsId3], CreateConnection());
 
-        Assert.True(sut.GetGameServer(s_gsId2)!.Active);
-        Assert.True(sut.GetGameServer(s_gsId3)!.Active);
+        await Assert.That(sut.GetGameServer(s_gsId2)!.Active).IsTrue();
+        await Assert.That(sut.GetGameServer(s_gsId3)!.Active).IsTrue();
     }
 
-    [Fact]
-    public void Remove_AfterAdd_ClearsServerConnection()
+    [Test]
+    public async Task Remove_AfterAdd_ClearsServerConnection()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
         sut.Load();
@@ -159,11 +158,11 @@ public class GameControllerTests
 
         sut.Remove(s_gsId1);
 
-        Assert.False(sut.GetGameServer(s_gsId1)!.Active);
+        await Assert.That(sut.GetGameServer(s_gsId1)!.Active).IsFalse();
     }
 
-    [Fact]
-    public void Remove_WithMirrors_ClearsMirrorConnections()
+    [Test]
+    public async Task Remove_WithMirrors_ClearsMirrorConnections()
     {
         var sut = CreateSut(MakeConfig(
             (s_gsId1.Value, "World1", "127.0.0.1", 1234, false),
@@ -173,11 +172,11 @@ public class GameControllerTests
 
         sut.Remove(s_gsId1);
 
-        Assert.False(sut.GetGameServer(s_gsId2)!.Active);
-        Assert.False(sut.TryGetParentId(s_gsId2, out _));
+        await Assert.That(sut.GetGameServer(s_gsId2)!.Active).IsFalse();
+        await Assert.That(sut.TryGetParentId(s_gsId2, out _)).IsFalse();
     }
 
-    [Fact]
+    [Test]
     public void Remove_UnknownServerId_DoesNotThrow()
     {
         var sut = CreateSut(MakeConfig());
@@ -185,18 +184,18 @@ public class GameControllerTests
         sut.Remove(s_gsId1);
     }
 
-    [Fact]
-    public void SetLoad_SetsLoadOnServer()
+    [Test]
+    public async Task SetLoad_SetsLoadOnServer()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
         sut.Load();
 
         sut.SetLoad(s_gsId1, (byte)GSLoad.High);
 
-        Assert.Equal(GSLoad.High, sut.GetGameServer(s_gsId1)!.Load);
+        await Assert.That(sut.GetGameServer(s_gsId1)!.Load).IsEqualTo(GSLoad.High);
     }
 
-    [Fact]
+    [Test]
     public void RequestEnterWorld_UnknownGsId_DoesNotThrow()
     {
         var sut = CreateSut(MakeConfig());
@@ -204,7 +203,7 @@ public class GameControllerTests
         sut.RequestEnterWorld(s_accountId, s_connectionId, s_gsId1);
     }
 
-    [Fact]
+    [Test]
     public void RequestEnterWorld_KnownButInactiveServer_DoesNotThrow()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
@@ -213,7 +212,7 @@ public class GameControllerTests
         sut.RequestEnterWorld(s_accountId, s_connectionId, s_gsId1);
     }
 
-    [Fact]
+    [Test]
     public void RequestEnterWorld_ActiveServer_SendsPacketToSession()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
@@ -227,7 +226,7 @@ public class GameControllerTests
         sessionMock.Verify(s => s.SendPacket(It.IsAny<byte[]>()), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public void RouteEnterWorldResponse_ConnectionNotFound_DoesNotThrow()
     {
         var sut = CreateSut(MakeConfig());
@@ -236,7 +235,7 @@ public class GameControllerTests
         sut.RouteEnterWorldResponse(s_connectionId, s_gsId1, 0);
     }
 
-    [Fact]
+    [Test]
     public void RouteEnterWorldResponse_ConnectionFound_DelegatesToSession()
     {
         var sut = CreateSut(MakeConfig());
@@ -250,7 +249,7 @@ public class GameControllerTests
         sessionMock.Verify(s => s.CompleteEnterWorldRequest(s_gsId1, 42), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task GetWorldListAsync_NoServersLoaded_ReturnsEmptyResult()
     {
         var sut = CreateSut(MakeConfig());
@@ -259,11 +258,11 @@ public class GameControllerTests
 
         var result = await sut.GetWorldListAsync(connectionMock.Object);
 
-        Assert.Empty(result.GameServers);
-        Assert.Empty(result.Characters);
+        await Assert.That(result.GameServers).IsEmpty();
+        await Assert.That(result.Characters).IsEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task GetWorldListAsync_LoadedButInactiveServers_ReturnsServersWithoutRequesting()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
@@ -273,12 +272,12 @@ public class GameControllerTests
 
         var result = await sut.GetWorldListAsync(connectionMock.Object);
 
-        Assert.Single(result.GameServers);
-        Assert.Empty(result.Characters);
+        await Assert.That(result.GameServers.Count).IsEqualTo(1);
+        await Assert.That(result.Characters).IsEmpty();
         _requestController.Verify(r => r.Create(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 
-    [Fact]
+    [Test]
     public async Task GetWorldListAsync_ActiveServer_RequestsCharacterInfoPerServer()
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
@@ -296,7 +295,7 @@ public class GameControllerTests
 
         var result = await sut.GetWorldListAsync(connectionMock.Object);
 
-        Assert.Single(result.GameServers);
+        await Assert.That(result.GameServers.Count).IsEqualTo(1);
         _requestController.Verify(r => r.Create(1, It.IsAny<int>()), Times.Once);
     }
 }

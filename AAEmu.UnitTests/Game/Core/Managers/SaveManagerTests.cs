@@ -1,14 +1,13 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class SaveManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         var mockTask = new Mock<ITaskManager>();
         var mockHousing = new Mock<IHousingManager>();
@@ -25,7 +24,7 @@ public class SaveManagerTests
             mockAuction.Object,
             mockWorld.Object);
 
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockTask.VerifyNoOtherCalls();
         mockHousing.VerifyNoOtherCalls();
         mockMail.VerifyNoOtherCalls();

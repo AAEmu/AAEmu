@@ -3,14 +3,13 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class CharacterManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         var mockWorld = new Mock<IWorldManager>();
         var mockAccount = new Mock<IAccountManager>();
@@ -37,7 +36,7 @@ public class CharacterManagerTests
             mockMail.Object,
             mockTask.Object);
 
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockWorld.VerifyNoOtherCalls();
         mockAccount.VerifyNoOtherCalls();
         mockName.VerifyNoOtherCalls();

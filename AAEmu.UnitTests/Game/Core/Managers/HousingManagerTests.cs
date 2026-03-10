@@ -4,14 +4,13 @@ using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class HousingManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         var mockObjectId = new Mock<IObjectIdManager>();
         var mockFaction = new Mock<IFactionManager>();
@@ -44,7 +43,7 @@ public class HousingManagerTests
             mockDoodad.Object,
             mockUcc.Object);
 
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockObjectId.VerifyNoOtherCalls();
         mockFaction.VerifyNoOtherCalls();
         mockLocale.VerifyNoOtherCalls();

@@ -7,7 +7,6 @@ using AAEmu.Login.Models;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Login.Core.Network.Login;
 
@@ -30,7 +29,7 @@ public class LoginConnectionHandlerTests
             _mockLogger.Object);
     }
 
-    [Fact]
+    [Test]
     public async Task OnConnectedAsync_NormalConnection_AddsAndRemovesConnection()
     {
         // Arrange
@@ -54,7 +53,7 @@ public class LoginConnectionHandlerTests
         _mockTable.Verify(t => t.RemoveConnection(connectionId), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task OnConnectedAsync_ConnectionThrows_StillRemovesConnection()
     {
         // Arrange
@@ -76,7 +75,7 @@ public class LoginConnectionHandlerTests
         _mockTable.Verify(t => t.RemoveConnection(connectionId), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task OnConnectedAsync_DisposesConnectionContext()
     {
         // Arrange
@@ -94,7 +93,7 @@ public class LoginConnectionHandlerTests
         mockConnectionContext.Verify(c => c.DisposeAsync(), Times.Once);
     }
 
-    [Fact]
+    [Test]
     public async Task OnConnectedAsync_DisposesConnection()
     {
         // Arrange

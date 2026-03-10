@@ -7,7 +7,6 @@ using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.UnitManagers;
 
@@ -15,8 +14,8 @@ public class DoodadManagerTests
 {
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -29,7 +28,7 @@ public class DoodadManagerTests
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         // Assert
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockObjId.VerifyNoOtherCalls();
         mockDoodadId.VerifyNoOtherCalls();
         mockItem.VerifyNoOtherCalls();
@@ -41,8 +40,8 @@ public class DoodadManagerTests
 
     #region Exist Tests
 
-    [Fact]
-    public void Exist_TemplateExists_ReturnsTrue()
+    [Test]
+    public async Task Exist_TemplateExists_ReturnsTrue()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -60,11 +59,11 @@ public class DoodadManagerTests
         var result = manager.Exist(1);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void Exist_TemplateDoesNotExist_ReturnsFalse()
+    [Test]
+    public async Task Exist_TemplateDoesNotExist_ReturnsFalse()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -81,11 +80,11 @@ public class DoodadManagerTests
         var result = manager.Exist(999);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void Exist_ZeroId_ReturnsFalse()
+    [Test]
+    public async Task Exist_ZeroId_ReturnsFalse()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -102,15 +101,15 @@ public class DoodadManagerTests
         var result = manager.Exist(0);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region GetTemplate Tests
 
-    [Fact]
-    public void GetTemplate_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -128,13 +127,13 @@ public class DoodadManagerTests
         var result = manager.GetTemplate(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
-        Assert.Equal(100u, result.GroupId);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
+        await Assert.That(result.GroupId).IsEqualTo(100u);
     }
 
-    [Fact]
-    public void GetTemplate_TemplateDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_TemplateDoesNotExist_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -151,11 +150,11 @@ public class DoodadManagerTests
         var result = manager.GetTemplate(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetTemplate_ZeroId_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_ZeroId_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -172,7 +171,7 @@ public class DoodadManagerTests
         var result = manager.GetTemplate(0);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
@@ -183,8 +182,8 @@ public class DoodadManagerTests
     // which makes them integration tests rather than unit tests. These tests are omitted here
     // but would be covered in integration testing.
 
-    [Fact]
-    public void Create_WithInvalidTemplate_ReturnsNull()
+    [Test]
+    public async Task Create_WithInvalidTemplate_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -203,11 +202,11 @@ public class DoodadManagerTests
         var result = manager.Create(mockWorld.Object, 0, 999, null, true);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void Create_WithNullWorld_ReturnsNull()
+    [Test]
+    public async Task Create_WithNullWorld_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -226,15 +225,15 @@ public class DoodadManagerTests
         var result = manager.Create(null, 0, 1, null, true);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetFunc Tests
 
-    [Fact]
-    public void GetFunc_ByFuncId_ReturnsFunc()
+    [Test]
+    public async Task GetFunc_ByFuncId_ReturnsFunc()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -252,13 +251,13 @@ public class DoodadManagerTests
         var result = manager.GetFunc(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.FuncKey);
-        Assert.Equal(10u, result.GroupId);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.FuncKey).IsEqualTo(1u);
+        await Assert.That(result.GroupId).IsEqualTo(10u);
     }
 
-    [Fact]
-    public void GetFunc_ByFuncId_NotFound_ReturnsNull()
+    [Test]
+    public async Task GetFunc_ByFuncId_NotFound_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -275,11 +274,11 @@ public class DoodadManagerTests
         var result = manager.GetFunc(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetFunc_ByGroupIdAndSkillId_ReturnsFunc()
+    [Test]
+    public async Task GetFunc_ByGroupIdAndSkillId_ReturnsFunc()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -300,12 +299,12 @@ public class DoodadManagerTests
         var result = manager.GetFunc(10, 50);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(50u, result.SkillId);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.SkillId).IsEqualTo(50u);
     }
 
-    [Fact]
-    public void GetFunc_ByGroupId_GroupNotFound_ReturnsNull()
+    [Test]
+    public async Task GetFunc_ByGroupId_GroupNotFound_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -322,15 +321,15 @@ public class DoodadManagerTests
         var result = manager.GetFunc(999, 0);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetFuncsForGroup Tests
 
-    [Fact]
-    public void GetFuncsForGroup_GroupExists_ReturnsFuncs()
+    [Test]
+    public async Task GetFuncsForGroup_GroupExists_ReturnsFuncs()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -352,12 +351,12 @@ public class DoodadManagerTests
         var result = manager.GetFuncsForGroup(10);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetFuncsForGroup_GroupNotFound_ReturnsEmptyList()
+    [Test]
+    public async Task GetFuncsForGroup_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -374,16 +373,16 @@ public class DoodadManagerTests
         var result = manager.GetFuncsForGroup(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetPhaseFunc Tests
 
-    [Fact]
-    public void GetPhaseFunc_GroupExists_ReturnsPhaseFuncs()
+    [Test]
+    public async Task GetPhaseFunc_GroupExists_ReturnsPhaseFuncs()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -405,12 +404,12 @@ public class DoodadManagerTests
         var result = manager.GetPhaseFunc(10);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetPhaseFunc_GroupNotFound_ReturnsEmptyList()
+    [Test]
+    public async Task GetPhaseFunc_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -427,16 +426,16 @@ public class DoodadManagerTests
         var result = manager.GetPhaseFunc(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetDoodadFuncGroups Tests
 
-    [Fact]
-    public void GetDoodadFuncGroups_TemplateExists_ReturnsGroups()
+    [Test]
+    public async Task GetDoodadFuncGroups_TemplateExists_ReturnsGroups()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -456,12 +455,12 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncGroups(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetDoodadFuncGroups_TemplateNotFound_ReturnsEmptyList()
+    [Test]
+    public async Task GetDoodadFuncGroups_TemplateNotFound_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -478,16 +477,16 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncGroups(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetDoodadFuncGroupsId Tests
 
-    [Fact]
-    public void GetDoodadFuncGroupsId_TemplateExists_ReturnsGroupIds()
+    [Test]
+    public async Task GetDoodadFuncGroupsId_TemplateExists_ReturnsGroupIds()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -507,14 +506,14 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncGroupsId(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-        Assert.Contains(10u, result);
-        Assert.Contains(20u, result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
+        await Assert.That(result).Contains(10u);
+        await Assert.That(result).Contains(20u);
     }
 
-    [Fact]
-    public void GetDoodadFuncGroupsId_TemplateNotFound_ReturnsEmptyList()
+    [Test]
+    public async Task GetDoodadFuncGroupsId_TemplateNotFound_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -531,16 +530,16 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncGroupsId(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetDoodadFuncConsumeChangerItemList Tests
 
-    [Fact]
-    public void GetDoodadFuncConsumeChangerItemList_ItemsExist_ReturnsItemIds()
+    [Test]
+    public async Task GetDoodadFuncConsumeChangerItemList_ItemsExist_ReturnsItemIds()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -562,14 +561,14 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncConsumeChangerItemList(10);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-        Assert.Contains(100u, result);
-        Assert.Contains(200u, result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
+        await Assert.That(result).Contains(100u);
+        await Assert.That(result).Contains(200u);
     }
 
-    [Fact]
-    public void GetDoodadFuncConsumeChangerItemList_NoItemsFound_ReturnsEmptyList()
+    [Test]
+    public async Task GetDoodadFuncConsumeChangerItemList_NoItemsFound_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -586,16 +585,16 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncConsumeChangerItemList(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetTreasureChestTemplateIds Tests
 
-    [Fact]
-    public void GetTreasureChestTemplateIds_ReturnsChestTemplates()
+    [Test]
+    public async Task GetTreasureChestTemplateIds_ReturnsChestTemplates()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -619,17 +618,17 @@ public class DoodadManagerTests
         var result = manager.GetTreasureChestTemplateIds();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(3, result.Count);
-        Assert.Contains(1u, result);
-        Assert.Contains(2u, result);
-        Assert.Contains(4u, result);
-        Assert.DoesNotContain(3u, result);
-        Assert.DoesNotContain(5u, result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(3);
+        await Assert.That(result).Contains(1u);
+        await Assert.That(result).Contains(2u);
+        await Assert.That(result).Contains(4u);
+        await Assert.That(result).DoesNotContain(3u);
+        await Assert.That(result).DoesNotContain(5u);
     }
 
-    [Fact]
-    public void GetTreasureChestTemplateIds_NoTemplates_ReturnsEmptyList()
+    [Test]
+    public async Task GetTreasureChestTemplateIds_NoTemplates_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -646,16 +645,16 @@ public class DoodadManagerTests
         var result = manager.GetTreasureChestTemplateIds();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetDoodadPhaseFuncs Tests
 
-    [Fact]
-    public void GetDoodadPhaseFuncs_GroupExists_ReturnsPhaseFuncs()
+    [Test]
+    public async Task GetDoodadPhaseFuncs_GroupExists_ReturnsPhaseFuncs()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -677,12 +676,12 @@ public class DoodadManagerTests
         var result = manager.GetDoodadPhaseFuncs(10);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetDoodadPhaseFuncs_GroupNotFound_ReturnsEmptyList()
+    [Test]
+    public async Task GetDoodadPhaseFuncs_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -699,16 +698,16 @@ public class DoodadManagerTests
         var result = manager.GetDoodadPhaseFuncs(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetFuncTemplate Tests
 
-    [Fact]
-    public void GetFuncTemplate_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetFuncTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -729,12 +728,12 @@ public class DoodadManagerTests
         var result = manager.GetFuncTemplate(1, "DoodadFuncUse");
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
     }
 
-    [Fact]
-    public void GetFuncTemplate_TypeNotFound_ReturnsNull()
+    [Test]
+    public async Task GetFuncTemplate_TypeNotFound_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -751,11 +750,11 @@ public class DoodadManagerTests
         var result = manager.GetFuncTemplate(1, "NonExistentType");
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetFuncTemplate_TemplateNotFound_ReturnsNull()
+    [Test]
+    public async Task GetFuncTemplate_TemplateNotFound_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -775,15 +774,15 @@ public class DoodadManagerTests
         var result = manager.GetFuncTemplate(999, "DoodadFuncUse");
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetPhaseFuncTemplate Tests
 
-    [Fact]
-    public void GetPhaseFuncTemplate_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetPhaseFuncTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -804,12 +803,12 @@ public class DoodadManagerTests
         var result = manager.GetPhaseFuncTemplate(1, "DoodadFuncTimer");
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
     }
 
-    [Fact]
-    public void GetPhaseFuncTemplate_TypeNotFound_ReturnsNull()
+    [Test]
+    public async Task GetPhaseFuncTemplate_TypeNotFound_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -826,15 +825,15 @@ public class DoodadManagerTests
         var result = manager.GetPhaseFuncTemplate(1, "NonExistentType");
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetDoodadFuncs Tests
 
-    [Fact]
-    public void GetDoodadFuncs_GroupExists_ReturnsFuncs()
+    [Test]
+    public async Task GetDoodadFuncs_GroupExists_ReturnsFuncs()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -856,12 +855,12 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncs(10);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetDoodadFuncs_GroupNotFound_ReturnsEmptyList()
+    [Test]
+    public async Task GetDoodadFuncs_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -878,16 +877,16 @@ public class DoodadManagerTests
         var result = manager.GetDoodadFuncs(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
-    public void Exist_MaxUInt32_ReturnsFalse()
+    [Test]
+    public async Task Exist_MaxUInt32_ReturnsFalse()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -904,11 +903,11 @@ public class DoodadManagerTests
         var result = manager.Exist(uint.MaxValue);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void GetTemplate_MaxUInt32_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_MaxUInt32_ReturnsNull()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -925,11 +924,11 @@ public class DoodadManagerTests
         var result = manager.GetTemplate(uint.MaxValue);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void MultipleGetTemplateCalls_ReturnConsistentResults()
+    [Test]
+    public async Task MultipleGetTemplateCalls_ReturnConsistentResults()
     {
         // Arrange
         var mockObjId = new Mock<IObjectIdManager>();
@@ -949,11 +948,11 @@ public class DoodadManagerTests
         var result3 = manager.GetTemplate(1);
 
         // Assert
-        Assert.NotNull(result1);
-        Assert.NotNull(result2);
-        Assert.NotNull(result3);
-        Assert.Equal(result1.Id, result2.Id);
-        Assert.Equal(result2.Id, result3.Id);
+        await Assert.That(result1).IsNotNull();
+        await Assert.That(result2).IsNotNull();
+        await Assert.That(result3).IsNotNull();
+        await Assert.That(result2.Id).IsEqualTo(result1.Id);
+        await Assert.That(result3.Id).IsEqualTo(result2.Id);
     }
 
     #endregion

@@ -1,4 +1,3 @@
-using Xunit;
 
 using AAEmu.Commons.Utils;
 
@@ -6,8 +5,8 @@ namespace AAEmu.UnitTests.Commons.Utils;
 
 public class TimeSpanExtensionsTests
 {
-    [Fact]
-    public void IsBetween_ShouldReturnTrue_WhenTimeIsBetweenStartAndEnd()
+    [Test]
+    public async Task IsBetween_ShouldReturnTrue_WhenTimeIsBetweenStartAndEnd()
     {
         // Arrange
         var time = TimeSpan.FromHours(12);
@@ -18,11 +17,11 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsBetween_ShouldReturnTrue_WhenTimeEqualsStart()
+    [Test]
+    public async Task IsBetween_ShouldReturnTrue_WhenTimeEqualsStart()
     {
         // Arrange
         var time = TimeSpan.FromHours(6);
@@ -33,11 +32,11 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsBetween_ShouldReturnTrue_WhenTimeEqualsEnd()
+    [Test]
+    public async Task IsBetween_ShouldReturnTrue_WhenTimeEqualsEnd()
     {
         // Arrange
         var time = TimeSpan.FromHours(18);
@@ -48,11 +47,11 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsBetween_ShouldReturnFalse_WhenTimeIsOutsideRange()
+    [Test]
+    public async Task IsBetween_ShouldReturnFalse_WhenTimeIsOutsideRange()
     {
         // Arrange
         var time = TimeSpan.FromHours(3);
@@ -63,11 +62,11 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void IsBetween_ShouldReturnTrue_WhenEndTimeLessThanStartTimeAndTimeIsInFirstRange()
+    [Test]
+    public async Task IsBetween_ShouldReturnTrue_WhenEndTimeLessThanStartTimeAndTimeIsInFirstRange()
     {
         // Arrange - overnight scenario: 22:00 to 02:00
         var time = TimeSpan.FromHours(23);
@@ -78,11 +77,11 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsBetween_ShouldReturnTrue_WhenEndTimeLessThanStartTimeAndTimeIsInSecondRange()
+    [Test]
+    public async Task IsBetween_ShouldReturnTrue_WhenEndTimeLessThanStartTimeAndTimeIsInSecondRange()
     {
         // Arrange - overnight scenario: 22:00 to 02:00
         var time = TimeSpan.FromHours(1);
@@ -93,11 +92,11 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsBetween_ShouldReturnFalse_WhenEndTimeLessThanStartTimeAndTimeIsInMiddleGap()
+    [Test]
+    public async Task IsBetween_ShouldReturnFalse_WhenEndTimeLessThanStartTimeAndTimeIsInMiddleGap()
     {
         // Arrange - overnight scenario: 22:00 to 02:00
         var time = TimeSpan.FromHours(12);
@@ -108,11 +107,11 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void IsBetween_ShouldReturnTrue_WhenStartTimeEqualsEndTime()
+    [Test]
+    public async Task IsBetween_ShouldReturnTrue_WhenStartTimeEqualsEndTime()
     {
         // Arrange - special case where start == end
         var time = TimeSpan.FromHours(12);
@@ -123,14 +122,14 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Theory]
-    [InlineData(0, 0, 10)]
-    [InlineData(5, 0, 10)]
-    [InlineData(10, 0, 10)]
-    public void IsBetween_ShouldHandleZeroHours(int hours, int startHours, int endHours)
+    [Test]
+    [Arguments(0, 0, 10)]
+    [Arguments(5, 0, 10)]
+    [Arguments(10, 0, 10)]
+    public async Task IsBetween_ShouldHandleZeroHours(int hours, int startHours, int endHours)
     {
         // Arrange
         var time = TimeSpan.FromHours(hours);
@@ -141,6 +140,6 @@ public class TimeSpanExtensionsTests
         var result = time.IsBetween(startTime, endTime);
 
         // Assert
-        Assert.InRange(result, false, true);
+        await Assert.That(result).IsTrue();
     }
 }

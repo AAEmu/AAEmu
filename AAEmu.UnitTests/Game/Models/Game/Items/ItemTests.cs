@@ -1,6 +1,5 @@
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Items;
 
@@ -8,25 +7,25 @@ public class ItemTests
 {
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_Default_CreatesItemWithDefaultValues()
+    [Test]
+    public async Task Constructor_Default_CreatesItemWithDefaultValues()
     {
         // Act
         var item = new Item();
 
         // Assert
-        Assert.NotNull(item);
-        Assert.Equal(0u, item.Id);
-        Assert.Equal(0u, item.TemplateId);
-        Assert.Equal(0, item.Count);
-        Assert.Equal(-1, item.Slot);
-        Assert.Equal(0, item.Grade);
-        Assert.Null(item.Template);
-        Assert.Equal(ItemFlag.None, item.ItemFlags);
+        await Assert.That(item).IsNotNull();
+        await Assert.That(item.Id).IsEqualTo(0u);
+        await Assert.That(item.TemplateId).IsEqualTo(0u);
+        await Assert.That(item.Count).IsEqualTo(0);
+        await Assert.That(item.Slot).IsEqualTo(-1);
+        await Assert.That(item.Grade).IsEqualTo((byte)0);
+        await Assert.That(item.Template).IsNull();
+        await Assert.That(item.ItemFlags).IsEqualTo(ItemFlag.None);
     }
 
-    [Fact]
-    public void Constructor_WithWorldId_SetsWorldId()
+    [Test]
+    public async Task Constructor_WithWorldId_SetsWorldId()
     {
         // Arrange
         byte worldId = 1;
@@ -35,12 +34,12 @@ public class ItemTests
         var item = new Item(worldId);
 
         // Assert
-        Assert.NotNull(item);
-        Assert.Equal(worldId, item.WorldId);
+        await Assert.That(item).IsNotNull();
+        await Assert.That(item.WorldId).IsEqualTo(worldId);
     }
 
-    [Fact]
-    public void Constructor_WithIdTemplateAndCount_CreatesItemWithValues()
+    [Test]
+    public async Task Constructor_WithIdTemplateAndCount_CreatesItemWithValues()
     {
         // Arrange
         ulong id = 1000;
@@ -51,16 +50,16 @@ public class ItemTests
         var item = new Item(id, template, count);
 
         // Assert
-        Assert.NotNull(item);
-        Assert.Equal(id, item.Id);
-        Assert.Equal(template.Id, item.TemplateId);
-        Assert.Equal(template, item.Template);
-        Assert.Equal(count, item.Count);
-        Assert.Equal(-1, item.Slot);
+        await Assert.That(item).IsNotNull();
+        await Assert.That(item.Id).IsEqualTo(id);
+        await Assert.That(item.TemplateId).IsEqualTo(template.Id);
+        await Assert.That(item.Template).IsEqualTo(template);
+        await Assert.That(item.Count).IsEqualTo(count);
+        await Assert.That(item.Slot).IsEqualTo(-1);
     }
 
-    [Fact]
-    public void Constructor_WithAllParameters_CreatesItemWithAllValues()
+    [Test]
+    public async Task Constructor_WithAllParameters_CreatesItemWithAllValues()
     {
         // Arrange
         byte worldId = 2;
@@ -72,20 +71,20 @@ public class ItemTests
         var item = new Item(worldId, id, template, count);
 
         // Assert
-        Assert.NotNull(item);
-        Assert.Equal(worldId, item.WorldId);
-        Assert.Equal(id, item.Id);
-        Assert.Equal(template.Id, item.TemplateId);
-        Assert.Equal(template, item.Template);
-        Assert.Equal(count, item.Count);
+        await Assert.That(item).IsNotNull();
+        await Assert.That(item.WorldId).IsEqualTo(worldId);
+        await Assert.That(item.Id).IsEqualTo(id);
+        await Assert.That(item.TemplateId).IsEqualTo(template.Id);
+        await Assert.That(item.Template).IsEqualTo(template);
+        await Assert.That(item.Count).IsEqualTo(count);
     }
 
     #endregion
 
     #region Property Tests
 
-    [Fact]
-    public void Grade_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Grade_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var item = new Item();
@@ -94,11 +93,11 @@ public class ItemTests
         item.Grade = 5;
 
         // Assert
-        Assert.Equal(5, item.Grade);
+        await Assert.That(item.Grade).IsEqualTo((byte)5);
     }
 
-    [Fact]
-    public void ItemFlags_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task ItemFlags_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var item = new Item();
@@ -107,11 +106,11 @@ public class ItemTests
         item.ItemFlags = ItemFlag.SoulBound;
 
         // Assert
-        Assert.Equal(ItemFlag.SoulBound, item.ItemFlags);
+        await Assert.That(item.ItemFlags).IsEqualTo(ItemFlag.SoulBound);
     }
 
-    [Fact]
-    public void ItemFlags_CanCombineFlags()
+    [Test]
+    public async Task ItemFlags_CanCombineFlags()
     {
         // Arrange
         var item = new Item();
@@ -120,11 +119,11 @@ public class ItemTests
         item.ItemFlags = ItemFlag.SoulBound | ItemFlag.HasUCC;
 
         // Assert
-        Assert.Equal(ItemFlag.SoulBound | ItemFlag.HasUCC, item.ItemFlags);
+        await Assert.That(item.ItemFlags).IsEqualTo(ItemFlag.SoulBound | ItemFlag.HasUCC);
     }
 
-    [Fact]
-    public void LifespanMins_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task LifespanMins_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var item = new Item();
@@ -133,11 +132,11 @@ public class ItemTests
         item.LifespanMins = 60;
 
         // Assert
-        Assert.Equal(60, item.LifespanMins);
+        await Assert.That(item.LifespanMins).IsEqualTo(60);
     }
 
-    [Fact]
-    public void UccId_SetValue_SetsHasUCCFlag()
+    [Test]
+    public async Task UccId_SetValue_SetsHasUCCFlag()
     {
         // Arrange
         var item = new Item();
@@ -146,12 +145,12 @@ public class ItemTests
         item.UccId = 123;
 
         // Assert
-        Assert.Equal(123ul, item.UccId);
-        Assert.True(item.ItemFlags.HasFlag(ItemFlag.HasUCC));
+        await Assert.That(item.UccId).IsEqualTo(123ul);
+        await Assert.That(item.ItemFlags.HasFlag(ItemFlag.HasUCC)).IsTrue();
     }
 
-    [Fact]
-    public void UccId_SetZero_RemovesHasUCCFlag()
+    [Test]
+    public async Task UccId_SetZero_RemovesHasUCCFlag()
     {
         // Arrange
         var item = new Item { UccId = 123 };
@@ -160,12 +159,12 @@ public class ItemTests
         item.UccId = 0;
 
         // Assert
-        Assert.Equal(0ul, item.UccId);
-        Assert.False(item.ItemFlags.HasFlag(ItemFlag.HasUCC));
+        await Assert.That(item.UccId).IsEqualTo(0ul);
+        await Assert.That(item.ItemFlags.HasFlag(ItemFlag.HasUCC)).IsFalse();
     }
 
-    [Fact]
-    public void ExpirationTime_SetValue_UpdatesValue()
+    [Test]
+    public async Task ExpirationTime_SetValue_UpdatesValue()
     {
         // Arrange
         var item = new Item();
@@ -175,11 +174,11 @@ public class ItemTests
         item.ExpirationTime = expirationTime;
 
         // Assert
-        Assert.Equal(expirationTime, item.ExpirationTime);
+        await Assert.That(item.ExpirationTime).IsEqualTo(expirationTime);
     }
 
-    [Fact]
-    public void ExpirationOnlineMinutesLeft_SetValue_UpdatesValue()
+    [Test]
+    public async Task ExpirationOnlineMinutesLeft_SetValue_UpdatesValue()
     {
         // Arrange
         var item = new Item();
@@ -188,11 +187,11 @@ public class ItemTests
         item.ExpirationOnlineMinutesLeft = 120.5;
 
         // Assert
-        Assert.Equal(120.5, item.ExpirationOnlineMinutesLeft);
+        await Assert.That(item.ExpirationOnlineMinutesLeft).IsEqualTo(120.5);
     }
 
-    [Fact]
-    public void ChargeCount_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task ChargeCount_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var item = new Item();
@@ -201,11 +200,11 @@ public class ItemTests
         item.ChargeCount = 10;
 
         // Assert
-        Assert.Equal(10, item.ChargeCount);
+        await Assert.That(item.ChargeCount).IsEqualTo(10);
     }
 
-    [Fact]
-    public void ChargeStartTime_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task ChargeStartTime_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var item = new Item();
@@ -215,15 +214,15 @@ public class ItemTests
         item.ChargeStartTime = startTime;
 
         // Assert
-        Assert.Equal(startTime, item.ChargeStartTime);
+        await Assert.That(item.ChargeStartTime).IsEqualTo(startTime);
     }
 
     #endregion
 
     #region Flag Manipulation Tests
 
-    [Fact]
-    public void SetFlag_AddsFlag()
+    [Test]
+    public async Task SetFlag_AddsFlag()
     {
         // Arrange
         var item = new Item();
@@ -232,11 +231,11 @@ public class ItemTests
         item.SetFlag(ItemFlag.SoulBound);
 
         // Assert
-        Assert.True(item.ItemFlags.HasFlag(ItemFlag.SoulBound));
+        await Assert.That(item.ItemFlags.HasFlag(ItemFlag.SoulBound)).IsTrue();
     }
 
-    [Fact]
-    public void RemoveFlag_RemovesFlag()
+    [Test]
+    public async Task RemoveFlag_RemovesFlag()
     {
         // Arrange
         var item = new Item { ItemFlags = ItemFlag.SoulBound | ItemFlag.HasUCC };
@@ -245,100 +244,100 @@ public class ItemTests
         item.RemoveFlag(ItemFlag.HasUCC);
 
         // Assert
-        Assert.False(item.ItemFlags.HasFlag(ItemFlag.HasUCC));
-        Assert.True(item.ItemFlags.HasFlag(ItemFlag.SoulBound));
+        await Assert.That(item.ItemFlags.HasFlag(ItemFlag.HasUCC)).IsFalse();
+        await Assert.That(item.ItemFlags.HasFlag(ItemFlag.SoulBound)).IsTrue();
     }
 
     #endregion
 
     #region Static Properties Tests
 
-    [Fact]
-    public void DawnStone_ReturnsCorrectId()
+    [Test]
+    public async Task DawnStone_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(327u, Item.DawnStone);
+        await Assert.That(Item.DawnStone).IsEqualTo(327u);
     }
 
-    [Fact]
-    public void Coins_ReturnsCorrectId()
+    [Test]
+    public async Task Coins_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(500u, Item.Coins);
+        await Assert.That(Item.Coins).IsEqualTo(500u);
     }
 
-    [Fact]
-    public void TaxCertificate_ReturnsCorrectId()
+    [Test]
+    public async Task TaxCertificate_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(31891u, Item.TaxCertificate);
+        await Assert.That(Item.TaxCertificate).IsEqualTo(31891u);
     }
 
-    [Fact]
-    public void BoundTaxCertificate_ReturnsCorrectId()
+    [Test]
+    public async Task BoundTaxCertificate_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(31892u, Item.BoundTaxCertificate);
+        await Assert.That(Item.BoundTaxCertificate).IsEqualTo(31892u);
     }
 
-    [Fact]
-    public void AppraisalCertificate_ReturnsCorrectId()
+    [Test]
+    public async Task AppraisalCertificate_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(28085u, Item.AppraisalCertificate);
+        await Assert.That(Item.AppraisalCertificate).IsEqualTo(28085u);
     }
 
-    [Fact]
-    public void CrestStamp_ReturnsCorrectId()
+    [Test]
+    public async Task CrestStamp_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(17662u, Item.CrestStamp);
+        await Assert.That(Item.CrestStamp).IsEqualTo(17662u);
     }
 
-    [Fact]
-    public void CrestInk_ReturnsCorrectId()
+    [Test]
+    public async Task CrestInk_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(17663u, Item.CrestInk);
+        await Assert.That(Item.CrestInk).IsEqualTo(17663u);
     }
 
-    [Fact]
-    public void SheetMusic_ReturnsCorrectId()
+    [Test]
+    public async Task SheetMusic_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(28051u, Item.SheetMusic);
+        await Assert.That(Item.SheetMusic).IsEqualTo(28051u);
     }
 
-    [Fact]
-    public void SalonCertificate_ReturnsCorrectId()
+    [Test]
+    public async Task SalonCertificate_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(30811u, Item.SalonCertificate);
+        await Assert.That(Item.SalonCertificate).IsEqualTo(30811u);
     }
 
-    [Fact]
-    public void TreasureMapWithCoordinates_ReturnsCorrectId()
+    [Test]
+    public async Task TreasureMapWithCoordinates_ReturnsCorrectId()
     {
         // Act & Assert
-        Assert.Equal(24581u, Item.TreasureMapWithCoordinates);
+        await Assert.That(Item.TreasureMapWithCoordinates).IsEqualTo(24581u);
     }
 
     #endregion
 
     #region IsDirty Tests
 
-    [Fact]
-    public void IsDirty_Default_IsTrue()
+    [Test]
+    public async Task IsDirty_Default_IsTrue()
     {
         // Arrange
         var item = new Item();
 
         // Assert
-        Assert.True(item.IsDirty);
+        await Assert.That(item.IsDirty).IsTrue();
     }
 
-    [Fact]
-    public void IsDirty_SetFalse_BecomesFalse()
+    [Test]
+    public async Task IsDirty_SetFalse_BecomesFalse()
     {
         // Arrange
         var item = new Item();
@@ -347,11 +346,11 @@ public class ItemTests
         item.IsDirty = false;
 
         // Assert
-        Assert.False(item.IsDirty);
+        await Assert.That(item.IsDirty).IsFalse();
     }
 
-    [Fact]
-    public void SettingGrade_SetsIsDirtyTrue()
+    [Test]
+    public async Task SettingGrade_SetsIsDirtyTrue()
     {
         // Arrange
         var item = new Item { IsDirty = false };
@@ -360,11 +359,11 @@ public class ItemTests
         item.Grade = 3;
 
         // Assert
-        Assert.True(item.IsDirty);
+        await Assert.That(item.IsDirty).IsTrue();
     }
 
-    [Fact]
-    public void SettingCount_SetsIsDirtyTrue()
+    [Test]
+    public async Task SettingCount_SetsIsDirtyTrue()
     {
         // Arrange
         var item = new Item { IsDirty = false };
@@ -373,11 +372,11 @@ public class ItemTests
         item.Count = 100;
 
         // Assert
-        Assert.True(item.IsDirty);
+        await Assert.That(item.IsDirty).IsTrue();
     }
 
-    [Fact]
-    public void SettingSlot_SetsIsDirtyTrue()
+    [Test]
+    public async Task SettingSlot_SetsIsDirtyTrue()
     {
         // Arrange
         var item = new Item { IsDirty = false };
@@ -386,15 +385,15 @@ public class ItemTests
         item.Slot = 5;
 
         // Assert
-        Assert.True(item.IsDirty);
+        await Assert.That(item.IsDirty).IsTrue();
     }
 
     #endregion
 
     #region CompareTo Tests
 
-    [Fact]
-    public void CompareTo_NullItem_ReturnsOne()
+    [Test]
+    public async Task CompareTo_NullItem_ReturnsOne()
     {
         // Arrange
         var item = new Item();
@@ -403,11 +402,11 @@ public class ItemTests
         var result = item.CompareTo(null);
 
         // Assert
-        Assert.Equal(1, result);
+        await Assert.That(result).IsEqualTo(1);
     }
 
-    [Fact]
-    public void CompareTo_ItemWithLowerSlot_ReturnsNegative()
+    [Test]
+    public async Task CompareTo_ItemWithLowerSlot_ReturnsNegative()
     {
         // Arrange
         var item1 = new Item { Slot = 5 };
@@ -417,11 +416,11 @@ public class ItemTests
         var result = item1.CompareTo(item2);
 
         // Assert
-        Assert.True(result < 0);
+        await Assert.That(result < 0).IsTrue();
     }
 
-    [Fact]
-    public void CompareTo_ItemWithHigherSlot_ReturnsPositive()
+    [Test]
+    public async Task CompareTo_ItemWithHigherSlot_ReturnsPositive()
     {
         // Arrange
         var item1 = new Item { Slot = 10 };
@@ -431,11 +430,11 @@ public class ItemTests
         var result = item1.CompareTo(item2);
 
         // Assert
-        Assert.True(result > 0);
+        await Assert.That(result > 0).IsTrue();
     }
 
-    [Fact]
-    public void CompareTo_ItemWithSameSlot_ReturnsZero()
+    [Test]
+    public async Task CompareTo_ItemWithSameSlot_ReturnsZero()
     {
         // Arrange
         var item1 = new Item { Slot = 5 };
@@ -445,15 +444,15 @@ public class ItemTests
         var result = item1.CompareTo(item2);
 
         // Assert
-        Assert.Equal(0, result);
+        await Assert.That(result).IsEqualTo(0);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
-    public void Count_CanBeZero()
+    [Test]
+    public async Task Count_CanBeZero()
     {
         // Arrange
         var item = new Item();
@@ -462,11 +461,11 @@ public class ItemTests
         item.Count = 0;
 
         // Assert
-        Assert.Equal(0, item.Count);
+        await Assert.That(item.Count).IsEqualTo(0);
     }
 
-    [Fact]
-    public void Count_CanBeNegative()
+    [Test]
+    public async Task Count_CanBeNegative()
     {
         // Arrange
         var item = new Item();
@@ -475,11 +474,11 @@ public class ItemTests
         item.Count = -1;
 
         // Assert
-        Assert.Equal(-1, item.Count);
+        await Assert.That(item.Count).IsEqualTo(-1);
     }
 
-    [Fact]
-    public void Grade_CanBeMaxByte()
+    [Test]
+    public async Task Grade_CanBeMaxByte()
     {
         // Arrange
         var item = new Item();
@@ -488,11 +487,11 @@ public class ItemTests
         item.Grade = byte.MaxValue;
 
         // Assert
-        Assert.Equal(byte.MaxValue, item.Grade);
+        await Assert.That(item.Grade).IsEqualTo(byte.MaxValue);
     }
 
-    [Fact]
-    public void Id_CanBeMaxUInt64()
+    [Test]
+    public async Task Id_CanBeMaxUInt64()
     {
         // Arrange
         var item = new Item();
@@ -501,11 +500,11 @@ public class ItemTests
         item.Id = ulong.MaxValue;
 
         // Assert
-        Assert.Equal(ulong.MaxValue, item.Id);
+        await Assert.That(item.Id).IsEqualTo(ulong.MaxValue);
     }
 
-    [Fact]
-    public void TemplateId_CanBeMaxUInt32()
+    [Test]
+    public async Task TemplateId_CanBeMaxUInt32()
     {
         // Arrange
         var item = new Item();
@@ -514,7 +513,7 @@ public class ItemTests
         item.TemplateId = uint.MaxValue;
 
         // Assert
-        Assert.Equal(uint.MaxValue, item.TemplateId);
+        await Assert.That(item.TemplateId).IsEqualTo(uint.MaxValue);
     }
 
     #endregion

@@ -1,7 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Units;
 
@@ -9,8 +8,8 @@ public class UnitTests
 {
     #region UnitAttribute Tests
 
-    [Fact]
-    public void NoDuplicateAttributes()
+    [Test]
+    public async Task NoDuplicateAttributes()
     {
         //This tests to make sure no Attribute is attached to more than one property
         var unit = new Unit();
@@ -21,7 +20,7 @@ public class UnitTests
             .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
                 .Any(a => a.Attributes.Contains(attr)));
 
-            Assert.True(props.Count() <= 1, $"{attr} is bound to multiple unit properties.");
+            await Assert.That(props.Count() <= 1).IsTrue().Because($"{attr} is bound to multiple unit properties.");
         }
 
         unit = new Character(new UnitCustomModelParams());
@@ -31,7 +30,7 @@ public class UnitTests
             .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
                 .Any(a => a.Attributes.Contains(attr)));
 
-            Assert.True(props.Count() <= 1, $"{attr} is bound to multiple unit properties.");
+            await Assert.That(props.Count() <= 1).IsTrue().Because($"{attr} is bound to multiple unit properties.");
         }
 
         unit = new Npc();
@@ -41,7 +40,7 @@ public class UnitTests
             .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
                 .Any(a => a.Attributes.Contains(attr)));
 
-            Assert.True(props.Count() <= 1, $"{attr} is bound to multiple unit properties.");
+            await Assert.That(props.Count() <= 1).IsTrue().Because($"{attr} is bound to multiple unit properties.");
         }
     }
 
@@ -49,18 +48,18 @@ public class UnitTests
 
     #region Unit Model Tests
 
-    [Fact]
-    public void Unit_DefaultConstructor_CreatesInstance()
+    [Test]
+    public async Task Unit_DefaultConstructor_CreatesInstance()
     {
         // Act
         var unit = new Unit();
 
         // Assert
-        Assert.NotNull(unit);
+        await Assert.That(unit).IsNotNull();
     }
 
-    [Fact]
-    public void Unit_ObjId_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Unit_ObjId_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var unit = new Unit();
@@ -69,11 +68,11 @@ public class UnitTests
         unit.ObjId = 12345u;
 
         // Assert
-        Assert.Equal(12345u, unit.ObjId);
+        await Assert.That(unit.ObjId).IsEqualTo(12345u);
     }
 
-    [Fact]
-    public void Unit_TemplateId_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Unit_TemplateId_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var unit = new Unit();
@@ -82,11 +81,11 @@ public class UnitTests
         unit.TemplateId = 100u;
 
         // Assert
-        Assert.Equal(100u, unit.TemplateId);
+        await Assert.That(unit.TemplateId).IsEqualTo(100u);
     }
 
-    [Fact]
-    public void Unit_Name_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Unit_Name_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var unit = new Unit();
@@ -95,11 +94,11 @@ public class UnitTests
         unit.Name = "TestUnit";
 
         // Assert
-        Assert.Equal("TestUnit", unit.Name);
+        await Assert.That(unit.Name).IsEqualTo("TestUnit");
     }
 
-    [Fact]
-    public void Unit_Level_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Unit_Level_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var unit = new Unit();
@@ -108,11 +107,11 @@ public class UnitTests
         unit.Level = 50;
 
         // Assert
-        Assert.Equal(50, unit.Level);
+        await Assert.That(unit.Level).IsEqualTo((byte)50);
     }
 
-    [Fact]
-    public void Unit_Hp_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Unit_Hp_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var unit = new Unit();
@@ -122,12 +121,12 @@ public class UnitTests
         unit.MaxHp = 2000;
 
         // Assert
-        Assert.Equal(1000, unit.Hp);
-        Assert.Equal(2000, unit.MaxHp);
+        await Assert.That(unit.Hp).IsEqualTo(1000);
+        await Assert.That(unit.MaxHp).IsEqualTo(2000);
     }
 
-    [Fact]
-    public void Unit_Mp_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Unit_Mp_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var unit = new Unit();
@@ -137,26 +136,26 @@ public class UnitTests
         unit.MaxMp = 1000;
 
         // Assert
-        Assert.Equal(500, unit.Mp);
-        Assert.Equal(1000, unit.MaxMp);
+        await Assert.That(unit.Mp).IsEqualTo(500);
+        await Assert.That(unit.MaxMp).IsEqualTo(1000);
     }
 
     #endregion
 
     #region Character Specific Tests
 
-    [Fact]
-    public void Character_DefaultConstructor_CreatesInstance()
+    [Test]
+    public async Task Character_DefaultConstructor_CreatesInstance()
     {
         // Act
         var character = new Character(new UnitCustomModelParams());
 
         // Assert
-        Assert.NotNull(character);
+        await Assert.That(character).IsNotNull();
     }
 
-    [Fact]
-    public void Character_AccountId_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Character_AccountId_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var character = new Character(new UnitCustomModelParams());
@@ -165,11 +164,11 @@ public class UnitTests
         character.AccountId = 45678u;
 
         // Assert
-        Assert.Equal(45678u, character.AccountId);
+        await Assert.That(character.AccountId).IsEqualTo(45678u);
     }
 
-    [Fact]
-    public void Character_Level_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Character_Level_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var character = new Character(new UnitCustomModelParams());
@@ -178,13 +177,13 @@ public class UnitTests
         character.Level = 25;
 
         // Assert
-        Assert.Equal(25, character.Level);
+        await Assert.That(character.Level).IsEqualTo((byte)25);
     }
 
-    [Theory]
-    [InlineData(0u)]
-    [InlineData(uint.MaxValue)]
-    public void Character_ObjId_ExtremeValues(uint value)
+    [Test]
+    [Arguments(0u)]
+    [Arguments(uint.MaxValue)]
+    public async Task Character_ObjId_ExtremeValues(uint value)
     {
         // Arrange
         var character = new Character(new UnitCustomModelParams());
@@ -193,31 +192,31 @@ public class UnitTests
         character.ObjId = value;
 
         // Assert
-        Assert.Equal(value, character.ObjId);
+        await Assert.That(character.ObjId).IsEqualTo(value);
     }
 
     #endregion
 
     #region Npc Specific Tests
 
-    [Fact]
-    public void Npc_DefaultConstructor_CreatesInstance()
+    [Test]
+    public async Task Npc_DefaultConstructor_CreatesInstance()
     {
         // Act
         var npc = new Npc();
 
         // Assert
-        Assert.NotNull(npc);
+        await Assert.That(npc).IsNotNull();
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Theory]
-    [InlineData(0u)]
-    [InlineData(uint.MaxValue)]
-    public void Unit_ObjId_ExtremeValues(uint value)
+    [Test]
+    [Arguments(0u)]
+    [Arguments(uint.MaxValue)]
+    public async Task Unit_ObjId_ExtremeValues(uint value)
     {
         // Arrange
         var unit = new Unit();
@@ -226,14 +225,14 @@ public class UnitTests
         unit.ObjId = value;
 
         // Assert
-        Assert.Equal(value, unit.ObjId);
+        await Assert.That(unit.ObjId).IsEqualTo(value);
     }
 
-    [Theory]
-    [InlineData((byte)0)]
-    [InlineData((byte)1)]
-    [InlineData((byte)100)]
-    public void Unit_Level_ValidValues(byte level)
+    [Test]
+    [Arguments((byte)0)]
+    [Arguments((byte)1)]
+    [Arguments((byte)100)]
+    public async Task Unit_Level_ValidValues(byte level)
     {
         // Arrange
         var unit = new Unit();
@@ -242,24 +241,24 @@ public class UnitTests
         unit.Level = level;
 
         // Assert
-        Assert.Equal(level, unit.Level);
+        await Assert.That(unit.Level).IsEqualTo(level);
     }
 
-    [Fact]
-    public void Unit_DefaultValues_AreZeroOrNull()
+    [Test]
+    public async Task Unit_DefaultValues_AreZeroOrNull()
     {
         // Arrange
         var unit = new Unit();
 
         // Assert
-        Assert.Equal(0u, unit.ObjId);
-        Assert.Equal(0u, unit.TemplateId);
-        Assert.Null(unit.Name);
-        Assert.Equal(0, unit.Level);
-        Assert.Equal(0, unit.Hp);
-        Assert.Equal(0, unit.MaxHp);
-        Assert.Equal(0, unit.Mp);
-        Assert.Equal(0, unit.MaxMp);
+        await Assert.That(unit.ObjId).IsEqualTo(0u);
+        await Assert.That(unit.TemplateId).IsEqualTo(0u);
+        await Assert.That(unit.Name).IsNull();
+        await Assert.That(unit.Level).IsEqualTo((byte)0);
+        await Assert.That(unit.Hp).IsEqualTo(0);
+        await Assert.That(unit.MaxHp).IsEqualTo(0);
+        await Assert.That(unit.Mp).IsEqualTo(0);
+        await Assert.That(unit.MaxMp).IsEqualTo(0);
     }
 
     #endregion

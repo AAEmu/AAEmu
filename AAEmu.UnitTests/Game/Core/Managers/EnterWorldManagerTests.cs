@@ -1,14 +1,13 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class EnterWorldManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         var mockAccount = new Mock<IAccountManager>();
         var mockStream = new Mock<IStreamManager>();
@@ -27,7 +26,7 @@ public class EnterWorldManagerTests
             mockFamily.Object,
             mockWorld.Object);
 
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockAccount.VerifyNoOtherCalls();
         mockStream.VerifyNoOtherCalls();
         mockQuest.VerifyNoOtherCalls();

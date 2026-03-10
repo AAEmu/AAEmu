@@ -1,6 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
 using Moq;
-using Xunit;
 using GameTask = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
@@ -22,7 +21,7 @@ public class TaskManagerTests
 
     #region Basic Tests
 
-    [Fact]
+    [Test]
     public void Start_SubscribesToTickManager()
     {
         var mockTick = new Mock<ITickManager>();
@@ -35,8 +34,8 @@ public class TaskManagerTests
         mockTick.VerifyGet(t => t.OnTick, Times.Once);
     }
 
-    [Fact]
-    public void Schedule_ReturnsTrue_WhenTaskIsQueued()
+    [Test]
+    public async Task Schedule_ReturnsTrue_WhenTaskIsQueued()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -46,11 +45,11 @@ public class TaskManagerTests
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(60));
 
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void Cancel_ReturnsFalse_WhenTaskNotInQueue()
+    [Test]
+    public async Task Cancel_ReturnsFalse_WhenTaskNotInQueue()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -60,15 +59,15 @@ public class TaskManagerTests
 
         var result = manager.Cancel(task);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region CRON Schedule Tests
 
-    [Fact]
-    public void CronSchedule_ReturnsTrue_WhenValidCronExpression()
+    [Test]
+    public async Task CronSchedule_ReturnsTrue_WhenValidCronExpression()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -78,11 +77,11 @@ public class TaskManagerTests
 
         var result = manager.CronSchedule(task, "* * * * * *"); // Every second
 
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void CronSchedule_SetsCronSchedule_WhenValidExpression()
+    [Test]
+    public async Task CronSchedule_SetsCronSchedule_WhenValidExpression()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -92,12 +91,12 @@ public class TaskManagerTests
 
         var result = manager.CronSchedule(testTask, "*/5 * * * * *");
 
-        Assert.True(result);
-        Assert.NotNull(testTask.CronSchedule);
+        await Assert.That(result).IsTrue();
+        await Assert.That(testTask.CronSchedule).IsNotNull();
     }
 
-    [Fact]
-    public void CronSchedule_ReturnsTrue_WithStartDelay()
+    [Test]
+    public async Task CronSchedule_ReturnsTrue_WithStartDelay()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -107,11 +106,11 @@ public class TaskManagerTests
 
         var result = manager.CronSchedule(task, "* * * * * *", TimeSpan.FromMinutes(5));
 
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void CronSchedule_ReturnsTrue_WithCount()
+    [Test]
+    public async Task CronSchedule_ReturnsTrue_WithCount()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -121,15 +120,15 @@ public class TaskManagerTests
 
         var result = manager.CronSchedule(task, "* * * * * *", null, 5);
 
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
     #endregion
 
     #region Cancel Tests
 
-    [Fact]
-    public void Cancel_ReturnsTrue_WhenTaskIsInQueue()
+    [Test]
+    public async Task Cancel_ReturnsTrue_WhenTaskIsInQueue()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -146,11 +145,11 @@ public class TaskManagerTests
 
         var result = manager.Cancel(task);
 
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void Cancel_SetsCancelledFlag_WhenTaskIsCancelled()
+    [Test]
+    public async Task Cancel_SetsCancelledFlag_WhenTaskIsCancelled()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -167,11 +166,11 @@ public class TaskManagerTests
 
         manager.Cancel(task);
 
-        Assert.True(task.Cancelled);
+        await Assert.That(task.Cancelled).IsTrue();
     }
 
-    [Fact]
-    public void Cancel_ReturnsFalse_ForAlreadyCancelledTask()
+    [Test]
+    public async Task Cancel_ReturnsFalse_ForAlreadyCancelledTask()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -183,11 +182,11 @@ public class TaskManagerTests
 
         var result = manager.Cancel(task);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void Cancel_RemovesTaskFromQueue()
+    [Test]
+    public async Task Cancel_RemovesTaskFromQueue()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -202,19 +201,19 @@ public class TaskManagerTests
         var queue = (System.Collections.Concurrent.ConcurrentDictionary<uint, GameTask>)queueField!.GetValue(manager)!;
         queue.TryAdd(1, task);
 
-        Assert.Single(queue);
+        await Assert.That(queue).HasSingleItem();
 
         manager.Cancel(task);
 
-        Assert.Empty(queue);
+        await Assert.That(queue).IsEmpty();
     }
 
     #endregion
 
     #region Repeat Task Tests
 
-    [Fact]
-    public void Schedule_SetsRepeatCount_WhenRepeatIntervalProvided()
+    [Test]
+    public async Task Schedule_SetsRepeatCount_WhenRepeatIntervalProvided()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -224,12 +223,12 @@ public class TaskManagerTests
 
         manager.Schedule(testTask, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(5), 3);
 
-        Assert.Equal(TimeSpan.FromSeconds(5), testTask.RepeatInterval);
-        Assert.Equal(3, testTask.RepeatCount);
+        await Assert.That(testTask.RepeatInterval).IsEqualTo(TimeSpan.FromSeconds(5));
+        await Assert.That(testTask.RepeatCount).IsEqualTo(3);
     }
 
-    [Fact]
-    public void Schedule_DefaultRepeatCount_WhenNoInterval()
+    [Test]
+    public async Task Schedule_DefaultRepeatCount_WhenNoInterval()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -239,11 +238,11 @@ public class TaskManagerTests
 
         manager.Schedule(testTask, TimeSpan.FromSeconds(10));
 
-        Assert.Equal(1, testTask.RepeatCount);
+        await Assert.That(testTask.RepeatCount).IsEqualTo(1);
     }
 
-    [Fact]
-    public void Schedule_ReturnsTrue_WithInfiniteRepeatCount()
+    [Test]
+    public async Task Schedule_ReturnsTrue_WithInfiniteRepeatCount()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -253,11 +252,11 @@ public class TaskManagerTests
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(5), -1);
 
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void Schedule_ReturnsTrue_WithZeroRepeatCount()
+    [Test]
+    public async Task Schedule_ReturnsTrue_WithZeroRepeatCount()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -267,15 +266,15 @@ public class TaskManagerTests
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(5), 0);
 
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
     #endregion
 
     #region Execute Tests
 
-    [Fact]
-    public void Schedule_ExecutesImmediately_WhenZeroDelayAndCountOne()
+    [Test]
+    public async Task Schedule_ExecutesImmediately_WhenZeroDelayAndCountOne()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -285,12 +284,12 @@ public class TaskManagerTests
 
         var result = manager.Schedule(testTask, TimeSpan.Zero, null, 1);
 
-        Assert.True(result);
-        Assert.True(testTask.WasExecuted);
+        await Assert.That(result).IsTrue();
+        await Assert.That(testTask.WasExecuted).IsTrue();
     }
 
-    [Fact]
-    public void Schedule_ExecutesImmediately_WhenZeroDelayAndZeroCount()
+    [Test]
+    public async Task Schedule_ExecutesImmediately_WhenZeroDelayAndZeroCount()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -300,12 +299,12 @@ public class TaskManagerTests
 
         var result = manager.Schedule(testTask, TimeSpan.Zero, null, 0);
 
-        Assert.True(result);
-        Assert.True(testTask.WasExecuted);
+        await Assert.That(result).IsTrue();
+        await Assert.That(testTask.WasExecuted).IsTrue();
     }
 
-    [Fact]
-    public void CronSchedule_ExecutesImmediately_WhenZeroDelay()
+    [Test]
+    public async Task CronSchedule_ExecutesImmediately_WhenZeroDelay()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -315,15 +314,15 @@ public class TaskManagerTests
 
         var result = manager.CronSchedule(testTask, "* * * * * *", TimeSpan.Zero);
 
-        Assert.True(result);
-        Assert.True(testTask.WasExecuted);
+        await Assert.That(result).IsTrue();
+        await Assert.That(testTask.WasExecuted).IsTrue();
     }
 
     #endregion
 
     #region Edge Case Tests
 
-    [Fact]
+    [Test]
     public void Schedule_ThrowsException_WhenTaskIsNull()
     {
         var mockTick = new Mock<ITickManager>();
@@ -335,7 +334,7 @@ public class TaskManagerTests
         Assert.Throws<NullReferenceException>(() => manager.Schedule(null!, TimeSpan.FromSeconds(10)));
     }
 
-    [Fact]
+    [Test]
     public void CronSchedule_ThrowsException_WhenCronExpressionIsNull()
     {
         var mockTick = new Mock<ITickManager>();
@@ -347,7 +346,7 @@ public class TaskManagerTests
         Assert.Throws<ArgumentNullException>(() => manager.CronSchedule(task, null!));
     }
 
-    [Fact]
+    [Test]
     public void CronSchedule_ThrowsException_WhenInvalidCronExpression()
     {
         var mockTick = new Mock<ITickManager>();
@@ -359,8 +358,8 @@ public class TaskManagerTests
         Assert.Throws<NCrontab.CrontabException>(() => manager.CronSchedule(task, "invalid-cron"));
     }
 
-    [Fact]
-    public void GetQueueCount_ReturnsZero_WhenNoTasks()
+    [Test]
+    public async Task GetQueueCount_ReturnsZero_WhenNoTasks()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -369,11 +368,11 @@ public class TaskManagerTests
 
         var count = manager.GetQueueCount();
 
-        Assert.Equal(0, count);
+        await Assert.That(count).IsEqualTo(0);
     }
 
-    [Fact]
-    public void GetQueueCount_ReturnsCorrectCount_AfterSchedulingTasks()
+    [Test]
+    public async Task GetQueueCount_ReturnsCorrectCount_AfterSchedulingTasks()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -387,15 +386,15 @@ public class TaskManagerTests
 
         var count = manager.GetQueueCount();
 
-        Assert.Equal(2, count);
+        await Assert.That(count).IsEqualTo(2);
     }
 
     #endregion
 
     #region Periodic Task Tests
 
-    [Fact]
-    public void Schedule_WithPeriodicInterval_QueuesTask()
+    [Test]
+    public async Task Schedule_WithPeriodicInterval_QueuesTask()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -405,12 +404,12 @@ public class TaskManagerTests
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(10), 5);
 
-        Assert.True(result);
-        Assert.Equal(1, manager.GetQueueCount());
+        await Assert.That(result).IsTrue();
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(1);
     }
 
-    [Fact]
-    public void Schedule_WithVeryLongDelay_SetsCorrectTriggerTime()
+    [Test]
+    public async Task Schedule_WithVeryLongDelay_SetsCorrectTriggerTime()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -424,15 +423,15 @@ public class TaskManagerTests
         // Trigger time should be approximately now + 24 hours
         var expectedMin = DateTime.UtcNow + startDelay - TimeSpan.FromSeconds(1);
         var expectedMax = DateTime.UtcNow + startDelay + TimeSpan.FromSeconds(1);
-        Assert.True(testTask.TriggerTime >= expectedMin && testTask.TriggerTime <= expectedMax);
+        await Assert.That(testTask.TriggerTime >= expectedMin && testTask.TriggerTime <= expectedMax).IsTrue();
     }
 
     #endregion
 
     #region Restart/Initialize Tests
 
-    [Fact]
-    public void Initialize_ClearsQueue()
+    [Test]
+    public async Task Initialize_ClearsQueue()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -442,15 +441,15 @@ public class TaskManagerTests
         // Add some tasks first
         var task = Mock.Of<GameTask>();
         manager.Schedule(task, TimeSpan.FromSeconds(60));
-        Assert.Equal(1, manager.GetQueueCount());
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(1);
 
         // Initialize should clear the queue
         manager.Initialize();
 
-        Assert.Equal(0, manager.GetQueueCount());
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(0);
     }
 
-    [Fact]
+    [Test]
     public void Start_CanBeCalledMultipleTimes()
     {
         var mockTick = new Mock<ITickManager>();
@@ -473,8 +472,8 @@ public class TaskManagerTests
 
     #region Task ID Tests
 
-    [Fact]
-    public void Schedule_AssignsUniqueIds_ToMultipleTasks()
+    [Test]
+    public async Task Schedule_AssignsUniqueIds_ToMultipleTasks()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -489,17 +488,17 @@ public class TaskManagerTests
         manager.Schedule(task3, TimeSpan.FromSeconds(60));
 
         // All tasks should have unique IDs
-        Assert.NotEqual(task1.Id, task2.Id);
-        Assert.NotEqual(task2.Id, task3.Id);
-        Assert.NotEqual(task1.Id, task3.Id);
+        await Assert.That(task2.Id).IsNotEqualTo(task1.Id);
+        await Assert.That(task3.Id).IsNotEqualTo(task2.Id);
+        await Assert.That(task3.Id).IsNotEqualTo(task1.Id);
     }
 
     #endregion
 
     #region RemoveTasks Tests
 
-    [Fact]
-    public void RemoveTasks_RemovesMatchingTasks()
+    [Test]
+    public async Task RemoveTasks_RemovesMatchingTasks()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -513,16 +512,16 @@ public class TaskManagerTests
         manager.Schedule(task2, TimeSpan.FromSeconds(60));
         manager.Schedule(task3, TimeSpan.FromSeconds(60));
 
-        Assert.Equal(3, manager.GetQueueCount());
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(3);
 
         // Remove tasks with ID > 1
         manager.RemoveTasks(t => t.Id > 1);
 
-        Assert.Equal(1, manager.GetQueueCount());
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(1);
     }
 
-    [Fact]
-    public void RemoveTasks_RemovesAll_WhenPredicateMatchesAll()
+    [Test]
+    public async Task RemoveTasks_RemovesAll_WhenPredicateMatchesAll()
     {
         var mockTick = new Mock<ITickManager>();
         mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
@@ -534,11 +533,11 @@ public class TaskManagerTests
         manager.Schedule(task1, TimeSpan.FromSeconds(60));
         manager.Schedule(task2, TimeSpan.FromSeconds(60));
 
-        Assert.Equal(2, manager.GetQueueCount());
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(2);
 
         manager.RemoveTasks(t => true);
 
-        Assert.Equal(0, manager.GetQueueCount());
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(0);
     }
 
     #endregion

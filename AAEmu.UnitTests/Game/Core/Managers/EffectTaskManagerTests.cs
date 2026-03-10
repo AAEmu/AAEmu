@@ -1,12 +1,11 @@
 using AAEmu.Game.Core.Managers;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class EffectTaskManagerTests
 {
-    [Fact]
+    [Test]
     public void AddDispelTask_CallsTaskManagerSchedule()
     {
         var mockTaskManager = new Mock<ITaskManager>();
@@ -22,7 +21,7 @@ public class EffectTaskManagerTests
             Times.Once);
     }
 
-    [Fact]
+    [Test]
     public void AddDispelTask_WithDifferentInterval_PassesCorrectTimeSpan()
     {
         var mockTaskManager = new Mock<ITaskManager>();

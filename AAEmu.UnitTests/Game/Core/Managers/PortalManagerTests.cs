@@ -3,14 +3,13 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class PortalManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         var mockLocale = new Mock<ILocalizationManager>();
         var mockWorld = new Mock<IWorldManager>();
@@ -20,7 +19,7 @@ public class PortalManagerTests
         var mockTask = new Mock<ITaskManager>();
         var manager = new PortalManager(mockLocale.Object, mockWorld.Object, mockZone.Object, mockNpc.Object, mockObjId.Object, mockTask.Object);
 
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockLocale.VerifyNoOtherCalls();
         mockWorld.VerifyNoOtherCalls();
         mockZone.VerifyNoOtherCalls();

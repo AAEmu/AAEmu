@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Login.Core.Network.Login;
 
@@ -21,8 +20,8 @@ public class LoginConnectionFactoryTests
     private readonly Mock<ILoginSessionFactory> _mockSessionFactory = new();
     private readonly ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
 
-    [Fact]
-    public void Create_WithValidContext_ReturnsLoginConnection()
+    [Test]
+    public async Task Create_WithValidContext_ReturnsLoginConnection()
     {
         // Arrange
         var connectionId = new ConnectionId(1);
@@ -43,11 +42,11 @@ public class LoginConnectionFactoryTests
         var connection = factory.Create(mockContext.Object);
 
         // Assert
-        Assert.NotNull(connection);
-        Assert.Equal(connectionId, connection.Id);
+        await Assert.That(connection).IsNotNull();
+        await Assert.That(connection.Id).IsEqualTo(connectionId);
     }
 
-    [Fact]
+    [Test]
     public void Create_RentsConnectionIdLease()
     {
         // Arrange
@@ -72,8 +71,8 @@ public class LoginConnectionFactoryTests
         _mockLeaseFactory.Verify(f => f.Rent(), Times.Once);
     }
 
-    [Fact]
-    public void Create_MultipleCalls_RentsNewLeaseEachTime()
+    [Test]
+    public async Task Create_MultipleCalls_RentsNewLeaseEachTime()
     {
         // Arrange
         var connectionId1 = new ConnectionId(1);
@@ -100,13 +99,13 @@ public class LoginConnectionFactoryTests
         var connection2 = factory.Create(mockContext2.Object);
 
         // Assert
-        Assert.Equal(connectionId1, connection1.Id);
-        Assert.Equal(connectionId2, connection2.Id);
+        await Assert.That(connection1.Id).IsEqualTo(connectionId1);
+        await Assert.That(connection2.Id).IsEqualTo(connectionId2);
         _mockLeaseFactory.Verify(f => f.Rent(), Times.Exactly(2));
     }
 
-    [Fact]
-    public void Create_WithPacketDescriptors_IncludesThemInConnection()
+    [Test]
+    public async Task Create_WithPacketDescriptors_IncludesThemInConnection()
     {
         // Arrange
         var mockDescriptor1 = new Mock<ILoginPacketDescriptor>();
@@ -135,10 +134,10 @@ public class LoginConnectionFactoryTests
         var connection = factory.Create(mockContext.Object);
 
         // Assert - connection was created successfully with the descriptors
-        Assert.NotNull(connection);
+        await Assert.That(connection).IsNotNull();
     }
 
-    [Fact]
+    [Test]
     public void Create_WithDuplicatePacketDescriptorTypeIds_ThrowsArgumentException()
     {
         // Arrange
@@ -159,8 +158,8 @@ public class LoginConnectionFactoryTests
             _loggerFactory));
     }
 
-    [Fact]
-    public void Create_ConnectionIsLocalWhenSameEndpoint()
+    [Test]
+    public async Task Create_ConnectionIsLocalWhenSameEndpoint()
     {
         // Arrange
         var connectionId = new ConnectionId(1);
@@ -186,11 +185,11 @@ public class LoginConnectionFactoryTests
         var connection = factory.Create(mockContext.Object);
 
         // Assert
-        Assert.True(connection.IsLocallyConnected);
+        await Assert.That(connection.IsLocallyConnected).IsTrue();
     }
 
-    [Fact]
-    public void Create_ConnectionIsNotLocalWhenDifferentEndpoint()
+    [Test]
+    public async Task Create_ConnectionIsNotLocalWhenDifferentEndpoint()
     {
         // Arrange
         var connectionId = new ConnectionId(1);
@@ -215,7 +214,7 @@ public class LoginConnectionFactoryTests
         var connection = factory.Create(mockContext.Object);
 
         // Assert
-        Assert.False(connection.IsLocallyConnected);
+        await Assert.That(connection.IsLocallyConnected).IsFalse();
     }
 
     private static Mock<ConnectionContext> CreateMockConnectionContext()

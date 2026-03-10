@@ -3,13 +3,12 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands;
 
 public class DoodadChainSubCommandTests
 {
-    [Fact]
+    [Test]
     public void PreExecute_WhenChain_ShouldCallChainSubCommand()
     {
         var mockSubCommand = new Mock<ICommandV2>();
@@ -28,7 +27,7 @@ public class DoodadChainSubCommandTests
         mockSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("sdf"), It.Is<string[]>(a => a.Length == 1 && a[0] == "123"), It.IsAny<IMessageOutput>()));
     }
 
-    [Fact]
+    [Test]
     public void PreExecute_WhenChain_ShouldCallChainSubSubCommand()
     {
         var mockSubSubCommand = new Mock<ICommandV2>();
@@ -54,7 +53,7 @@ public class DoodadChainSubCommandTests
         mockSubSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("second"), It.Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second"), It.IsAny<IMessageOutput>()));
     }
 
-    [Fact]
+    [Test]
     public void Execute_WhenOnlyCommand_ShouldNotThrowException()
     {
         var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
@@ -66,9 +65,9 @@ public class DoodadChainSubCommandTests
         testCommand.PreExecute(fakeCharacter, "doodad", System.Array.Empty<string>(), mockMessageOutput.Object);
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
+    [Test]
+    [Arguments(1)]
+    [Arguments(2)]
     public void Execute_WhenSendingHelp_ShouldReturnHelpText(int numberOfSupportedCommands)
     {
         var mockCharacter = new Mock<ICharacter>();

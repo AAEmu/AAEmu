@@ -1,13 +1,12 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class SubZoneManagerTests
 {
-    [Fact]
+    [Test]
     public void Load_CallsGetWorlds()
     {
         var mockWorld = new Mock<IWorldManager>();

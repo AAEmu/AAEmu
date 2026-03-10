@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
-using Xunit;
 using ISession = AAEmu.Commons.Network.Core.ISession;
 
 namespace AAEmu.UnitTests.Login.Core.Network.Connections;
@@ -101,32 +100,32 @@ public class LoginSessionTests
         return server;
     }
 
-    [Fact]
+    [Test]
     public async Task AuthenticateAsync_Success_SendsJoinThenAuthResponse()
     {
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId, "testuser"));
 
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
 
-        Assert.Equal(2, _sentPackets.Count);
-        Assert.IsType<ACJoinResponsePacket>(_sentPackets[0]);
-        Assert.IsType<ACAuthResponsePacket>(_sentPackets[1]);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(2);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACJoinResponsePacket));
+        await Assert.That(_sentPackets[1].GetType()).IsEqualTo(typeof(ACAuthResponsePacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task AuthenticateAsync_Denied_SendsLoginDeniedPacket()
     {
         var flow = CreateMockFlow(new AuthFlowResult.Denied(LoginDeniedReason.BadAccount));
 
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACLoginDeniedPacket>(_sentPackets[0]);
-        Assert.Equal(LoginState.Connected, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Connected);
     }
 
-    [Fact]
+    [Test]
     public async Task AuthenticateAsync_FromWrongState_SendsDeniedBadResponse()
     {
         await AuthenticateSuccessfullyAsync();
@@ -134,39 +133,37 @@ public class LoginSessionTests
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId));
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACLoginDeniedPacket>(_sentPackets[0]);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task AuthenticateAsync_Pending_NoPacketSent()
     {
         var flow = CreateMockFlow(new AuthFlowResult.Pending());
 
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
 
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Authenticating, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticating);
     }
 
-    [Fact]
+    [Test]
     public async Task AuthenticateAsync_Success_SetsConnectionProperties()
     {
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId, "testuser"));
 
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
 
-        Assert.Equal(s_testAccountId, _mockConnection.Object.AccountId);
-        Assert.Equal("testuser", _mockConnection.Object.AccountName);
-        Assert.Equal(s_testIp, _mockConnection.Object.LastIp);
+        await Assert.That(_mockConnection.Object.AccountId).IsEqualTo(s_testAccountId);
+        await Assert.That(_mockConnection.Object.AccountName).IsEqualTo("testuser");
+        await Assert.That(_mockConnection.Object.LastIp).IsEqualTo(s_testIp);
         // LastLogin should be set to approximately now
-        Assert.True(
-            DateTime.UtcNow - _mockConnection.Object.LastLogin < TimeSpan.FromSeconds(5),
-            "LastLogin should be recent");
+        await Assert.That(DateTime.UtcNow - _mockConnection.Object.LastLogin < TimeSpan.FromSeconds(5)).IsTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task ContinueAuthAsync_MatchingFlow_Success_SendsAuthPackets()
     {
         // Start with pending flow
@@ -181,13 +178,13 @@ public class LoginSessionTests
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Success(s_testAccountId, "user")),
             CancellationToken.None);
 
-        Assert.Equal(2, _sentPackets.Count);
-        Assert.IsType<ACJoinResponsePacket>(_sentPackets[0]);
-        Assert.IsType<ACAuthResponsePacket>(_sentPackets[1]);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(2);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACJoinResponsePacket));
+        await Assert.That(_sentPackets[1].GetType()).IsEqualTo(typeof(ACAuthResponsePacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task ContinueAuthAsync_MatchingFlow_Denied_SendsDeniedPacket()
     {
         var flow = new Mock<IAuthenticationFlow>();
@@ -200,9 +197,9 @@ public class LoginSessionTests
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Denied(LoginDeniedReason.BadAccount)),
             CancellationToken.None);
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACLoginDeniedPacket>(_sentPackets[0]);
-        Assert.Equal(LoginState.Connected, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Connected);
     }
 
     /// <summary>
@@ -210,7 +207,7 @@ public class LoginSessionTests
     /// </summary>
     private interface IOtherFlow : IAuthenticationFlow;
 
-    [Fact]
+    [Test]
     public async Task ContinueAuthAsync_WrongFlowType_SendsDeniedAndShutdown()
     {
         // Start with a mocked IAuthenticationFlow
@@ -225,13 +222,13 @@ public class LoginSessionTests
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Success(s_testAccountId)),
             CancellationToken.None);
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACLoginDeniedPacket>(_sentPackets[0]);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
         _mockConnection.Verify(c => c.Shutdown(), Times.Once);
-        Assert.Equal(LoginState.Disconnected, _session.State);
+        await Assert.That(_session.State).IsEqualTo(LoginState.Disconnected);
     }
 
-    [Fact]
+    [Test]
     public async Task ContinueAuthAsync_FromWrongState_SendsDenied()
     {
         // Session is in Connected state (no pending auth)
@@ -239,12 +236,12 @@ public class LoginSessionTests
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Success(s_testAccountId)),
             CancellationToken.None);
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACLoginDeniedPacket>(_sentPackets[0]);
-        Assert.Equal(LoginState.Connected, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Connected);
     }
 
-    [Fact]
+    [Test]
     public async Task InitiateEnterWorld_Success_SendsWorldCookiePacket()
     {
         await AuthenticateSuccessfullyAsync();
@@ -254,12 +251,12 @@ public class LoginSessionTests
         _session.CompleteEnterWorldRequest(s_testGsId, 0);
         await _session.EnterWorldBackgroundTask!;
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACWorldCookiePacket>(_sentPackets[0]);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACWorldCookiePacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task InitiateEnterWorld_Failure_SendsEnterWorldDeniedPacket()
     {
         await AuthenticateSuccessfullyAsync();
@@ -269,12 +266,12 @@ public class LoginSessionTests
         _session.CompleteEnterWorldRequest(s_testGsId, 1);
         await _session.EnterWorldBackgroundTask!;
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACEnterWorldDeniedPacket>(_sentPackets[0]);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACEnterWorldDeniedPacket));
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task InitiateEnterWorld_Timeout_SendsEnterWorldDenied()
     {
         var fakeTime = new FakeTimeProvider();
@@ -288,22 +285,22 @@ public class LoginSessionTests
         fakeTime.Advance(TimeSpan.FromMilliseconds(300));
         await session.EnterWorldBackgroundTask!;
 
-        Assert.Single(_sentPackets);
-        Assert.IsType<ACEnterWorldDeniedPacket>(_sentPackets[0]);
-        Assert.Equal(LoginState.Authenticated, session.State);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+        await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACEnterWorldDeniedPacket));
+        await Assert.That(session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task InitiateEnterWorld_FromWrongState_NoAction()
     {
         // Session is in Connected state
         await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
 
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Connected, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Connected);
     }
 
-    [Fact]
+    [Test]
     public async Task InitiateEnterWorld_ServerNotActive_NoAction()
     {
         await AuthenticateSuccessfullyAsync();
@@ -314,11 +311,11 @@ public class LoginSessionTests
 
         await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
 
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task CompleteEnterWorld_GsIdMismatch_Ignored()
     {
         await AuthenticateSuccessfullyAsync();
@@ -329,14 +326,14 @@ public class LoginSessionTests
         // Complete with a different gsId
         var wrongGsId = new GameServerId(99);
         _session.CompleteEnterWorldRequest(wrongGsId, 0);
-        Assert.Empty(_sentPackets);
+        await Assert.That(_sentPackets).IsEmpty();
 
         // Clean up: cancel to avoid timeout firing later
         _session.CancelEnterWorld();
         await _session.EnterWorldBackgroundTask!;
     }
 
-    [Fact]
+    [Test]
     public async Task CancelEnterWorld_WhileEntering_CancelsOperation()
     {
         await AuthenticateSuccessfullyAsync();
@@ -346,22 +343,22 @@ public class LoginSessionTests
         _session.CancelEnterWorld();
         await _session.EnterWorldBackgroundTask!;
 
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task CancelEnterWorld_NotEntering_Ignored()
     {
         await AuthenticateSuccessfullyAsync();
 
         _session.CancelEnterWorld();
 
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Authenticated, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
-    [Fact]
+    [Test]
     public async Task DisconnectAsync_CancelsPendingEnterWorld()
     {
         await AuthenticateSuccessfullyAsync();
@@ -371,28 +368,28 @@ public class LoginSessionTests
         await _session.DisconnectAsync();
 
         // Should not send any packets since disconnect cancels before result
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Disconnected, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Disconnected);
     }
 
-    [Fact]
+    [Test]
     public async Task DisconnectAsync_FromAuthenticated_SetsDisconnected()
     {
         await AuthenticateSuccessfullyAsync();
 
         await _session.DisconnectAsync();
 
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Disconnected, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Disconnected);
     }
 
-    [Fact]
+    [Test]
     public async Task DisconnectAsync_AlreadyDisconnected_Idempotent()
     {
         await _session.DisconnectAsync();
         await _session.DisconnectAsync();
 
-        Assert.Empty(_sentPackets);
-        Assert.Equal(LoginState.Disconnected, _session.State);
+        await Assert.That(_sentPackets).IsEmpty();
+        await Assert.That(_session.State).IsEqualTo(LoginState.Disconnected);
     }
 }

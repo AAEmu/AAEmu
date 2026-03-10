@@ -1,25 +1,24 @@
 using AAEmu.Game.Core.Managers;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class AccountManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         var mockTick = new Mock<ITickManager>();
         var mockTimedRewards = new Mock<ITimedRewardsManager>();
 
         var manager = new AccountManager(mockTick.Object, mockTimedRewards.Object);
 
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockTick.VerifyNoOtherCalls();
         mockTimedRewards.VerifyNoOtherCalls();
     }
 
-    [Fact]
+    [Test]
     public void Initialize_AccessesOnTickProperty()
     {
         var mockTick = new Mock<ITickManager>();

@@ -7,7 +7,6 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using Moq;
-using Xunit;
 
 #pragma warning disable IDE0051
 
@@ -18,7 +17,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 public class QuestTests
 {
     // [Fact]
-    private void Start_WhenQuestStepIsNoneAndComponentIsEmpty_ShouldDoNothing()
+    private async Task Start_WhenQuestStepIsNoneAndComponentIsEmpty_ShouldDoNothing()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -28,12 +27,12 @@ public class QuestTests
         var result = quest.StartQuest();
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
         mockOwner.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Once);
     }
 
-    [Fact]
-    public void QuestInitialized_SetsInitializationFinished()
+    [Test]
+    public async Task QuestInitialized_SetsInitializationFinished()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -43,11 +42,11 @@ public class QuestTests
 
         // Assert
         // Note: _questInitializationFinished is private, test indirectly
-        Assert.True(true); // If no exception, it's fine
+        await Assert.That(true).IsTrue(); // If no exception, it's fine
     }
 
-    [Fact]
-    public void FinalizeQuestActs_CallsFinalizeOnActs()
+    [Test]
+    public async Task FinalizeQuestActs_CallsFinalizeOnActs()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -57,11 +56,11 @@ public class QuestTests
         quest.FinalizeQuestActs();
 
         // Assert
-        Assert.True(true);
+        await Assert.That(true).IsTrue();
     }
 
-    [Fact]
-    public void WriteData_ReturnsByteArray()
+    [Test]
+    public async Task WriteData_ReturnsByteArray()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -70,12 +69,12 @@ public class QuestTests
         var data = quest.WriteData();
 
         // Assert
-        Assert.NotNull(data);
-        Assert.True(data.Length > 0);
+        await Assert.That(data).IsNotNull();
+        await Assert.That(data.Length > 0).IsTrue();
     }
 
-    [Fact]
-    public void ReadData_WithValidData_SetsObjectives()
+    [Test]
+    public async Task ReadData_WithValidData_SetsObjectives()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -95,14 +94,14 @@ public class QuestTests
         quest.ReadData(stream.GetBytes());
 
         // Assert
-        Assert.Equal(QuestComponentKind.Progress, quest.Step);
-        Assert.Equal(QuestAcceptorType.Npc, quest.QuestAcceptorType);
+        await Assert.That(quest.Step).IsEqualTo(QuestComponentKind.Progress);
+        await Assert.That(quest.QuestAcceptorType).IsEqualTo(QuestAcceptorType.Npc);
     }
 
     #region Property Tests
 
-    [Fact]
-    public void Status_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Status_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -111,11 +110,11 @@ public class QuestTests
         quest.Status = QuestStatus.Completed;
 
         // Assert
-        Assert.Equal(QuestStatus.Completed, quest.Status);
+        await Assert.That(quest.Status).IsEqualTo(QuestStatus.Completed);
     }
 
-    [Fact]
-    public void Step_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Step_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -124,15 +123,15 @@ public class QuestTests
         quest.Step = QuestComponentKind.Reward;
 
         // Assert
-        Assert.Equal(QuestComponentKind.Reward, quest.Step);
+        await Assert.That(quest.Step).IsEqualTo(QuestComponentKind.Reward);
     }
 
     #endregion
 
     #region Objective Tests
 
-    [Fact]
-    public void Objectives_ArrayAccess_ReturnsCorrectValue()
+    [Test]
+    public async Task Objectives_ArrayAccess_ReturnsCorrectValue()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -141,15 +140,15 @@ public class QuestTests
         quest.Objectives[0] = 10;
 
         // Assert
-        Assert.Equal(10, quest.Objectives[0]);
+        await Assert.That(quest.Objectives[0]).IsEqualTo(10);
     }
 
     #endregion
 
     #region ComponentId Tests
 
-    [Fact]
-    public void ComponentId_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task ComponentId_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -158,15 +157,15 @@ public class QuestTests
         quest.ComponentId = 123;
 
         // Assert
-        Assert.Equal(123u, quest.ComponentId);
+        await Assert.That(quest.ComponentId).IsEqualTo(123u);
     }
 
     #endregion
 
     #region DoodadId Tests
 
-    [Fact]
-    public void DoodadId_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task DoodadId_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -175,15 +174,15 @@ public class QuestTests
         quest.DoodadId = 456;
 
         // Assert
-        Assert.Equal(456u, quest.DoodadId);
+        await Assert.That(quest.DoodadId).IsEqualTo(456u);
     }
 
     #endregion
 
     #region QuestAcceptorType Tests
 
-    [Fact]
-    public void QuestAcceptorType_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task QuestAcceptorType_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -192,15 +191,15 @@ public class QuestTests
         quest.QuestAcceptorType = QuestAcceptorType.Doodad;
 
         // Assert
-        Assert.Equal(QuestAcceptorType.Doodad, quest.QuestAcceptorType);
+        await Assert.That(quest.QuestAcceptorType).IsEqualTo(QuestAcceptorType.Doodad);
     }
 
     #endregion
 
     #region AcceptorId Tests
 
-    [Fact]
-    public void AcceptorId_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task AcceptorId_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
@@ -209,14 +208,14 @@ public class QuestTests
         quest.AcceptorId = 789;
 
         // Assert
-        Assert.Equal(789u, quest.AcceptorId);
+        await Assert.That(quest.AcceptorId).IsEqualTo(789u);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
+    [Test]
     public void Objectives_ArrayBounds_DoesNotThrow()
     {
         // Arrange

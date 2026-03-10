@@ -1,80 +1,88 @@
-﻿using AAEmu.Game.Core.Managers;
+using System.Reflection;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
-
-using Xunit;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.UnitTests.Game.Core.Managers
 {
+    [NotInParallel]
     public class AccessLevelManagerTests
     {
-        private readonly AccessLevelManager _manager;
+        private AccessLevelManager _manager;
+        private AppConfiguration _config;
 
-        public AccessLevelManagerTests()
+        [Before(Test)]
+        public void Setup()
         {
+            _config = new AppConfiguration { AccessLevel = new Dictionary<string, int>() };
+
+            typeof(Singleton<AppConfiguration>)
+                .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+                ?.SetValue(null, null);
+
+            var services = new ServiceCollection();
+            services.AddSingleton(_config);
+            SingletonContainer.ServiceProvider = services.BuildServiceProvider();
+
             _manager = new AccessLevelManager();
-            ResetAppConfiguration();
         }
 
-        private void ResetAppConfiguration()
+        [After(Test)]
+        public void Teardown()
         {
-            AppConfiguration.Instance.AccessLevel?.Clear();
+            SingletonContainer.ServiceProvider = null;
+            typeof(Singleton<AppConfiguration>)
+                .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+                ?.SetValue(null, null);
         }
 
-        [Fact]
-        public void GetLevel_WhenCommandNotExists_ShouldReturnDefaultLevel()
+        [Test]
+        public async Task GetLevel_WhenCommandNotExists_ShouldReturnDefaultLevel()
         {
             _manager.Load();
             var result = _manager.GetLevel("non_existent_command");
-            Assert.Equal(100, result);
+            await Assert.That(result).IsEqualTo(100);
         }
 
-        [Fact]
-        public void GetLevel_WhenCommandExists_ShouldReturnCorrectLevel()
+        [Test]
+        public async Task GetLevel_WhenCommandExists_ShouldReturnCorrectLevel()
         {
-            var config = AppConfiguration.Instance;
-            var accessLevel = config.AccessLevel as Dictionary<string, int>;
-
-            accessLevel.Add("test_command", 5);
+            _config.AccessLevel["test_command"] = 5;
 
             _manager.Load();
             var result = _manager.GetLevel("test_command");
-            Assert.Equal(5, result);
+            await Assert.That(result).IsEqualTo(5);
         }
 
-        [Fact]
-        public void Load_ShouldLoadMultipleCommandsCorrectly()
+        [Test]
+        public async Task Load_ShouldLoadMultipleCommandsCorrectly()
         {
-            var config = AppConfiguration.Instance;
-            var accessLevel = config.AccessLevel as Dictionary<string, int>;
-
-            accessLevel["cmd1"] = 1;
-            accessLevel["cmd2"] = 2;
-            accessLevel["cmd3"] = 3;
+            _config.AccessLevel["cmd1"] = 1;
+            _config.AccessLevel["cmd2"] = 2;
+            _config.AccessLevel["cmd3"] = 3;
 
             _manager.Load();
-            Assert.Equal(1, _manager.GetLevel("cmd1"));
-            Assert.Equal(2, _manager.GetLevel("cmd2"));
-            Assert.Equal(3, _manager.GetLevel("cmd3"));
+            await Assert.That(_manager.GetLevel("cmd1")).IsEqualTo(1);
+            await Assert.That(_manager.GetLevel("cmd2")).IsEqualTo(2);
+            await Assert.That(_manager.GetLevel("cmd3")).IsEqualTo(3);
         }
 
-        [Fact]
-        public void Load_WhenDuplicateCommands_ShouldOverwriteLevel()
+        [Test]
+        public async Task Load_WhenDuplicateCommands_ShouldOverwriteLevel()
         {
-            var config = AppConfiguration.Instance;
-            var accessLevel = config.AccessLevel as Dictionary<string, int>;
-
-            accessLevel["duplicate"] = 5;
-            accessLevel["duplicate"] = 10;
+            _config.AccessLevel["duplicate"] = 5;
+            _config.AccessLevel["duplicate"] = 10;
 
             _manager.Load();
-            Assert.Equal(10, _manager.GetLevel("duplicate"));
+            await Assert.That(_manager.GetLevel("duplicate")).IsEqualTo(10);
         }
 
-        [Fact]
-        public void Load_WhenEmptyConfig_ShouldNotLoadCommands()
+        [Test]
+        public async Task Load_WhenEmptyConfig_ShouldNotLoadCommands()
         {
             _manager.Load();
-            Assert.Equal(100, _manager.GetLevel("any_command"));
+            await Assert.That(_manager.GetLevel("any_command")).IsEqualTo(100);
         }
     }
 }

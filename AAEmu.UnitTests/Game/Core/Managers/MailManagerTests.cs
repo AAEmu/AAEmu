@@ -2,14 +2,13 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class MailManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
         var mockMailId = new Mock<IMailIdManager>();
         var mockName = new Mock<INameManager>();
@@ -20,7 +19,7 @@ public class MailManagerTests
         var mockLocale = new Mock<ILocalizationManager>();
         var manager = new MailManager(mockMailId.Object, mockName.Object, mockItem.Object, mockTask.Object, mockWorld.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockLocale.Object);
 
-        Assert.NotNull(manager);
+        await Assert.That(manager).IsNotNull();
         mockMailId.VerifyNoOtherCalls();
         mockName.VerifyNoOtherCalls();
         mockItem.VerifyNoOtherCalls();

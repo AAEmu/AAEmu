@@ -1,5 +1,4 @@
 using AAEmu.Game.Core.Packets.C2G;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.C2G;
 
@@ -8,13 +7,13 @@ namespace AAEmu.UnitTests.Game.Core.Packets.C2G;
 /// </summary>
 public class CSBuyItemsPacketTests
 {
-    [Fact]
-    public void Constructor_InitializesPacket()
+    [Test]
+    public async Task Constructor_InitializesPacket()
     {
         // Arrange & Act
         var packet = new CSBuyItemsPacket();
 
         // Assert
-        Assert.NotNull(packet);
+        await Assert.That(packet).IsNotNull();
     }
 }

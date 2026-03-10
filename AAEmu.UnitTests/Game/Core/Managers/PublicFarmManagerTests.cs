@@ -1,14 +1,13 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using Moq;
-using Xunit;
 using AaEmuTask = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class PublicFarmManagerTests
 {
-    [Fact]
+    [Test]
     public void Initialize_SchedulesTick()
     {
         var mockTask = new Mock<ITaskManager>();

@@ -1,60 +1,58 @@
-using Xunit;
-
 using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
 public class CompletedQuestTests
 {
-    [Fact]
-    public void DefaultConstructor_ShouldInitializeEmpty()
+    [Test]
+    public async Task DefaultConstructor_ShouldInitializeEmpty()
     {
         // Arrange & Act
         var quest = new CompletedQuest();
 
         // Assert
-        Assert.Equal(0, quest.Id);
-        Assert.Null(quest.Body);
+        await Assert.That(quest.Id).IsEqualTo((ushort)0);
+        await Assert.That(quest.Body).IsNull();
     }
 
-    [Fact]
-    public void ParameterizedConstructor_ShouldInitializeProperties()
+    [Test]
+    public async Task ParameterizedConstructor_ShouldInitializeProperties()
     {
         // Arrange & Act
         var quest = new CompletedQuest(123);
 
         // Assert
-        Assert.Equal(123, quest.Id);
-        Assert.NotNull(quest.Body);
-        Assert.Equal(64, quest.Body.Length);
+        await Assert.That(quest.Id).IsEqualTo((ushort)123);
+        await Assert.That(quest.Body).IsNotNull();
+        await Assert.That(quest.Body.Length).IsEqualTo(64);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(100)]
-    [InlineData(ushort.MaxValue)]
-    public void ParameterizedConstructor_ShouldAcceptVariousIds(ushort id)
+    [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(100)]
+    [Arguments(ushort.MaxValue)]
+    public async Task ParameterizedConstructor_ShouldAcceptVariousIds(ushort id)
     {
         // Arrange & Act
         var quest = new CompletedQuest(id);
 
         // Assert
-        Assert.Equal(id, quest.Id);
+        await Assert.That(quest.Id).IsEqualTo(id);
     }
 
-    [Fact]
-    public void Body_ShouldBeInitializedWith64Bits()
+    [Test]
+    public async Task Body_ShouldBeInitializedWith64Bits()
     {
         // Arrange
         var quest = new CompletedQuest(1);
 
         // Act & Assert
-        Assert.Equal(64, quest.Body.Length);
+        await Assert.That(quest.Body.Length).IsEqualTo(64);
     }
 
-    [Fact]
-    public void Properties_CanBeModified()
+    [Test]
+    public async Task Properties_CanBeModified()
     {
         // Arrange
         var quest = new CompletedQuest();
@@ -63,6 +61,6 @@ public class CompletedQuestTests
         quest.Id = 42;
 
         // Assert
-        Assert.Equal(42, quest.Id);
+        await Assert.That(quest.Id).IsEqualTo((ushort)42);
     }
 }
