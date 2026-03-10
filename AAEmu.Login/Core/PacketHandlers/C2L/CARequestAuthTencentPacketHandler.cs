@@ -9,5 +9,6 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// </summary>
 public class CARequestAuthTencentPacketHandler : ILoginPacketHandler<CARequestAuthTencentPacket>
 {
-    public Task Execute(CARequestAuthTencentPacket packet, LoginConnection connection) => Task.CompletedTask;
+    public Task Execute(CARequestAuthTencentPacket packet, ILoginSession session,
+        CancellationToken cancellationToken) => Task.CompletedTask;
 }

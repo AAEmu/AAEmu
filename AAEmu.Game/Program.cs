@@ -104,6 +104,7 @@ public static class Program
             .ConfigureServices((hostContext, services) =>
             {
                 services.AddOptions();
+                services.AddSingleton(TimeProvider.System);
 
                 // -- Hosted services --
                 services.AddSingleton<IHostedService, GameService>();

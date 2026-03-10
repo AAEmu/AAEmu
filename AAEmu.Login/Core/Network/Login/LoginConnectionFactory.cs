@@ -8,6 +8,7 @@ public class LoginConnectionFactory(
     IEnumerable<ILoginPacketDescriptor> packetDescriptors,
     ILoginProtocolHandler protocolHandler,
     IConnectionIdLeaseFactory connectionIdLeaseFactory,
+    ILoginSessionFactory sessionFactory,
     ILoggerFactory loggerFactory) : ILoginConnectionFactory
 {
     private readonly ConcurrentDictionary<ushort, ILoginPacketDescriptor> _packets =
@@ -18,8 +19,14 @@ public class LoginConnectionFactory(
         var connectionIdLease = connectionIdLeaseFactory.Rent();
         try
         {
-            return new LoginConnection(connectionContext, connectionIdLease, _packets, protocolHandler,
+            var connection = new LoginConnection(connectionContext, connectionIdLease, _packets, protocolHandler,
                 loggerFactory.CreateLogger<LoginConnection>());
+
+            // Create and attach the session to manage the login state machine
+            var session = sessionFactory.Create(connection);
+            connection.SetSession(session);
+
+            return connection;
         }
         catch
         {

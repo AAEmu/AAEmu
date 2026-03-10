@@ -26,6 +26,8 @@ jobs:
         run: dotnet run --configuration Release --no-build --project AAEmu.Game/AAEmu.Game.csproj compiler-check
       - name: Test
         run: dotnet test --project AAEmu.UnitTests --configuration Release --no-build --coverage --coverage-output coverage.cobertura.xml --coverage-output-format cobertura --results-directory ./TestResults
+      - name: Login Integration Tests
+        run: dotnet test --project AAEmu.Login.IntegrationTests --configuration Release --no-build
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
         with:

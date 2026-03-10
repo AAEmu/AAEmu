@@ -8,7 +8,8 @@ namespace AAEmu.Login.Core.PacketHandlers.G2L;
 /// </summary>
 public class GLGameServerLoadPacketHandler : IInternalPacketHandler<GLGameServerLoadPacket>
 {
-    public Task Execute(GLGameServerLoadPacket packet, InternalConnection connection)
+    public Task Execute(GLGameServerLoadPacket packet, InternalConnection connection,
+        CancellationToken cancellationToken)
     {
         connection.GameServer!.Load = packet.Load;
         return Task.CompletedTask;

@@ -118,6 +118,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="AAEmu.IntegrationTests/AAEmu.IntegrationTests.csproj" />
+    <Project Path="AAEmu.Login.IntegrationTests/AAEmu.Login.IntegrationTests.csproj" />
     <Project Path="AAEmu.UnitTests/AAEmu.UnitTests.csproj" />
   </Folder>
 </Solution>

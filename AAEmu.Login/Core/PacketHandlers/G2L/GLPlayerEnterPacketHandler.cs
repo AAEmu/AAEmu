@@ -7,12 +7,13 @@ namespace AAEmu.Login.Core.PacketHandlers.G2L;
 /// <summary>
 /// Handles the <see cref="GLPlayerEnterPacket"/> which is sent by the game server when a player enters the game world.
 /// </summary>
-public class GLPlayerEnterPacketHandler(IGameController gameController, ILoginConnectionTable loginConnectionTable)
+public class GLPlayerEnterPacketHandler(IGameController gameController)
     : IInternalPacketHandler<GLPlayerEnterPacket>
 {
-    public async Task Execute(GLPlayerEnterPacket packet, InternalConnection connection)
+    public Task Execute(GLPlayerEnterPacket packet, InternalConnection connection,
+        CancellationToken cancellationToken)
     {
-        var loginConnection = loginConnectionTable.GetConnection(packet.ConnectionId);
-        await gameController.EnterWorldAsync(loginConnection!, packet.GsId, packet.Result);
+        gameController.RouteEnterWorldResponse(packet.ConnectionId, packet.GsId, packet.Result);
+        return Task.CompletedTask;
     }
 }

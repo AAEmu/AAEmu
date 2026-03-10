@@ -23,12 +23,22 @@ public interface ILoginConnection
     IPAddress Ip { get; }
 
     /// <summary>
+    /// The session managing the login flow state machine.
+    /// Used by infrastructure code for routing. Most code should receive ILoginSession directly.
+    /// </summary>
+    ILoginSession Session { get; }
+
+    /// <summary>
     /// Triggered when the client connection is closed.
     /// </summary>
     CancellationToken ConnectionClosed { get; }
 
     bool IsLocallyConnected { get; }
     AccountId AccountId { get; set; }
+    Dictionary<GameServerId, List<LoginCharacterInfo>> Characters { get; }
+    string? AccountName { get; set; }
+    DateTime LastLogin { get; set; }
+    IPAddress? LastIp { get; set; }
 
     ValueTask SendPacketAsync(LoginPacket packet, CancellationToken cancellationToken);
     ValueTask SendPacketAsync(ReadOnlyMemory<byte> packet, CancellationToken cancellationToken);

@@ -18,12 +18,14 @@ public class GLRegisterGameServerPacketHandler(IGameController gameController, I
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public Task Execute(GLRegisterGameServerPacket packet, InternalConnection connection)
+    public Task Execute(GLRegisterGameServerPacket packet, InternalConnection connection,
+        CancellationToken cancellationToken)
     {
         if (packet.SecretKey != appConfig.Value.SecretKey)
         {
             Logger.Error($"Connection {connection.Ip}, bad secret key");
-            Task.Run(() => SendPacketWithDelay(5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
+            Task.Run(() => SendPacketWithDelay(5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)),
+                cancellationToken);
             // Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
             return Task.CompletedTask;
         }
@@ -33,7 +35,7 @@ public class GLRegisterGameServerPacketHandler(IGameController gameController, I
 
         async Task SendPacketWithDelay(int delay, InternalPacket message)
         {
-            await Task.Delay(delay);
+            await Task.Delay(delay, cancellationToken);
             connection.SendPacket(message);
         }
     }

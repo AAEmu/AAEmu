@@ -26,15 +26,18 @@ namespace AAEmu.Game;
 public sealed class GameService : IHostedService, IDisposable
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private static TimeProvider s_timeProvider = TimeProvider.System;
     public static DateTime StartTime { get; private set; } = DateTime.UtcNow;
-    public static TimeSpan TimeSinceStart => DateTime.UtcNow.Subtract(StartTime);
+    public static TimeSpan TimeSinceStart => s_timeProvider.GetUtcNow().UtcDateTime.Subtract(StartTime);
 
     private readonly ManagerOrchestrator _orchestrator;
 
-    public GameService(IServiceProvider serviceProvider, ManagerOrchestrator orchestrator)
+    public GameService(IServiceProvider serviceProvider, ManagerOrchestrator orchestrator, TimeProvider timeProvider)
     {
         SingletonContainer.ServiceProvider = serviceProvider;
         _orchestrator = orchestrator;
+        s_timeProvider = timeProvider;
+        StartTime = timeProvider.GetUtcNow().UtcDateTime;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

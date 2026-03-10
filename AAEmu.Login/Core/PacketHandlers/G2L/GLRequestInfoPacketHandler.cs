@@ -13,7 +13,7 @@ public class GLRequestInfoPacketHandler(
     ILoginConnectionTable loginConnectionTable)
     : IInternalPacketHandler<GLRequestInfoPacket>
 {
-    public Task Execute(GLRequestInfoPacket packet, InternalConnection connection)
+    public Task Execute(GLRequestInfoPacket packet, InternalConnection connection, CancellationToken cancellationToken)
     {
         var loginConnection = loginConnectionTable.GetConnection(packet.ConnectionId);
         if (packet.Characters!.Count > 0)

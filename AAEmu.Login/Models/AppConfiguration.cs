@@ -23,6 +23,11 @@ public class AppConfiguration
     /// </summary>
     public bool SkipHostResolve { get; set; }
 
+    /// <summary>
+    /// Timeout for the game server to respond to an EnterWorld request.
+    /// </summary>
+    public TimeSpan EnterWorldTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
     [Required]
     public required List<GameServerConfig> GameServers { get; set; }
 
