@@ -9,8 +9,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Core.Managers.UnitManagers;
 
 public class CharacterManagerTests
@@ -21,17 +19,17 @@ public class CharacterManagerTests
     public async Task Constructor_DoesNotCallDependencies()
     {
         // Arrange
-        var mockWorldManager = new Mock<IWorldManager>();
-        var mockAccountManager = new Mock<IAccountManager>();
-        var mockNameManager = new Mock<INameManager>();
-        var mockCharacterIdManager = new Mock<ICharacterIdManager>();
-        var mockFactionManager = new Mock<IFactionManager>();
-        var mockSkillManager = new Mock<ISkillManager>();
-        var mockItemManager = new Mock<IItemManager>();
-        var mockHousingManager = new Mock<IHousingManager>();
-        var mockFamilyManager = new Mock<IFamilyManager>();
-        var mockMailManager = new Mock<IMailManager>();
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockWorldManager = Mock.Of<IWorldManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
+        var mockNameManager = Mock.Of<INameManager>();
+        var mockCharacterIdManager = Mock.Of<ICharacterIdManager>();
+        var mockFactionManager = Mock.Of<IFactionManager>();
+        var mockSkillManager = Mock.Of<ISkillManager>();
+        var mockItemManager = Mock.Of<IItemManager>();
+        var mockHousingManager = Mock.Of<IHousingManager>();
+        var mockFamilyManager = Mock.Of<IFamilyManager>();
+        var mockMailManager = Mock.Of<IMailManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
 
         // Act
         var manager = new CharacterManager(
@@ -49,17 +47,17 @@ public class CharacterManagerTests
 
         // Assert
         await Assert.That(manager).IsNotNull();
-        mockWorldManager.VerifyNoOtherCalls();
-        mockAccountManager.VerifyNoOtherCalls();
-        mockNameManager.VerifyNoOtherCalls();
-        mockCharacterIdManager.VerifyNoOtherCalls();
-        mockFactionManager.VerifyNoOtherCalls();
-        mockSkillManager.VerifyNoOtherCalls();
-        mockItemManager.VerifyNoOtherCalls();
-        mockHousingManager.VerifyNoOtherCalls();
-        mockFamilyManager.VerifyNoOtherCalls();
-        mockMailManager.VerifyNoOtherCalls();
-        mockTaskManager.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockWorldManager);
+        Mock.VerifyNoOtherCalls(mockAccountManager);
+        Mock.VerifyNoOtherCalls(mockNameManager);
+        Mock.VerifyNoOtherCalls(mockCharacterIdManager);
+        Mock.VerifyNoOtherCalls(mockFactionManager);
+        Mock.VerifyNoOtherCalls(mockSkillManager);
+        Mock.VerifyNoOtherCalls(mockItemManager);
+        Mock.VerifyNoOtherCalls(mockHousingManager);
+        Mock.VerifyNoOtherCalls(mockFamilyManager);
+        Mock.VerifyNoOtherCalls(mockMailManager);
+        Mock.VerifyNoOtherCalls(mockTaskManager);
     }
 
     #endregion
@@ -396,7 +394,7 @@ public class CharacterManagerTests
     public async Task GetEffectiveAccessLevel_CharacterAccessLevelHigher_ReturnsCharacterAccessLevel()
     {
         // Arrange
-        var mockAccountManager = new Mock<IAccountManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
         var manager = CreateCharacterManager(mockAccountManager: mockAccountManager);
 
         var character = new Character(new UnitCustomModelParams())
@@ -406,7 +404,7 @@ public class CharacterManagerTests
         };
 
         mockAccountManager
-            .Setup(x => x.GetAccountDetails(1))
+            .GetAccountDetails(1)
             .Returns(new AccountDetails { AccountId = 1, AccessLevel = 50 });
 
         // Act
@@ -420,7 +418,7 @@ public class CharacterManagerTests
     public async Task GetEffectiveAccessLevel_AccountAccessLevelHigher_ReturnsAccountAccessLevel()
     {
         // Arrange
-        var mockAccountManager = new Mock<IAccountManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
         var manager = CreateCharacterManager(mockAccountManager: mockAccountManager);
 
         var character = new Character(new UnitCustomModelParams())
@@ -430,7 +428,7 @@ public class CharacterManagerTests
         };
 
         mockAccountManager
-            .Setup(x => x.GetAccountDetails(1))
+            .GetAccountDetails(1)
             .Returns(new AccountDetails { AccountId = 1, AccessLevel = 100 });
 
         // Act
@@ -444,7 +442,7 @@ public class CharacterManagerTests
     public async Task GetEffectiveAccessLevel_EqualAccessLevels_ReturnsAccessLevel()
     {
         // Arrange
-        var mockAccountManager = new Mock<IAccountManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
         var manager = CreateCharacterManager(mockAccountManager: mockAccountManager);
 
         var character = new Character(new UnitCustomModelParams())
@@ -454,7 +452,7 @@ public class CharacterManagerTests
         };
 
         mockAccountManager
-            .Setup(x => x.GetAccountDetails(1))
+            .GetAccountDetails(1)
             .Returns(new AccountDetails { AccountId = 1, AccessLevel = 50 });
 
         // Act
@@ -673,17 +671,17 @@ public class CharacterManagerTests
         Mock<ITaskManager> mockTaskManager = null)
     {
         return new CharacterManager(
-            (mockWorldManager ?? new Mock<IWorldManager>()).Object,
-            (mockAccountManager ?? new Mock<IAccountManager>()).Object,
-            (mockNameManager ?? new Mock<INameManager>()).Object,
-            (mockCharacterIdManager ?? new Mock<ICharacterIdManager>()).Object,
-            (mockFactionManager ?? new Mock<IFactionManager>()).Object,
-            (mockSkillManager ?? new Mock<ISkillManager>()).Object,
-            (mockItemManager ?? new Mock<IItemManager>()).Object,
-            (mockHousingManager ?? new Mock<IHousingManager>()).Object,
-            (mockFamilyManager ?? new Mock<IFamilyManager>()).Object,
-            (mockMailManager ?? new Mock<IMailManager>()).Object,
-            (mockTaskManager ?? new Mock<ITaskManager>()).Object);
+            (mockWorldManager ?? Mock.Of<IWorldManager>()).Object,
+            (mockAccountManager ?? Mock.Of<IAccountManager>()).Object,
+            (mockNameManager ?? Mock.Of<INameManager>()).Object,
+            (mockCharacterIdManager ?? Mock.Of<ICharacterIdManager>()).Object,
+            (mockFactionManager ?? Mock.Of<IFactionManager>()).Object,
+            (mockSkillManager ?? Mock.Of<ISkillManager>()).Object,
+            (mockItemManager ?? Mock.Of<IItemManager>()).Object,
+            (mockHousingManager ?? Mock.Of<IHousingManager>()).Object,
+            (mockFamilyManager ?? Mock.Of<IFamilyManager>()).Object,
+            (mockMailManager ?? Mock.Of<IMailManager>()).Object,
+            (mockTaskManager ?? Mock.Of<ITaskManager>()).Object);
     }
 
     private static void SetPrivateField(object obj, string fieldName, object value)

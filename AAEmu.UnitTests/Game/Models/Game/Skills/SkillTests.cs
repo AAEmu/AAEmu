@@ -2,8 +2,6 @@
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
 public class SkillTests
@@ -38,11 +36,10 @@ public class SkillTests
             LevelStep = 1
         };
 
-        var mockOwner = new Mock<Unit>();
-        mockOwner.Setup(o => o.GetAbLevel(AbilityType.Fight)).Returns(5);
+        var stubOwner = new StubUnit(AbilityType.Fight, 5);
 
         // Act
-        var skill = new Skill(template, mockOwner.Object);
+        var skill = new Skill(template, stubOwner);
 
         // Assert
         await Assert.That(skill).IsNotNull();
@@ -195,12 +192,12 @@ public class SkillTests
     {
         // Arrange
         var skill = new Skill();
-        var mockCaster = new Mock<BaseUnit>();
+        var mockCaster = new BaseUnit();
         var casterCaster = new SkillCasterUnit();
         var targetCaster = new SkillCastUnitTarget();
 
         // Act
-        var result = skill.Use(mockCaster.Object, casterCaster, targetCaster, null, false, out var value);
+        var result = skill.Use(mockCaster, casterCaster, targetCaster, null, false, out var value);
 
         // Assert
         await Assert.That(result).IsEqualTo(SkillResult.InvalidSource);
@@ -233,15 +230,29 @@ public class SkillTests
             LevelStep = 2
         };
 
-        var mockOwner = new Mock<Unit>();
-        mockOwner.Setup(o => o.GetAbLevel(AbilityType.Fight)).Returns(10);
+        var stubOwner = new StubUnit(AbilityType.Fight, 10);
 
         // Act
-        var skill = new Skill(template, mockOwner.Object);
+        var skill = new Skill(template, stubOwner);
 
         // Assert
         await Assert.That(skill.Level).IsEqualTo((byte)6); // (10 - 0) / 2 + 1 = 6
     }
 
     #endregion
+
+    private sealed class StubUnit : Unit
+    {
+        private readonly AbilityType _abilityType;
+        private readonly int _level;
+
+        public StubUnit(AbilityType abilityType, int level)
+        {
+            _abilityType = abilityType;
+            _level = level;
+        }
+
+        public override int GetAbLevel(AbilityType type) =>
+            type == _abilityType ? _level : base.GetAbLevel(type);
+    }
 }

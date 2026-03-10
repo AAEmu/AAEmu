@@ -8,8 +8,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Core.Managers.World;
 
 public class WorldManagerTests
@@ -20,11 +18,11 @@ public class WorldManagerTests
     public async Task Constructor_DoesNotCallDependencies()
     {
         // Arrange
-        var mockTickManager = new Mock<ITickManager>();
-        var mockWorldIdManager = new Mock<IWorldIdManager>();
-        var mockZoneManager = new Mock<IZoneManager>();
-        var mockIndunManager = new Mock<IIndunManager>();
-        var mockFamilyManager = new Mock<IFamilyManager>();
+        var mockTickManager = Mock.Of<ITickManager>();
+        var mockWorldIdManager = Mock.Of<IWorldIdManager>();
+        var mockZoneManager = Mock.Of<IZoneManager>();
+        var mockIndunManager = Mock.Of<IIndunManager>();
+        var mockFamilyManager = Mock.Of<IFamilyManager>();
 
         // Act
         var manager = new WorldManager(
@@ -36,8 +34,8 @@ public class WorldManagerTests
 
         // Assert
         await Assert.That(manager).IsNotNull();
-        mockTickManager.VerifyNoOtherCalls();
-        mockWorldIdManager.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockTickManager);
+        Mock.VerifyNoOtherCalls(mockWorldIdManager);
     }
 
     #endregion
@@ -1184,11 +1182,11 @@ public class WorldManagerTests
 
     private static WorldManager CreateWorldManager()
     {
-        var mockTickManager = new Mock<ITickManager>();
-        var mockWorldIdManager = new Mock<IWorldIdManager>();
-        var mockZoneManager = new Mock<IZoneManager>();
-        var mockIndunManager = new Mock<IIndunManager>();
-        var mockFamilyManager = new Mock<IFamilyManager>();
+        var mockTickManager = Mock.Of<ITickManager>();
+        var mockWorldIdManager = Mock.Of<IWorldIdManager>();
+        var mockZoneManager = Mock.Of<IZoneManager>();
+        var mockIndunManager = Mock.Of<IIndunManager>();
+        var mockFamilyManager = Mock.Of<IFamilyManager>();
 
         return new WorldManager(
             mockTickManager.Object,

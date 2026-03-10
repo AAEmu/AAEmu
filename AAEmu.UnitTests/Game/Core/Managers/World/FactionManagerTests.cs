@@ -1,6 +1,5 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.World;
 
@@ -14,11 +13,11 @@ public class FactionManagerTests
     [Test]
     public async Task Constructor_WithMockedLocalizationManager_DoesNotThrow()
     {
-        var mockLocalization = new Mock<ILocalizationManager>();
+        var mockLocalization = Mock.Of<ILocalizationManager>();
 
         var manager = new FactionManager(mockLocalization.Object);
 
         await Assert.That(manager).IsNotNull();
-        mockLocalization.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockLocalization);
     }
 }

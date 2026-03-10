@@ -6,14 +6,12 @@ using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Moq;
-
 namespace AAEmu.UnitTests.Login.Core.Controllers;
 
 public class GameControllerTests
 {
-    private readonly Mock<IRequestController> _requestController = new();
-    private readonly Mock<ILoginConnectionTable> _connectionTable = new();
+    private readonly Mock<IRequestController> _requestController = Mock.Of<IRequestController>();
+    private readonly Mock<ILoginConnectionTable> _connectionTable = Mock.Of<ILoginConnectionTable>();
 
     private static readonly GameServerId s_gsId1 = new(1);
     private static readonly GameServerId s_gsId2 = new(2);
@@ -42,13 +40,13 @@ public class GameControllerTests
         };
 
     /// <summary>Creates an InternalConnection backed by a loose mock session (SendPacket is a no-op).</summary>
-    private static InternalConnection CreateConnection() => new(Mock.Of<ISession>());
+    private static InternalConnection CreateConnection() => new(Mock.Of<ISession>().Object);
 
     /// <summary>Creates an InternalConnection with a verifiable mock session.</summary>
     private static (InternalConnection connection, Mock<ISession> sessionMock) CreateTrackedConnection()
     {
-        var mock = new Mock<ISession>();
-        mock.Setup(s => s.Ip).Returns(System.Net.IPAddress.Loopback);
+        var mock = Mock.Of<ISession>();
+        mock.Ip.Returns(System.Net.IPAddress.Loopback);
         return (new InternalConnection(mock.Object), mock);
     }
 
@@ -219,18 +217,18 @@ public class GameControllerTests
         sut.Load();
         var (connection, sessionMock) = CreateTrackedConnection();
         sut.Add(s_gsId1, [], connection);
-        sessionMock.Invocations.Clear(); // discard the packet sent during Add()
+        // Note: Add() sends 1 packet; RequestEnterWorld() sends 1 more
 
         sut.RequestEnterWorld(s_accountId, s_connectionId, s_gsId1);
 
-        sessionMock.Verify(s => s.SendPacket(It.IsAny<byte[]>()), Times.Once);
+        sessionMock.SendPacket(Any<byte[]>()).WasCalled(Times.Exactly(2));
     }
 
     [Test]
     public void RouteEnterWorldResponse_ConnectionNotFound_DoesNotThrow()
     {
         var sut = CreateSut(MakeConfig());
-        _connectionTable.Setup(t => t.GetConnection(s_connectionId)).Returns(default(ILoginConnection?));
+        _connectionTable.GetConnection(s_connectionId).Returns(default(ILoginConnection?));
 
         sut.RouteEnterWorldResponse(s_connectionId, s_gsId1, 0);
     }
@@ -239,22 +237,22 @@ public class GameControllerTests
     public void RouteEnterWorldResponse_ConnectionFound_DelegatesToSession()
     {
         var sut = CreateSut(MakeConfig());
-        var sessionMock = new Mock<ILoginSession>();
-        var connectionMock = new Mock<ILoginConnection>();
-        connectionMock.Setup(c => c.Session).Returns(sessionMock.Object);
-        _connectionTable.Setup(t => t.GetConnection(s_connectionId)).Returns(connectionMock.Object);
+        var sessionMock = Mock.Of<ILoginSession>();
+        var connectionMock = Mock.Of<ILoginConnection>();
+        connectionMock.Session.Returns(sessionMock.Object);
+        _connectionTable.GetConnection(s_connectionId).Returns(connectionMock.Object);
 
         sut.RouteEnterWorldResponse(s_connectionId, s_gsId1, 42);
 
-        sessionMock.Verify(s => s.CompleteEnterWorldRequest(s_gsId1, 42), Times.Once);
+        sessionMock.CompleteEnterWorldRequest(s_gsId1, 42).WasCalled(Times.Once);
     }
 
     [Test]
     public async Task GetWorldListAsync_NoServersLoaded_ReturnsEmptyResult()
     {
         var sut = CreateSut(MakeConfig());
-        var connectionMock = new Mock<ILoginConnection>();
-        connectionMock.Setup(c => c.GetCharacters()).Returns([]);
+        var connectionMock = Mock.Of<ILoginConnection>();
+        connectionMock.GetCharacters().Returns([]);
 
         var result = await sut.GetWorldListAsync(connectionMock.Object);
 
@@ -267,14 +265,14 @@ public class GameControllerTests
     {
         var sut = CreateSut(MakeConfig((s_gsId1.Value, "World1", "127.0.0.1", 1234, false)));
         sut.Load();
-        var connectionMock = new Mock<ILoginConnection>();
-        connectionMock.Setup(c => c.GetCharacters()).Returns([]);
+        var connectionMock = Mock.Of<ILoginConnection>();
+        connectionMock.GetCharacters().Returns([]);
 
         var result = await sut.GetWorldListAsync(connectionMock.Object);
 
         await Assert.That(result.GameServers.Count).IsEqualTo(1);
         await Assert.That(result.Characters).IsEmpty();
-        _requestController.Verify(r => r.Create(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        _requestController.Create(Any<int>(), Any<int>()).WasCalled(Times.Never);
     }
 
     [Test]
@@ -284,18 +282,16 @@ public class GameControllerTests
         sut.Load();
         sut.Add(s_gsId1, [], CreateConnection());
 
-        var connectionMock = new Mock<ILoginConnection>();
-        connectionMock.Setup(c => c.Id).Returns(s_connectionId);
-        connectionMock.Setup(c => c.AccountId).Returns(s_accountId);
-        connectionMock.Setup(c => c.Characters)
-            .Returns(new Dictionary<GameServerId, List<LoginCharacterInfo>>());
-        connectionMock.Setup(c => c.GetCharacters()).Returns([]);
-        _requestController.Setup(r => r.Create(1, It.IsAny<int>()))
-            .Returns(([1u], Task.CompletedTask));
+        var connectionMock = Mock.Of<ILoginConnection>();
+        connectionMock.Id.Returns(s_connectionId);
+        connectionMock.AccountId.Returns(s_accountId);
+        connectionMock.Characters.Returns(new Dictionary<GameServerId, List<LoginCharacterInfo>>());
+        connectionMock.GetCharacters().Returns([]);
+        _requestController.Create(1, Any<int>()).Returns(([1u], Task.CompletedTask));
 
         var result = await sut.GetWorldListAsync(connectionMock.Object);
 
         await Assert.That(result.GameServers.Count).IsEqualTo(1);
-        _requestController.Verify(r => r.Create(1, It.IsAny<int>()), Times.Once);
+        _requestController.Create(1, Any<int>()).WasCalled(Times.Once);
     }
 }

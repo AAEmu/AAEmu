@@ -3,7 +3,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -12,20 +11,20 @@ public class HousingManagerTests
     [Test]
     public async Task Constructor_DoesNotCallDeps()
     {
-        var mockObjectId = new Mock<IObjectIdManager>();
-        var mockFaction = new Mock<IFactionManager>();
-        var mockLocale = new Mock<ILocalizationManager>();
-        var mockWorld = new Mock<IWorldManager>();
-        var mockTask = new Mock<ITaskManager>();
-        var mockSkill = new Mock<ISkillManager>();
-        var mockHousingId = new Mock<IHousingIdManager>();
-        var mockHousingTld = new Mock<IHousingTldManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockMail = new Mock<IMailManager>();
-        var mockName = new Mock<INameManager>();
-        var mockZone = new Mock<IZoneManager>();
-        var mockDoodad = new Mock<IDoodadManager>();
-        var mockUcc = new Mock<IUccManager>();
+        var mockObjectId = Mock.Of<IObjectIdManager>();
+        var mockFaction = Mock.Of<IFactionManager>();
+        var mockLocale = Mock.Of<ILocalizationManager>();
+        var mockWorld = Mock.Of<IWorldManager>();
+        var mockTask = Mock.Of<ITaskManager>();
+        var mockSkill = Mock.Of<ISkillManager>();
+        var mockHousingId = Mock.Of<IHousingIdManager>();
+        var mockHousingTld = Mock.Of<IHousingTldManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockMail = Mock.Of<IMailManager>();
+        var mockName = Mock.Of<INameManager>();
+        var mockZone = Mock.Of<IZoneManager>();
+        var mockDoodad = Mock.Of<IDoodadManager>();
+        var mockUcc = Mock.Of<IUccManager>();
 
         var manager = new HousingManager(
             mockObjectId.Object,
@@ -44,19 +43,19 @@ public class HousingManagerTests
             mockUcc.Object);
 
         await Assert.That(manager).IsNotNull();
-        mockObjectId.VerifyNoOtherCalls();
-        mockFaction.VerifyNoOtherCalls();
-        mockLocale.VerifyNoOtherCalls();
-        mockWorld.VerifyNoOtherCalls();
-        mockTask.VerifyNoOtherCalls();
-        mockSkill.VerifyNoOtherCalls();
-        mockHousingId.VerifyNoOtherCalls();
-        mockHousingTld.VerifyNoOtherCalls();
-        mockItem.VerifyNoOtherCalls();
-        mockMail.VerifyNoOtherCalls();
-        mockName.VerifyNoOtherCalls();
-        mockZone.VerifyNoOtherCalls();
-        mockDoodad.VerifyNoOtherCalls();
-        mockUcc.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockObjectId);
+        Mock.VerifyNoOtherCalls(mockFaction);
+        Mock.VerifyNoOtherCalls(mockLocale);
+        Mock.VerifyNoOtherCalls(mockWorld);
+        Mock.VerifyNoOtherCalls(mockTask);
+        Mock.VerifyNoOtherCalls(mockSkill);
+        Mock.VerifyNoOtherCalls(mockHousingId);
+        Mock.VerifyNoOtherCalls(mockHousingTld);
+        Mock.VerifyNoOtherCalls(mockItem);
+        Mock.VerifyNoOtherCalls(mockMail);
+        Mock.VerifyNoOtherCalls(mockName);
+        Mock.VerifyNoOtherCalls(mockZone);
+        Mock.VerifyNoOtherCalls(mockDoodad);
+        Mock.VerifyNoOtherCalls(mockUcc);
     }
 }

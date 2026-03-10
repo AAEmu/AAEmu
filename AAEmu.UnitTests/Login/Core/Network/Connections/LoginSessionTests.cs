@@ -11,7 +11,6 @@ using AAEmu.Login.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Moq;
 using ISession = AAEmu.Commons.Network.Core.ISession;
 
 namespace AAEmu.UnitTests.Login.Core.Network.Connections;
@@ -23,28 +22,19 @@ public class LoginSessionTests
     private static readonly GameServerId s_testGsId = new(1);
     private static readonly IPAddress s_testIp = IPAddress.Parse("10.0.0.1");
 
-    private readonly Mock<ILoginConnection> _mockConnection;
-    private readonly Mock<IGameController> _mockGameController;
+    private readonly Mock<ILoginConnection> _mockConnection = Mock.Of<ILoginConnection>();
+    private readonly Mock<IGameController> _mockGameController = Mock.Of<IGameController>();
     private readonly List<LoginPacket> _sentPackets = [];
     private readonly CancellationTokenSource _connectionClosedCts = new();
     private readonly LoginSession _session;
 
     public LoginSessionTests()
     {
-        _mockConnection = new Mock<ILoginConnection>();
-        _mockConnection.SetupGet(c => c.Id).Returns(s_testConnectionId);
-        _mockConnection.SetupGet(c => c.Ip).Returns(s_testIp);
-        _mockConnection.SetupGet(c => c.ConnectionClosed).Returns(_connectionClosedCts.Token);
-        _mockConnection.SetupProperty(c => c.AccountId);
-        _mockConnection.SetupProperty(c => c.AccountName);
-        _mockConnection.SetupProperty(c => c.LastLogin);
-        _mockConnection.SetupProperty(c => c.LastIp);
-        _mockConnection
-            .Setup(c => c.SendPacketAsync(It.IsAny<LoginPacket>(), It.IsAny<CancellationToken>()))
-            .Callback<LoginPacket, CancellationToken>((p, _) => _sentPackets.Add(p))
-            .Returns(ValueTask.CompletedTask);
-
-        _mockGameController = new Mock<IGameController>();
+        _mockConnection.Id.Returns(s_testConnectionId);
+        _mockConnection.Ip.Returns(s_testIp);
+        _mockConnection.ConnectionClosed.Returns(_connectionClosedCts.Token);
+        _mockConnection.SendPacketAsync(Any<LoginPacket>(), Any<CancellationToken>())
+            .Callback((LoginPacket p, CancellationToken _) => _sentPackets.Add(p));
 
         var appConfig = Options.Create(new AppConfiguration
         {
@@ -56,7 +46,7 @@ public class LoginSessionTests
             _mockGameController.Object,
             TimeProvider.System,
             appConfig,
-            Mock.Of<ILogger<LoginSession>>());
+            Mock.Of<ILogger<LoginSession>>().Object);
     }
 
     private LoginSession CreateSessionWithTimeProvider(TimeProvider timeProvider)
@@ -71,14 +61,14 @@ public class LoginSessionTests
             _mockGameController.Object,
             timeProvider,
             appConfig,
-            Mock.Of<ILogger<LoginSession>>());
+            Mock.Of<ILogger<LoginSession>>().Object);
     }
 
     private static Mock<IAuthenticationFlow> CreateMockFlow(AuthFlowResult result)
     {
-        var mock = new Mock<IAuthenticationFlow>();
-        mock.Setup(f => f.StartAsync(It.IsAny<ILoginClient>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(result);
+        var mock = Mock.Of<IAuthenticationFlow>();
+        mock.StartAsync(Any<ILoginClient>(), Any<CancellationToken>())
+            .Returns(result);
         return mock;
     }
 
@@ -94,9 +84,9 @@ public class LoginSessionTests
     {
         var server = new GameServer(gsId, "TestServer", "127.0.0.1", 1234)
         {
-            Connection = new InternalConnection(Mock.Of<ISession>())
+            Connection = new InternalConnection(Mock.Of<ISession>().Object)
         };
-        _mockGameController.Setup(g => g.GetGameServer(gsId)).Returns(server);
+        _mockGameController.GetGameServer(gsId).Returns(server);
         return server;
     }
 
@@ -152,6 +142,9 @@ public class LoginSessionTests
     [Test]
     public async Task AuthenticateAsync_Success_SetsConnectionProperties()
     {
+        // Enable property tracking so setters update the getter return values
+        Mock.SetupAllProperties(_mockConnection);
+
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId, "testuser"));
 
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
@@ -167,9 +160,9 @@ public class LoginSessionTests
     public async Task ContinueAuthAsync_MatchingFlow_Success_SendsAuthPackets()
     {
         // Start with pending flow
-        var flow = new Mock<IAuthenticationFlow>();
-        flow.Setup(f => f.StartAsync(It.IsAny<ILoginClient>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthFlowResult.Pending());
+        var flow = Mock.Of<IAuthenticationFlow>();
+        flow.StartAsync(Any<ILoginClient>(), Any<CancellationToken>())
+            .Returns(new AuthFlowResult.Pending());
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
         _sentPackets.Clear();
 
@@ -187,9 +180,9 @@ public class LoginSessionTests
     [Test]
     public async Task ContinueAuthAsync_MatchingFlow_Denied_SendsDeniedPacket()
     {
-        var flow = new Mock<IAuthenticationFlow>();
-        flow.Setup(f => f.StartAsync(It.IsAny<ILoginClient>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthFlowResult.Pending());
+        var flow = Mock.Of<IAuthenticationFlow>();
+        flow.StartAsync(Any<ILoginClient>(), Any<CancellationToken>())
+            .Returns(new AuthFlowResult.Pending());
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
         _sentPackets.Clear();
 
@@ -211,9 +204,9 @@ public class LoginSessionTests
     public async Task ContinueAuthAsync_WrongFlowType_SendsDeniedAndShutdown()
     {
         // Start with a mocked IAuthenticationFlow
-        var flow = new Mock<IAuthenticationFlow>();
-        flow.Setup(f => f.StartAsync(It.IsAny<ILoginClient>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthFlowResult.Pending());
+        var flow = Mock.Of<IAuthenticationFlow>();
+        flow.StartAsync(Any<ILoginClient>(), Any<CancellationToken>())
+            .Returns(new AuthFlowResult.Pending());
         await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
         _sentPackets.Clear();
 
@@ -224,7 +217,7 @@ public class LoginSessionTests
 
         await Assert.That(_sentPackets.Count).IsEqualTo(1);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
-        _mockConnection.Verify(c => c.Shutdown(), Times.Once);
+        _mockConnection.Shutdown().WasCalled(Times.Once);
         await Assert.That(_session.State).IsEqualTo(LoginState.Disconnected);
     }
 
@@ -307,7 +300,7 @@ public class LoginSessionTests
 
         // Server with no connection (not active)
         var server = new GameServer(s_testGsId, "TestServer", "127.0.0.1", 1234);
-        _mockGameController.Setup(g => g.GetGameServer(s_testGsId)).Returns(server);
+        _mockGameController.GetGameServer(s_testGsId).Returns(server);
 
         await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
 

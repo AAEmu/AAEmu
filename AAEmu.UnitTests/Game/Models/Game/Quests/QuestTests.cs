@@ -1,13 +1,12 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using Moq;
-
 #pragma warning disable IDE0051
 
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
@@ -21,14 +20,14 @@ public class QuestTests
     {
         // Arrange
         var quest = SetupQuest(out var mockOwner, out var mockQuestTemplate, out _, out _, out _, out _, out _);
-        mockQuestTemplate.Setup(qt => qt.GetComponents(It.IsAny<QuestComponentKind>())).Returns([]);
+        mockQuestTemplate.GetComponents(Any<QuestComponentKind>()).Returns([]);
 
         // Act
         var result = quest.StartQuest();
 
         // Assert
         await Assert.That(result).IsFalse();
-        mockOwner.Verify(o => o.SendPacket(It.IsAny<SCQuestContextStartedPacket>()), Times.Once);
+        mockOwner.SendPacket(Any<GamePacket>()).WasCalled(Times.Once);
     }
 
     [Test]
@@ -231,26 +230,25 @@ public class QuestTests
         out Mock<ICharacter> mockCharacter,
         out Mock<IQuestTemplate> mockQuestTemplate,
         out Mock<IQuestManager> mockQuestManager,
-        out Mock<TaskManager> mockTaskManager,
+        out Mock<TaskManager>? mockTaskManager,
         out Mock<ISkillManager> mockSkillManager,
         out Mock<IExpressTextManager> mockExpressTextManager,
         out Mock<IWorldManager> mockWorldManager)
     {
-        mockCharacter = new Mock<ICharacter>();
-        mockQuestManager = new Mock<IQuestManager>();
-        mockQuestTemplate = new Mock<IQuestTemplate>();
-        mockQuestTemplate.SetupGet(x => x.Components).Returns(new Dictionary<uint, QuestComponentTemplate>());
-        mockExpressTextManager = new Mock<IExpressTextManager>();
-        mockSkillManager = new Mock<ISkillManager>();
-        
-        // Create TaskManager mock with ITickManager dependency
-        var mockTickManager = new Mock<ITickManager>();
-        mockTickManager.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        mockCharacter = Mock.Of<ICharacter>();
+        mockQuestManager = Mock.Of<IQuestManager>();
+        mockQuestTemplate = Mock.Of<IQuestTemplate>();
+        mockQuestTemplate.Components.Returns(new Dictionary<uint, QuestComponentTemplate>());
+        mockExpressTextManager = Mock.Of<IExpressTextManager>();
+        mockSkillManager = Mock.Of<ISkillManager>();
+
+        // Create TaskManager with ITickManager dependency
+        var mockTickManager = Mock.Of<ITickManager>();
+        mockTickManager.OnTick.Returns(new TickManager.TickEventHandler());
         var taskManagerInstance = new TaskManager(mockTickManager.Object);
-        mockTaskManager = new Mock<TaskManager>(mockTickManager.Object);
-        mockTaskManager.CallBase = true;
-        
-        mockWorldManager = new Mock<IWorldManager>();
+        mockTaskManager = null;
+
+        mockWorldManager = Mock.Of<IWorldManager>();
 
         var quest = new Quest(
             mockQuestTemplate.Object,

@@ -8,7 +8,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.UnitTests.Utils.Mocks;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -36,11 +35,11 @@ public sealed class MailTests
         _mailManager = new MailManager(
             mailIdManager,
             nameManager,
-            Mock.Of<IItemManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<IWorldManager>(),
-            new Lazy<IHousingManager>(Mock.Of<IHousingManager>),
-            Mock.Of<ILocalizationManager>());
+            Mock.Of<IItemManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<IWorldManager>().Object,
+            new Lazy<IHousingManager>(() => Mock.Of<IHousingManager>().Object),
+            Mock.Of<ILocalizationManager>().Object);
 
         // Reset singleton caches so Instance properties resolve via ServiceProvider
         typeof(Singleton<MailManager>)

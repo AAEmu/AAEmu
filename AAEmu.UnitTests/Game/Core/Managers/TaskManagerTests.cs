@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using Moq;
 using GameTask = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
@@ -24,24 +23,24 @@ public class TaskManagerTests
     [Test]
     public void Start_SubscribesToTickManager()
     {
-        var mockTick = new Mock<ITickManager>();
+        var mockTick = Mock.Of<ITickManager>();
         var handler = new TickManager.TickEventHandler();
-        mockTick.SetupGet(t => t.OnTick).Returns(handler);
+        mockTick.OnTick.Returns(handler);
 
         var manager = new TaskManager(mockTick.Object);
         manager.Start();
 
-        mockTick.VerifyGet(t => t.OnTick, Times.Once);
+        mockTick.OnTick.WasCalled(Times.Once);
     }
 
     [Test]
     public async Task Schedule_ReturnsTrue_WhenTaskIsQueued()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(60));
 
@@ -51,11 +50,11 @@ public class TaskManagerTests
     [Test]
     public async Task Cancel_ReturnsFalse_WhenTaskNotInQueue()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.Cancel(task);
 
@@ -69,11 +68,11 @@ public class TaskManagerTests
     [Test]
     public async Task CronSchedule_ReturnsTrue_WhenValidCronExpression()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.CronSchedule(task, "* * * * * *"); // Every second
 
@@ -83,8 +82,8 @@ public class TaskManagerTests
     [Test]
     public async Task CronSchedule_SetsCronSchedule_WhenValidExpression()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
         var testTask = new TestTask();
@@ -98,11 +97,11 @@ public class TaskManagerTests
     [Test]
     public async Task CronSchedule_ReturnsTrue_WithStartDelay()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.CronSchedule(task, "* * * * * *", TimeSpan.FromMinutes(5));
 
@@ -112,11 +111,11 @@ public class TaskManagerTests
     [Test]
     public async Task CronSchedule_ReturnsTrue_WithCount()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.CronSchedule(task, "* * * * * *", null, 5);
 
@@ -130,11 +129,11 @@ public class TaskManagerTests
     [Test]
     public async Task Cancel_ReturnsTrue_WhenTaskIsInQueue()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
         task.Id = 1; // Set ID manually since Schedule will assign it
 
         // Manually add task to queue for testing
@@ -151,11 +150,11 @@ public class TaskManagerTests
     [Test]
     public async Task Cancel_SetsCancelledFlag_WhenTaskIsCancelled()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
         task.Id = 1;
 
         // Add task to queue
@@ -172,11 +171,11 @@ public class TaskManagerTests
     [Test]
     public async Task Cancel_ReturnsFalse_ForAlreadyCancelledTask()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
         task.Id = 1;
         task.Cancelled = true; // Already cancelled
 
@@ -188,11 +187,11 @@ public class TaskManagerTests
     [Test]
     public async Task Cancel_RemovesTaskFromQueue()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
         task.Id = 1;
 
         // Add task to queue
@@ -215,8 +214,8 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_SetsRepeatCount_WhenRepeatIntervalProvided()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
         var testTask = new TestTask();
@@ -230,8 +229,8 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_DefaultRepeatCount_WhenNoInterval()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
         var testTask = new TestTask();
@@ -244,11 +243,11 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_ReturnsTrue_WithInfiniteRepeatCount()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(5), -1);
 
@@ -258,11 +257,11 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_ReturnsTrue_WithZeroRepeatCount()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(5), 0);
 
@@ -276,8 +275,8 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_ExecutesImmediately_WhenZeroDelayAndCountOne()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
         var testTask = new TestTask();
@@ -291,8 +290,8 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_ExecutesImmediately_WhenZeroDelayAndZeroCount()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
         var testTask = new TestTask();
@@ -306,8 +305,8 @@ public class TaskManagerTests
     [Test]
     public async Task CronSchedule_ExecutesImmediately_WhenZeroDelay()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
         var testTask = new TestTask();
@@ -325,8 +324,8 @@ public class TaskManagerTests
     [Test]
     public void Schedule_ThrowsException_WhenTaskIsNull()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
 
@@ -337,11 +336,11 @@ public class TaskManagerTests
     [Test]
     public void CronSchedule_ThrowsException_WhenCronExpressionIsNull()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         Assert.Throws<ArgumentNullException>(() => manager.CronSchedule(task, null!));
     }
@@ -349,11 +348,11 @@ public class TaskManagerTests
     [Test]
     public void CronSchedule_ThrowsException_WhenInvalidCronExpression()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         Assert.Throws<NCrontab.CrontabException>(() => manager.CronSchedule(task, "invalid-cron"));
     }
@@ -361,8 +360,8 @@ public class TaskManagerTests
     [Test]
     public async Task GetQueueCount_ReturnsZero_WhenNoTasks()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
 
@@ -374,12 +373,12 @@ public class TaskManagerTests
     [Test]
     public async Task GetQueueCount_ReturnsCorrectCount_AfterSchedulingTasks()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task1 = Mock.Of<GameTask>();
-        var task2 = Mock.Of<GameTask>();
+        var task1 = new TestTask();
+        var task2 = new TestTask();
 
         manager.Schedule(task1, TimeSpan.FromSeconds(60));
         manager.Schedule(task2, TimeSpan.FromSeconds(60));
@@ -396,11 +395,11 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_WithPeriodicInterval_QueuesTask()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
 
         var result = manager.Schedule(task, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(10), 5);
 
@@ -411,8 +410,8 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_WithVeryLongDelay_SetsCorrectTriggerTime()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
         var testTask = new TestTask();
@@ -433,13 +432,13 @@ public class TaskManagerTests
     [Test]
     public async Task Initialize_ClearsQueue()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
 
         // Add some tasks first
-        var task = Mock.Of<GameTask>();
+        var task = new TestTask();
         manager.Schedule(task, TimeSpan.FromSeconds(60));
         await Assert.That(manager.GetQueueCount()).IsEqualTo(1);
 
@@ -452,9 +451,9 @@ public class TaskManagerTests
     [Test]
     public void Start_CanBeCalledMultipleTimes()
     {
-        var mockTick = new Mock<ITickManager>();
+        var mockTick = Mock.Of<ITickManager>();
         var handler = new TickManager.TickEventHandler();
-        mockTick.SetupGet(t => t.OnTick).Returns(handler);
+        mockTick.OnTick.Returns(handler);
 
         var manager = new TaskManager(mockTick.Object);
 
@@ -465,7 +464,7 @@ public class TaskManagerTests
 
         // Each call to Start subscribes to OnTick
         // So we expect the property to be accessed 3 times
-        mockTick.VerifyGet(t => t.OnTick, Times.Exactly(3));
+        mockTick.OnTick.WasCalled(Times.Exactly(3));
     }
 
     #endregion
@@ -475,13 +474,13 @@ public class TaskManagerTests
     [Test]
     public async Task Schedule_AssignsUniqueIds_ToMultipleTasks()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task1 = Mock.Of<GameTask>();
-        var task2 = Mock.Of<GameTask>();
-        var task3 = Mock.Of<GameTask>();
+        var task1 = new TestTask();
+        var task2 = new TestTask();
+        var task3 = new TestTask();
 
         manager.Schedule(task1, TimeSpan.FromSeconds(60));
         manager.Schedule(task2, TimeSpan.FromSeconds(60));
@@ -500,13 +499,13 @@ public class TaskManagerTests
     [Test]
     public async Task RemoveTasks_RemovesMatchingTasks()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task1 = Mock.Of<GameTask>();
-        var task2 = Mock.Of<GameTask>();
-        var task3 = Mock.Of<GameTask>();
+        var task1 = new TestTask();
+        var task2 = new TestTask();
+        var task3 = new TestTask();
 
         manager.Schedule(task1, TimeSpan.FromSeconds(60));
         manager.Schedule(task2, TimeSpan.FromSeconds(60));
@@ -523,12 +522,12 @@ public class TaskManagerTests
     [Test]
     public async Task RemoveTasks_RemovesAll_WhenPredicateMatchesAll()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.SetupGet(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
-        var task1 = Mock.Of<GameTask>();
-        var task2 = Mock.Of<GameTask>();
+        var task1 = new TestTask();
+        var task2 = new TestTask();
 
         manager.Schedule(task1, TimeSpan.FromSeconds(60));
         manager.Schedule(task2, TimeSpan.FromSeconds(60));

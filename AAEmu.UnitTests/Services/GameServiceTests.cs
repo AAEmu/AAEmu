@@ -3,8 +3,6 @@ using AAEmu.Game.Core.Managers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Moq;
-
 namespace AAEmu.UnitTests.Services;
 
 /// <summary>
@@ -17,7 +15,7 @@ public class GameServiceTests
     public async Task StartTime_IsInitializedToUtcNow()
     {
         var fakeTime = new FakeTimeProvider();
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, fakeTime);
 
@@ -28,7 +26,7 @@ public class GameServiceTests
     public async Task TimeSinceStart_ReturnsTimeSpanSinceStart()
     {
         var fakeTime = new FakeTimeProvider();
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, fakeTime);
 
@@ -40,7 +38,7 @@ public class GameServiceTests
     [Test]
     public async Task GameService_ImplementsIHostedService()
     {
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, TimeProvider.System);
 
@@ -50,7 +48,7 @@ public class GameServiceTests
     [Test]
     public async Task GameService_ImplementsIDisposable()
     {
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, TimeProvider.System);
 
@@ -60,7 +58,7 @@ public class GameServiceTests
     [Test]
     public async Task Dispose_DoesNotThrow()
     {
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, TimeProvider.System);
 

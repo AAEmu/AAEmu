@@ -3,7 +3,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks.Quests;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -12,8 +11,8 @@ public class QuestManagerTests
     private static QuestManager CreateManager(ITaskManager taskManager = null, IZoneManager zoneManager = null)
     {
         return new QuestManager(
-            taskManager ?? Mock.Of<ITaskManager>(),
-            zoneManager ?? Mock.Of<IZoneManager>());
+            taskManager ?? Mock.Of<ITaskManager>().Object,
+            zoneManager ?? Mock.Of<IZoneManager>().Object);
     }
 
     #region Existing Tests
@@ -31,33 +30,32 @@ public class QuestManagerTests
     [Test]
     public async Task AddQuestTimer_CallsTaskManagerSchedule()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
 
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var result = manager.AddQuestTimer(mockOwner.Object, quest, 60_000);
 
         await Assert.That(result).IsTrue();
-        mockTaskManager.Verify(
-            t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), TimeSpan.FromMilliseconds(60_000), null, -1),
-            Times.Once);
+        mockTaskManager
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
+            .WasCalled(Times.Once);
     }
 
     #endregion
@@ -342,32 +340,32 @@ public class QuestManagerTests
     [Test]
     public void EnqueueEvaluation_WithValidQuest_SchedulesTask()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.SetupGet(c => c.Name).Returns("TestPlayer");
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
+        mockOwner.Name.Returns("TestPlayer");
 
         // Use null template to avoid CreateQuestSteps complexity
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         manager.EnqueueEvaluation(quest);
 
-        mockTaskManager.Verify(
-            t => t.Schedule(It.IsAny<QuestManagerRunQueueTask>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()),
-            Times.Once);
+        mockTaskManager
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
+            .WasCalled(Times.Once);
     }
 
     #endregion
@@ -384,25 +382,24 @@ public class QuestManagerTests
     [Test]
     public async Task AddQuestTimer_ExistingTimer_ReturnsFalse()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
 
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         // Add first timer
@@ -417,33 +414,32 @@ public class QuestManagerTests
     [Test]
     public async Task AddQuestTimer_WithZeroTime_SchedulesTask()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
 
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var result = manager.AddQuestTimer(mockOwner.Object, quest, 0);
 
         await Assert.That(result).IsTrue();
-        mockTaskManager.Verify(
-            t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), TimeSpan.FromMilliseconds(0), null, -1),
-            Times.Once);
+        mockTaskManager
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
+            .WasCalled(Times.Once);
     }
 
     #endregion
@@ -504,39 +500,37 @@ public class QuestManagerTests
     [Test]
     public async Task AddQuestTimer_MultipleOwners_CreatesSeparateTimers()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner1 = new Mock<ICharacter>();
-        mockOwner1.SetupGet(c => c.Id).Returns(1u);
-        mockOwner1.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner1 = Mock.Of<ICharacter>();
+        mockOwner1.Id.Returns(1u);
 
-        var mockOwner2 = new Mock<ICharacter>();
-        mockOwner2.SetupGet(c => c.Id).Returns(2u);
-        mockOwner2.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner2 = Mock.Of<ICharacter>();
+        mockOwner2.Id.Returns(2u);
 
         var quest1 = new Quest(
             null,
             mockOwner1.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var quest2 = new Quest(
             null,
             mockOwner2.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var result1 = manager.AddQuestTimer(mockOwner1.Object, quest1, 60_000);

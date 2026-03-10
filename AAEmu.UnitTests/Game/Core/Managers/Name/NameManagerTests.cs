@@ -1,6 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Commons.Utils;
-using Moq;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.StaticValues;
 
@@ -68,8 +67,8 @@ public sealed class NameManagerTests
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
-        mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(false);
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
+        mockCharacterManager.IsCharacterPendingDeletion(charName).Returns(false);
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);
@@ -90,8 +89,8 @@ public sealed class NameManagerTests
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
-        mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(true);
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
+        mockCharacterManager.IsCharacterPendingDeletion(charName).Returns(true);
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);
@@ -132,7 +131,7 @@ public sealed class NameManagerTests
     {
         // Arrange
         var charName = providedName.NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);
@@ -151,8 +150,8 @@ public sealed class NameManagerTests
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
-        mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(true);
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
+        mockCharacterManager.IsCharacterPendingDeletion(charName).Returns(true);
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);

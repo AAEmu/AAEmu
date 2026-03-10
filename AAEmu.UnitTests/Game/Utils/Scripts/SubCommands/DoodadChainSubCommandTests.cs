@@ -2,8 +2,6 @@
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands;
 
 public class DoodadChainSubCommandTests
@@ -11,8 +9,8 @@ public class DoodadChainSubCommandTests
     [Test]
     public void PreExecute_WhenChain_ShouldCallChainSubCommand()
     {
-        var mockSubCommand = new Mock<ICommandV2>();
-        var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
+        var mockSubCommand = Mock.Of<ICommandV2>();
+        var mockUnitCustomModelParams = Mock.OfPartial<UnitCustomModelParams>(UnitCustomModelType.None);
         var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
         var command = new TestCommand(new Dictionary<ICommandV2, string[]>
@@ -24,14 +22,14 @@ public class DoodadChainSubCommandTests
 
         command.PreExecute(fakeCharacter, "test", ["sdf", "123"], new CharacterMessageOutput(fakeCharacter));
 
-        mockSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("sdf"), It.Is<string[]>(a => a.Length == 1 && a[0] == "123"), It.IsAny<IMessageOutput>()));
+        mockSubCommand.PreExecute(fakeCharacter, "sdf", Is<string[]>(a => a.Length == 1 && a[0] == "123"), Any<IMessageOutput>()).WasCalled();
     }
 
     [Test]
     public void PreExecute_WhenChain_ShouldCallChainSubSubCommand()
     {
-        var mockSubSubCommand = new Mock<ICommandV2>();
-        var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
+        var mockSubSubCommand = Mock.Of<ICommandV2>();
+        var mockUnitCustomModelParams = Mock.OfPartial<UnitCustomModelParams>(UnitCustomModelType.None);
         var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
         var subCommand = new SubTestCommand(new Dictionary<ICommandV2, string[]>
@@ -50,16 +48,16 @@ public class DoodadChainSubCommandTests
 
         command.PreExecute(fakeCharacter, "test", ["first", "second", "parameter1second", "parameter2second"], new CharacterMessageOutput(fakeCharacter));
 
-        mockSubSubCommand.Verify(s => s.PreExecute(It.IsIn(fakeCharacter), It.IsIn("second"), It.Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second"), It.IsAny<IMessageOutput>()));
+        mockSubSubCommand.PreExecute(fakeCharacter, "second", Is<string[]>(a => a.Length == 2 && a[0] == "parameter1second" && a[1] == "parameter2second"), Any<IMessageOutput>()).WasCalled();
     }
 
     [Test]
     public void Execute_WhenOnlyCommand_ShouldNotThrowException()
     {
-        var mockUnitCustomModelParams = new Mock<UnitCustomModelParams>(UnitCustomModelType.None);
+        var mockUnitCustomModelParams = Mock.OfPartial<UnitCustomModelParams>(UnitCustomModelType.None);
         var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
-        var mockMessageOutput = new Mock<IMessageOutput>();
+        var mockMessageOutput = Mock.Of<IMessageOutput>();
 
         var testCommand = new TestCommand([]);
         testCommand.PreExecute(fakeCharacter, "doodad", System.Array.Empty<string>(), mockMessageOutput.Object);
@@ -70,13 +68,13 @@ public class DoodadChainSubCommandTests
     [Arguments(2)]
     public void Execute_WhenSendingHelp_ShouldReturnHelpText(int numberOfSupportedCommands)
     {
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
         var supportedCommands = new Dictionary<ICommandV2, string[]>();
         var mockSubCommands = new List<Mock<ICommandV2>>();
         var expectedCommands = new List<string>();
         for (var i = 0; i < numberOfSupportedCommands; i++)
         {
-            var mockSubCommand = new Mock<ICommandV2>();
+            var mockSubCommand = Mock.Of<ICommandV2>();
             mockSubCommands.Add(mockSubCommand);
 
             supportedCommands.Add(mockSubCommand.Object, [$"command{i}"]);
@@ -88,9 +86,9 @@ public class DoodadChainSubCommandTests
         testCommand.PreExecute(mockCharacter.Object, "test", ["help"], new CharacterMessageOutput(mockCharacter.Object));
 
         // TODO: Fix these tests
-        // mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsIn($"{testCommandPrefix} {testCommand.Description}"), It.IsIn(Color.LawnGreen)), Times.Once);
-        // mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.Is<string>(s => s.Contains($"{string.Join("||", expectedCommands)}")), It.IsIn(Color.LawnGreen)), Times.Once);
-        // mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.Is<string>(s => s.Contains("For more details use")), It.IsIn(Color.LawnGreen)), Times.Once);
+        // mockCharacter.SendMessage(Any<ChatType>(), $"{testCommandPrefix} {testCommand.Description}", Color.LawnGreen).WasCalled(Times.Once);
+        // mockCharacter.SendMessage(Any<ChatType>(), Is<string>(s => s.Contains($"{string.Join("||", expectedCommands)}")), Color.LawnGreen).WasCalled(Times.Once);
+        // mockCharacter.SendMessage(Any<ChatType>(), Is<string>(s => s.Contains("For more details use")), Color.LawnGreen).WasCalled(Times.Once);
     }
 
     public class TestCommand : SubCommandBase

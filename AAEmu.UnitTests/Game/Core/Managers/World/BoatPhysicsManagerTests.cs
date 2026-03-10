@@ -14,18 +14,15 @@ using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Core.Managers.World
 {
     public class BoatPhysicsManagerTests
     {
-        private readonly Mock<WorldManager> _mockWorldManager;
-        private readonly Mock<WorldInstance> _mockWorld;
-        //private readonly Mock<SlaveManager> _mockSlaveManager;
-        private readonly Mock<Slave> _mockSlave;
-        private readonly Mock<RigidBody> _mockRigidBody;
-        //private readonly Mock<ModelManager> _mockModelManager;
+        // Note: all tests in this class are commented out (no [Test] attribute).
+        // Fields kept for reference but using real instances instead of mocks to avoid TUnit.Mocks source generator issues.
+        private readonly WorldInstance _mockWorld;
+        private readonly Slave _mockSlave;
+        private readonly RigidBody _mockRigidBody;
         private readonly PhysicsManager _boatPhysicsManager;
         private WorldTemplate _worldTemplate;
 
@@ -35,11 +32,11 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             worldIdManager.Initialize();
 
             var npcManager = new NpcManager(
-                Mock.Of<IObjectIdManager>(),
-                Mock.Of<IModelManager>(),
-                Mock.Of<IFactionManager>(),
-                Mock.Of<IItemManager>(),
-                Mock.Of<IAIManager>());
+                Mock.Of<IObjectIdManager>().Object,
+                Mock.Of<IModelManager>().Object,
+                Mock.Of<IFactionManager>().Object,
+                Mock.Of<IItemManager>().Object,
+                Mock.Of<IAIManager>().Object);
             npcManager.Load();
             _worldTemplate = new WorldTemplate()
             {
@@ -59,13 +56,9 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
                 ZoneKeyByRegions = new uint[1, 1],
                 ZoneKeys = [0]
             };
-            _mockWorldManager = new Mock<WorldManager>();
-            _mockWorld = new Mock<WorldInstance>(_mockWorldManager.Object.CreateWorldInstance(_worldTemplate, 0));
-            // _mockWorld = new Mock<WorldInstance>();
-            //_mockSlaveManager = new Mock<SlaveManager>();
-            _mockSlave = new Mock<Slave>();
-            var mockShipModel = new Mock<ShipModelV1>();
-            _mockRigidBody = new Mock<RigidBody>(new BoxShape(1, 1, 1));
+            _mockWorld = new WorldInstance(_worldTemplate, 0, false, worldIdManager.GetNextId());
+            _mockSlave = new Slave();
+            _mockRigidBody = new Jitter2.World().CreateRigidBody();
 
             // Configure ModelManager to return _mockShipModel.Object for GetShipModel
             //_mockModelManager = new Mock<ModelManager>();
@@ -73,14 +66,8 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
 
             _boatPhysicsManager = new PhysicsManager
             {
-                //_thread = null,
-                //_collisionSystem = null,
-                //_physWorld = null,
-                //_buoyancy = null,
-                //ThreadRunning = false,
-                SimulationWorld = _mockWorld.Object,
+                SimulationWorld = _mockWorld,
             };
-            // _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
             _boatPhysicsManager.SimulationWorld.Water = new WaterBodies();
             _boatPhysicsManager.SimulationWorld.Water.OceanLevel = _boatPhysicsManager.SimulationWorld.Template.OceanLevel;
 
@@ -110,9 +97,9 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         public async Task Initialize_Should_Initialize_Physics_World()
         {
             // Arrange
-            _mockWorld.Setup(w => w.Template.Name).Returns("main_world");
-            _mockWorld.Setup(w => w.Template.Cells).Returns(new WorldCell[0, 0]);
-            _mockWorld.Setup(w => w.Template.HeightMaxCoefficient).Returns(1.0f);
+            _mockWorld.Template.Name = "main_world";
+            _mockWorld.Template.Cells = new WorldCell[0, 0];
+            _mockWorld.Template.HeightMaxCoefficient = 1.0f;
 
             // Act
             _boatPhysicsManager.Initialize();
@@ -120,14 +107,13 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             // Assert
             await Assert.That(_boatPhysicsManager._physWorld).IsNotNull();
             await Assert.That(_boatPhysicsManager._buoyancy).IsNotNull();
-            //_mockWorld.Verify(w => w.HeightMaps, Times.Once);
         }
 
         //[Fact]
         public async Task StartPhysics_WhenCalled_StartsPhysicsThread()
         {
             // Arrange
-            _mockWorld.Object.Template.Name = "main_world";
+            _mockWorld.Template.Name = "main_world";
             //_boatPhysicsManager.SimulationWorld = _mockWorld.Object;
 
             // Act
@@ -153,22 +139,21 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
             _boatPhysicsManager._buoyancy = new Buoyancy(_boatPhysicsManager._physWorld);
             //_boatPhysicsManager.SimulationWorld = _mockWorld.Object;
 
-            _mockSlave.Setup(s => s.RigidBody).Returns(_mockRigidBody.Object);
+            _mockSlave.RigidBody = _mockRigidBody;
 
             // Use reflection to set property values
-            //_mockRigidBody.Setup(rb => rb.IsActive).Returns(true);
             var isActiveProperty = typeof(RigidBody).GetProperty("IsActive");
-            isActiveProperty?.SetValue(_mockRigidBody.Object, true);
+            isActiveProperty?.SetValue(_mockRigidBody, true);
 
             // Add the rigid body to the physics world
             _boatPhysicsManager._physWorld.CreateRigidBody();
 
             // Act
-            _boatPhysicsManager.RemoveShip(_mockSlave.Object);
+            _boatPhysicsManager.RemoveShip(_mockSlave);
 
             // Assert
-            await Assert.That(_mockRigidBody.Object.IsActive).IsFalse();
-            await Assert.That(_boatPhysicsManager._physWorld.RigidBodies).DoesNotContain(_mockRigidBody.Object);
+            await Assert.That(_mockRigidBody.IsActive).IsFalse();
+            await Assert.That(_boatPhysicsManager._physWorld.RigidBodies).DoesNotContain(_mockRigidBody);
         }
 
         //[Fact]
@@ -230,7 +215,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers.World
         {
             // Check that the CustomWater method correctly defines the water area
             // _boatPhysicsManager.SimulationWorld = _mockWorld.Object;
-            _mockWorld.Setup(w => w.IsWater(new Vector3(0f,0f, 0f))).Returns(true);
+            // _mockWorld.IsWater(new Vector3(0f, 0f, 0f)).Returns(true); // real instance — water detection uses actual SimulationWorld
 
             var area = position.ToJVector();
             var isWater = _boatPhysicsManager.CustomWater(ref area);

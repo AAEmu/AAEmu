@@ -1,8 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class ExperienceManagerTests
@@ -244,33 +242,28 @@ public class ExperienceManagerTests
     [Test]
     public void Load_CallsLoader()
     {
-        var mockLoader = new Mock<IExperienceLevelTemplateLoader>(MockBehavior.Strict);
-        mockLoader.Setup(l => l.Load())
-            .Returns(Enumerable.Empty<ExperienceLevelTemplate>())
-            .Verifiable(Times.Once);
+        var mockLoader = Mock.Of<IExperienceLevelTemplateLoader>();
+        mockLoader.Load().Returns(Enumerable.Empty<ExperienceLevelTemplate>());
 
         _cut.Load(mockLoader.Object, 1, 1);
-        mockLoader.Verify();
+
+        mockLoader.Load().WasCalled(Times.Once);
     }
 
     [Test]
     public async Task Load_ResetsState()
     {
         // arrange
-        var mockLoader1 = new Mock<IExperienceLevelTemplateLoader>(MockBehavior.Strict);
-        mockLoader1.Setup(l => l.Load())
-            .Returns([
-                new ExperienceLevelTemplate { Level = 1, TotalExp = 0, TotalMateExp = 0 },
-                new ExperienceLevelTemplate { Level = 2, TotalExp = 100, TotalMateExp = 100 }
-            ])
-            .Verifiable(Times.Once);
+        var mockLoader1 = Mock.Of<IExperienceLevelTemplateLoader>();
+        mockLoader1.Load().Returns([
+            new ExperienceLevelTemplate { Level = 1, TotalExp = 0, TotalMateExp = 0 },
+            new ExperienceLevelTemplate { Level = 2, TotalExp = 100, TotalMateExp = 100 }
+        ]);
 
-        var mockLoader2 = new Mock<IExperienceLevelTemplateLoader>(MockBehavior.Strict);
-        mockLoader2.Setup(l => l.Load())
-            .Returns([
-                new ExperienceLevelTemplate { Level = 1, TotalExp = 0, TotalMateExp = 0 }
-            ])
-            .Verifiable(Times.Once);
+        var mockLoader2 = Mock.Of<IExperienceLevelTemplateLoader>();
+        mockLoader2.Load().Returns([
+            new ExperienceLevelTemplate { Level = 1, TotalExp = 0, TotalMateExp = 0 }
+        ]);
 
         _cut.Load(mockLoader1.Object, 2, 2);
 
@@ -282,8 +275,8 @@ public class ExperienceManagerTests
         await Assert.That(level).IsEqualTo((byte)1); // should be level 1 if the second loader overwrote the first
         await Assert.That(_cut.MaxPlayerLevel).IsEqualTo((byte)1);
         await Assert.That(_cut.MaxMateLevel).IsEqualTo((byte)1);
-        mockLoader1.Verify();
-        mockLoader2.Verify();
+        mockLoader1.Load().WasCalled(Times.Once);
+        mockLoader2.Load().WasCalled(Times.Once);
     }
 
     [Test]
@@ -295,25 +288,23 @@ public class ExperienceManagerTests
     [Arguments(3, 1, 2, 1)]
     public async Task Load_SetsMaxLevel(byte playerLevelCap, byte mateLevelCap, byte expectedMaxPlayerLevel, byte expectedMaxMateLevel)
     {
-        var mockLoader = new Mock<IExperienceLevelTemplateLoader>(MockBehavior.Strict);
-        mockLoader.Setup(l => l.Load())
-            .Returns([
-                new ExperienceLevelTemplate { Level = 1, TotalExp = 0, TotalMateExp = 0 },
-                new ExperienceLevelTemplate { Level = 2, TotalExp = 100, TotalMateExp = 100 }
-            ])
-            .Verifiable(Times.Once);
+        var mockLoader = Mock.Of<IExperienceLevelTemplateLoader>();
+        mockLoader.Load().Returns([
+            new ExperienceLevelTemplate { Level = 1, TotalExp = 0, TotalMateExp = 0 },
+            new ExperienceLevelTemplate { Level = 2, TotalExp = 100, TotalMateExp = 100 }
+        ]);
 
         _cut.Load(mockLoader.Object, playerLevelCap, mateLevelCap);
 
-        mockLoader.Verify();
+        mockLoader.Load().WasCalled(Times.Once);
         await Assert.That(_cut.MaxPlayerLevel).IsEqualTo(expectedMaxPlayerLevel);
         await Assert.That(_cut.MaxMateLevel).IsEqualTo(expectedMaxMateLevel);
     }
 
     private void SetupExperienceManager(ExperienceLevelTemplate[] levelTemplates)
     {
-        var mockLoader = new Mock<IExperienceLevelTemplateLoader>(MockBehavior.Strict);
-        mockLoader.Setup(x => x.Load()).Returns(levelTemplates);
+        var mockLoader = Mock.Of<IExperienceLevelTemplateLoader>();
+        mockLoader.Load().Returns(levelTemplates);
         _cut.Load(mockLoader.Object, (byte)levelTemplates.Length, (byte)levelTemplates.Length);
     }
 }

@@ -1,6 +1,5 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -9,13 +8,13 @@ public class EnterWorldManagerTests
     [Test]
     public async Task Constructor_DoesNotCallDeps()
     {
-        var mockAccount = new Mock<IAccountManager>();
-        var mockStream = new Mock<IStreamManager>();
-        var mockQuest = new Mock<IQuestManager>();
-        var mockTeam = new Mock<ITeamManager>();
-        var mockChat = new Mock<IChatManager>();
-        var mockFamily = new Mock<IFamilyManager>();
-        var mockWorld = new Mock<IWorldManager>();
+        var mockAccount = Mock.Of<IAccountManager>();
+        var mockStream = Mock.Of<IStreamManager>();
+        var mockQuest = Mock.Of<IQuestManager>();
+        var mockTeam = Mock.Of<ITeamManager>();
+        var mockChat = Mock.Of<IChatManager>();
+        var mockFamily = Mock.Of<IFamilyManager>();
+        var mockWorld = Mock.Of<IWorldManager>();
 
         var manager = new EnterWorldManager(
             mockAccount.Object,
@@ -27,12 +26,12 @@ public class EnterWorldManagerTests
             mockWorld.Object);
 
         await Assert.That(manager).IsNotNull();
-        mockAccount.VerifyNoOtherCalls();
-        mockStream.VerifyNoOtherCalls();
-        mockQuest.VerifyNoOtherCalls();
-        mockTeam.VerifyNoOtherCalls();
-        mockChat.VerifyNoOtherCalls();
-        mockFamily.VerifyNoOtherCalls();
-        mockWorld.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockAccount);
+        Mock.VerifyNoOtherCalls(mockStream);
+        Mock.VerifyNoOtherCalls(mockQuest);
+        Mock.VerifyNoOtherCalls(mockTeam);
+        Mock.VerifyNoOtherCalls(mockChat);
+        Mock.VerifyNoOtherCalls(mockFamily);
+        Mock.VerifyNoOtherCalls(mockWorld);
     }
 }

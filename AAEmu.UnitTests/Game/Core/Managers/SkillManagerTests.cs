@@ -6,7 +6,6 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -22,14 +21,14 @@ public class SkillManagerTests
     [Test]
     public async Task Constructor_WithMockedDependencies_DoesNotThrow()
     {
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
 
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         await Assert.That(manager).IsNotNull();
-        mockAnimation.VerifyNoOtherCalls();
-        mockPlot.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockAnimation);
+        Mock.VerifyNoOtherCalls(mockPlot);
     }
 
     #endregion
@@ -40,8 +39,8 @@ public class SkillManagerTests
     public async Task GetSkillTemplate_ReturnsSkill_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testSkill = new SkillTemplate
@@ -73,8 +72,8 @@ public class SkillManagerTests
     public async Task GetBuffTemplate_ReturnsBuff_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testBuff = new BuffTemplate
@@ -105,8 +104,8 @@ public class SkillManagerTests
     public async Task GetPassiveBuffTemplate_ReturnsPassiveBuff_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testPassiveBuff = new PassiveBuffTemplate
@@ -138,8 +137,8 @@ public class SkillManagerTests
     public async Task GetEffectTemplate_ReturnsEffect_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testEffect = new DamageEffect { Id = 1 };
@@ -173,8 +172,8 @@ public class SkillManagerTests
     public async Task GetEffectTemplate_WithType_ReturnsEffect_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testEffect = new HealEffect { Id = 1 };
@@ -199,8 +198,8 @@ public class SkillManagerTests
     public async Task GetEffectTemplate_WithType_ReturnsNull_ForNonExistentType()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var effectsField = typeof(SkillManager).GetField("_effects",
@@ -223,8 +222,8 @@ public class SkillManagerTests
     public async Task IsDefaultSkill_ReturnsTrue_WhenSkillIsDefault()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var defaultSkillsField = typeof(SkillManager).GetField("_defaultSkills",
@@ -246,8 +245,8 @@ public class SkillManagerTests
     public async Task IsDefaultSkill_ReturnsFalse_WhenSkillIsNotDefault()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var defaultSkillsField = typeof(SkillManager).GetField("_defaultSkills",
@@ -266,8 +265,8 @@ public class SkillManagerTests
     public async Task IsCommonSkill_ReturnsTrue_WhenSkillIsCommon()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var commonSkillsField = typeof(SkillManager).GetField("_commonSkills",
@@ -286,8 +285,8 @@ public class SkillManagerTests
     public async Task IsCommonSkill_ReturnsFalse_WhenSkillIsNotCommon()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var commonSkillsField = typeof(SkillManager).GetField("_commonSkills",
@@ -310,8 +309,8 @@ public class SkillManagerTests
     public async Task GetBuffTags_ReturnsTags_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var buffTagsField = typeof(SkillManager).GetField("_buffTags",
@@ -338,8 +337,8 @@ public class SkillManagerTests
     public async Task GetDefaultSkills_ReturnsSkills_WhenLoaded()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var defaultSkillsField = typeof(SkillManager).GetField("_defaultSkills",
@@ -367,8 +366,8 @@ public class SkillManagerTests
     public async Task GetModifiersByOwnerId_ReturnsModifiers_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var modifiersField = typeof(SkillManager).GetField("_skillModifiers",
@@ -395,8 +394,8 @@ public class SkillManagerTests
     public async Task GetCombatBuffs_ReturnsBuffs_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var combatBuffsField = typeof(SkillManager).GetField("_combatBuffs",
@@ -423,8 +422,8 @@ public class SkillManagerTests
     public async Task GetSkillReagentsBySkillId_ReturnsReagents_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var reagentsField = typeof(SkillManager).GetField("_skillReagents",
@@ -451,8 +450,8 @@ public class SkillManagerTests
     public async Task GetSkillProductsBySkillId_ReturnsProducts_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var productsField = typeof(SkillManager).GetField("_skillProducts",
@@ -479,8 +478,8 @@ public class SkillManagerTests
     public async Task GetBuffTriggerTemplates_ReturnsTriggers_WhenExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var buffTriggersField = typeof(SkillManager).GetField("_buffTriggers",
@@ -507,8 +506,8 @@ public class SkillManagerTests
     public async Task GetSkillActAbility_ReturnsNone_WhenSkillNotFound()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var skillsField = typeof(SkillManager).GetField("_skills",
@@ -527,8 +526,8 @@ public class SkillManagerTests
     public async Task GetSkillActAbility_ReturnsActAbility_WhenSkillExists()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testSkill = new SkillTemplate
@@ -557,8 +556,8 @@ public class SkillManagerTests
     public async Task GetNpSkillTemplate_ReturnsNull_WhenSkillNotFound()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var skillsField = typeof(SkillManager).GetField("_skills",
@@ -579,8 +578,8 @@ public class SkillManagerTests
     public async Task GetNpSkillTemplate_ReturnsSkill_WhenValid()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testSkill = new SkillTemplate
@@ -612,8 +611,8 @@ public class SkillManagerTests
     public async Task GetSpawnGimmickEffect_ReturnsEffect_WhenFound()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testEffect = new SpawnGimmickEffect { Id = 1, GimmickId = 100 };
@@ -642,8 +641,8 @@ public class SkillManagerTests
     public async Task GetSkillTemplate_HandlesMaxUInt32()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var skillsField = typeof(SkillManager).GetField("_skills",
@@ -662,8 +661,8 @@ public class SkillManagerTests
     public async Task MultipleGetCalls_ReturnConsistentResults()
     {
         // Arrange
-        var mockAnimation = new Mock<IAnimationManager>();
-        var mockPlot = new Mock<IPlotManager>();
+        var mockAnimation = Mock.Of<IAnimationManager>();
+        var mockPlot = Mock.Of<IPlotManager>();
         var manager = new SkillManager(mockAnimation.Object, mockPlot.Object);
 
         var testSkill = new SkillTemplate { Id = 1, CooldownTime = 5000 };

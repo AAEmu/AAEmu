@@ -6,7 +6,6 @@ using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.World;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.UnitManagers;
 
@@ -18,22 +17,22 @@ public class DoodadManagerTests
     public async Task Constructor_DoesNotCallDeps()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
 
         // Act
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         // Assert
         await Assert.That(manager).IsNotNull();
-        mockObjId.VerifyNoOtherCalls();
-        mockDoodadId.VerifyNoOtherCalls();
-        mockItem.VerifyNoOtherCalls();
-        mockHousing.VerifyNoOtherCalls();
-        mockSus.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockObjId);
+        Mock.VerifyNoOtherCalls(mockDoodadId);
+        Mock.VerifyNoOtherCalls(mockItem);
+        Mock.VerifyNoOtherCalls(mockHousing);
+        Mock.VerifyNoOtherCalls(mockSus);
     }
 
     #endregion
@@ -44,11 +43,11 @@ public class DoodadManagerTests
     public async Task Exist_TemplateExists_ReturnsTrue()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
@@ -66,11 +65,11 @@ public class DoodadManagerTests
     public async Task Exist_TemplateDoesNotExist_ReturnsFalse()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -87,11 +86,11 @@ public class DoodadManagerTests
     public async Task Exist_ZeroId_ReturnsFalse()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -112,11 +111,11 @@ public class DoodadManagerTests
     public async Task GetTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1, GroupId = 100 };
@@ -136,11 +135,11 @@ public class DoodadManagerTests
     public async Task GetTemplate_TemplateDoesNotExist_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -157,11 +156,11 @@ public class DoodadManagerTests
     public async Task GetTemplate_ZeroId_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -186,17 +185,17 @@ public class DoodadManagerTests
     public async Task Create_WithInvalidTemplate_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
 
-        var mockWorld = new Mock<WorldInstance>(MockBehavior.Loose, new WorldTemplate { Id = 1, Name = "TestWorld" }, 1u, false, 1u);
+        var mockWorld = Mock.OfPartial<WorldInstance>(new WorldTemplate { Id = 1, Name = "TestWorld" }, 1u, false, 1u);
 
         // Act
         var result = manager.Create(mockWorld.Object, 0, 999, null, true);
@@ -209,11 +208,11 @@ public class DoodadManagerTests
     public async Task Create_WithNullWorld_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
@@ -236,11 +235,11 @@ public class DoodadManagerTests
     public async Task GetFunc_ByFuncId_ReturnsFunc()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var func = new DoodadFunc { FuncKey = 1, GroupId = 10, FuncId = 100 };
@@ -260,11 +259,11 @@ public class DoodadManagerTests
     public async Task GetFunc_ByFuncId_NotFound_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsById = new Dictionary<uint, DoodadFunc>();
@@ -281,11 +280,11 @@ public class DoodadManagerTests
     public async Task GetFunc_ByGroupIdAndSkillId_ReturnsFunc()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var func = new DoodadFunc { FuncKey = 1, GroupId = 10, SkillId = 50 };
@@ -307,11 +306,11 @@ public class DoodadManagerTests
     public async Task GetFunc_ByGroupId_GroupNotFound_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
@@ -332,11 +331,11 @@ public class DoodadManagerTests
     public async Task GetFuncsForGroup_GroupExists_ReturnsFuncs()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcs = new List<DoodadFunc>
@@ -359,11 +358,11 @@ public class DoodadManagerTests
     public async Task GetFuncsForGroup_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
@@ -385,11 +384,11 @@ public class DoodadManagerTests
     public async Task GetPhaseFunc_GroupExists_ReturnsPhaseFuncs()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncs = new List<DoodadPhaseFunc>
@@ -412,11 +411,11 @@ public class DoodadManagerTests
     public async Task GetPhaseFunc_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncsByGroups = new Dictionary<uint, List<DoodadPhaseFunc>>();
@@ -438,11 +437,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncGroups_TemplateExists_ReturnsGroups()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
@@ -463,11 +462,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncGroups_TemplateNotFound_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -489,11 +488,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncGroupsId_TemplateExists_ReturnsGroupIds()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
@@ -516,11 +515,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncGroupsId_TemplateNotFound_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -542,11 +541,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncConsumeChangerItemList_ItemsExist_ReturnsItemIds()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var consumeItems = new Dictionary<uint, DoodadFuncConsumeChangerItem>
@@ -571,11 +570,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncConsumeChangerItemList_NoItemsFound_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var consumeItems = new Dictionary<uint, DoodadFuncConsumeChangerItem>();
@@ -597,11 +596,11 @@ public class DoodadManagerTests
     public async Task GetTreasureChestTemplateIds_ReturnsChestTemplates()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>
@@ -631,11 +630,11 @@ public class DoodadManagerTests
     public async Task GetTreasureChestTemplateIds_NoTemplates_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -657,11 +656,11 @@ public class DoodadManagerTests
     public async Task GetDoodadPhaseFuncs_GroupExists_ReturnsPhaseFuncs()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncs = new List<DoodadPhaseFunc>
@@ -684,11 +683,11 @@ public class DoodadManagerTests
     public async Task GetDoodadPhaseFuncs_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncsDict = new Dictionary<uint, List<DoodadPhaseFunc>>();
@@ -710,11 +709,11 @@ public class DoodadManagerTests
     public async Task GetFuncTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcTemplate = new DoodadFuncUse { Id = 1, SkillId = 100 };
@@ -736,11 +735,11 @@ public class DoodadManagerTests
     public async Task GetFuncTemplate_TypeNotFound_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
@@ -757,11 +756,11 @@ public class DoodadManagerTests
     public async Task GetFuncTemplate_TemplateNotFound_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>
@@ -785,11 +784,11 @@ public class DoodadManagerTests
     public async Task GetPhaseFuncTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncTemplate = new DoodadFuncTimer { Id = 1, Delay = 5000 };
@@ -811,11 +810,11 @@ public class DoodadManagerTests
     public async Task GetPhaseFuncTemplate_TypeNotFound_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>();
@@ -836,11 +835,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncs_GroupExists_ReturnsFuncs()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcs = new List<DoodadFunc>
@@ -863,11 +862,11 @@ public class DoodadManagerTests
     public async Task GetDoodadFuncs_GroupNotFound_ReturnsEmptyList()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
@@ -889,11 +888,11 @@ public class DoodadManagerTests
     public async Task Exist_MaxUInt32_ReturnsFalse()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -910,11 +909,11 @@ public class DoodadManagerTests
     public async Task GetTemplate_MaxUInt32_ReturnsNull()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
@@ -931,11 +930,11 @@ public class DoodadManagerTests
     public async Task MultipleGetTemplateCalls_ReturnConsistentResults()
     {
         // Arrange
-        var mockObjId = new Mock<IObjectIdManager>();
-        var mockDoodadId = new Mock<IDoodadIdManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockSus = new Mock<ISusManager>();
+        var mockObjId = Mock.Of<IObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1, GroupId = 100 };

@@ -6,23 +6,17 @@ using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
-using Moq;
-
 namespace AAEmu.UnitTests.Login.Core.Network.Login;
 
 public class LoginConnectionHandlerTests
 {
-    private readonly Mock<ILoginConnectionFactory> _mockFactory;
-    private readonly Mock<ILoginConnectionTable> _mockTable;
-    private readonly Mock<ILogger<LoginConnectionHandler>> _mockLogger;
+    private readonly Mock<ILoginConnectionFactory> _mockFactory = Mock.Of<ILoginConnectionFactory>();
+    private readonly Mock<ILoginConnectionTable> _mockTable = Mock.Of<ILoginConnectionTable>();
+    private readonly Mock<ILogger<LoginConnectionHandler>> _mockLogger = Mock.Of<ILogger<LoginConnectionHandler>>();
     private readonly LoginConnectionHandler _cut;
 
     public LoginConnectionHandlerTests()
     {
-        _mockFactory = new Mock<ILoginConnectionFactory>();
-        _mockTable = new Mock<ILoginConnectionTable>();
-        _mockLogger = new Mock<ILogger<LoginConnectionHandler>>();
-
         _cut = new LoginConnectionHandler(
             _mockFactory.Object,
             _mockTable.Object,
@@ -37,20 +31,16 @@ public class LoginConnectionHandlerTests
         var mockConnectionContext = CreateMockConnectionContext();
         var mockConnection = CreateMockLoginConnection(connectionId);
 
-        _mockFactory.Setup(f => f.Create(mockConnectionContext.Object))
-            .Returns(mockConnection.Object);
-
-        _mockTable.Setup(t => t.AddConnection(mockConnection.Object));
-        _mockTable.Setup(t => t.RemoveConnection(connectionId))
-            .Returns(mockConnection.Object);
+        _mockFactory.Create(mockConnectionContext.Object).Returns(mockConnection.Object);
+        _mockTable.RemoveConnection(connectionId).Returns(mockConnection.Object);
 
         // Act
         await _cut.OnConnectedAsync(mockConnectionContext.Object);
 
         // Assert
-        _mockFactory.Verify(f => f.Create(mockConnectionContext.Object), Times.Once);
-        _mockTable.Verify(t => t.AddConnection(mockConnection.Object), Times.Once);
-        _mockTable.Verify(t => t.RemoveConnection(connectionId), Times.Once);
+        _mockFactory.Create(mockConnectionContext.Object).WasCalled(Times.Once);
+        _mockTable.AddConnection(Any<ILoginConnection>()).WasCalled(Times.Once);
+        _mockTable.RemoveConnection(connectionId).WasCalled(Times.Once);
     }
 
     [Test]
@@ -61,18 +51,14 @@ public class LoginConnectionHandlerTests
         var mockConnectionContext = CreateMockConnectionContext();
         var mockConnection = CreateMockLoginConnection(connectionId, throwOnConnect: true);
 
-        _mockFactory.Setup(f => f.Create(mockConnectionContext.Object))
-            .Returns(mockConnection.Object);
-
-        _mockTable.Setup(t => t.AddConnection(mockConnection.Object));
-        _mockTable.Setup(t => t.RemoveConnection(connectionId))
-            .Returns(mockConnection.Object);
+        _mockFactory.Create(mockConnectionContext.Object).Returns(mockConnection.Object);
+        _mockTable.RemoveConnection(connectionId).Returns(mockConnection.Object);
 
         // Act
         await _cut.OnConnectedAsync(mockConnectionContext.Object);
 
         // Assert - connection should still be removed even after exception
-        _mockTable.Verify(t => t.RemoveConnection(connectionId), Times.Once);
+        _mockTable.RemoveConnection(connectionId).WasCalled(Times.Once);
     }
 
     [Test]
@@ -83,14 +69,13 @@ public class LoginConnectionHandlerTests
         var mockConnectionContext = CreateMockConnectionContext();
         var mockConnection = CreateMockLoginConnection(connectionId);
 
-        _mockFactory.Setup(f => f.Create(mockConnectionContext.Object))
-            .Returns(mockConnection.Object);
+        _mockFactory.Create(mockConnectionContext.Object).Returns(mockConnection.Object);
 
         // Act
         await _cut.OnConnectedAsync(mockConnectionContext.Object);
 
         // Assert
-        mockConnectionContext.Verify(c => c.DisposeAsync(), Times.Once);
+        mockConnectionContext.DisposeAsync().WasCalled(Times.Once);
     }
 
     [Test]
@@ -101,45 +86,36 @@ public class LoginConnectionHandlerTests
         var mockConnectionContext = CreateMockConnectionContext();
         var mockConnection = CreateMockLoginConnection(connectionId);
 
-        _mockFactory.Setup(f => f.Create(mockConnectionContext.Object))
-            .Returns(mockConnection.Object);
+        _mockFactory.Create(mockConnectionContext.Object).Returns(mockConnection.Object);
 
         // Act
         await _cut.OnConnectedAsync(mockConnectionContext.Object);
 
         // Assert
-        mockConnection.Verify(c => c.DisposeAsync(), Times.Once);
+        mockConnection.DisposeAsync().WasCalled(Times.Once);
     }
 
     private static Mock<ConnectionContext> CreateMockConnectionContext()
     {
-        var mockContext = new Mock<ConnectionContext>();
-        mockContext.Setup(c => c.RemoteEndPoint)
-            .Returns(new IPEndPoint(IPAddress.Loopback, 12345));
-        mockContext.Setup(c => c.ConnectionId)
-            .Returns("test-connection-id");
-        mockContext.Setup(c => c.DisposeAsync())
-            .Returns(ValueTask.CompletedTask);
+        var mockContext = Mock.OfPartial<ConnectionContext>();
+        mockContext.RemoteEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 12345));
+        mockContext.ConnectionId.Returns("test-connection-id");
+        // DisposeAsync() returns ValueTask by default — no .Returns() needed
         return mockContext;
     }
 
     private static Mock<ILoginConnectionOwner> CreateMockLoginConnection(ConnectionId connectionId,
         bool throwOnConnect = false)
     {
-        var mockConnection = new Mock<ILoginConnectionOwner>();
-        mockConnection.Setup(c => c.Id).Returns(connectionId);
-        mockConnection.Setup(c => c.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var mockConnection = Mock.Of<ILoginConnectionOwner>();
+        mockConnection.Id.Returns(connectionId);
+        // DisposeAsync() returns ValueTask by default — no .Returns() needed
 
         if (throwOnConnect)
         {
-            mockConnection.Setup(c => c.OnConnectedAsync())
-                .ThrowsAsync(new InvalidOperationException("Test exception"));
+            mockConnection.OnConnectedAsync().Throws(new InvalidOperationException("Test exception"));
         }
-        else
-        {
-            mockConnection.Setup(c => c.OnConnectedAsync())
-                .Returns(Task.CompletedTask);
-        }
+        // OnConnectedAsync() returns Task.CompletedTask by default — no .Returns() needed
 
         return mockConnection;
     }

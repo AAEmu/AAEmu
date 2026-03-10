@@ -2,27 +2,17 @@
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
 public class BuffTests
 {
-    private static Mock<BaseUnit> CreateMockOwner()
-    {
-        var mock = new Mock<BaseUnit>();
-        return mock;
-    }
+    private static BaseUnit CreateMockOwner() => new BaseUnit();
 
-    private static Mock<BaseUnit> CreateMockCaster()
-    {
-        var mock = new Mock<BaseUnit>();
-        return mock;
-    }
+    private static BaseUnit CreateMockCaster() => new BaseUnit();
 
     private static Buff CreateBuff(
-        Mock<BaseUnit> ownerMock = null,
-        Mock<BaseUnit> casterMock = null,    
+        BaseUnit ownerMock = null,
+        BaseUnit casterMock = null,
         SkillCaster skillCaster = null,
         BuffTemplate template = null,
         Skill skill = null,
@@ -35,7 +25,7 @@ public class BuffTests
         var sk = skill ?? new Skill();
         var time = startTime ?? DateTime.UtcNow;
 
-        return new Buff(mockOwner.Object, mockCaster.Object, sc, tmpl, sk, time);
+        return new Buff(mockOwner, mockCaster, sc, tmpl, sk, time);
     }
 
     #region Constructor Tests
@@ -52,7 +42,7 @@ public class BuffTests
         var startTime = DateTime.UtcNow;
 
         // Act
-        var buff = new Buff(mockOwner.Object, mockCaster.Object, skillCaster, template, skill, startTime);
+        var buff = new Buff(mockOwner, mockCaster, skillCaster, template, skill, startTime);
 
         // Assert
         await Assert.That(buff).IsNotNull();

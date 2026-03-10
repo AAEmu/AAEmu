@@ -8,8 +8,6 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class ItemManagerTests
@@ -20,12 +18,12 @@ public class ItemManagerTests
     public async Task Constructor_DoesNotCallDependencies()
     {
         // Arrange
-        var mockSkill = new Mock<ISkillManager>();
-        var mockItemId = new Mock<IItemIdManager>();
-        var mockContainerId = new Mock<IContainerIdManager>();
-        var mockLocale = new Mock<ILocalizationManager>();
-        var mockTask = new Mock<ITaskManager>();
-        var mockWorld = new Mock<IWorldManager>();
+        var mockSkill = Mock.Of<ISkillManager>();
+        var mockItemId = Mock.Of<IItemIdManager>();
+        var mockContainerId = Mock.Of<IContainerIdManager>();
+        var mockLocale = Mock.Of<ILocalizationManager>();
+        var mockTask = Mock.Of<ITaskManager>();
+        var mockWorld = Mock.Of<IWorldManager>();
 
         // Act
         var manager = new ItemManager(
@@ -38,12 +36,12 @@ public class ItemManagerTests
 
         // Assert
         await Assert.That(manager).IsNotNull();
-        mockSkill.VerifyNoOtherCalls();
-        mockItemId.VerifyNoOtherCalls();
-        mockContainerId.VerifyNoOtherCalls();
-        mockLocale.VerifyNoOtherCalls();
-        mockTask.VerifyNoOtherCalls();
-        mockWorld.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockSkill);
+        Mock.VerifyNoOtherCalls(mockItemId);
+        Mock.VerifyNoOtherCalls(mockContainerId);
+        Mock.VerifyNoOtherCalls(mockLocale);
+        Mock.VerifyNoOtherCalls(mockTask);
+        Mock.VerifyNoOtherCalls(mockWorld);
     }
 
     #endregion
@@ -801,7 +799,7 @@ public class ItemManagerTests
     public async Task ReleaseId_ValidId_RemovesFromItems()
     {
         // Arrange
-        var mockItemId = new Mock<IItemIdManager>();
+        var mockItemId = Mock.Of<IItemIdManager>();
         var manager = CreateItemManager(mockItemId: mockItemId);
         var item = CreateTestItem(3000, 100, 1);
         var allItems = new Dictionary<ulong, Item> { { 3000, item } };
@@ -815,14 +813,14 @@ public class ItemManagerTests
         // Assert
         await Assert.That(manager.GetItemByItemId(3000)).IsNull();
         await Assert.That(removedItems).Contains(3000ul);
-        mockItemId.Verify(x => x.ReleaseId(3000), Times.Once);
+        mockItemId.ReleaseId(3000).WasCalled(Times.Once);
     }
 
     [Test]
     public async Task ReleaseId_ZeroId_DoesNotAddToRemoved()
     {
         // Arrange
-        var mockItemId = new Mock<IItemIdManager>();
+        var mockItemId = Mock.Of<IItemIdManager>();
         var manager = CreateItemManager(mockItemId: mockItemId);
         var allItems = new Dictionary<ulong, Item>();
         var removedItems = new List<ulong>();
@@ -1069,12 +1067,12 @@ public class ItemManagerTests
         Mock<IWorldManager> mockWorld = null)
     {
         return new ItemManager(
-            (mockSkill ?? new Mock<ISkillManager>()).Object,
-            (mockItemId ?? new Mock<IItemIdManager>()).Object,
-            (mockContainerId ?? new Mock<IContainerIdManager>()).Object,
-            (mockLocale ?? new Mock<ILocalizationManager>()).Object,
-            (mockTask ?? new Mock<ITaskManager>()).Object,
-            (mockWorld ?? new Mock<IWorldManager>()).Object);
+            (mockSkill ?? Mock.Of<ISkillManager>()).Object,
+            (mockItemId ?? Mock.Of<IItemIdManager>()).Object,
+            (mockContainerId ?? Mock.Of<IContainerIdManager>()).Object,
+            (mockLocale ?? Mock.Of<ILocalizationManager>()).Object,
+            (mockTask ?? Mock.Of<ITaskManager>()).Object,
+            (mockWorld ?? Mock.Of<IWorldManager>()).Object);
     }
 
     private static void SetPrivateField(object obj, string fieldName, object value)

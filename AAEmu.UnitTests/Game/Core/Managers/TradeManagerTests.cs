@@ -1,7 +1,6 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using Moq;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -10,12 +9,12 @@ public class TradeManagerTests
     [Test]
     public async Task Constructor_DoesNotCallDeps()
     {
-        var mockTradeId = new Mock<ITradeIdManager>();
-        var mockWorld = new Mock<IWorldManager>();
+        var mockTradeId = Mock.Of<ITradeIdManager>();
+        var mockWorld = Mock.Of<IWorldManager>();
         var manager = new TradeManager(mockTradeId.Object, mockWorld.Object);
 
         await Assert.That(manager).IsNotNull();
-        mockTradeId.VerifyNoOtherCalls();
-        mockWorld.VerifyNoOtherCalls();
+        Mock.VerifyNoOtherCalls(mockTradeId);
+        Mock.VerifyNoOtherCalls(mockWorld);
     }
 }

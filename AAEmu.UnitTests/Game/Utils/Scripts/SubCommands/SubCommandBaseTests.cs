@@ -7,8 +7,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
-using Moq;
-
 namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands;
 
 public class SubCommandBaseTests
@@ -27,7 +25,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
@@ -63,7 +61,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
@@ -88,7 +86,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
@@ -103,7 +101,7 @@ public class SubCommandBaseTests
             await Assert.That(parameterKeyValue.Value).IsEqualTo(arguments[counter]);
             counter++;
         }
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
     public static IEnumerable<(string, string, string[])> OptionalParameterNotPresentData() =>
@@ -135,7 +133,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
         var parametersToIgnore = 0;
         if (arguments.Length > optionalParametersArray.Length + requiredParametersArray.Length)
         {
@@ -158,7 +156,7 @@ public class SubCommandBaseTests
             await Assert.That(parameterKeyValue.Value).IsEqualTo(arguments[counter]);
             counter++;
         }
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
     [Test]
@@ -169,7 +167,7 @@ public class SubCommandBaseTests
         // Arrange
         var parameter = new StringSubCommandParameter("param1", "parameter 1", true, validValues);
         var subCommand = new SubCommandFake(new[] { parameter });
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", [argumentValue], new CharacterMessageOutput(mockCharacter.Object));
@@ -188,7 +186,7 @@ public class SubCommandBaseTests
         // Arrange
         var parameter = new StringSubCommandParameter("param1", "parameter 1", true, validValues);
         var subCommand = new SubCommandFake(new[] { parameter });
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", [argumentValue], new CharacterMessageOutput(mockCharacter.Object));
@@ -198,7 +196,7 @@ public class SubCommandBaseTests
         await Assert.That(subCommand.Parameters).HasSingleItem();
         await Assert.That(subCommand.Parameters["param1"]).IsEqualTo(argumentValue);
 
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
     public static IEnumerable<(string, string, string, string[])> MixedNonPrefixAndAnyOrderPrefixData() =>
@@ -235,7 +233,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
@@ -274,7 +272,7 @@ public class SubCommandBaseTests
             }
             counter++;
         }
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
     [Test]
@@ -292,7 +290,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
@@ -320,13 +318,13 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.BaseSendHelpMessage(new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        mockCharacter.Verify(c => c.SendMessage(ChatType.System, It.Is<string>(call => call.Contains(expectedCallExample)), It.IsAny<Color?>()), Times.Once);
+        mockCharacter.SendMessage(ChatType.System, Is<string>(call => call.Contains(expectedCallExample)), Any<Color?>()).WasCalled(Times.Once);
     }
 
     [Test]
@@ -340,13 +338,13 @@ public class SubCommandBaseTests
         var parameters = new List<SubCommandParameterBase>() { new StringSubCommandParameter("test", "test display name", true, validValues) };
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.BaseSendHelpMessage(new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        mockCharacter.Verify(c => c.SendMessage(ChatType.System, It.Is<string>(call => call.Contains(expectedCallExample)), It.IsAny<Color?>()), Times.Once);
+        mockCharacter.SendMessage(ChatType.System, Is<string>(call => call.Contains(expectedCallExample)), Any<Color?>()).WasCalled(Times.Once);
     }
 
     [Test]
@@ -367,7 +365,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));

@@ -16,7 +16,7 @@
     <PackageReference Include="Microsoft.Testing.Extensions.Telemetry" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport.Abstractions" />
     <PackageReference Include="Microsoft.Testing.Platform.MSBuild" />
-    <PackageReference Include="Moq" />
     <PackageReference Include="TUnit" />
+    <PackageReference Include="TUnit.Mocks" />
   </ItemGroup>
 </Project>
