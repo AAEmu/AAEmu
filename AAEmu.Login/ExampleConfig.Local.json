@@ -1,0 +1,19 @@
+{
+    "Connections": {
+        "MySQLProvider": {
+            "Database": "aaemu_login",
+            "Host": "127.0.0.1",
+            "Password": "password",
+            "Port": "3306",
+            "User": "root"
+        }
+    },
+    "GameServers": [
+        {
+            "Host": "127.0.0.1",
+            "Id": 1,
+            "Name": "AAEmu",
+            "Port": 1239
+        }
+    ]
+}
