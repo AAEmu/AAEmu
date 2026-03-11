@@ -1,0 +1,20 @@
+{
+    "LoginNetwork": {
+        "Host": "127.0.0.1",
+        "Port": "1234"
+    },
+    "Connections": {
+        "MySQLProvider": {
+            "Database": "aaemu_game",
+            "Host": "127.0.0.1",
+            "Password": "password",
+            "Port": "3306",
+            "User": "root"
+        }
+    },
+    "ClientData": {
+        "Sources": [
+            "C:\\Users\\username\\Downloads\\Trion_1.2_(r208022)_BROC_FULL_PATCHED_CLIENT\\game_pak"
+        ]
+    }
+}
