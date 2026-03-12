@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Packets.L2G;
+using AAEmu.Login.Core.Services;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,7 @@ namespace AAEmu.Login.Core.Controllers;
 
 public partial class LoginController(
     IGameController gameController,
+    IPasswordService passwordService,
     IOptions<AppConfiguration> appConfig,
     IMySqlConnectionFactory connectionFactory,
     ILogger<LoginController> logger) : ILoginController
@@ -71,7 +73,7 @@ public partial class LoginController(
     /// <summary>
     /// Eu Method Auth
     /// </summary>
-    public async Task<LoginResult> Login(string username, string password, IPAddress ip,
+    public async Task<LoginResult> Login(string username, Password password, IPAddress ip,
         CancellationToken cancellationToken)
     {
         await using var connect = connectionFactory.CreateConnection();
@@ -91,7 +93,8 @@ public partial class LoginController(
         }
 
         var storedPassword = reader.GetString("password");
-        if (password != storedPassword)
+        var verificationResult = passwordService.VerifyPassword(storedPassword, password);
+        if (verificationResult == PasswordVerificationResult.Failed)
         {
             return new LoginResult(false, default, LoginDeniedReason.BadResponse);
         }
@@ -113,8 +116,18 @@ public partial class LoginController(
         #region update account
 
         command.Parameters.Clear();
-        command.CommandText =
-            "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+        if (verificationResult == PasswordVerificationResult.SuccessRehashNeeded && password.Kind == PasswordKind.Plaintext)
+        {
+            var newHash = passwordService.HashForStorage(password);
+            command.CommandText =
+                "UPDATE `users` SET password = @password, last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+            command.Parameters.AddWithValue("@password", newHash);
+        }
+        else
+        {
+            command.CommandText =
+                "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+        }
         command.Parameters.AddWithValue("@id", accountId.Value);
         command.Parameters.AddWithValue("@last_ip", ip);
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)lastLogin).ToUnixTimeSeconds());
@@ -130,17 +143,19 @@ public partial class LoginController(
         return new LoginResult(true, accountId, default);
     }
 
-    private async Task<LoginResult> CreateAndLoginInvalid(string username, string password, IPAddress clientIp,
-        MySqlConnection connection)
+    private async Task<LoginResult> CreateAndLoginInvalid(string username, Password password,
+        IPAddress clientIp, MySqlConnection connection)
     {
         if (!UsernameRegex().IsMatch(username))
             return new LoginResult(false, default, LoginDeniedReason.BadAccount);
+
+        var passwordHash = passwordService.HashForStorage(password);
 
         await using var command = connection.CreateCommand();
         command.CommandText =
             "INSERT into users (username, password, email, last_ip, last_login, created_at, updated_at) VALUES (@username, @password, @email, @last_ip, @last_login, @created_at, @updated_at)";
         command.Parameters.AddWithValue("@username", username);
-        command.Parameters.AddWithValue("@password", password);
+        command.Parameters.AddWithValue("@password", passwordHash);
         command.Parameters.AddWithValue("@email", "");
         command.Parameters.AddWithValue("@last_ip", clientIp);
         command.Parameters.AddWithValue("@last_login", ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds());
