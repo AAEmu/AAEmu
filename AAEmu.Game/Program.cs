@@ -58,10 +58,12 @@ public static class Program
             }
         }
 
-        Configuration(args);
+        var configurationRoot = BuildConfiguration(args);
 
         // Apply MySQL Configuration
-        MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+        var preBootConfig = new AppConfiguration();
+        configurationRoot.Bind(preBootConfig);
+        MySQL.SetConfiguration(preBootConfig.Connections.MySQLProvider);
 
         try
         {
@@ -104,6 +106,7 @@ public static class Program
             .ConfigureServices((hostContext, services) =>
             {
                 services.AddOptions();
+                services.Configure<AppConfiguration>(configurationRoot);
                 services.AddSingleton(TimeProvider.System);
 
                 // -- Hosted services --
@@ -429,9 +432,13 @@ public static class Program
         }
     }
 
-    public static void ReloadConfiguration() => Configuration(_launchArgs);
+    public static void ReloadConfiguration()
+    {
+        var configurationRoot = BuildConfiguration(_launchArgs);
+        configurationRoot.Bind(AppConfiguration.Instance);
+    }
 
-    private static void Configuration(string[] args)
+    private static IConfigurationRoot BuildConfiguration(string[] args)
     {
         // Load NLog configuration
         LogManager.ThrowConfigExceptions = false;
@@ -462,8 +469,7 @@ public static class Program
         configurationBuilder.AddEnvironmentVariables();
         configurationBuilder.AddCommandLine(args);
 
-        var configurationBuilderResult = configurationBuilder.Build();
-        configurationBuilderResult.Bind(AppConfiguration.Instance);
+        return configurationBuilder.Build();
     }
 
     private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)

@@ -1,12 +1,9 @@
-using System.Reflection;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace AAEmu.UnitTests.Game.Core.Managers
 {
-    [NotInParallel]
     public class AccessLevelManagerTests
     {
         private AccessLevelManager _manager;
@@ -16,25 +13,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers
         public void Setup()
         {
             _config = new AppConfiguration { AccessLevel = new Dictionary<string, int>() };
-
-            typeof(Singleton<AppConfiguration>)
-                .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
-                ?.SetValue(null, null);
-
-            var services = new ServiceCollection();
-            services.AddSingleton(_config);
-            SingletonContainer.ServiceProvider = services.BuildServiceProvider();
-
-            _manager = new AccessLevelManager();
-        }
-
-        [After(Test)]
-        public void Teardown()
-        {
-            SingletonContainer.ServiceProvider = null;
-            typeof(Singleton<AppConfiguration>)
-                .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
-                ?.SetValue(null, null);
+            _manager = new AccessLevelManager(Options.Create(_config));
         }
 
         [Test]

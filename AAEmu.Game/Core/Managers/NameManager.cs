@@ -4,11 +4,12 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.StaticValues;
+using Microsoft.Extensions.Options;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public partial class NameManager(Lazy<ICharacterManager> characterManager = null) : Singleton<NameManager>, INameManager
+public partial class NameManager(Lazy<ICharacterManager> characterManager = null, IOptions<AppConfiguration> options = null) : Singleton<NameManager>, INameManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Regex _characterNameRegex;
@@ -31,20 +32,18 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
         ? accountId
         : 0;
 
-    public NameManager() : this(null)
-    {
-    }
+    public NameManager() : this(null, null) { }
 
-    [GeneratedRegex("^[a-zA-Z0-9а-яА-Я]{1,18}$")]
+    private const string DefaultCharacterNameRegexPattern = "^[a-zA-Z0-9а-яА-Я]{1,18}$";
+    [GeneratedRegex(DefaultCharacterNameRegexPattern)]
     private static partial Regex DefaultCharacterNameRegex();
 
     public void Load()
     {
-        const string DefaultCharacterNameRegex = "^[a-zA-Z0-9а-яА-Я]{1,18}$";
-        if (AppConfiguration.Instance.CharacterNameRegex is not null
-            && AppConfiguration.Instance.CharacterNameRegex != DefaultCharacterNameRegex)
+        if (options?.Value.CharacterNameRegex is { } characterNameRegex &&
+            characterNameRegex != DefaultCharacterNameRegexPattern)
         {
-            _characterNameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
+            _characterNameRegex = new Regex(characterNameRegex, RegexOptions.Compiled);
         }
 
         using (var connection = MySQL.CreateConnection())
@@ -85,11 +84,10 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
         Dictionary<string, uint> characterNames,
         Dictionary<uint, uint> characterAccounts)
     {
-        const string DefaultCharacterNameRegex = "^[a-zA-Z0-9а-яА-Я]{1,18}$";
-        if (AppConfiguration.Instance.CharacterNameRegex is not null
-            && AppConfiguration.Instance.CharacterNameRegex != DefaultCharacterNameRegex)
+        if (options?.Value.CharacterNameRegex is { } characterNameRegex &&
+            characterNameRegex != DefaultCharacterNameRegexPattern)
         {
-            _characterNameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
+            _characterNameRegex = new Regex(characterNameRegex, RegexOptions.Compiled);
         }
 
         _characterIds = characterIds;

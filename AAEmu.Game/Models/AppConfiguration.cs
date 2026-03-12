@@ -3,11 +3,19 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Expeditions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace AAEmu.Game.Models;
 
-public partial class AppConfiguration : Singleton<AppConfiguration>
+public partial class AppConfiguration
 {
+    private static readonly AppConfiguration s_default = new();
+
+    public static AppConfiguration Instance =>
+        SingletonContainer.ServiceProvider?.GetService<IOptions<AppConfiguration>>()?.Value
+        ?? s_default;
+
     public byte Id { get; set; }
     public byte[] AdditionalesId { get; set; } = [];
     public string SecretKey { get; set; }
