@@ -1,4 +1,3 @@
-using Xunit;
 
 using AAEmu.Commons.Utils;
 
@@ -12,8 +11,8 @@ public class RandomElementByWeightTests
         public float Weight { get; set; }
     }
 
-    [Fact]
-    public void RandomElementByWeight_ShouldReturnItem_WhenSequenceHasItems()
+    [Test]
+    public async Task RandomElementByWeight_ShouldReturnItem_WhenSequenceHasItems()
     {
         // Arrange
         var items = new List<TestItem>
@@ -27,12 +26,12 @@ public class RandomElementByWeightTests
         var result = items.RandomElementByWeight(i => i.Weight);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotEqual("", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsNotEqualTo("");
     }
 
-    [Fact]
-    public void RandomElementByWeight_ShouldReturnDefault_WhenSequenceIsEmpty()
+    [Test]
+    public async Task RandomElementByWeight_ShouldReturnDefault_WhenSequenceIsEmpty()
     {
         // Arrange
         var items = new List<TestItem>();
@@ -41,11 +40,11 @@ public class RandomElementByWeightTests
         var result = items.RandomElementByWeight(i => i.Weight);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void RandomElementByWeight_ShouldReturnOnlyItem_WhenSequenceHasOneItem()
+    [Test]
+    public async Task RandomElementByWeight_ShouldReturnOnlyItem_WhenSequenceHasOneItem()
     {
         // Arrange
         var items = new List<TestItem>
@@ -57,12 +56,12 @@ public class RandomElementByWeightTests
         var result = items.RandomElementByWeight(i => i.Weight);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("OnlyOne", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("OnlyOne");
     }
 
-    [Fact]
-    public void RandomElementByWeight_ShouldConsiderWeights()
+    [Test]
+    public async Task RandomElementByWeight_ShouldConsiderWeights()
     {
         // Arrange
         var items = new List<TestItem>
@@ -81,11 +80,11 @@ public class RandomElementByWeightTests
         }
 
         // Assert - High weight item should appear significantly more often
-        Assert.True(highWeightCount > 50);
+        await Assert.That(highWeightCount > 50).IsTrue();
     }
 
-    [Fact]
-    public void RandomElementByWeight_ShouldWorkWithZeroWeights()
+    [Test]
+    public async Task RandomElementByWeight_ShouldWorkWithZeroWeights()
     {
         // Arrange
         var items = new List<TestItem>
@@ -98,12 +97,12 @@ public class RandomElementByWeightTests
         var result = items.RandomElementByWeight(i => i.Weight);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("PositiveWeight", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("PositiveWeight");
     }
 
-    [Fact]
-    public void RandomElementByWeight_ShouldWorkWithAllSameWeights()
+    [Test]
+    public async Task RandomElementByWeight_ShouldWorkWithAllSameWeights()
     {
         // Arrange
         var items = new List<TestItem>
@@ -123,11 +122,11 @@ public class RandomElementByWeightTests
         }
 
         // Assert - All items should appear at least once
-        Assert.Equal(3, results.Count);
+        await Assert.That(results.Count).IsEqualTo(3);
     }
 
-    [Fact]
-    public void RandomElementByWeight_ShouldWorkWithNullableTypes()
+    [Test]
+    public async Task RandomElementByWeight_ShouldWorkWithNullableTypes()
     {
         // Arrange
         var items = new List<string?> { "A", "B", "C" };
@@ -136,6 +135,6 @@ public class RandomElementByWeightTests
         var result = items.RandomElementByWeight(_ => 1.0f);
 
         // Assert
-        Assert.NotNull(result);
+        await Assert.That(result).IsNotNull();
     }
 }

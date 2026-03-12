@@ -1,7 +1,6 @@
 ﻿using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils.Converters;
 using Newtonsoft.Json;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Models.Json;
 
@@ -9,29 +8,29 @@ public class ModelsJsonConverterTests
 {
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_Default_CreatesInstanceWithConverters()
+    [Test]
+    public async Task Constructor_Default_CreatesInstanceWithConverters()
     {
         // Act
         var converter = new JsonModelsConverter();
 
         // Assert
-        Assert.NotNull(converter);
+        await Assert.That(converter).IsNotNull();
     }
 
     #endregion
 
     #region CanConvert Tests
 
-    [Theory]
-    [InlineData(typeof(JsonPosition), true)]
-    [InlineData(typeof(JsonQuestSphere), true)]
-    [InlineData(typeof(JsonDoodadSpawns), true)]
-    [InlineData(typeof(JsonNpcSpawns), true)]
-    [InlineData(typeof(string), false)]
-    [InlineData(typeof(int), false)]
-    [InlineData(typeof(object), false)]
-    public void CanConvert_ReturnsCorrectValue(Type objectType, bool expected)
+    [Test]
+    [Arguments(typeof(JsonPosition), true)]
+    [Arguments(typeof(JsonQuestSphere), true)]
+    [Arguments(typeof(JsonDoodadSpawns), true)]
+    [Arguments(typeof(JsonNpcSpawns), true)]
+    [Arguments(typeof(string), false)]
+    [Arguments(typeof(int), false)]
+    [Arguments(typeof(object), false)]
+    public async Task CanConvert_ReturnsCorrectValue(Type objectType, bool expected)
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -40,15 +39,15 @@ public class ModelsJsonConverterTests
         var result = converter.CanConvert(objectType);
 
         // Assert
-        Assert.Equal(expected, result);
+        await Assert.That(result).IsEqualTo(expected);
     }
 
     #endregion
 
     #region AddConverter Tests
 
-    [Fact]
-    public void AddConverter_WithValidTypes_AddsConverter()
+    [Test]
+    public async Task AddConverter_WithValidTypes_AddsConverter()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -56,15 +55,15 @@ public class ModelsJsonConverterTests
         // This tests the internal behavior - we verify by checking CanConvert works
         // Act & Assert - should not throw
         var canConvertPosition = converter.CanConvert(typeof(JsonPosition));
-        Assert.True(canConvertPosition);
+        await Assert.That(canConvertPosition).IsTrue();
     }
 
     #endregion
 
     #region WriteJson Tests
 
-    [Fact]
-    public void WriteJson_WithJsonPosition_WritesCorrectJson()
+    [Test]
+    public async Task WriteJson_WithJsonPosition_WritesCorrectJson()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -82,13 +81,13 @@ public class ModelsJsonConverterTests
         var json = JsonConvert.SerializeObject(position, converter);
 
         // Assert
-        Assert.Contains("100.5", json);
-        Assert.Contains("200.5", json);
-        Assert.Contains("300.5", json);
+        await Assert.That(json).Contains("100.5");
+        await Assert.That(json).Contains("200.5");
+        await Assert.That(json).Contains("300.5");
     }
 
-    [Fact]
-    public void WriteJson_WithRotationValues_WritesRotation()
+    [Test]
+    public async Task WriteJson_WithRotationValues_WritesRotation()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -106,13 +105,13 @@ public class ModelsJsonConverterTests
         var json = JsonConvert.SerializeObject(position, converter);
 
         // Assert
-        Assert.Contains("45", json);
-        Assert.Contains("30", json);
-        Assert.Contains("15", json);
+        await Assert.That(json).Contains("45");
+        await Assert.That(json).Contains("30");
+        await Assert.That(json).Contains("15");
     }
 
-    [Fact]
-    public void WriteJson_WithZeroRotation_OmitsRotationFields()
+    [Test]
+    public async Task WriteJson_WithZeroRotation_OmitsRotationFields()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -130,17 +129,17 @@ public class ModelsJsonConverterTests
         var json = JsonConvert.SerializeObject(position, converter);
 
         // Assert - should not contain yaw/pitch/roll when zero
-        Assert.DoesNotContain("Yaw", json);
-        Assert.DoesNotContain("Pitch", json);
-        Assert.DoesNotContain("Roll", json);
+        await Assert.That(json).DoesNotContain("Yaw");
+        await Assert.That(json).DoesNotContain("Pitch");
+        await Assert.That(json).DoesNotContain("Roll");
     }
 
     #endregion
 
     #region Array Serialization Tests
 
-    [Fact]
-    public void SerializeObject_WithArrayOfPositions_WritesCorrectJson()
+    [Test]
+    public async Task SerializeObject_WithArrayOfPositions_WritesCorrectJson()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -154,20 +153,20 @@ public class ModelsJsonConverterTests
         var json = JsonConvert.SerializeObject(positions, converter);
 
         // Assert
-        Assert.Contains("1", json);
-        Assert.Contains("2", json);
-        Assert.Contains("3", json);
-        Assert.Contains("4", json);
-        Assert.Contains("5", json);
-        Assert.Contains("6", json);
+        await Assert.That(json).Contains("1");
+        await Assert.That(json).Contains("2");
+        await Assert.That(json).Contains("3");
+        await Assert.That(json).Contains("4");
+        await Assert.That(json).Contains("5");
+        await Assert.That(json).Contains("6");
     }
 
     #endregion
 
     #region ReadJson Tests
 
-    [Fact]
-    public void ReadJson_WithValidJsonPosition_ReturnsPosition()
+    [Test]
+    public async Task ReadJson_WithValidJsonPosition_ReturnsPosition()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -177,14 +176,14 @@ public class ModelsJsonConverterTests
         var result = JsonConvert.DeserializeObject<JsonPosition>(json, converter);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(10.5f, result.X);
-        Assert.Equal(20.5f, result.Y);
-        Assert.Equal(30.5f, result.Z);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.X).IsEqualTo(10.5f);
+        await Assert.That(result.Y).IsEqualTo(20.5f);
+        await Assert.That(result.Z).IsEqualTo(30.5f);
     }
 
-    [Fact]
-    public void ReadJson_WithRotation_ReturnsPositionWithRotation()
+    [Test]
+    public async Task ReadJson_WithRotation_ReturnsPositionWithRotation()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -194,21 +193,21 @@ public class ModelsJsonConverterTests
         var result = JsonConvert.DeserializeObject<JsonPosition>(json, converter);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(45, result.Yaw);
-        Assert.Equal(30, result.Pitch);
-        Assert.Equal(15, result.Roll);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Yaw).IsEqualTo(45);
+        await Assert.That(result.Pitch).IsEqualTo(30);
+        await Assert.That(result.Roll).IsEqualTo(15);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Theory]
-    [InlineData("{\"X\":0,\"Y\":0,\"Z\":0}", 0, 0, 0)]
-    [InlineData("{\"X\":-100.5,\"Y\":-200.5,\"Z\":-300.5}", -100.5f, -200.5f, -300.5f)]
-    [InlineData("{\"X\":1.23456789,\"Y\":2.34567890,\"Z\":3.45678901}", 1.23456789f, 2.34567890f, 3.45678901f)]
-    public void ReadJson_WithVariousValues_ReturnsCorrectPosition(string json, float expectedX, float expectedY, float expectedZ)
+    [Test]
+    [Arguments("{\"X\":0,\"Y\":0,\"Z\":0}", 0, 0, 0)]
+    [Arguments("{\"X\":-100.5,\"Y\":-200.5,\"Z\":-300.5}", -100.5f, -200.5f, -300.5f)]
+    [Arguments("{\"X\":1.23456789,\"Y\":2.34567890,\"Z\":3.45678901}", 1.23456789f, 2.34567890f, 3.45678901f)]
+    public async Task ReadJson_WithVariousValues_ReturnsCorrectPosition(string json, float expectedX, float expectedY, float expectedZ)
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -217,18 +216,18 @@ public class ModelsJsonConverterTests
         var result = JsonConvert.DeserializeObject<JsonPosition>(json, converter);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(expectedX, result.X);
-        Assert.Equal(expectedY, result.Y);
-        Assert.Equal(expectedZ, result.Z);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.X).IsEqualTo(expectedX);
+        await Assert.That(result.Y).IsEqualTo(expectedY);
+        await Assert.That(result.Z).IsEqualTo(expectedZ);
     }
 
     #endregion
 
     #region JsonNpcSpawns Tests
 
-    [Fact]
-    public void SerializeNpcSpawns_WithAllFields_WritesCorrectJson()
+    [Test]
+    public async Task SerializeNpcSpawns_WithAllFields_WritesCorrectJson()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -254,14 +253,14 @@ public class ModelsJsonConverterTests
         var json = JsonConvert.SerializeObject(npcSpawns, converter);
 
         // Assert
-        Assert.Contains("1", json);
-        Assert.Contains("100", json);
-        Assert.Contains("Test NPC", json);
-        Assert.Contains("1.5", json);
+        await Assert.That(json).Contains("1");
+        await Assert.That(json).Contains("100");
+        await Assert.That(json).Contains("Test NPC");
+        await Assert.That(json).Contains("1.5");
     }
 
-    [Fact]
-    public void SerializeNpcSpawns_WithZeroPosition_OmitsRotation()
+    [Test]
+    public async Task SerializeNpcSpawns_WithZeroPosition_OmitsRotation()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -287,17 +286,17 @@ public class ModelsJsonConverterTests
         var json = JsonConvert.SerializeObject(npcSpawns, converter);
 
         // Assert
-        Assert.DoesNotContain("Yaw", json);
-        Assert.DoesNotContain("Pitch", json);
-        Assert.DoesNotContain("Roll", json);
+        await Assert.That(json).DoesNotContain("Yaw");
+        await Assert.That(json).DoesNotContain("Pitch");
+        await Assert.That(json).DoesNotContain("Roll");
     }
 
     #endregion
 
     #region JsonDoodadSpawns Tests
 
-    [Fact]
-    public void SerializeDoodadSpawns_WritesCorrectJson()
+    [Test]
+    public async Task SerializeDoodadSpawns_WritesCorrectJson()
     {
         // Arrange
         var converter = new JsonModelsConverter();
@@ -312,8 +311,8 @@ public class ModelsJsonConverterTests
         var json = JsonConvert.SerializeObject(doodadSpawns, converter);
 
         // Assert
-        Assert.Contains("42", json);
-        Assert.Contains("100", json);
+        await Assert.That(json).Contains("42");
+        await Assert.That(json).Contains("100");
     }
 
     #endregion

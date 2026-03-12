@@ -1,27 +1,25 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
-using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class AuctionManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
-        var mockItem = new Mock<IItemManager>();
-        var mockName = new Mock<INameManager>();
-        var mockAuctionId = new Mock<IAuctionIdManager>();
-        var mockLocale = new Mock<ILocalizationManager>();
-        var mockTask = new Mock<ITaskManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockName = Mock.Of<INameManager>();
+        var mockAuctionId = Mock.Of<IAuctionIdManager>();
+        var mockLocale = Mock.Of<ILocalizationManager>();
+        var mockTask = Mock.Of<ITaskManager>();
         var manager = new AuctionManager(mockItem.Object, mockName.Object, mockAuctionId.Object, mockLocale.Object, mockTask.Object);
 
-        Assert.NotNull(manager);
-        mockItem.VerifyNoOtherCalls();
-        mockName.VerifyNoOtherCalls();
-        mockAuctionId.VerifyNoOtherCalls();
-        mockLocale.VerifyNoOtherCalls();
-        mockTask.VerifyNoOtherCalls();
+        await Assert.That(manager).IsNotNull();
+        Mock.VerifyNoOtherCalls(mockItem);
+        Mock.VerifyNoOtherCalls(mockName);
+        Mock.VerifyNoOtherCalls(mockAuctionId);
+        Mock.VerifyNoOtherCalls(mockLocale);
+        Mock.VerifyNoOtherCalls(mockTask);
     }
 }

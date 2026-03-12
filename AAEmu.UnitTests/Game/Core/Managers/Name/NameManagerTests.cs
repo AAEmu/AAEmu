@@ -1,56 +1,47 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Commons.Utils;
-using Xunit;
-using Moq;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.Name;
 
-[Collection("NameManager")]
-public sealed class NameManagerTests : IDisposable
+public sealed class NameManagerTests
 {
-    public void Dispose()
-    {
-        // Clean up
-        NameManager.Instance.Load([], [], []);
-    }
-
-    [Fact]
-    public void EmptyNameManagerShouldNotHaveNames()
+    [Test]
+    public async Task EmptyNameManagerShouldNotHaveNames()
     {
         // Arrange
-        var sut = NameManager.Instance;
+        var sut = new NameManager();
 
         // Act
         sut.Load([], [], []);
 
         // Assert
-        Assert.True(sut.NoNamesRegistered());
+        await Assert.That(sut.NoNamesRegistered()).IsTrue();
     }
 
-    [Fact]
-    public void AddCharacterNameShouldHaveNames()
+    [Test]
+    public async Task AddCharacterNameShouldHaveNames()
     {
         // Arrange
         var charName = "TestName".NormalizeName();
         var charId = 1u;
         var charAccount = 1000u;
 
-        var sut = NameManager.Instance;
+        var sut = new NameManager();
         sut.Load([], [], []);
 
         // Act
         sut.AddCharacter(charId, charName, charAccount);
 
         // Assert
-        Assert.False(sut.NoNamesRegistered());
-        Assert.Equal(charName, sut.GetCharacterName(charId));
-        Assert.Equal(charId, sut.GetCharacterId(charName));
+        await Assert.That(sut.NoNamesRegistered()).IsFalse();
+        await Assert.That(sut.GetCharacterName(charId)).IsEqualTo(charName);
+        await Assert.That(sut.GetCharacterId(charName)).IsEqualTo(charId);
     }
 
-    [Fact]
-    public void GetCharacterAccountShouldReturnFoundAccounts()
+    [Test]
+    public async Task GetCharacterAccountShouldReturnFoundAccounts()
     {
         // Arrange
         var charId = 1u;
@@ -66,18 +57,18 @@ public sealed class NameManagerTests : IDisposable
         var accountId = sut.GetCharacterAccount(charId);
 
         // Assert
-        Assert.Equal(charAccount, accountId);
+        await Assert.That(accountId).IsEqualTo(charAccount);
     }
 
-    [Fact]
-    public void ValidationCharacterNameAlreadyExistsCheck()
+    [Test]
+    public async Task ValidationCharacterNameAlreadyExistsCheck()
     {
         // Arrange
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
-        mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(false);
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
+        mockCharacterManager.IsCharacterPendingDeletion(charName).Returns(false);
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);
@@ -88,18 +79,18 @@ public sealed class NameManagerTests : IDisposable
         var result = sut.ValidateCharacterName(charName);
 
         // Assert
-        Assert.Equal(CharacterCreateError.NameAlreadyExists, result);
+        await Assert.That(result).IsEqualTo(CharacterCreateError.NameAlreadyExists);
     }
 
-    [Fact]
-    public void ValidationCharacterNamePendingDeletionFailed()
+    [Test]
+    public async Task ValidationCharacterNamePendingDeletionFailed()
     {
         // Arrange
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
-        mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(true);
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
+        mockCharacterManager.IsCharacterPendingDeletion(charName).Returns(true);
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);
@@ -110,14 +101,14 @@ public sealed class NameManagerTests : IDisposable
         var result = sut.ValidateCharacterName(charName);
 
         // Assert
-        Assert.Equal(CharacterCreateError.Failed, result);
+        await Assert.That(result).IsEqualTo(CharacterCreateError.Failed);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData("000&#$*")]
-    public void ValidationCharacterInvalidName(string providedName)
+    [Test]
+    [Arguments("")]
+    [Arguments("   ")]
+    [Arguments("000&#$*")]
+    public async Task ValidationCharacterInvalidName(string providedName)
     {
         // Arrange
         var charName = providedName.NormalizeName();
@@ -129,18 +120,18 @@ public sealed class NameManagerTests : IDisposable
         var result = sut.ValidateCharacterName(charName);
 
         // Assert
-        Assert.Equal(CharacterCreateError.InvalidCharacters, result);
+        await Assert.That(result).IsEqualTo(CharacterCreateError.InvalidCharacters);
     }
 
-    [Theory]
-    [InlineData("Roger")]
-    [InlineData("Zero")]
-    [InlineData("NLObP")]
-    public void ValidationCharacterValidNameSucceed(string providedName)
+    [Test]
+    [Arguments("Roger")]
+    [Arguments("Zero")]
+    [Arguments("NLObP")]
+    public async Task ValidationCharacterValidNameSucceed(string providedName)
     {
         // Arrange
         var charName = providedName.NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);
@@ -149,18 +140,18 @@ public sealed class NameManagerTests : IDisposable
         var result = sut.ValidateCharacterName(charName);
 
         // Assert
-        Assert.Equal(CharacterCreateError.Ok, result);
+        await Assert.That(result).IsEqualTo(CharacterCreateError.Ok);
     }
 
-    [Fact]
-    public void RemoveCharacterIdWorksAsExpected()
+    [Test]
+    public async Task RemoveCharacterIdWorksAsExpected()
     {
         // Arrange
         var charId = 1u;
         var charAccount = 1000u;
         var charName = "TestName".NormalizeName();
-        var mockCharacterManager = new Mock<ICharacterManager>();
-        mockCharacterManager.Setup(x => x.IsCharacterPendingDeletion(charName)).Returns(true);
+        var mockCharacterManager = Mock.Of<ICharacterManager>();
+        mockCharacterManager.IsCharacterPendingDeletion(charName).Returns(true);
         var sut = new NameManager(new Lazy<ICharacterManager>(() => mockCharacterManager.Object));
 
         sut.Load([], [], []);
@@ -171,9 +162,9 @@ public sealed class NameManagerTests : IDisposable
         sut.RemoveCharacterId(charId);
 
         // Assert
-        Assert.True(sut.NoNamesRegistered());
-        Assert.Null(sut.GetCharacterName(charId));
-        Assert.Equal(0u, sut.GetCharacterId(charName));
-        Assert.Equal(0u, sut.GetCharacterAccount(charId));
+        await Assert.That(sut.NoNamesRegistered()).IsTrue();
+        await Assert.That(sut.GetCharacterName(charId)).IsNull();
+        await Assert.That(sut.GetCharacterId(charName)).IsEqualTo(0u);
+        await Assert.That(sut.GetCharacterAccount(charId)).IsEqualTo(0u);
     }
 }

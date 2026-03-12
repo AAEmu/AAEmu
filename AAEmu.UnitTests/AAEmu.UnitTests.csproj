@@ -2,9 +2,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <NoWarn>CA1861</NoWarn>
-    <!-- Enable Testing Platform support for dotnet test -->
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,12 +12,11 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
     <PackageReference Include="Microsoft.Testing.Extensions.Telemetry" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport.Abstractions" />
     <PackageReference Include="Microsoft.Testing.Platform.MSBuild" />
-    <PackageReference Include="Moq" />
-    <PackageReference Include="xunit.v3.mtp-v2" />
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="TUnit.Mocks" />
   </ItemGroup>
 </Project>

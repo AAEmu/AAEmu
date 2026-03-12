@@ -1,13 +1,11 @@
-using Xunit;
-
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.UnitTests.Commons.Utils;
 
 public class RandomExtensionsTests
 {
-    [Fact]
-    public void Next_ShouldReturnValueInRange_WhenGivenValidRange()
+    [Test]
+    public async Task Next_ShouldReturnValueInRange_WhenGivenValidRange()
     {
         // Arrange
         var random = new Random(12345);
@@ -18,11 +16,11 @@ public class RandomExtensionsTests
         var result = random.Next(minValue, maxValue);
 
         // Assert
-        Assert.InRange(result, minValue, maxValue);
+        await Assert.That(result).IsGreaterThanOrEqualTo(minValue).And.IsLessThanOrEqualTo(maxValue);
     }
 
-    [Fact]
-    public void Next_ShouldReturnMinValue_WhenRandomReturnsZero()
+    [Test]
+    public async Task Next_ShouldReturnMinValue_WhenRandomReturnsZero()
     {
         // Arrange
         var random = new Random(0);
@@ -33,11 +31,11 @@ public class RandomExtensionsTests
         var result = random.Next(minValue, maxValue);
 
         // Assert
-        Assert.Equal(5.0f, result);
+        await Assert.That(result).IsEqualTo(5.0f);
     }
 
-    [Fact]
-    public void Next_ShouldReturnValueGreaterThanOrEqualToMinValue()
+    [Test]
+    public async Task Next_ShouldReturnValueGreaterThanOrEqualToMinValue()
     {
         // Arrange
         var random = new Random(12345);
@@ -48,11 +46,11 @@ public class RandomExtensionsTests
         var result = random.Next(minValue, maxValue);
 
         // Assert
-        Assert.True(result >= minValue);
+        await Assert.That(result >= minValue).IsTrue();
     }
 
-    [Fact]
-    public void Next_ShouldReturnValueLessThanMaxValue()
+    [Test]
+    public async Task Next_ShouldReturnValueLessThanMaxValue()
     {
         // Arrange
         var random = new Random(12345);
@@ -63,15 +61,15 @@ public class RandomExtensionsTests
         var result = random.Next(minValue, maxValue);
 
         // Assert
-        Assert.True(result < maxValue);
+        await Assert.That(result < maxValue).IsTrue();
     }
 
-    [Theory]
-    [InlineData(0f, 1f)]
-    [InlineData(-10f, 10f)]
-    [InlineData(100f, 200f)]
-    [InlineData(0.0f, 0.0001f)]
-    public void Next_ShouldWorkWithVariousRanges(float minValue, float maxValue)
+    [Test]
+    [Arguments(0f, 1f)]
+    [Arguments(-10f, 10f)]
+    [Arguments(100f, 200f)]
+    [Arguments(0.0f, 0.0001f)]
+    public async Task Next_ShouldWorkWithVariousRanges(float minValue, float maxValue)
     {
         // Arrange
         var random = new Random();
@@ -80,11 +78,11 @@ public class RandomExtensionsTests
         var result = random.Next(minValue, maxValue);
 
         // Assert
-        Assert.InRange(result, minValue, maxValue);
+        await Assert.That(result).IsGreaterThanOrEqualTo(minValue).And.IsLessThanOrEqualTo(maxValue);
     }
 
-    [Fact]
-    public void Next_ShouldReturnSameSequence_WhenUsingSameSeed()
+    [Test]
+    public async Task Next_ShouldReturnSameSequence_WhenUsingSameSeed()
     {
         // Arrange
         var random1 = new Random(42);
@@ -95,7 +93,7 @@ public class RandomExtensionsTests
         {
             var result1 = random1.Next(0f, 100f);
             var result2 = random2.Next(0f, 100f);
-            Assert.Equal(result1, result2);
+            await Assert.That(result2).IsEqualTo(result1);
         }
     }
 }

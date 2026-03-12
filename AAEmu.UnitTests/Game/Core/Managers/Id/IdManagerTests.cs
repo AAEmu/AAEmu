@@ -1,6 +1,4 @@
-﻿using AAEmu.Game.Core.Managers.Id;
-
-using Xunit;
+using AAEmu.Game.Core.Managers.Id;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.Id;
 
@@ -8,37 +6,31 @@ public class IdManagerTests
 {
     #region TheoryData for Parameterized Tests
 
-    /// <summary>
-    /// Provides test data for all ID managers with their first ID values.
-    /// </summary>
-    public static TheoryData<IIdManager, uint> IdManagerFirstIdData => new()
-    {
-        { CharacterIdManager.Instance, 0x00000001u },
-        { ItemIdManager.Instance, 0x01000000u },
-        { ObjectIdManager.Instance, 0x00000100u },
-        { DoodadIdManager.Instance, 0x00000001u },
-        { AuctionIdManager.Instance, 0x00000001u }
-    };
+    public static IEnumerable<(IIdManager, uint)> IdManagerFirstIdData() =>
+    [
+        (new CharacterIdManager(), 0x00000001u),
+        (new ItemIdManager(), 0x01000000u),
+        (new ObjectIdManager(), 0x00000100u),
+        (new DoodadIdManager(), 0x00000001u),
+        (new AuctionIdManager(), 0x00000001u),
+    ];
 
-    /// <summary>
-    /// Provides test data for all ID managers for uniqueness tests.
-    /// </summary>
-    public static TheoryData<IIdManager> IdManagerData => new()
-    {
-        CharacterIdManager.Instance,
-        ItemIdManager.Instance,
-        ObjectIdManager.Instance,
-        DoodadIdManager.Instance,
-        AuctionIdManager.Instance
-    };
+    public static IEnumerable<IIdManager> IdManagerData() =>
+    [
+        new CharacterIdManager(),
+        new ItemIdManager(),
+        new ObjectIdManager(),
+        new DoodadIdManager(),
+        new AuctionIdManager(),
+    ];
 
     #endregion
 
     #region GetNextId Tests
 
-    [Theory]
-    [MemberData(nameof(IdManagerFirstIdData))]
-    public void GetNextId_FirstCall_ReturnsFirstId(IIdManager manager, uint expectedFirstId)
+    [Test]
+    [MethodDataSource(nameof(IdManagerFirstIdData))]
+    public async Task GetNextId_FirstCall_ReturnsFirstId(IIdManager manager, uint expectedFirstId)
     {
         // Arrange
         manager.Initialize(true);
@@ -47,12 +39,12 @@ public class IdManagerTests
         var id = manager.GetNextId();
 
         // Assert
-        Assert.Equal(expectedFirstId, id);
+        await Assert.That(id).IsEqualTo(expectedFirstId);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void GetNextId_MultipleCalls_ReturnsSequentialIds(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task GetNextId_MultipleCalls_ReturnsSequentialIds(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -63,13 +55,13 @@ public class IdManagerTests
         var thirdId = manager.GetNextId();
 
         // Assert
-        Assert.Equal(firstId + 1, secondId);
-        Assert.Equal(firstId + 2, thirdId);
+        await Assert.That(secondId).IsEqualTo(firstId + 1);
+        await Assert.That(thirdId).IsEqualTo(firstId + 2);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void GetNextId_MultipleCalls_IdsAreUnique(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task GetNextId_MultipleCalls_IdsAreUnique(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -83,16 +75,16 @@ public class IdManagerTests
         }
 
         // Assert
-        Assert.Equal(count, ids.Count);
+        await Assert.That(ids.Count).IsEqualTo(count);
     }
 
     #endregion
 
     #region GetNextId(int count) Tests
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void GetNextId_WithCount_ReturnsArrayOfCorrectSize(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task GetNextId_WithCount_ReturnsArrayOfCorrectSize(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -102,13 +94,13 @@ public class IdManagerTests
         var ids = manager.GetNextId(count);
 
         // Assert
-        Assert.NotNull(ids);
-        Assert.Equal(count, ids.Length);
+        await Assert.That(ids).IsNotNull();
+        await Assert.That(ids.Length).IsEqualTo(count);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerFirstIdData))]
-    public void GetNextId_WithCount_ReturnsSequentialIds(IIdManager manager, uint expectedFirstId)
+    [Test]
+    [MethodDataSource(nameof(IdManagerFirstIdData))]
+    public async Task GetNextId_WithCount_ReturnsSequentialIds(IIdManager manager, uint expectedFirstId)
     {
         // Arrange
         manager.Initialize(true);
@@ -118,16 +110,16 @@ public class IdManagerTests
         var ids = manager.GetNextId(count);
 
         // Assert
-        Assert.Equal(expectedFirstId, ids[0]);
+        await Assert.That(ids[0]).IsEqualTo(expectedFirstId);
         for (var i = 1; i < count; i++)
         {
-            Assert.Equal(ids[i - 1] + 1, ids[i]);
+            await Assert.That(ids[i]).IsEqualTo(ids[i - 1] + 1);
         }
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void GetNextId_WithCount_AllIdsAreUnique(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task GetNextId_WithCount_AllIdsAreUnique(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -138,12 +130,12 @@ public class IdManagerTests
         var uniqueIds = new HashSet<uint>(ids);
 
         // Assert
-        Assert.Equal(count, uniqueIds.Count);
+        await Assert.That(uniqueIds.Count).IsEqualTo(count);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void GetNextId_ZeroCount_ReturnsEmptyArray(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task GetNextId_ZeroCount_ReturnsEmptyArray(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -152,13 +144,13 @@ public class IdManagerTests
         var ids = manager.GetNextId(0);
 
         // Assert
-        Assert.NotNull(ids);
-        Assert.Empty(ids);
+        await Assert.That(ids).IsNotNull();
+        await Assert.That(ids).IsEmpty();
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void GetNextId_SingleCount_ReturnsArrayWithOneElement(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task GetNextId_SingleCount_ReturnsArrayWithOneElement(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -167,17 +159,17 @@ public class IdManagerTests
         var ids = manager.GetNextId(1);
 
         // Assert
-        Assert.NotNull(ids);
-        Assert.Single(ids);
+        await Assert.That(ids).IsNotNull();
+        await Assert.That(ids).HasSingleItem();
     }
 
     #endregion
 
     #region ReleaseId Tests
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void ReleaseId_AfterGettingId_IdCanBeReused(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task ReleaseId_AfterGettingId_IdCanBeReused(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -189,13 +181,12 @@ public class IdManagerTests
         var newId = manager.GetNextId();
 
         // Assert
-        // The released ID should be the next one we get (smallest available)
-        Assert.Equal(id, newId);
+        await Assert.That(newId).IsEqualTo(id);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void ReleaseId_MultipleIds_ReleasedInReverseOrder(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task ReleaseId_MultipleIds_ReleasedInReverseOrder(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -209,13 +200,13 @@ public class IdManagerTests
         manager.ReleaseId(id1);
 
         // Assert - Should get the smallest released ID first
-        Assert.Equal(id1, manager.GetNextId());
-        Assert.Equal(id2, manager.GetNextId());
-        Assert.Equal(id3, manager.GetNextId());
+        await Assert.That(manager.GetNextId()).IsEqualTo(id1);
+        await Assert.That(manager.GetNextId()).IsEqualTo(id2);
+        await Assert.That(manager.GetNextId()).IsEqualTo(id3);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
     public void ReleaseId_InvalidId_DoesNotThrow(IIdManager manager)
     {
         // Arrange
@@ -226,9 +217,9 @@ public class IdManagerTests
         manager.ReleaseId(uint.MaxValue);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void ReleaseId_MultipleIdsViaEnumerable_AllReleased(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task ReleaseId_MultipleIdsViaEnumerable_AllReleased(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -246,287 +237,255 @@ public class IdManagerTests
         }
 
         // All original IDs should be in the new IDs
-        Assert.Subset(new HashSet<uint>(newIds), new HashSet<uint>(ids));
+        await Assert.That(ids.All(newIds.Contains)).IsTrue();
     }
 
     #endregion
 
     #region Specific Manager Tests - CharacterIdManager
 
-    [Fact]
-    public void CharacterIdManager_GetNextId_ReturnsCorrectFirstId()
+    [Test]
+    public async Task CharacterIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        // Arrange
-        CharacterIdManager.Instance.Initialize(true);
+        var manager = new CharacterIdManager();
+        manager.Initialize(true);
         const uint expectedFirstId = 0x00000001u;
 
-        // Act
-        var id = CharacterIdManager.Instance.GetNextId();
+        var id = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(expectedFirstId, id);
+        await Assert.That(id).IsEqualTo(expectedFirstId);
     }
 
-    [Fact]
-    public void CharacterIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
+    [Test]
+    public async Task CharacterIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        // Arrange
-        CharacterIdManager.Instance.Initialize(true);
+        var manager = new CharacterIdManager();
+        manager.Initialize(true);
 
-        // Act
-        var id1 = CharacterIdManager.Instance.GetNextId();
-        var id2 = CharacterIdManager.Instance.GetNextId();
-        var id3 = CharacterIdManager.Instance.GetNextId();
+        var id1 = manager.GetNextId();
+        var id2 = manager.GetNextId();
+        var id3 = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(0x00000001u, id1);
-        Assert.Equal(0x00000002u, id2);
-        Assert.Equal(0x00000003u, id3);
+        await Assert.That(id1).IsEqualTo(0x00000001u);
+        await Assert.That(id2).IsEqualTo(0x00000002u);
+        await Assert.That(id3).IsEqualTo(0x00000003u);
     }
 
-    [Fact]
-    public void CharacterIdManager_ReleaseId_MakesIdAvailable()
+    [Test]
+    public async Task CharacterIdManager_ReleaseId_MakesIdAvailable()
     {
-        // Arrange
-        CharacterIdManager.Instance.Initialize(true);
-        var id = CharacterIdManager.Instance.GetNextId();
-        CharacterIdManager.Instance.GetNextId();
+        var manager = new CharacterIdManager();
+        manager.Initialize(true);
+        var id = manager.GetNextId();
+        manager.GetNextId();
 
-        // Act
-        CharacterIdManager.Instance.ReleaseId(id);
-        var reusedId = CharacterIdManager.Instance.GetNextId();
+        manager.ReleaseId(id);
+        var reusedId = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(id, reusedId);
+        await Assert.That(reusedId).IsEqualTo(id);
     }
 
     #endregion
 
     #region Specific Manager Tests - ItemIdManager
 
-    [Fact]
-    public void ItemIdManager_GetNextId_ReturnsCorrectFirstId()
+    [Test]
+    public async Task ItemIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        // Arrange
-        ItemIdManager.Instance.Initialize(true);
+        var manager = new ItemIdManager();
+        manager.Initialize(true);
         const uint expectedFirstId = 0x01000000u;
 
-        // Act
-        var id = ItemIdManager.Instance.GetNextId();
+        var id = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(expectedFirstId, id);
+        await Assert.That(id).IsEqualTo(expectedFirstId);
     }
 
-    [Fact]
-    public void ItemIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
+    [Test]
+    public async Task ItemIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        // Arrange
-        ItemIdManager.Instance.Initialize(true);
+        var manager = new ItemIdManager();
+        manager.Initialize(true);
 
-        // Act
-        var id1 = ItemIdManager.Instance.GetNextId();
-        var id2 = ItemIdManager.Instance.GetNextId();
-        var id3 = ItemIdManager.Instance.GetNextId();
+        var id1 = manager.GetNextId();
+        var id2 = manager.GetNextId();
+        var id3 = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(0x01000000u, id1);
-        Assert.Equal(0x01000001u, id2);
-        Assert.Equal(0x01000002u, id3);
+        await Assert.That(id1).IsEqualTo(0x01000000u);
+        await Assert.That(id2).IsEqualTo(0x01000001u);
+        await Assert.That(id3).IsEqualTo(0x01000002u);
     }
 
-    [Fact]
-    public void ItemIdManager_ReleaseId_MakesIdAvailable()
+    [Test]
+    public async Task ItemIdManager_ReleaseId_MakesIdAvailable()
     {
-        // Arrange
-        ItemIdManager.Instance.Initialize(true);
-        var id = ItemIdManager.Instance.GetNextId();
-        ItemIdManager.Instance.GetNextId();
+        var manager = new ItemIdManager();
+        manager.Initialize(true);
+        var id = manager.GetNextId();
+        manager.GetNextId();
 
-        // Act
-        ItemIdManager.Instance.ReleaseId(id);
-        var reusedId = ItemIdManager.Instance.GetNextId();
+        manager.ReleaseId(id);
+        var reusedId = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(id, reusedId);
+        await Assert.That(reusedId).IsEqualTo(id);
     }
 
     #endregion
 
     #region Specific Manager Tests - ObjectIdManager
 
-    [Fact]
-    public void ObjectIdManager_GetNextId_ReturnsCorrectFirstId()
+    [Test]
+    public async Task ObjectIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        // Arrange
-        ObjectIdManager.Instance.Initialize(true);
+        var manager = new ObjectIdManager();
+        manager.Initialize(true);
         const uint expectedFirstId = 0x00000100u;
 
-        // Act
-        var id = ObjectIdManager.Instance.GetNextId();
+        var id = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(expectedFirstId, id);
+        await Assert.That(id).IsEqualTo(expectedFirstId);
     }
 
-    [Fact]
-    public void ObjectIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
+    [Test]
+    public async Task ObjectIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        // Arrange
-        ObjectIdManager.Instance.Initialize(true);
+        var manager = new ObjectIdManager();
+        manager.Initialize(true);
 
-        // Act
-        var id1 = ObjectIdManager.Instance.GetNextId();
-        var id2 = ObjectIdManager.Instance.GetNextId();
-        var id3 = ObjectIdManager.Instance.GetNextId();
+        var id1 = manager.GetNextId();
+        var id2 = manager.GetNextId();
+        var id3 = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(0x00000100u, id1);
-        Assert.Equal(0x00000101u, id2);
-        Assert.Equal(0x00000102u, id3);
+        await Assert.That(id1).IsEqualTo(0x00000100u);
+        await Assert.That(id2).IsEqualTo(0x00000101u);
+        await Assert.That(id3).IsEqualTo(0x00000102u);
     }
 
-    [Fact]
-    public void ObjectIdManager_ReleaseId_MakesIdAvailable()
+    [Test]
+    public async Task ObjectIdManager_ReleaseId_MakesIdAvailable()
     {
-        // Arrange
-        ObjectIdManager.Instance.Initialize(true);
-        var id = ObjectIdManager.Instance.GetNextId();
-        ObjectIdManager.Instance.GetNextId();
+        var manager = new ObjectIdManager();
+        manager.Initialize(true);
+        var id = manager.GetNextId();
+        manager.GetNextId();
 
-        // Act
-        ObjectIdManager.Instance.ReleaseId(id);
-        var reusedId = ObjectIdManager.Instance.GetNextId();
+        manager.ReleaseId(id);
+        var reusedId = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(id, reusedId);
+        await Assert.That(reusedId).IsEqualTo(id);
     }
 
-    [Fact]
-    public void ObjectIdManager_GetNextId_Multiple_ReturnsArray()
+    [Test]
+    public async Task ObjectIdManager_GetNextId_Multiple_ReturnsArray()
     {
-        // Arrange
-        ObjectIdManager.Instance.Initialize(true);
+        var manager = new ObjectIdManager();
+        manager.Initialize(true);
         const uint firstId = 0x00000100u;
 
-        // Act
-        var ids = ObjectIdManager.Instance.GetNextId(10);
+        var ids = manager.GetNextId(10);
 
-        // Assert
-        Assert.Equal(10, ids.Length);
-        Assert.Equal(firstId, ids[0]);
-        Assert.Equal(firstId + 9, ids[9]);
+        await Assert.That(ids.Length).IsEqualTo(10);
+        await Assert.That(ids[0]).IsEqualTo(firstId);
+        await Assert.That(ids[9]).IsEqualTo(firstId + 9);
     }
 
     #endregion
 
     #region Specific Manager Tests - DoodadIdManager
 
-    [Fact]
-    public void DoodadIdManager_GetNextId_ReturnsCorrectFirstId()
+    [Test]
+    public async Task DoodadIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        // Arrange
-        DoodadIdManager.Instance.Initialize(true);
+        var manager = new DoodadIdManager();
+        manager.Initialize(true);
         const uint expectedFirstId = 0x00000001u;
 
-        // Act
-        var id = DoodadIdManager.Instance.GetNextId();
+        var id = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(expectedFirstId, id);
+        await Assert.That(id).IsEqualTo(expectedFirstId);
     }
 
-    [Fact]
-    public void DoodadIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
+    [Test]
+    public async Task DoodadIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        // Arrange
-        DoodadIdManager.Instance.Initialize(true);
+        var manager = new DoodadIdManager();
+        manager.Initialize(true);
 
-        // Act
-        var id1 = DoodadIdManager.Instance.GetNextId();
-        var id2 = DoodadIdManager.Instance.GetNextId();
-        var id3 = DoodadIdManager.Instance.GetNextId();
+        var id1 = manager.GetNextId();
+        var id2 = manager.GetNextId();
+        var id3 = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(0x00000001u, id1);
-        Assert.Equal(0x00000002u, id2);
-        Assert.Equal(0x00000003u, id3);
+        await Assert.That(id1).IsEqualTo(0x00000001u);
+        await Assert.That(id2).IsEqualTo(0x00000002u);
+        await Assert.That(id3).IsEqualTo(0x00000003u);
     }
 
-    [Fact]
-    public void DoodadIdManager_ReleaseId_MakesIdAvailable()
+    [Test]
+    public async Task DoodadIdManager_ReleaseId_MakesIdAvailable()
     {
-        // Arrange
-        DoodadIdManager.Instance.Initialize(true);
-        var id = DoodadIdManager.Instance.GetNextId();
-        DoodadIdManager.Instance.GetNextId();
+        var manager = new DoodadIdManager();
+        manager.Initialize(true);
+        var id = manager.GetNextId();
+        manager.GetNextId();
 
-        // Act
-        DoodadIdManager.Instance.ReleaseId(id);
-        var reusedId = DoodadIdManager.Instance.GetNextId();
+        manager.ReleaseId(id);
+        var reusedId = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(id, reusedId);
+        await Assert.That(reusedId).IsEqualTo(id);
     }
 
     #endregion
 
     #region Specific Manager Tests - AuctionIdManager
 
-    [Fact]
-    public void AuctionIdManager_GetNextId_ReturnsCorrectFirstId()
+    [Test]
+    public async Task AuctionIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        // Arrange
-        AuctionIdManager.Instance.Initialize(true);
+        var manager = new AuctionIdManager();
+        manager.Initialize(true);
         const uint expectedFirstId = 0x00000001u;
 
-        // Act
-        var id = AuctionIdManager.Instance.GetNextId();
+        var id = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(expectedFirstId, id);
+        await Assert.That(id).IsEqualTo(expectedFirstId);
     }
 
-    [Fact]
-    public void AuctionIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
+    [Test]
+    public async Task AuctionIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        // Arrange
-        AuctionIdManager.Instance.Initialize(true);
+        var manager = new AuctionIdManager();
+        manager.Initialize(true);
 
-        // Act
-        var id1 = AuctionIdManager.Instance.GetNextId();
-        var id2 = AuctionIdManager.Instance.GetNextId();
-        var id3 = AuctionIdManager.Instance.GetNextId();
+        var id1 = manager.GetNextId();
+        var id2 = manager.GetNextId();
+        var id3 = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(0x00000001u, id1);
-        Assert.Equal(0x00000002u, id2);
-        Assert.Equal(0x00000003u, id3);
+        await Assert.That(id1).IsEqualTo(0x00000001u);
+        await Assert.That(id2).IsEqualTo(0x00000002u);
+        await Assert.That(id3).IsEqualTo(0x00000003u);
     }
 
-    [Fact]
-    public void AuctionIdManager_ReleaseId_MakesIdAvailable()
+    [Test]
+    public async Task AuctionIdManager_ReleaseId_MakesIdAvailable()
     {
-        // Arrange
-        AuctionIdManager.Instance.Initialize(true);
-        var id = AuctionIdManager.Instance.GetNextId();
-        AuctionIdManager.Instance.GetNextId();
+        var manager = new AuctionIdManager();
+        manager.Initialize(true);
+        var id = manager.GetNextId();
+        manager.GetNextId();
 
-        // Act
-        AuctionIdManager.Instance.ReleaseId(id);
-        var reusedId = AuctionIdManager.Instance.GetNextId();
+        manager.ReleaseId(id);
+        var reusedId = manager.GetNextId();
 
-        // Assert
-        Assert.Equal(id, reusedId);
+        await Assert.That(reusedId).IsEqualTo(id);
     }
 
     #endregion
 
     #region Edge Cases and Stress Tests
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void GetNextId_LargeNumberOfCalls_AllIdsUnique(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task GetNextId_LargeNumberOfCalls_AllIdsUnique(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -540,12 +499,12 @@ public class IdManagerTests
         }
 
         // Assert
-        Assert.Equal(count, ids.Count);
+        await Assert.That(ids.Count).IsEqualTo(count);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void Initialize_MultipleCalls_DoesNotResetIds(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task Initialize_MultipleCalls_DoesNotResetIds(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -556,13 +515,13 @@ public class IdManagerTests
         var id2 = manager.GetNextId();
 
         // Assert
-        Assert.NotEqual(id1, id2);
-        Assert.Equal(id1 + 1, id2);
+        await Assert.That(id2).IsNotEqualTo(id1);
+        await Assert.That(id2).IsEqualTo(id1 + 1);
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void Initialize_ForceReset_ResetsIds(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task Initialize_ForceReset_ResetsIds(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -575,12 +534,12 @@ public class IdManagerTests
         var id = manager.GetNextId();
 
         // Assert - Should start from first ID again
-        Assert.True(id <= 0x01000001u); // Will be FirstId of the manager
+        await Assert.That(id <= 0x01000001u).IsTrue(); // Will be FirstId of the manager
     }
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void ReleaseAndGet_ManyIds_CorrectlyRecycles(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task ReleaseAndGet_ManyIds_CorrectlyRecycles(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -593,19 +552,19 @@ public class IdManagerTests
         }
 
         // Get the same number of IDs
-        var newIds = manager.GetNextId(50);
+        var newIds = manager.GetNextId(50).ToHashSet();
 
         // Assert - All original IDs should be reused (possibly in different order)
-        Assert.Equal(new HashSet<uint>(ids), new HashSet<uint>(newIds));
+        await Assert.That(newIds.SetEquals(ids)).IsTrue();
     }
 
     #endregion
 
     #region Integration Scenarios
 
-    [Theory]
-    [MemberData(nameof(IdManagerData))]
-    public void MixedOperations_ReleaseAndGet_MaintainsConsistency(IIdManager manager)
+    [Test]
+    [MethodDataSource(nameof(IdManagerData))]
+    public async Task MixedOperations_ReleaseAndGet_MaintainsConsistency(IIdManager manager)
     {
         // Arrange
         manager.Initialize(true);
@@ -632,53 +591,57 @@ public class IdManagerTests
 
         // Assert - New IDs should include the released ones
         var releasedIds = allIds.Where((_, i) => i % 2 == 0).ToHashSet();
-        Assert.Subset(releasedIds, newIds.ToHashSet());
+        await Assert.That(newIds.All(releasedIds.Contains)).IsTrue();
     }
 
-    [Fact]
-    public void AllManagers_Initialized_SimultaneousUse()
+    [Test]
+    public async Task AllManagers_Initialized_SimultaneousUse()
     {
         // Arrange
-        CharacterIdManager.Instance.Initialize(true);
-        ItemIdManager.Instance.Initialize(true);
-        ObjectIdManager.Instance.Initialize(true);
-        DoodadIdManager.Instance.Initialize(true);
-        AuctionIdManager.Instance.Initialize(true);
+        var charMgr = new CharacterIdManager();
+        var itemMgr = new ItemIdManager();
+        var objMgr = new ObjectIdManager();
+        var doodadMgr = new DoodadIdManager();
+        var auctionMgr = new AuctionIdManager();
+        charMgr.Initialize(true);
+        itemMgr.Initialize(true);
+        objMgr.Initialize(true);
+        doodadMgr.Initialize(true);
+        auctionMgr.Initialize(true);
 
         // Act
-        var charId = CharacterIdManager.Instance.GetNextId();
-        var itemId = ItemIdManager.Instance.GetNextId();
-        var objId = ObjectIdManager.Instance.GetNextId();
-        var doodadId = DoodadIdManager.Instance.GetNextId();
-        var auctionId = AuctionIdManager.Instance.GetNextId();
+        var charId = charMgr.GetNextId();
+        var itemId = itemMgr.GetNextId();
+        var objId = objMgr.GetNextId();
+        var doodadId = doodadMgr.GetNextId();
+        var auctionId = auctionMgr.GetNextId();
 
         // Assert - Each manager should return their respective first IDs
-        Assert.Equal(0x00000001u, charId);
-        Assert.Equal(0x01000000u, itemId);
-        Assert.Equal(0x00000100u, objId);
-        Assert.Equal(0x00000001u, doodadId);
-        Assert.Equal(0x00000001u, auctionId);
+        await Assert.That(charId).IsEqualTo(0x00000001u);
+        await Assert.That(itemId).IsEqualTo(0x01000000u);
+        await Assert.That(objId).IsEqualTo(0x00000100u);
+        await Assert.That(doodadId).IsEqualTo(0x00000001u);
+        await Assert.That(auctionId).IsEqualTo(0x00000001u);
     }
 
-    [Fact]
-    public void AllManagers_ReleaseId_IndependentlyManaged()
+    [Test]
+    public async Task AllManagers_ReleaseId_IndependentlyManaged()
     {
         // Arrange
-        CharacterIdManager.Instance.Initialize(true);
-        ItemIdManager.Instance.Initialize(true);
-        ObjectIdManager.Instance.Initialize(true);
-        DoodadIdManager.Instance.Initialize(true);
-        AuctionIdManager.Instance.Initialize(true);
+        var charMgr = new CharacterIdManager();
+        var itemMgr = new ItemIdManager();
+        charMgr.Initialize(true);
+        itemMgr.Initialize(true);
 
-        var charId = CharacterIdManager.Instance.GetNextId();
-        var itemId = ItemIdManager.Instance.GetNextId();
+        var charId = charMgr.GetNextId();
+        var itemId = itemMgr.GetNextId();
 
         // Act
-        CharacterIdManager.Instance.ReleaseId(charId);
+        charMgr.ReleaseId(charId);
 
         // Assert - Only CharacterIdManager should reuse the ID
-        Assert.Equal(charId, CharacterIdManager.Instance.GetNextId());
-        Assert.NotEqual(itemId, ItemIdManager.Instance.GetNextId());
+        await Assert.That(charMgr.GetNextId()).IsEqualTo(charId);
+        await Assert.That(itemMgr.GetNextId()).IsNotEqualTo(itemId);
     }
 
     #endregion

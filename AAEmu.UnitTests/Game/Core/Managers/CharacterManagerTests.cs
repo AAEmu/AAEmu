@@ -2,27 +2,25 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class CharacterManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
-        var mockWorld = new Mock<IWorldManager>();
-        var mockAccount = new Mock<IAccountManager>();
-        var mockName = new Mock<INameManager>();
-        var mockCharId = new Mock<ICharacterIdManager>();
-        var mockFaction = new Mock<IFactionManager>();
-        var mockSkill = new Mock<ISkillManager>();
-        var mockItem = new Mock<IItemManager>();
-        var mockHousing = new Mock<IHousingManager>();
-        var mockFamily = new Mock<IFamilyManager>();
-        var mockMail = new Mock<IMailManager>();
-        var mockTask = new Mock<ITaskManager>();
+        var mockWorld = Mock.Of<IWorldManager>();
+        var mockAccount = Mock.Of<IAccountManager>();
+        var mockName = Mock.Of<INameManager>();
+        var mockCharId = Mock.Of<ICharacterIdManager>();
+        var mockFaction = Mock.Of<IFactionManager>();
+        var mockSkill = Mock.Of<ISkillManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockFamily = Mock.Of<IFamilyManager>();
+        var mockMail = Mock.Of<IMailManager>();
+        var mockTask = Mock.Of<ITaskManager>();
 
         var manager = new CharacterManager(
             mockWorld.Object,
@@ -37,17 +35,17 @@ public class CharacterManagerTests
             mockMail.Object,
             mockTask.Object);
 
-        Assert.NotNull(manager);
-        mockWorld.VerifyNoOtherCalls();
-        mockAccount.VerifyNoOtherCalls();
-        mockName.VerifyNoOtherCalls();
-        mockCharId.VerifyNoOtherCalls();
-        mockFaction.VerifyNoOtherCalls();
-        mockSkill.VerifyNoOtherCalls();
-        mockItem.VerifyNoOtherCalls();
-        mockHousing.VerifyNoOtherCalls();
-        mockFamily.VerifyNoOtherCalls();
-        mockMail.VerifyNoOtherCalls();
-        mockTask.VerifyNoOtherCalls();
+        await Assert.That(manager).IsNotNull();
+        Mock.VerifyNoOtherCalls(mockWorld);
+        Mock.VerifyNoOtherCalls(mockAccount);
+        Mock.VerifyNoOtherCalls(mockName);
+        Mock.VerifyNoOtherCalls(mockCharId);
+        Mock.VerifyNoOtherCalls(mockFaction);
+        Mock.VerifyNoOtherCalls(mockSkill);
+        Mock.VerifyNoOtherCalls(mockItem);
+        Mock.VerifyNoOtherCalls(mockHousing);
+        Mock.VerifyNoOtherCalls(mockFamily);
+        Mock.VerifyNoOtherCalls(mockMail);
+        Mock.VerifyNoOtherCalls(mockTask);
     }
 }

@@ -1,5 +1,4 @@
 using AAEmu.Game.GameData;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.GameData;
 
@@ -8,24 +7,18 @@ namespace AAEmu.UnitTests.Game.GameData;
 /// </summary>
 public class NpcGameDataTests
 {
-    [Fact]
-    public void Instance_ReturnsSingleton()
+    [Test]
+    public async Task CanCreateInstance()
     {
-        // Arrange & Act
-        var instance1 = NpcGameData.Instance;
-        var instance2 = NpcGameData.Instance;
-
-        // Assert
-        Assert.Same(instance1, instance2);
+        var instance = new NpcGameData();
+        await Assert.That(instance).IsNotNull();
     }
 
-    [Fact]
-    public void Instance_IsNotNull()
+    [Test]
+    public async Task NewInstances_AreIndependent()
     {
-        // Arrange & Act
-        var instance = NpcGameData.Instance;
-
-        // Assert
-        Assert.NotNull(instance);
+        var instance1 = new NpcGameData();
+        var instance2 = new NpcGameData();
+        await Assert.That(instance2).IsNotSameReferenceAs(instance1);
     }
 }

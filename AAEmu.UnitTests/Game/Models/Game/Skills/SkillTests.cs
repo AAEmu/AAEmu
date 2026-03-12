@@ -2,33 +2,30 @@
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using Moq;
-using Xunit;
-
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
 public class SkillTests
 {
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_Default_CreatesSkillWithDefaultValues()
+    [Test]
+    public async Task Constructor_Default_CreatesSkillWithDefaultValues()
     {
         // Act
         var skill = new Skill();
 
         // Assert
-        Assert.NotNull(skill);
-        Assert.Equal(0u, skill.Id);
-        Assert.Null(skill.Template);
-        Assert.Equal(0, skill.Level);
-        Assert.Equal(0, skill.TlId);
-        Assert.NotNull(skill.HitTypes);
-        Assert.Empty(skill.HitTypes);
+        await Assert.That(skill).IsNotNull();
+        await Assert.That(skill.Id).IsEqualTo(0u);
+        await Assert.That(skill.Template).IsNull();
+        await Assert.That(skill.Level).IsEqualTo((byte)0);
+        await Assert.That(skill.TlId).IsEqualTo((byte)0);
+        await Assert.That(skill.HitTypes).IsNotNull();
+        await Assert.That(skill.HitTypes).IsEmpty();
     }
 
-    [Fact]
-    public void Constructor_WithTemplateAndOwner_CreatesSkillWithValues()
+    [Test]
+    public async Task Constructor_WithTemplateAndOwner_CreatesSkillWithValues()
     {
         // Arrange
         var template = new SkillTemplate
@@ -39,21 +36,20 @@ public class SkillTests
             LevelStep = 1
         };
 
-        var mockOwner = new Mock<Unit>();
-        mockOwner.Setup(o => o.GetAbLevel(AbilityType.Fight)).Returns(5);
+        var stubOwner = new StubUnit(AbilityType.Fight, 5);
 
         // Act
-        var skill = new Skill(template, mockOwner.Object);
+        var skill = new Skill(template, stubOwner);
 
         // Assert
-        Assert.NotNull(skill);
-        Assert.Equal(100u, skill.Id);
-        Assert.Equal(template, skill.Template);
-        Assert.Equal(5, skill.Level); // (5 - 1) / 1 + 1 = 5
+        await Assert.That(skill).IsNotNull();
+        await Assert.That(skill.Id).IsEqualTo(100u);
+        await Assert.That(skill.Template).IsEqualTo(template);
+        await Assert.That(skill.Level).IsEqualTo((byte)5); // (5 - 1) / 1 + 1 = 5
     }
 
-    [Fact]
-    public void Constructor_WithTemplateAndNoOwner_SetsLevelToOne()
+    [Test]
+    public async Task Constructor_WithTemplateAndNoOwner_SetsLevelToOne()
     {
         // Arrange
         var template = new SkillTemplate
@@ -65,16 +61,16 @@ public class SkillTests
         var skill = new Skill(template, null);
 
         // Assert
-        Assert.Equal(200u, skill.Id);
-        Assert.Equal(1, skill.Level);
+        await Assert.That(skill.Id).IsEqualTo(200u);
+        await Assert.That(skill.Level).IsEqualTo((byte)1);
     }
 
     #endregion
 
     #region Property Tests
 
-    [Fact]
-    public void Id_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Id_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var skill = new Skill();
@@ -83,11 +79,11 @@ public class SkillTests
         skill.Id = 123u;
 
         // Assert
-        Assert.Equal(123u, skill.Id);
+        await Assert.That(skill.Id).IsEqualTo(123u);
     }
 
-    [Fact]
-    public void Level_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Level_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var skill = new Skill();
@@ -96,11 +92,11 @@ public class SkillTests
         skill.Level = 5;
 
         // Assert
-        Assert.Equal(5, skill.Level);
+        await Assert.That(skill.Level).IsEqualTo((byte)5);
     }
 
-    [Fact]
-    public void TlId_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task TlId_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var skill = new Skill();
@@ -109,11 +105,11 @@ public class SkillTests
         skill.TlId = 456;
 
         // Assert
-        Assert.Equal(456, skill.TlId);
+        await Assert.That(skill.TlId).IsEqualTo((ushort)456);
     }
 
-    [Fact]
-    public void CastTimeMultiplier_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task CastTimeMultiplier_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var skill = new Skill();
@@ -122,15 +118,15 @@ public class SkillTests
         skill.CastTimeMultiplier = 1.5f;
 
         // Assert
-        Assert.Equal(1.5f, skill.CastTimeMultiplier);
+        await Assert.That(skill.CastTimeMultiplier).IsEqualTo(1.5f);
     }
 
     #endregion
 
     #region HitTypes Tests
 
-    [Fact]
-    public void HitTypes_AddAndRetrieve_ReturnsCorrectValue()
+    [Test]
+    public async Task HitTypes_AddAndRetrieve_ReturnsCorrectValue()
     {
         // Arrange
         var skill = new Skill();
@@ -139,7 +135,7 @@ public class SkillTests
         skill.HitTypes[1] = SkillHitType.MeleeHit;
 
         // Assert
-        Assert.Equal(SkillHitType.MeleeHit, skill.HitTypes[1]);
+        await Assert.That(skill.HitTypes[1]).IsEqualTo(SkillHitType.MeleeHit);
     }
 
     #endregion
@@ -152,8 +148,8 @@ public class SkillTests
 
     #region Cancelled Tests
 
-    [Fact]
-    public void Cancelled_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Cancelled_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var skill = new Skill();
@@ -162,15 +158,15 @@ public class SkillTests
         skill.Cancelled = true;
 
         // Assert
-        Assert.True(skill.Cancelled);
+        await Assert.That(skill.Cancelled).IsTrue();
     }
 
     #endregion
 
     #region Callback Tests
 
-    [Fact]
-    public void Callback_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task Callback_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var skill = new Skill();
@@ -182,7 +178,7 @@ public class SkillTests
         skill.Callback?.Invoke();
 
         // Assert
-        Assert.True(callbackCalled);
+        await Assert.That(callbackCalled).IsTrue();
     }
 
     #endregion
@@ -191,39 +187,39 @@ public class SkillTests
 
     // Testing Use method requires extensive mocking, so basic tests
 
-    [Fact]
-    public void Use_WithNonUnitCaster_ReturnsInvalidSource()
+    [Test]
+    public async Task Use_WithNonUnitCaster_ReturnsInvalidSource()
     {
         // Arrange
         var skill = new Skill();
-        var mockCaster = new Mock<BaseUnit>();
+        var mockCaster = new BaseUnit();
         var casterCaster = new SkillCasterUnit();
         var targetCaster = new SkillCastUnitTarget();
 
         // Act
-        var result = skill.Use(mockCaster.Object, casterCaster, targetCaster, null, false, out var value);
+        var result = skill.Use(mockCaster, casterCaster, targetCaster, null, false, out var value);
 
         // Assert
-        Assert.Equal(SkillResult.InvalidSource, result);
+        await Assert.That(result).IsEqualTo(SkillResult.InvalidSource);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Fact]
-    public void Constructor_WithNullTemplate_DoesNotThrow()
+    [Test]
+    public async Task Constructor_WithNullTemplate_DoesNotThrow()
     {
         // Act
         var skill = new Skill(null, null);
 
         // Assert
-        Assert.NotNull(skill);
-        Assert.Equal(0u, skill.Id);
+        await Assert.That(skill).IsNotNull();
+        await Assert.That(skill.Id).IsEqualTo(0u);
     }
 
-    [Fact]
-    public void Level_WithZeroAbilityLevel_CalculatesCorrectly()
+    [Test]
+    public async Task Level_WithZeroAbilityLevel_CalculatesCorrectly()
     {
         // Arrange
         var template = new SkillTemplate
@@ -234,15 +230,29 @@ public class SkillTests
             LevelStep = 2
         };
 
-        var mockOwner = new Mock<Unit>();
-        mockOwner.Setup(o => o.GetAbLevel(AbilityType.Fight)).Returns(10);
+        var stubOwner = new StubUnit(AbilityType.Fight, 10);
 
         // Act
-        var skill = new Skill(template, mockOwner.Object);
+        var skill = new Skill(template, stubOwner);
 
         // Assert
-        Assert.Equal(6, skill.Level); // (10 - 0) / 2 + 1 = 6
+        await Assert.That(skill.Level).IsEqualTo((byte)6); // (10 - 0) / 2 + 1 = 6
     }
 
     #endregion
+
+    private sealed class StubUnit : Unit
+    {
+        private readonly AbilityType _abilityType;
+        private readonly int _level;
+
+        public StubUnit(AbilityType abilityType, int level)
+        {
+            _abilityType = abilityType;
+            _level = level;
+        }
+
+        public override int GetAbLevel(AbilityType type) =>
+            type == _abilityType ? _level : base.GetAbLevel(type);
+    }
 }

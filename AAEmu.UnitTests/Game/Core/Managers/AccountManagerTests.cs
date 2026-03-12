@@ -1,33 +1,31 @@
 using AAEmu.Game.Core.Managers;
-using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class AccountManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
-        var mockTick = new Mock<ITickManager>();
-        var mockTimedRewards = new Mock<ITimedRewardsManager>();
+        var mockTick = Mock.Of<ITickManager>();
+        var mockTimedRewards = Mock.Of<ITimedRewardsManager>();
 
         var manager = new AccountManager(mockTick.Object, mockTimedRewards.Object);
 
-        Assert.NotNull(manager);
-        mockTick.VerifyNoOtherCalls();
-        mockTimedRewards.VerifyNoOtherCalls();
+        await Assert.That(manager).IsNotNull();
+        Mock.VerifyNoOtherCalls(mockTick);
+        Mock.VerifyNoOtherCalls(mockTimedRewards);
     }
 
-    [Fact]
+    [Test]
     public void Initialize_AccessesOnTickProperty()
     {
-        var mockTick = new Mock<ITickManager>();
-        mockTick.Setup(t => t.OnTick).Returns(new TickManager.TickEventHandler());
+        var mockTick = Mock.Of<ITickManager>();
+        mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
-        var manager = new AccountManager(mockTick.Object, new Mock<ITimedRewardsManager>().Object);
+        var manager = new AccountManager(mockTick.Object, Mock.Of<ITimedRewardsManager>().Object);
         manager.Initialize();
 
-        mockTick.Verify(t => t.OnTick, Times.Once);
+        mockTick.OnTick.WasCalled(Times.Once);
     }
 }

@@ -1,24 +1,22 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class TeamManagerTests
 {
-    [Fact]
-    public void Constructor_DoesNotCallDeps()
+    [Test]
+    public async Task Constructor_DoesNotCallDeps()
     {
-        var mockWorld = new Mock<IWorldManager>();
-        var mockChat = new Mock<IChatManager>();
-        var mockTeamId = new Mock<ITeamIdManager>();
+        var mockWorld = Mock.Of<IWorldManager>();
+        var mockChat = Mock.Of<IChatManager>();
+        var mockTeamId = Mock.Of<ITeamIdManager>();
         var manager = new TeamManager(mockWorld.Object, mockChat.Object, mockTeamId.Object);
 
-        Assert.NotNull(manager);
-        mockWorld.VerifyNoOtherCalls();
-        mockChat.VerifyNoOtherCalls();
-        mockTeamId.VerifyNoOtherCalls();
+        await Assert.That(manager).IsNotNull();
+        Mock.VerifyNoOtherCalls(mockWorld);
+        Mock.VerifyNoOtherCalls(mockChat);
+        Mock.VerifyNoOtherCalls(mockTeamId);
     }
 }

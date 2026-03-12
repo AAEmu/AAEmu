@@ -1,4 +1,3 @@
-using Xunit;
 
 using AAEmu.Game.Models.Game.World;
 
@@ -6,32 +5,32 @@ namespace AAEmu.UnitTests.Game.Models.Game.World;
 
 public class WorldPosTests
 {
-    [Fact]
-    public void Constructor_ShouldInitializeProperties()
+    [Test]
+    public async Task Constructor_ShouldInitializeProperties()
     {
         // Arrange & Act
         var pos = new WorldPos(100, 200, 50.5f);
 
         // Assert
-        Assert.Equal(100, pos.X);
-        Assert.Equal(200, pos.Y);
-        Assert.Equal(50.5f, pos.Z);
+        await Assert.That(pos.X).IsEqualTo(100);
+        await Assert.That(pos.Y).IsEqualTo(200);
+        await Assert.That(pos.Z).IsEqualTo(50.5f);
     }
 
-    [Fact]
-    public void DefaultConstructor_ShouldInitializeToZero()
+    [Test]
+    public async Task DefaultConstructor_ShouldInitializeToZero()
     {
         // Arrange & Act
         var pos = new WorldPos();
 
         // Assert
-        Assert.Equal(0, pos.X);
-        Assert.Equal(0, pos.Y);
-        Assert.Equal(0f, pos.Z);
+        await Assert.That(pos.X).IsEqualTo(0);
+        await Assert.That(pos.Y).IsEqualTo(0);
+        await Assert.That(pos.Z).IsEqualTo(0f);
     }
 
-    [Fact]
-    public void Clone_ShouldReturnNewInstanceWithSameValues()
+    [Test]
+    public async Task Clone_ShouldReturnNewInstanceWithSameValues()
     {
         // Arrange
         var original = new WorldPos(100, 200, 50.5f);
@@ -40,18 +39,18 @@ public class WorldPosTests
         var clone = original.Clone();
 
         // Assert
-        Assert.NotSame(original, clone);
-        Assert.Equal(original.X, clone.X);
-        Assert.Equal(original.Y, clone.Y);
-        Assert.Equal(original.Z, clone.Z);
+        await Assert.That(clone).IsNotSameReferenceAs(original);
+        await Assert.That(clone.X).IsEqualTo(original.X);
+        await Assert.That(clone.Y).IsEqualTo(original.Y);
+        await Assert.That(clone.Z).IsEqualTo(original.Z);
     }
 
-    [Theory]
-    [InlineData(0, 0, 0f)]
-    [InlineData(1, 2, 3f)]
-    [InlineData(-100, -200, -50.5f)]
-    [InlineData(long.MaxValue, long.MinValue, float.MaxValue)]
-    public void Clone_ShouldHandleVariousValues(long x, long y, float z)
+    [Test]
+    [Arguments(0, 0, 0f)]
+    [Arguments(1, 2, 3f)]
+    [Arguments(-100, -200, -50.5f)]
+    [Arguments(long.MaxValue, long.MinValue, float.MaxValue)]
+    public async Task Clone_ShouldHandleVariousValues(long x, long y, float z)
     {
         // Arrange
         var original = new WorldPos(x, y, z);
@@ -60,13 +59,13 @@ public class WorldPosTests
         var clone = original.Clone();
 
         // Assert
-        Assert.Equal(original.X, clone.X);
-        Assert.Equal(original.Y, clone.Y);
-        Assert.Equal(original.Z, clone.Z);
+        await Assert.That(clone.X).IsEqualTo(original.X);
+        await Assert.That(clone.Y).IsEqualTo(original.Y);
+        await Assert.That(clone.Z).IsEqualTo(original.Z);
     }
 
-    [Fact]
-    public void Properties_CanBeModified()
+    [Test]
+    public async Task Properties_CanBeModified()
     {
         // Arrange
         var pos = new WorldPos();
@@ -77,8 +76,8 @@ public class WorldPosTests
         pos.Z = 30.5f;
 
         // Assert
-        Assert.Equal(10, pos.X);
-        Assert.Equal(20, pos.Y);
-        Assert.Equal(30.5f, pos.Z);
+        await Assert.That(pos.X).IsEqualTo(10);
+        await Assert.That(pos.Y).IsEqualTo(20);
+        await Assert.That(pos.Z).IsEqualTo(30.5f);
     }
 }

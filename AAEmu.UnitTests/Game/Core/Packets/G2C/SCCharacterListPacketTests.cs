@@ -1,6 +1,5 @@
 ﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 
@@ -9,8 +8,8 @@ namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 /// </summary>
 public class SCCharacterListPacketTests
 {
-    [Fact]
-    public void Write_WithEmptyCharacterList_WritesCorrectData()
+    [Test]
+    public async Task Write_WithEmptyCharacterList_WritesCorrectData()
     {
         // Arrange
         var characters = new Character[0];
@@ -18,29 +17,29 @@ public class SCCharacterListPacketTests
 
         // Act & Assert
         // Note: Full testing requires PacketStream implementation
-        Assert.NotNull(packet);
+        await Assert.That(packet).IsNotNull();
     }
 
-    [Fact]
-    public void Write_WithMultipleCharacters_WritesCorrectData()
+    [Test]
+    public async Task Write_WithMultipleCharacters_WritesCorrectData()
     {
         // Arrange
         var characters = new Character[3];
         var packet = new SCCharacterListPacket(true, characters);
 
         // Assert
-        Assert.NotNull(packet);
+        await Assert.That(packet).IsNotNull();
     }
 
-    [Fact]
-    public void Constructor_SetsLastFlag()
+    [Test]
+    public async Task Constructor_SetsLastFlag()
     {
         // Arrange & Act
         var packetLast = new SCCharacterListPacket(true, []);
         var packetNotLast = new SCCharacterListPacket(false, []);
 
         // Assert
-        Assert.NotNull(packetLast);
-        Assert.NotNull(packetNotLast);
+        await Assert.That(packetLast).IsNotNull();
+        await Assert.That(packetNotLast).IsNotNull();
     }
 }

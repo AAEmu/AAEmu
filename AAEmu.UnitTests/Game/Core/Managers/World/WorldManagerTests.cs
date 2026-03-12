@@ -8,25 +8,21 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
-using Moq;
-
-using Xunit;
-
 namespace AAEmu.UnitTests.Game.Core.Managers.World;
 
 public class WorldManagerTests
 {
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_DoesNotCallDependencies()
+    [Test]
+    public async Task Constructor_DoesNotCallDependencies()
     {
         // Arrange
-        var mockTickManager = new Mock<ITickManager>();
-        var mockWorldIdManager = new Mock<IWorldIdManager>();
-        var mockZoneManager = new Mock<IZoneManager>();
-        var mockIndunManager = new Mock<IIndunManager>();
-        var mockFamilyManager = new Mock<IFamilyManager>();
+        var mockTickManager = Mock.Of<ITickManager>();
+        var mockWorldIdManager = Mock.Of<IWorldIdManager>();
+        var mockZoneManager = Mock.Of<IZoneManager>();
+        var mockIndunManager = Mock.Of<IIndunManager>();
+        var mockFamilyManager = Mock.Of<IFamilyManager>();
 
         // Act
         var manager = new WorldManager(
@@ -37,17 +33,17 @@ public class WorldManagerTests
             new Lazy<IFamilyManager>(() => mockFamilyManager.Object));
 
         // Assert
-        Assert.NotNull(manager);
-        mockTickManager.VerifyNoOtherCalls();
-        mockWorldIdManager.VerifyNoOtherCalls();
+        await Assert.That(manager).IsNotNull();
+        Mock.VerifyNoOtherCalls(mockTickManager);
+        Mock.VerifyNoOtherCalls(mockWorldIdManager);
     }
 
     #endregion
 
     #region GetWorld Tests
 
-    [Fact]
-    public void GetWorld_ExistingWorld_ReturnsWorldInstance()
+    [Test]
+    public async Task GetWorld_ExistingWorld_ReturnsWorldInstance()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -61,13 +57,13 @@ public class WorldManagerTests
         var result = manager.GetWorld(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
-        Assert.Equal("test_world", result.Template.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
+        await Assert.That(result.Template.Name).IsEqualTo("test_world");
     }
 
-    [Fact]
-    public void GetWorld_NonExistingWorld_ReturnsNull()
+    [Test]
+    public async Task GetWorld_NonExistingWorld_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -78,11 +74,11 @@ public class WorldManagerTests
         var result = manager.GetWorld(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetWorld_ZeroId_ReturnsNull()
+    [Test]
+    public async Task GetWorld_ZeroId_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -93,11 +89,11 @@ public class WorldManagerTests
         var result = manager.GetWorld(0);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetWorld_MultipleWorlds_ReturnsCorrectWorld()
+    [Test]
+    public async Task GetWorld_MultipleWorlds_ReturnsCorrectWorld()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -115,18 +111,18 @@ public class WorldManagerTests
         var result2 = manager.GetWorld(2);
 
         // Assert
-        Assert.NotNull(result1);
-        Assert.NotNull(result2);
-        Assert.Equal("world_1", result1.Template.Name);
-        Assert.Equal("world_2", result2.Template.Name);
+        await Assert.That(result1).IsNotNull();
+        await Assert.That(result2).IsNotNull();
+        await Assert.That(result1.Template.Name).IsEqualTo("world_1");
+        await Assert.That(result2.Template.Name).IsEqualTo("world_2");
     }
 
     #endregion
 
     #region GetWorlds Tests
 
-    [Fact]
-    public void GetWorlds_NoWorlds_ReturnsEmptyArray()
+    [Test]
+    public async Task GetWorlds_NoWorlds_ReturnsEmptyArray()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -137,12 +133,12 @@ public class WorldManagerTests
         var result = manager.GetWorlds();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void GetWorlds_MultipleWorlds_ReturnsAllWorlds()
+    [Test]
+    public async Task GetWorlds_MultipleWorlds_ReturnsAllWorlds()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -159,12 +155,12 @@ public class WorldManagerTests
         var result = manager.GetWorlds();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Length);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Length).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetWorlds_SingleWorld_ReturnsArrayWithOneElement()
+    [Test]
+    public async Task GetWorlds_SingleWorld_ReturnsArrayWithOneElement()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -178,16 +174,16 @@ public class WorldManagerTests
         var result = manager.GetWorlds();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Single(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).HasSingleItem();
     }
 
     #endregion
 
     #region GetWorldTemplateByName Tests
 
-    [Fact]
-    public void GetWorldTemplateByName_ExistingTemplate_ReturnsTemplate()
+    [Test]
+    public async Task GetWorldTemplateByName_ExistingTemplate_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -202,13 +198,13 @@ public class WorldManagerTests
         var result = manager.GetWorldTemplateByName("main_world");
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
-        Assert.Equal("main_world", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
+        await Assert.That(result.Name).IsEqualTo("main_world");
     }
 
-    [Fact]
-    public void GetWorldTemplateByName_NonExistingTemplate_ReturnsNull()
+    [Test]
+    public async Task GetWorldTemplateByName_NonExistingTemplate_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -219,10 +215,10 @@ public class WorldManagerTests
         var result = manager.GetWorldTemplateByName("non_existent");
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
+    [Test]
     public void GetWorldTemplateByName_NullName_ThrowsArgumentNullException()
     {
         // Arrange
@@ -238,8 +234,8 @@ public class WorldManagerTests
 
     #region GetWorldTemplateByZoneKey Tests
 
-    [Fact]
-    public void GetWorldTemplateByZoneKey_ExistingZone_ReturnsTemplate()
+    [Test]
+    public async Task GetWorldTemplateByZoneKey_ExistingZone_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -257,12 +253,12 @@ public class WorldManagerTests
         var result = manager.GetWorldTemplateByZoneKey(100);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("main_world", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("main_world");
     }
 
-    [Fact]
-    public void GetWorldTemplateByZoneKey_NonExistingZone_ReturnsNull()
+    [Test]
+    public async Task GetWorldTemplateByZoneKey_NonExistingZone_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -273,15 +269,15 @@ public class WorldManagerTests
         var result = manager.GetWorldTemplateByZoneKey(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetZoneId Tests
 
-    [Fact]
-    public void GetZoneId_ValidPosition_ReturnsZoneId()
+    [Test]
+    public async Task GetZoneId_ValidPosition_ReturnsZoneId()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -294,11 +290,11 @@ public class WorldManagerTests
         var result = manager.GetZoneId(worldTemplate, 64, 64);
 
         // Assert
-        Assert.Equal(100u, result);
+        await Assert.That(result).IsEqualTo(100u);
     }
 
-    [Fact]
-    public void GetZoneId_NullTemplate_ReturnsZero()
+    [Test]
+    public async Task GetZoneId_NullTemplate_ReturnsZero()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -307,11 +303,11 @@ public class WorldManagerTests
         var result = manager.GetZoneId(null, 100, 100);
 
         // Assert
-        Assert.Equal(0u, result);
+        await Assert.That(result).IsEqualTo(0u);
     }
 
-    [Fact]
-    public void GetZoneId_OutOfBounds_ReturnsZero()
+    [Test]
+    public async Task GetZoneId_OutOfBounds_ReturnsZero()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -322,15 +318,15 @@ public class WorldManagerTests
         var result = manager.GetZoneId(worldTemplate, 100000, 100000);
 
         // Assert
-        Assert.Equal(0u, result);
+        await Assert.That(result).IsEqualTo(0u);
     }
 
     #endregion
 
     #region GetZoneKeysByWorldId Tests
 
-    [Fact]
-    public void GetZoneKeysByWorldId_ExistingWorld_ReturnsZoneKeys()
+    [Test]
+    public async Task GetZoneKeysByWorldId_ExistingWorld_ReturnsZoneKeys()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -344,13 +340,13 @@ public class WorldManagerTests
         var result = manager.GetZoneKeysByWorldId(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(3, result.Count);
-        Assert.Contains(100u, result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(3);
+        await Assert.That(result).Contains(100u);
     }
 
-    [Fact]
-    public void GetZoneKeysByWorldId_NonExistingWorld_ReturnsEmptyList()
+    [Test]
+    public async Task GetZoneKeysByWorldId_NonExistingWorld_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -361,16 +357,16 @@ public class WorldManagerTests
         var result = manager.GetZoneKeysByWorldId(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetWorldIdByZoneKey Tests
 
-    [Fact]
-    public void GetWorldIdByZoneKey_ExistingZone_ReturnsWorldId()
+    [Test]
+    public async Task GetWorldIdByZoneKey_ExistingZone_ReturnsWorldId()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -381,11 +377,11 @@ public class WorldManagerTests
         var result = manager.GetWorldIdByZoneKey(100);
 
         // Assert
-        Assert.Equal(1u, result);
+        await Assert.That(result).IsEqualTo(1u);
     }
 
-    [Fact]
-    public void GetWorldIdByZoneKey_NonExistingZone_ReturnsMaxValue()
+    [Test]
+    public async Task GetWorldIdByZoneKey_NonExistingZone_ReturnsMaxValue()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -396,15 +392,15 @@ public class WorldManagerTests
         var result = manager.GetWorldIdByZoneKey(999);
 
         // Assert
-        Assert.Equal(uint.MaxValue, result);
+        await Assert.That(result).IsEqualTo(uint.MaxValue);
     }
 
     #endregion
 
     #region Character Management Tests
 
-    [Fact]
-    public void TryAddCharacter_NewCharacter_ReturnsTrue()
+    [Test]
+    public async Task TryAddCharacter_NewCharacter_ReturnsTrue()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -417,11 +413,11 @@ public class WorldManagerTests
         var result = manager.TryAddCharacter(character);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void TryAddCharacter_DuplicateCharacter_ReturnsFalse()
+    [Test]
+    public async Task TryAddCharacter_DuplicateCharacter_ReturnsFalse()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -435,11 +431,11 @@ public class WorldManagerTests
         var result = manager.TryAddCharacter(character);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void TryRemoveCharacter_ExistingCharacter_ReturnsTrue()
+    [Test]
+    public async Task TryRemoveCharacter_ExistingCharacter_ReturnsTrue()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -453,11 +449,11 @@ public class WorldManagerTests
         var result = manager.TryRemoveCharacter(100);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void TryRemoveCharacter_NonExistingCharacter_ReturnsFalse()
+    [Test]
+    public async Task TryRemoveCharacter_NonExistingCharacter_ReturnsFalse()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -466,11 +462,11 @@ public class WorldManagerTests
         var result = manager.TryRemoveCharacter(999);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void GetCharacterByObjId_ExistingCharacter_ReturnsCharacter()
+    [Test]
+    public async Task GetCharacterByObjId_ExistingCharacter_ReturnsCharacter()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -485,12 +481,12 @@ public class WorldManagerTests
         var result = manager.GetCharacterByObjId(100);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("TestPlayer", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("TestPlayer");
     }
 
-    [Fact]
-    public void GetCharacterByObjId_NonExistingCharacter_ReturnsNull()
+    [Test]
+    public async Task GetCharacterByObjId_NonExistingCharacter_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -499,11 +495,11 @@ public class WorldManagerTests
         var result = manager.GetCharacterByObjId(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetCharacter_ExistingCharacterByName_ReturnsCharacter()
+    [Test]
+    public async Task GetCharacter_ExistingCharacterByName_ReturnsCharacter()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -518,12 +514,12 @@ public class WorldManagerTests
         var result = manager.GetCharacter("TestPlayer");
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("TestPlayer", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("TestPlayer");
     }
 
-    [Fact]
-    public void GetCharacter_ExistingCharacterByNameCaseInsensitive_ReturnsCharacter()
+    [Test]
+    public async Task GetCharacter_ExistingCharacterByNameCaseInsensitive_ReturnsCharacter()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -538,12 +534,12 @@ public class WorldManagerTests
         var result = manager.GetCharacter("testplayer");
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("TestPlayer", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("TestPlayer");
     }
 
-    [Fact]
-    public void GetCharacter_NonExistingCharacter_ReturnsNull()
+    [Test]
+    public async Task GetCharacter_NonExistingCharacter_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -552,11 +548,11 @@ public class WorldManagerTests
         var result = manager.GetCharacter("NonExistent");
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetAllCharacters_WithCharacters_ReturnsAllCharacters()
+    [Test]
+    public async Task GetAllCharacters_WithCharacters_ReturnsAllCharacters()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -569,12 +565,12 @@ public class WorldManagerTests
         var result = manager.GetAllCharacters();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetAllCharacters_NoCharacters_ReturnsEmptyList()
+    [Test]
+    public async Task GetAllCharacters_NoCharacters_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -583,16 +579,16 @@ public class WorldManagerTests
         var result = manager.GetAllCharacters();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region World Interaction Group Tests
 
-    [Fact]
-    public void GetWorldInteractionGroup_ExistingGroup_ReturnsGroup()
+    [Test]
+    public async Task GetWorldInteractionGroup_ExistingGroup_ReturnsGroup()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -606,12 +602,12 @@ public class WorldManagerTests
         var result = manager.GetWorldInteractionGroup(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(WorldInteractionGroup.Craft, result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEqualTo(WorldInteractionGroup.Craft);
     }
 
-    [Fact]
-    public void GetWorldInteractionGroup_NonExistingGroup_ReturnsNull()
+    [Test]
+    public async Task GetWorldInteractionGroup_NonExistingGroup_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -622,15 +618,15 @@ public class WorldManagerTests
         var result = manager.GetWorldInteractionGroup(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetWorldsByTemplate Tests
 
-    [Fact]
-    public void GetWorldsByTemplate_ExistingWorlds_ReturnsMatchingWorlds()
+    [Test]
+    public async Task GetWorldsByTemplate_ExistingWorlds_ReturnsMatchingWorlds()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -650,12 +646,12 @@ public class WorldManagerTests
         var result = manager.GetWorldsByTemplate(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void GetWorldsByTemplate_NoMatchingWorlds_ReturnsEmptyList()
+    [Test]
+    public async Task GetWorldsByTemplate_NoMatchingWorlds_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -666,16 +662,16 @@ public class WorldManagerTests
         var result = manager.GetWorldsByTemplate(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region RemoveWorld Tests
 
-    [Fact]
-    public void RemoveWorld_ExistingWorld_RemovesWorld()
+    [Test]
+    public async Task RemoveWorld_ExistingWorld_RemovesWorld()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -689,10 +685,10 @@ public class WorldManagerTests
         manager.RemoveWorld(1);
 
         // Assert
-        Assert.Null(manager.GetWorld(1));
+        await Assert.That(manager.GetWorld(1)).IsNull();
     }
 
-    [Fact]
+    [Test]
     public void RemoveWorld_NonExistingWorld_DoesNotThrow()
     {
         // Arrange
@@ -708,8 +704,8 @@ public class WorldManagerTests
 
     #region GetCharacterById Tests
 
-    [Fact]
-    public void GetCharacterById_ExistingCharacter_ReturnsCharacter()
+    [Test]
+    public async Task GetCharacterById_ExistingCharacter_ReturnsCharacter()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -725,12 +721,12 @@ public class WorldManagerTests
         var result = manager.GetCharacterById(50);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("TestPlayer", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("TestPlayer");
     }
 
-    [Fact]
-    public void GetCharacterById_NonExistingCharacter_ReturnsNull()
+    [Test]
+    public async Task GetCharacterById_NonExistingCharacter_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -739,15 +735,15 @@ public class WorldManagerTests
         var result = manager.GetCharacterById(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetAllNpcsFromWorld Tests
 
-    [Fact]
-    public void GetAllNpcsFromWorld_ExistingWorld_ReturnsNpcs()
+    [Test]
+    public async Task GetAllNpcsFromWorld_ExistingWorld_ReturnsNpcs()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -766,12 +762,12 @@ public class WorldManagerTests
         var result = manager.GetAllNpcsFromWorld(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result); // Empty because no NPCs were added
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty(); // Empty because no NPCs were added
     }
 
-    [Fact]
-    public void GetAllNpcsFromWorld_NonExistingWorld_ReturnsEmptyList()
+    [Test]
+    public async Task GetAllNpcsFromWorld_NonExistingWorld_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -782,16 +778,16 @@ public class WorldManagerTests
         var result = manager.GetAllNpcsFromWorld(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetAllDoodadsFromWorld Tests
 
-    [Fact]
-    public void GetAllDoodadsFromWorld_ExistingWorld_ReturnsDoodads()
+    [Test]
+    public async Task GetAllDoodadsFromWorld_ExistingWorld_ReturnsDoodads()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -805,12 +801,12 @@ public class WorldManagerTests
         var result = manager.GetAllDoodadsFromWorld(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result); // Empty because no doodads were added
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty(); // Empty because no doodads were added
     }
 
-    [Fact]
-    public void GetAllDoodadsFromWorld_NonExistingWorld_ReturnsEmptyList()
+    [Test]
+    public async Task GetAllDoodadsFromWorld_NonExistingWorld_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -821,16 +817,16 @@ public class WorldManagerTests
         var result = manager.GetAllDoodadsFromWorld(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetAllSlavesFromWorld Tests
 
-    [Fact]
-    public void GetAllSlavesFromWorld_ExistingWorld_ReturnsSlaves()
+    [Test]
+    public async Task GetAllSlavesFromWorld_ExistingWorld_ReturnsSlaves()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -844,12 +840,12 @@ public class WorldManagerTests
         var result = manager.GetAllSlavesFromWorld(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result); // Empty because no slaves were added
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty(); // Empty because no slaves were added
     }
 
-    [Fact]
-    public void GetAllSlavesFromWorld_NonExistingWorld_ReturnsEmptyList()
+    [Test]
+    public async Task GetAllSlavesFromWorld_NonExistingWorld_ReturnsEmptyList()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -860,16 +856,16 @@ public class WorldManagerTests
         var result = manager.GetAllSlavesFromWorld(999);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region IsSnowing Property Tests
 
-    [Fact]
-    public void IsSnowing_SetAndGet_ReturnsCorrectValue()
+    [Test]
+    public async Task IsSnowing_SetAndGet_ReturnsCorrectValue()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -878,25 +874,25 @@ public class WorldManagerTests
         manager.IsSnowing = true;
 
         // Assert
-        Assert.True(manager.IsSnowing);
+        await Assert.That(manager.IsSnowing).IsTrue();
     }
 
-    [Fact]
-    public void IsSnowing_DefaultValue_ReturnsFalse()
+    [Test]
+    public async Task IsSnowing_DefaultValue_ReturnsFalse()
     {
         // Arrange
         var manager = CreateWorldManager();
 
         // Act & Assert
-        Assert.False(manager.IsSnowing);
+        await Assert.That(manager.IsSnowing).IsFalse();
     }
 
     #endregion
 
     #region AreaShape Tests
 
-    [Fact]
-    public void GetAreaShapeById_ExistingShape_ReturnsShape()
+    [Test]
+    public async Task GetAreaShapeById_ExistingShape_ReturnsShape()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -909,13 +905,13 @@ public class WorldManagerTests
         var result = manager.GetAreaShapeById(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
-        Assert.Equal(AreaShapeType.Sphere, result.Type);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
+        await Assert.That(result.Type).IsEqualTo(AreaShapeType.Sphere);
     }
 
-    [Fact]
-    public void GetAreaShapeById_NonExistingShape_ReturnsNull()
+    [Test]
+    public async Task GetAreaShapeById_NonExistingShape_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -926,15 +922,15 @@ public class WorldManagerTests
         var result = manager.GetAreaShapeById(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region TargetOrSelf Tests
 
-    [Fact]
-    public void GetTargetOrSelf_WithTargetName_ReturnsTarget()
+    [Test]
+    public async Task GetTargetOrSelf_WithTargetName_ReturnsTarget()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -954,13 +950,13 @@ public class WorldManagerTests
         var result = manager.GetTargetOrSelf(character, "TargetPlayer", out var firstNonNameArgument);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("TargetPlayer", result.Name);
-        Assert.Equal(1, firstNonNameArgument);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Name).IsEqualTo("TargetPlayer");
+        await Assert.That(firstNonNameArgument).IsEqualTo(1);
     }
 
-    [Fact]
-    public void GetTargetOrSelf_WithNonExistingTargetName_ReturnsSelf()
+    [Test]
+    public async Task GetTargetOrSelf_WithNonExistingTargetName_ReturnsSelf()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -974,12 +970,12 @@ public class WorldManagerTests
         var result = manager.GetTargetOrSelf(character, "NonExisting", out var firstNonNameArgument);
 
         // Assert
-        Assert.Equal("SourcePlayer", result.Name);
-        Assert.Equal(0, firstNonNameArgument);
+        await Assert.That(result.Name).IsEqualTo("SourcePlayer");
+        await Assert.That(firstNonNameArgument).IsEqualTo(0);
     }
 
-    [Fact]
-    public void GetTargetOrSelf_WithNullTargetName_ReturnsSelf()
+    [Test]
+    public async Task GetTargetOrSelf_WithNullTargetName_ReturnsSelf()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -993,16 +989,16 @@ public class WorldManagerTests
         var result = manager.GetTargetOrSelf(character, null, out var firstNonNameArgument);
 
         // Assert
-        Assert.Equal("SourcePlayer", result.Name);
-        Assert.Equal(0, firstNonNameArgument);
+        await Assert.That(result.Name).IsEqualTo("SourcePlayer");
+        await Assert.That(firstNonNameArgument).IsEqualTo(0);
     }
 
     #endregion
 
     #region Edge Cases Tests
 
-    [Fact]
-    public void GetWorld_MaxUintId_ReturnsNull()
+    [Test]
+    public async Task GetWorld_MaxUintId_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1013,11 +1009,11 @@ public class WorldManagerTests
         var result = manager.GetWorld(uint.MaxValue);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetCharacter_NullName_ReturnsNull()
+    [Test]
+    public async Task GetCharacter_NullName_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1026,11 +1022,11 @@ public class WorldManagerTests
         var result = manager.GetCharacter(null);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetCharacter_EmptyName_ReturnsNull()
+    [Test]
+    public async Task GetCharacter_EmptyName_ReturnsNull()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1039,11 +1035,11 @@ public class WorldManagerTests
         var result = manager.GetCharacter("");
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetZoneId_NegativeCoordinates_ReturnsZero()
+    [Test]
+    public async Task GetZoneId_NegativeCoordinates_ReturnsZero()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1054,10 +1050,10 @@ public class WorldManagerTests
         var result = manager.GetZoneId(worldTemplate, -100, -100);
 
         // Assert
-        Assert.Equal(0u, result);
+        await Assert.That(result).IsEqualTo(0u);
     }
 
-    [Fact]
+    [Test]
     public void TryAddCharacter_NullCharacter_ThrowsNullReferenceException()
     {
         // Arrange
@@ -1067,8 +1063,8 @@ public class WorldManagerTests
         Assert.Throws<NullReferenceException>(() => manager.TryAddCharacter(null));
     }
 
-    [Fact]
-    public void TryRemoveCharacter_ZeroId_ReturnsFalse()
+    [Test]
+    public async Task TryRemoveCharacter_ZeroId_ReturnsFalse()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1077,15 +1073,15 @@ public class WorldManagerTests
         var result = manager.TryRemoveCharacter(0);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region Multiple Operations Tests
 
-    [Fact]
-    public void MultipleOperations_AddAndRemoveCharacter_CharacterRemoved()
+    [Test]
+    public async Task MultipleOperations_AddAndRemoveCharacter_CharacterRemoved()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1097,17 +1093,17 @@ public class WorldManagerTests
 
         // Act - Add character
         var addResult = manager.TryAddCharacter(character);
-        Assert.True(addResult);
-        Assert.NotNull(manager.GetCharacterByObjId(100));
+        await Assert.That(addResult).IsTrue();
+        await Assert.That(manager.GetCharacterByObjId(100)).IsNotNull();
 
         // Act - Remove character
         var removeResult = manager.TryRemoveCharacter(100);
-        Assert.True(removeResult);
-        Assert.Null(manager.GetCharacterByObjId(100));
+        await Assert.That(removeResult).IsTrue();
+        await Assert.That(manager.GetCharacterByObjId(100)).IsNull();
     }
 
-    [Fact]
-    public void MultipleOperations_AddMultipleWorlds_AllWorldsAccessible()
+    [Test]
+    public async Task MultipleOperations_AddMultipleWorlds_AllWorldsAccessible()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1123,15 +1119,15 @@ public class WorldManagerTests
         SetPrivateField(manager, "_worlds", worlds);
 
         // Act & Assert
-        Assert.Equal(5, manager.GetWorlds().Length);
+        await Assert.That(manager.GetWorlds().Length).IsEqualTo(5);
         for (uint i = 1; i <= 5; i++)
         {
-            Assert.NotNull(manager.GetWorld(i));
+            await Assert.That(manager.GetWorld(i)).IsNotNull();
         }
     }
 
-    [Fact]
-    public void MultipleOperations_RemoveAllWorlds_WorldsEmpty()
+    [Test]
+    public async Task MultipleOperations_RemoveAllWorlds_WorldsEmpty()
     {
         // Arrange
         var manager = CreateWorldManager();
@@ -1145,39 +1141,39 @@ public class WorldManagerTests
         manager.RemoveWorld(1);
 
         // Assert
-        Assert.Empty(manager.GetWorlds());
+        await Assert.That(manager.GetWorlds()).IsEmpty();
     }
 
     #endregion
 
     #region Constants Tests
 
-    [Fact]
-    public void Constants_CellSize_ReturnsCorrectValue()
+    [Test]
+    public async Task Constants_CellSize_ReturnsCorrectValue()
     {
         // Assert
-        Assert.Equal(1024, WorldManager.CELL_SIZE);
+        await Assert.That(WorldManager.CELL_SIZE).IsEqualTo(1024);
     }
 
-    [Fact]
-    public void Constants_RegionSize_ReturnsCorrectValue()
+    [Test]
+    public async Task Constants_RegionSize_ReturnsCorrectValue()
     {
         // Assert
-        Assert.Equal(64, WorldManager.REGION_SIZE);
+        await Assert.That(WorldManager.REGION_SIZE).IsEqualTo(64);
     }
 
-    [Fact]
-    public void Constants_SectorsPerCell_ReturnsCorrectValue()
+    [Test]
+    public async Task Constants_SectorsPerCell_ReturnsCorrectValue()
     {
         // Assert
-        Assert.Equal(16, WorldManager.SECTORS_PER_CELL); // 1024 / 64 = 16
+        await Assert.That(WorldManager.SECTORS_PER_CELL).IsEqualTo(16); // 1024 / 64 = 16
     }
 
-    [Fact]
-    public void Constants_DefaultCombatTimeout_ReturnsCorrectValue()
+    [Test]
+    public async Task Constants_DefaultCombatTimeout_ReturnsCorrectValue()
     {
         // Assert
-        Assert.Equal(15f, WorldManager.DefaultCombatTimeout);
+        await Assert.That(WorldManager.DefaultCombatTimeout).IsEqualTo(15f);
     }
 
     #endregion
@@ -1186,11 +1182,11 @@ public class WorldManagerTests
 
     private static WorldManager CreateWorldManager()
     {
-        var mockTickManager = new Mock<ITickManager>();
-        var mockWorldIdManager = new Mock<IWorldIdManager>();
-        var mockZoneManager = new Mock<IZoneManager>();
-        var mockIndunManager = new Mock<IIndunManager>();
-        var mockFamilyManager = new Mock<IFamilyManager>();
+        var mockTickManager = Mock.Of<ITickManager>();
+        var mockWorldIdManager = Mock.Of<IWorldIdManager>();
+        var mockZoneManager = Mock.Of<IZoneManager>();
+        var mockIndunManager = Mock.Of<IIndunManager>();
+        var mockFamilyManager = Mock.Of<IFamilyManager>();
 
         return new WorldManager(
             mockTickManager.Object,

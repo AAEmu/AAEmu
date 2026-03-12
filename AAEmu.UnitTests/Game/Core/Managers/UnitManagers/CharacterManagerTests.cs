@@ -9,31 +9,27 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 
-using Moq;
-
-using Xunit;
-
 namespace AAEmu.UnitTests.Game.Core.Managers.UnitManagers;
 
 public class CharacterManagerTests
 {
     #region Constructor Tests
 
-    [Fact]
-    public void Constructor_DoesNotCallDependencies()
+    [Test]
+    public async Task Constructor_DoesNotCallDependencies()
     {
         // Arrange
-        var mockWorldManager = new Mock<IWorldManager>();
-        var mockAccountManager = new Mock<IAccountManager>();
-        var mockNameManager = new Mock<INameManager>();
-        var mockCharacterIdManager = new Mock<ICharacterIdManager>();
-        var mockFactionManager = new Mock<IFactionManager>();
-        var mockSkillManager = new Mock<ISkillManager>();
-        var mockItemManager = new Mock<IItemManager>();
-        var mockHousingManager = new Mock<IHousingManager>();
-        var mockFamilyManager = new Mock<IFamilyManager>();
-        var mockMailManager = new Mock<IMailManager>();
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockWorldManager = Mock.Of<IWorldManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
+        var mockNameManager = Mock.Of<INameManager>();
+        var mockCharacterIdManager = Mock.Of<ICharacterIdManager>();
+        var mockFactionManager = Mock.Of<IFactionManager>();
+        var mockSkillManager = Mock.Of<ISkillManager>();
+        var mockItemManager = Mock.Of<IItemManager>();
+        var mockHousingManager = Mock.Of<IHousingManager>();
+        var mockFamilyManager = Mock.Of<IFamilyManager>();
+        var mockMailManager = Mock.Of<IMailManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
 
         // Act
         var manager = new CharacterManager(
@@ -50,26 +46,26 @@ public class CharacterManagerTests
             mockTaskManager.Object);
 
         // Assert
-        Assert.NotNull(manager);
-        mockWorldManager.VerifyNoOtherCalls();
-        mockAccountManager.VerifyNoOtherCalls();
-        mockNameManager.VerifyNoOtherCalls();
-        mockCharacterIdManager.VerifyNoOtherCalls();
-        mockFactionManager.VerifyNoOtherCalls();
-        mockSkillManager.VerifyNoOtherCalls();
-        mockItemManager.VerifyNoOtherCalls();
-        mockHousingManager.VerifyNoOtherCalls();
-        mockFamilyManager.VerifyNoOtherCalls();
-        mockMailManager.VerifyNoOtherCalls();
-        mockTaskManager.VerifyNoOtherCalls();
+        await Assert.That(manager).IsNotNull();
+        Mock.VerifyNoOtherCalls(mockWorldManager);
+        Mock.VerifyNoOtherCalls(mockAccountManager);
+        Mock.VerifyNoOtherCalls(mockNameManager);
+        Mock.VerifyNoOtherCalls(mockCharacterIdManager);
+        Mock.VerifyNoOtherCalls(mockFactionManager);
+        Mock.VerifyNoOtherCalls(mockSkillManager);
+        Mock.VerifyNoOtherCalls(mockItemManager);
+        Mock.VerifyNoOtherCalls(mockHousingManager);
+        Mock.VerifyNoOtherCalls(mockFamilyManager);
+        Mock.VerifyNoOtherCalls(mockMailManager);
+        Mock.VerifyNoOtherCalls(mockTaskManager);
     }
 
     #endregion
 
     #region GetTemplate Tests
 
-    [Fact]
-    public void GetTemplate_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -90,13 +86,13 @@ public class CharacterManagerTests
         var result = manager.GetTemplate(Race.Nuian, Gender.Male);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(Race.Nuian, result.Race);
-        Assert.Equal(Gender.Male, result.Gender);
-        Assert.Equal(1u, result.ModelId);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Race).IsEqualTo(Race.Nuian);
+        await Assert.That(result.Gender).IsEqualTo(Gender.Male);
+        await Assert.That(result.ModelId).IsEqualTo(1u);
     }
 
-    [Fact]
+    [Test]
     public void GetTemplate_TemplateDoesNotExist_ThrowsKeyNotFoundException()
     {
         // Arrange
@@ -108,8 +104,8 @@ public class CharacterManagerTests
         Assert.Throws<KeyNotFoundException>(() => manager.GetTemplate(Race.Nuian, Gender.Male));
     }
 
-    [Fact]
-    public void GetTemplate_DifferentRaceGenderCombinations_ReturnsCorrectTemplates()
+    [Test]
+    public async Task GetTemplate_DifferentRaceGenderCombinations_ReturnsCorrectTemplates()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -128,18 +124,18 @@ public class CharacterManagerTests
         SetPrivateField(manager, "_templates", templates);
 
         // Act & Assert
-        Assert.Equal(nuianMale, manager.GetTemplate(Race.Nuian, Gender.Male));
-        Assert.Equal(nuianFemale, manager.GetTemplate(Race.Nuian, Gender.Female));
-        Assert.Equal(elfMale, manager.GetTemplate(Race.Elf, Gender.Male));
-        Assert.Equal(elfFemale, manager.GetTemplate(Race.Elf, Gender.Female));
+        await Assert.That(manager.GetTemplate(Race.Nuian, Gender.Male)).IsEqualTo(nuianMale);
+        await Assert.That(manager.GetTemplate(Race.Nuian, Gender.Female)).IsEqualTo(nuianFemale);
+        await Assert.That(manager.GetTemplate(Race.Elf, Gender.Male)).IsEqualTo(elfMale);
+        await Assert.That(manager.GetTemplate(Race.Elf, Gender.Female)).IsEqualTo(elfFemale);
     }
 
     #endregion
 
     #region GetAppellationsTemplate Tests
 
-    [Fact]
-    public void GetAppellationsTemplate_TemplateExists_ReturnsTemplate()
+    [Test]
+    public async Task GetAppellationsTemplate_TemplateExists_ReturnsTemplate()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -151,13 +147,13 @@ public class CharacterManagerTests
         var result = manager.GetAppellationsTemplate(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
-        Assert.Equal(100u, result.BuffId);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
+        await Assert.That(result.BuffId).IsEqualTo(100u);
     }
 
-    [Fact]
-    public void GetAppellationsTemplate_TemplateDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetAppellationsTemplate_TemplateDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -168,11 +164,11 @@ public class CharacterManagerTests
         var result = manager.GetAppellationsTemplate(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetAppellationsTemplate_ZeroId_ReturnsNull()
+    [Test]
+    public async Task GetAppellationsTemplate_ZeroId_ReturnsNull()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -183,15 +179,15 @@ public class CharacterManagerTests
         var result = manager.GetAppellationsTemplate(0);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetExpands Tests
 
-    [Fact]
-    public void GetExpands_StepExists_ReturnsExpands()
+    [Test]
+    public async Task GetExpands_StepExists_ReturnsExpands()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -207,11 +203,11 @@ public class CharacterManagerTests
         var result = manager.GetExpands(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count).IsEqualTo(2);
     }
 
-    [Fact]
+    [Test]
     public void GetExpands_StepDoesNotExist_ThrowsKeyNotFoundException()
     {
         // Arrange
@@ -227,8 +223,8 @@ public class CharacterManagerTests
 
     #region GetActability Tests
 
-    [Fact]
-    public void GetActability_ActabilityExists_ReturnsActability()
+    [Test]
+    public async Task GetActability_ActabilityExists_ReturnsActability()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -240,12 +236,12 @@ public class CharacterManagerTests
         var result = manager.GetActability(1);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1u, result.Id);
-        Assert.Equal("Alchemy", result.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(1u);
+        await Assert.That(result.Name).IsEqualTo("Alchemy");
     }
 
-    [Fact]
+    [Test]
     public void GetActability_ActabilityDoesNotExist_ThrowsKeyNotFoundException()
     {
         // Arrange
@@ -261,8 +257,8 @@ public class CharacterManagerTests
 
     #region GetActabilityIdByCategoryId Tests
 
-    [Fact]
-    public void GetActabilityIdByCategoryId_CategoryExists_ReturnsActabilityId()
+    [Test]
+    public async Task GetActabilityIdByCategoryId_CategoryExists_ReturnsActabilityId()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -279,11 +275,11 @@ public class CharacterManagerTests
         var result = manager.GetActabilityIdByCategoryId(1);
 
         // Assert
-        Assert.Equal(100u, result);
+        await Assert.That(result).IsEqualTo(100u);
     }
 
-    [Fact]
-    public void GetActabilityIdByCategoryId_CategoryDoesNotExist_ReturnsZero()
+    [Test]
+    public async Task GetActabilityIdByCategoryId_CategoryDoesNotExist_ReturnsZero()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -294,11 +290,11 @@ public class CharacterManagerTests
         var result = manager.GetActabilityIdByCategoryId(999);
 
         // Assert
-        Assert.Equal(0u, result);
+        await Assert.That(result).IsEqualTo(0u);
     }
 
-    [Fact]
-    public void GetActabilityIdByCategoryId_ActabilityNotFound_ReturnsZero()
+    [Test]
+    public async Task GetActabilityIdByCategoryId_ActabilityNotFound_ReturnsZero()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -313,15 +309,15 @@ public class CharacterManagerTests
         var result = manager.GetActabilityIdByCategoryId(1);
 
         // Assert
-        Assert.Equal(0u, result);
+        await Assert.That(result).IsEqualTo(0u);
     }
 
     #endregion
 
     #region GetExpertLimit Tests
 
-    [Fact]
-    public void GetExpertLimit_StepExists_ReturnsExpertLimit()
+    [Test]
+    public async Task GetExpertLimit_StepExists_ReturnsExpertLimit()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -333,13 +329,13 @@ public class CharacterManagerTests
         var result = manager.GetExpertLimit(0);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(100, result.UpLimit);
-        Assert.Equal(2, result.ExpertLimitCount);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.UpLimit).IsEqualTo(100);
+        await Assert.That(result.ExpertLimitCount).IsEqualTo((byte)2);
     }
 
-    [Fact]
-    public void GetExpertLimit_StepDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetExpertLimit_StepDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -350,15 +346,15 @@ public class CharacterManagerTests
         var result = manager.GetExpertLimit(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetExpandExpertLimit Tests
 
-    [Fact]
-    public void GetExpandExpertLimit_StepExists_ReturnsExpandExpertLimit()
+    [Test]
+    public async Task GetExpandExpertLimit_StepExists_ReturnsExpandExpertLimit()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -370,13 +366,13 @@ public class CharacterManagerTests
         var result = manager.GetExpandExpertLimit(0);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1, result.ExpandCount);
-        Assert.Equal(50, result.LifePoint);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.ExpandCount).IsEqualTo((byte)1);
+        await Assert.That(result.LifePoint).IsEqualTo(50);
     }
 
-    [Fact]
-    public void GetExpandExpertLimit_StepDoesNotExist_ReturnsNull()
+    [Test]
+    public async Task GetExpandExpertLimit_StepDoesNotExist_ReturnsNull()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -387,18 +383,18 @@ public class CharacterManagerTests
         var result = manager.GetExpandExpertLimit(999);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetEffectiveAccessLevel Tests
 
-    [Fact]
-    public void GetEffectiveAccessLevel_CharacterAccessLevelHigher_ReturnsCharacterAccessLevel()
+    [Test]
+    public async Task GetEffectiveAccessLevel_CharacterAccessLevelHigher_ReturnsCharacterAccessLevel()
     {
         // Arrange
-        var mockAccountManager = new Mock<IAccountManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
         var manager = CreateCharacterManager(mockAccountManager: mockAccountManager);
 
         var character = new Character(new UnitCustomModelParams())
@@ -408,21 +404,21 @@ public class CharacterManagerTests
         };
 
         mockAccountManager
-            .Setup(x => x.GetAccountDetails(1))
+            .GetAccountDetails(1)
             .Returns(new AccountDetails { AccountId = 1, AccessLevel = 50 });
 
         // Act
         var result = manager.GetEffectiveAccessLevel(character);
 
         // Assert
-        Assert.Equal(100, result);
+        await Assert.That(result).IsEqualTo(100);
     }
 
-    [Fact]
-    public void GetEffectiveAccessLevel_AccountAccessLevelHigher_ReturnsAccountAccessLevel()
+    [Test]
+    public async Task GetEffectiveAccessLevel_AccountAccessLevelHigher_ReturnsAccountAccessLevel()
     {
         // Arrange
-        var mockAccountManager = new Mock<IAccountManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
         var manager = CreateCharacterManager(mockAccountManager: mockAccountManager);
 
         var character = new Character(new UnitCustomModelParams())
@@ -432,21 +428,21 @@ public class CharacterManagerTests
         };
 
         mockAccountManager
-            .Setup(x => x.GetAccountDetails(1))
+            .GetAccountDetails(1)
             .Returns(new AccountDetails { AccountId = 1, AccessLevel = 100 });
 
         // Act
         var result = manager.GetEffectiveAccessLevel(character);
 
         // Assert
-        Assert.Equal(100, result);
+        await Assert.That(result).IsEqualTo(100);
     }
 
-    [Fact]
-    public void GetEffectiveAccessLevel_EqualAccessLevels_ReturnsAccessLevel()
+    [Test]
+    public async Task GetEffectiveAccessLevel_EqualAccessLevels_ReturnsAccessLevel()
     {
         // Arrange
-        var mockAccountManager = new Mock<IAccountManager>();
+        var mockAccountManager = Mock.Of<IAccountManager>();
         var manager = CreateCharacterManager(mockAccountManager: mockAccountManager);
 
         var character = new Character(new UnitCustomModelParams())
@@ -456,21 +452,21 @@ public class CharacterManagerTests
         };
 
         mockAccountManager
-            .Setup(x => x.GetAccountDetails(1))
+            .GetAccountDetails(1)
             .Returns(new AccountDetails { AccountId = 1, AccessLevel = 50 });
 
         // Act
         var result = manager.GetEffectiveAccessLevel(character);
 
         // Assert
-        Assert.Equal(50, result);
+        await Assert.That(result).IsEqualTo(50);
     }
 
     #endregion
 
     #region PlayerRoll Tests
 
-    [Fact]
+    [Test]
     public void PlayerRoll_ValidMax_SendsRollMessage()
     {
         // Arrange
@@ -484,7 +480,7 @@ public class CharacterManagerTests
         manager.PlayerRoll(character, 100);
     }
 
-    [Fact]
+    [Test]
     public void PlayerRoll_MaxValueOne_SendsRollOne()
     {
         // Arrange
@@ -502,7 +498,7 @@ public class CharacterManagerTests
 
     #region Edge Cases Tests
 
-    [Fact]
+    [Test]
     public void GetTemplate_MaxByteValues_ThrowsKeyNotFoundException()
     {
         // Arrange
@@ -514,8 +510,8 @@ public class CharacterManagerTests
         Assert.Throws<KeyNotFoundException>(() => manager.GetTemplate((Race)255, (Gender)15));
     }
 
-    [Fact]
-    public void GetActabilityIdByCategoryId_ZeroCategoryId_ReturnsZero()
+    [Test]
+    public async Task GetActabilityIdByCategoryId_ZeroCategoryId_ReturnsZero()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -526,11 +522,11 @@ public class CharacterManagerTests
         var result = manager.GetActabilityIdByCategoryId(0);
 
         // Assert
-        Assert.Equal(0u, result);
+        await Assert.That(result).IsEqualTo(0u);
     }
 
-    [Fact]
-    public void GetExpertLimit_NegativeStep_ReturnsNull()
+    [Test]
+    public async Task GetExpertLimit_NegativeStep_ReturnsNull()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -541,11 +537,11 @@ public class CharacterManagerTests
         var result = manager.GetExpertLimit(-1);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetExpandExpertLimit_NegativeStep_ReturnsNull()
+    [Test]
+    public async Task GetExpandExpertLimit_NegativeStep_ReturnsNull()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -556,10 +552,10 @@ public class CharacterManagerTests
         var result = manager.GetExpandExpertLimit(-1);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
+    [Test]
     public void GetExpands_ZeroStep_ThrowsKeyNotFoundException()
     {
         // Arrange
@@ -571,8 +567,8 @@ public class CharacterManagerTests
         Assert.Throws<KeyNotFoundException>(() => manager.GetExpands(0));
     }
 
-    [Fact]
-    public void GetAppellationsTemplate_MaxUIntId_ReturnsNull()
+    [Test]
+    public async Task GetAppellationsTemplate_MaxUIntId_ReturnsNull()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -583,15 +579,15 @@ public class CharacterManagerTests
         var result = manager.GetAppellationsTemplate(uint.MaxValue);
 
         // Assert
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region Multiple Operations Tests
 
-    [Fact]
-    public void MultipleGetTemplateCalls_ReturnConsistentResults()
+    [Test]
+    public async Task MultipleGetTemplateCalls_ReturnConsistentResults()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -613,15 +609,15 @@ public class CharacterManagerTests
         var result3 = manager.GetTemplate(Race.Nuian, Gender.Male);
 
         // Assert
-        Assert.NotNull(result1);
-        Assert.NotNull(result2);
-        Assert.NotNull(result3);
-        Assert.Same(result1, result2);
-        Assert.Same(result2, result3);
+        await Assert.That(result1).IsNotNull();
+        await Assert.That(result2).IsNotNull();
+        await Assert.That(result3).IsNotNull();
+        await Assert.That(result2).IsSameReferenceAs(result1);
+        await Assert.That(result3).IsSameReferenceAs(result2);
     }
 
-    [Fact]
-    public void GetTemplate_AfterModifyingDictionary_ReturnsUpdatedTemplate()
+    [Test]
+    public async Task GetTemplate_AfterModifyingDictionary_ReturnsUpdatedTemplate()
     {
         // Arrange
         var manager = CreateCharacterManager();
@@ -653,8 +649,8 @@ public class CharacterManagerTests
         var result2 = manager.GetTemplate(Race.Nuian, Gender.Male);
 
         // Assert
-        Assert.Equal(1u, result1.ModelId);
-        Assert.Equal(999u, result2.ModelId);
+        await Assert.That(result1.ModelId).IsEqualTo(1u);
+        await Assert.That(result2.ModelId).IsEqualTo(999u);
     }
 
     #endregion
@@ -675,17 +671,17 @@ public class CharacterManagerTests
         Mock<ITaskManager> mockTaskManager = null)
     {
         return new CharacterManager(
-            (mockWorldManager ?? new Mock<IWorldManager>()).Object,
-            (mockAccountManager ?? new Mock<IAccountManager>()).Object,
-            (mockNameManager ?? new Mock<INameManager>()).Object,
-            (mockCharacterIdManager ?? new Mock<ICharacterIdManager>()).Object,
-            (mockFactionManager ?? new Mock<IFactionManager>()).Object,
-            (mockSkillManager ?? new Mock<ISkillManager>()).Object,
-            (mockItemManager ?? new Mock<IItemManager>()).Object,
-            (mockHousingManager ?? new Mock<IHousingManager>()).Object,
-            (mockFamilyManager ?? new Mock<IFamilyManager>()).Object,
-            (mockMailManager ?? new Mock<IMailManager>()).Object,
-            (mockTaskManager ?? new Mock<ITaskManager>()).Object);
+            (mockWorldManager ?? Mock.Of<IWorldManager>()).Object,
+            (mockAccountManager ?? Mock.Of<IAccountManager>()).Object,
+            (mockNameManager ?? Mock.Of<INameManager>()).Object,
+            (mockCharacterIdManager ?? Mock.Of<ICharacterIdManager>()).Object,
+            (mockFactionManager ?? Mock.Of<IFactionManager>()).Object,
+            (mockSkillManager ?? Mock.Of<ISkillManager>()).Object,
+            (mockItemManager ?? Mock.Of<IItemManager>()).Object,
+            (mockHousingManager ?? Mock.Of<IHousingManager>()).Object,
+            (mockFamilyManager ?? Mock.Of<IFamilyManager>()).Object,
+            (mockMailManager ?? Mock.Of<IMailManager>()).Object,
+            (mockTaskManager ?? Mock.Of<ITaskManager>()).Object);
     }
 
     private static void SetPrivateField(object obj, string fieldName, object value)

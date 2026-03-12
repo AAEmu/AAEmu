@@ -1,66 +1,64 @@
-﻿using AAEmu.Game;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Moq;
-using Xunit;
-
 namespace AAEmu.UnitTests.Services;
 
 /// <summary>
 /// Tests for GameService class
 /// </summary>
+[NotInParallel]
 public class GameServiceTests
 {
-    [Fact]
-    public void StartTime_IsInitializedToUtcNow()
+    [Test]
+    public async Task StartTime_IsInitializedToUtcNow()
     {
         var fakeTime = new FakeTimeProvider();
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, fakeTime);
 
-        Assert.Equal(fakeTime.GetUtcNow().UtcDateTime, GameService.StartTime);
+        await Assert.That(GameService.StartTime).IsEqualTo(fakeTime.GetUtcNow().UtcDateTime);
     }
 
-    [Fact]
-    public void TimeSinceStart_ReturnsTimeSpanSinceStart()
+    [Test]
+    public async Task TimeSinceStart_ReturnsTimeSpanSinceStart()
     {
         var fakeTime = new FakeTimeProvider();
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, fakeTime);
 
         fakeTime.Advance(TimeSpan.FromSeconds(5));
 
-        Assert.Equal(TimeSpan.FromSeconds(5), GameService.TimeSinceStart);
+        await Assert.That(GameService.TimeSinceStart).IsEqualTo(TimeSpan.FromSeconds(5));
     }
 
-    [Fact]
-    public void GameService_ImplementsIHostedService()
+    [Test]
+    public async Task GameService_ImplementsIHostedService()
     {
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, TimeProvider.System);
 
-        Assert.IsAssignableFrom<IHostedService>(service);
+        await Assert.That(service).IsAssignableTo<IHostedService>();
     }
 
-    [Fact]
-    public void GameService_ImplementsIDisposable()
+    [Test]
+    public async Task GameService_ImplementsIDisposable()
     {
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, TimeProvider.System);
 
-        Assert.IsAssignableFrom<IDisposable>(service);
+        await Assert.That(service).IsAssignableTo<IDisposable>();
     }
 
-    [Fact]
+    [Test]
     public async Task Dispose_DoesNotThrow()
     {
-        var sp = Mock.Of<IServiceProvider>();
+        var sp = Mock.Of<IServiceProvider>().Object;
         var orchestrator = new ManagerOrchestrator(sp, new ServiceCollection());
         using var service = new GameService(sp, orchestrator, TimeProvider.System);
 

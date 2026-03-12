@@ -1,7 +1,6 @@
 #nullable enable
 
 using AAEmu.Login.Utils;
-using Xunit;
 
 namespace AAEmu.UnitTests.Login.Utils;
 
@@ -16,8 +15,8 @@ public class SimpleIdManagerTests
             accessor: entity => entity.Id);
     }
 
-    [Fact]
-    public void Rent_FirstCall_ReturnsIdOne()
+    [Test]
+    public async Task Rent_FirstCall_ReturnsIdOne()
     {
         // Arrange
         var manager = CreateManager();
@@ -26,11 +25,11 @@ public class SimpleIdManagerTests
         var entity = manager.Rent();
 
         // Assert
-        Assert.Equal(1u, entity.Id);
+        await Assert.That(entity.Id).IsEqualTo(1u);
     }
 
-    [Fact]
-    public void Rent_MultipleCalls_ReturnsIncrementingIds()
+    [Test]
+    public async Task Rent_MultipleCalls_ReturnsIncrementingIds()
     {
         // Arrange
         var manager = CreateManager();
@@ -41,13 +40,13 @@ public class SimpleIdManagerTests
         var entity3 = manager.Rent();
 
         // Assert
-        Assert.Equal(1u, entity1.Id);
-        Assert.Equal(2u, entity2.Id);
-        Assert.Equal(3u, entity3.Id);
+        await Assert.That(entity1.Id).IsEqualTo(1u);
+        await Assert.That(entity2.Id).IsEqualTo(2u);
+        await Assert.That(entity3.Id).IsEqualTo(3u);
     }
 
-    [Fact]
-    public void Return_ThenRent_ReusesReturnedId()
+    [Test]
+    public async Task Return_ThenRent_ReusesReturnedId()
     {
         // Arrange
         var manager = CreateManager();
@@ -59,11 +58,11 @@ public class SimpleIdManagerTests
         var entity3 = manager.Rent();
 
         // Assert - should reuse ID 1, not allocate ID 3
-        Assert.Equal(1u, entity3.Id);
+        await Assert.That(entity3.Id).IsEqualTo(1u);
     }
 
-    [Fact]
-    public void Return_MultipleReturns_ReusesInLifoOrder()
+    [Test]
+    public async Task Return_MultipleReturns_ReusesInLifoOrder()
     {
         // Arrange
         var manager = CreateManager();
@@ -81,12 +80,12 @@ public class SimpleIdManagerTests
         var reused2 = manager.Rent();
         var reused3 = manager.Rent();
 
-        Assert.Equal(3u, reused1.Id);
-        Assert.Equal(2u, reused2.Id);
-        Assert.Equal(1u, reused3.Id);
+        await Assert.That(reused1.Id).IsEqualTo(3u);
+        await Assert.That(reused2.Id).IsEqualTo(2u);
+        await Assert.That(reused3.Id).IsEqualTo(1u);
     }
 
-    [Fact]
+    [Test]
     public void Return_ZeroId_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
@@ -97,8 +96,8 @@ public class SimpleIdManagerTests
         Assert.Throws<ArgumentOutOfRangeException>(() => manager.Return(entityWithZeroId));
     }
 
-    [Fact]
-    public void Rent_AfterReturnAndNewAllocations_ContinuesFromNextId()
+    [Test]
+    public async Task Rent_AfterReturnAndNewAllocations_ContinuesFromNextId()
     {
         // Arrange
         var manager = CreateManager();
@@ -110,12 +109,12 @@ public class SimpleIdManagerTests
         var entity2 = manager.Rent();
 
         // Assert
-        Assert.Equal(1u, reused.Id);
-        Assert.Equal(2u, entity2.Id);
+        await Assert.That(reused.Id).IsEqualTo(1u);
+        await Assert.That(entity2.Id).IsEqualTo(2u);
     }
 
-    [Fact]
-    public void Rent_ThreadSafety_AllIdsAreUnique()
+    [Test]
+    public async Task Rent_ThreadSafety_AllIdsAreUnique()
     {
         // Arrange
         var manager = CreateManager();
@@ -130,11 +129,11 @@ public class SimpleIdManagerTests
 
         // Assert - all IDs should be unique
         var uniqueIds = entities.Select(e => e.Id).Distinct().Count();
-        Assert.Equal(Count, uniqueIds);
+        await Assert.That(uniqueIds).IsEqualTo(Count);
     }
 
-    [Fact]
-    public void Return_ThreadSafety_AllReturnsSucceed()
+    [Test]
+    public async Task Return_ThreadSafety_AllReturnsSucceed()
     {
         // Arrange
         var manager = CreateManager();
@@ -153,6 +152,6 @@ public class SimpleIdManagerTests
         var maxReusedId = reusedEntities.Max(e => e.Id);
 
         // All reused IDs should be from the returned pool (no new allocations)
-        Assert.Equal(maxOriginalId, maxReusedId);
+        await Assert.That(maxReusedId).IsEqualTo(maxOriginalId);
     }
 }

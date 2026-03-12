@@ -9,26 +9,23 @@ using AAEmu.Login.Utils;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using Xunit;
-
 namespace AAEmu.UnitTests.Login.Core.Network.Login;
 
 public class LoginConnectionFactoryTests
 {
-    private readonly Mock<ILoginProtocolHandler> _mockProtocolHandler = new();
-    private readonly Mock<IConnectionIdLeaseFactory> _mockLeaseFactory = new();
-    private readonly Mock<ILoginSessionFactory> _mockSessionFactory = new();
+    private readonly Mock<ILoginProtocolHandler> _mockProtocolHandler = Mock.Of<ILoginProtocolHandler>();
+    private readonly Mock<IConnectionIdLeaseFactory> _mockLeaseFactory = Mock.Of<IConnectionIdLeaseFactory>();
+    private readonly Mock<ILoginSessionFactory> _mockSessionFactory = Mock.Of<ILoginSessionFactory>();
     private readonly ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
 
-    [Fact]
-    public void Create_WithValidContext_ReturnsLoginConnection()
+    [Test]
+    public async Task Create_WithValidContext_ReturnsLoginConnection()
     {
         // Arrange
         var connectionId = new ConnectionId(1);
         var lease = CreateConnectionIdLease(connectionId);
 
-        _mockLeaseFactory.Setup(f => f.Rent()).Returns(lease);
+        _mockLeaseFactory.Rent().Returns(lease);
 
         var factory = new LoginConnectionFactory(
             [],
@@ -43,18 +40,18 @@ public class LoginConnectionFactoryTests
         var connection = factory.Create(mockContext.Object);
 
         // Assert
-        Assert.NotNull(connection);
-        Assert.Equal(connectionId, connection.Id);
+        await Assert.That(connection).IsNotNull();
+        await Assert.That(connection.Id).IsEqualTo(connectionId);
     }
 
-    [Fact]
+    [Test]
     public void Create_RentsConnectionIdLease()
     {
         // Arrange
         var connectionId = new ConnectionId(1);
         var lease = CreateConnectionIdLease(connectionId);
 
-        _mockLeaseFactory.Setup(f => f.Rent()).Returns(lease);
+        _mockLeaseFactory.Rent().Returns(lease);
 
         var factory = new LoginConnectionFactory(
             [],
@@ -69,11 +66,11 @@ public class LoginConnectionFactoryTests
         _ = factory.Create(mockContext.Object);
 
         // Assert
-        _mockLeaseFactory.Verify(f => f.Rent(), Times.Once);
+        _mockLeaseFactory.Rent().WasCalled(Times.Once);
     }
 
-    [Fact]
-    public void Create_MultipleCalls_RentsNewLeaseEachTime()
+    [Test]
+    public async Task Create_MultipleCalls_RentsNewLeaseEachTime()
     {
         // Arrange
         var connectionId1 = new ConnectionId(1);
@@ -81,9 +78,7 @@ public class LoginConnectionFactoryTests
         var lease1 = CreateConnectionIdLease(connectionId1);
         var lease2 = CreateConnectionIdLease(connectionId2);
 
-        _mockLeaseFactory.SetupSequence(f => f.Rent())
-            .Returns(lease1)
-            .Returns(lease2);
+        _mockLeaseFactory.Rent().ReturnsSequentially(lease1, lease2);
 
         var factory = new LoginConnectionFactory(
             [],
@@ -100,27 +95,27 @@ public class LoginConnectionFactoryTests
         var connection2 = factory.Create(mockContext2.Object);
 
         // Assert
-        Assert.Equal(connectionId1, connection1.Id);
-        Assert.Equal(connectionId2, connection2.Id);
-        _mockLeaseFactory.Verify(f => f.Rent(), Times.Exactly(2));
+        await Assert.That(connection1.Id).IsEqualTo(connectionId1);
+        await Assert.That(connection2.Id).IsEqualTo(connectionId2);
+        _mockLeaseFactory.Rent().WasCalled(Times.Exactly(2));
     }
 
-    [Fact]
-    public void Create_WithPacketDescriptors_IncludesThemInConnection()
+    [Test]
+    public async Task Create_WithPacketDescriptors_IncludesThemInConnection()
     {
         // Arrange
-        var mockDescriptor1 = new Mock<ILoginPacketDescriptor>();
-        mockDescriptor1.Setup(d => d.TypeId).Returns(1);
+        var mockDescriptor1 = Mock.Of<ILoginPacketDescriptor>();
+        mockDescriptor1.TypeId.Returns(1);
 
-        var mockDescriptor2 = new Mock<ILoginPacketDescriptor>();
-        mockDescriptor2.Setup(d => d.TypeId).Returns(2);
+        var mockDescriptor2 = Mock.Of<ILoginPacketDescriptor>();
+        mockDescriptor2.TypeId.Returns(2);
 
         var packetDescriptors = new List<ILoginPacketDescriptor> { mockDescriptor1.Object, mockDescriptor2.Object };
 
         var connectionId = new ConnectionId(1);
         var lease = CreateConnectionIdLease(connectionId);
 
-        _mockLeaseFactory.Setup(f => f.Rent()).Returns(lease);
+        _mockLeaseFactory.Rent().Returns(lease);
 
         var factory = new LoginConnectionFactory(
             packetDescriptors,
@@ -135,18 +130,18 @@ public class LoginConnectionFactoryTests
         var connection = factory.Create(mockContext.Object);
 
         // Assert - connection was created successfully with the descriptors
-        Assert.NotNull(connection);
+        await Assert.That(connection).IsNotNull();
     }
 
-    [Fact]
+    [Test]
     public void Create_WithDuplicatePacketDescriptorTypeIds_ThrowsArgumentException()
     {
         // Arrange
-        var mockDescriptor1 = new Mock<ILoginPacketDescriptor>();
-        mockDescriptor1.Setup(d => d.TypeId).Returns(1);
+        var mockDescriptor1 = Mock.Of<ILoginPacketDescriptor>();
+        mockDescriptor1.TypeId.Returns(1);
 
-        var mockDescriptor2 = new Mock<ILoginPacketDescriptor>();
-        mockDescriptor2.Setup(d => d.TypeId).Returns(1); // Duplicate TypeId
+        var mockDescriptor2 = Mock.Of<ILoginPacketDescriptor>();
+        mockDescriptor2.TypeId.Returns(1); // Duplicate TypeId
 
         var packetDescriptors = new List<ILoginPacketDescriptor> { mockDescriptor1.Object, mockDescriptor2.Object };
 
@@ -159,14 +154,14 @@ public class LoginConnectionFactoryTests
             _loggerFactory));
     }
 
-    [Fact]
-    public void Create_ConnectionIsLocalWhenSameEndpoint()
+    [Test]
+    public async Task Create_ConnectionIsLocalWhenSameEndpoint()
     {
         // Arrange
         var connectionId = new ConnectionId(1);
         var lease = CreateConnectionIdLease(connectionId);
 
-        _mockLeaseFactory.Setup(f => f.Rent()).Returns(lease);
+        _mockLeaseFactory.Rent().Returns(lease);
 
         var factory = new LoginConnectionFactory(
             [],
@@ -176,27 +171,27 @@ public class LoginConnectionFactoryTests
             _loggerFactory);
 
         // Create context where local and remote are the same IP
-        var mockContext = new Mock<ConnectionContext>();
+        var mockContext = Mock.OfPartial<ConnectionContext>();
         var endpoint = new IPEndPoint(IPAddress.Loopback, 12345);
-        mockContext.Setup(c => c.LocalEndPoint).Returns(endpoint);
-        mockContext.Setup(c => c.RemoteEndPoint).Returns(endpoint);
-        mockContext.Setup(c => c.Transport).Returns(CreateMockDuplexPipe().Object);
+        mockContext.LocalEndPoint.Returns(endpoint);
+        mockContext.RemoteEndPoint.Returns(endpoint);
+        mockContext.Transport.Returns(CreateMockDuplexPipe().Object);
 
         // Act
         var connection = factory.Create(mockContext.Object);
 
         // Assert
-        Assert.True(connection.IsLocallyConnected);
+        await Assert.That(connection.IsLocallyConnected).IsTrue();
     }
 
-    [Fact]
-    public void Create_ConnectionIsNotLocalWhenDifferentEndpoint()
+    [Test]
+    public async Task Create_ConnectionIsNotLocalWhenDifferentEndpoint()
     {
         // Arrange
         var connectionId = new ConnectionId(1);
         var lease = CreateConnectionIdLease(connectionId);
 
-        _mockLeaseFactory.Setup(f => f.Rent()).Returns(lease);
+        _mockLeaseFactory.Rent().Returns(lease);
 
         var factory = new LoginConnectionFactory(
             [],
@@ -206,42 +201,39 @@ public class LoginConnectionFactoryTests
             _loggerFactory);
 
         // Create context where local and remote are different IPs
-        var mockContext = new Mock<ConnectionContext>();
-        mockContext.Setup(c => c.LocalEndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 12345));
-        mockContext.Setup(c => c.RemoteEndPoint).Returns(new IPEndPoint(IPAddress.Parse("192.168.1.1"), 54321));
-        mockContext.Setup(c => c.Transport).Returns(CreateMockDuplexPipe().Object);
+        var mockContext = Mock.OfPartial<ConnectionContext>();
+        mockContext.LocalEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 12345));
+        mockContext.RemoteEndPoint.Returns(new IPEndPoint(IPAddress.Parse("192.168.1.1"), 54321));
+        mockContext.Transport.Returns(CreateMockDuplexPipe().Object);
 
         // Act
         var connection = factory.Create(mockContext.Object);
 
         // Assert
-        Assert.False(connection.IsLocallyConnected);
+        await Assert.That(connection.IsLocallyConnected).IsFalse();
     }
 
     private static Mock<ConnectionContext> CreateMockConnectionContext()
     {
-        var mockContext = new Mock<ConnectionContext>();
-        mockContext.Setup(c => c.RemoteEndPoint)
-            .Returns(new IPEndPoint(IPAddress.Loopback, 12345));
-        mockContext.Setup(c => c.LocalEndPoint)
-            .Returns(new IPEndPoint(IPAddress.Loopback, 1234));
-        mockContext.Setup(c => c.Transport)
-            .Returns(CreateMockDuplexPipe().Object);
+        var mockContext = Mock.OfPartial<ConnectionContext>();
+        mockContext.RemoteEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 12345));
+        mockContext.LocalEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 1234));
+        mockContext.Transport.Returns(CreateMockDuplexPipe().Object);
         return mockContext;
     }
 
     private static Mock<IDuplexPipe> CreateMockDuplexPipe()
     {
-        var mockPipe = new Mock<IDuplexPipe>();
-        mockPipe.Setup(p => p.Input).Returns(Mock.Of<PipeReader>());
-        mockPipe.Setup(p => p.Output).Returns(Mock.Of<PipeWriter>());
+        var mockPipe = Mock.Of<IDuplexPipe>();
+        mockPipe.Input.Returns(PipeReader.Create(Stream.Null));
+        mockPipe.Output.Returns(PipeWriter.Create(Stream.Null));
         return mockPipe;
     }
 
     private static ConnectionIdLease CreateConnectionIdLease(ConnectionId connectionId)
     {
-        var mockIdManager = new Mock<IIdManager<ConnectionId>>();
-        mockIdManager.Setup(m => m.Rent()).Returns(connectionId);
+        var mockIdManager = Mock.Of<IIdManager<ConnectionId>>();
+        mockIdManager.Rent().Returns(connectionId);
         var leaseFactory = new ConnectionIdLeaseFactory(mockIdManager.Object);
         return leaseFactory.Rent();
     }

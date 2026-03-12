@@ -1,4 +1,3 @@
-using Xunit;
 
 using AAEmu.Commons.Utils;
 
@@ -6,8 +5,8 @@ namespace AAEmu.UnitTests.Commons.Utils;
 
 public class PrimeFinderTests
 {
-    [Fact]
-    public void NextPrime_ShouldReturnNextPrime_WhenCapacityIsNotPrime()
+    [Test]
+    public async Task NextPrime_ShouldReturnNextPrime_WhenCapacityIsNotPrime()
     {
         // Arrange
         PrimeFinder.Init();
@@ -17,11 +16,11 @@ public class PrimeFinderTests
         var result = PrimeFinder.NextPrime(desiredCapacity);
 
         // Assert
-        Assert.InRange(result, 101, int.MaxValue);
+        await Assert.That(result).IsGreaterThanOrEqualTo(101);
     }
 
-    [Fact]
-    public void NextPrime_ShouldReturnLargerPrime_WhenCapacityIsPrime()
+    [Test]
+    public async Task NextPrime_ShouldReturnLargerPrime_WhenCapacityIsPrime()
     {
         // Arrange
         PrimeFinder.Init();
@@ -31,18 +30,18 @@ public class PrimeFinderTests
         var result = PrimeFinder.NextPrime(desiredCapacity);
 
         // Assert
-        Assert.InRange(result, 98, int.MaxValue);
-        Assert.NotEqual(97, result);
+        await Assert.That(result).IsGreaterThanOrEqualTo(98);
+        await Assert.That(result).IsNotEqualTo(97);
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(10)]
-    [InlineData(50)]
-    [InlineData(100)]
-    [InlineData(500)]
-    [InlineData(1000)]
-    public void NextPrime_ShouldReturnValidPrime_WhenGivenVariousCapacities(int capacity)
+    [Test]
+    [Arguments(1)]
+    [Arguments(10)]
+    [Arguments(50)]
+    [Arguments(100)]
+    [Arguments(500)]
+    [Arguments(1000)]
+    public async Task NextPrime_ShouldReturnValidPrime_WhenGivenVariousCapacities(int capacity)
     {
         // Arrange
         PrimeFinder.Init();
@@ -51,11 +50,11 @@ public class PrimeFinderTests
         var result = PrimeFinder.NextPrime(capacity);
 
         // Assert
-        Assert.InRange(result, capacity, int.MaxValue);
+        await Assert.That(result).IsGreaterThanOrEqualTo(capacity);
     }
 
-    [Fact]
-    public void NextPrime_ShouldReturnAtLeastGivenCapacity()
+    [Test]
+    public async Task NextPrime_ShouldReturnAtLeastGivenCapacity()
     {
         // Arrange
         PrimeFinder.Init();
@@ -65,10 +64,10 @@ public class PrimeFinderTests
         var result = PrimeFinder.NextPrime(desiredCapacity);
 
         // Assert
-        Assert.True(result >= desiredCapacity);
+        await Assert.That(result >= desiredCapacity).IsTrue();
     }
 
-    [Fact]
+    [Test]
     public void Init_ShouldNotThrow_WhenCalledMultipleTimes()
     {
         // Arrange & Act & Assert - should not throw
@@ -77,8 +76,8 @@ public class PrimeFinderTests
         PrimeFinder.Init();
     }
 
-    [Fact]
-    public void NextPrime_ShouldThrowOverflowException_WhenCapacityExceedsMaximum()
+    [Test]
+    public async Task NextPrime_ShouldThrowOverflowException_WhenCapacityExceedsMaximum()
     {
         // Arrange
         PrimeFinder.Init();
@@ -86,6 +85,6 @@ public class PrimeFinderTests
 
         // Act & Assert
         var exception = Assert.Throws<OverflowException>(() => PrimeFinder.NextPrime(desiredCapacity));
-        Assert.Contains("exceeds maximum available prime", exception.Message);
+        await Assert.That(exception.Message).Contains("exceeds maximum available prime");
     }
 }

@@ -2,14 +2,12 @@
 
 using AAEmu.Commons.Network;
 
-using Xunit;
-
 namespace AAEmu.UnitTests.Commons.Network
 {
     public class PacketStreamTests
     {
-        [Fact]
-        public void WriteAndReadByte_ShouldReturnSameValue()
+        [Test]
+        public async Task WriteAndReadByte_ShouldReturnSameValue()
         {
             var stream = new PacketStream();
             byte expected = 0x7F;
@@ -17,11 +15,11 @@ namespace AAEmu.UnitTests.Commons.Network
             stream.Rollback();
 
             var result = stream.ReadByte();
-            Assert.Equal(expected, result);
+            await Assert.That(result).IsEqualTo(expected);
         }
 
-        [Fact]
-        public void WriteAndReadInt32_ShouldReturnSameValue()
+        [Test]
+        public async Task WriteAndReadInt32_ShouldReturnSameValue()
         {
             var stream = new PacketStream();
             var expected = 123456;
@@ -29,11 +27,11 @@ namespace AAEmu.UnitTests.Commons.Network
             stream.Rollback();
 
             var result = stream.ReadInt32();
-            Assert.Equal(expected, result);
+            await Assert.That(result).IsEqualTo(expected);
         }
 
-        [Fact]
-        public void WriteAndReadString_ShouldReturnSameString()
+        [Test]
+        public async Task WriteAndReadString_ShouldReturnSameString()
         {
             var stream = new PacketStream();
             var expected = "Hello xUnit";
@@ -41,20 +39,20 @@ namespace AAEmu.UnitTests.Commons.Network
             stream.Rollback();
 
             var result = stream.ReadString();
-            Assert.Equal(expected, result);
+            await Assert.That(result).IsEqualTo(expected);
         }
 
-        [Fact]
-        public void Clear_ShouldResetCountToZero()
+        [Test]
+        public async Task Clear_ShouldResetCountToZero()
         {
             var stream = new PacketStream();
             stream.Write(99);
             stream.Clear();
-            Assert.Equal(0, stream.Count);
+            await Assert.That(stream.Count).IsEqualTo(0);
         }
 
-        [Fact]
-        public void Replace_WithByteArray_ShouldCopyDataCorrectly()
+        [Test]
+        public async Task Replace_WithByteArray_ShouldCopyDataCorrectly()
         {
             var original = new PacketStream();
             byte value = 100;
@@ -63,11 +61,11 @@ namespace AAEmu.UnitTests.Commons.Network
             var newStream = new PacketStream();
             newStream.Replace(original);
             newStream.Rollback();
-            Assert.Equal(value, newStream.ReadByte());
+            await Assert.That(newStream.ReadByte()).IsEqualTo(value);
         }
 
-        [Fact]
-        public void Insert_ShouldInsertBytesIntoTheMiddle()
+        [Test]
+        public async Task Insert_ShouldInsertBytesIntoTheMiddle()
         {
             var stream = new PacketStream();
             // Запишем два байта: 'A' и 'C'
@@ -78,12 +76,12 @@ namespace AAEmu.UnitTests.Commons.Network
 
             stream.Rollback();
             var result = stream.ReadBytes(3);
-            var expected = new byte[] { (byte)'A', (byte)'B', (byte)'C' };
-            Assert.Equal(expected, result);
+            var expected = "ABC"u8.ToArray();
+            await Assert.That(result).IsEquivalentTo(expected);
         }
 
-        [Fact]
-        public void Swap_ShouldExchangeBuffersBetweenStreams()
+        [Test]
+        public async Task Swap_ShouldExchangeBuffersBetweenStreams()
         {
             var stream1 = new PacketStream();
             var stream2 = new PacketStream();
@@ -94,12 +92,12 @@ namespace AAEmu.UnitTests.Commons.Network
 
             stream1.Rollback();
             stream2.Rollback();
-            Assert.Equal(2, stream1.ReadByte());
-            Assert.Equal(1, stream2.ReadByte());
+            await Assert.That(stream1.ReadByte()).IsEqualTo((byte)2);
+            await Assert.That(stream2.ReadByte()).IsEqualTo((byte)1);
         }
 
-        [Fact]
-        public void Clone_ShouldCreateIdenticalPacketStream()
+        [Test]
+        public async Task Clone_ShouldCreateIdenticalPacketStream()
         {
             var stream = new PacketStream();
             stream.Write(99);
@@ -107,11 +105,11 @@ namespace AAEmu.UnitTests.Commons.Network
             var clone = (PacketStream)stream.Clone();
             stream.Rollback();
             clone.Rollback();
-            Assert.Equal(stream.ReadInt32(), clone.ReadInt32());
+            await Assert.That(clone.ReadInt32()).IsEqualTo(stream.ReadInt32());
         }
 
-        [Fact]
-        public void CompareTo_ShouldReturnCorrectComparison()
+        [Test]
+        public async Task CompareTo_ShouldReturnCorrectComparison()
         {
             var stream1 = new PacketStream();
             var stream2 = new PacketStream();
@@ -119,11 +117,11 @@ namespace AAEmu.UnitTests.Commons.Network
             stream2.Write((byte)2);
 
             // Сравнение должно вернуть значение меньше нуля, если stream1 меньше stream2
-            Assert.True(stream1.CompareTo(stream2) < 0);
+            await Assert.That(stream1.CompareTo(stream2) < 0).IsTrue();
         }
 
-        [Fact]
-        public void WriteAndReadPosition_ShouldReturnSameCoordinates()
+        [Test]
+        public async Task WriteAndReadPosition_ShouldReturnSameCoordinates()
         {
             var stream = new PacketStream();
             float x = 1.0f, y = 2.0f, z = 3.0f;
@@ -131,13 +129,13 @@ namespace AAEmu.UnitTests.Commons.Network
             stream.Rollback();
 
             (var rx, var ry, var rz) = stream.ReadPosition();
-            Assert.InRange(rx, x - 0.01f, x + 0.01f);
-            Assert.InRange(ry, y - 0.01f, y + 0.01f);
-            Assert.InRange(rz, z - 0.01f, z + 0.01f);
+            await Assert.That(rx).IsGreaterThanOrEqualTo(x - 0.01f).And.IsLessThanOrEqualTo(x + 0.01f);
+            await Assert.That(ry).IsGreaterThanOrEqualTo(y - 0.01f).And.IsLessThanOrEqualTo(y + 0.01f);
+            await Assert.That(rz).IsGreaterThanOrEqualTo(z - 0.01f).And.IsLessThanOrEqualTo(z + 0.01f);
         }
 
-        [Fact]
-        public void WriteAndReadQuaternionShort_ShouldReturnApproximatelySameQuaternion()
+        [Test]
+        public async Task WriteAndReadQuaternionShort_ShouldReturnApproximatelySameQuaternion()
         {
             var stream = new PacketStream();
             // Создаём кватернион с произвольными значениями
@@ -147,9 +145,9 @@ namespace AAEmu.UnitTests.Commons.Network
 
             var result = stream.ReadQuaternionShort();
             // Проверяем приближенность для x, y, z, так как w вычисляется через норму
-            Assert.InRange(result.X, q.X - 0.1f, q.X + 0.1f);
-            Assert.InRange(result.Y, q.Y - 0.1f, q.Y + 0.1f);
-            Assert.InRange(result.Z, q.Z - 0.1f, q.Z + 0.1f);
+            await Assert.That(result.X).IsGreaterThanOrEqualTo(q.X - 0.1f).And.IsLessThanOrEqualTo(q.X + 0.1f);
+            await Assert.That(result.Y).IsGreaterThanOrEqualTo(q.Y - 0.1f).And.IsLessThanOrEqualTo(q.Y + 0.1f);
+            await Assert.That(result.Z).IsGreaterThanOrEqualTo(q.Z - 0.1f).And.IsLessThanOrEqualTo(q.Z + 0.1f);
         }
     }
 }

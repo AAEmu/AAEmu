@@ -7,18 +7,15 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
-using Moq;
-using Xunit;
-
 namespace AAEmu.UnitTests.Game.Utils.Scripts.SubCommands;
 
 public class SubCommandBaseTests
 {
-    [Theory]
-    [InlineData("param1,param2", "test")]
-    [InlineData("param1,param2,param3,param4", "test")]
-    [InlineData("param1,param2,param3,param4", "test", "test2", "test3")]
-    public void PreValidate_WhenRequiredStringParametersAreNotMet_PreValidateShouldSendMessage(string requiredParameters, params string[] arguments)
+    [Test]
+    [Arguments("param1,param2", "test")]
+    [Arguments("param1,param2,param3,param4", "test")]
+    [Arguments("param1,param2,param3,param4", "test", "test2", "test3")]
+    public async Task PreValidate_WhenRequiredStringParametersAreNotMet_PreValidateShouldSendMessage(string requiredParameters, params string[] arguments)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>();
@@ -28,13 +25,13 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.False(subCommand.Executed);
+        await Assert.That(subCommand.Executed).IsFalse();
         if (parameters.Count > arguments.Length)
         {
             var missingParameters = parameters.Count - arguments.Length;
@@ -46,11 +43,11 @@ public class SubCommandBaseTests
         }
     }
 
-    [Theory]
-    [InlineData("required-prefix-x", "x=test", "x=test2duplicate")]
-    [InlineData("optional-prefix-y", "y=test", "y=test2duplicate")]
-    [InlineData("optional-prefix-name", "y=test", "y=test2duplicate", "name=ok", "name=duplicate")]
-    public void PreValidate_WhenDuplicatedPrefixParameters_PreValidateShouldSendMessage(string prefixParameters, params string[] arguments)
+    [Test]
+    [Arguments("required-prefix-x", "x=test", "x=test2duplicate")]
+    [Arguments("optional-prefix-y", "y=test", "y=test2duplicate")]
+    [Arguments("optional-prefix-name", "y=test", "y=test2duplicate", "name=ok", "name=duplicate")]
+    public async Task PreValidate_WhenDuplicatedPrefixParameters_PreValidateShouldSendMessage(string prefixParameters, params string[] arguments)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>();
@@ -64,22 +61,22 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.False(subCommand.Executed);
+        await Assert.That(subCommand.Executed).IsFalse();
 
         // TODO: Fix this test
         // mockCharacter.Verify(c => c.SendMessage(It.IsIn(ChatType.System), It.IsIn($"[Test] Parameter prefix {parameters[0].Prefix} is duplicated"), It.IsIn(Color.Red)), Times.Once);
     }
 
-    [Theory]
-    [InlineData("param1,param2", "test", "test2")]
-    [InlineData("param1,param2,param3,param4", "test", "test2", "test3", "test4")]
-    public void PreValidate_WhenRequiredStringParametersAreMet_ShouldExecuteWithParameters(string requiredParameters, params string[] arguments)
+    [Test]
+    [Arguments("param1,param2", "test", "test2")]
+    [Arguments("param1,param2,param3,param4", "test", "test2", "test3", "test4")]
+    public async Task PreValidate_WhenRequiredStringParametersAreMet_ShouldExecuteWithParameters(string requiredParameters, params string[] arguments)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>();
@@ -89,33 +86,38 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.True(subCommand.Executed);
-        Assert.Equal(arguments.Length, subCommand.Parameters.Count);
+        await Assert.That(subCommand.Executed).IsTrue();
+        await Assert.That(subCommand.Parameters.Count).IsEqualTo(arguments.Length);
         var counter = 0;
         foreach (var parameterKeyValue in subCommand.Parameters)
         {
-            Assert.Equal(parameters[counter].Name, parameterKeyValue.Key);
-            Assert.Equal(arguments[counter], parameterKeyValue.Value);
+            await Assert.That(parameterKeyValue.Key).IsEqualTo(parameters[counter].Name);
+            await Assert.That(parameterKeyValue.Value).IsEqualTo(arguments[counter]);
             counter++;
         }
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
-    [Theory]
-    [InlineData("param1", "param2", "test")]
-    [InlineData("param1,param2", "param3,param4", "test", "test2")]
-    [InlineData("param1,param2", "param3,param4", "test", "test2", "test3")]
-    [InlineData("param1,param2", "param3,param4", "test", "test2", "test3", "test4")]
-    [InlineData("param1,param2", "param3,param4", "test", "test2", "test3", "test4", "test5")]
-    [InlineData("param1,param2", "param3,param4,param5", "test", "test2", "test3", "test4", "test5")]
-    [InlineData("param1,param2", "param3,param4,param5", "test", "test2", "test3", "test4", "test5", "test6", "test7")]
-    public void LoadParametersValues_WhenOptionalParameterAreNotPresent_ShouldExecuteWithOnlyProvidedParameters(string requiredParameters, string optionalParameters, params string[] arguments)
+    public static IEnumerable<(string, string, string[])> OptionalParameterNotPresentData() =>
+    [
+        ("param1", "param2", ["test"]),
+        ("param1,param2", "param3,param4", ["test", "test2"]),
+        ("param1,param2", "param3,param4", ["test", "test2", "test3"]),
+        ("param1,param2", "param3,param4", ["test", "test2", "test3", "test4"]),
+        ("param1,param2", "param3,param4", ["test", "test2", "test3", "test4", "test5"]),
+        ("param1,param2", "param3,param4,param5", ["test", "test2", "test3", "test4", "test5"]),
+        ("param1,param2", "param3,param4,param5", ["test", "test2", "test3", "test4", "test5", "test6", "test7"]),
+    ];
+
+    [Test]
+    [MethodDataSource(nameof(OptionalParameterNotPresentData))]
+    public async Task LoadParametersValues_WhenOptionalParameterAreNotPresent_ShouldExecuteWithOnlyProvidedParameters(string requiredParameters, string optionalParameters, string[] arguments)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>();
@@ -131,7 +133,7 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
         var parametersToIgnore = 0;
         if (arguments.Length > optionalParametersArray.Length + requiredParametersArray.Length)
         {
@@ -144,65 +146,70 @@ public class SubCommandBaseTests
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.True(subCommand.Executed);
+        await Assert.That(subCommand.Executed).IsTrue();
 
-        Assert.Equal(expectedNumberOfParameters, subCommand.Parameters.Count);
+        await Assert.That(subCommand.Parameters.Count).IsEqualTo(expectedNumberOfParameters);
         var counter = 0;
         foreach (var parameterKeyValue in subCommand.Parameters)
         {
-            Assert.Equal(parameters[counter].Name, parameterKeyValue.Key);
-            Assert.Equal(arguments[counter], parameterKeyValue.Value);
+            await Assert.That(parameterKeyValue.Key).IsEqualTo(parameters[counter].Name);
+            await Assert.That(parameterKeyValue.Value).IsEqualTo(arguments[counter]);
             counter++;
         }
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
-    [Theory]
-    [InlineData("test", "valid1", "valid2")]
-    [InlineData("test", "test1")]
-    public void PreValidate_WhenRangedStringParameterAreNotMet_PreValidateShouldSendMessage(string argumentValue, params string[] validValues)
+    [Test]
+    [Arguments("test", "valid1", "valid2")]
+    [Arguments("test", "test1")]
+    public async Task PreValidate_WhenRangedStringParameterAreNotMet_PreValidateShouldSendMessage(string argumentValue, params string[] validValues)
     {
         // Arrange
         var parameter = new StringSubCommandParameter("param1", "parameter 1", true, validValues);
         var subCommand = new SubCommandFake(new[] { parameter });
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", [argumentValue], new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.False(subCommand.Executed);
+        await Assert.That(subCommand.Executed).IsFalse();
 
         // TODO: fix this test
         // mockCharacter.Verify(c => c.SendMessage(It.IsIn<ChatType>(), It.IsIn($"[Test] Parameter [{parameter.DisplayName}] only accepts: {string.Join("||", validValues)}"), It.IsIn(Color.Red)), Times.Once);
     }
 
-    [Theory]
-    [InlineData("test", "test", "test2", "test3")]
-    public void PreValidate_WhenRangedStringParameterAreMet_ShouldExecute(string argumentValue, params string[] validValues)
+    [Test]
+    [Arguments("test", "test", "test2", "test3")]
+    public async Task PreValidate_WhenRangedStringParameterAreMet_ShouldExecute(string argumentValue, params string[] validValues)
     {
         // Arrange
         var parameter = new StringSubCommandParameter("param1", "parameter 1", true, validValues);
         var subCommand = new SubCommandFake(new[] { parameter });
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", [argumentValue], new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.True(subCommand.Executed);
-        Assert.Single(subCommand.Parameters);
-        Assert.Equal(argumentValue, subCommand.Parameters["param1"]);
+        await Assert.That(subCommand.Executed).IsTrue();
+        await Assert.That(subCommand.Parameters).HasSingleItem();
+        await Assert.That(subCommand.Parameters["param1"]).IsEqualTo(argumentValue);
 
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
-    [Theory]
-    [InlineData("req1", "opt2", "required-prefix-x", "x=test", "firstRequired", "SecondOptional", "shouldIgnoreMe")]
-    [InlineData("req1", "opt2", "required-prefix-x", "firstRequired", "x=test", "SecondOptional", "shouldIgnoreMe", "shouldIgnoreMe")]
-    [InlineData("req1", "opt2", "required-prefix-x", "firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z")]
-    [InlineData("req1", "opt2", "required-prefix-x", "firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z", "ignoreMe")]
-    public void LoadParametersValues_WhenMixedNonPrefixAndAnyOrderPrefix_ShouldExecute(string requiredParameters, string optionalParameters, string prefixParameters, params string[] arguments)
+    public static IEnumerable<(string, string, string, string[])> MixedNonPrefixAndAnyOrderPrefixData() =>
+    [
+        ("req1", "opt2", "required-prefix-x", ["x=test", "firstRequired", "SecondOptional", "shouldIgnoreMe"]),
+        ("req1", "opt2", "required-prefix-x", ["firstRequired", "x=test", "SecondOptional", "shouldIgnoreMe", "shouldIgnoreMe"]),
+        ("req1", "opt2", "required-prefix-x", ["firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z"]),
+        ("req1", "opt2", "required-prefix-x", ["firstRequired", "SecondOptional", "x=test", "shouldIgnoreMe", "shouldIgnoreMe", "y=z", "ignoreMe"]),
+    ];
+
+    [Test]
+    [MethodDataSource(nameof(MixedNonPrefixAndAnyOrderPrefixData))]
+    public async Task LoadParametersValues_WhenMixedNonPrefixAndAnyOrderPrefix_ShouldExecute(string requiredParameters, string optionalParameters, string prefixParameters, string[] arguments)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>();
@@ -226,15 +233,15 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.True(subCommand.Executed);
+        await Assert.That(subCommand.Executed).IsTrue();
 
-        Assert.Equal(3, subCommand.Parameters.Count);
+        await Assert.That(subCommand.Parameters.Count).IsEqualTo(3);
 
         var counter = 0;
         var nonPrefixCounter = 0;
@@ -245,12 +252,12 @@ public class SubCommandBaseTests
                 if (AnyPrefixedParameterThatMatchesThePrefixedArgument(parameters, argument))
                 {
                     // Any parameters configured as prefix where the argument matches should be present in the subcommand parameters
-                    Assert.Contains(subCommand.Parameters, p => p.Value.ToString() == argument.Split('=')[1]);
+                    await Assert.That(subCommand.Parameters).Contains(p => p.Value.ToString() == argument.Split('=')[1]);
                 }
                 else
                 {
                     // Any parameters that are not by prefix should not have prefixed argument values
-                    Assert.DoesNotContain(subCommand.Parameters, p => p.Value.ToString() == argument.Split('=')[1]);
+                    await Assert.That(subCommand.Parameters).DoesNotContain(p => p.Value.ToString() == argument.Split('=')[1]);
                 }
             }
             else
@@ -259,20 +266,20 @@ public class SubCommandBaseTests
                 {
                     // Any argument that not match the prefix pattern should be matching the non prefix parameters in order
                     // If the nonprefix arguments matched more the number of nonprefix parameters we don't expect the parameters to contains any of those values
-                    Assert.Contains(subCommand.Parameters, p => p.Value.ToString() == argument);
+                    await Assert.That(subCommand.Parameters).Contains(p => p.Value.ToString() == argument);
                     nonPrefixCounter++;
                 }
             }
             counter++;
         }
-        mockCharacter.Verify(c => c.SendMessage(It.IsAny<ChatType>(), It.IsAny<string>(), It.IsAny<Color>()), Times.Never);
+        mockCharacter.SendMessage(Any<ChatType>(), Any<string>(), Any<Color?>()).WasCalled(Times.Never);
     }
 
-    [Theory]
-    [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "required-float", -13.23F, "x=12", "w=100", "-13.23", "requiredstring", "extrastring")]
-    [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "required-float", 123.54F, "w=100", "123.54", "requiredstring", "extrastring")]
-    [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "required-float-prefix-yaw", 185.4323F, "yaw=185.4323", "200")]
-    public void LoadParametersValues_MixedParameters_ShouldExecute(string parametersPattern, string expectedParameterName, object expectedParameterValue, params string[] arguments)
+    [Test]
+    [Arguments("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "required-float", -13.23F, "x=12", "w=100", "-13.23", "requiredstring", "extrastring")]
+    [Arguments("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "required-float", 123.54F, "w=100", "123.54", "requiredstring", "extrastring")]
+    [Arguments("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "required-float-prefix-yaw", 185.4323F, "yaw=185.4323", "200")]
+    public async Task LoadParametersValues_MixedParameters_ShouldExecute(string parametersPattern, string expectedParameterName, object expectedParameterValue, params string[] arguments)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>();
@@ -283,23 +290,23 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.True(subCommand.Executed);
+        await Assert.That(subCommand.Executed).IsTrue();
         foreach (var parameterPattern in parametersArray.Where(x => x.StartsWith("required")))
         {
-            Assert.True(subCommand.Parameters.ContainsKey(parameterPattern));
+            await Assert.That(subCommand.Parameters.ContainsKey(parameterPattern)).IsTrue();
         }
-        Assert.Equal(expectedParameterValue, subCommand.Parameters[expectedParameterName].GetValue());
+        await Assert.That(subCommand.Parameters[expectedParameterName].GetValue()).IsEqualTo(expectedParameterValue);
     }
 
-    [Theory]
-    [InlineData("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "[Test] " + CommandManager.CommandPrefix + "test <required-float> <required-string> <required-long-prefix-w> [optional-int-prefix-x]")]
-    [InlineData("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "[Test] " + CommandManager.CommandPrefix + "test <required-byte> [optional-string] <required-float-prefix-yaw> [optional-int-prefix-x]")]
+    [Test]
+    [Arguments("required-long-prefix-w,optional-int-prefix-x,required-float,required-string", "[Test] " + CommandManager.CommandPrefix + "test <required-float> <required-string> <required-long-prefix-w> [optional-int-prefix-x]")]
+    [Arguments("required-float-prefix-yaw,optional-int-prefix-x,required-byte,optional-string", "[Test] " + CommandManager.CommandPrefix + "test <required-byte> [optional-string] <required-float-prefix-yaw> [optional-int-prefix-x]")]
     public void SendHelpMessage_MixedParameters_ShouldSendMessage(string parametersPattern, string expectedCallExample)
     {
         // Arrange
@@ -311,43 +318,43 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.BaseSendHelpMessage(new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        mockCharacter.Verify(c => c.SendMessage(ChatType.System, It.Is<string>(call => call.Contains(expectedCallExample)), It.IsAny<Color?>()), Times.Once);
+        mockCharacter.SendMessage(ChatType.System, Is<string>(call => call.Contains(expectedCallExample)), Any<Color?>()).WasCalled(Times.Once);
     }
 
-    [Theory]
-    [InlineData("[Test] " + CommandManager.CommandPrefix + "test <a||b||c>", "a", "b", "c")]
-    [InlineData("[Test] " + CommandManager.CommandPrefix + "test <a||b>", "a", "b")]
-    [InlineData("[Test] " + CommandManager.CommandPrefix + "test <a>", "a")]
-    [InlineData("[Test] " + CommandManager.CommandPrefix + "test <test display name>")]
+    [Test]
+    [Arguments("[Test] " + CommandManager.CommandPrefix + "test <a||b||c>", "a", "b", "c")]
+    [Arguments("[Test] " + CommandManager.CommandPrefix + "test <a||b>", "a", "b")]
+    [Arguments("[Test] " + CommandManager.CommandPrefix + "test <a>", "a")]
+    [Arguments("[Test] " + CommandManager.CommandPrefix + "test <test display name>")]
     public void SendHelpMessage_StringValidValuesHelpMessage_ShouldSendMessage(string expectedCallExample, params string[] validValues)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>() { new StringSubCommandParameter("test", "test display name", true, validValues) };
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.BaseSendHelpMessage(new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        mockCharacter.Verify(c => c.SendMessage(ChatType.System, It.Is<string>(call => call.Contains(expectedCallExample)), It.IsAny<Color?>()), Times.Once);
+        mockCharacter.SendMessage(ChatType.System, Is<string>(call => call.Contains(expectedCallExample)), Any<Color?>()).WasCalled(Times.Once);
     }
 
-    [Theory]
-    [InlineData("required-long-prefix-w,optional-int-prefix-x-default-(int)10,required-float,required-string", "optional-int-prefix-x-default-(int)10", 10, "w=100", "-13.23", "requiredstring", "extrastring")]
-    [InlineData("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-string-default-ok", "ok", "anything")]
-    [InlineData("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(float)50.93", 50.93F, "anything")]
-    [InlineData("optional-int-prefix-x-default-(uint)50,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(uint)50", 50U, "anything")]
-    [InlineData("optional-int-prefix-x-default-(byte)250,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(byte)250", (byte)250, "anything")]
-    [InlineData("optional-int-prefix-x-default-(long)1000000,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(long)1000000", 1000000L, "anything")]
-    public void LoadParameter_WhenOptionalDefaultParametersAreNotProvided_ShouldDefaultTheValues(string parametersPattern, string expectedParameterName, object expectedParameterDefaultValue, params string[] arguments)
+    [Test]
+    [Arguments("required-long-prefix-w,optional-int-prefix-x-default-(int)10,required-float,required-string", "optional-int-prefix-x-default-(int)10", 10, "w=100", "-13.23", "requiredstring", "extrastring")]
+    [Arguments("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-string-default-ok", "ok", "anything")]
+    [Arguments("optional-int-prefix-x-default-(float)50.93,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(float)50.93", 50.93F, "anything")]
+    [Arguments("optional-int-prefix-x-default-(uint)50,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(uint)50", 50U, "anything")]
+    [Arguments("optional-int-prefix-x-default-(byte)250,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(byte)250", (byte)250, "anything")]
+    [Arguments("optional-int-prefix-x-default-(long)1000000,required-string,optional-string-default-ok", "optional-int-prefix-x-default-(long)1000000", 1000000L, "anything")]
+    public async Task LoadParameter_WhenOptionalDefaultParametersAreNotProvided_ShouldDefaultTheValues(string parametersPattern, string expectedParameterName, object expectedParameterDefaultValue, params string[] arguments)
     {
         // Arrange
         var parameters = new List<SubCommandParameterBase>();
@@ -358,14 +365,14 @@ public class SubCommandBaseTests
         }
 
         var subCommand = new SubCommandFake(parameters);
-        var mockCharacter = new Mock<ICharacter>();
+        var mockCharacter = Mock.Of<ICharacter>();
 
         // Act
         subCommand.PreExecute(mockCharacter.Object, "", arguments, new CharacterMessageOutput(mockCharacter.Object));
 
         // Assert
-        Assert.True(subCommand.Executed);
-        Assert.Equal(expectedParameterDefaultValue, subCommand.Parameters[expectedParameterName].GetValue());
+        await Assert.That(subCommand.Executed).IsTrue();
+        await Assert.That(subCommand.Parameters[expectedParameterName].GetValue()).IsEqualTo(expectedParameterDefaultValue);
     }
 
     private static SubCommandParameterBase GetParameter(string parameterPattern)

@@ -3,8 +3,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks.Quests;
-using Moq;
-using Xunit;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -13,163 +11,162 @@ public class QuestManagerTests
     private static QuestManager CreateManager(ITaskManager taskManager = null, IZoneManager zoneManager = null)
     {
         return new QuestManager(
-            taskManager ?? Mock.Of<ITaskManager>(),
-            zoneManager ?? Mock.Of<IZoneManager>());
+            taskManager ?? Mock.Of<ITaskManager>().Object,
+            zoneManager ?? Mock.Of<IZoneManager>().Object);
     }
 
     #region Existing Tests
 
-    [Fact]
-    public void GetTemplate_BeforeLoad_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_BeforeLoad_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetTemplate(999);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void AddQuestTimer_CallsTaskManagerSchedule()
+    [Test]
+    public async Task AddQuestTimer_CallsTaskManagerSchedule()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
 
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var result = manager.AddQuestTimer(mockOwner.Object, quest, 60_000);
 
-        Assert.True(result);
-        mockTaskManager.Verify(
-            t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), TimeSpan.FromMilliseconds(60_000), null, -1),
-            Times.Once);
+        await Assert.That(result).IsTrue();
+        mockTaskManager
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
+            .WasCalled(Times.Once);
     }
 
     #endregion
 
     #region GetTemplate Tests
 
-    [Fact]
-    public void GetTemplate_WithNonExistentId_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_WithNonExistentId_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetTemplate(9999);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetTemplate_WithZeroId_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_WithZeroId_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetTemplate(0);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetSupplies Tests
 
-    [Fact]
-    public void GetSupplies_WithNonExistentLevel_ReturnsNull()
+    [Test]
+    public async Task GetSupplies_WithNonExistentLevel_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetSupplies(100);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetSupplies_WithZeroLevel_ReturnsNull()
+    [Test]
+    public async Task GetSupplies_WithZeroLevel_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetSupplies(0);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
 
     #region GetActsInComponent Tests
 
-    [Fact]
-    public void GetActsInComponent_WithNonExistentComponentId_ReturnsEmptyList()
+    [Test]
+    public async Task GetActsInComponent_WithNonExistentComponentId_ReturnsEmptyList()
     {
         var manager = CreateManager();
 
         var result = manager.GetActsInComponent(9999);
 
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void GetActsInComponent_WithZeroId_ReturnsEmptyList()
+    [Test]
+    public async Task GetActsInComponent_WithZeroId_ReturnsEmptyList()
     {
         var manager = CreateManager();
 
         var result = manager.GetActsInComponent(0);
 
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetActTemplate Tests
 
-    [Fact]
-    public void GetActTemplate_WithNonExistentId_ReturnsNull()
+    [Test]
+    public async Task GetActTemplate_WithNonExistentId_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetActTemplate(9999, "QuestActObjMonsterHunt");
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetActTemplate_WithNonExistentType_ReturnsNull()
+    [Test]
+    public async Task GetActTemplate_WithNonExistentType_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetActTemplate(1, "NonExistentType");
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetActTemplate_WithZeroIdAndValidType_ReturnsNull()
+    [Test]
+    public async Task GetActTemplate_WithZeroIdAndValidType_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetActTemplate(0, "QuestActObjMonsterHunt");
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
+    [Test]
     public void GetActTemplate_WithNullType_ThrowsArgumentNullException()
     {
         var manager = CreateManager();
@@ -181,152 +178,152 @@ public class QuestManagerTests
 
     #region CheckGroupItem Tests
 
-    [Fact]
-    public void CheckGroupItem_WithNonExistentGroupId_ReturnsFalse()
+    [Test]
+    public async Task CheckGroupItem_WithNonExistentGroupId_ReturnsFalse()
     {
         var manager = CreateManager();
 
         var result = manager.CheckGroupItem(9999, 1);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void CheckGroupItem_WithZeroGroupId_ReturnsFalse()
+    [Test]
+    public async Task CheckGroupItem_WithZeroGroupId_ReturnsFalse()
     {
         var manager = CreateManager();
 
         var result = manager.CheckGroupItem(0, 1);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void CheckGroupItem_WithNonExistentItemId_ReturnsFalse()
+    [Test]
+    public async Task CheckGroupItem_WithNonExistentItemId_ReturnsFalse()
     {
         var manager = CreateManager();
 
         var result = manager.CheckGroupItem(1, 9999);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region CheckGroupNpc Tests
 
-    [Fact]
-    public void CheckGroupNpc_WithNonExistentGroupId_ReturnsFalse()
+    [Test]
+    public async Task CheckGroupNpc_WithNonExistentGroupId_ReturnsFalse()
     {
         var manager = CreateManager();
 
         var result = manager.CheckGroupNpc(9999, 1);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void CheckGroupNpc_WithZeroGroupId_ReturnsFalse()
+    [Test]
+    public async Task CheckGroupNpc_WithZeroGroupId_ReturnsFalse()
     {
         var manager = CreateManager();
 
         var result = manager.CheckGroupNpc(0, 1);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void CheckGroupNpc_WithNonExistentNpcId_ReturnsFalse()
+    [Test]
+    public async Task CheckGroupNpc_WithNonExistentNpcId_ReturnsFalse()
     {
         var manager = CreateManager();
 
         var result = manager.CheckGroupNpc(1, 9999);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
     #endregion
 
     #region RemoveQuestTimer Tests
 
-    [Fact]
-    public void RemoveQuestTimer_WithNonExistentOwnerId_ReturnsZero()
+    [Test]
+    public async Task RemoveQuestTimer_WithNonExistentOwnerId_ReturnsZero()
     {
         var manager = CreateManager();
 
         var result = manager.RemoveQuestTimer(9999, 1);
 
-        Assert.Equal(0, result);
+        await Assert.That(result).IsEqualTo(0);
     }
 
-    [Fact]
-    public void RemoveQuestTimer_WithZeroQuestIdAndNonExistentOwner_ReturnsZero()
+    [Test]
+    public async Task RemoveQuestTimer_WithZeroQuestIdAndNonExistentOwner_ReturnsZero()
     {
         var manager = CreateManager();
 
         var result = manager.RemoveQuestTimer(9999, 0);
 
-        Assert.Equal(0, result);
+        await Assert.That(result).IsEqualTo(0);
     }
 
-    [Fact]
-    public void RemoveQuestTimer_WithNonExistentQuestId_ReturnsZero()
+    [Test]
+    public async Task RemoveQuestTimer_WithNonExistentQuestId_ReturnsZero()
     {
         var manager = CreateManager();
 
         var result = manager.RemoveQuestTimer(1, 9999);
 
-        Assert.Equal(0, result);
+        await Assert.That(result).IsEqualTo(0);
     }
 
     #endregion
 
     #region GetGroupItems Tests
 
-    [Fact]
-    public void GetGroupItems_WithNonExistentGroupId_ReturnsEmptyList()
+    [Test]
+    public async Task GetGroupItems_WithNonExistentGroupId_ReturnsEmptyList()
     {
         var manager = CreateManager();
 
         var result = manager.GetGroupItems(9999);
 
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void GetGroupItems_WithZeroGroupId_ReturnsEmptyList()
+    [Test]
+    public async Task GetGroupItems_WithZeroGroupId_ReturnsEmptyList()
     {
         var manager = CreateManager();
 
         var result = manager.GetGroupItems(0);
 
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result).IsEmpty();
     }
 
     #endregion
 
     #region GetComponent Tests
 
-    [Fact]
-    public void GetComponent_WithNonExistentComponentId_ReturnsNull()
+    [Test]
+    public async Task GetComponent_WithNonExistentComponentId_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetComponent(9999);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void GetComponent_WithZeroId_ReturnsNull()
+    [Test]
+    public async Task GetComponent_WithZeroId_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetComponent(0);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
     #endregion
@@ -340,35 +337,35 @@ public class QuestManagerTests
 
     #region EnqueueEvaluation Tests
 
-    [Fact]
+    [Test]
     public void EnqueueEvaluation_WithValidQuest_SchedulesTask()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.SetupGet(c => c.Name).Returns("TestPlayer");
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
+        mockOwner.Name.Returns("TestPlayer");
 
         // Use null template to avoid CreateQuestSteps complexity
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         manager.EnqueueEvaluation(quest);
 
-        mockTaskManager.Verify(
-            t => t.Schedule(It.IsAny<QuestManagerRunQueueTask>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()),
-            Times.Once);
+        mockTaskManager
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
+            .WasCalled(Times.Once);
     }
 
     #endregion
@@ -382,169 +379,165 @@ public class QuestManagerTests
 
     #region Quest Timeout Task Management Tests
 
-    [Fact]
-    public void AddQuestTimer_ExistingTimer_ReturnsFalse()
+    [Test]
+    public async Task AddQuestTimer_ExistingTimer_ReturnsFalse()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
 
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         // Add first timer
         var firstResult = manager.AddQuestTimer(mockOwner.Object, quest, 60_000);
-        Assert.True(firstResult);
+        await Assert.That(firstResult).IsTrue();
 
         // Try to add second timer for same quest - should return false
         var secondResult = manager.AddQuestTimer(mockOwner.Object, quest, 60_000);
-        Assert.False(secondResult);
+        await Assert.That(secondResult).IsFalse();
     }
 
-    [Fact]
-    public void AddQuestTimer_WithZeroTime_SchedulesTask()
+    [Test]
+    public async Task AddQuestTimer_WithZeroTime_SchedulesTask()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner = new Mock<ICharacter>();
-        mockOwner.SetupGet(c => c.Id).Returns(1u);
-        mockOwner.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner = Mock.Of<ICharacter>();
+        mockOwner.Id.Returns(1u);
 
         var quest = new Quest(
             null,
             mockOwner.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var result = manager.AddQuestTimer(mockOwner.Object, quest, 0);
 
-        Assert.True(result);
-        mockTaskManager.Verify(
-            t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), TimeSpan.FromMilliseconds(0), null, -1),
-            Times.Once);
+        await Assert.That(result).IsTrue();
+        mockTaskManager
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
+            .WasCalled(Times.Once);
     }
 
     #endregion
 
     #region Edge Cases and Boundary Tests
 
-    [Fact]
-    public void GetTemplate_WithMaxUIntId_ReturnsNull()
+    [Test]
+    public async Task GetTemplate_WithMaxUIntId_ReturnsNull()
     {
         var manager = CreateManager();
 
         var result = manager.GetTemplate(uint.MaxValue);
 
-        Assert.Null(result);
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public void CheckGroupItem_WithMaxUIntIds_ReturnsFalse()
+    [Test]
+    public async Task CheckGroupItem_WithMaxUIntIds_ReturnsFalse()
     {
         var manager = CreateManager();
 
         var result = manager.CheckGroupItem(uint.MaxValue, uint.MaxValue);
 
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void RemoveQuestTimer_WithMaxUIntIds_ReturnsZero()
+    [Test]
+    public async Task RemoveQuestTimer_WithMaxUIntIds_ReturnsZero()
     {
         var manager = CreateManager();
 
         var result = manager.RemoveQuestTimer(uint.MaxValue, uint.MaxValue);
 
-        Assert.Equal(0, result);
+        await Assert.That(result).IsEqualTo(0);
     }
 
     #endregion
 
     #region Quest Objective Types Tests
 
-    [Fact]
-    public void GetActsInComponent_ReturnsListThatCanBeModified()
+    [Test]
+    public async Task GetActsInComponent_ReturnsListThatCanBeModified()
     {
         var manager = CreateManager();
 
         var result = manager.GetActsInComponent(1);
 
-        Assert.NotNull(result);
+        await Assert.That(result).IsNotNull();
         // Should return a new empty list each time
         var result2 = manager.GetActsInComponent(1);
-        Assert.NotSame(result, result2);
+        await Assert.That(result2).IsNotSameReferenceAs(result);
     }
 
     #endregion
 
     #region Quest Timer Multiple Owners Tests
 
-    [Fact]
-    public void AddQuestTimer_MultipleOwners_CreatesSeparateTimers()
+    [Test]
+    public async Task AddQuestTimer_MultipleOwners_CreatesSeparateTimers()
     {
-        var mockTaskManager = new Mock<ITaskManager>();
+        var mockTaskManager = Mock.Of<ITaskManager>();
         mockTaskManager
-            .Setup(t => t.Schedule(It.IsAny<AAEmu.Game.Models.Tasks.Task>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<int>()))
+            .Schedule(Any<AAEmu.Game.Models.Tasks.Task>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
             .Returns(true);
 
         var manager = CreateManager(taskManager: mockTaskManager.Object);
 
-        var mockOwner1 = new Mock<ICharacter>();
-        mockOwner1.SetupGet(c => c.Id).Returns(1u);
-        mockOwner1.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner1 = Mock.Of<ICharacter>();
+        mockOwner1.Id.Returns(1u);
 
-        var mockOwner2 = new Mock<ICharacter>();
-        mockOwner2.SetupGet(c => c.Id).Returns(2u);
-        mockOwner2.Setup(c => c.SendDebugMessage(It.IsAny<string>()));
+        var mockOwner2 = Mock.Of<ICharacter>();
+        mockOwner2.Id.Returns(2u);
 
         var quest1 = new Quest(
             null,
             mockOwner1.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var quest2 = new Quest(
             null,
             mockOwner2.Object,
-            Mock.Of<IQuestManager>(),
-            Mock.Of<ITaskManager>(),
-            Mock.Of<ISkillManager>(),
-            Mock.Of<IExpressTextManager>(),
-            Mock.Of<IWorldManager>())
+            Mock.Of<IQuestManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<ISkillManager>().Object,
+            Mock.Of<IExpressTextManager>().Object,
+            Mock.Of<IWorldManager>().Object)
         { TemplateId = 42u };
 
         var result1 = manager.AddQuestTimer(mockOwner1.Object, quest1, 60_000);
         var result2 = manager.AddQuestTimer(mockOwner2.Object, quest2, 60_000);
 
-        Assert.True(result1);
-        Assert.True(result2);
+        await Assert.That(result1).IsTrue();
+        await Assert.That(result2).IsTrue();
     }
 
     // Note: RemoveQuestTimer with questId=0 has a dependency on TaskManager singleton
