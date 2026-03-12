@@ -6,6 +6,7 @@ namespace AAEmu.Commons.Utils;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CA1000 // Do not declare static members on generic types
+#pragma warning disable CA1508 // Double-checked locking: analyzer cannot model cross-thread writes between outer null-check and lock acquire
 
 /// <summary>
 /// Base class used for singletons
@@ -13,7 +14,7 @@ namespace AAEmu.Commons.Utils;
 /// <typeparam name="T">The class type</typeparam>
 public abstract class Singleton<T> where T : class
 {
-    private static T _instance;
+    private static T s_instance;
 
     /// <summary>
     /// Gets the instance of the singleton. Resolves from the DI container when available,
@@ -24,30 +25,30 @@ public abstract class Singleton<T> where T : class
     {
         get
         {
-            if (_instance != null)
-                return _instance;
+            if (s_instance != null)
+                return s_instance;
 
             if (SingletonContainer.ServiceProvider?.GetService<T>() is { } fromDi)
             {
                 lock (typeof(T))
                 {
-                    _instance ??= fromDi;
+                    s_instance ??= fromDi;
                 }
-                return _instance;
+                return s_instance;
             }
 
             OnInit();
-            return _instance;
+            return s_instance;
         }
     }
 
     private static void OnInit()
     {
-        if (_instance != null)
+        if (s_instance != null)
             return;
         lock (typeof(T))
         {
-            if (_instance != null)
+            if (s_instance != null)
                 return;
             if (typeof(T).GetConstructor(
                     BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
@@ -55,7 +56,7 @@ public abstract class Singleton<T> where T : class
                 throw new InvalidOperationException(
                     $"{typeof(T).Name} has no parameterless constructor. " +
                     "Resolve it from DI, or instantiate it with explicit dependencies.");
-            _instance = typeof(T).InvokeMember(typeof(T).Name,
+            s_instance = typeof(T).InvokeMember(typeof(T).Name,
                 BindingFlags.CreateInstance |
                 BindingFlags.Instance |
                 BindingFlags.Public |
