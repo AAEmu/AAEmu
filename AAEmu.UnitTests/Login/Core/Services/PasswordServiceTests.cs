@@ -1,7 +1,6 @@
 using AAEmu.Login.Core.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Xunit;
 
 using PasswordVerificationResult = AAEmu.Login.Core.Services.PasswordVerificationResult;
 
@@ -19,8 +18,8 @@ public class PasswordServiceTests
         _sut = new PasswordService(_passwordHasher);
     }
 
-    [Fact]
-    public void IsLegacyFormat_Base64Encoded32Bytes_ReturnsTrue()
+    [Test]
+    public async Task IsLegacyFormat_Base64Encoded32Bytes_ReturnsTrue()
     {
         // Arrange - 32 bytes encoded as Base64 = 44 characters
         var legacyHash = Convert.ToBase64String(new byte[32]);
@@ -29,11 +28,11 @@ public class PasswordServiceTests
         var result = _sut.IsLegacyFormat(legacyHash);
 
         // Assert
-        Assert.True(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [Fact]
-    public void IsLegacyFormat_Base64Encoded32BytesWithContent_ReturnsTrue()
+    [Test]
+    public async Task IsLegacyFormat_Base64Encoded32BytesWithContent_ReturnsTrue()
     {
         // Arrange - real SHA256 hash (32 bytes) as Base64
         var sha256Bytes = new byte[32];
@@ -44,12 +43,12 @@ public class PasswordServiceTests
         var result = _sut.IsLegacyFormat(legacyHash);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(44, legacyHash.Length);
+        await Assert.That(result).IsTrue();
+        await Assert.That(legacyHash.Length).IsEqualTo(44);
     }
 
-    [Fact]
-    public void IsLegacyFormat_NewFormatHash_ReturnsFalse()
+    [Test]
+    public async Task IsLegacyFormat_NewFormatHash_ReturnsFalse()
     {
         // Arrange - new format hash from PasswordHasher
         var newHash = _passwordHasher.HashPassword(string.Empty, "test");
@@ -58,25 +57,25 @@ public class PasswordServiceTests
         var result = _sut.IsLegacyFormat(newHash);
 
         // Assert
-        Assert.False(result);
-        Assert.True(newHash.Length >= 84);
+        await Assert.That(result).IsFalse();
+        await Assert.That(newHash.Length).IsGreaterThanOrEqualTo(84);
     }
 
-    [Fact]
-    public void IsLegacyFormat_WrongLength_ReturnsFalse()
+    [Test]
+    public async Task IsLegacyFormat_WrongLength_ReturnsFalse()
     {
         // Arrange - wrong length string
-        var wrongLengthHash = "shortstring";
+        const string WrongLengthHash = "shortstring";
 
         // Act
-        var result = _sut.IsLegacyFormat(wrongLengthHash);
+        var result = _sut.IsLegacyFormat(WrongLengthHash);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void IsLegacyFormat_InvalidBase64_ReturnsFalse()
+    [Test]
+    public async Task IsLegacyFormat_InvalidBase64_ReturnsFalse()
     {
         // Arrange - 44 characters but not valid Base64 that decodes to 32 bytes
         var invalidBase64 = new string('!', 44);
@@ -85,11 +84,11 @@ public class PasswordServiceTests
         var result = _sut.IsLegacyFormat(invalidBase64);
 
         // Assert
-        Assert.False(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [Fact]
-    public void HashForStorage_Plaintext_ReturnsNewFormatHash()
+    [Test]
+    public async Task HashForStorage_Plaintext_ReturnsNewFormatHash()
     {
         // Arrange
         var password = Password.FromPlaintext("mypassword123");
@@ -98,12 +97,12 @@ public class PasswordServiceTests
         var hash = _sut.HashForStorage(password);
 
         // Assert
-        Assert.False(_sut.IsLegacyFormat(hash));
-        Assert.True(hash.Length >= 84);
+        await Assert.That(_sut.IsLegacyFormat(hash)).IsFalse();
+        await Assert.That(hash.Length).IsGreaterThanOrEqualTo(84);
     }
 
-    [Fact]
-    public void HashForStorage_Sha256Hex_ReturnsLegacyBase64Format()
+    [Test]
+    public async Task HashForStorage_Sha256Hex_ReturnsLegacyBase64Format()
     {
         // Arrange - 32 bytes as a hex string (legacy format)
         var passwordBytes = new byte[32];
@@ -115,12 +114,12 @@ public class PasswordServiceTests
         var hash = _sut.HashForStorage(Password.FromSha256Hex(hex));
 
         // Assert - must be the legacy Base64 format, NOT a PBKDF2 hash
-        Assert.Equal(expectedBase64, hash);
-        Assert.True(_sut.IsLegacyFormat(hash));
+        await Assert.That(hash).IsEqualTo(expectedBase64);
+        await Assert.That(_sut.IsLegacyFormat(hash)).IsTrue();
     }
 
-    [Fact]
-    public void HashForStorage_Sha256Hex_VerifiableByPlaintextViaLegacy()
+    [Test]
+    public async Task HashForStorage_Sha256Hex_VerifiableByPlaintextViaLegacy()
     {
         // Regression test for the double-hash bug:
         // When CreateAndLoginInvalid is called with a SHA256-hex password,
@@ -134,11 +133,11 @@ public class PasswordServiceTests
 
         // Verify — should succeed (SuccessRehashNeeded because it's legacy format)
         var resultPreHashed = _sut.VerifyPassword(storedHash, Password.FromSha256Hex(hex));
-        Assert.Equal(PasswordVerificationResult.SuccessRehashNeeded, resultPreHashed);
+        await Assert.That(resultPreHashed).IsEqualTo(PasswordVerificationResult.SuccessRehashNeeded);
     }
 
-    [Fact]
-    public void VerifyPassword_LegacyFormat_CorrectPassword_ReturnsSuccessRehashNeeded()
+    [Test]
+    public async Task VerifyPassword_LegacyFormat_CorrectPassword_ReturnsSuccessRehashNeeded()
     {
         // Arrange - legacy format stores Base64(raw bytes), client sends hex string
         var passwordBytes = new byte[32];
@@ -150,11 +149,11 @@ public class PasswordServiceTests
         var result = _sut.VerifyPassword(legacyHash, Password.FromSha256Hex(passwordHex));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.SuccessRehashNeeded, result);
+        await Assert.That(result).IsEqualTo(PasswordVerificationResult.SuccessRehashNeeded);
     }
 
-    [Fact]
-    public void VerifyPassword_LegacyFormat_WrongPassword_ReturnsFailed()
+    [Test]
+    public async Task VerifyPassword_LegacyFormat_WrongPassword_ReturnsFailed()
     {
         // Arrange
         var storedPasswordBytes = new byte[32];
@@ -169,41 +168,41 @@ public class PasswordServiceTests
         var result = _sut.VerifyPassword(legacyHash, Password.FromSha256Hex(wrongPasswordHex));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.Failed, result);
+        await Assert.That(result).IsEqualTo(PasswordVerificationResult.Failed);
     }
 
-    [Fact]
-    public void VerifyPassword_NewFormat_CorrectPassword_ReturnsSuccess()
+    [Test]
+    public async Task VerifyPassword_NewFormat_CorrectPassword_ReturnsSuccess()
     {
         // Arrange
-        var passwordHex = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F";
-        var newHash = _sut.HashForStorage(Password.FromPlaintext(passwordHex));
+        const string PasswordHex = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F";
+        var newHash = _sut.HashForStorage(Password.FromPlaintext(PasswordHex));
 
         // Act
-        var result = _sut.VerifyPassword(newHash, Password.FromPlaintext(passwordHex));
+        var result = _sut.VerifyPassword(newHash, Password.FromPlaintext(PasswordHex));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.Success, result);
+        await Assert.That(result).IsEqualTo(PasswordVerificationResult.Success);
     }
 
-    [Fact]
-    public void VerifyPassword_NewFormat_WrongPassword_ReturnsFailed()
+    [Test]
+    public async Task VerifyPassword_NewFormat_WrongPassword_ReturnsFailed()
     {
         // Arrange
-        var passwordHex = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F";
-        var newHash = _sut.HashForStorage(Password.FromPlaintext(passwordHex));
+        const string PasswordHex = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F";
+        var newHash = _sut.HashForStorage(Password.FromPlaintext(PasswordHex));
 
-        var wrongPasswordHex = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20";
+        const string WrongPasswordHex = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20";
 
         // Act
-        var result = _sut.VerifyPassword(newHash, Password.FromPlaintext(wrongPasswordHex));
+        var result = _sut.VerifyPassword(newHash, Password.FromPlaintext(WrongPasswordHex));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.Failed, result);
+        await Assert.That(result).IsEqualTo(PasswordVerificationResult.Failed);
     }
 
-    [Fact]
-    public void VerifyPassword_MigrationScenario_PreHashed_Works()
+    [Test]
+    public async Task VerifyPassword_MigrationScenario_PreHashed_Works()
     {
         // Arrange - simulate a user with legacy password logging in with pre-hashed password
         var passwordBytes = new byte[32];
@@ -221,59 +220,59 @@ public class PasswordServiceTests
         var secondResult = _sut.VerifyPassword(newHash, Password.FromPlaintext(passwordHex));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.SuccessRehashNeeded, firstResult);
-        Assert.Equal(PasswordVerificationResult.Success, secondResult);
+        await Assert.That(firstResult).IsEqualTo(PasswordVerificationResult.SuccessRehashNeeded);
+        await Assert.That(secondResult).IsEqualTo(PasswordVerificationResult.Success);
     }
 
-    [Fact]
-    public void VerifyPassword_LegacyFormat_Plaintext_CorrectPassword_ReturnsSuccessRehashNeeded()
+    [Test]
+    public async Task VerifyPassword_LegacyFormat_Plaintext_CorrectPassword_ReturnsSuccessRehashNeeded()
     {
         // Arrange - legacy format stores Base64(SHA256(plaintext)), new client sends plaintext
-        var plaintext = "mypassword123";
-        var sha256Bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(plaintext));
+        const string Plaintext = "mypassword123";
+        var sha256Bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Plaintext));
         var legacyHash = Convert.ToBase64String(sha256Bytes);
 
         // Act
-        var result = _sut.VerifyPassword(legacyHash, Password.FromPlaintext(plaintext));
+        var result = _sut.VerifyPassword(legacyHash, Password.FromPlaintext(Plaintext));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.SuccessRehashNeeded, result);
+        await Assert.That(result).IsEqualTo(PasswordVerificationResult.SuccessRehashNeeded);
     }
 
-    [Fact]
-    public void VerifyPassword_LegacyFormat_Plaintext_WrongPassword_ReturnsFailed()
+    [Test]
+    public async Task VerifyPassword_LegacyFormat_Plaintext_WrongPassword_ReturnsFailed()
     {
         // Arrange
-        var plaintext = "mypassword123";
-        var sha256Bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(plaintext));
+        const string Plaintext = "mypassword123";
+        var sha256Bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Plaintext));
         var legacyHash = Convert.ToBase64String(sha256Bytes);
 
         // Act
         var result = _sut.VerifyPassword(legacyHash, Password.FromPlaintext("wrongpassword"));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.Failed, result);
+        await Assert.That(result).IsEqualTo(PasswordVerificationResult.Failed);
     }
 
-    [Fact]
-    public void VerifyPassword_MigrationScenario_Plaintext_Works()
+    [Test]
+    public async Task VerifyPassword_MigrationScenario_Plaintext_Works()
     {
         // Arrange - simulate plaintext login against legacy hash, rehash, then verify again
-        var plaintext = "mypassword123";
-        var sha256Bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(plaintext));
+        const string Plaintext = "mypassword123";
+        var sha256Bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Plaintext));
         var legacyHash = Convert.ToBase64String(sha256Bytes);
 
         // Act - first login with plaintext against legacy format
-        var firstResult = _sut.VerifyPassword(legacyHash, Password.FromPlaintext(plaintext));
+        var firstResult = _sut.VerifyPassword(legacyHash, Password.FromPlaintext(Plaintext));
 
         // Simulate rehashing with plaintext
-        var newHash = _sut.HashForStorage(Password.FromPlaintext(plaintext));
+        var newHash = _sut.HashForStorage(Password.FromPlaintext(Plaintext));
 
         // Second login with new format
-        var secondResult = _sut.VerifyPassword(newHash, Password.FromPlaintext(plaintext));
+        var secondResult = _sut.VerifyPassword(newHash, Password.FromPlaintext(Plaintext));
 
         // Assert
-        Assert.Equal(PasswordVerificationResult.SuccessRehashNeeded, firstResult);
-        Assert.Equal(PasswordVerificationResult.Success, secondResult);
+        await Assert.That(firstResult).IsEqualTo(PasswordVerificationResult.SuccessRehashNeeded);
+        await Assert.That(secondResult).IsEqualTo(PasswordVerificationResult.Success);
     }
 }
