@@ -1324,9 +1324,9 @@ public partial class Npc : Unit
 
     public void LookTowards(Vector3 other, byte flags = 4)
     {
-        var oldPosition = Transform.Local.ClonePosition();
-        oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
-        Transform.Local.SetPosition(oldPosition);
+        //var oldPosition = Transform.Local.ClonePosition();
+        //oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        //Transform.Local.SetPosition(oldPosition);
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
@@ -1357,16 +1357,16 @@ public partial class Npc : Unit
         moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
-        CheckMovedPosition(oldPosition);
+        //CheckMovedPosition(oldPosition);
         //SetPosition(Position);
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
 
     public void StopMovement()
     {
-        var oldPosition = Transform.Local.ClonePosition();
-        oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
-        Transform.Local.SetPosition(oldPosition);
+        //var oldPosition = Transform.Local.ClonePosition();
+        //oldPosition.Z = WorldManager.Instance.GetReferenceHeight(Ai, oldPosition.X, oldPosition.Y, oldPosition.Z, Transform.ZoneId);
+        //Transform.Local.SetPosition(oldPosition);
 
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
         moveType.X = Transform.Local.Position.X;
