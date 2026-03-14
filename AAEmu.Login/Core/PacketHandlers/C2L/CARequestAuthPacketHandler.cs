@@ -9,13 +9,14 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// <summary>
 /// Handles the <see cref="CARequestAuthPacket"/> which is sent by the client to request authentication.
 /// </summary>
-public class CARequestAuthPacketHandler(ILoginController loginController, IOptions<KoreaAuthOptions> options)
+public class CARequestAuthPacketHandler(ILoginController loginController, IOptions<KoreaAuthOptions> options,
+    IOptions<KoreaChallengeAuthOptions> challengeOptions)
     : ILoginPacketHandler<CARequestAuthPacket>
 {
     public async Task Execute(CARequestAuthPacket packet, ILoginSession session,
         CancellationToken cancellationToken)
     {
-        var flow = new KoreaAuthFlow(loginController, options, packet.Account!, session.Connection.Ip);
+        var flow = new KoreaAuthFlow(loginController, options, challengeOptions, packet.Account!, session.Connection.Ip);
         await session.AuthenticateAsync(flow, cancellationToken);
     }
 }

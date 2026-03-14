@@ -19,7 +19,10 @@ public class CARequestAuthPacketHandlerTests
 
     public CARequestAuthPacketHandlerTests()
     {
-        _handler = new CARequestAuthPacketHandler(_loginController.Object, Options.Create(new KoreaAuthOptions()));
+        _handler = new CARequestAuthPacketHandler(
+            _loginController.Object,
+            Options.Create(new KoreaAuthOptions()),
+            Options.Create(new KoreaChallengeAuthOptions()));
 
         _connection.Ip.Returns(IPAddress.Loopback);
         _session.Connection.Returns(_connection.Object);

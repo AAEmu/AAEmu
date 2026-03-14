@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `username` varchar(32) NOT NULL,
   `password` text COMMENT 'Hashed password of the user',
+  `korea_challenge_hash` varchar(120) DEFAULT NULL COMMENT 'sha256_crypt $5$ hash used as AES-256 key for Korea challenge-response auth (V2).',
   `email` varchar(128) NOT NULL,
   `last_login` bigint unsigned NOT NULL DEFAULT '0',
   `last_ip` varchar(128) NOT NULL,

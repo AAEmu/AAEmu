@@ -1,4 +1,6 @@
+using System.Buffers.Binary;
 using System.Net;
+using System.Security.Cryptography;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.PacketHandlers.C2L;
@@ -9,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace AAEmu.Login.Core.Authentication;
 
 /// <summary>
-/// Authentication flow for Korea supporting password, OTP, certificate, and ARS verification steps.
+/// Authentication flow for Korea supporting V2 challenge-response, OTP, certificate, and ARS verification steps.
 /// </summary>
 /// <remarks>
 /// This flow implements a state machine that can handle multiple sequential verification steps:
@@ -22,13 +24,13 @@ namespace AAEmu.Login.Core.Authentication;
 /// Each step is optional based on account configuration. The flow advances through each required step
 /// in sequence until all verifications complete.
 /// </remarks>
-public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthOptions> options, string username,
-    IPAddress clientIp)
-    : IChallengeAuthFlow, IOtpAuthFlow, ICertAuthFlow, IArsAuthFlow
+public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthOptions> options,
+    IOptions<KoreaChallengeAuthOptions> challengeOptions, string username, IPAddress clientIp)
+    : IChallengeAuthFlow, IChallenge2AuthFlow, IOtpAuthFlow, ICertAuthFlow, IArsAuthFlow
 {
     private enum State
     {
-        AwaitingPassword,
+        AwaitingChallengeResponse,
         AwaitingOtp,
         AwaitingCert,
         AwaitingArs,
@@ -36,9 +38,14 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
     }
 
     private readonly KoreaAuthOptions _options = options.Value;
+    private readonly KoreaChallengeAuthOptions _challengeOptions = challengeOptions.Value;
 
-    private State _state = State.AwaitingPassword;
-    private AccountId _authenticatedAccountId;
+    private State _state = State.AwaitingChallengeResponse;
+    private AccountId _accountId;
+
+    // V2 challenge state (cleared after successful verification)
+    private uint[] _v2Hc = [];
+    private ReadOnlyMemory<byte> _challengeKey;
 
     // Step requirements (hardcoded false for now - no DB/controller support)
     private bool _requiresOtp;
@@ -51,31 +58,61 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
 
     public async Task<AuthFlowResult> StartAsync(ILoginClient client, CancellationToken cancellationToken)
     {
-        // Challenge the client to provide the password.
-        await client.SendChallengeAsync(cancellationToken);
+        if (!_challengeOptions.Enabled)
+            return new AuthFlowResult.Denied(LoginDeniedReason.LoginUnknown);
 
+        // Look up the account's Korea challenge material.
+        // No ban check here — doing so before authentication would leak whether an account exists.
+        var info = await loginController.GetKoreaAuthInfoAsync(username, cancellationToken);
+        if (info is null)
+        {
+            // Account doesn't exist, or has no korea_challenge_hash yet.
+            // User must log in via EU auth first (with KoreaChallengeAuth:Enabled=true) to seed the hash.
+            return new AuthFlowResult.Denied(LoginDeniedReason.BadAccount);
+        }
+
+        _accountId = info.AccountId;
+        _challengeKey = info.ChallengeKeyHash;
+
+        // Generate 8 cryptographically secure random uint32 challenge values
+        _v2Hc = new uint[8];
+        Span<byte> rngBytes = stackalloc byte[32];
+        RandomNumberGenerator.Fill(rngBytes);
+        for (var i = 0; i < 8; i++)
+            _v2Hc[i] = BinaryPrimitives.ReadUInt32LittleEndian(rngBytes.Slice(i * 4, 4));
+
+        await client.SendChallenge2Async(info.ChallengeRounds, info.ChallengeSalt, _v2Hc, cancellationToken);
         return new AuthFlowResult.Pending();
     }
 
-    public async Task<AuthFlowResult> ContinueAsync(ILoginClient client, string password,
+    /// <summary>
+    /// V1 challenge-response continuation — always denied.
+    /// The server never issues <c>ACChallengePacket</c>; this path should never be reached in production.
+    /// </summary>
+    public Task<AuthFlowResult> ContinueAsync(ILoginClient client, uint[] ch, byte[] pw,
         CancellationToken cancellationToken)
     {
-        if (_state != State.AwaitingPassword)
-        {
+        // V1 Korea challenge is disabled (SHA-1 without per-account salt is ~17M× weaker than PBKDF2@600k).
+        return Task.FromResult<AuthFlowResult>(new AuthFlowResult.Denied(LoginDeniedReason.BadResponse));
+    }
+
+    /// <summary>
+    /// V2 challenge-response continuation — verifies the AES-256 challenge response.
+    /// </summary>
+    public async Task<AuthFlowResult> ContinueV2Async(ILoginClient client, uint[] ch,
+        CancellationToken cancellationToken)
+    {
+        if (_state != State.AwaitingChallengeResponse)
             return new AuthFlowResult.Denied(LoginDeniedReason.BadResponse);
-        }
 
-        var result = await loginController.Login(username, Password.FromSha256Hex(password), clientIp, cancellationToken);
+        if (!KoreanChallengeVerifier.VerifyV2(_challengeKey.Span, _v2Hc, ch))
+            return new AuthFlowResult.Denied(LoginDeniedReason.BadAccount);
 
-        if (!result.Success)
-        {
-            return new AuthFlowResult.Denied(result.DenialReason);
-        }
-
-        _authenticatedAccountId = result.AccountId;
+        // Clear key material now that verification is done
+        _challengeKey = ReadOnlyMemory<byte>.Empty;
+        _v2Hc = [];
 
         // TODO: Query account requirements from database/controller
-        // For now, these are hardcoded to false
         _requiresOtp = false;
         _requiresCert = false;
         _requiresArs = false;
@@ -87,9 +124,7 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
         CancellationToken cancellationToken)
     {
         if (_state != State.AwaitingOtp)
-        {
             return new AuthFlowResult.Denied(LoginDeniedReason.BadResponse);
-        }
 
         _otpAttempts++;
 
@@ -157,15 +192,16 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
 
     /// <summary>
     /// Advances to the next required verification step, or completes authentication if all steps are done.
+    /// Performs the ban check immediately before issuing the final <see cref="AuthFlowResult.Success"/>
+    /// to avoid leaking account status prior to successful authentication.
     /// </summary>
     private async Task<AuthFlowResult> AdvanceToNextStepAsync(ILoginClient client,
         CancellationToken cancellationToken)
     {
         // Check each remaining step in order
-        if (_state <= State.AwaitingPassword && _requiresOtp)
+        if (_state <= State.AwaitingChallengeResponse && _requiresOtp)
         {
             _state = State.AwaitingOtp;
-
             await client.SendOtpPromptAsync(0, 0, cancellationToken);
             return new AuthFlowResult.Pending();
         }
@@ -173,7 +209,6 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
         if (_state <= State.AwaitingOtp && _requiresCert)
         {
             _state = State.AwaitingCert;
-
             await client.SendCertPromptAsync(0, 0, cancellationToken);
             return new AuthFlowResult.Pending();
         }
@@ -181,15 +216,17 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
         if (_state <= State.AwaitingCert && _requiresArs)
         {
             _state = State.AwaitingArs;
-
-            // TODO: Generate actual ARS code
-            const string ArsCode = "1234";
+            const string ArsCode = "1234"; // TODO: Generate actual ARS code
             await client.SendArsPromptAsync(ArsCode, _options.ArsTimeout, cancellationToken);
             return new AuthFlowResult.Pending();
         }
 
-        // All steps complete
+        // All steps complete. Check ban status before issuing success
         _state = State.Completed;
-        return new AuthFlowResult.Success(_authenticatedAccountId, username);
+        var (banned, banReason) = await loginController.CheckBanStatusAsync(_accountId, cancellationToken);
+        if (banned)
+            return new AuthFlowResult.Denied(banReason);
+
+        return new AuthFlowResult.Success(_accountId, username);
     }
 }

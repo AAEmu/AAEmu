@@ -29,8 +29,11 @@ public sealed class LoginClient(ILoginConnection connection) : ILoginClient
     public ValueTask SendWorldListAsync(WorldListResult worldList, CancellationToken cancellationToken) =>
         connection.SendPacketAsync(new ACWorldListPacket(worldList.GameServers, worldList.Characters), cancellationToken);
 
-    public ValueTask SendChallengeAsync(CancellationToken cancellationToken) =>
-        connection.SendPacketAsync(new ACChallengePacket(), cancellationToken);
+    public ValueTask SendChallengeAsync(uint salt, uint[] hc, CancellationToken cancellationToken) =>
+        connection.SendPacketAsync(new ACChallengePacket(salt, hc), cancellationToken);
+
+    public ValueTask SendChallenge2Async(int round, string salt, uint[] hc, CancellationToken cancellationToken) =>
+        connection.SendPacketAsync(new ACChallenge2Packet(round, salt, hc), cancellationToken);
 
     public ValueTask SendOtpPromptAsync(int maximumTries, int currentTry, CancellationToken cancellationToken)
     {

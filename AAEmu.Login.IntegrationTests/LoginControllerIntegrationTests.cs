@@ -1,5 +1,6 @@
 using System.Net;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Login.Core.Authentication;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Services;
@@ -43,8 +44,9 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
         var connectionFactory = new Mock<IMySqlConnectionFactory>();
         connectionFactory.Setup(f => f.CreateConnection()).Returns(MySQL.CreateConnection);
         var logger = new Mock<ILogger<LoginController>>();
-        return new LoginController(gameController.Object, passwordService.Object, appConfig, connectionFactory.Object,
-            logger.Object);
+        var koreaOptions = Options.Create(new KoreaChallengeAuthOptions());
+        return new LoginController(gameController.Object, passwordService.Object, appConfig, koreaOptions,
+            connectionFactory.Object, logger.Object);
     }
 
     private static async Task InsertUser(string username, string password, bool banned = false, int banReason = 0)
