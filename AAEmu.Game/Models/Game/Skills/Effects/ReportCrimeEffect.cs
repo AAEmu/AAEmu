@@ -15,6 +15,6 @@ public class ReportCrimeEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("ReportCrimeEffect");
+        Logger.Warn("ReportCrimeEffect");
     }
 }

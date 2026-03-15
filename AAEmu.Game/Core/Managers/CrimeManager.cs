@@ -1,0 +1,226 @@
+﻿using System.Collections.Concurrent;
+using System.Numerics;
+using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Crime;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+using AAEmu.Game.Models.Game.Units;
+using MySql.Data.MySqlClient;
+using NLog;
+
+namespace AAEmu.Game.Core.Managers;
+
+public class CrimeManager(IWorldManager worldManager) : Singleton<CrimeManager>, ICrimeManager
+{
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private ConcurrentDictionary<ulong, CrimeEvent> CrimeEvents { get; } = [];
+    private List<ulong> DeletedEventIds { get; } = [];
+    private List<ulong> UpdatedEventIds { get; } = [];
+
+    public List<CrimeEvent> GetCrimesOfPlayer(uint playerId)
+    {
+        return CrimeEvents.Values.Where(x => x.Criminal == playerId).ToList();
+    }
+
+    public void Load()
+    {
+        Logger.Info("Loading crime events...");
+        CrimeEvents.Clear();
+        DeletedEventIds.Clear();
+        UpdatedEventIds.Clear();
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM crime";
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var crimeEvent = new CrimeEvent()
+            {
+                Id = reader.GetUInt32("id"),
+                Criminal = reader.GetUInt32("criminal"),
+                Victim = reader.GetUInt32("victim"),
+                Reporter = reader.GetUInt32("reporter"),
+                DoodadTemplate = reader.GetUInt32("doodad_template"),
+                CrimeKind = (CrimeKind)reader.GetUInt32("crime_type"),
+                ZoneGroup = reader.GetUInt32("zone_group"),
+                Position = new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
+                CrimeTime = reader.GetDateTime("crime_time"),
+                ReportTime = reader.GetDateTime("report_time"),
+                Arg1 = reader.GetUInt32("arg1"),
+                Arg2 = reader.GetUInt32("arg2"),
+                Arg3 = reader.GetUInt32("arg3"),
+                Msg = reader.GetString("msg")
+            };
+            if (!CrimeEvents.TryAdd(crimeEvent.Id, crimeEvent))
+                Logger.Warn($"Was not able to load Crime Event {crimeEvent.Id}");
+        }
+    }
+
+    public (int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
+    {
+        var deleteCount = 0;
+        var updateCount = 0;
+        // Remove deleted items from DB
+        using (var command = connection.CreateCommand())
+        {
+            command.Connection = connection;
+            command.Transaction = transaction;
+            lock (DeletedEventIds)
+            {
+                if (DeletedEventIds.Count > 0)
+                {
+                    using (var deleteCommand = connection.CreateCommand())
+                    {
+                        var removedItemList = string.Join(",", DeletedEventIds);
+                        deleteCommand.CommandText = $"DELETE FROM crime WHERE `id` IN({removedItemList})";
+                        deleteCommand.Prepare();
+                        deleteCount += deleteCommand.ExecuteNonQuery();
+                    }
+
+                    if (deleteCount != DeletedEventIds.Count)
+                        Logger.Error($"Some crime events could not be deleted, only {deleteCount}/{DeletedEventIds.Count} events removed !");
+                    DeletedEventIds.Clear();
+                }
+            }
+        }
+
+        // Update Container Info
+        using (var command = connection.CreateCommand())
+        {
+            command.Connection = connection;
+            command.Transaction = transaction;
+
+            lock (UpdatedEventIds)
+            {
+                foreach (var c in UpdatedEventIds.ToArray())
+                {
+                    var crimeEvent = CrimeEvents.GetValueOrDefault(c);
+                    if (crimeEvent == null)
+                        continue;
+
+                    command.CommandText = "REPLACE INTO crime (" +
+                                          "`id`,`criminal`,`victim`,`reporter`,`doodad_template`,`crime_type`,`zone_group`,`x`,`y`,`z`,`crime_time`,`report_time`,`arg1`,`arg2`,`arg3`,`msg`" +
+                                          ") VALUES ( " +
+                                          "@id, @criminal, @victim, @reporter, @doodad_template, @crime_type, @zone_group, @x, @y, @z, @crime_time, @report_time, @arg1, @arg2, @arg3, @msg" +
+                                          ")";
+
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@id", crimeEvent.Id);
+                    command.Parameters.AddWithValue("@criminal", crimeEvent.Criminal);
+                    command.Parameters.AddWithValue("@victim", crimeEvent.Victim);
+                    command.Parameters.AddWithValue("@reporter", crimeEvent.Reporter);
+                    command.Parameters.AddWithValue("@doodad_template", crimeEvent.DoodadTemplate);
+                    command.Parameters.AddWithValue("@crime_type", crimeEvent.CrimeKind);
+                    command.Parameters.AddWithValue("@zone_group", crimeEvent.ZoneGroup);
+                    command.Parameters.AddWithValue("@x", crimeEvent.Position.X);
+                    command.Parameters.AddWithValue("@y", crimeEvent.Position.Y);
+                    command.Parameters.AddWithValue("@z", crimeEvent.Position.Z);
+                    command.Parameters.AddWithValue("@crime_time", crimeEvent.CrimeTime);
+                    command.Parameters.AddWithValue("@report_time", crimeEvent.ReportTime);
+                    command.Parameters.AddWithValue("@arg1", crimeEvent.Arg1);
+                    command.Parameters.AddWithValue("@arg2", crimeEvent.Arg2);
+                    command.Parameters.AddWithValue("@arg3", crimeEvent.Arg3);
+                    command.Parameters.AddWithValue("@msg", crimeEvent.Msg);
+                    try
+                    {
+                        var res = command.ExecuteNonQuery();
+                        updateCount += res;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e);
+                    }
+                }
+            }
+        }
+
+        return (updateCount, deleteCount);
+    }
+
+    /// <summary>
+    /// Reports a crime for a given evidence
+    /// </summary>
+    /// <param name="reporter"></param>
+    /// <param name="evidence"></param>
+    /// <param name="arg1"></param>
+    /// <param name="arg2"></param>
+    /// <param name="arg3"></param>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    public CrimeEvent ReportCrime(Character reporter, Doodad evidence, uint arg1, uint arg2, uint arg3, string message)
+    {
+        // TODO: Verify if reporter is allowed to report this evidence
+        var crimeType = CrimeKind.None;
+        var crimeValue = 0; // Not sure if needed to be known here
+        var nextPhase = 0;
+        foreach (var evidenceCurrentFunc in evidence.CurrentFuncs)
+        {
+            if (evidenceCurrentFunc.FuncType == "DoodadFuncEvidenceItemLoot")
+            {
+                var func = DoodadManager.Instance.GetFuncTemplate(evidenceCurrentFunc.FuncId, evidenceCurrentFunc.FuncType);
+                if (func is DoodadFuncEvidenceItemLoot evidenceItemLoot)
+                {
+                    crimeType = (CrimeKind)evidenceItemLoot.CrimeKindId;
+                    crimeValue = evidenceItemLoot.CrimeValue;
+                    nextPhase = evidenceCurrentFunc.NextPhase;
+                }
+            }
+        }
+
+        var zoneGroup = ZoneManager.Instance.GetZoneByKey(evidence.Transform.ZoneId);
+
+        var newId = CrimeIdManager.Instance.GetNextId();
+        var newEvent = new CrimeEvent()
+        {
+            Id = newId,
+            Criminal = evidence.OwnerId,
+            Victim = (uint)evidence.Data,
+            Reporter = reporter.Id,
+            DoodadTemplate = evidence.ItemTemplateId, // Not sure if we should use this one to store the data
+            CrimeKind = crimeType,
+            CrimeTime = evidence.PlantTime,
+            ReportTime = DateTime.UtcNow,
+            Position = evidence.Transform.World.Position,
+            ZoneGroup = zoneGroup?.Id ?? 0u,
+            Arg1 = arg1,
+            Arg2 = arg2,
+            Arg3 = arg3,
+            Msg = message
+        };
+
+        if (!CrimeEvents.TryAdd(newEvent.Id, newEvent))
+        {
+            CrimeIdManager.Instance.ReleaseId(newId); // Free the Id again if not able to add
+            Logger.Warn($"Unable to report crime at {newEvent.Position} with message {newEvent.Msg}");
+            return null;
+        }
+        UpdatedEventIds.Add(newEvent.Id);
+
+        // TODO: Handle this phase change by doing the skill, and handling the crime points in DoodadFuncEvidenceItemLoot of the doodad.
+        // Add crime points to criminal
+        AddCrimePoints(newEvent.Criminal, crimeValue);
+
+        // Progress Doodad to next phase to finish the report
+        if (nextPhase > 0)
+        {
+            evidence.DoChangePhase(reporter, nextPhase);
+        }
+
+        // Return the new CrimeId
+        return newEvent;
+    }
+
+    public int AddCrimePoints(uint criminalId, int crimePoints)
+    {
+        // TODO: Handle this in the character manager instead so it can do offline people as well?
+        // TODO: Handle this in DoodadFuncEvidenceItemLoot of the doodad.
+        return crimePoints;
+    }
+}
