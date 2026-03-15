@@ -53,6 +53,23 @@ public class PasswordService(IPasswordHasher<string> passwordHasher) : IPassword
                && bytesWritten == LegacyHashByteLength;
     }
 
+    public string ComputeKoreaChallengeHash(string plaintext, Span<byte> rawHashDestination,
+        string? salt = null, int rounds = 5000)
+    {
+        var saltStr = salt ?? Sha256Crypt.GenerateSalt();
+        Sha256Crypt.ComputeRaw(plaintext, saltStr, rounds, rawHashDestination);
+        return Sha256Crypt.FormatEncoded(rawHashDestination, saltStr, rounds);
+    }
+
+    public string ComputeKoreaChallengeHash(string plaintext, string? salt = null, int rounds = 5000)
+    {
+        Span<byte> rawKey = stackalloc byte[32];
+        return ComputeKoreaChallengeHash(plaintext, rawKey, salt, rounds);
+    }
+
+    public bool VerifyKoreaChallengeHash(string stored, string plaintext) =>
+        Sha256Crypt.Verify(plaintext, stored);
+
     private static bool VerifyLegacyPasswordFromPlaintext(string storedHash, string plaintext)
     {
         Span<byte> storedBytes = stackalloc byte[LegacyHashByteLength];

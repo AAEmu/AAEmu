@@ -10,8 +10,10 @@ public class CAOtpNumberPacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CAOtpNumberPacket;
 
+    public string? OtpNumber { get; private set; }
+
     public override void Read(PacketStream stream)
     {
-        var num = stream.ReadString(); // TODO but on old client length const 8
+        OtpNumber = stream.ReadString(); // TODO but on old client length const 8
     }
 }

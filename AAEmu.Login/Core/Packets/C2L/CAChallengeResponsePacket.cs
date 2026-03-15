@@ -1,22 +1,29 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.Packets.L2C;
 
 namespace AAEmu.Login.Core.Packets.C2L;
 
 /// <summary>
-/// A packet sent by the client in response to a challenge issued by the login server.
+/// Sent by the client in response to a V1 Korea authentication challenge (<see cref="ACChallengePacket"/>).
 /// </summary>
-/// <seealso cref="ACChallengePacket"/>
+/// <remarks>
+/// V1 is not enabled in production — see <see cref="ACChallengePacket"/> for details.
+/// </remarks>
 public class CAChallengeResponsePacket() : LoginPacket(TypeId), ILoginPacket
 {
     public new static ushort TypeId => CLOffsets.CAChallengeResponsePacket;
-    
+
+    /// <summary>4 AES-encrypted challenge uint32 values.</summary>
+    public uint[] Ch { get; } = new uint[4];
+
+    /// <summary>32 raw bytes containing the AES-encrypted plaintext password (V1 only).</summary>
+    public byte[] Pw { get; private set; } = [];
+
     public override void Read(PacketStream stream)
     {
         for (var i = 0; i < 4; i++)
-            stream.ReadUInt32(); // responses
-        var password = stream.ReadBytes(); // TODO or bytes? length 32
-        var bytes = Convert.FromBase64String("jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI=");
+            Ch[i] = stream.ReadUInt32();
+        Pw = stream.ReadBytes(32);
     }
 }

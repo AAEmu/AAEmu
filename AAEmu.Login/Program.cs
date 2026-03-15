@@ -2,6 +2,7 @@
 using System.Net;
 using System.Reflection;
 using AAEmu.Commons.IO;
+using AAEmu.Login.Core.Authentication;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Network.Login;
@@ -108,6 +109,10 @@ public static class Program
             .ValidateDataAnnotations();
         builder.Services.AddOptionsWithValidateOnStart<PublicNetworkConfig>()
             .BindConfiguration(PublicNetworkConfig.ConfigurationSectionName)
+            .ValidateDataAnnotations();
+
+        builder.Services.AddOptionsWithValidateOnStart<KoreaChallengeAuthOptions>()
+            .BindConfiguration(KoreaChallengeAuthOptions.ConfigurationSectionName)
             .ValidateDataAnnotations();
 
         builder.Services.AddSingleton<IMySqlConnectionFactory, MySqlConnectionFactory>();
