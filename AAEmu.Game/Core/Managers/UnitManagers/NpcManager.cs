@@ -147,6 +147,8 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
             template.BodyItems = templ.BodyItems;
         }
 
+        npc.ModelParams = template.ModelParams;
+
         // TODO: Check if we need to override some body parts if template.EquipBodiesId is set or not
         if (template.EquipBodiesId > 0 && EquipPackBodyParts.TryGetValue(template.EquipBodiesId, out _)) // var equipBodyPartPack))
         {
@@ -459,7 +461,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 }
 
                 // Pre-Load body parts
-                command.CommandText = "SELECT * FROM item_body_parts";
+                command.CommandText = "SELECT * FROM item_body_parts ORDER BY id";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))

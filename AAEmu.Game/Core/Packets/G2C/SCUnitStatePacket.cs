@@ -18,6 +18,7 @@ public class SCUnitStatePacket : GamePacket
     private readonly Unit _unit;
     private readonly BaseUnitType _baseUnitType;
 #pragma warning disable IDE0052 // Remove unread private members
+    // ReSharper disable once NotAccessedField.Local
     private ModelPostureType _modelPostureType;
 #pragma warning restore IDE0052 // Remove unread private members
 
@@ -36,14 +37,7 @@ public class SCUnitStatePacket : GamePacket
             case Npc npc:
                 {
                     _baseUnitType = BaseUnitType.Npc;
-                    if (npc.AnimActionId > 0)
-                    {
-                        _modelPostureType = ModelPostureType.ActorModelState;
-                    }
-                    else
-                    {
-                        _modelPostureType = ModelPostureType.None;
-                    }
+                    _modelPostureType = npc.AnimActionId > 0 ? ModelPostureType.ActorModelState : ModelPostureType.None;
 
                     break;
                 }
@@ -89,7 +83,7 @@ public class SCUnitStatePacket : GamePacket
                 stream.Write(0L);           // v?
                 break;
             case BaseUnitType.Npc:
-                stream.WriteBc(npc.ObjId);    // objId
+                stream.WriteBc(npc!.ObjId);    // objId
                 stream.Write(npc.TemplateId); // npc templateId
                 stream.Write(npc.OwnerId);    // ownerId (primarily used for target_my_npc flag)
                 stream.Write((byte)0);        // clientDriven
@@ -109,7 +103,7 @@ public class SCUnitStatePacket : GamePacket
 
                 stream.Write(house.TlId);       // tl
                 stream.Write(house.TemplateId); // house templateId
-                stream.Write((short)buildStep); // buildstep
+                stream.Write((short)buildStep); // build step
                 break;
             case BaseUnitType.Transfer:
                 var transfer = (Transfer)_unit;
@@ -270,14 +264,7 @@ public class SCUnitStatePacket : GamePacket
         }
 
         // ???, ??? and Appellation (Title)
-        if (character is not null)
-        {
-            stream.WritePisc(0, 0, character.Appellations.ActiveAppellation, 0); // pisc
-        }
-        else
-        {
-            stream.WritePisc(0, 0, 0, 0); // pisc
-        }
+        stream.WritePisc(0, 0, character is not null ? character.Appellations.ActiveAppellation : 0u, 0);
 
         // Faction and Guild
         stream.WritePisc((uint)(_unit.Faction?.Id ?? 0), (uint)(_unit.Expedition?.Id ?? 0), 0, 0); // pisc
@@ -303,7 +290,7 @@ public class SCUnitStatePacket : GamePacket
              * 0x01 - 8bit - режим боя - combat mode
              * 0x04 - 6bit - невидимость? - invisibility?
              * 0x08 - 5bit - дуэль - duel
-             * 0x40 - 2bit - gmmode, дополнительно 7 байт - gmmode, extra 7 bytes
+             * 0x40 - 2bit - gmMode, дополнительно 7 байт - gmMode, extra 7 bytes
              * 0x80 - 1bit - дополнительно - additionally - tl(ushort), tl(ushort), tl(ushort), tl(ushort)
              * 0x0100 - 16bit - дополнительно 3 байт - additional 3 bytes (bc), firstHitterTeamId(uint)
              * 0x0400 - 14bit - надпись "Отсутсвует" под именем - the inscription "Missing" under the name
@@ -355,12 +342,12 @@ public class SCUnitStatePacket : GamePacket
         {
             if (!_unit.Buffs.CheckBuff(8000011)) //TODO Wrong place
             {
-                _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.UtcNow));
+                _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, DateTime.UtcNow));
             }
 
             if (!_unit.Buffs.CheckBuff(8000012)) //TODO Wrong place
             {
-                _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.UtcNow));
+                _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, DateTime.UtcNow));
             }
         }
 
@@ -389,33 +376,13 @@ public class SCUnitStatePacket : GamePacket
     }
 
     #region Inventory_Equip
-    private void Inventory_Equip(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
+    private void Inventory_Equip(PacketStream stream, Unit unit, BaseUnitType baseUnitType)
     {
-        var unit = new Unit();
-        switch (baseUnitType)
+        if (unit == null)
         {
-            case BaseUnitType.Character:
-                unit = (Character)unit0;
-                break;
-            case BaseUnitType.Npc:
-                unit = (Npc)unit0;
-                break;
-            case BaseUnitType.Slave:
-                unit = (Slave)_unit;
-                break;
-            case BaseUnitType.Housing:
-                unit = (House)_unit;
-                break;
-            case BaseUnitType.Transfer:
-                unit = (Transfer)_unit;
-                break;
-            case BaseUnitType.Mate:
-                unit = (Mate)_unit;
-                break;
-            case BaseUnitType.Shipyard:
-                unit = (Shipyard)_unit;
-                break;
+            return;
         }
+        
 
         // calculate validFlags
         var index = 0;
@@ -427,11 +394,11 @@ public class SCUnitStatePacket : GamePacket
             {
                 validFlags |= 1 << index;
             }
-
             index++;
         }
         if (validFlags <= 0 && baseUnitType == BaseUnitType.Npc)
         {
+            // ReSharper disable once GrammarMistakeInComment
             unit.ModelParams.SetType(UnitCustomModelType.Skin); // additional check that the NPC has no body and no face
         }
         index = 0;
