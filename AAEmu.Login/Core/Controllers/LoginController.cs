@@ -17,12 +17,12 @@ public partial class LoginController(
     IGameController gameController,
     IPasswordService passwordService,
     IOptions<AppConfiguration> appConfig,
-    IOptions<KoreaChallengeAuthOptions> koreaOptions,
+    IOptions<KoreaAuthOptions> koreaOptions,
     IMySqlConnectionFactory connectionFactory,
     ILogger<LoginController> logger) : ILoginController
 {
     private readonly bool _autoAccount = appConfig.Value.AutoAccount;
-    private readonly KoreaChallengeAuthOptions _koreaOptions = koreaOptions.Value;
+    private readonly KoreaAuthOptions _koreaOptions = koreaOptions.Value;
 
     private readonly ConcurrentDictionary<GameServerId, ConcurrentDictionary<uint, AccountId>>
         _tokens = []; // gsId, [token, accountId]
@@ -100,7 +100,8 @@ public partial class LoginController(
                 "UPDATE `users` SET password = @password, korea_challenge_hash = @koreaHash," +
                 " last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
             command.Parameters.AddWithValue("@password", passwordService.HashForStorage(password));
-            command.Parameters.AddWithValue("@koreaHash", passwordService.ComputeKoreaChallengeHash(password.Value, rounds: _koreaOptions.Rounds));
+            command.Parameters.AddWithValue("@koreaHash",
+                KoreaChallengeCrypt.Compute(password.Value, rounds: _koreaOptions.Rounds));
         }
         else if (rehashPbkdf2)
         {
@@ -114,7 +115,8 @@ public partial class LoginController(
             command.CommandText =
                 "UPDATE `users` SET korea_challenge_hash = @koreaHash," +
                 " last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
-            command.Parameters.AddWithValue("@koreaHash", passwordService.ComputeKoreaChallengeHash(password.Value, rounds: _koreaOptions.Rounds));
+            command.Parameters.AddWithValue("@koreaHash",
+                KoreaChallengeCrypt.Compute(password.Value, rounds: _koreaOptions.Rounds));
         }
         else
         {
@@ -189,8 +191,7 @@ public partial class LoginController(
 
         if (_koreaOptions.Enabled && password.Kind == PasswordKind.Plaintext)
         {
-            string koreaHash;
-            { Span<byte> rawKey = stackalloc byte[32]; koreaHash = passwordService.ComputeKoreaChallengeHash(password.Value, rawKey, rounds: _koreaOptions.Rounds); }
+            var koreaHash = KoreaChallengeCrypt.Compute(password.Value, rounds: _koreaOptions.Rounds);
             command.CommandText =
                 "INSERT into users (username, password, korea_challenge_hash, email, last_ip, last_login, created_at, updated_at)" +
                 " VALUES (@username, @password, @koreaHash, @email, @last_ip, @last_login, @created_at, @updated_at)";

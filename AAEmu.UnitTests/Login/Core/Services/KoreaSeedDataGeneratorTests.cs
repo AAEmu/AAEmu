@@ -26,7 +26,7 @@ public class KoreaSeedDataGeneratorTests
         const int Rounds = 100_000;
 
         var pbkdf2Hash = _passwordService.HashForStorage(Password.FromPlaintext(TestPassword));
-        var koreaHash = _passwordService.ComputeKoreaChallengeHash(TestPassword, rounds: Rounds);
+        var koreaHash = KoreaChallengeCrypt.Compute(TestPassword, Rounds);
 
         Console.WriteLine($"-- Korea test account: username={Username}, password={TestPassword}");
         Console.WriteLine($"-- PBKDF2:             {pbkdf2Hash}");

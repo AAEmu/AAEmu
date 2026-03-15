@@ -22,7 +22,12 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
     {
         await using var connection = MySQL.CreateConnection();
         await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "TRUNCATE TABLE users;";
+        cmd.CommandText = """
+            SET FOREIGN_KEY_CHECKS = 0;
+            TRUNCATE TABLE user_2fa;
+            TRUNCATE TABLE users;
+            SET FOREIGN_KEY_CHECKS = 1;
+            """;
         await cmd.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
@@ -44,7 +49,7 @@ public class LoginControllerIntegrationTests : IAsyncLifetime
         var connectionFactory = new Mock<IMySqlConnectionFactory>();
         connectionFactory.Setup(f => f.CreateConnection()).Returns(MySQL.CreateConnection);
         var logger = new Mock<ILogger<LoginController>>();
-        var koreaOptions = Options.Create(new KoreaChallengeAuthOptions());
+        var koreaOptions = Options.Create(new KoreaAuthOptions());
         return new LoginController(gameController.Object, passwordService.Object, appConfig, koreaOptions,
             connectionFactory.Object, logger.Object);
     }
