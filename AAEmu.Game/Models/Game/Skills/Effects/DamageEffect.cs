@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -365,17 +366,28 @@ public class DamageEffect : EffectTemplate
             ((Unit)caster).Bonuses[uint.MaxValue] = [];
         }
 
-        if (caster.GetRelationStateTo(trg) == RelationState.Friendly)
+        var trgCharacter = trg as Character;
+        var attacker = caster as Unit;
+        
+        if (CheckCrime && caster.GetRelationStateTo(trg) == RelationState.Friendly)
         {
             if (!trg.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
                 ((Unit)caster).SetCriminalState(true, trg);
             }
+
+            // Generate evidence if needed
+            if (!trg.AggroTable.TryGetValue(caster.ObjId, out var a) || a.TotalAggro == 0)
+            {
+                trg.AddUnitAggro(AggroKind.Damage, attacker, 1);
+                // Add reversed aggro here as well so retaliating does not generate a bloodstain unless it's a kill.
+                // NOTE: If you don't want this behavior, you can just comment out the next line
+                attacker.AddUnitAggro(AggroKind.Damage, trg, 1);
+                _ = CrimeManager.Instance.GenerateEvidenceFromDamage(caster, trg);
+            }
         }
 
         // TODO : Use proper chance kinds (melee, magic etc.)
-        var trgCharacter = trg as Character;
-        var attacker = caster as Unit;
 
         // set for all combatants, for RegenTick
         trg.IsInBattle = trg.Hp > 0;

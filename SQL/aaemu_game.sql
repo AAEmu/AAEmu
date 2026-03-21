@@ -606,7 +606,8 @@ CREATE TABLE `crime` (
 	`arg1` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument1 of reported crime',
 	`arg2` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument2 of reported crime',
 	`arg3` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument3 of reported crime',
-	`msg` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci'
+	`msg` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+	PRIMARY KEY (`id`) USING BTREE
 )
 COMMENT='Keeps track of the crime events'
 COLLATE='utf8mb4_general_ci'

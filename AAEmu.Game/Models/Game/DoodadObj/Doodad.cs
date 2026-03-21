@@ -996,4 +996,16 @@ public class Doodad : BaseUnit
 
         return stream;
     }
+
+    public override Character GetOwnerCharacter()
+    {
+        if (OwnerType == DoodadOwnerType.Character)
+            return WorldManager.Instance.GetCharacterById(OwnerId)?.GetOwnerCharacter();
+        if (OwnerType == DoodadOwnerType.Slave)
+            return ParentWorld?.GetSlaveByObjId(OwnerObjId)?.GetOwnerCharacter();
+        // Not sure if there's even a way for furniture to deal damage directly
+        if (OwnerType == DoodadOwnerType.Housing)
+            return HousingManager.Instance.GetHouseById(OwnerDbId)?.GetOwnerCharacter();
+        return null;
+    }
 }

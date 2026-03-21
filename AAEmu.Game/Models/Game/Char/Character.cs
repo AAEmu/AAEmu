@@ -2800,6 +2800,11 @@ public partial class Character : Unit, ICharacter
         CheckPlayerInactivity(delta);
     }
 
+    public override Character GetOwnerCharacter()
+    {
+        return this;
+    }
+
     public override string DebugName()
     {
         return base.DebugName() + " (" + Id + ")";

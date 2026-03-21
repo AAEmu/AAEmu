@@ -2,8 +2,10 @@
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -25,6 +27,13 @@ public partial class Character
             enemy.HostileFactionKills++;
 
         DropTradePackToFloor();
+
+        if (killer.GetRelationStateTo(this) == RelationState.Friendly)
+        {
+            // Generate evidence if needed
+            _ = CrimeManager.Instance.GenerateEvidenceFromKill(killer, this);
+        }
+        ClearAllAggro();
     }
 
     /// <summary>
@@ -79,13 +88,9 @@ public partial class Character
         }
     }
 
-    public void OnDisconnect(object sender, OnDisconnectArgs args)
+    public override void ClearAllAggro()
     {
-        ForceDismount();
-        ParentWorld.MateManager.RemoveAndDespawnAllActiveOwnedMates(this);
-    }
-
-    public void OnEnterCombat(object sender, OnCombatStartedArgs args)
-    {
+        base.ClearAllAggro();
+        AggroTable.Clear();
     }
 }

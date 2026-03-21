@@ -619,6 +619,16 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     }
 
     /// <summary>
+    /// Gets a Slave by it's ObjId
+    /// </summary>
+    /// <param name="slaveObjId"></param>
+    /// <returns></returns>
+    public Slave GetSlaveByObjId(uint slaveObjId)
+    {
+        return _slaves.GetValueOrDefault(slaveObjId);
+    }
+
+    /// <summary>
     /// Gets a list of all pets in this instance
     /// </summary>
     /// <returns></returns>

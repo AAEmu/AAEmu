@@ -2985,12 +2985,12 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
     /// <summary>
     /// Saves and creates a doodad
     /// </summary>
-    public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid)
+    public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid, uint itemTemplateId = 0, int customData = 0, bool ignoreHouses = false)
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
         // NOTE: If you would ever want to use player housing outside of main_world, you'll need to modify this
-        var targetHouse = housingManager.Value.GetHouseAtLocation(x, y);
+        var targetHouse = !ignoreHouses ? housingManager.Value.GetHouseAtLocation(x, y) : null;
 
         // Create doodad
         var doodad = Instance.Create(character.ParentWorld, 0, id, character, true);
@@ -3003,6 +3003,8 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
         doodad.FarmType = farmType;
+        doodad.ItemTemplateId = itemTemplateId;
+        doodad.Data = customData;
         if (targetHouse != null)
         {
             doodad.OwnerDbId = targetHouse.Id;
@@ -3022,21 +3024,25 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
             doodad.SetScale(scale);
         }
 
-        // Consume item
         var items = itemManager.GetItemIdsFromDoodad(id);
-        var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
-
-        if (preferredItem == null)
+        var preferredItem = itemId > 0 ? character.Inventory.Bag.GetItemByItemId(itemId) : null;
+        if (itemId > 0)
         {
-            Logger.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
-            doodad.Delete();
-            return null;
-        }
+            // Consume item
 
-        doodad.ItemTemplateId = preferredItem.TemplateId;
-        if (preferredItem.Template.MaxCount > 1)
-        {
-            doodad.ItemId = 0; // If it's a stackable item, don't store the actual itemId, but only it's templateId
+            if (preferredItem == null)
+            {
+                Logger.Error($"Unable to create doodad because source item (Id: {itemId}) does not exist in {character.Name}'s bag inventory.");
+                doodad.Delete();
+                return null;
+            }
+
+            doodad.ItemTemplateId = preferredItem.TemplateId;
+
+            if (preferredItem.Template.MaxCount > 1)
+            {
+                doodad.ItemId = 0; // If it's a stackable item, don't store the actual itemId, but only it's templateId
+            }
         }
 
         if (doodad is DoodadCoffer coffer)

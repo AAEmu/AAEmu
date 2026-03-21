@@ -6,10 +6,13 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.Crime;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -222,5 +225,59 @@ public class CrimeManager(IWorldManager worldManager) : Singleton<CrimeManager>,
         // TODO: Handle this in the character manager instead so it can do offline people as well?
         // TODO: Handle this in DoodadFuncEvidenceItemLoot of the doodad.
         return crimePoints;
+    }
+
+    private Doodad GenerateEvidence(Character criminal, uint evidenceDoodadTemplateId, Vector3 targetLocation, Vector3 targetRotation, uint victimPlayerId, uint sourceDoodadTemplateId)
+    {
+        // TODO: floor/water surface the bloodstain Z height?
+        return DoodadManager.Instance.CreatePlayerDoodad(criminal, evidenceDoodadTemplateId,
+            targetLocation.X, targetLocation.Y, targetLocation.Z, targetRotation.Z, 1f, sourceDoodadTemplateId,
+            FarmType.Invalid, 0, (int)victimPlayerId, true);
+    }
+
+    public Doodad GenerateEvidenceFromDamage(BaseUnit criminal, Unit victim)
+    {
+        var criminalPlayer = criminal.GetOwnerCharacter();
+        var victimPlayer = victim.GetOwnerCharacter();
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+        if (criminal is null)
+            return null;
+
+        /*
+        // Check if there is already a small bloodstain nearby with the same data
+        var nearbyDoodads = WorldManager.GetAround<Doodad>(victim).ToArray();
+        foreach (var doodad in nearbyDoodads)
+        {
+            if (doodad.TemplateId != DoodadConstants.SmallBloodstain)
+                continue;
+            if (doodad.GetDistanceTo(victim, true) > 1f)
+                continue;
+            if (doodad.OwnerId == criminalPlayer.Id && doodad.Data == (victimPlayer?.Id ?? 0))
+                return null;
+        }
+        */
+
+        return GenerateEvidence(criminalPlayer,
+            DoodadConstants.SmallBloodstain,
+            victimPlayer?.Transform.World.Position ?? criminal.Transform.World.Position,
+            victimPlayer?.Transform.World.Rotation ?? Vector3.Zero,
+            victimPlayer?.Id ?? 0,
+            0);
+    }
+
+    public Doodad GenerateEvidenceFromKill(BaseUnit criminal, Unit victim)
+    {
+        var criminalPlayer = criminal.GetOwnerCharacter();
+        var victimPlayer = victim.GetOwnerCharacter();
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+        if (criminal is null)
+            return null;
+
+        return GenerateEvidence(criminalPlayer,
+            DoodadConstants.LargeBloodstain,
+            victimPlayer?.Transform.World.Position ?? criminal.Transform.World.Position,
+            victimPlayer?.Transform.World.Rotation ?? Vector3.Zero,
+            victimPlayer?.Id ?? 0,
+            0);
     }
 }
