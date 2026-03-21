@@ -1,6 +1,8 @@
 ﻿using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Char;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -33,4 +35,8 @@ public interface IBuffs
     void RemoveStealth();
     void SetOwner(BaseUnit owner);
     void TriggerRemoveOn(BuffRemoveOn on, uint value = 0);
+    // Buff Persistence
+    void SaveActiveBuffs(MySqlConnection connection, MySqlTransaction transaction, uint characterId);
+    void LoadActiveBuffs(Character character);
+    void CancelAllEffectTasks();
 }

@@ -2533,12 +2533,15 @@ public partial class Character : Unit, ICharacter
             Abilities?.Save(connection, transaction);
             Actability?.Save(connection, transaction);
             Appellations?.Save(connection, transaction);
+            // Save active buffs that should persist across logout (SaveRuleId > 0)
+            Buffs?.SaveActiveBuffs(connection, transaction, Id);
             Portals?.Save(connection, transaction);
             Friends?.Save(connection, transaction);
             Blocked?.Save(connection, transaction);
             Skills?.Save(connection, transaction);
             Quests?.Save(connection, transaction);
             Mates?.Save(connection, transaction);
+            
             result = true;
         }
         catch (Exception ex)
