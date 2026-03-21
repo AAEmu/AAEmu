@@ -104,8 +104,9 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
                 character.Buffs.AddBuff(new Buff(character, character, casterObj, buffTemplate, null, DateTime.UtcNow) { Passive = true });
             }
             
-            // TODO: Load persistent buffs
-
+            // Load persistent buffs from database
+            character.Buffs.LoadActiveBuffs(character);
+            
             character.UpdateGearBonuses(null, null);
             character.RestoreSavedHpMp();
 

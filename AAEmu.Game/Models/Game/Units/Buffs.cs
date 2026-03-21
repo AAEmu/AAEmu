@@ -8,11 +8,18 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Commons.Utils.DB;
+using MySql.Data.MySqlClient;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Units;
 
 public class Buffs : IBuffs
 {
+    // ReSharper disable once InconsistentNaming
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private const int MinimumBuffDurationToSave = 60000;
+
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _lock = new();
     private uint _nextIndex;
@@ -374,7 +381,7 @@ public class Buffs : IBuffs
             {
                 case BuffStackRule.Refresh:
                     foreach (var e in new List<Buff>(_effects))
-                        if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                        if (e is { InUse: true } && e.Template.BuffId == buff.Template.BuffId)
                             if (buff.GetTimeLeft() < e.GetTimeLeft())
                                 return;
                             else
@@ -382,7 +389,7 @@ public class Buffs : IBuffs
                     break;
                 case BuffStackRule.ChargeRefresh:
                     foreach (var e in new List<Buff>(_effects))
-                        if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                        if (e is { InUse: true } && e.Template.BuffId == buff.Template.BuffId)
                             if (buff.Charge < e.Charge)
                                 return;
                             else
@@ -391,7 +398,7 @@ public class Buffs : IBuffs
                 default:
                     if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
                         foreach (var e in new List<Buff>(_effects))
-                            if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                            if (e is { InUse: true } && e.Template.BuffId == buff.Template.BuffId)
                                 if (e.GetTimeLeft() < buff.GetTimeLeft())
                                     last = e;
                     break;
@@ -408,12 +415,12 @@ public class Buffs : IBuffs
 
                 if (buff.Template.BuffId > 0)
                 {
-                    var bufft = SkillManager.Instance.GetBuffTemplate(buff.Template.BuffId);
+                    var buffTemplate = SkillManager.Instance.GetBuffTemplate(buff.Template.BuffId);
                     owner.SkillModifiersCache.AddModifiers(buff.Template.BuffId);
                     owner.BuffModifiersCache.AddModifiers(buff.Template.BuffId);
                     owner.CombatBuffs.AddCombatBuffs(buff.Template.BuffId);
 
-                    if (owner is Character character && character.IsRiding && (bufft.Stun || bufft.Sleep || bufft.Root))
+                    if (owner is Character { IsRiding: true } character && (buffTemplate.Stun || buffTemplate.Sleep || buffTemplate.Root))
                     {
                         var mateList = character.ParentWorld.MateManager.GetActiveMates(character.Id);
                         foreach (var mate in mateList)
@@ -423,7 +430,7 @@ public class Buffs : IBuffs
                         }
                     }
 
-                    if (bufft.Stun || bufft.Silence || bufft.Sleep)
+                    if (buffTemplate.Stun || buffTemplate.Silence || buffTemplate.Sleep)
                         owner.InterruptSkills();
                 }
 
@@ -441,7 +448,7 @@ public class Buffs : IBuffs
                 if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
                 {
                     // Unit entered a "safe zone"
-                    if (owner is Npc npc && npc.Ai != null)
+                    if (owner is Npc { Ai: not null } npc)
                     {
                         npc.ClearAllAggro();
                     }
@@ -732,8 +739,6 @@ public class Buffs : IBuffs
                     effect.Exit();
                 else if (template.RemoveOnUseSkill && on == BuffRemoveOn.UseSkill)
                     effect.Exit();
-                else
-                    continue;
             }
         }
     }
@@ -807,4 +812,280 @@ public class Buffs : IBuffs
 
         return effects.Any(predicate);
     }
+
+    #region Buff Persistence
+    /// <summary>
+    /// Determines whether a buff should be saved to the database on logout.
+    /// </summary>
+    private static bool ShouldPersistBuff(Buff buff)
+    {
+        if (buff == null)
+            return false;
+
+        // Only save buffs with SaveRuleId > 0
+        if (buff.Template.SaveRuleId == BuffSaveRuleType.DontSave)
+            return false;
+
+        // Passive buffs are restored via the skill system
+        if (buff.Passive)
+            return false;
+
+        // Permanent buffs (Duration=0) are race/template buffs
+        if (buff.Duration <= 0)
+            return false;
+
+        // Don't save already expired buffs
+        if (buff.GetTimeLeft() <= 0)
+            return false;
+
+        // Don't save buffs in Finishing/Finished state
+        if (buff.State == EffectState.Finishing || buff.State == EffectState.Finished)
+            return false;
+
+        // --- SaveRule differentiation ---
+
+        // Rule 2: Premium/Crafting (Cash-Shop, Mastery, Proficiency) → always save
+        // Rule 3: Special (Inn/Sleep, Battlefield, Cosmetics) → always save
+        if (buff.Template.SaveRuleId >= BuffSaveRuleType.CharacterPersistent)
+            return true;
+
+        // Rule 1: Standard buffs — only save beneficial buffs with ≥60s duration.
+        // Filters out short combat debuffs (stuns, bleeds, knockdowns).
+        if (buff.Template.SaveRuleId == BuffSaveRuleType.Normal)
+        {
+            // Don't save debuffs (combat effects should not persist through logout)
+            if (buff.Template.Kind == BuffKind.Bad)
+                return false;
+
+            // Very short buffs (< 60s) are combat abilities, not consumables
+            if (buff.Duration < MinimumBuffDurationToSave)
+                return false;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Saves all persistable active buffs to the database.
+    /// Called during Character.Save().
+    /// </summary>
+    public void SaveActiveBuffs(MySqlConnection connection, MySqlTransaction transaction, uint characterId)
+    {
+        try
+        {
+            // Delete previously saved buffs
+            using (var deleteCmd = connection.CreateCommand())
+            {
+                deleteCmd.Connection = connection;
+                deleteCmd.Transaction = transaction;
+                deleteCmd.CommandText = "DELETE FROM `character_active_buffs` WHERE `character_id` = @characterId";
+                deleteCmd.Parameters.AddWithValue("@characterId", characterId);
+                deleteCmd.ExecuteNonQuery();
+            }
+
+            // Snapshot active buffs
+            Buff[] effects;
+            lock (_lock)
+            {
+                effects = _effects.ToArray();
+            }
+
+            var savedCount = 0;
+            foreach (var buff in effects)
+            {
+                if (!ShouldPersistBuff(buff))
+                    continue;
+
+                var timeLeft = (int)buff.GetTimeLeft();
+                if (timeLeft <= 0)
+                    continue;
+
+                using var cmd = connection.CreateCommand();
+                cmd.Connection = connection;
+                cmd.Transaction = transaction;
+                cmd.CommandText =
+                    "INSERT INTO `character_active_buffs` " +
+                    "(`character_id`, `buff_id`, `caster_id`, `skill_id`, `ab_level`, " +
+                    " `duration`, `time_left`, `charge`, `stack_count`, `real_time`, `saved_at`) " +
+                    "VALUES (@characterId, @buffId, @casterId, @skillId, @abLevel, " +
+                    "        @duration, @timeLeft, @charge, @stackCount, @realTime, @savedAt) " +
+                    "ON DUPLICATE KEY UPDATE " +
+                    "`caster_id`=@casterId, `skill_id`=@skillId, `ab_level`=@abLevel, " +
+                    "`duration`=@duration, `time_left`=@timeLeft, `charge`=@charge, " +
+                    "`stack_count`=@stackCount, `real_time`=@realTime, `saved_at`=@savedAt";
+
+                cmd.Parameters.AddWithValue("@characterId", characterId);
+                cmd.Parameters.AddWithValue("@buffId", buff.Template.Id);
+                cmd.Parameters.AddWithValue("@casterId", buff.Caster?.Id ?? characterId);
+                cmd.Parameters.AddWithValue("@skillId", buff.Skill?.Template?.Id ?? 0u);
+                cmd.Parameters.AddWithValue("@abLevel", buff.AbLevel);
+                cmd.Parameters.AddWithValue("@duration", buff.Duration);
+                cmd.Parameters.AddWithValue("@timeLeft", timeLeft);
+                cmd.Parameters.AddWithValue("@charge", buff.Charge);
+                cmd.Parameters.AddWithValue("@stackCount", 1);
+                cmd.Parameters.AddWithValue("@realTime", buff.Template.RealTime ? 1 : 0);
+                cmd.Parameters.AddWithValue("@savedAt", DateTime.UtcNow);
+                cmd.ExecuteNonQuery();
+                savedCount++;
+            }
+
+            if (savedCount > 0)
+                Logger.Info($"Saved {savedCount} active buff(s) for character {characterId}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Failed to save active buffs for character {characterId}");
+        }
+    }
+
+    /// <summary>
+    /// Loads saved buffs from the database and reapplies them to the character.
+    /// RealTime buffs: offline time is subtracted.
+    /// GameTime buffs: timer was paused, full remaining time is restored.
+    /// </summary>
+    public void LoadActiveBuffs(Character character)
+    {
+        try
+        {
+            var restoredCount = 0;
+
+            using var connection = MySQL.CreateConnection();
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText =
+                    "SELECT * FROM `character_active_buffs` WHERE `character_id` = @characterId";
+                cmd.Parameters.AddWithValue("@characterId", character.Id);
+
+                using var reader = cmd.ExecuteReader();
+                var buffRows = new List<(uint buffId, uint casterId, uint skillId,
+                    uint abLevel, int duration, int timeLeft, int charge,
+                    bool realTime, DateTime savedAt)>();
+
+                while (reader.Read())
+                {
+                    buffRows.Add((
+                        buffId:   reader.GetUInt32("buff_id"),
+                        casterId: reader.GetUInt32("caster_id"),
+                        skillId:  reader.GetUInt32("skill_id"),
+                        abLevel:  reader.GetUInt32("ab_level"),
+                        duration: reader.GetInt32("duration"),
+                        timeLeft: reader.GetInt32("time_left"),
+                        charge:   reader.GetInt32("charge"),
+                        realTime: reader.GetBoolean("real_time"),
+                        savedAt:  reader.GetDateTime("saved_at")
+                    ));
+                }
+
+                reader.Close();
+
+                foreach (var row in buffRows)
+                {
+                    var buffTemplate = SkillManager.Instance.GetBuffTemplate(row.buffId);
+                    if (buffTemplate == null)
+                    {
+                        Logger.Warn($"LoadActiveBuffs: BuffTemplate {row.buffId} not found, skipping");
+                        continue;
+                    }
+
+                    // Calculate remaining time
+                    int remainingMs;
+                    if (row.realTime)
+                    {
+                        // RealTime: subtract offline time
+                        var offlineMs = (int)(DateTime.UtcNow - row.savedAt).TotalMilliseconds;
+                        remainingMs = row.timeLeft - offlineMs;
+
+                        if (remainingMs <= 0)
+                        {
+                            Logger.Debug($"LoadActiveBuffs: RealTime buff {row.buffId} expired offline");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // GameTime: timer was paused → restore full remaining time
+                        remainingMs = row.timeLeft;
+                    }
+
+                    if (remainingMs <= 0)
+                        continue;
+
+                    // Check if buff is already active (e.g. from passive skills)
+                    if (CheckBuff(row.buffId))
+                    {
+                        Logger.Debug($"LoadActiveBuffs: Buff {row.buffId} already active, skipping");
+                        continue;
+                    }
+
+                    // Create and apply the buff
+                    var casterObj = new SkillCasterUnit(character.ObjId);
+                    var buff = new Buff(character, character, casterObj,
+                        buffTemplate, null, DateTime.UtcNow)
+                    {
+                        AbLevel  = row.abLevel,
+                        Duration = remainingMs,
+                        Charge   = row.charge > 0 ? row.charge : buffTemplate.InitMinCharge
+                    };
+
+                    AddBuff(buff, forcedDuration: remainingMs);
+                    restoredCount++;
+
+                    Logger.Debug($"LoadActiveBuffs: Restored buff {row.buffId} ({remainingMs}ms) for char {character.Id}");
+                }
+            }
+
+            // Delete saved buffs — they are now active again
+            using (var deleteCmd = connection.CreateCommand())
+            {
+                deleteCmd.CommandText =
+                    "DELETE FROM `character_active_buffs` WHERE `character_id` = @characterId";
+                deleteCmd.Parameters.AddWithValue("@characterId", character.Id);
+                deleteCmd.ExecuteNonQuery();
+            }
+
+            if (restoredCount > 0)
+                Logger.Info($"Restored {restoredCount} buff(s) for character {character.Id} ({character.Name})");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Failed to load active buffs for character {character.Id}");
+        }
+    }
+
+    /// <summary>
+    /// Cancels all running buff timers (DispelTasks) without triggering the normal
+    /// dispel/exit flow. Called during logout.
+    /// </summary>
+    public void CancelAllEffectTasks()
+    {
+        Buff[] effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        foreach (var buff in effects)
+        {
+            if (buff == null)
+                continue;
+
+            try
+            {
+                TaskManager.Instance.RemoveTasks(task =>
+                {
+                    if (task is AAEmu.Game.Models.Tasks.Skills.DispelTask dt
+                        && dt.Effect.Target is Buff b)
+                        return b == buff;
+                    return false;
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, $"Error cancelling tasks for buff {buff.Template?.Id}");
+            }
+        }
+    }
+    #endregion
 }

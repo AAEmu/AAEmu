@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers;
 public class SkillManager(IAnimationManager animationManager, IPlotManager plotManager) : Singleton<SkillManager>, ISkillManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private bool _loaded = false;
+    private bool _loaded;
 
     private Dictionary<uint, SkillTemplate> _skills;
     private Dictionary<uint, DefaultSkill> _defaultSkills;
@@ -78,9 +78,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public SkillTemplate GetSkillTemplate(uint id)
     {
-        if (_skills.TryGetValue(id, out var template))
-            return template;
-        return null;
+        return _skills.GetValueOrDefault(id);
     }
 
     public bool IsDefaultSkill(uint id)
@@ -105,12 +103,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public BuffTemplate GetBuffTemplate(uint id)
     {
-        // if(_effects["Buff"].ContainsKey(id))
-        //     return (BuffTemplate)_effects["Buff"][id];
-        // return null;
-        if (_buffs.TryGetValue(id, out var template))
-            return template;
-        return null;
+        return _buffs.GetValueOrDefault(id);
     }
 
     public List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId)
@@ -126,15 +119,15 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     {
         if (_types.TryGetValue(id, out var type))
         {
-            Logger.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
+            Logger.Trace($"Get Effect Template: type = {type.Type}, id = {type.ActualId}");
 
-            if (_effects.TryGetValue(type.Type, out var effect))
+            if (_effects.TryGetValue(type.Type, out _))
             {
                 return _effects[type.Type][type.ActualId];
             }
             else
             {
-                Logger.Warn("No such Effect Type[{0}] found.", type.Type);
+                Logger.Warn($"No such Effect Type[{type.Type}] found.");
                 return null;
             }
         }
@@ -143,7 +136,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public EffectTemplate GetEffectTemplate(uint id, string type)
     {
-        Logger.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
+        Logger.Trace($"Get Effect Template: type = {type}, id = {id}");
 
         if (_effects.TryGetValue(type, out var value))
         {
@@ -157,37 +150,27 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public List<uint> GetBuffTags(uint buffId)
     {
-        if (_buffTags.TryGetValue(buffId, out var tags))
-            return tags;
-        return [];
+        return _buffTags.TryGetValue(buffId, out var tags) ? tags : [];
     }
 
     public List<uint> GetBuffsByTagId(uint tagId)
     {
-        if (_taggedBuffs.TryGetValue(tagId, out var id))
-            return id;
-        return null;
+        return _taggedBuffs.GetValueOrDefault(tagId);
     }
 
     public List<uint> GetSkillTags(uint skillId)
     {
-        if (_skillTags.TryGetValue(skillId, out var tags))
-            return tags;
-        return [];
+        return _skillTags.TryGetValue(skillId, out var tags) ? tags : [];
     }
 
     public List<uint> GetSkillsByTag(uint tagId)
     {
-        if (_taggedSkills.TryGetValue(tagId, out var tag))
-            return tag;
-        return [];
+        return _taggedSkills.TryGetValue(tagId, out var tag) ? tag : [];
     }
 
     public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
     {
-        if (_passiveBuffs.TryGetValue(id, out var template))
-            return template;
-        return null;
+        return _passiveBuffs.GetValueOrDefault(id);
     }
 
     public List<SkillModifier> GetModifiersByOwnerId(uint id)
@@ -199,9 +182,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
     {
-        if (_combatBuffs.TryGetValue(reqBuffId, out var buffs))
-            return buffs;
-        return [];
+        return _combatBuffs.TryGetValue(reqBuffId, out var buffs) ? buffs : [];
     }
 
     public List<SkillReagent> GetSkillReagentsBySkillId(uint id)
@@ -450,7 +431,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 }
             }
 
-            Logger.Info("Loaded {0} skills", _skills.Count);
+            Logger.Info($"Loaded {_skills.Count} skills");
 
             using (var command = connection.CreateCommand())
             {
@@ -506,6 +487,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
+                        // These string values are read here so they can fit nicely in the init-only part of the template
+                        var skillControllerIdValue = reader.GetString("skill_controller_id", "0");
+                        var mainHandToolIdValue = reader.GetString("mainhand_tool_id", "0");
+                        var offhandToolIdValue = reader.GetString("offhand_tool_id", "0");
+                        var tickMainHandToolIdValue = reader.GetString("tick_mainhand_tool_id", "0");
+                        var tickOffHandToolIdValue = reader.GetString("tick_offhand_tool_id", "0");
                         var template = new BuffTemplate
                         {
                             Id = reader.GetUInt32("id"),
@@ -543,146 +530,145 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             SpellImmune = reader.GetBoolean("spell_immune", true),
                             RangedImmune = reader.GetBoolean("ranged_immune", true),
                             SiegeImmune = reader.GetBoolean("siege_immune", true),
-                            ImmuneDamage = reader.GetInt32("immune_damage")
+                            ImmuneDamage = reader.GetInt32("immune_damage"),
+                            SkillControllerId =
+                                skillControllerIdValue.Contains("null") ? 0 : uint.Parse(skillControllerIdValue),
+                            ResurrectionHealth = reader.GetInt32("resurrection_health"),
+                            ResurrectionMana = reader.GetInt32("resurrection_mana"),
+                            ResurrectionPercent = reader.GetBoolean("resurrection_percent", true),
+                            LevelDuration = reader.GetInt32("level_duration"),
+                            ReflectionRatio = reader.GetInt32("reflection_ratio"),
+                            ReflectionTargetRatio = reader.GetInt32("reflection_target_ratio"),
+                            KnockbackImmune = reader.GetBoolean("knockback_immune"),
+                            ImmuneBuffTagId = reader.GetUInt32("immune_buff_tag_id", 0),
+                            AuraRelationId = reader.GetUInt32("aura_relation_id"),
+                            GroupId = reader.GetUInt32("group_id", 0),
+                            GroupRank = reader.GetInt32("group_rank"),
+                            PerUnitCreation = reader.GetBoolean("per_unit_creation"),
+                            TickAreaRadius = reader.GetFloat("tick_area_radius"),
+                            TickAreaRelationId = reader.GetUInt32("tick_area_relation_id"),
+                            RemoveOnMove = reader.GetBoolean("remove_on_move", true),
+                            UseSourceFaction = reader.GetBoolean("use_source_faction", true),
+                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0),
+                            Exempt = reader.GetBoolean("exempt", true),
+                            TickAreaFrontAngle = reader.GetInt32("tick_area_front_angle"),
+                            TickAreaAngle = reader.GetInt32("tick_area_angle"),
+                            Psychokinesis = reader.GetBoolean("psychokinesis", true),
+                            NoCollide = reader.GetBoolean("no_collide", true),
+                            PsychokinesisSpeed = reader.GetFloat("psychokinesis_speed"),
+                            RemoveOnDeath = reader.GetBoolean("remove_on_death", true),
+                            TickAnimId = reader.GetUInt32("tick_anim_id", 0),
+                            TickActiveWeaponId = reader.GetUInt32("tick_active_weapon_id"),
+                            ConditionalTick = reader.GetBoolean("conditional_tick", true),
+                            System = reader.GetBoolean("system", true),
+                            AuraSlaveBuffId = reader.GetUInt32("aura_slave_buff_id", 0),
+                            NonPushable = reader.GetBoolean("non_pushable", true),
+                            ActiveWeaponId = reader.GetUInt32("active_weapon_id"),
+                            MaxCharge = reader.GetInt32("max_charge"),
+                            DetectStealth = reader.GetBoolean("detect_stealth", true),
+                            RemoveOnExempt = reader.GetBoolean("remove_on_exempt", true),
+                            RemoveOnLand = reader.GetBoolean("remove_on_land", true),
+                            Gliding = reader.GetBoolean("gliding", true),
+                            GlidingRotateSpeed = reader.GetInt32("gliding_rotate_speed"),
+                            Knockdown = reader.GetBoolean("knock_down", true),
+                            TickAreaExcludeSource = reader.GetBoolean("tick_area_exclude_source", true),
+                            // TODO 
+                            /*
+                                string_instrument_start_anim_id INT,
+                                percussion_instrument_start_anim_id INT,
+                                tube_instrument_start_anim_id INT,
+                                string_instrument_tick_anim_id INT,
+                                percussion_instrument_tick_anim_id INT,
+                                tube_instrument_tick_anim_id INT,
+                                gliding_startup_time REAL,
+                                gliding_startup_speed REAL,
+                                gliding_fall_speed_slow REAL,
+                                gliding_fall_speed_normal REAL,
+                                gliding_fall_speed_fast REAL,
+                                gliding_smooth_time REAL,
+                                gliding_lift_count INT,
+                                gliding_lift_height REAL,
+                                gliding_lift_valid_time REAL,
+                                gliding_lift_duration REAL,
+                                gliding_lift_speed REAL,
+                                gliding_land_height REAL,
+                                gliding_sliding_time REAL,
+                                gliding_move_speed_slow REAL,
+                                gliding_move_speed_normal REAL,
+                                gliding_move_speed_fast REAL,
+                             */
+                            FallDamageImmune = reader.GetBoolean("fall_damage_immune", true),
+                            Kind = (BuffKind)reader.GetInt32("kind_id"),
+                            TransformBuffId = reader.GetUInt32("transform_buff_id", 0),
+                            BlankMinded = reader.GetBoolean("blank_minded", true),
+                            Fastened = reader.GetBoolean("fastened", true),
+                            SlaveApplicable = reader.GetBoolean("slave_applicable", true),
+                            Pacifist = reader.GetBoolean("pacifist", true),
+                            RemoveOnInteraction = reader.GetBoolean("remove_on_interaction", true),
+                            Crime = reader.GetBoolean("crime", true),
+                            RemoveOnUnmount = reader.GetBoolean("remove_on_unmount", true),
+                            AuraChildOnly = reader.GetBoolean("aura_child_only", true),
+                            RemoveOnMount = reader.GetBoolean("remove_on_mount", true),
+                            RemoveOnStartSkill = reader.GetBoolean("remove_on_start_skill", true),
+                            SprintMotion = reader.GetBoolean("sprint_motion", true),
+                            TelescopeRange = reader.GetFloat("telescope_range"),
+                            MainhandToolId = mainHandToolIdValue.Length > 0 ? uint.Parse(mainHandToolIdValue) : 0,
+                            OffhandToolId = offhandToolIdValue.Length > 0 ? uint.Parse(offhandToolIdValue) : 0,
+                            TickMainhandToolId = tickMainHandToolIdValue.Length > 0 ? uint.Parse(tickMainHandToolIdValue) : 0,
+                            TickOffhandToolId = tickOffHandToolIdValue.Length > 0 ? uint.Parse(tickOffHandToolIdValue) : 0,
+                            TickLevelManaCost = reader.GetFloat("tick_level_mana_cost"),
+                            WalkOnly = reader.GetBoolean("walk_only", true),
+                            CannotJump = reader.GetBoolean("cannot_jump", true),
+                            CrowdBuffId = reader.GetUInt32("crowd_buff_id", 0),
+                            CrowdRadius = reader.GetFloat("crowd_radius"),
+                            CrowdNumber = reader.GetInt32("crowd_number"),
+                            EvadeTelescope = reader.GetBoolean("evade_telescope", true),
+                            TransferTelescopeRange = reader.GetFloat("transfer_telescope_range"),
+                            RemoveOnAttackSpellDot = reader.GetBoolean("remove_on_attack_spell_dot", true),
+                            RemoveOnAttackEtcDot = reader.GetBoolean("remove_on_attack_etc_dot", true),
+                            RemoveOnAttackBuffTrigger = reader.GetBoolean("remove_on_attack_buff_trigger", true),
+                            RemoveOnAttackEtc = reader.GetBoolean("remove_on_attack_etc", true),
+                            RemoveOnAttackedSpellDot = reader.GetBoolean("remove_on_attacked_spell_dot", true),
+                            RemoveOnAttackedEtcDot = reader.GetBoolean("remove_on_attacked_etc_dot", true),
+                            RemoveOnAttackedBuffTrigger = reader.GetBoolean("remove_on_attacked_buff_trigger", true),
+                            RemoveOnAttackedEtc = reader.GetBoolean("remove_on_attacked_etc", true),
+                            RemoveOnDamageSpellDot = reader.GetBoolean("remove_on_damage_spell_dot", true),
+                            RemoveOnDamageEtcDot = reader.GetBoolean("remove_on_damage_etc_dot", true),
+                            RemoveOnDamageBuffTrigger = reader.GetBoolean("remove_on_damage_buff_trigger", true),
+                            RemoveOnDamageEtc = reader.GetBoolean("remove_on_damage_etc", true),
+                            RemoveOnDamagedSpellDot = reader.GetBoolean("remove_on_damaged_spell_dot", true),
+                            RemoveOnDamagedEtcDot = reader.GetBoolean("remove_on_damaged_etc_dot", true),
+                            RemoveOnDamagedBuffTrigger = reader.GetBoolean("remove_on_damaged_buff_trigger", true),
+                            RemoveOnDamagedEtc = reader.GetBoolean("remove_on_damaged_etc", true),
+                            OwnerOnly = reader.GetBoolean("owner_only", true),
+                            RemoveOnAutoAttack = reader.GetBoolean("remove_on_autoattack", true),
+                            SaveRuleId = (BuffSaveRuleType)reader.GetUInt32("save_rule_id"),
+                            AntiStealth = reader.GetBoolean("anti_stealth", true),
+                            Scale = reader.GetFloat("scale"),
+                            ScaleDuration = reader.GetFloat("scaleDuration"),
+                            ImmuneExceptCreator = reader.GetBoolean("immune_except_creator", true),
+                            ImmuneExceptSkillTagId = reader.GetUInt32("immune_except_skill_tag_id", 0),
+                            FindSchoolOfFishRange = reader.GetFloat("find_school_of_fish_range"),
+                            AnimActionId = reader.GetUInt32("anim_action_id", 0),
+                            DeadApplicable = reader.GetBoolean("dead_applicable", true),
+                            TickAreaUseOriginSource = reader.GetBoolean("tick_area_use_origin_source", true),
+                            RealTime = reader.GetBoolean("real_time", true),
+                            DoNotRemoveByOtherSkillController =
+                                reader.GetBoolean("do_not_remove_by_other_skill_controller", true),
+                            CooldownSkillId = reader.GetUInt32("cooldown_skill_id", 0),
+                            CooldownSkillTime = reader.GetInt32("cooldown_skill_time"),
+                            ManaBurnImmune = reader.GetBoolean("mana_burn_immune", true),
+                            FreezeShip = reader.GetBoolean("freeze_ship", true),
+                            CrowdFriendly = reader.GetBoolean("crowd_friendly", true),
+                            CrowdHostile = reader.GetBoolean("crowd_hostile", true),
                         };
-                        var value = reader.GetString("skill_controller_id", "0");
-                        template.SkillControllerId = value.Contains("null") ? 0 : uint.Parse(value);
-                        template.ResurrectionHealth = reader.GetInt32("resurrection_health");
-                        template.ResurrectionMana = reader.GetInt32("resurrection_mana");
-                        template.ResurrectionPercent = reader.GetBoolean("resurrection_percent", true);
-                        template.LevelDuration = reader.GetInt32("level_duration");
-                        template.ReflectionRatio = reader.GetInt32("reflection_ratio");
-                        template.ReflectionTargetRatio = reader.GetInt32("reflection_target_ratio");
-                        template.KnockbackImmune = reader.GetBoolean("knockback_immune");
-                        template.ImmuneBuffTagId = reader.GetUInt32("immune_buff_tag_id", 0);
-                        template.AuraRelationId = reader.GetUInt32("aura_relation_id");
-                        template.GroupId = reader.GetUInt32("group_id", 0);
-                        template.GroupRank = reader.GetInt32("group_rank");
-                        template.PerUnitCreation = reader.GetBoolean("per_unit_creation");
-                        template.TickAreaRadius = reader.GetFloat("tick_area_radius");
-                        template.TickAreaRelationId = reader.GetUInt32("tick_area_relation_id");
-                        template.RemoveOnMove = reader.GetBoolean("remove_on_move", true);
-                        template.UseSourceFaction = reader.GetBoolean("use_source_faction", true);
-                        template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0);
-                        template.Exempt = reader.GetBoolean("exempt", true);
-                        template.TickAreaFrontAngle = reader.GetInt32("tick_area_front_angle");
-                        template.TickAreaAngle = reader.GetInt32("tick_area_angle");
-                        template.Psychokinesis = reader.GetBoolean("psychokinesis", true);
-                        template.NoCollide = reader.GetBoolean("no_collide", true);
-                        template.PsychokinesisSpeed = reader.GetFloat("psychokinesis_speed");
-                        template.RemoveOnDeath = reader.GetBoolean("remove_on_death", true);
-                        template.TickAnimId = reader.GetUInt32("tick_anim_id", 0);
-                        template.TickActiveWeaponId = reader.GetUInt32("tick_active_weapon_id");
-                        template.ConditionalTick = reader.GetBoolean("conditional_tick", true);
-                        template.System = reader.GetBoolean("system", true);
-                        template.AuraSlaveBuffId = reader.GetUInt32("aura_slave_buff_id", 0);
-                        template.NonPushable = reader.GetBoolean("non_pushable", true);
-                        template.ActiveWeaponId = reader.GetUInt32("active_weapon_id");
-                        template.MaxCharge = reader.GetInt32("max_charge");
-                        template.DetectStealth = reader.GetBoolean("detect_stealth", true);
-                        template.RemoveOnExempt = reader.GetBoolean("remove_on_exempt", true);
-                        template.RemoveOnLand = reader.GetBoolean("remove_on_land", true);
-                        template.Gliding = reader.GetBoolean("gliding", true);
-                        template.GlidingRotateSpeed = reader.GetInt32("gliding_rotate_speed");
-                        template.Knockdown = reader.GetBoolean("knock_down", true);
-                        template.TickAreaExcludeSource = reader.GetBoolean("tick_area_exclude_source", true);
-                        // TODO 
-                        /*
-                            string_instrument_start_anim_id INT,
-                            percussion_instrument_start_anim_id INT,
-                            tube_instrument_start_anim_id INT,
-                            string_instrument_tick_anim_id INT,
-                            percussion_instrument_tick_anim_id INT,
-                            tube_instrument_tick_anim_id INT,
-                            gliding_startup_time REAL,
-                            gliding_startup_speed REAL,
-                            gliding_fall_speed_slow REAL,
-                            gliding_fall_speed_normal REAL,
-                            gliding_fall_speed_fast REAL,
-                            gliding_smooth_time REAL,
-                            gliding_lift_count INT,
-                            gliding_lift_height REAL,
-                            gliding_lift_valid_time REAL,
-                            gliding_lift_duration REAL,
-                            gliding_lift_speed REAL,
-                            gliding_land_height REAL,
-                            gliding_sliding_time REAL,
-                            gliding_move_speed_slow REAL,
-                            gliding_move_speed_normal REAL,
-                            gliding_move_speed_fast REAL,
-                         */
-                        template.FallDamageImmune = reader.GetBoolean("fall_damage_immune", true);
-                        template.Kind = (BuffKind)reader.GetInt32("kind_id");
-                        template.TransformBuffId = reader.GetUInt32("transform_buff_id", 0);
-                        template.BlankMinded = reader.GetBoolean("blank_minded", true);
-                        template.Fastened = reader.GetBoolean("fastened", true);
-                        template.SlaveApplicable = reader.GetBoolean("slave_applicable", true);
-                        template.Pacifist = reader.GetBoolean("pacifist", true);
-                        template.RemoveOnInteraction = reader.GetBoolean("remove_on_interaction", true);
-                        template.Crime = reader.GetBoolean("crime", true);
-                        template.RemoveOnUnmount = reader.GetBoolean("remove_on_unmount", true);
-                        template.AuraChildOnly = reader.GetBoolean("aura_child_only", true);
-                        template.RemoveOnMount = reader.GetBoolean("remove_on_mount", true);
-                        template.RemoveOnStartSkill = reader.GetBoolean("remove_on_start_skill", true);
-                        template.SprintMotion = reader.GetBoolean("sprint_motion", true);
-                        template.TelescopeRange = reader.GetFloat("telescope_range");
-                        value = reader.GetString("mainhand_tool_id", "0");
-                        template.MainhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
-                        value = reader.GetString("offhand_tool_id", "0");
-                        template.OffhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
-                        value = reader.GetString("tick_mainhand_tool_id", "0");
-                        template.TickMainhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
-                        value = reader.GetString("tick_offhand_tool_id", "0");
-                        template.TickOffhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
-                        template.TickLevelManaCost = reader.GetFloat("tick_level_mana_cost");
-                        template.WalkOnly = reader.GetBoolean("walk_only", true);
-                        template.CannnotJump = reader.GetBoolean("cannot_jump", true);
-                        template.CrowdBuffId = reader.GetUInt32("crowd_buff_id", 0);
-                        template.CrowdRadius = reader.GetFloat("crowd_radius");
-                        template.CrowdNumber = reader.GetInt32("crowd_number");
-                        template.EvadeTelescope = reader.GetBoolean("evade_telescope", true);
-                        template.TransferTelescopeRange = reader.GetFloat("transfer_telescope_range");
-                        template.RemoveOnAttackSpellDot = reader.GetBoolean("remove_on_attack_spell_dot", true);
-                        template.RemoveOnAttackEtcDot = reader.GetBoolean("remove_on_attack_etc_dot", true);
-                        template.RemoveOnAttackBuffTrigger = reader.GetBoolean("remove_on_attack_buff_trigger", true);
-                        template.RemoveOnAttackEtc = reader.GetBoolean("remove_on_attack_etc", true);
-                        template.RemoveOnAttackedSpellDot = reader.GetBoolean("remove_on_attacked_spell_dot", true);
-                        template.RemoveOnAttackedEtcDot = reader.GetBoolean("remove_on_attacked_etc_dot", true);
-                        template.RemoveOnAttackedBuffTrigger = reader.GetBoolean("remove_on_attacked_buff_trigger", true);
-                        template.RemoveOnAttackedEtc = reader.GetBoolean("remove_on_attacked_etc", true);
-                        template.RemoveOnDamageSpellDot = reader.GetBoolean("remove_on_damage_spell_dot", true);
-                        template.RemoveOnDamageEtcDot = reader.GetBoolean("remove_on_damage_etc_dot", true);
-                        template.RemoveOnDamageBuffTrigger = reader.GetBoolean("remove_on_damage_buff_trigger", true);
-                        template.RemoveOnDamageEtc = reader.GetBoolean("remove_on_damage_etc", true);
-                        template.RemoveOnDamagedSpellDot = reader.GetBoolean("remove_on_damaged_spell_dot", true);
-                        template.RemoveOnDamagedEtcDot = reader.GetBoolean("remove_on_damaged_etc_dot", true);
-                        template.RemoveOnDamagedBuffTrigger = reader.GetBoolean("remove_on_damaged_buff_trigger", true);
-                        template.RemoveOnDamagedEtc = reader.GetBoolean("remove_on_damaged_etc", true);
-                        template.OwnerOnly = reader.GetBoolean("owner_only", true);
-                        template.RemoveOnAutoAttack = reader.GetBoolean("remove_on_autoattack", true);
-                        template.SaveRuleId = reader.GetUInt32("save_rule_id");
-                        template.AntiStealth = reader.GetBoolean("anti_stealth", true);
-                        template.Scale = reader.GetFloat("scale");
-                        template.ScaleDuration = reader.GetFloat("scaleDuration");
-                        template.ImmuneExceptCreator = reader.GetBoolean("immune_except_creator", true);
-                        template.ImmuneExceptSkillTagId = reader.GetUInt32("immune_except_skill_tag_id", 0);
-                        template.FindSchoolOfFishRange = reader.GetFloat("find_school_of_fish_range");
-                        template.AnimActionId = reader.GetUInt32("anim_action_id", 0);
-                        template.DeadApplicable = reader.GetBoolean("dead_applicable", true);
-                        template.TickAreaUseOriginSource = reader.GetBoolean("tick_area_use_origin_source", true);
-                        template.RealTime = reader.GetBoolean("real_time", true);
-                        template.DoNotRemoveByOtherSkillController = reader.GetBoolean("do_not_remove_by_other_skill_controller", true);
-                        template.CooldownSkillId = reader.GetUInt32("cooldown_skill_id", 0);
-                        template.CooldownSkillTime = reader.GetInt32("cooldown_skill_time");
-                        template.ManaBurnImmune = reader.GetBoolean("mana_burn_immune", true);
-                        template.FreezeShip = reader.GetBoolean("freeze_ship", true);
-                        template.CrowdFriendly = reader.GetBoolean("crowd_friendly", true);
-                        template.CrowdHostile = reader.GetBoolean("crowd_hostile", true);
+
                         // _effects["Buff"].Add(template.Id, template);
                         _buffs.Add(template.Id, template);
                     }
                 }
             }
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM buff_effects";
@@ -1738,7 +1724,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
                         trigger.Synergy = reader.GetBoolean("synergy", true);
 
-                        //Apparently this is possible..
+                        // Apparently this is possible.
                         if (trigger.Effect != null)
                         {
                             value.Add(trigger);
@@ -1791,7 +1777,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 }
                 Logger.Info("Skill Products loaded");
 
-                OnSkillsLoaded?.Invoke(this, new EventArgs());
+                OnSkillsLoaded?.Invoke(this, EventArgs.Empty);
             }
         }
 
