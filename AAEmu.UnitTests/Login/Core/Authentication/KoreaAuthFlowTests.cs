@@ -8,7 +8,9 @@ using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Services;
+using AAEmu.Login.Core.Services.TwoFactor;
 using AAEmu.Login.Models;
+using AAEmu.Login.Models.TwoFactor;
 using Microsoft.Extensions.Options;
 
 namespace AAEmu.UnitTests.Login.Core.Authentication;
@@ -16,14 +18,32 @@ namespace AAEmu.UnitTests.Login.Core.Authentication;
 public class KoreaAuthFlowTests
 {
     private readonly Mock<ILoginController> _loginController = Mock.Of<ILoginController>();
+    private readonly Mock<ITwoFactorService> _twoFactorService = Mock.Of<ITwoFactorService>();
+    private readonly Mock<IOtpService> _otpService = Mock.Of<IOtpService>();
+    private readonly Mock<IPcCertService> _pcCertService = Mock.Of<IPcCertService>();
+    private readonly Mock<IArsService> _arsService = Mock.Of<IArsService>();
     private readonly Mock<ILoginClient> _client = Mock.Of<ILoginClient>();
 
-    private KoreaAuthFlow CreateFlow(string username, KoreaAuthOptions? options = null,
-        KoreaChallengeAuthOptions? challengeOptions = null)
+    public KoreaAuthFlowTests()
     {
-        var opts = Options.Create(options ?? new KoreaAuthOptions());
-        var challengeOpts = Options.Create(challengeOptions ?? new KoreaChallengeAuthOptions { Enabled = true });
-        return new KoreaAuthFlow(_loginController.Object, opts, challengeOpts, username, IPAddress.Loopback);
+        // Default: no 2FA requirements
+        _twoFactorService
+            .GetRequirementsAsync(Any<AccountId>(), Any<CancellationToken>())
+            .Returns(new TwoFactorRequirements(false, false, false));
+    }
+
+    private KoreaAuthFlow CreateFlow(string username, KoreaAuthOptions? options = null)
+    {
+        var opts = Options.Create(options ?? new KoreaAuthOptions() { Enabled = true});
+        return new KoreaAuthFlow(
+            _loginController.Object,
+            _twoFactorService.Object,
+            _otpService.Object,
+            _pcCertService.Object,
+            _arsService.Object,
+            opts,
+            username,
+            IPAddress.Loopback);
     }
 
     /// <summary>
@@ -286,6 +306,9 @@ public class KoreaAuthFlowTests
     {
         // Arrange
         var options = new KoreaAuthOptions { MaxOtpAttempts = 3 };
+        _otpService
+            .ValidateAsync(Any<AccountId>(), Any<string>(), Any<CancellationToken>())
+            .Returns(new OtpValidationResult(false));
         var flow = CreateFlow("testuser", options);
         SetFlowState(flow, "AwaitingOtp");
 
@@ -302,6 +325,9 @@ public class KoreaAuthFlowTests
     {
         // Arrange
         var options = new KoreaAuthOptions { MaxOtpAttempts = 2 };
+        _otpService
+            .ValidateAsync(Any<AccountId>(), Any<string>(), Any<CancellationToken>())
+            .Returns(new OtpValidationResult(false));
         var flow = CreateFlow("testuser", options);
         SetFlowState(flow, "AwaitingOtp");
 
@@ -341,6 +367,9 @@ public class KoreaAuthFlowTests
     {
         // Arrange
         var options = new KoreaAuthOptions { MaxCertAttempts = 3 };
+        _pcCertService
+            .ValidateAsync(Any<AccountId>(), Any<string>(), Any<CancellationToken>())
+            .Returns(new PcCertValidationResult(false));
         var flow = CreateFlow("testuser", options);
         SetFlowState(flow, "AwaitingCert");
 
@@ -357,6 +386,9 @@ public class KoreaAuthFlowTests
     {
         // Arrange
         var options = new KoreaAuthOptions { MaxCertAttempts = 2 };
+        _pcCertService
+            .ValidateAsync(Any<AccountId>(), Any<string>(), Any<CancellationToken>())
+            .Returns(new PcCertValidationResult(false));
         var flow = CreateFlow("testuser", options);
         SetFlowState(flow, "AwaitingCert");
 

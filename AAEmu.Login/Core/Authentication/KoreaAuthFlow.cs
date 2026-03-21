@@ -5,6 +5,7 @@ using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Services;
+using AAEmu.Login.Core.Services.TwoFactor;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Options;
 
@@ -24,8 +25,15 @@ namespace AAEmu.Login.Core.Authentication;
 /// Each step is optional based on account configuration. The flow advances through each required step
 /// in sequence until all verifications complete.
 /// </remarks>
-public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthOptions> options,
-    IOptions<KoreaChallengeAuthOptions> challengeOptions, string username, IPAddress clientIp)
+public class KoreaAuthFlow(
+    ILoginController loginController,
+    ITwoFactorService twoFactorService,
+    IOtpService otpService,
+    IPcCertService pcCertService,
+    IArsService arsService,
+    IOptions<KoreaAuthOptions> options,
+    string username,
+    IPAddress clientIp)
     : IChallengeAuthFlow, IChallenge2AuthFlow, IOtpAuthFlow, ICertAuthFlow, IArsAuthFlow
 {
     private enum State
@@ -38,7 +46,6 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
     }
 
     private readonly KoreaAuthOptions _options = options.Value;
-    private readonly KoreaChallengeAuthOptions _challengeOptions = challengeOptions.Value;
 
     private State _state = State.AwaitingChallengeResponse;
     private AccountId _accountId;
@@ -47,7 +54,6 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
     private uint[] _v2Hc = [];
     private ReadOnlyMemory<byte> _challengeKey;
 
-    // Step requirements (hardcoded false for now - no DB/controller support)
     private bool _requiresOtp;
     private bool _requiresCert;
     private bool _requiresArs;
@@ -58,7 +64,7 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
 
     public async Task<AuthFlowResult> StartAsync(ILoginClient client, CancellationToken cancellationToken)
     {
-        if (!_challengeOptions.Enabled)
+        if (!_options.Enabled)
             return new AuthFlowResult.Denied(LoginDeniedReason.LoginUnknown);
 
         // Look up the account's Korea challenge material.
@@ -112,10 +118,11 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
         _challengeKey = ReadOnlyMemory<byte>.Empty;
         _v2Hc = [];
 
-        // TODO: Query account requirements from database/controller
-        _requiresOtp = false;
-        _requiresCert = false;
-        _requiresArs = false;
+        // Query 2FA requirements from the database
+        var requirements = await twoFactorService.GetRequirementsAsync(_accountId, cancellationToken);
+        _requiresOtp = requirements.RequiresOtp;
+        _requiresCert = requirements.RequiresPcCert;
+        _requiresArs = requirements.RequiresArs;
 
         return await AdvanceToNextStepAsync(client, cancellationToken);
     }
@@ -128,8 +135,8 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
 
         _otpAttempts++;
 
-        // TODO: Actual OTP validation (e.g., TOTP algorithm)
-        var isValid = false;
+        var result = await otpService.ValidateAsync(_accountId, otpCode, cancellationToken);
+        var isValid = result.Success;
 
         if (!isValid)
         {
@@ -156,8 +163,8 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
 
         _certAttempts++;
 
-        // TODO: Actual certificate validation
-        var isValid = false;
+        var result = await pcCertService.ValidateAsync(_accountId, certNumber, cancellationToken);
+        var isValid = result.Success;
 
         if (!isValid)
         {
@@ -216,8 +223,9 @@ public class KoreaAuthFlow(ILoginController loginController, IOptions<KoreaAuthO
         if (_state <= State.AwaitingCert && _requiresArs)
         {
             _state = State.AwaitingArs;
-            const string ArsCode = "1234"; // TODO: Generate actual ARS code
-            await client.SendArsPromptAsync(ArsCode, _options.ArsTimeout, cancellationToken);
+            var arsTimeoutSeconds = (int)_options.ArsTimeout.TotalSeconds;
+            var arsSession = await arsService.CreateSessionAsync(_accountId, arsTimeoutSeconds, cancellationToken);
+            await client.SendArsPromptAsync(arsSession.SessionCode, _options.ArsTimeout, cancellationToken);
             return new AuthFlowResult.Pending();
         }
 
