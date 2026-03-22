@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -123,5 +124,21 @@ public partial class Character
         }
         AssaultedBy.Clear();
         AssaultOn.Clear();
+    }
+
+    /// <summary>
+    /// Checks if Wanted and/or pirate buffs need to be applied.
+    /// </summary>
+    public void CheckWantedThreshold()
+    {
+        // Check wanted status
+        if (CrimePoint >= CrimeManager.WantedCrimePointThreshold)
+        {
+            if (!Buffs.CheckBuff((uint)BuffConstants.Wanted))
+            {
+                Buffs.AddBuff((uint)BuffConstants.Wanted, this);
+            }
+        }
+        // TODO: Check pirate status
     }
 }

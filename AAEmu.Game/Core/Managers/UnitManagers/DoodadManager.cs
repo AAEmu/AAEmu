@@ -1103,7 +1103,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                         {
                             Id = reader.GetUInt32("id"),
                             SkillId = reader.GetUInt32("skill_id"),
-                            CrimeValue = reader.GetInt32("crime_value"),
+                            CrimeValue = reader.GetInt16("crime_value"),
                             CrimeKindId = reader.GetUInt32("crime_kind_id")
                         };
                         _funcTemplates["DoodadFuncEvidenceItemLoot"].Add(func.Id, func);

@@ -17,10 +17,14 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class CrimeManager(ICrimeIdManager crimeIdManager,
+public class CrimeManager(IWorldManager worldManager,
+    ICrimeIdManager crimeIdManager,
     IZoneManager zoneManager,
     IDoodadManager doodadManager) : Singleton<CrimeManager>, ICrimeManager
 {
+    public const int WantedCrimePointThreshold = 50;
+    public const int PirateCrimePointThreshold = 3000;
+
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private ConcurrentDictionary<ulong, CrimeEvent> CrimeEvents { get; } = [];
     // ReSharper disable once CollectionNeverUpdated.Local
@@ -163,7 +167,7 @@ public class CrimeManager(ICrimeIdManager crimeIdManager,
     {
         // TODO: Verify if reporter is allowed to report this evidence
         var crimeType = CrimeKind.None;
-        var crimeValue = 0; // Not sure if needed to be known here
+        short crimeValue = 0; // Not sure if needed to be known here
         var nextPhase = 0;
         foreach (var evidenceCurrentFunc in evidence.CurrentFuncs)
         {
@@ -210,7 +214,7 @@ public class CrimeManager(ICrimeIdManager crimeIdManager,
 
         // TODO: Handle this phase change by doing the skill, and handling the crime points in DoodadFuncEvidenceItemLoot of the doodad.
         // Add crime points to criminal
-        AddCrimePoints(newEvent.Criminal, crimeValue);
+        AddCrimePoints(newEvent.Criminal, crimeType, crimeValue);
 
         // Progress Doodad to next phase to finish the report
         if (nextPhase > 0)
@@ -222,11 +226,20 @@ public class CrimeManager(ICrimeIdManager crimeIdManager,
         return newEvent;
     }
 
-    public int AddCrimePoints(uint criminalId, int crimePoints)
+    private void AddCrimePoints(uint criminalId, CrimeKind crimeType, short crimePoints)
     {
         // TODO: Handle this in the character manager instead so it can do offline people as well?
         // TODO: Handle this in DoodadFuncEvidenceItemLoot of the doodad.
-        return crimePoints;
+        Logger.Debug($"Adding {crimePoints} crime points to player {criminalId} for {crimeType} ({(int)crimeType})");
+        var criminal = worldManager.GetCharacterById(criminalId);
+        if (criminal is { IsOnline: true })
+        {
+            criminal.AddCrime(crimePoints);
+        }
+        else
+        {
+            CharacterManager.AddOfflineCrimePoints(criminalId, crimePoints);
+        }
     }
 
     private Doodad GenerateEvidence(Character criminal, uint evidenceDoodadTemplateId, Vector3 targetLocation, Vector3 targetRotation, uint victimPlayerId, uint sourceDoodadTemplateId)

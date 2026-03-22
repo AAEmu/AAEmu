@@ -4,9 +4,7 @@ public enum CrimeKind : byte
 {
     None,
     Unknown1,
-    Theft,
     Assault,
-    Unknown4,
-    Unknown5,
-    Murder
+    Murder,
+    Theft
 }

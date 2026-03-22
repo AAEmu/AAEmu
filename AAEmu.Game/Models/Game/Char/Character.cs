@@ -108,7 +108,25 @@ public partial class Character : Unit, ICharacter
     public long Money2 { get; set; }
     public int HonorPoint { get; set; }
     public int VocationPoint { get; set; }
-    public short CrimePoint { get; set; }
+
+    /// <summary>
+    /// Current crime points (/50)
+    /// </summary>
+    public short CrimePoint
+    {
+        get;
+        set
+        {
+            if (value != field)
+            {
+                field = value;
+                CheckWantedThreshold();
+            }
+        }
+    }
+    /// <summary>
+    /// Total infamy
+    /// </summary>
     public int CrimeRecord { get; set; }
     public int JuryPoint { get; set; }
     public DateTime DeleteRequestTime { get; set; }
@@ -2648,7 +2666,7 @@ public partial class Character : Unit, ICharacter
     /// </summary>
     /// <param name="amount"></param>
     /// <returns></returns>
-    public short AddCrime(int amount)
+    public short AddCrime(short amount)
     {
         var newAmount = CrimePoint + amount;
         if (newAmount > short.MaxValue)
@@ -2666,6 +2684,8 @@ public partial class Character : Unit, ICharacter
         CrimeRecord += amount; // total amount
         if (CrimeRecord < 0)
             CrimeRecord = 0;
+        
+        SendPacket(new SCCrimeChangedPacket(Id, CrimePoint, CrimeRecord));
         return CrimePoint;
     }
 
