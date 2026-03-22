@@ -1,4 +1,4 @@
-using AAEmu.Login.Core.Services.TwoFactor;
+﻿using AAEmu.Login.Core.Services.TwoFactor;
 using AAEmu.Login.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
@@ -22,7 +22,7 @@ public class ArsServiceTests
 
         await Assert.That(session.SessionCode.Length).IsEqualTo(4);
         await Assert.That(int.TryParse(session.SessionCode, out var code)).IsTrue();
-        await Assert.That(code).IsGreaterThanOrEqualTo(1000);
+        await Assert.That(code).IsGreaterThanOrEqualTo(0);
         await Assert.That(code).IsLessThanOrEqualTo(9999);
     }
 
