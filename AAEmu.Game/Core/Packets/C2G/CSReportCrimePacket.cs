@@ -21,8 +21,7 @@ public class CSReportCrimePacket() : GamePacket(CSOffsets.CSReportCrimePacket, 1
         if (bloodStainDoodad != null)
         {
             var criminalName = NameManager.Instance.GetCharacterName(bloodStainDoodad.OwnerId) ?? string.Empty;
-            var victimName = NameManager.Instance.GetCharacterName((uint)bloodStainDoodad.Data) ?? "Unknown person";
-            var crimeEvent = CrimeManager.Instance.ReportCrime(Connection.ActiveChar, bloodStainDoodad, unkId, unk2Id, unk3Id, msg);
+            var crimeEvent = CrimeManager.Instance.ReportCrime(reporter, bloodStainDoodad, unkId, unk2Id, unk3Id, msg);
             if (crimeEvent != null)
             {
                 Logger.Debug($"ReportCrime, ObjId: {objId}, Msg: {msg}, Id: {unkId} (0x{unkId:x8}), {unk2Id} (0x{unk2Id:X8}), {unk3Id} (0x{unk3Id:X8}). Owner {criminalName} ({bloodStainDoodad.OwnerId}), OwnerDbId {bloodStainDoodad.OwnerDbId}");

@@ -3,15 +3,15 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCrimeChangedPacket(uint playerId, short crimePoints, int infamyPoints)
+public class SCCrimeChangedPacket(int points, short crimePoints, int infamyPoints, short crimeScore)
     : GamePacket(SCOffsets.SCCrimeChangedPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(playerId); // Not sure if this is correct, but value doesn't seem to be used by the client
+        stream.Write(points);
         stream.Write(crimePoints);
         stream.Write(infamyPoints);
-        stream.Write((short)0); // No idea what this is, possibly jury related?
+        stream.Write(crimeScore); // No idea what exactly this is
         return stream;
     }
 }

@@ -127,7 +127,17 @@ public partial class Character : Unit, ICharacter
     /// <summary>
     /// Total infamy
     /// </summary>
-    public int CrimeRecord { get; set; }
+    public int CrimeRecord {
+        get;
+        set
+        {
+            if (value != field)
+            {
+                field = value;
+                CheckWantedThreshold();
+            }
+        }
+    }
     public int JuryPoint { get; set; }
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
@@ -2665,8 +2675,7 @@ public partial class Character : Unit, ICharacter
     /// Adds crime, and returns the new (current) crime value
     /// </summary>
     /// <param name="amount"></param>
-    /// <returns></returns>
-    public short AddCrime(short amount)
+    public void AddCrime(short amount)
     {
         var newAmount = CrimePoint + amount;
         if (newAmount > short.MaxValue)
@@ -2685,8 +2694,7 @@ public partial class Character : Unit, ICharacter
         if (CrimeRecord < 0)
             CrimeRecord = 0;
         
-        SendPacket(new SCCrimeChangedPacket(Id, CrimePoint, CrimeRecord));
-        return CrimePoint;
+        SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, 0));
     }
 
     /// <summary>

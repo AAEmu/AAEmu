@@ -165,7 +165,12 @@ public class CrimeManager(IWorldManager worldManager,
     /// <returns></returns>
     public CrimeEvent ReportCrime(Character reporter, Doodad evidence, uint arg1, uint arg2, uint arg3, string message)
     {
-        // TODO: Verify if reporter is allowed to report this evidence
+        if (evidence.OwnerType == DoodadOwnerType.Character && evidence.OwnerId == reporter.Id)
+        {
+            Logger.Warn($"{reporter.Name} ({reporter.Id}) tried to somehow report their own crimes at {evidence.Transform.World.Position}");
+            SusManager.Instance.LogActivity(SusManager.CategoryCheating, reporter, $"Reported own crime at {evidence.Transform.World.Position} (type={evidence.TemplateId}");
+            return null;
+        }
         var crimeType = CrimeKind.None;
         short crimeValue = 0; // Not sure if needed to be known here
         var nextPhase = 0;
@@ -246,8 +251,7 @@ public class CrimeManager(IWorldManager worldManager,
     {
         // TODO: floor/water surface the bloodstain Z height?
         return doodadManager.CreatePlayerDoodad(criminal, evidenceDoodadTemplateId,
-            targetLocation.X, targetLocation.Y, targetLocation.Z, targetRotation.Z, 1f, sourceDoodadTemplateId,
-            FarmType.Invalid, 0, (int)victimPlayerId, true);
+            targetLocation.X, targetLocation.Y, targetLocation.Z, targetRotation.Z, 1f, 0, FarmType.Invalid, sourceDoodadTemplateId, (int)victimPlayerId, true);
     }
 
     public Doodad GenerateEvidenceFromDamage(BaseUnit criminal, Unit victim)
@@ -294,5 +298,18 @@ public class CrimeManager(IWorldManager worldManager,
             victimPlayer?.Transform.World.Rotation ?? Vector3.Zero,
             victimPlayer?.Id ?? 0,
             0);
+    }
+
+    public Doodad GenerateEvidenceFromTheft(Character criminal, Doodad stolenDoodad)
+    {
+        if (stolenDoodad.OwnerType != DoodadOwnerType.Character)
+            return null;
+        if (criminal is null)
+            return null;
+
+        return GenerateEvidence(criminal,
+            criminal.Gender == Gender.Female ? DoodadConstants.FootprintFemale : DoodadConstants.FootprintMale,
+            stolenDoodad.Transform.World.Position, stolenDoodad.Transform.World.Rotation,
+            stolenDoodad.OwnerId, stolenDoodad.TemplateId);
     }
 }

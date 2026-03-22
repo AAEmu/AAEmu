@@ -848,12 +848,10 @@ public class Unit : BaseUnit, IUnit
     {
         // Keep origin faction data temporarily for arena players
         OriginFaction = Faction;
+        var player = this as Character;
 
-        if (this is Character player)
-        {
-            // change the faction for the character
-            player.OriginFactionName = player.FactionName;
-        }
+        // change the faction for the character
+        player?.OriginFactionName = player.FactionName;
 
         Logger.Info($"SetFaction: npc={TemplateId}:{ObjId}, factionId={factionId}");
 
@@ -863,8 +861,10 @@ public class Unit : BaseUnit, IUnit
         }
         else
         {
-            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
+            var oldFactionId = Faction?.Id ?? 0;
+            // BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFactionId, Faction.Id, false), true);
         }
 
         // TODO added for quest Id=2486

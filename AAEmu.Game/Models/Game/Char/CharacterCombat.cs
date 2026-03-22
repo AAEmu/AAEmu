@@ -8,8 +8,10 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -132,6 +134,32 @@ public partial class Character
     public void CheckWantedThreshold()
     {
         // Check wanted status
+        if (CrimeRecord >= CrimeManager.PirateCrimePointThreshold)
+        {
+            // Add wanted
+            if (!Buffs.CheckBuff((uint)BuffConstants.Wanted))
+            {
+                Buffs.AddBuff((uint)BuffConstants.Wanted, this);
+            }
+            if (!Buffs.CheckBuff((uint)BuffConstants.Contemptuous))
+            {
+                Buffs.AddBuff((uint)BuffConstants.Contemptuous, this);
+            }
+            // Set pirate faction
+            if (Faction.Id != FactionsEnum.Pirate)
+            {
+                SetFaction(FactionsEnum.Pirate);
+                if (Expedition != null && Expedition.MotherId != FactionsEnum.Pirate)
+                {
+                    ExpeditionManager.Instance.Kick(this.Connection, this.Id);
+                }
+                if (InParty)
+                {
+                    TeamManager.Instance.MemberRemoveFromTeam(this, this, RiskyAction.Kick);
+                }
+            }
+        }
+        else
         if (CrimePoint >= CrimeManager.WantedCrimePointThreshold)
         {
             if (!Buffs.CheckBuff((uint)BuffConstants.Wanted))
@@ -139,6 +167,12 @@ public partial class Character
                 Buffs.AddBuff((uint)BuffConstants.Wanted, this);
             }
         }
-        // TODO: Check pirate status
+        else
+        {
+            if (Buffs.CheckBuff((uint)BuffConstants.Wanted))
+            {
+                Buffs.RemoveBuff((uint)BuffConstants.Wanted);
+            }
+        }
     }
 }
