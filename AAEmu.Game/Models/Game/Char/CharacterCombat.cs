@@ -1,11 +1,11 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -23,16 +23,26 @@ public partial class Character
     {
         base.DoDie(killer, killReason);
 
-        if (killer is Character enemy && enemy.Faction.MotherId != Faction.MotherId)
-            enemy.HostileFactionKills++;
+        var relationState = killer.GetRelationStateTo(this);
+        if (killer is Character enemy)
+        {
+            if (relationState != RelationState.Friendly)
+            {
+                enemy.HostileFactionKills++;
+            }
+            else
+            {
+                // Generate evidence if needed
+                var killerOwner = killer.GetOwnerCharacter();
+                if (killerOwner != null)
+                {
+                    if (!AssaultedBy.Contains(killerOwner.Id))
+                        _ = CrimeManager.Instance.GenerateEvidenceFromKill(killer, this);
+                }
+            }
+        }
 
         DropTradePackToFloor();
-
-        if (killer.GetRelationStateTo(this) == RelationState.Friendly)
-        {
-            // Generate evidence if needed
-            _ = CrimeManager.Instance.GenerateEvidenceFromKill(killer, this);
-        }
         ClearAllAggro();
     }
 
@@ -92,5 +102,26 @@ public partial class Character
     {
         base.ClearAllAggro();
         AggroTable.Clear();
+        ClearAssaultList();
+    }
+
+    public void ClearAssaultList()
+    {
+        foreach (var criminalPlayerId in AssaultedBy)
+        {
+            var criminal = WorldManager.Instance.GetCharacterById(criminalPlayerId);
+            if (criminal == null)
+                continue;
+            criminal.AssaultOn.Remove(this.Id);
+        }
+        foreach (var victimPlayerId in AssaultOn)
+        {
+            var victim = WorldManager.Instance.GetCharacterById(victimPlayerId);
+            if (victim == null)
+                continue;
+            victim.AssaultedBy.Remove(this.Id);
+        }
+        AssaultedBy.Clear();
+        AssaultOn.Clear();
     }
 }

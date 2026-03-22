@@ -57,6 +57,8 @@ public class BaseUnit : GameObject, IBaseUnit
         if (this.ObjId == target.ObjId)
             return false;
         var relation = GetRelationStateTo(target);
+        var me = this as Character;
+        var targetOtherOwner = target.GetOwnerCharacter();
 
         var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
         var zoneFactionId = zone?.FactionId ?? FactionsEnum.Neutral;
@@ -76,20 +78,20 @@ public class BaseUnit : GameObject, IBaseUnit
             return false;
         }
 
-        if (this is Character me && target is Character other)
+        if (me != null && targetOtherOwner != null)
         {
-            var trgIsFlagged = other.Buffs.CheckBuff((uint)BuffConstants.Retribution);
+            var trgIsFlagged = targetOtherOwner.Buffs.CheckBuff((uint)BuffConstants.Retribution);
 
             // Check Safe-zone
-            if (other.Faction.MotherId != 0 &&
-                other.Faction.MotherId == zoneFactionId
-                && !me.IsActivelyHostile(other) &&
+            if (targetOtherOwner.Faction.MotherId != 0 &&
+                targetOtherOwner.Faction.MotherId == zoneFactionId
+                && !me.IsActivelyHostile(targetOtherOwner) &&
                 !trgIsFlagged)
             {
                 return false;
             }
 
-            var isTeam = TeamManager.Instance.AreTeamMembers(me.Id, other.Id);
+            var isTeam = TeamManager.Instance.AreTeamMembers(me.Id, targetOtherOwner.Id);
             if (trgIsFlagged && !isTeam && relation == RelationState.Friendly)
             {
                 return true;

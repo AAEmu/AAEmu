@@ -371,19 +371,26 @@ public class DamageEffect : EffectTemplate
         
         if (CheckCrime && caster.GetRelationStateTo(trg) == RelationState.Friendly)
         {
+            // Set Purple state
             if (!trg.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
                 ((Unit)caster).SetCriminalState(true, trg);
             }
 
-            // Generate evidence if needed
-            if (!trg.AggroTable.TryGetValue(caster.ObjId, out var a) || a.TotalAggro == 0)
+            // Mark the owner of this unit as being assaulted
+            var targetOwner = trg.GetOwnerCharacter();
+            var sourceOwner = caster.GetOwnerCharacter();
+            if (targetOwner != null && sourceOwner != null)
             {
-                trg.AddUnitAggro(AggroKind.Damage, attacker, 1);
-                // Add reversed aggro here as well so retaliating does not generate a bloodstain unless it's a kill.
-                // NOTE: If you don't want this behavior, you can just comment out the next line
-                attacker.AddUnitAggro(AggroKind.Damage, trg, 1);
-                _ = CrimeManager.Instance.GenerateEvidenceFromDamage(caster, trg);
+                // If both players haven't interacted with each other yet, then generate evidence for the initiator 
+                if ((!sourceOwner.AssaultedBy.Contains(targetOwner.Id)) && (!targetOwner.AssaultedBy.Contains(sourceOwner.Id)))
+                {
+                    // Update assault list
+                    targetOwner.AssaultedBy.Add(sourceOwner.Id);
+                    sourceOwner.AssaultOn.Add(targetOwner.Id);
+                    // Generate evidence
+                    _ = CrimeManager.Instance.GenerateEvidenceFromDamage(caster, trg);
+                }
             }
         }
 

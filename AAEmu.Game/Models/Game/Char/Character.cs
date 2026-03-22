@@ -202,6 +202,11 @@ public partial class Character : Unit, ICharacter
     /// List of ObjIds you have aggro on
     /// </summary>
     public Dictionary<uint, BaseUnit> IsInAggroListOf { get; set; } = [];
+    /// <summary>
+    /// List of PlayerId's that have assaulted this player (either directly or indirectly)
+    /// </summary>
+    public List<uint> AssaultedBy { get; } = [];
+    public List<uint> AssaultOn { get; } = [];
 
     public void InitializeLaborCache(short labor, DateTime newTime)
     {

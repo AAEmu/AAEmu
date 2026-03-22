@@ -1525,9 +1525,15 @@ public class Unit : BaseUnit, IUnit
         if (unit is null)
             return;
 
-        if (unit is Character player)
+        if (unit is Character targetPlayer)
         {
-            player.IsInAggroListOf.Remove(ObjId);
+            targetPlayer.IsInAggroListOf.Remove(ObjId);
+            // Also remove from assault lists if both are players
+            if (this is Character thisPlayer)
+            {
+                thisPlayer.AssaultOn.Remove(targetPlayer.Id);
+                targetPlayer.AssaultedBy.Remove(thisPlayer.Id);
+            }
         }
 
         // var player = unit as Character;
