@@ -10,7 +10,6 @@ using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.Crime;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
@@ -18,11 +17,14 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class CrimeManager(IWorldManager worldManager) : Singleton<CrimeManager>, ICrimeManager
+public class CrimeManager(ICrimeIdManager crimeIdManager,
+    IZoneManager zoneManager,
+    IDoodadManager doodadManager) : Singleton<CrimeManager>, ICrimeManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private ConcurrentDictionary<ulong, CrimeEvent> CrimeEvents { get; } = [];
-    private List<ulong> DeletedEventIds { get; } = [];
+    // ReSharper disable once CollectionNeverUpdated.Local
+    private List<ulong> DeletedEventIds { get; } = []; // Later needed for trial and evidence tempering skills
     private List<ulong> UpdatedEventIds { get; } = [];
 
     public List<CrimeEvent> GetCrimesOfPlayer(uint playerId)
@@ -167,7 +169,7 @@ public class CrimeManager(IWorldManager worldManager) : Singleton<CrimeManager>,
         {
             if (evidenceCurrentFunc.FuncType == "DoodadFuncEvidenceItemLoot")
             {
-                var func = DoodadManager.Instance.GetFuncTemplate(evidenceCurrentFunc.FuncId, evidenceCurrentFunc.FuncType);
+                var func = doodadManager.GetFuncTemplate(evidenceCurrentFunc.FuncId, evidenceCurrentFunc.FuncType);
                 if (func is DoodadFuncEvidenceItemLoot evidenceItemLoot)
                 {
                     crimeType = (CrimeKind)evidenceItemLoot.CrimeKindId;
@@ -177,9 +179,9 @@ public class CrimeManager(IWorldManager worldManager) : Singleton<CrimeManager>,
             }
         }
 
-        var zoneGroup = ZoneManager.Instance.GetZoneByKey(evidence.Transform.ZoneId);
+        var zoneGroup = zoneManager.GetZoneByKey(evidence.Transform.ZoneId);
 
-        var newId = CrimeIdManager.Instance.GetNextId();
+        var newId = crimeIdManager.GetNextId();
         var newEvent = new CrimeEvent()
         {
             Id = newId,
@@ -200,7 +202,7 @@ public class CrimeManager(IWorldManager worldManager) : Singleton<CrimeManager>,
 
         if (!CrimeEvents.TryAdd(newEvent.Id, newEvent))
         {
-            CrimeIdManager.Instance.ReleaseId(newId); // Free the Id again if not able to add
+            crimeIdManager.ReleaseId(newId); // Free the Id again if not able to add
             Logger.Warn($"Unable to report crime at {newEvent.Position} with message {newEvent.Msg}");
             return null;
         }
@@ -230,7 +232,7 @@ public class CrimeManager(IWorldManager worldManager) : Singleton<CrimeManager>,
     private Doodad GenerateEvidence(Character criminal, uint evidenceDoodadTemplateId, Vector3 targetLocation, Vector3 targetRotation, uint victimPlayerId, uint sourceDoodadTemplateId)
     {
         // TODO: floor/water surface the bloodstain Z height?
-        return DoodadManager.Instance.CreatePlayerDoodad(criminal, evidenceDoodadTemplateId,
+        return doodadManager.CreatePlayerDoodad(criminal, evidenceDoodadTemplateId,
             targetLocation.X, targetLocation.Y, targetLocation.Z, targetRotation.Z, 1f, sourceDoodadTemplateId,
             FarmType.Invalid, 0, (int)victimPlayerId, true);
     }

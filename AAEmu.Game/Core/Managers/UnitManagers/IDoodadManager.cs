@@ -1,3 +1,5 @@
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.World;
@@ -24,4 +26,6 @@ public interface IDoodadManager : ILoadable
     List<uint> GetDoodadFuncConsumeChangerItemList(uint doodadFuncConsumeChangerId);
     void DeleteDoodadById(MySqlConnection connection, MySqlTransaction transaction, uint dbId);
     List<uint> GetTreasureChestTemplateIds();
+
+    Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid, uint itemTemplateId = 0, int customData = 0, bool ignoreHouses = false);
 }
