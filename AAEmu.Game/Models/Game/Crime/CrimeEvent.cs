@@ -13,7 +13,7 @@ public class CrimeEvent
     /// </summary>
     public uint DoodadTemplate { get; set; }
     public CrimeKind CrimeKind { get; set; } = CrimeKind.None;
-    public uint ZoneGroup { get; set; }
+    public uint ZoneKey { get; set; }
     public Vector3 Position { get; set; } = Vector3.Zero;
     public DateTime CrimeTime { get; set; } = DateTime.UtcNow;
     public DateTime ReportTime { get; set; } = DateTime.UtcNow;

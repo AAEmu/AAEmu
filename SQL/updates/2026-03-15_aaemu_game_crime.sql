@@ -9,7 +9,7 @@ CREATE TABLE `crime` (
 	`reporter` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the reporter',
 	`crime_type` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Crime Type Id',
 	`doodad_template` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Related doodad template',
-	`zone_group` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Zone group Id of where the crime happened',
+	`zone_key` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Zone group Id of where the crime happened',
 	`x` FLOAT NULL DEFAULT '0',
 	`y` FLOAT NULL DEFAULT '0',
 	`z` FLOAT NULL DEFAULT '0',

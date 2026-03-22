@@ -58,7 +58,7 @@ public class CrimeManager(IWorldManager worldManager,
                 Reporter = reader.GetUInt32("reporter"),
                 DoodadTemplate = reader.GetUInt32("doodad_template"),
                 CrimeKind = (CrimeKind)reader.GetUInt32("crime_type"),
-                ZoneGroup = reader.GetUInt32("zone_group"),
+                ZoneKey = reader.GetUInt32("zone_group"),
                 Position = new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
                 CrimeTime = reader.GetDateTime("crime_time"),
                 ReportTime = reader.GetDateTime("report_time"),
@@ -115,9 +115,9 @@ public class CrimeManager(IWorldManager worldManager,
                         continue;
 
                     command.CommandText = "REPLACE INTO crime (" +
-                                          "`id`,`criminal`,`victim`,`reporter`,`doodad_template`,`crime_type`,`zone_group`,`x`,`y`,`z`,`crime_time`,`report_time`,`arg1`,`arg2`,`arg3`,`msg`" +
+                                          "`id`,`criminal`,`victim`,`reporter`,`doodad_template`,`crime_type`,`zone_key`,`x`,`y`,`z`,`crime_time`,`report_time`,`arg1`,`arg2`,`arg3`,`msg`" +
                                           ") VALUES ( " +
-                                          "@id, @criminal, @victim, @reporter, @doodad_template, @crime_type, @zone_group, @x, @y, @z, @crime_time, @report_time, @arg1, @arg2, @arg3, @msg" +
+                                          "@id, @criminal, @victim, @reporter, @doodad_template, @crime_type, @zone_key, @x, @y, @z, @crime_time, @report_time, @arg1, @arg2, @arg3, @msg" +
                                           ")";
 
                     command.Parameters.Clear();
@@ -127,7 +127,7 @@ public class CrimeManager(IWorldManager worldManager,
                     command.Parameters.AddWithValue("@reporter", crimeEvent.Reporter);
                     command.Parameters.AddWithValue("@doodad_template", crimeEvent.DoodadTemplate);
                     command.Parameters.AddWithValue("@crime_type", crimeEvent.CrimeKind);
-                    command.Parameters.AddWithValue("@zone_group", crimeEvent.ZoneGroup);
+                    command.Parameters.AddWithValue("@zone_key", crimeEvent.ZoneKey);
                     command.Parameters.AddWithValue("@x", crimeEvent.Position.X);
                     command.Parameters.AddWithValue("@y", crimeEvent.Position.Y);
                     command.Parameters.AddWithValue("@z", crimeEvent.Position.Z);
@@ -188,7 +188,7 @@ public class CrimeManager(IWorldManager worldManager,
             }
         }
 
-        var zoneGroup = zoneManager.GetZoneByKey(evidence.Transform.ZoneId);
+        var zoneKey = zoneManager.GetZoneByKey(evidence.Transform.ZoneId);
 
         var newId = crimeIdManager.GetNextId();
         var newEvent = new CrimeEvent()
@@ -197,12 +197,12 @@ public class CrimeManager(IWorldManager worldManager,
             Criminal = evidence.OwnerId,
             Victim = (uint)evidence.Data,
             Reporter = reporter.Id,
-            DoodadTemplate = evidence.ItemTemplateId, // Not sure if we should use this one to store the data
+            DoodadTemplate = evidence.ItemTemplateId,
             CrimeKind = crimeType,
             CrimeTime = evidence.PlantTime,
             ReportTime = DateTime.UtcNow,
             Position = evidence.Transform.World.Position,
-            ZoneGroup = zoneGroup?.Id ?? 0u,
+            ZoneKey = zoneKey?.Id ?? 0u,
             Arg1 = arg1,
             Arg2 = arg2,
             Arg3 = arg3,
