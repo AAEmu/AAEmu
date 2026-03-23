@@ -590,7 +590,7 @@ COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ;
 
-CREATE TABLE `crime` (
+CREATE TABLE IF NOT EXISTS `crime` (
 	`id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Crime point Id',
 	`criminal` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the criminal',
 	`victim` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the victim',

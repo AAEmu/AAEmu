@@ -2,7 +2,7 @@
 -- Add table to keep track of in-game crime events
 -- ------------------------------------------------
 
-CREATE TABLE `crime` (
+CREATE TABLE IF NOT EXISTS `crime` (
 	`id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Crime point Id',
 	`criminal` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the criminal',
 	`victim` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the victim',
