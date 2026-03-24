@@ -229,9 +229,8 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
             // Without this, other players keep a stale local copy ("ghost target")
             // when the character disconnects or leaves the world.
             foreach (var characterInRegion in GetList(new List<Character>(), character1.ObjId))
-            {
                 obj.RemoveVisibleObject(characterInRegion);
-            }
+
         }
         // Special handling for non-player objects (NPCs, vehicles, doodads, etc.)
         else
