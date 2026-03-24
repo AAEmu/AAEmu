@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Data;
 using System.Drawing;
 
@@ -1583,10 +1583,34 @@ public partial class Character : Unit, ICharacter
 
         base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
-        var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.InstanceId)?.Template.OceanLevel - 2f ?? 98f;
-        if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold)
+        var world = WorldManager.Instance.GetWorld(Transform.InstanceId);
+        var breathProbePos = Transform.World.Position;
+        var attachedObject = Transform.Parent?.GameObject ?? Transform.StickyParent?.GameObject;
+        var attachedSlave = attachedObject as Slave;
+        if (attachedSlave == null && attachedObject is Doodad attachedDoodad && attachedDoodad.ParentObjId > 0)
+        {
+            attachedSlave = ParentWorld?.GetBaseUnit(attachedDoodad.ParentObjId) as Slave;
+        }
+
+        if (attachedSlave != null)
+        {
+            // When attached to a ship, character world Z can be near ship origin (below deck).
+            // Probe around deck/top hull level to avoid false underwater state on deck.
+            var shipModel = attachedSlave.ShipController?.ShipModel ?? ModelManager.Instance.GetShipModel(attachedSlave.ModelId);
+            if (shipModel != null)
+            {
+                var deckProbeOffset = Math.Max(2f, shipModel.MassBoxSizeZ * attachedSlave.Scale * 0.5f);
+                var deckProbeZ = attachedSlave.Transform.World.Position.Z + deckProbeOffset;
+                if (deckProbeZ > breathProbePos.Z)
+                    breathProbePos.Z = deckProbeZ;
+            }
+        }
+
+        var waterSurface = world?.Water?.GetWaterSurface(breathProbePos, out _) ?? world?.Template.OceanLevel ?? 100f;
+        var worldDrownThreshold = waterSurface - 2f;
+        if (!IsUnderWater && breathProbePos.Z < worldDrownThreshold)
             IsUnderWater = true;
-        else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)
+        else if (IsUnderWater && breathProbePos.Z > worldDrownThreshold)
             IsUnderWater = false;
 
         // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
