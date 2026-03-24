@@ -41,6 +41,81 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
     private const float MinSteerVelAsDegPerSec = 8f;
 
+    /// <summary>Horizontal wind when no river flow and clock wind is off/unavailable (game X,Y).</summary>
+    private const float DefaultWindDirX = 0f;
+    private const float DefaultWindDirY = 1f;
+
+    /// <summary>Open-sea wind rotates with <see cref="TimeManager"/>; river <see cref="Slave.CachedWaterFlow"/> still wins.</summary>
+    private const bool WindFollowsTimeOfDay = true;
+
+    /// <summary>Shift wind phase in game hours (e.g. if «полночь» в клиенте не совпадает с 0:00).</summary>
+    private const float WindTimePhaseOffsetHours = 0f;
+
+    /// <summary>Within this cone from wind axis (±15°) apply full ±15% speed limits.</summary>
+    private const float WindConeHalfAngleDeg = 15f;
+
+    private const float WindWithMaxMul = 1.15f;
+    private const float WindAgainstMaxMul = 0.85f;
+
+    /// <summary>
+    /// Full cycle over 24h: h=0 → (0,+Y), h=12 → (0,-Y), h=6/18 → боковой ветер (плавно крутится каждый час).
+    /// </summary>
+    private static (float wx, float wy) GetOpenSeaWindFromGameClock()
+    {
+        if (!WindFollowsTimeOfDay || TimeManager.Instance is null)
+            return NormalizeWind(DefaultWindDirX, DefaultWindDirY);
+
+        var sec = TimeManager.Instance.Get() % 86400f;
+        if (sec < 0f)
+            sec += 86400f;
+        var hours = sec / 3600f + WindTimePhaseOffsetHours;
+        hours = (hours % 24f + 24f) % 24f;
+
+        // π·h/12: два противоположных направления в сутках по оси Y (полночь/полдень), бок в 6 и 18:00
+        var phase = MathF.PI * hours / 12f;
+        return (MathF.Sin(phase), MathF.Cos(phase));
+    }
+
+    private static (float wx, float wy) NormalizeWind(float x, float y)
+    {
+        var lenSq = x * x + y * y;
+        if (lenSq < 1e-8f)
+            return (0f, 1f);
+        var inv = 1f / MathF.Sqrt(lenSq);
+        return (x * inv, y * inv);
+    }
+
+    /// <summary>Normalized wind direction on water plane (physics XZ = game horizontal X,Y).</summary>
+    private static (float wx, float wy) GetWindDirNormalized(Slave slave)
+    {
+        var f = slave.CachedWaterFlow;
+        var lenSq = f.X * f.X + f.Y * f.Y;
+        if (lenSq > 1e-8f)
+        {
+            var inv = 1f / MathF.Sqrt(lenSq);
+            return (f.X * inv, f.Y * inv);
+        }
+
+        return GetOpenSeaWindFromGameClock();
+    }
+
+    /// <summary>Multiplier for max speed (≈ ±15% with/against wind); smooth transition in ±15° cones.</summary>
+    private static float GetWindSpeedMul(Slave slave, float bowRad)
+    {
+        var (wx, wy) = GetWindDirNormalized(slave);
+        var fwdX = MathF.Cos(bowRad);
+        var fwdZ = MathF.Sin(bowRad);
+        var dotBow = fwdX * wx + fwdZ * wy;
+        var dotMove = Math.Abs(slave.Speed) < 0.01f ? dotBow : MathF.Sign(slave.Speed) * dotBow;
+
+        var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
+        if (dotMove >= cosCone)
+            return WindWithMaxMul;
+        if (dotMove <= -cosCone)
+            return WindAgainstMaxMul;
+        return 1f + (WindWithMaxMul - 1f) * (dotMove / cosCone);
+    }
+
     ~ShipController()
     {
         try
@@ -112,6 +187,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var throttleNorm = slave.Throttle * 0.00787401575f; // sbyte -> float
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
 
+        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
+        var slaveRotRad = rpy.Item1 + 1.57f; // bow heading in physics XZ; reused for wind + velocity
+
         // Use data reverse_accel for braking; scale up when fighting current motion (feels less sluggish than forward-only Accel).
         var linearAccel = shipModel.Accel;
         if (throttleNorm != 0f && slave.Speed != 0f && Math.Sign(slave.Speed) != Math.Sign(throttleNorm))
@@ -123,9 +201,10 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Calculate speed
         slave.Speed += throttleNorm * (linearAccel * (float)deltaTime.TotalSeconds) / 2f;
 
-        // Clamp speed between min and max Velocity
-        var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f;
-        var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f;
+        // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
+        var windMul = GetWindSpeedMul(slave, slaveRotRad);
+        var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f * windMul;
+        var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
         slave.Speed = Math.Clamp(slave.Speed, maxBackward, maxForward);
 
         // Calculate rotation speed
@@ -167,10 +246,6 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
                 slave.RigidBody.Velocity = JVector.Zero;
             }
         }
-
-        // Get current rotation of the ship
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
-        var slaveRotRad = rpy.Item1 + 1.57f; // 90 degrees in radians
 
         var forceThrottle = slave.Speed * slave.MoveSpeedMul / 4f; // Not sure if correct, but it feels correct
 
