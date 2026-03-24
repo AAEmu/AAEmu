@@ -212,7 +212,7 @@ public class Doodad : BaseUnit
     /// <summary>
     /// Type2? Set to 1 if this doodad is part of a vehicle?
     /// </summary>
-    public uint Type2 { get; set; }
+    public uint Type2 { get; init; }
 
     /// <summary>
     /// Doodad specific data
@@ -246,6 +246,7 @@ public class Doodad : BaseUnit
     /// <summary>
     /// Sets what puzzle group this Doodad is a member of (mostly for dungeons)
     /// </summary>
+    // ReSharper disable once MemberCanBePrivate.Global
     public int PuzzleGroup { get; set; } = -1; // -1 off
 
     /// <summary>
@@ -261,12 +262,12 @@ public class Doodad : BaseUnit
     /// <summary>
     /// List of Funcs in the Current phase
     /// </summary>
-    public List<DoodadFunc> CurrentFuncs { get; set; }
+    public List<DoodadFunc> CurrentFuncs { get; private set; }
 
     /// <summary>
     /// List of current PhaseFuncs
     /// </summary>
-    public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; set; }
+    public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; private set; }
 
     /// <summary>
     /// Time of Day, next_phase
@@ -284,14 +285,11 @@ public class Doodad : BaseUnit
             foreach (var func in CurrentPhaseFuncs)
             {
                 var template = DoodadManager.Instance.GetPhaseFuncTemplate(func.FuncId, func.FuncType);
-                if (template is DoodadFuncFinal doodadFuncRecoverItemTemplate)
+                if (template is DoodadFuncFinal { After: > 0 } doodadFuncRecoverItemTemplate)
                 {
-                    if (doodadFuncRecoverItemTemplate.After > 0)
-                    {
-                        var left = (PhaseTime + TimeSpan.FromMilliseconds(doodadFuncRecoverItemTemplate.After) -
-                                    DateTime.UtcNow).TotalMilliseconds;
-                        return (uint)Math.Round(Math.Max(1, left));
-                    }
+                    var left = (PhaseTime + TimeSpan.FromMilliseconds(doodadFuncRecoverItemTemplate.After) -
+                                DateTime.UtcNow).TotalMilliseconds;
+                    return (uint)Math.Round(Math.Max(1, left));
                 }
             }
 
@@ -312,7 +310,7 @@ public class Doodad : BaseUnit
     /// <summary>
     /// Used for ratio calculations on random triggers
     /// </summary>
-    public int PhaseRatio { get; set; }
+    public int PhaseRatio { get; private set; }
 
     /// <summary>
     /// Used for ratio calculations on random triggers
@@ -407,9 +405,11 @@ public class Doodad : BaseUnit
             FuncGroupId = (uint)funcGroupId;
         }
 
+        var player = caster as Character;
+
         while (true)
         {
-            if (caster is Character player)
+            if (player != null)
             {
                 Logger.Warn($"Use: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
             }
@@ -433,8 +433,7 @@ public class Doodad : BaseUnit
 
             if (skillId == 0)
             {
-                foreach (var funcWithoutSkill in allFuncsForGroup.Where(f =>
-                             f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack" or "DoodadFuncCutdowning"))
+                foreach (var funcWithoutSkill in allFuncsForGroup.Where(f => f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack" or "DoodadFuncCutdowning"))
                 {
                     if (DoFunc(caster, startedSkillId, funcWithoutSkill))
                     {
@@ -447,10 +446,22 @@ public class Doodad : BaseUnit
             {
                 if (DoFunc(caster, startedSkillId, funcWithSkill))
                 {
-                    // FuncGroupId будет равен либо текущая фаза, либо func.NextPhase, либо OverridePhase
+                    // FuncGroupId will be equal to either the current phase, func.NextPhase, or OverridePhase
                     DoChangePhase(caster, (int)FuncGroupId);
                     return;
                 }
+            }
+
+            // Not sure if this is a good position to place it, but using any player owned doodad (directly owned, not on house)
+            // and also not being the owner seems to be a good enough criteria.
+            // If somebody finds an edge-case where this would generate a footprint when not needed, we need to adjust this
+            var casterOwningCharacter = caster.GetOwnerCharacter();
+            if (OwnerType == DoodadOwnerType.Character && OwnerId != casterOwningCharacter?.Id)
+            {
+                // Picking up something from a doodad that isn't owned by the player, need to check permissions
+                // TODO: Enforce theft minimum level
+                var newFootprint = CrimeManager.Instance.GenerateEvidenceFromTheft(casterOwningCharacter, this);
+                Logger.Debug($"Created footprint evidence at {newFootprint?.Transform} for {casterOwningCharacter?.Name}, doodad {TemplateId}");
             }
 
             // then execute the phase functions (the FuncGroupId may change to a different one than it was before)
@@ -748,6 +759,7 @@ public class Doodad : BaseUnit
         var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
         if (funcs == null) { return; }
 
+        // ReSharper disable once UnusedVariable
         foreach (var func in funcs.Where(func => func.FuncType == "DoodadFuncSkillHit"))
         {
             // func.Use(caster, this, skillId);
@@ -912,7 +924,7 @@ public class Doodad : BaseUnit
         using var command = connection.CreateCommand();
         // Lookup Parent
         var parentDoodadId = 0u;
-        if (Transform?.Parent?.GameObject is Doodad pDoodad && pDoodad.DbId > 0)
+        if (Transform?.Parent?.GameObject is Doodad { DbId: > 0 } pDoodad)
         {
             parentDoodadId = pDoodad.DbId;
         }
@@ -995,5 +1007,17 @@ public class Doodad : BaseUnit
         stream.WritePosition(Transform.World.Position);
 
         return stream;
+    }
+
+    public override Character GetOwnerCharacter()
+    {
+        if (OwnerType == DoodadOwnerType.Character)
+            return WorldManager.Instance.GetCharacterById(OwnerId)?.GetOwnerCharacter();
+        if (OwnerType == DoodadOwnerType.Slave)
+            return ParentWorld?.GetSlaveByObjId(OwnerObjId)?.GetOwnerCharacter();
+        // Not sure if there's even a way for furniture to deal damage directly
+        if (OwnerType == DoodadOwnerType.Housing)
+            return HousingManager.Instance.GetHouseById(OwnerDbId)?.GetOwnerCharacter();
+        return null;
     }
 }

@@ -109,6 +109,7 @@
     <File Path="SQL/updates/2025-02-15_aaemu_game_audit_char_sus.sql" />
     <File Path="SQL/updates/2026-01-31_aaemu_login_game_servers.sql" />
     <File Path="SQL/updates/2026-03-14_aaemu_login_users.sql" />
+    <File Path="SQL/updates/2026-03-15_aaemu_game_crime.sql" />
     <File Path="SQL/updates/2026-03-15_aaemu_login_user_2fa.sql" />
     <File Path="SQL/updates/readme.txt" />
   </Folder>

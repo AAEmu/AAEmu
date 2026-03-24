@@ -1708,7 +1708,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyCrimePoint", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyCrimePoint(parentComponent) { DetailId = actId, Point = reader.GetInt32("point") };
+                    var template = new QuestActSupplyCrimePoint(parentComponent) { DetailId = actId, Point = reader.GetInt16("point") };
                     AddActTemplate(template);
                 }
             }

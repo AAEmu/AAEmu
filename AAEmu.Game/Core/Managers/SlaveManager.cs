@@ -165,7 +165,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             return;
 
         // Check if the vehicle has the MasterOwnership buff and if the character is not the owner, block the attachment.
-        if (attachPoint == AttachPointKind.Driver && slave.Buffs.CheckBuff((uint)BuffConstants.MasterOwnership) && slave.Summoner.ObjId != character.ObjId)
+        if (attachPoint == AttachPointKind.Driver && slave.Buffs.CheckBuff((uint)BuffConstants.OwnersMark) && slave.Summoner.ObjId != character.ObjId)
         {
             character.SendErrorMessage(ErrorMessageType.SlaveAlreadyHasMaster); // 仅阻止驾驶座附加
             return;

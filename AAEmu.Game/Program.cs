@@ -145,6 +145,9 @@ public static class Program
                 services.AddSingleton<CraftManager>();
                 services.AddSingleton<ICraftManager>(sp => sp.GetRequiredService<CraftManager>());
 
+                services.AddSingleton<CrimeManager>();
+                services.AddSingleton<ICrimeManager>(sp => sp.GetRequiredService<CrimeManager>());
+
                 services.AddSingleton<DuelManager>();
                 services.AddSingleton<IDuelManager>(sp => sp.GetRequiredService<DuelManager>());
 
@@ -311,6 +314,9 @@ public static class Program
 
                 services.AddSingleton<DoodadIdManager>();
                 services.AddSingleton<IDoodadIdManager>(sp => sp.GetRequiredService<DoodadIdManager>());
+
+                services.AddSingleton<CrimeIdManager>();
+                services.AddSingleton<ICrimeIdManager>(sp => sp.GetRequiredService<CrimeIdManager>());
 
                 services.AddSingleton<ExpeditionIdManager>();
                 services.AddSingleton<IExpeditionIdManager>(sp => sp.GetRequiredService<ExpeditionIdManager>());

@@ -391,7 +391,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         if (portalInfo == null) return;
 
         //have Overburdened buff cannot UsePortal
-        if (character.Buffs.CheckBuffTag((uint)BuffConstants.Overburdened))
+        if (character.Buffs.CheckBuffTag((uint)BuffConstants.TagOverburdened))
         {
             character.SendErrorMessage(ErrorMessageType.CannotUsePortalWithBackpack);
             return;
