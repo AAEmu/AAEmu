@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Models;
@@ -22,6 +22,24 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
     private readonly float _waterLevel = waterLevel;
     private const float FluidDensity = 1025f; // kg/m³
+
+    /// <summary>Extra deceleration when throttle opposes current speed (reverse while moving forward, etc.).</summary>
+    private const float OpposingThrottleAccelMul = 1.75f;
+
+    /// <summary>Only for opposing throttle — extra braking on top (does not affect forward accel).</summary>
+    private const float OpposingThrottleBrakeTuneMul = 1.2f;
+
+    /// <summary>Steering builds turn rate faster without changing the max turn cap.</summary>
+    private const float SteeringResponsivenessMul = 1.45f;
+
+    /// <summary>When rudder fights current yaw rate — faster decay; same-direction turn rate unchanged.</summary>
+    private const float CounterSteerResponsivenessMul = 1.35f;
+
+    /// <summary>Max yaw rate (degrees/s). Legacy code used (velocity×2)°/s — often ~25°/s on large ships.</summary>
+    private const float MaxSteerDegPerSec = 5.2f;
+
+    /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
+    private const float MinSteerVelAsDegPerSec = 8f;
 
     ~ShipController()
     {
@@ -79,20 +97,31 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         {
             slave.Throttle = 0;
             slave.Steering = 0;
+            slave.ThrottleSmoothed = 0f;
+            slave.SteeringSmoothed = 0f;
         }
 
-        // Provide minimum speed of 1 when Throttle is used
-        if (slave is { Throttle: > 0, Speed: < 1f })
+        // Minimum crawl speed when starting in that direction only. Do not apply while still moving
+        // the other way — otherwise forward+reverse snaps Speed to ±1 and the ship stops instantly.
+        if (slave is { Throttle: > 0, Speed: < 1f } && slave.Speed >= 0f)
             slave.Speed = 1f;
 
-        if (slave is { Throttle: < 0, Speed: > -1f })
+        if (slave is { Throttle: < 0, Speed: > -1f } && slave.Speed <= 0f)
             slave.Speed = -1f;
 
         var throttleNorm = slave.Throttle * 0.00787401575f; // sbyte -> float
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
 
+        // Use data reverse_accel for braking; scale up when fighting current motion (feels less sluggish than forward-only Accel).
+        var linearAccel = shipModel.Accel;
+        if (throttleNorm != 0f && slave.Speed != 0f && Math.Sign(slave.Speed) != Math.Sign(throttleNorm))
+        {
+            var reverseCap = shipModel.ReverseAccel > 0f ? shipModel.ReverseAccel : shipModel.Accel;
+            linearAccel = Math.Max(shipModel.Accel, reverseCap) * OpposingThrottleAccelMul * OpposingThrottleBrakeTuneMul;
+        }
+
         // Calculate speed
-        slave.Speed += throttleNorm * (shipModel.Accel * (float)deltaTime.TotalSeconds) / 2f;
+        slave.Speed += throttleNorm * (linearAccel * (float)deltaTime.TotalSeconds) / 2f;
 
         // Clamp speed between min and max Velocity
         var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f;
@@ -101,10 +130,16 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         // Calculate rotation speed
         var turnSpeed = slave.TurnSpeed == 0 ? 10f : slave.TurnSpeed * (float)deltaTime.TotalSeconds * MathF.PI;
-        slave.RotSpeed += steeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f);
+        var rotDelta = steeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul;
+        if (slave.RotSpeed != 0f && steeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(steeringNorm))
+            rotDelta *= CounterSteerResponsivenessMul;
+        slave.RotSpeed += rotDelta;
 
-        // Clamp to Steer Velocity
-        var steerMax = (shipModel.Velocity * 2).DegToRad();
+        // Max turn rate: prefer velocity×2°/s (legacy). steer_vel in DB is often ~1 (wrong units) — only use as °/s when plausible.
+        var steerMaxDeg = shipModel.SteerVel >= MinSteerVelAsDegPerSec
+            ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
+            : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
+        var steerMax = steerMaxDeg.DegToRad();
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMax, steerMax);
 
         // Slow down turning if no steering active

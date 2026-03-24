@@ -43,9 +43,12 @@ public class Slave : Unit
     public DateTime SpawnTime { get; init; }
     public sbyte ThrottleRequest { get; set; }
     public sbyte Throttle { get; set; }
+    /// <summary>Sub-sbyte smoothing so rudder/throttle do not stair-step when quantized for physics and packets.</summary>
+    public float ThrottleSmoothed { get; set; }
     public float Speed { get; set; }
     public sbyte SteeringRequest { get; set; }
     public sbyte Steering { get; set; }
+    public float SteeringSmoothed { get; set; }
     public float RotSpeed { get; set; }
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
