@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Collections.Concurrent;
+using System.Numerics;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -231,17 +232,16 @@ public class Unit : BaseUnit, IUnit
 
     public bool IsInBattle
     {
-        get => _isInBattle;
+        get;
         set
         {
-            if (value == _isInBattle)
+            if (value == field)
                 return;
-            _isInBattle = value;
-            if (!_isInBattle)
+            field = value;
+            if (!field)
                 BroadcastPacket(new SCCombatClearedPacket(ObjId), true);
         }
     }
-    private bool _isInBattle;
 
     public bool IsInDuel { get; set; }
     public bool IsInPatrol { get; set; } // so as not to run the route a second time
@@ -262,6 +262,8 @@ public class Unit : BaseUnit, IUnit
 
     public UnitProcs Procs { get; protected set; }
 
+    public ConcurrentDictionary<uint, Aggro> AggroTable { get; } = [];
+
     public Unit()
     {
         Events = new UnitEvents();
@@ -271,6 +273,7 @@ public class Unit : BaseUnit, IUnit
         Equipment = new EquipmentContainer(0, SlotType.Equipment, false, this);
         ChargeLock = new object();
         Cooldowns = new UnitCooldowns();
+        CharacterTagging = new Tagging(this); //Adding because Tagging works differently than Aggro
     }
 
     public void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
@@ -784,6 +787,10 @@ public class Unit : BaseUnit, IUnit
     public virtual ModelPostureType ModelPostureType { get => ModelPostureType.None; }
     public Gimmick Gimmick { get; set; }
 
+    /// <summary>
+    /// Tagging works differently to Aggro and has its own system 
+    /// </summary>
+    public Tagging CharacterTagging { get; set; }
     public virtual void OnSkillEnd(Skill skill)
     {
 
@@ -841,12 +848,10 @@ public class Unit : BaseUnit, IUnit
     {
         // Keep origin faction data temporarily for arena players
         OriginFaction = Faction;
+        var player = this as Character;
 
-        if (this is Character player)
-        {
-            // change the faction for the character
-            player.OriginFactionName = player.FactionName;
-        }
+        // change the faction for the character
+        player?.OriginFactionName = player.FactionName;
 
         Logger.Info($"SetFaction: npc={TemplateId}:{ObjId}, factionId={factionId}");
 
@@ -856,8 +861,10 @@ public class Unit : BaseUnit, IUnit
         }
         else
         {
-            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
+            var oldFactionId = Faction?.Id ?? 0;
+            // BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFactionId, Faction.Id, false), true);
         }
 
         // TODO added for quest Id=2486
@@ -1420,5 +1427,160 @@ public class Unit : BaseUnit, IUnit
     {
         CombatTick(delta);
         RegenTick(delta);
+    }
+
+    /// <summary>
+    /// Adds aggro
+    /// </summary>
+    /// <param name="kind"></param>
+    /// <param name="unit"></param>
+    /// <param name="amount"></param>
+    /// <returns>Returns true if it's initial aggro</returns>
+    public bool AddUnitAggro(AggroKind kind, Unit unit, int amount)
+    {
+        //var player = unit as Character; // TODO player.Region становится равным null | player.Region becomes null
+        var player = unit as Character;
+        var npc = this as Npc;
+        var isNewAggro = false;
+        // Character player = null;
+        // if (unit is not Npc and not Units.Mate and not Slave)
+        // {
+        //     player = (Character)unit;
+        // }
+        // player?.SendMessage(ChatType.System, $"AddUnitAggro {player.Name} + {amount} for {this.ObjId}");
+
+        // check self buff tags
+        if (Buffs.CheckBuffTag((uint)TagsEnum.NoFight) || Buffs.CheckBuffTag((uint)TagsEnum.Returning))
+        {
+            ClearAggroOfUnit(unit);
+            return false;
+        }
+
+        // check target buff tags
+        if ((unit.Buffs?.CheckBuffTag((uint)TagsEnum.NoFight) ?? false) || (unit.Buffs?.CheckBuffTag((uint)TagsEnum.Returning) ?? false))
+        {
+            ClearAggroOfUnit(unit);
+            return false;
+        }
+
+
+        //Add Tagging if it was damage aggro
+        if (kind == AggroKind.Damage)
+            CharacterTagging.AddTagger(unit, amount);
+
+        amount = (int)(amount * (unit.AggroMul / 100.0f));
+        amount = (int)(amount * (IncomingAggroMul / 100.0f));
+
+        if (AggroTable.TryGetValue(unit.ObjId, out var aggro))
+        {
+            aggro.AddAggro(kind, amount);
+            isNewAggro = true;
+        }
+        else
+        {
+            aggro = new Aggro(unit);
+            aggro.AddAggro(kind, amount);
+            if (AggroTable.TryAdd(unit.ObjId, aggro))
+            {
+                unit.Events.OnHealed += OnAbuserHealed;
+                unit.Events.OnDeath += OnAbuserDied;
+            }
+
+            // TODO: make this party/raid wide? Take into account pets/slaves?
+            // If there is a quest starter attached to this NPC, start it when unit gets added for the first time
+            // to the aggro list
+            if (npc != null)
+            {
+                if (npc.Template.EngageCombatGiveQuestId > 0 && player is not null)
+                {
+                    if (!player.Quests.IsQuestComplete(npc.Template.EngageCombatGiveQuestId) &&
+                        !player.Quests.HasQuest(npc.Template.EngageCombatGiveQuestId))
+                        player.Quests.AddQuest(npc.Template.EngageCombatGiveQuestId);
+                }
+            }
+
+            // Send initial hit packet as well
+            unit.SendPacketToPlayers([this, unit], new SCCombatFirstHitPacket(this.ObjId, unit.ObjId, 0));
+        }
+
+        if (player == null)
+            return isNewAggro;
+
+        if (aggro.TotalAggro > 0 && !IsDead && Hp > 0 && !player.IsInAggroListOf.ContainsKey(this.ObjId))
+        {
+            player.IsInAggroListOf.Add(this.ObjId, this);
+        }
+        //player?.Quests.OnAggro(this);
+        // инициируем событие
+        //Task.Run(() => QuestManager.Instance.DoOnAggroEvents(player, this));
+        if (npc != null)
+        {
+            QuestManager.Instance.DoOnAggroEvents(player, npc);
+        }
+        return isNewAggro;
+    }
+
+    public void ClearAggroOfUnit(Unit unit)
+    {
+        if (unit is null)
+            return;
+
+        if (unit is Character targetPlayer)
+        {
+            targetPlayer.IsInAggroListOf.Remove(ObjId);
+            // Also remove from assault lists if both are players
+            if (this is Character thisPlayer)
+            {
+                thisPlayer.AssaultOn.Remove(targetPlayer.Id);
+                targetPlayer.AssaultedBy.Remove(thisPlayer.Id);
+            }
+        }
+
+        // var player = unit as Character;
+        // player?.SendMessage($"ClearAggroOfUnit {player.Name} for {this.ObjId}");
+
+        var lastAggroCount = AggroTable.Count;
+        if (lastAggroCount <= 0)
+        {
+            return;
+        }
+        if (AggroTable.TryRemove(unit.ObjId, out _))
+        {
+            unit.Events.OnHealed -= OnAbuserHealed;
+            unit.Events.OnDeath -= OnAbuserDied;
+        }
+        else
+        {
+            Logger.Warn($"Failed to remove unit[{unit.ObjId}] aggro from NPC[{ObjId}]");
+        }
+
+        if (AggroTable.Count != lastAggroCount)
+            (this as Npc)?.CheckIfEmptyAggroToReturn(unit);
+    }
+
+    public void OnAbuserHealed(object sender, OnHealedArgs args)
+    {
+        AddUnitAggro(AggroKind.Heal, args.Healer, args.HealAmount);
+    }
+
+    public void OnAbuserDied(object sender, OnDeathArgs args)
+    {
+        ClearAggroOfUnit(args.Victim);
+    }
+
+    public virtual void ClearAllAggro()
+    {
+        // Adding for tagging
+        CharacterTagging.ClearAllTaggers();
+
+        foreach (var table in AggroTable)
+        {
+            var unit = table.Value.Owner?.ParentWorld.GetUnit(table.Key);
+            if (unit != null)
+            {
+                unit.Events.OnHealed -= OnAbuserHealed;
+                unit.Events.OnDeath -= OnAbuserDied;
+            }
+        }
     }
 }

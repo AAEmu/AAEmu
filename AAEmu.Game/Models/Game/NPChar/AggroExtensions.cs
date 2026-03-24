@@ -19,9 +19,4 @@ public static class AggroExtensions
     {
         return table.Aggregate((i1, i2) => i1.Value.HealAggro > i2.Value.HealAggro ? i1 : i2).Key;
     }
-
-    public static void AddUnitAggro(this ConcurrentDictionary<uint, Aggro> table, AggroKind kind, Unit unit, int amount)
-    {
-
-    }
 }

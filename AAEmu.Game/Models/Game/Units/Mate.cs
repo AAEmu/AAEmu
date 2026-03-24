@@ -691,4 +691,10 @@ public sealed class Mate : Unit
             passenger?.OnZoneChange(lastZoneKey, newZoneKey);
         }
     }
+
+    public override Character GetOwnerCharacter()
+    {
+        var ownerObject = OwnerObjId > 0 ? ParentWorld.GetGameObject(OwnerObjId) as BaseUnit : null;
+        return ownerObject?.GetOwnerCharacter();
+    }
 }

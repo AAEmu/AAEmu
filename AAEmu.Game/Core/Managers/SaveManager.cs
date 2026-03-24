@@ -17,6 +17,7 @@ public class SaveManager(
     IMailManager mailManager,
     IItemManager itemManager,
     IAuctionManager auctionManager,
+    ICrimeManager crimeManager,
     IWorldManager worldManager) : Singleton<SaveManager>, ISaveManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -83,8 +84,10 @@ public class SaveManager(
                         var savedMails = mailManager.Save(connection, transaction);
                         // Items
                         var saveItems = itemManager.Save(connection, transaction);
-                        //Auction House
+                        // Auction House
                         var savedAuctionHouse = auctionManager.Save(connection, transaction);
+                        // Crimes
+                        var savedCrimes = crimeManager.Save(connection, transaction);
 
                         // Characters
                         var savedCharacters = 0;
@@ -112,6 +115,7 @@ public class SaveManager(
                         totalCommits += savedMails.Item1 + savedMails.Item2;
                         totalCommits += saveItems.Item1 + saveItems.Item2 + saveItems.Item3;
                         totalCommits += savedAuctionHouse.Item1 + savedAuctionHouse.Item2;
+                        totalCommits += savedCrimes.Item1 + savedCrimes.Item2;
                         totalCommits += savedCharacters;
                         totalCommits += savedSlaves;
 
@@ -136,6 +140,8 @@ public class SaveManager(
                                     Logger.Debug($"Updated {saveItems.Item3} item containers ...");
                                 if (savedAuctionHouse.Item1 + savedAuctionHouse.Item2 > 0)
                                     Logger.Debug($"Updated {savedAuctionHouse.Item1} and deleted {savedAuctionHouse.Item2} auction items ...");
+                                if (savedCrimes.Item1 + savedCrimes.Item2 > 0)
+                                    Logger.Debug($"Updated {savedCrimes.Item1} and deleted {savedCrimes.Item2} crime events ...");
                                 if (savedCharacters > 0)
                                     Logger.Debug($"Updated {savedCharacters} characters ...");
                                 if (savedSlaves > 0)

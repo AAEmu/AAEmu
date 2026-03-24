@@ -448,13 +448,11 @@ public class Buffs : IBuffs
                 if (buffIds.Contains((uint)TagsEnum.NoFight) || buffIds.Contains((uint)TagsEnum.Returning))
                 {
                     // Unit entered a "safe zone"
-                    if (owner is Npc { Ai: not null } npc)
-                    {
-                        npc.ClearAllAggro();
-                    }
-
                     if (owner is Unit unit)
+                    {
+                        unit.ClearAllAggro();
                         unit.IsInBattle = false;
+                    }
                 }
             }
         }

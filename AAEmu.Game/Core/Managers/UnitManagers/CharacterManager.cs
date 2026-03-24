@@ -955,4 +955,24 @@ public class CharacterManager(
         var onlineTrackerTasks = new CharacterOnlineTrackingTask();
         taskManager.Schedule(onlineTrackerTasks, TimeSpan.Zero, CharacterOnlineTrackingTask.CheckPrecision);
     }
+
+    /// <summary>
+    /// Adds crime points for offline characters
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="crimePointsToAdd"></param>
+    public static void AddOfflineCrimePoints(uint playerId, short crimePointsToAdd)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE characters SET `crime_point` = `crime_point` + @crime_point , `crime_record` = `crime_record` + @crime_point WHERE `id` = @id";
+        command.Parameters.AddWithValue("@crime_point", crimePointsToAdd);
+        command.Parameters.AddWithValue("@id", playerId);
+        command.Prepare();
+        if (command.ExecuteNonQuery() != 1)
+        {
+            Logger.Warn($"Failed to update offline crime points for player {playerId}! (Add {crimePointsToAdd})");
+        }
+    }
+
 }

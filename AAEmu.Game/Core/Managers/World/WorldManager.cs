@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using System.Xml;
@@ -986,13 +986,14 @@ public class WorldManager(
         if (obj?.Region == null)
             return;
 
-        var neighbors = obj.Region.GetNeighbors();
-        obj.Region?.RemoveObject(obj);
+        var region = obj.Region;
+        var neighbors = region.GetNeighbors();
+        region.RemoveObject(obj);
 
-        if (neighbors == null)
-            return;
-
-        if (neighbors.Length > 0)
+        // Must match AddToCharacters: visibility is updated for this region and all neighbors.
+        // Previously only neighbors were notified, so players in the same region cell never got removal packets.
+        region.RemoveFromCharacters(obj);
+        if (neighbors != null && neighbors.Length > 0)
             foreach (var neighbor in neighbors)
                 neighbor?.RemoveFromCharacters(obj);
 

@@ -37,7 +37,7 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
 
         stream.Write(character.AutoUseAAPoint);
 
-        stream.Write(0); // juryPoint
+        stream.Write(character.JuryPoint); // juryPoint
         stream.Write(0); // jailSeconds
 
         stream.Write(0L); // bountyMoney
