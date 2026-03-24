@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
@@ -57,6 +58,43 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     private const float WindWithMaxMul = 1.15f;
     private const float WindAgainstMaxMul = 0.85f;
 
+    /// <summary>How wind affects max speed: none (rowing/motor), square (downwind best), lateen (beam reach best).</summary>
+    private enum ShipWindProfile
+    {
+        None,
+        SquareRig,
+        LateenRig
+    }
+
+    /// <summary>Override: these <see cref="SlaveTemplate.Id"/> use lateen (e.g. trimaran under SmallSailingShip).</summary>
+    private static readonly HashSet<uint> WindProfileLateenTemplateIds = [];
+
+    /// <summary>Override: these template ids use square rig (e.g. Harani sailboat under SmallSailingShip).</summary>
+    private static readonly HashSet<uint> WindProfileSquareTemplateIds = [];
+
+    /// <summary>Override: force no wind (e.g. a sail template you want to treat as motor-only).</summary>
+    private static readonly HashSet<uint> WindProfileNoneTemplateIds = [];
+
+    private static ShipWindProfile ResolveShipWindProfile(Slave slave)
+    {
+        var tid = slave.Template.Id;
+        if (WindProfileNoneTemplateIds.Contains(tid))
+            return ShipWindProfile.None;
+        if (WindProfileLateenTemplateIds.Contains(tid))
+            return ShipWindProfile.LateenRig;
+        if (WindProfileSquareTemplateIds.Contains(tid))
+            return ShipWindProfile.SquareRig;
+
+        return slave.Template.SlaveKind switch
+        {
+            SlaveKind.Boat or SlaveKind.Fishboat => ShipWindProfile.None,
+            SlaveKind.BigSailingShip or SlaveKind.SmallSailingShip => ShipWindProfile.SquareRig,
+            SlaveKind.MerchantShip or SlaveKind.Speedboat => ShipWindProfile.LateenRig,
+            SlaveKind.Leviathan => ShipWindProfile.None,
+            _ => ShipWindProfile.None
+        };
+    }
+
     /// <summary>
     /// Full cycle over 24h: h=0 → (0,+Y), h=12 → (0,-Y), h=6/18 → боковой ветер (плавно крутится каждый час).
     /// </summary>
@@ -99,21 +137,49 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         return GetOpenSeaWindFromGameClock();
     }
 
-    /// <summary>Multiplier for max speed (≈ ±15% with/against wind); smooth transition in ±15° cones.</summary>
-    private static float GetWindSpeedMul(Slave slave, float bowRad)
+    /// <summary>Square rig: best speed down/up wind (same as original).</summary>
+    private static float GetWindSpeedMulSquareRig(float dotMove)
     {
-        var (wx, wy) = GetWindDirNormalized(slave);
-        var fwdX = MathF.Cos(bowRad);
-        var fwdZ = MathF.Sin(bowRad);
-        var dotBow = fwdX * wx + fwdZ * wy;
-        var dotMove = Math.Abs(slave.Speed) < 0.01f ? dotBow : MathF.Sign(slave.Speed) * dotBow;
-
         var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
         if (dotMove >= cosCone)
             return WindWithMaxMul;
         if (dotMove <= -cosCone)
             return WindAgainstMaxMul;
         return 1f + (WindWithMaxMul - 1f) * (dotMove / cosCone);
+    }
+
+    /// <summary>Lateen / fore-and-aft: best speed on a beam reach (perpendicular to wind).</summary>
+    private static float GetWindSpeedMulLateenRig(float dotMove)
+    {
+        var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
+        var sinCone = MathF.Sin(WindConeHalfAngleDeg * MathF.PI / 180f);
+        var p = 1f - MathF.Abs(dotMove);
+        if (p >= cosCone)
+            return WindWithMaxMul;
+        if (p <= sinCone)
+            return WindAgainstMaxMul;
+        return WindAgainstMaxMul + (p - sinCone) / (cosCone - sinCone) * (WindWithMaxMul - WindAgainstMaxMul);
+    }
+
+    /// <summary>Multiplier for max speed from wind; depends on <see cref="ResolveShipWindProfile"/>.</summary>
+    private static float GetWindSpeedMul(Slave slave, float bowRad)
+    {
+        var profile = ResolveShipWindProfile(slave);
+        if (profile == ShipWindProfile.None)
+            return 1f;
+
+        var (wx, wy) = GetWindDirNormalized(slave);
+        var fwdX = MathF.Cos(bowRad);
+        var fwdZ = MathF.Sin(bowRad);
+        var dotBow = fwdX * wx + fwdZ * wy;
+        var dotMove = Math.Abs(slave.Speed) < 0.01f ? dotBow : MathF.Sign(slave.Speed) * dotBow;
+
+        return profile switch
+        {
+            ShipWindProfile.SquareRig => GetWindSpeedMulSquareRig(dotMove),
+            ShipWindProfile.LateenRig => GetWindSpeedMulLateenRig(dotMove),
+            _ => 1f
+        };
     }
 
     ~ShipController()
