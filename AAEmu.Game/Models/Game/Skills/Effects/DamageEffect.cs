@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -365,17 +366,35 @@ public class DamageEffect : EffectTemplate
             ((Unit)caster).Bonuses[uint.MaxValue] = [];
         }
 
-        if (caster.GetRelationStateTo(trg) == RelationState.Friendly)
+        var trgCharacter = trg as Character;
+        var attacker = caster as Unit;
+        
+        if (CheckCrime && caster.GetRelationStateTo(trg) == RelationState.Friendly)
         {
+            // Set Purple state
             if (!trg.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
                 ((Unit)caster).SetCriminalState(true, trg);
             }
+
+            // Mark the owner of this unit as being assaulted
+            var targetOwner = trg.GetOwnerCharacter();
+            var sourceOwner = caster.GetOwnerCharacter();
+            if (targetOwner != null && sourceOwner != null)
+            {
+                // If both players haven't interacted with each other yet, then generate evidence for the initiator 
+                if ((!sourceOwner.AssaultedBy.Contains(targetOwner.Id)) && (!targetOwner.AssaultedBy.Contains(sourceOwner.Id)))
+                {
+                    // Update assault list
+                    targetOwner.AssaultedBy.Add(sourceOwner.Id);
+                    sourceOwner.AssaultOn.Add(targetOwner.Id);
+                    // Generate evidence
+                    _ = CrimeManager.Instance.GenerateEvidenceFromDamage(caster, trg);
+                }
+            }
         }
 
         // TODO : Use proper chance kinds (melee, magic etc.)
-        var trgCharacter = trg as Character;
-        var attacker = caster as Unit;
 
         // set for all combatants, for RegenTick
         trg.IsInBattle = trg.Hp > 0;

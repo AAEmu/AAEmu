@@ -695,6 +695,7 @@ public class Slave : Unit
 
         Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z));
         Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
+        ClearAllAggro();
     }
 
     /// <summary>
@@ -954,5 +955,11 @@ public class Slave : Unit
         CachedFloorLevel = ParentWorld.GetHeight(Transform.World.Position.X, Transform.World.Position.Y);
         CachedWaterSurface = ParentWorld.Water.GetWaterSurface(Transform.World.Position, out var cachedWaterFlow);
         CachedWaterFlow = cachedWaterFlow;
+    }
+
+    public override Character GetOwnerCharacter()
+    {
+        var ownerObject = OwnerObjId > 0 ? ParentWorld.GetGameObject(OwnerObjId) as BaseUnit : null;
+        return ownerObject?.GetOwnerCharacter();
     }
 }

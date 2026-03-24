@@ -108,8 +108,36 @@ public partial class Character : Unit, ICharacter
     public long Money2 { get; set; }
     public int HonorPoint { get; set; }
     public int VocationPoint { get; set; }
-    public short CrimePoint { get; set; }
-    public int CrimeRecord { get; set; }
+
+    /// <summary>
+    /// Current crime points (/50)
+    /// </summary>
+    public short CrimePoint
+    {
+        get;
+        set
+        {
+            if (value != field)
+            {
+                field = value;
+                CheckWantedThreshold();
+            }
+        }
+    }
+    /// <summary>
+    /// Total infamy
+    /// </summary>
+    public int CrimeRecord {
+        get;
+        set
+        {
+            if (value != field)
+            {
+                field = value;
+                CheckWantedThreshold();
+            }
+        }
+    }
     public int JuryPoint { get; set; }
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
@@ -202,6 +230,11 @@ public partial class Character : Unit, ICharacter
     /// List of ObjIds you have aggro on
     /// </summary>
     public Dictionary<uint, BaseUnit> IsInAggroListOf { get; set; } = [];
+    /// <summary>
+    /// List of PlayerId's that have assaulted this player (either directly or indirectly)
+    /// </summary>
+    public List<uint> AssaultedBy { get; } = [];
+    public List<uint> AssaultOn { get; } = [];
 
     public void InitializeLaborCache(short labor, DateTime newTime)
     {
@@ -2666,8 +2699,7 @@ public partial class Character : Unit, ICharacter
     /// Adds crime, and returns the new (current) crime value
     /// </summary>
     /// <param name="amount"></param>
-    /// <returns></returns>
-    public short AddCrime(int amount)
+    public void AddCrime(short amount)
     {
         var newAmount = CrimePoint + amount;
         if (newAmount > short.MaxValue)
@@ -2685,7 +2717,8 @@ public partial class Character : Unit, ICharacter
         CrimeRecord += amount; // total amount
         if (CrimeRecord < 0)
             CrimeRecord = 0;
-        return CrimePoint;
+        
+        SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, 0));
     }
 
     /// <summary>
@@ -2822,6 +2855,11 @@ public partial class Character : Unit, ICharacter
         base.OnActiveRegionTick(delta);
         BreathTick(delta);
         CheckPlayerInactivity(delta);
+    }
+
+    public override Character GetOwnerCharacter()
+    {
+        return this;
     }
 
     public override string DebugName()
