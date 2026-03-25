@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
@@ -76,7 +76,8 @@ public class ShipMoveType : MoveType
         ZoneId = (ushort)slave.Transform.ZoneId;
         Time = (uint)(DateTime.UtcNow - slave.SpawnTime).TotalMilliseconds;
         Stuck = false;
-        Throttle = slave.ThrottleRequest;
-        Steering = slave.SteeringRequest;
+        // Must match physics: smoothed values. Request jumps with each client packet and makes the rudder stutter.
+        Throttle = slave.Throttle;
+        Steering = slave.Steering;
     }
 }

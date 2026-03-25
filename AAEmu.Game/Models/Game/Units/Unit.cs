@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Numerics;
 
 using AAEmu.Commons.Network;
@@ -289,6 +289,11 @@ public class Unit : BaseUnit, IUnit
             Events.OnMovement(this, new OnMovementArgs());
         }
         base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+
+        // Characters handle underwater/breath in Character.SetPosition.
+        // Avoid double-updating IsUnderWater (and packet spam) for players.
+        if (this is Character)
+            return;
 
         var worldDrownThreshold = WorldManager.Instance.GetWorld(Transform.InstanceId)?.Template.OceanLevel - 2f ?? 98f;
         if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold)

@@ -16,6 +16,7 @@
         "PreLoadTerrain": false,
         "MaxInstances": 32,
         "TargetPhysicsTps": 25.0,
+        "WindModel": "Official",
         "ActabilityRate": 1.0
     }
 }

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace AAEmu.Game.Models.Game;
@@ -11,6 +11,14 @@ public class Configurations : PacketMarshaler
 
 public class WorldConfig
 {
+    public enum WindModelType
+    {
+        /// <summary>Retail-like: wind only along N↔S axis. 15 angle bonus for wind in the direction of the ship.</summary>
+        Official,
+        /// <summary>More realistic: wind direction rotates smoothly over the day.</summary>
+        Realistic
+    }
+
     /// <summary>
     /// Message of the Day that gets displayed in player's chat upon login
     /// </summary>
@@ -91,6 +99,18 @@ public class WorldConfig
     /// Target Ticks per Second to use for Physics threads
     /// </summary>
     public float TargetPhysicsTps { get; set; } = 25f;
+
+    /// <summary>
+    /// Ship wind model used for open-sea wind when there is no river flow (<see cref="Slave.CachedWaterFlow"/> is zero).
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.WindModel</c>.
+    ///
+    /// Allowed values:
+    /// - <c>Official</c>: retail-like. Wind does NOT change with time of day and gives a hard +15% bonus
+    ///   only when sailing within ±15° of the N↔S axis (both directions). Outside the cone the bonus is 0%.
+    /// - <c>Realistic</c>: wind direction rotates smoothly over the day (and the existing rig profile logic applies).
+    /// Default: <c>Official</c>.
+    /// </summary>
+    public WindModelType WindModel { get; set; } = WindModelType.Official;
 
     /// <summary>
     /// Server-side Actability Points multiplier (on top of buffs)

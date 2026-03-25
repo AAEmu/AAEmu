@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Numerics;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
@@ -253,7 +253,7 @@ public class PhysicsManager
                                 CheckLandCollisions(slave, physicsTotalDelta);
                                 // Update Controls
                                 boat.ApplyForceAndTorque(slave, physicsTotalDelta);
-                                SendUpdatedMovementData(slave, slave.RigidBody);
+                                SendUpdatedMovementData(slave, slave.RigidBody, physicsTotalDelta);
                             }
                         }
                         catch (Exception slaveException)
@@ -311,6 +311,26 @@ public class PhysicsManager
         }
 
         var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y);
+
+        // When a ship is summoned, buoyancy/gravity is disabled until PortalTime ends.
+        // If the spawn point height is below the water surface, the ship will appear heavily submerged
+        // and then "pop" up once buoyancy kicks in. Clamp the initial physics height closer to the waterline.
+        try
+        {
+            var waterSurface = SimulationWorld.Water.GetWaterSurface(slave.Transform.World.Position, out _);
+            if (waterSurface > 0f)
+            {
+                var hullHeight = (slave.ShipController?.ShipModel.MassBoxSizeZ ?? shipModel.MassBoxSizeZ) * slave.Scale;
+                // Keep the ship close to the surface at spawn; buoyancy will settle the final draft.
+                var minCenterY = waterSurface - hullHeight * 0.02f;
+                if (pos.Y < minCenterY)
+                    pos.Y = minCenterY;
+            }
+        }
+        catch
+        {
+            // If water query fails, keep original spawn height.
+        }
         var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
@@ -322,6 +342,11 @@ public class PhysicsManager
         slave.RigidBody = ctrl.Hull;
         slave.RigidBody.Tag = slave;
         slave.ShipController = ctrl;
+
+        // During PortalTime the physics thread skips ship processing (including transform sync),
+        // so ensure the initial server-side Transform matches the physics spawn position.
+        SyncTransformWithRigidBody(slave);
+        slave.Transform.FinalizeTransform();
 
         EnqueueAddBody(slave.RigidBody);
         _buoyancy.AddForRectangularParallelepiped(slave.RigidBody, 3);
@@ -393,6 +418,8 @@ public class PhysicsManager
                 slave.SteeringRequest = 0;
                 slave.Throttle = 0;
                 slave.Steering = 0;
+                slave.ThrottleSmoothed = 0f;
+                slave.SteeringSmoothed = 0f;
             }
         }
 
@@ -400,11 +427,12 @@ public class PhysicsManager
         var hasDriver = slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver);
         if (hasDriver)
         {
-            // If there is a driver, we update the control
-            // Smooth throttle and steering inputs
-            const float SmoothingFactor = 0.1f;
-            slave.Throttle = (sbyte)(slave.Throttle + (slave.ThrottleRequest - slave.Throttle) * SmoothingFactor);
-            slave.Steering = (sbyte)(slave.Steering + (slave.SteeringRequest - slave.Steering) * SmoothingFactor);
+            // Smooth toward client input in float space, then round — avoids sbyte stair-stepping on rudder animation.
+            const float SmoothingFactor = 0.12f;
+            slave.ThrottleSmoothed += (slave.ThrottleRequest - slave.ThrottleSmoothed) * SmoothingFactor;
+            slave.SteeringSmoothed += (slave.SteeringRequest - slave.SteeringSmoothed) * SmoothingFactor;
+            slave.Throttle = (sbyte)Math.Clamp((int)Math.Round(slave.ThrottleSmoothed), -128, 127);
+            slave.Steering = (sbyte)Math.Clamp((int)Math.Round(slave.SteeringSmoothed), -128, 127);
         }
         else
         {
@@ -413,6 +441,8 @@ public class PhysicsManager
             slave.SteeringRequest = 0;
             slave.Throttle = 0;
             slave.Steering = 0;
+            slave.ThrottleSmoothed = 0f;
+            slave.SteeringSmoothed = 0f;
         }
     }
 
@@ -421,15 +451,32 @@ public class PhysicsManager
     /// </summary>
     /// <param name="slave"></param>
     /// <param name="rigidBody"></param>
-    private void SendUpdatedMovementData(Slave slave, RigidBody rigidBody)
+    private void SendUpdatedMovementData(Slave slave, RigidBody rigidBody, TimeSpan deltaTime)
     {
         var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
         moveType.UseSlaveBase(slave);
 
         // Get current rotation of the ship
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
+
+        // Visual-only bank (ship leans into turns). Applied to replicated rotation, not physics.
+        // Coordinate mapping is legacy: GetSlaveRotationFromDegrees reorders axes, so injecting into rpy.Item2 affects client-side roll.
+        const float maxBankDeg = 8.0f;
+        const float bankResponse = 7.5f; // higher = snappier
+        var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
+        var maxBankRad = maxBankDeg.DegToRad();
+        var yawRate = rigidBody.AngularVelocity.Y; // rad/s (see ShipController)
+        var horizSpeed = MathF.Sqrt(
+            rigidBody.Velocity.X * rigidBody.Velocity.X +
+            rigidBody.Velocity.Z * rigidBody.Velocity.Z);
+        var speedFactor = Math.Clamp(horizSpeed / 2.5f, 0f, 1f);
+        var targetBank = Math.Clamp(-yawRate * 0.9f, -maxBankRad, maxBankRad) * speedFactor;
+        var a = 1f - MathF.Exp(-bankResponse * dt);
+        slave.BankAngle += (targetBank - slave.BankAngle) * a;
+        var bankedRpy = (rpy.Item1, rpy.Item2 + slave.BankAngle, rpy.Item3);
+
         // Insert new Rotation data into MoveType
-        var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(rpy.Item1, rpy.Item2, rpy.Item3);
+        var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(bankedRpy.Item1, bankedRpy.Item2, bankedRpy.Item3);
         moveType.RotationX = rotX;
         moveType.RotationY = rotY;
         moveType.RotationZ = rotZ;
@@ -452,6 +499,10 @@ public class PhysicsManager
         // Apply new Location/Rotation to GameObject
         slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
         slave.Transform.Local.ApplyFromQuaternion(rigidBody.Orientation);
+        slave.Transform.Local.SetRotation(
+            slave.Transform.Local.Rotation.X,
+            slave.Transform.Local.Rotation.Y + slave.BankAngle,
+            slave.Transform.Local.Rotation.Z);
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
