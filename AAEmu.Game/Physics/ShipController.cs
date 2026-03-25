@@ -50,6 +50,12 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Speed (in current ship speed units) at which turning reaches 100%.</summary>
     private const float TurnFullFactorAtSpeed = 2.5f;
 
+    /// <summary>Max forward/back speed multiplier removed at full yaw rate (linear in |ω|/ω_max).</summary>
+    private const float TurnSpeedSlowdownFrac = 0.1f;
+
+    /// <summary>Higher = snappier convergence of <see cref="Slave.TurnSpeedVelocityMul"/> toward the turn target.</summary>
+    private const float TurnSpeedVelocityMulResponse = 5.5f;
+
     /// <summary>Added to the computed max yaw rate (°/s) after ship_models cap; per <see cref="SlaveKind"/> tuning.</summary>
     private static float GetSteerMaxDegOffset(SlaveKind kind) => kind switch
     {
@@ -292,6 +298,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             slave.Steering = 0;
             slave.ThrottleSmoothed = 0f;
             slave.SteeringSmoothed = 0f;
+            slave.TurnSpeedVelocityMul = 1f;
         }
 
         // Minimum crawl speed when starting in that direction only. Do not apply while still moving
@@ -375,6 +382,13 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var steerMax = (steerMaxDeg * turnFactor).DegToRad();
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMax, steerMax);
 
+        // Up to TurnSpeedSlowdownFrac slower at full yaw rate; smooth return on straight course (forward and reverse).
+        var steerMaxSafe = Math.Max(steerMax, 1e-5f);
+        var turnRateNorm = Math.Clamp(MathF.Abs(slave.RotSpeed) / steerMaxSafe, 0f, 1f);
+        var targetTurnVelMul = 1f - TurnSpeedSlowdownFrac * turnRateNorm;
+        var turnMulA = 1f - MathF.Exp(-TurnSpeedVelocityMulResponse * MathF.Max(0f, dtSec));
+        slave.TurnSpeedVelocityMul += (targetTurnVelMul - slave.TurnSpeedVelocityMul) * turnMulA;
+
         // Slow down turning if no steering active
         const float AngularDamping = 0.975f; // Damping of angular velocity
         if (slave.Steering == 0)
@@ -420,7 +434,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
                 slave.Speed = 0f;
         }
 
-        var forceThrottle = slave.Speed * slave.MoveSpeedMul / 4f; // Not sure if correct, but it feels correct
+        var forceThrottle = slave.Speed * slave.MoveSpeedMul / 4f * slave.TurnSpeedVelocityMul; // Not sure if correct, but it feels correct
 
         // Apply directional force
         rigidBody.Velocity = new JVector(forceThrottle * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * MathF.Sin(slaveRotRad));
