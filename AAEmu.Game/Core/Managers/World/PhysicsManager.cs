@@ -3,6 +3,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
@@ -461,7 +462,17 @@ public class PhysicsManager
 
         // Visual-only bank (ship leans into turns). Applied to replicated rotation, not physics.
         // Coordinate mapping is legacy: GetSlaveRotationFromDegrees reorders axes, so injecting into rpy.Item2 affects client-side roll.
-        const float maxBankDeg = 8.0f;
+        var maxBankDeg = slave.Template.SlaveKind switch
+        {
+            SlaveKind.BigSailingShip => 10.0f,
+            SlaveKind.SmallSailingShip => 10.0f,
+            SlaveKind.Speedboat => 8.0f,
+            SlaveKind.Fishboat => 8.0f,
+            SlaveKind.MerchantShip => 8.0f,
+            SlaveKind.Leviathan => 8.0f,
+            SlaveKind.Boat => 8.0f,
+            _ => 0f
+        };
         const float bankResponse = 7.5f; // higher = snappier
         var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
         var maxBankRad = maxBankDeg.DegToRad();

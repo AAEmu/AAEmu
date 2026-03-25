@@ -50,6 +50,19 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Speed (in current ship speed units) at which turning reaches 100%.</summary>
     private const float TurnFullFactorAtSpeed = 2.5f;
 
+    /// <summary>Added to the computed max yaw rate (°/s) after ship_models cap; per <see cref="SlaveKind"/> tuning.</summary>
+    private static float GetSteerMaxDegOffset(SlaveKind kind) => kind switch
+    {
+        SlaveKind.BigSailingShip => -1f,
+        SlaveKind.SmallSailingShip => -0.5f,
+        SlaveKind.Speedboat => 2f,
+        SlaveKind.Fishboat => -0.5f,
+        SlaveKind.MerchantShip => 0f,
+        SlaveKind.Leviathan => 0f,
+        SlaveKind.Boat => 0f,
+        _ => 0f
+    };
+
     /// <summary>Horizontal wind when no river flow and clock wind is off/unavailable (game X,Y).</summary>
     private const float DefaultWindDirX = 0f;
     private const float DefaultWindDirY = 1f;
@@ -203,6 +216,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         if (model == WorldConfig.WindModelType.Official)
         {
+            if (slave.Template.SlaveKind is not (SlaveKind.SmallSailingShip or SlaveKind.BigSailingShip or SlaveKind.Fishboat))
+                return 1f;
+
             // Retail-like: +15% within ±15° of the N↔S axis, both directions (no "against wind" penalty).
             var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
             var dotAbs = MathF.Abs(dotBow);
@@ -355,6 +371,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var steerMaxDeg = shipModel.SteerVel >= MinSteerVelAsDegPerSec
             ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
             : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
+        steerMaxDeg = Math.Max(0.05f, steerMaxDeg + GetSteerMaxDegOffset(slave.Template.SlaveKind));
         var steerMax = (steerMaxDeg * turnFactor).DegToRad();
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMax, steerMax);
 
