@@ -339,8 +339,16 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             var speedAbsNow = MathF.Abs(slave.Speed);
             var lowSpeed01 = Math.Clamp(speedAbsNow / 2.0f, 0f, 1f); // 0..2 speed range
             var lowSpeedCurve = lowSpeed01 * lowSpeed01; // keep drag lower for longer in 0..2
-            var dragMul = 0.15f + 0.85f * lowSpeedCurve; // 15% drag near 0 → 100% drag at >=2
+            // Also keep coasting gentle even at high speed (otherwise letting go of throttle "slams the brakes").
+            const float coastDragMinMul = 0.15f; // near standstill
+            const float coastDragMaxMul = 0.45f; // at/above ~2 speed units
+            var dragMul = coastDragMinMul + (coastDragMaxMul - coastDragMinMul) * lowSpeedCurve;
             var effectiveDrag = drag * dragMul;
+
+            // Hard cap so "let go of throttle" never brakes harder than intended,
+            // even if ship_models.water_resistance is high for some templates.
+            const float maxCoastDragPerSecond = 0.22f;
+            effectiveDrag = MathF.Min(effectiveDrag, maxCoastDragPerSecond);
 
             var decay = MathF.Exp(-effectiveDrag * dt);
             slave.Speed *= decay;
