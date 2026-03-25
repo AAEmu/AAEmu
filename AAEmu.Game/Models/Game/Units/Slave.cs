@@ -46,6 +46,11 @@ public class Slave : Unit
     /// <summary>Sub-sbyte smoothing so rudder/throttle do not stair-step when quantized for physics and packets.</summary>
     public float ThrottleSmoothed { get; set; }
     public float Speed { get; set; }
+    /// <summary>
+    /// Last non-zero movement direction sign for ship handling (-1 backward, +1 forward).
+    /// Used to keep steering behavior stable when speed hovers around zero.
+    /// </summary>
+    public sbyte LastMoveDirSign { get; set; } = 1;
     public sbyte SteeringRequest { get; set; }
     public sbyte Steering { get; set; }
     public float SteeringSmoothed { get; set; }

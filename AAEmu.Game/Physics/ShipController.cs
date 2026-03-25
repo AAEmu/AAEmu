@@ -279,15 +279,29 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
         slave.Speed = Math.Clamp(slave.Speed, maxBackward, maxForward);
 
+        // Track last stable movement direction so reverse steering doesn't flip when speed reaches (near) zero.
+        const float MoveDirEpsilon = 0.10f;
+        if (slave.Speed > MoveDirEpsilon)
+            slave.LastMoveDirSign = 1;
+        else if (slave.Speed < -MoveDirEpsilon)
+            slave.LastMoveDirSign = -1;
+
         // Turning factor scales with ship speed, but never reaches zero (so the ship can still turn in place).
         var speedAbs = MathF.Abs(slave.Speed);
         var speed01 = Math.Clamp(speedAbs / TurnFullFactorAtSpeed, 0f, 1f);
         var turnFactor = MinTurnFactorAtZeroSpeed + (1f - MinTurnFactorAtZeroSpeed) * speed01;
 
+        // Reverse steering should be handled at input→rotSpeed stage, not at the final angular velocity assignment.
+        // Otherwise when speed crosses zero (e.g. releasing reverse), the last-step inversion toggles and the ship appears
+        // to start turning the opposite way even though the rudder input didn't change.
+        const float ReverseSteerEpsilon = 0.05f;
+        var isMovingBackward = slave.Speed < -ReverseSteerEpsilon || (MathF.Abs(slave.Speed) <= ReverseSteerEpsilon && slave.LastMoveDirSign < 0);
+        var effectiveSteeringNorm = isMovingBackward ? -steeringNorm : steeringNorm;
+
         // Calculate rotation speed
         var turnSpeed = slave.TurnSpeed == 0 ? 10f : slave.TurnSpeed * (float)deltaTime.TotalSeconds * MathF.PI;
-        var rotDelta = steeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul * turnFactor;
-        if (slave.RotSpeed != 0f && steeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(steeringNorm))
+        var rotDelta = effectiveSteeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul * turnFactor;
+        if (slave.RotSpeed != 0f && effectiveSteeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(effectiveSteeringNorm))
             rotDelta *= CounterSteerResponsivenessMul;
         slave.RotSpeed += rotDelta;
 
@@ -329,13 +343,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Apply directional force
         rigidBody.Velocity = new JVector(forceThrottle * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * MathF.Sin(slaveRotRad));
 
-        var steer = slave.RotSpeed * -1;
-
-        // Make sure the steering is reversed when going backwards.
-        if (forceThrottle < 0)
-            steer *= -1;
-
-        rigidBody.AngularVelocity = new JVector(0, steer, 0);
+        rigidBody.AngularVelocity = new JVector(0, slave.RotSpeed * -1f, 0);
 
         //Logger.Debug($"Slave: {slave.Name}, Throttle: {throttleFloatVal:F1} ({slave.ThrottleRequest}), Steering {steeringFloatVal:F1} ({slave.SteeringRequest}), speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}");
     }
