@@ -50,6 +50,8 @@ public class Slave : Unit
     public sbyte Steering { get; set; }
     public float SteeringSmoothed { get; set; }
     public float RotSpeed { get; set; }
+    /// <summary>Visual-only bank angle (radians) applied to ship movement replication.</summary>
+    public float BankAngle { get; set; }
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
     public sbyte AttachPointId { get; init; } = -1;

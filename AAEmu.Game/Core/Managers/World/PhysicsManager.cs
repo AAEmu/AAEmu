@@ -253,7 +253,7 @@ public class PhysicsManager
                                 CheckLandCollisions(slave, physicsTotalDelta);
                                 // Update Controls
                                 boat.ApplyForceAndTorque(slave, physicsTotalDelta);
-                                SendUpdatedMovementData(slave, slave.RigidBody);
+                                SendUpdatedMovementData(slave, slave.RigidBody, physicsTotalDelta);
                             }
                         }
                         catch (Exception slaveException)
@@ -426,15 +426,32 @@ public class PhysicsManager
     /// </summary>
     /// <param name="slave"></param>
     /// <param name="rigidBody"></param>
-    private void SendUpdatedMovementData(Slave slave, RigidBody rigidBody)
+    private void SendUpdatedMovementData(Slave slave, RigidBody rigidBody, TimeSpan deltaTime)
     {
         var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
         moveType.UseSlaveBase(slave);
 
         // Get current rotation of the ship
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
+
+        // Visual-only bank (ship leans into turns). Applied to replicated rotation, not physics.
+        // Coordinate mapping is legacy: GetSlaveRotationFromDegrees reorders axes, so injecting into rpy.Item2 affects client-side roll.
+        const float maxBankDeg = 8.0f;
+        const float bankResponse = 7.5f; // higher = snappier
+        var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
+        var maxBankRad = maxBankDeg.DegToRad();
+        var yawRate = rigidBody.AngularVelocity.Y; // rad/s (see ShipController)
+        var horizSpeed = MathF.Sqrt(
+            rigidBody.Velocity.X * rigidBody.Velocity.X +
+            rigidBody.Velocity.Z * rigidBody.Velocity.Z);
+        var speedFactor = Math.Clamp(horizSpeed / 2.5f, 0f, 1f);
+        var targetBank = Math.Clamp(-yawRate * 0.9f, -maxBankRad, maxBankRad) * speedFactor;
+        var a = 1f - MathF.Exp(-bankResponse * dt);
+        slave.BankAngle += (targetBank - slave.BankAngle) * a;
+        var bankedRpy = (rpy.Item1, rpy.Item2 + slave.BankAngle, rpy.Item3);
+
         // Insert new Rotation data into MoveType
-        var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(rpy.Item1, rpy.Item2, rpy.Item3);
+        var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(bankedRpy.Item1, bankedRpy.Item2, bankedRpy.Item3);
         moveType.RotationX = rotX;
         moveType.RotationY = rotY;
         moveType.RotationZ = rotZ;
@@ -457,6 +474,10 @@ public class PhysicsManager
         // Apply new Location/Rotation to GameObject
         slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
         slave.Transform.Local.ApplyFromQuaternion(rigidBody.Orientation);
+        slave.Transform.Local.SetRotation(
+            slave.Transform.Local.Rotation.X,
+            slave.Transform.Local.Rotation.Y + slave.BankAngle,
+            slave.Transform.Local.Rotation.Z);
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
