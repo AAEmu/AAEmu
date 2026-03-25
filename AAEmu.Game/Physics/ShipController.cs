@@ -330,12 +330,23 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
         if (slave.Throttle == 0)
         {
-            slave.Speed -= (float)deltaTime.TotalSeconds * float.Sign(slave.Speed) * shipModel.WaterResistance;
-            if (Math.Abs(slave.Speed) < 1)
-            {
-                slave.Speed = 0;
-                slave.RigidBody.Velocity = JVector.Zero;
-            }
+            // Smooth drag towards zero without a hard cutoff (prevents the "snap stop" when speed crosses a threshold).
+            var dt = (float)deltaTime.TotalSeconds;
+            var drag = MathF.Max(0f, shipModel.WaterResistance);
+
+            // Make the last bit of coasting smoother: reduce effective drag as we approach standstill.
+            // This avoids the feeling of a quick "final bite" from ~1 to 0.
+            var speedAbsNow = MathF.Abs(slave.Speed);
+            var lowSpeed01 = Math.Clamp(speedAbsNow / 2.0f, 0f, 1f); // 0..2 speed range
+            var lowSpeedCurve = lowSpeed01 * lowSpeed01; // keep drag lower for longer in 0..2
+            var dragMul = 0.15f + 0.85f * lowSpeedCurve; // 15% drag near 0 → 100% drag at >=2
+            var effectiveDrag = drag * dragMul;
+
+            var decay = MathF.Exp(-effectiveDrag * dt);
+            slave.Speed *= decay;
+
+            if (MathF.Abs(slave.Speed) < 0.002f)
+                slave.Speed = 0f;
         }
 
         var forceThrottle = slave.Speed * slave.MoveSpeedMul / 4f; // Not sure if correct, but it feels correct
