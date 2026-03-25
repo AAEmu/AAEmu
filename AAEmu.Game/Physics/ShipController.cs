@@ -42,6 +42,12 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
     private const float MinSteerVelAsDegPerSec = 8f;
 
+    /// <summary>At zero speed, keep this fraction of turning ability (so you can still rotate in place).</summary>
+    private const float MinTurnFactorAtZeroSpeed = 0.5f;
+
+    /// <summary>Speed (in current ship speed units) at which turning reaches 100%.</summary>
+    private const float TurnFullFactorAtSpeed = 2.5f;
+
     /// <summary>Horizontal wind when no river flow and clock wind is off/unavailable (game X,Y).</summary>
     private const float DefaultWindDirX = 0f;
     private const float DefaultWindDirY = 1f;
@@ -273,9 +279,14 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
         slave.Speed = Math.Clamp(slave.Speed, maxBackward, maxForward);
 
+        // Turning factor scales with ship speed, but never reaches zero (so the ship can still turn in place).
+        var speedAbs = MathF.Abs(slave.Speed);
+        var speed01 = Math.Clamp(speedAbs / TurnFullFactorAtSpeed, 0f, 1f);
+        var turnFactor = MinTurnFactorAtZeroSpeed + (1f - MinTurnFactorAtZeroSpeed) * speed01;
+
         // Calculate rotation speed
         var turnSpeed = slave.TurnSpeed == 0 ? 10f : slave.TurnSpeed * (float)deltaTime.TotalSeconds * MathF.PI;
-        var rotDelta = steeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul;
+        var rotDelta = steeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul * turnFactor;
         if (slave.RotSpeed != 0f && steeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(steeringNorm))
             rotDelta *= CounterSteerResponsivenessMul;
         slave.RotSpeed += rotDelta;
@@ -284,7 +295,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var steerMaxDeg = shipModel.SteerVel >= MinSteerVelAsDegPerSec
             ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
             : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
-        var steerMax = steerMaxDeg.DegToRad();
+        var steerMax = (steerMaxDeg * turnFactor).DegToRad();
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMax, steerMax);
 
         // Slow down turning if no steering active
