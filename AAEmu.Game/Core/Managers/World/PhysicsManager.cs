@@ -311,6 +311,26 @@ public class PhysicsManager
         }
 
         var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y);
+
+        // When a ship is summoned, buoyancy/gravity is disabled until PortalTime ends.
+        // If the spawn point height is below the water surface, the ship will appear heavily submerged
+        // and then "pop" up once buoyancy kicks in. Clamp the initial physics height closer to the waterline.
+        try
+        {
+            var waterSurface = SimulationWorld.Water.GetWaterSurface(slave.Transform.World.Position, out _);
+            if (waterSurface > 0f)
+            {
+                var hullHeight = (slave.ShipController?.ShipModel.MassBoxSizeZ ?? shipModel.MassBoxSizeZ) * slave.Scale;
+                // Keep the ship close to the surface at spawn; buoyancy will settle the final draft.
+                var minCenterY = waterSurface - hullHeight * 0.02f;
+                if (pos.Y < minCenterY)
+                    pos.Y = minCenterY;
+            }
+        }
+        catch
+        {
+            // If water query fails, keep original spawn height.
+        }
         var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
@@ -322,6 +342,11 @@ public class PhysicsManager
         slave.RigidBody = ctrl.Hull;
         slave.RigidBody.Tag = slave;
         slave.ShipController = ctrl;
+
+        // During PortalTime the physics thread skips ship processing (including transform sync),
+        // so ensure the initial server-side Transform matches the physics spawn position.
+        SyncTransformWithRigidBody(slave);
+        slave.Transform.FinalizeTransform();
 
         EnqueueAddBody(slave.RigidBody);
         _buoyancy.AddForRectangularParallelepiped(slave.RigidBody, 3);
