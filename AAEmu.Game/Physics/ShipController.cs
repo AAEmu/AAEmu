@@ -1,6 +1,8 @@
 #nullable enable
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
@@ -104,7 +106,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>
     /// Full cycle over 24h: h=0 → (0,+Y), h=12 → (0,-Y), h=6/18 → боковой ветер (плавно крутится каждый час).
     /// </summary>
-    private static (float wx, float wy) GetOpenSeaWindFromGameClock()
+    private static (float wx, float wy) GetOpenSeaWindFromGameClockRealistic()
     {
         if (!WindFollowsTimeOfDay || TimeManager.Instance is null)
             return NormalizeWind(DefaultWindDirX, DefaultWindDirY);
@@ -118,6 +120,23 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // π·h/12: два противоположных направления в сутках по оси Y (полночь/полдень), бок в 6 и 18:00
         var phase = MathF.PI * hours / 12f;
         return (MathF.Sin(phase), MathF.Cos(phase));
+    }
+
+    /// <summary>
+    /// Retail-like wind: constant N↔S axis (does not change with time of day).
+    /// </summary>
+    private static (float wx, float wy) GetOpenSeaWindFromGameClockOfficial()
+    {
+        // Matches retail behavior described: boosts along the N↔S axis regardless of direction.
+        return (0f, 1f);
+    }
+
+    private static (float wx, float wy) GetOpenSeaWind(Slave slave)
+    {
+        var model = AppConfiguration.Instance.World?.WindModel ?? WorldConfig.WindModelType.Realistic;
+        return model == WorldConfig.WindModelType.Official
+            ? GetOpenSeaWindFromGameClockOfficial()
+            : GetOpenSeaWindFromGameClockRealistic();
     }
 
     private static (float wx, float wy) NormalizeWind(float x, float y)
@@ -140,7 +159,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             return (f.X * inv, f.Y * inv);
         }
 
-        return GetOpenSeaWindFromGameClock();
+        return GetOpenSeaWind(slave);
     }
 
     /// <summary>Square rig: best speed down/up wind (same as original).</summary>
@@ -170,6 +189,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Multiplier for max speed from wind; depends on <see cref="ResolveShipWindProfile"/>.</summary>
     private static float GetWindSpeedMul(Slave slave, float bowRad)
     {
+        var model = AppConfiguration.Instance.World?.WindModel ?? WorldConfig.WindModelType.Realistic;
+
         var profile = ResolveShipWindProfile(slave);
         if (profile == ShipWindProfile.None)
             return 1f;
@@ -179,6 +200,15 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var fwdZ = MathF.Sin(bowRad);
         var dotBow = fwdX * wx + fwdZ * wy;
         var dotMove = Math.Abs(slave.Speed) < 0.01f ? dotBow : MathF.Sign(slave.Speed) * dotBow;
+
+        if (model == WorldConfig.WindModelType.Official)
+        {
+            // Retail-like: +15% within ±15° of the N↔S axis, both directions (no "against wind" penalty).
+            var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
+            var dotAbs = MathF.Abs(dotBow);
+            // Hard cutoff: bonus disappears immediately beyond the angle threshold.
+            return dotAbs >= cosCone ? WindWithMaxMul : 1f;
+        }
 
         return profile switch
         {
@@ -258,6 +288,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         var throttleNorm = slave.Throttle * 0.00787401575f; // sbyte -> float
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
+        var dtSec = (float)deltaTime.TotalSeconds;
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
         var slaveRotRad = rpy.Item1 + 1.57f; // bow heading in physics XZ; reused for wind + velocity
@@ -271,13 +302,28 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         }
 
         // Calculate speed
-        slave.Speed += throttleNorm * (linearAccel * (float)deltaTime.TotalSeconds) / 2f;
+        slave.Speed += throttleNorm * (linearAccel * dtSec) / 2f;
 
         // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
         var windMul = GetWindSpeedMul(slave, slaveRotRad);
         var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f * windMul;
         var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
-        slave.Speed = Math.Clamp(slave.Speed, maxBackward, maxForward);
+
+        // When wind bonus disappears (especially Official "hard cutoff"), max speed can drop instantly.
+        // Hard-clamping causes a visible speed snap. Instead, smoothly converge back to the new cap unless
+        // the player is actively accelerating in that direction (then clamp immediately).
+        const float overspeedResponse = 3.5f; // higher = faster return to cap
+        var overspeedA = 1f - MathF.Exp(-overspeedResponse * MathF.Max(0.0f, dtSec));
+        if (slave.Speed > maxForward)
+        {
+            // Always smooth down to the new cap to avoid a snap when the wind bonus disappears,
+            // even if the player keeps holding throttle.
+            slave.Speed = slave.Speed + (maxForward - slave.Speed) * overspeedA;
+        }
+        else if (slave.Speed < maxBackward)
+        {
+            slave.Speed = slave.Speed + (maxBackward - slave.Speed) * overspeedA;
+        }
 
         // Track last stable movement direction so reverse steering doesn't flip when speed reaches (near) zero.
         const float MoveDirEpsilon = 0.10f;
