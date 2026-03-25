@@ -108,8 +108,9 @@ public class WorldConfig
     /// - <c>Official</c>: retail-like. Wind does NOT change with time of day and gives a hard +15% bonus
     ///   only when sailing within ±15° of the N↔S axis (both directions). Outside the cone the bonus is 0%.
     /// - <c>Realistic</c>: wind direction rotates smoothly over the day (and the existing rig profile logic applies).
+    /// Default: <c>Official</c>.
     /// </summary>
-    public WindModelType WindModel { get; set; } = WindModelType.Realistic;
+    public WindModelType WindModel { get; set; } = WindModelType.Official;
 
     /// <summary>
     /// Server-side Actability Points multiplier (on top of buffs)
