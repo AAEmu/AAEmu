@@ -59,13 +59,13 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// </summary>
     private static float GetSteerMaxDegFixed(SlaveKind kind) => kind switch
     {
-        SlaveKind.Boat => 8.7f,                // лодки
-        SlaveKind.SmallSailingShip => 5.2f,    // малыепарусник
-        SlaveKind.BigSailingShip => 4.7f,      // большиепарусник
-        SlaveKind.Fishboat => 6.7f,            // рыбацкие корабли
-        SlaveKind.Speedboat => 11.7f,          // катер
-        SlaveKind.MerchantShip => 5.7f,        // шхуна
-        _ => 6.2f
+        SlaveKind.Boat => 4.35f,               // лодки
+        SlaveKind.SmallSailingShip => 2.6f,    // малыепарусник
+        SlaveKind.BigSailingShip => 2.35f,     // большиепарусник
+        SlaveKind.Fishboat => 3.35f,           // рыбацкие корабли
+        SlaveKind.Speedboat => 5.85f,          // катер
+        SlaveKind.MerchantShip => 2.85f,       // шхуна
+        _ => 3.1f
     };
 
     /// <summary>Horizontal wind when no river flow and clock wind is off/unavailable (game X,Y).</summary>
@@ -382,14 +382,19 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var isMovingBackward = slave.Speed < -ReverseSteerEpsilon || (MathF.Abs(slave.Speed) <= ReverseSteerEpsilon && slave.LastMoveDirSign < 0);
         var effectiveSteeringNorm = isMovingBackward ? -steeringNorm : steeringNorm;
 
-        // Per-kind turn rate (normal cap), used both for clamping and for non-linear "approach-to-cap" behavior.
-        var kindSteerDeg = GetSteerMaxDegFixed(slave.Template.SlaveKind);
+        // Per-kind turn rate with TurnSpeed multiplier from the common bonus system
+        // (same idea as MoveSpeedMul: base value + buff modifiers).
+        var baseKindSteerDeg = GetSteerMaxDegFixed(slave.Template.SlaveKind);
+        var turnSpeedBonusMul = MathF.Max(0.05f, slave.TurnSpeed);
+        var kindSteerDeg = baseKindSteerDeg * turnSpeedBonusMul;
         var steerMaxDegNormal = Math.Max(0.05f, kindSteerDeg);
         var steerMaxDegHard = Math.Max(0.05f, kindSteerDeg * 2f);
         var steerMaxNormal = (steerMaxDegNormal * turnFactor).DegToRad();
 
         // Calculate rotation speed
-        var turnSpeed = slave.TurnSpeed == 0 ? 10f : slave.TurnSpeed * (float)deltaTime.TotalSeconds * MathF.PI;
+        // TurnSpeed is now a multiplier (1.0, 1.3, ...). Keep steering response at the previous "stat-scale"
+        // baseline so counter-steer and turn build-up remain responsive.
+        var turnSpeed = 100f * turnSpeedBonusMul * (float)deltaTime.TotalSeconds * MathF.PI;
         var rotDelta = effectiveSteeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul * turnFactor;
         if (slave.RotSpeed != 0f && effectiveSteeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(effectiveSteeringNorm))
             rotDelta *= CounterSteerResponsivenessMul;
@@ -412,15 +417,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         slave.RotSpeed += rotDelta;
 
-        // Max turn rate (fixed by ship kind).
-        //
-        // DB-based steer cap is intentionally disabled because ship_models.steer_vel is not in valid units.
-        // If needed later, restore this block and remove GetSteerMaxDegFixed usage:
-        // var steerMaxDeg = shipModel.SteerVel >= MinSteerVelAsDegPerSec
-        //     ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
-        //     : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
-        // Normal (design) max turn rate is per-ship-kind; hard cap is 2x of that value.
-        // This avoids ships constantly saturating at the "cap" during normal steering.
+        // Max turn rate (fixed by ship kind). Hard cap is 2x of normal.
         var steerMaxHard = (steerMaxDegHard * turnFactor).DegToRad();
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxHard, steerMaxHard);
 

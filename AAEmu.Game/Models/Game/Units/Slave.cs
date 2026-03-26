@@ -636,7 +636,7 @@ public class Slave : Unit
     }
 
     [UnitAttribute(UnitAttribute.TurnSpeed)]
-    public virtual float TurnSpeed { get => (float)CalculateWithBonuses(0, UnitAttribute.TurnSpeed); }
+    public virtual float TurnSpeed { get => (float)CalculateWithBonuses(100f, UnitAttribute.TurnSpeed) / 100f; }
 
     #endregion
 
