@@ -60,11 +60,11 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     private static float GetSteerMaxDegFixed(SlaveKind kind) => kind switch
     {
         SlaveKind.Boat => 8.7f,                // лодки
-        SlaveKind.SmallSailingShip => 5.7f,    // малыепарусник
+        SlaveKind.SmallSailingShip => 5.2f,    // малыепарусник
         SlaveKind.BigSailingShip => 4.7f,      // большиепарусник
         SlaveKind.Fishboat => 6.7f,            // рыбацкие корабли
         SlaveKind.Speedboat => 10.7f,          // катер
-        SlaveKind.MerchantShip => 6.7f,        // шхуна
+        SlaveKind.MerchantShip => 6.2f,        // шхуна
         _ => 6.7f
     };
 
@@ -366,11 +366,34 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var isMovingBackward = slave.Speed < -ReverseSteerEpsilon || (MathF.Abs(slave.Speed) <= ReverseSteerEpsilon && slave.LastMoveDirSign < 0);
         var effectiveSteeringNorm = isMovingBackward ? -steeringNorm : steeringNorm;
 
+        // Per-kind turn rate (normal cap), used both for clamping and for non-linear "approach-to-cap" behavior.
+        var kindSteerDeg = GetSteerMaxDegFixed(slave.Template.SlaveKind);
+        var steerMaxDegNormal = Math.Max(0.05f, kindSteerDeg);
+        var steerMaxDegHard = Math.Max(0.05f, kindSteerDeg * 2f);
+        var steerMaxNormal = (steerMaxDegNormal * turnFactor).DegToRad();
+
         // Calculate rotation speed
         var turnSpeed = slave.TurnSpeed == 0 ? 10f : slave.TurnSpeed * (float)deltaTime.TotalSeconds * MathF.PI;
         var rotDelta = effectiveSteeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul * turnFactor;
         if (slave.RotSpeed != 0f && effectiveSteeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(effectiveSteeringNorm))
             rotDelta *= CounterSteerResponsivenessMul;
+
+        // Non-linear approach: turning accelerates normally at low yaw rates, but slows down as we approach the cap.
+        // This prevents the turn rate from building linearly all the way up to the limit.
+        if (effectiveSteeringNorm != 0f && steerMaxNormal > 1e-6f)
+        {
+            var sameDir = slave.RotSpeed == 0f || Math.Sign(slave.RotSpeed) == Math.Sign(rotDelta);
+            if (sameDir)
+            {
+                var n = Math.Clamp(MathF.Abs(slave.RotSpeed) / steerMaxNormal, 0f, 1f);
+                const float approachPow = 2.0f; // higher = stronger slowdown near cap
+                var approachMul = 1f - MathF.Pow(n, approachPow);
+                // keep some authority even near cap, otherwise the last bit can feel "stuck"
+                approachMul = Math.Clamp(approachMul, 0.10f, 1f);
+                rotDelta *= approachMul;
+            }
+        }
+
         slave.RotSpeed += rotDelta;
 
         // Max turn rate (fixed by ship kind).
@@ -380,13 +403,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // var steerMaxDeg = shipModel.SteerVel >= MinSteerVelAsDegPerSec
         //     ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
         //     : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
-        var kindSteerDeg = GetSteerMaxDegFixed(slave.Template.SlaveKind);
-
         // Normal (design) max turn rate is per-ship-kind; hard cap is 2x of that value.
         // This avoids ships constantly saturating at the "cap" during normal steering.
-        var steerMaxDegNormal = Math.Max(0.05f, kindSteerDeg);
-        var steerMaxDegHard = Math.Max(0.05f, kindSteerDeg * 2f);
-
         var steerMaxHard = (steerMaxDegHard * turnFactor).DegToRad();
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxHard, steerMaxHard);
 
@@ -394,8 +412,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // (Hard cap still protects from spikes / edge cases.)
         if (slave.Steering != 0)
         {
-            var steerMaxNormal = (steerMaxDegNormal * turnFactor).DegToRad();
-            slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxNormal, steerMaxNormal);
+            var steerMaxNormalRad = (steerMaxDegNormal * turnFactor).DegToRad();
+            slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxNormalRad, steerMaxNormalRad);
         }
 
         var steerMax = (steerMaxDegNormal * turnFactor).DegToRad();
