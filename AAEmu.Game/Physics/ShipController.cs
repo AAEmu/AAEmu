@@ -315,21 +315,37 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
         var slaveRotRad = rpy.Item1 + 1.57f; // bow heading in physics XZ; reused for wind + velocity
 
+        // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
+        var windMul = GetWindSpeedMul(slave, slaveRotRad);
+        var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f * windMul;
+        var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
+
         // Use data reverse_accel for braking; scale up when fighting current motion (feels less sluggish than forward-only Accel).
         var linearAccel = shipModel.Accel;
-        if (throttleNorm != 0f && slave.Speed != 0f && Math.Sign(slave.Speed) != Math.Sign(throttleNorm))
+        var isOpposingThrottle = throttleNorm != 0f && slave.Speed != 0f && Math.Sign(slave.Speed) != Math.Sign(throttleNorm);
+        if (isOpposingThrottle)
         {
             var reverseCap = shipModel.ReverseAccel > 0f ? shipModel.ReverseAccel : shipModel.Accel;
             linearAccel = Math.Max(shipModel.Accel, reverseCap) * OpposingThrottleAccelMul * OpposingThrottleBrakeTuneMul;
         }
 
+        // Non-linear approach to max speed: accelerate strongly at low speed, taper off near the cap.
+        // Applies only when accelerating in the current movement direction (not when braking/opposing throttle).
+        if (throttleNorm != 0f && !isOpposingThrottle)
+        {
+            var capAbs = throttleNorm > 0f ? maxForward : -maxBackward;
+            if (capAbs > 1e-4f)
+            {
+                var n = Math.Clamp(MathF.Abs(slave.Speed) / capAbs, 0f, 1f);
+                const float approachPow = 2.0f; // higher = stronger slowdown near cap
+                var approachMul = 1f - MathF.Pow(n, approachPow);
+                approachMul = Math.Clamp(approachMul, 0.10f, 1f);
+                linearAccel *= approachMul;
+            }
+        }
+
         // Calculate speed
         slave.Speed += throttleNorm * (linearAccel * dtSec) / 2f;
-
-        // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
-        var windMul = GetWindSpeedMul(slave, slaveRotRad);
-        var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f * windMul;
-        var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
 
         // When wind bonus disappears (especially Official "hard cutoff"), max speed can drop instantly.
         // Hard-clamping causes a visible speed snap. Instead, smoothly converge back to the new cap unless
