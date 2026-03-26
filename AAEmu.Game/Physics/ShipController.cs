@@ -422,11 +422,19 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxHard, steerMaxHard);
 
         // While steering, keep yaw rate within the normal per-kind limit.
-        // (Hard cap still protects from spikes / edge cases.)
+        // When cap decreases (e.g. sails raised), converge smoothly instead of a one-frame snap.
+        // Hard cap above still protects against spikes.
         if (slave.Steering != 0)
         {
             var steerMaxNormalRad = (steerMaxDegNormal * turnFactor).DegToRad();
-            slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxNormalRad, steerMaxNormalRad);
+            var rotAbs = MathF.Abs(slave.RotSpeed);
+            if (rotAbs > steerMaxNormalRad)
+            {
+                const float turnCapResponse = 8.0f;
+                var capA = 1f - MathF.Exp(-turnCapResponse * MathF.Max(0f, dtSec));
+                var target = MathF.Sign(slave.RotSpeed) * steerMaxNormalRad;
+                slave.RotSpeed += (target - slave.RotSpeed) * capA;
+            }
         }
 
         var steerMax = (steerMaxDegNormal * turnFactor).DegToRad();
