@@ -381,9 +381,24 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         //     ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
         //     : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
         var kindSteerDeg = GetSteerMaxDegFixed(slave.Template.SlaveKind);
-        var steerMaxDeg = Math.Max(0.05f, kindSteerDeg * 2f);
-        var steerMax = (steerMaxDeg * turnFactor).DegToRad();
-        slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMax, steerMax);
+
+        // Normal (design) max turn rate is per-ship-kind; hard cap is 2x of that value.
+        // This avoids ships constantly saturating at the "cap" during normal steering.
+        var steerMaxDegNormal = Math.Max(0.05f, kindSteerDeg);
+        var steerMaxDegHard = Math.Max(0.05f, kindSteerDeg * 2f);
+
+        var steerMaxHard = (steerMaxDegHard * turnFactor).DegToRad();
+        slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxHard, steerMaxHard);
+
+        // While steering, keep yaw rate within the normal per-kind limit.
+        // (Hard cap still protects from spikes / edge cases.)
+        if (slave.Steering != 0)
+        {
+            var steerMaxNormal = (steerMaxDegNormal * turnFactor).DegToRad();
+            slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMaxNormal, steerMaxNormal);
+        }
+
+        var steerMax = (steerMaxDegNormal * turnFactor).DegToRad();
 
         // Up to TurnSpeedSlowdownFrac slower at full yaw rate; smooth return on straight course (forward and reverse).
         var steerMaxSafe = Math.Max(steerMax, 1e-5f);
