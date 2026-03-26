@@ -63,9 +63,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         SlaveKind.SmallSailingShip => 5.2f,    // малыепарусник
         SlaveKind.BigSailingShip => 4.7f,      // большиепарусник
         SlaveKind.Fishboat => 6.7f,            // рыбацкие корабли
-        SlaveKind.Speedboat => 10.7f,          // катер
-        SlaveKind.MerchantShip => 6.2f,        // шхуна
-        _ => 6.7f
+        SlaveKind.Speedboat => 11.7f,          // катер
+        SlaveKind.MerchantShip => 5.7f,        // шхуна
+        _ => 6.2f
     };
 
     /// <summary>Horizontal wind when no river flow and clock wind is off/unavailable (game X,Y).</summary>
