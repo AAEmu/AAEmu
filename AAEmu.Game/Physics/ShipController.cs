@@ -38,9 +38,6 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>When rudder fights current yaw rate — faster decay; same-direction turn rate unchanged.</summary>
     private const float CounterSteerResponsivenessMul = 1.35f;
 
-    /// <summary>Max yaw rate (degrees/s). Legacy code used (velocity×2)°/s — often ~25°/s on large ships.</summary>
-    private const float MaxSteerDegPerSec = 5.2f;
-
     /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
     private const float MinSteerVelAsDegPerSec = 8f;
 
@@ -56,17 +53,19 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Higher = snappier convergence of <see cref="Slave.TurnSpeedVelocityMul"/> toward the turn target.</summary>
     private const float TurnSpeedVelocityMulResponse = 5.5f;
 
-    /// <summary>Added to the computed max yaw rate (°/s) after ship_models cap; per <see cref="SlaveKind"/> tuning.</summary>
-    private static float GetSteerMaxDegOffset(SlaveKind kind) => kind switch
+    /// <summary>
+    /// Fixed max yaw rate (degrees/s) by <see cref="SlaveKind"/>.
+    /// NOTE: We intentionally do NOT use ship_models.steer_vel because values in DB are not in valid units.
+    /// </summary>
+    private static float GetSteerMaxDegFixed(SlaveKind kind) => kind switch
     {
-        SlaveKind.BigSailingShip => -1f,
-        SlaveKind.SmallSailingShip => -0.5f,
-        SlaveKind.Speedboat => 2f,
-        SlaveKind.Fishboat => -0.5f,
-        SlaveKind.MerchantShip => 0f,
-        SlaveKind.Leviathan => 0f,
-        SlaveKind.Boat => 0f,
-        _ => 0f
+        SlaveKind.Boat => 8.7f,                // лодки
+        SlaveKind.SmallSailingShip => 5.7f,    // малыепарусник
+        SlaveKind.BigSailingShip => 4.7f,      // большиепарусник
+        SlaveKind.Fishboat => 6.7f,            // рыбацкие корабли
+        SlaveKind.Speedboat => 10.7f,          // катер
+        SlaveKind.MerchantShip => 6.7f,        // шхуна
+        _ => 6.7f
     };
 
     /// <summary>Horizontal wind when no river flow and clock wind is off/unavailable (game X,Y).</summary>
@@ -374,11 +373,15 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             rotDelta *= CounterSteerResponsivenessMul;
         slave.RotSpeed += rotDelta;
 
-        // Max turn rate: prefer velocity×2°/s (legacy). steer_vel in DB is often ~1 (wrong units) — only use as °/s when plausible.
-        var steerMaxDeg = shipModel.SteerVel >= MinSteerVelAsDegPerSec
-            ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
-            : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
-        steerMaxDeg = Math.Max(0.05f, steerMaxDeg + GetSteerMaxDegOffset(slave.Template.SlaveKind));
+        // Max turn rate (fixed by ship kind).
+        //
+        // DB-based steer cap is intentionally disabled because ship_models.steer_vel is not in valid units.
+        // If needed later, restore this block and remove GetSteerMaxDegFixed usage:
+        // var steerMaxDeg = shipModel.SteerVel >= MinSteerVelAsDegPerSec
+        //     ? Math.Min(shipModel.SteerVel, MaxSteerDegPerSec)
+        //     : Math.Min(shipModel.Velocity * 2f, MaxSteerDegPerSec);
+        var kindSteerDeg = GetSteerMaxDegFixed(slave.Template.SlaveKind);
+        var steerMaxDeg = Math.Max(0.05f, kindSteerDeg * 2f);
         var steerMax = (steerMaxDeg * turnFactor).DegToRad();
         slave.RotSpeed = Math.Clamp(slave.RotSpeed, -steerMax, steerMax);
 
