@@ -59,12 +59,12 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// </summary>
     private static float GetSteerMaxDegFixed(SlaveKind kind) => kind switch
     {
-        SlaveKind.Boat => 4.35f,               // лодки
-        SlaveKind.SmallSailingShip => 2.6f,    // малыепарусник
-        SlaveKind.BigSailingShip => 2.35f,     // большиепарусник
-        SlaveKind.Fishboat => 3.35f,           // рыбацкие корабли
-        SlaveKind.Speedboat => 5.85f,          // катер
-        SlaveKind.MerchantShip => 2.85f,       // шхуна
+        SlaveKind.Boat => 4.35f,
+        SlaveKind.SmallSailingShip => 2.6f,
+        SlaveKind.BigSailingShip => 2.35f,
+        SlaveKind.Fishboat => 3.35f,
+        SlaveKind.Speedboat => 5.85f,
+        SlaveKind.MerchantShip => 2.85f,
         _ => 3.1f
     };
 
