@@ -252,6 +252,7 @@ public class PhysicsManager
                                 BoatPhysicsTick(slave, physicsTotalDelta);
                                 // Check if we collided
                                 CheckLandCollisions(slave, physicsTotalDelta);
+                                slave.DoFloorCollisionDamage(physicsTotalDelta);
                                 // Update Controls
                                 boat.ApplyForceAndTorque(slave, physicsTotalDelta);
                                 SendUpdatedMovementData(slave, slave.RigidBody, physicsTotalDelta);

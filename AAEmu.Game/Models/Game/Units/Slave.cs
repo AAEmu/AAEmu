@@ -79,6 +79,8 @@ public class Slave : Unit
     public float GroundPitchBackFloorSmoothed { get; set; }
     /// <summary>Time (seconds) since ground contact was latched.</summary>
     public float GroundContactLatchedTime { get; set; }
+    /// <summary>Seconds accumulated toward periodic hull damage while beached (see <see cref="DoFloorCollisionDamage(System.TimeSpan)"/>).</summary>
+    public float ShoreGroundDamageSecondsAccumulator { get; set; }
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
     public sbyte AttachPointId { get; init; } = -1;
@@ -687,18 +689,41 @@ public class Slave : Unit
     }
 
     /// <summary>
-    /// Damage handler used by BoatPhysics
+    /// While <see cref="GroundContactLatched"/> (beached on shore), applies hull damage once per second.
     /// </summary>
-    /// <param name="damage"></param>
-    /// <param name="isPercent"></param>
-    /// <param name="killReason"></param>
+    public void DoFloorCollisionDamage(TimeSpan deltaTime)
+    {
+        if (!GroundContactLatched)
+        {
+            ShoreGroundDamageSecondsAccumulator = 0f;
+            return;
+        }
+
+        const float IntervalSec = 1f;
+        const int PercentPerTick = 1;
+
+        var dt = (float)deltaTime.TotalSeconds;
+        if (dt <= 0f)
+            return;
+
+        ShoreGroundDamageSecondsAccumulator += dt;
+        while (ShoreGroundDamageSecondsAccumulator >= IntervalSec)
+        {
+            ShoreGroundDamageSecondsAccumulator -= IntervalSec;
+            ApplyFloorCollisionDamageImmediate(PercentPerTick, isPercent: true);
+        }
+    }
+
+    /// <summary>Immediate hull damage (percent of <see cref="MaxHp"/> when <paramref name="isPercent"/>).</summary>
     public void DoFloorCollisionDamage(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
     {
-        // If % based, calculate its damage
+        ApplyFloorCollisionDamageImmediate(damage, isPercent, killReason);
+    }
+
+    private void ApplyFloorCollisionDamageImmediate(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
+    {
         if (isPercent)
-        {
             damage = MaxHp * damage / 100;
-        }
 
         ReduceCurrentHp(this, damage, killReason);
     }
