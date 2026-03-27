@@ -59,6 +59,26 @@ public class Slave : Unit
     public float TurnSpeedVelocityMul { get; set; } = 1f;
     /// <summary>Visual-only bank angle (radians) applied to ship movement replication.</summary>
     public float BankAngle { get; set; }
+    /// <summary>Visual-only ground pitch angle (radians) for ships beached on terrain.</summary>
+    public float GroundPitchAngle { get; set; }
+    /// <summary>Grounded contact side hint: true when grounding happened while moving backward (stern-side).</summary>
+    public bool GroundedByStern { get; set; }
+    /// <summary>Grounded state from previous physics tick (used to detect water->ground transition).</summary>
+    public bool GroundedLastTick { get; set; }
+    /// <summary>How long ship stays grounded with near-zero speed while player keeps throttle input.</summary>
+    public float GroundStuckTime { get; set; }
+    /// <summary>Smoothed 0..1 assist strength used to help unstuck from shoal.</summary>
+    public float GroundEscapeAssist { get; set; }
+    /// <summary>Latched "ground contact" state to avoid shoreline jitter.</summary>
+    public bool GroundContactLatched { get; set; }
+    /// <summary>Smoothed terrain height at the active hull probe point.</summary>
+    public float GroundContactFloorSmoothed { get; set; }
+    /// <summary>Smoothed terrain height sampled in front of the hull (for visual pitch).</summary>
+    public float GroundPitchFrontFloorSmoothed { get; set; }
+    /// <summary>Smoothed terrain height sampled behind the hull (for visual pitch).</summary>
+    public float GroundPitchBackFloorSmoothed { get; set; }
+    /// <summary>Time (seconds) since ground contact was latched.</summary>
+    public float GroundContactLatchedTime { get; set; }
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
     public sbyte AttachPointId { get; init; } = -1;
