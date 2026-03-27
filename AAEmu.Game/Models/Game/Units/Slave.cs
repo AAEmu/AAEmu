@@ -735,8 +735,7 @@ public class Slave : Unit
         if (dealt <= 0)
             return;
 
-        var envTargetId = Summoner?.ObjId ?? ObjId;
-        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Falling, envTargetId, (uint)dealt), true);
+        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt), true);
     }
 
     public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
