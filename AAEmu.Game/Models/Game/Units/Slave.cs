@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Slaves;
+using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Physics;
@@ -725,7 +726,17 @@ public class Slave : Unit
         if (isPercent)
             damage = MaxHp * damage / 100;
 
+        if (damage <= 0)
+            return;
+
+        var oldHp = Hp;
         ReduceCurrentHp(this, damage, killReason);
+        var dealt = oldHp - Hp;
+        if (dealt <= 0)
+            return;
+
+        var envTargetId = Summoner?.ObjId ?? ObjId;
+        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Falling, envTargetId, (uint)dealt), true);
     }
 
     public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
