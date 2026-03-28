@@ -78,6 +78,10 @@ public class Slave : Unit
     public float GroundPitchFrontFloorSmoothed { get; set; }
     /// <summary>Smoothed terrain height sampled behind the hull (for visual pitch).</summary>
     public float GroundPitchBackFloorSmoothed { get; set; }
+    /// <summary>True after first pitch floor samples; cleared when leaving shoal/latched-ground pitch path.</summary>
+    public bool GroundPitchFloorSmoothingSeeded { get; set; }
+    /// <summary>True after first contact-floor sample while not latched (unrelated to height being zero).</summary>
+    public bool GroundContactFloorSmoothingSeeded { get; set; }
     /// <summary>Time (seconds) since ground contact was latched.</summary>
     public float GroundContactLatchedTime { get; set; }
     /// <summary>Seconds accumulated toward periodic hull damage while beached (see <see cref="DoFloorCollisionDamage(System.TimeSpan)"/>).</summary>

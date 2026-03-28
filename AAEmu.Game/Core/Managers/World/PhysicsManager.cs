@@ -509,14 +509,17 @@ public class PhysicsManager
             // Smooth sampled heights to avoid geo noise causing visual pitch jitter.
             const float pitchFloorSmoothResponse = 8.0f;
             var floorA = 1f - MathF.Exp(-pitchFloorSmoothResponse * dt);
-            if (slave.GroundPitchFrontFloorSmoothed == 0f)
+            if (!slave.GroundPitchFloorSmoothingSeeded)
+            {
                 slave.GroundPitchFrontFloorSmoothed = frontH;
-            else
-                slave.GroundPitchFrontFloorSmoothed += (frontH - slave.GroundPitchFrontFloorSmoothed) * floorA;
-            if (slave.GroundPitchBackFloorSmoothed == 0f)
                 slave.GroundPitchBackFloorSmoothed = backH;
+                slave.GroundPitchFloorSmoothingSeeded = true;
+            }
             else
+            {
+                slave.GroundPitchFrontFloorSmoothed += (frontH - slave.GroundPitchFrontFloorSmoothed) * floorA;
                 slave.GroundPitchBackFloorSmoothed += (backH - slave.GroundPitchBackFloorSmoothed) * floorA;
+            }
 
             var slopeRad = MathF.Atan2(slave.GroundPitchFrontFloorSmoothed - slave.GroundPitchBackFloorSmoothed, groundPitchProbeDistance * 2f);
             targetGroundPitch = Math.Clamp(slopeRad, -groundPitchMaxDeg.DegToRad(), groundPitchMaxDeg.DegToRad());
@@ -525,6 +528,9 @@ public class PhysicsManager
             if (slave.GroundedByStern)
                 targetGroundPitch = -targetGroundPitch;
         }
+        else
+            slave.GroundPitchFloorSmoothingSeeded = false;
+
         var pitchA = 1f - MathF.Exp(-groundPitchResponse * dt);
         slave.GroundPitchAngle += (targetGroundPitch - slave.GroundPitchAngle) * pitchA;
 
@@ -660,8 +666,11 @@ AfterCliffCheck: ;
         {
             var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
             var a = 1f - MathF.Exp(-FloorSmoothResponse * dt);
-            if (!slave.GroundContactLatched && slave.GroundContactFloorSmoothed == 0f)
+            if (!slave.GroundContactLatched && !slave.GroundContactFloorSmoothingSeeded)
+            {
                 slave.GroundContactFloorSmoothed = contactFloor;
+                slave.GroundContactFloorSmoothingSeeded = true;
+            }
             else
                 slave.GroundContactFloorSmoothed += (contactFloor - slave.GroundContactFloorSmoothed) * a;
         }
