@@ -620,42 +620,38 @@ public class PhysicsManager
         var cliffY = slave.RigidBody.Position.Z + dirZ * cliffDist * probeSign;
         var cliffFloor = slave.ParentWorld.GetHeight(cliffX, cliffY);
         // Prevent underwater terrain ("sea floor") from being treated as a wall:
-        // only trigger cliff collision when the sampled point is at/above water surface.
+        // only run cliff-barrier logic when the probe sample is at/above water; otherwise fall through to beaching.
         const float CliffAboveWaterMargin = 0.20f;
-        if (cliffFloor <= slave.CachedWaterSurface + CliffAboveWaterMargin)
+        if (cliffFloor > slave.CachedWaterSurface + CliffAboveWaterMargin)
         {
-            // Not a shoreline wall; continue with normal beaching logic.
-            goto AfterCliffCheck;
-        }
-
-        var dh = cliffFloor - slave.CachedFloorLevel;
-        var slopeFrac = dh / MathF.Max(0.01f, cliffDist);
-        if (slopeFrac > CliffSlopeFracThreshold)
-        {
-            // Collision: remove the component of horizontal velocity pushing into the cliff.
-            var v = slave.RigidBody.Velocity;
-            var vAlong = v.X * dirX + v.Z * dirZ;
-            var pushingIntoBarrier = useSternProbe ? (vAlong < 0f) : (vAlong > 0f);
-            if (pushingIntoBarrier)
+            var dh = cliffFloor - slave.CachedFloorLevel;
+            var slopeFrac = dh / MathF.Max(0.01f, cliffDist);
+            if (slopeFrac > CliffSlopeFracThreshold)
             {
-                // Stop the "poke": ShipController will otherwise re-apply forward/back velocity next tick from slave.Speed.
-                slave.Speed = 0f;
-                var newVX = v.X - vAlong * dirX;
-                var newVZ = v.Z - vAlong * dirZ;
-                slave.RigidBody.Velocity = new JVector(newVX * 0.85f, 0f, newVZ * 0.85f);
-                slave.RigidBody.AngularVelocity *= 0.85f;
+                // Collision: remove the component of horizontal velocity pushing into the cliff.
+                var v = slave.RigidBody.Velocity;
+                var vAlong = v.X * dirX + v.Z * dirZ;
+                var pushingIntoBarrier = useSternProbe ? (vAlong < 0f) : (vAlong > 0f);
+                if (pushingIntoBarrier)
+                {
+                    // Stop the "poke": ShipController will otherwise re-apply forward/back velocity next tick from slave.Speed.
+                    slave.Speed = 0f;
+                    var newVX = v.X - vAlong * dirX;
+                    var newVZ = v.Z - vAlong * dirZ;
+                    slave.RigidBody.Velocity = new JVector(newVX * 0.85f, 0f, newVZ * 0.85f);
+                    slave.RigidBody.AngularVelocity *= 0.85f;
+                }
+
+                // Push out of the barrier so we don't clip into wall textures.
+                // Single small push opposite to the barrier-facing direction (no loops -> no jitter).
+                var pushDirSign = useSternProbe ? 1f : -1f;
+                var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
+                var pushStep = MathF.Min(0.50f, MathF.Max(0.08f, MathF.Abs(vAlong) * dt * 1.10f));
+                slave.RigidBody.Position += new JVector(dirX * pushStep * pushDirSign, 0f, dirZ * pushStep * pushDirSign);
+
+                return;
             }
-
-            // Push out of the barrier so we don't clip into wall textures.
-            // Single small push opposite to the barrier-facing direction (no loops -> no jitter).
-            var pushDirSign = useSternProbe ? 1f : -1f;
-            var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
-            var pushStep = MathF.Min(0.50f, MathF.Max(0.08f, MathF.Abs(vAlong) * dt * 1.10f));
-            slave.RigidBody.Position += new JVector(dirX * pushStep * pushDirSign, 0f, dirZ * pushStep * pushDirSign);
-
-            return;
         }
-AfterCliffCheck: ;
 
         // Latch ground contact with enter/exit hysteresis to avoid rapid toggling (visual jitter).
         const float ShoreEnterHyst = 0.35f;
