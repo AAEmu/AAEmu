@@ -719,12 +719,7 @@ public class Slave : Unit
         }
     }
 
-    /// <summary>Immediate hull damage (percent of <see cref="MaxHp"/> when <paramref name="isPercent"/>).</summary>
-    public void DoFloorCollisionDamage(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
-    {
-        ApplyFloorCollisionDamageImmediate(damage, isPercent, killReason);
-    }
-
+    /// <summary>Immediate hull damage from floor/collision (percent of <see cref="MaxHp"/> when <paramref name="isPercent"/>).</summary>
     private void ApplyFloorCollisionDamageImmediate(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
     {
         if (isPercent)
