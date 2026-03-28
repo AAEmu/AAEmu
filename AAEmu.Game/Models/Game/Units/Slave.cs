@@ -84,7 +84,7 @@ public class Slave : Unit
     public bool GroundContactFloorSmoothingSeeded { get; set; }
     /// <summary>Time (seconds) since ground contact was latched.</summary>
     public float GroundContactLatchedTime { get; set; }
-    /// <summary>Seconds accumulated toward periodic hull damage while beached (see <see cref="DoFloorCollisionDamage(System.TimeSpan)"/>).</summary>
+    /// <summary>Seconds accumulated toward periodic hull damage while beached (see <see cref="TickBeachedHullDamage(System.TimeSpan)"/>).</summary>
     public float ShoreGroundDamageSecondsAccumulator { get; set; }
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
@@ -694,9 +694,9 @@ public class Slave : Unit
     }
 
     /// <summary>
-    /// While <see cref="GroundContactLatched"/> (beached on shore), applies hull damage once per second.
+    /// While <see cref="GroundContactLatched"/> (beached on shore), advances time toward hull damage dealt once per second.
     /// </summary>
-    public void DoFloorCollisionDamage(TimeSpan deltaTime)
+    public void TickBeachedHullDamage(TimeSpan deltaTime)
     {
         if (!GroundContactLatched)
         {
