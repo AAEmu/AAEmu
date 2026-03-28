@@ -582,6 +582,8 @@ public class PhysicsManager
         if (slave.ShipController?.ShipModel is null)
             return;
 
+        var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
+
         // Terrain contact is evaluated at a probe point in front of bow / behind stern (not hull center).
         // Requested tuning: probe is placed at 2x hull length from center.
         var boatBottom = slave.RigidBody.Position.Y;
@@ -645,7 +647,6 @@ public class PhysicsManager
                 // Push out of the barrier so we don't clip into wall textures.
                 // Single small push opposite to the barrier-facing direction (no loops -> no jitter).
                 var pushDirSign = useSternProbe ? 1f : -1f;
-                var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
                 var pushStep = MathF.Min(0.50f, MathF.Max(0.08f, MathF.Abs(vAlong) * dt * 1.10f));
                 slave.RigidBody.Position += new JVector(dirX * pushStep * pushDirSign, 0f, dirZ * pushStep * pushDirSign);
 
@@ -660,7 +661,6 @@ public class PhysicsManager
         // Smooth contact floor itself (geo height noise + probe jitter).
         const float FloorSmoothResponse = 10.0f;
         {
-            var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
             var a = 1f - MathF.Exp(-FloorSmoothResponse * dt);
             if (!slave.GroundContactLatched && !slave.GroundContactFloorSmoothingSeeded)
             {
@@ -722,7 +722,6 @@ public class PhysicsManager
         var maxUpStepPerTick = slave.GroundContactLatchedTime < 0.30f ? 0.04f : 0.07f;
         if (penetration > PenetrationEpsilon)
         {
-            var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
             var a = 1f - MathF.Exp(-PenetrationResponse * dt);
             var step = MathF.Min(penetration * a, maxUpStepPerTick);
             slave.RigidBody.Position += new JVector(0, step, 0); // lift toward terrain smoothly
