@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -80,12 +81,16 @@ public class Slave : Unit
     public float GroundPitchBackFloorSmoothed { get; set; }
     /// <summary>True after first pitch floor samples; cleared when leaving shoal/latched-ground pitch path.</summary>
     public bool GroundPitchFloorSmoothingSeeded { get; set; }
+    /// <summary>Phase (rad) for visual wave pitch on water; not replicated as state, only drives local sine.</summary>
+    public float WavePitchPhase { get; set; }
     /// <summary>True after first contact-floor sample while not latched (unrelated to height being zero).</summary>
     public bool GroundContactFloorSmoothingSeeded { get; set; }
     /// <summary>Time (seconds) since ground contact was latched.</summary>
     public float GroundContactLatchedTime { get; set; }
     /// <summary>Seconds accumulated toward periodic hull damage while beached (see <see cref="TickBeachedHullDamage(System.TimeSpan)"/>).</summary>
     public float ShoreGroundDamageSecondsAccumulator { get; set; }
+    /// <summary>Per other-ship cooldown (seconds) for hull-collision %HP (see <see cref="Physics.ShipShipInteraction"/>).</summary>
+    public Dictionary<uint, float> ShipHullCollisionDamageCooldownByOtherShipId { get; } = new();
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
     public sbyte AttachPointId { get; init; } = -1;
@@ -734,7 +739,30 @@ public class Slave : Unit
         if (dealt <= 0)
             return;
 
-        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt), true);
+        var driver = AttachedCharacters.GetValueOrDefault(AttachPointKind.Driver);
+        if (driver != null)
+            driver.SendPacket(new SCEnvDamagePacket(EnvSource.Falling, driver.ObjId, (uint)dealt));
+    }
+
+    /// <summary>Hull damage from ship–ship collision (<paramref name="damagePercent"/> of <see cref="MaxHp"/>).</summary>
+    internal void ApplyShipHullCollisionDamage(Slave attacker, int damagePercent)
+    {
+        if (damagePercent <= 0 || Hp <= 0)
+            return;
+
+        var damage = MaxHp * damagePercent / 100;
+        if (damage <= 0)
+            return;
+
+        var oldHp = Hp;
+        ReduceCurrentHp(attacker, damage, KillReason.Damage);
+        var dealt = oldHp - Hp;
+        if (dealt <= 0)
+            return;
+
+        var driver = AttachedCharacters.GetValueOrDefault(AttachPointKind.Driver);
+        if (driver != null)
+            driver.SendPacket(new SCEnvDamagePacket(EnvSource.Falling, driver.ObjId, (uint)dealt));
     }
 
     public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
@@ -760,8 +788,21 @@ public class Slave : Unit
         MarkSummoningItemAsDestroyed();
 
         Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z));
-        Summoner?.SendPacket(new SCSlaveRemovedPacket(ObjId, TlId));
+        Summoner?.BroadcastPacket(new SCSlaveRemovedPacket(Summoner.ObjId, TlId), true);
         ClearAllAggro();
+
+        // Unbind all passengers
+        foreach (var character in AttachedCharacters.Values.ToList())
+            ParentWorld.SlaveManager.UnbindSlave(character, TlId, AttachUnitReason.None);
+
+        // Remove from physics simulation (ships only)
+        if (Template.IsABoat())
+            WorldManager.Instance.GetWorld(Transform.InstanceId)?.Physics.RemoveShip(this);
+
+        // Schedule full cleanup via slave.Delete() → Hide() + DetachAll() + RemoveObject()
+        // This keeps the slave visible and selectable during the death animation
+        Despawn = DateTime.UtcNow.AddSeconds(Spawner?.DespawnTime ?? 20);
+        ParentWorld.SpawnManager.AddDespawn(this);
     }
 
     /// <summary>

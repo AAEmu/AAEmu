@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
@@ -22,6 +24,35 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
     public RigidBody Hull { get; private set; } = null!;
     public ShipModelV1 ShipModel { get; init; } = shipModel ?? throw new ArgumentNullException(nameof(shipModel));
+
+    /// <summary>
+    /// Smoothed position, linear velocity, turn bank, and shore trim for packets (see nested type).
+    /// Hull yaw and physics euler from <see cref="RigidBody"/> stay unsmoothed in replication (no yaw smoothing).
+    /// </summary>
+    public ReplicationSmoothing Replication { get; } = new();
+
+    public sealed class ReplicationSmoothing
+    {
+        public bool Seeded { get; set; }
+        public float PosX { get; set; }
+        public float PosY { get; set; }
+        public float PosZ { get; set; }
+        public float VelPx { get; set; }
+        public float VelPy { get; set; }
+        public float VelPz { get; set; }
+        /// <summary>Second low-pass on turn bank for replication (softer λ than vertical; targets <see cref="Slave.BankAngle"/>).</summary>
+        public float BankSmoothed { get; set; }
+        /// <summary>Second low-pass on shore différent for replication (targets <see cref="Slave.GroundPitchAngle"/>).</summary>
+        public float GroundPitchSmoothed { get; set; }
+        /// <summary>Remaining movement broadcasts with stronger smoothing after hull–hull resolution.</summary>
+        public byte ContactHoldTicks { get; set; }
+
+        public void Reset()
+        {
+            Seeded = false;
+            ContactHoldTicks = 0;
+        }
+    }
 
     private readonly float _waterLevel = waterLevel;
     private const float FluidDensity = 1025f; // kg/m³
@@ -53,10 +84,23 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Higher = snappier convergence of <see cref="Slave.TurnSpeedVelocityMul"/> toward the turn target.</summary>
     private const float TurnSpeedVelocityMulResponse = 5.5f;
 
+    /// <summary>Min hull submergence (m) before water upright stabilization runs.</summary>
+    private const float UprightStabilizeMinSubmergedMeters = 0.04f;
+
+    /// <summary>Max rotation (rad/s) toward upright per tick — avoids snaps after collisions.</summary>
+    private const float UprightStabilizeMaxRadPerSec = 2.25f;
+
+    /// <summary>Skip correction when deck normal is already this close to world up (rad).</summary>
+    private const float UprightStabilizeAngleDeadZoneRad = 0.004f;
+
     /// <summary>
     /// Fixed max yaw rate (degrees/s) by <see cref="SlaveKind"/>.
     /// NOTE: We intentionally do NOT use ship_models.steer_vel because values in DB are not in valid units.
     /// </summary>
+    /// <remarks>
+    /// When adding a <see cref="SlaveKind"/>, review this table and any other per-kind ship tuning.
+    /// Visual turn bank in <see cref="PhysicsManager"/> uses <c>ship_models</c> mass box + mass instead.
+    /// </remarks>
     private static float GetSteerMaxDegFixed(SlaveKind kind) => kind switch
     {
         SlaveKind.Boat => 4.35f,
@@ -606,8 +650,65 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Apply directional force
         rigidBody.Velocity = new JVector(forceThrottle * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * MathF.Sin(slaveRotRad));
 
+        if (!isGrounded)
+        {
+            var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
+            if (submerged >= UprightStabilizeMinSubmergedMeters)
+                ApplyWaterUprightStabilization(rigidBody, dtSec);
+        }
+
         rigidBody.AngularVelocity = new JVector(0, slave.RotSpeed * -1f, 0);
 
         //Logger.Debug($"Slave: {slave.Name}, Throttle: {throttleFloatVal:F1} ({slave.ThrottleRequest}), Steering {steeringFloatVal:F1} ({slave.SteeringRequest}), speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}");
+    }
+
+    /// <summary>
+    /// Nudges <paramref name="body"/> so local +Y matches world up (shortest path), limited per frame.
+    /// Collision/physics can leave pitch/roll in the quaternion while angular velocity is yaw-only; this corrects that on open water.
+    /// </summary>
+    private static void ApplyWaterUprightStabilization(RigidBody body, float dtSec)
+    {
+        if (dtSec <= 0f)
+            return;
+
+        var jo = body.Orientation;
+        var q = Quaternion.Normalize(new Quaternion(jo.X, jo.Y, jo.Z, jo.W));
+        var bodyUp = Vector3.Transform(Vector3.UnitY, q);
+        var worldUp = Vector3.UnitY;
+
+        var axis = Vector3.Cross(bodyUp, worldUp);
+        var lenSq = axis.LengthSquared();
+        float angle;
+
+        if (lenSq < 1e-14f)
+        {
+            var dotParallel = Vector3.Dot(bodyUp, worldUp);
+            if (dotParallel > 1f - 1e-6f)
+                return;
+            if (dotParallel < -1f + 1e-6f)
+            {
+                axis = Vector3.Normalize(Vector3.Cross(bodyUp, Vector3.UnitX));
+                if (axis.LengthSquared() < 1e-12f)
+                    axis = Vector3.Normalize(Vector3.Cross(bodyUp, Vector3.UnitZ));
+                angle = MathF.PI;
+            }
+            else
+                return;
+        }
+        else
+        {
+            axis = Vector3.Normalize(axis);
+            var dot = Math.Clamp(Vector3.Dot(bodyUp, worldUp), -1f, 1f);
+            angle = MathF.Acos(dot);
+        }
+
+        if (angle < UprightStabilizeAngleDeadZoneRad)
+            return;
+
+        var maxStep = UprightStabilizeMaxRadPerSec * dtSec;
+        var step = MathF.Min(angle, maxStep);
+        var deltaQ = Quaternion.CreateFromAxisAngle(axis, step);
+        var qNew = Quaternion.Normalize(Quaternion.Multiply(deltaQ, q));
+        body.Orientation = new JQuaternion(qNew.X, qNew.Y, qNew.Z, qNew.W);
     }
 }

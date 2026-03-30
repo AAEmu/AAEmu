@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -69,6 +69,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj;
 
 public class Doodad : BaseUnit
 {
+    public static readonly HashSet<string> FuncDrivenLootFuncTypes =
+    [
+        "DoodadFuncLootItem",
+        "DoodadFuncLootPack",
+        "DoodadFuncRecoverItem",
+        "DoodadFuncCutdowning"
+    ];
+
+    public static bool IsFuncDrivenLootFunc(string funcType) => FuncDrivenLootFuncTypes.Contains(funcType);
+
     private float _scale;
     private int _data;
     private uint _funcGroupId;
@@ -846,7 +856,9 @@ public class Doodad : BaseUnit
         }
 
         stream.Write(Scale); //The size of the object
-        stream.Write(false); // hasLootItem
+        // Mark doodad as lootable for client UI (gear icon) when its current phase has any loot/recover interaction func.
+        var hasLootItem = CurrentFuncs.Any(func => IsFuncDrivenLootFunc(func.FuncType));
+        stream.Write(hasLootItem); // hasLootItem
         stream.Write(FuncGroupId); // doodad_func_group_id
         stream.Write(OwnerId); // characterId (Database relative)
         stream.Write(UccId);
