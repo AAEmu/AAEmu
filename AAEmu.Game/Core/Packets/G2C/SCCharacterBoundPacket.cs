@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-// TODO: Needs verification
 public class SCCharacterBoundPacket(
     uint unitObjId,
     uint returnDistrict,

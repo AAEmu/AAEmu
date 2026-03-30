@@ -397,6 +397,12 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             return;
         }
 
+        if (TrialManager.Instance.IsPlayerInCourt(character.Id))
+        {
+            character.SendErrorMessage(ErrorMessageType.CannotUsePortalInTrial);
+            return;
+        }
+
         character.DisabledSetPosition = true;
         // TODO - UnitPortalUsed
         // TODO - Maybe need unitState?

@@ -75,6 +75,9 @@ public sealed class GameService : IHostedService, IDisposable
         // --- ID managers ---
         // All ID managers implement ILoadable and are handled by the orchestrator in Stage 2.
         // SkillTlIdManager.Instance.Initialize(); // static class, not migrated
+        FormulaManager.Instance.Load();
+        ItemManager.Instance.Load();
+        ItemManager.Instance.LoadUserItems();
 
         // --- Stage 2: Orchestrated parallel Load() ---
         // Managers implementing ILoadable are sorted by constructor dep graph and run in parallel batches.

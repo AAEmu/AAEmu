@@ -7,8 +7,8 @@ public class DoodadFuncEvidenceItemLoot : DoodadFuncTemplate
 {
     // doodad_funcs
     public uint SkillId { get; set; }
-    public short CrimeValue { get; set; }
-    public uint CrimeKindId { get; set; }
+    public short CrimeValue { get; init; }
+    public uint CrimeKindId { get; init; }
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {

@@ -144,7 +144,14 @@ public class Dungeon
     {
         if (EnterRequests.Contains(character))
             return true;
-        
+
+        // Block players who are part of a court case
+        if (TrialManager.Instance.IsPlayerInCourt(character.Id))
+        {
+            character.SendErrorMessage(ErrorMessageType.CannotUsePortalInTrial);
+            return false;
+        }
+
         if (!IndunManager.Instance.CheckEntryAttemptCount(character.Id, GetZoneGroupId, _indunZone, true))
         {
             Logger.Info($"[{World}] Player {character.Name} did too many dungeon attempts.");

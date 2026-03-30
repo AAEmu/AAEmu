@@ -43,6 +43,10 @@ public class Return : SpecialEffectAction
             // Worldgates
             returnPointId = (uint)value1;
             trp = PortalManager.Instance.GetWorldGatesById(returnPointId);
+            if (trp == null)
+            {
+                Logger.Warn($"Cannot find return WorldGate with id {returnPointId}");
+            }
         }
 
         if (trp != null)

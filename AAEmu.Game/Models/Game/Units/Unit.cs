@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Items;
@@ -971,6 +972,19 @@ public class Unit : BaseUnit, IUnit
         caster.ObjId = ObjId;
 
         var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+        sct.ObjId = target.ObjId;
+
+        return skill.Use(this, caster, sct, null, true, out _);
+    }
+
+    public virtual SkillResult UseSkill(uint skillId, Doodad target)
+    {
+        var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+
+        var caster = SkillCaster.GetByType(SkillCasterType.Unit);
+        caster.ObjId = ObjId;
+
+        var sct = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
         sct.ObjId = target.ObjId;
 
         return skill.Use(this, caster, sct, null, true, out _);

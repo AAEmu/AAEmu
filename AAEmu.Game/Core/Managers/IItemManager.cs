@@ -1,3 +1,4 @@
+using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;

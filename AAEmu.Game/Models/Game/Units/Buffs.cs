@@ -330,11 +330,11 @@ public class Buffs : IBuffs
         }
     }
 
-    public void AddBuff(uint buffId, BaseUnit caster)
+    public void AddBuff(uint buffId, BaseUnit caster, int forcedDuration = 0)
     {
         var buff = SkillManager.Instance.GetBuffTemplate(buffId);
         var casterObj = new SkillCasterUnit(caster.ObjId);
-        AddBuff(new Buff(GetOwner(), caster, casterObj, buff, null, DateTime.UtcNow));
+        AddBuff(new Buff(GetOwner(), caster, casterObj, buff, null, DateTime.UtcNow), 0, forcedDuration);
     }
 
     public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)

@@ -363,7 +363,7 @@ public static class SCOffsets
     public const ushort SCCrimeDataPacket = 0x176;
     public const ushort SCCrimeRecordsPacket = 0x177;
     public const ushort SCChangeTrialStatePacket = 0x178;
-    public const ushort SCChangeJuryOKCountPacket = 0x179;
+    public const ushort SCChangeJuryOkCountPacket = 0x179;
     public const ushort SCChangeJuryVerdictCountPacket = 0x17a;
     public const ushort SCTrialWaitStatusPacket = 0x17b;
     public const ushort SCJuryWaitStatusPacket = 0x17c;
@@ -373,7 +373,7 @@ public static class SCOffsets
     public const ushort SCTrialAudienceLeftPacket = 0x180;
     public const ushort SCTrialInfoPacket = 0x181;
     public const ushort SCJuryWaitingNumberPacket = 0x182;
-    public const ushort SCTrialCancledPacket = 0x183;
+    public const ushort SCTrialCanceledPacket = 0x183;
     public const ushort SCBotSuspectReportedPacket = 0x184;
     public const ushort SCBotSuspectArrestedPacket = 0x185;
     public const ushort SCSuspectGoingBotTrial = 0x186;

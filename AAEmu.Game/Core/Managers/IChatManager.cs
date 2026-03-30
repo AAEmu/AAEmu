@@ -1,5 +1,6 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Crime;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.StaticValues;
@@ -20,4 +21,6 @@ public interface IChatManager : IInitializable
     ChatChannel GetFamilyChat(uint familyId);
     ChatChannel GetPartyChat(Team party, Character myChar);
     ChatChannel GetRaidChat(Team party);
+    ChatChannel GetTrialChat(Character character);
+    ChatChannel GetTrialChat(CourtRoomRegion courtRegion);
 }

@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTrialInfoPacket(
-    uint type,
+    uint playerId,
     int crimePoint,
     int arrest,
     int acceptGuilty,
@@ -13,13 +13,13 @@ public class SCTrialInfoPacket(
     int guilty,
     int total,
     int cur,
-    int crimeRecord,
+    int crimeRecordCount,
     int botReport)
     : GamePacket(SCOffsets.SCTrialInfoPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(type);
+        stream.Write(playerId);
         stream.Write(crimePoint);
         stream.Write(arrest);
         stream.Write(acceptGuilty);
@@ -28,7 +28,7 @@ public class SCTrialInfoPacket(
         stream.Write(guilty);
         stream.Write(total);
         stream.Write(cur);
-        stream.Write(crimeRecord);
+        stream.Write(crimeRecordCount);
         stream.Write(botReport);
         return stream;
     }

@@ -26,6 +26,7 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
                     return; // we leave if there is no place
                 }
 
+                
                 character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
                 character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
                 character.Transform.StickyParent = owner.Transform.StickyParent;

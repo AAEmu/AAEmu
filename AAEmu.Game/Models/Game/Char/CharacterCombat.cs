@@ -74,6 +74,8 @@ public partial class Character
         var zoneState = conflictData?.CurrentZoneState ?? ZoneConflictType.Peace;
 
         var relationState = killer.GetRelationStateTo(this);
+        var possibleArrest = false;
+        Character arrestor = null;
         if (killer is Character enemy)
         {
             if (relationState != RelationState.Friendly)
@@ -103,7 +105,11 @@ public partial class Character
                 // Friendly-fire kill → generate crime evidence (unless retaliation)
                 var killerOwner = killer.GetOwnerCharacter();
                 if (killerOwner != null && !AssaultedBy.Contains(killerOwner.Id))
+                {
                     _ = CrimeManager.Instance.GenerateEvidenceFromKill(killer, this);
+                    possibleArrest = true;
+                    arrestor = enemy;
+                }
             }
         }
 
@@ -112,6 +118,10 @@ public partial class Character
 
         // Clear damage history on death (heal history is intentionally kept)
         _pvpDamageHistory.Clear();
+
+        // Arrest if wanted
+        if (possibleArrest && Buffs.CheckBuffTag((uint)BuffConstants.TagWanted))
+            TrialManager.Instance.ArrestCriminal(this, arrestor);
     }
 
     /// <summary>
@@ -352,7 +362,7 @@ public partial class Character
     public void CheckWantedThreshold()
     {
         // Check wanted status
-        if (CrimeRecord >= CrimeManager.PirateCrimePointThreshold)
+        if (InfamyPoint >= CrimeManager.PirateCrimePointThreshold)
         {
             // Add wanted
             if (!Buffs.CheckBuff((uint)BuffConstants.Wanted))

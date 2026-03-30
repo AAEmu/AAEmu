@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -7,8 +8,9 @@ public class CSReplyImprisonOrTrialPacket() : GamePacket(CSOffsets.CSReplyImpris
 {
     public override void Read(PacketStream stream)
     {
-        var trial = stream.ReadBoolean();
+        var requestTrial = stream.ReadBoolean();
 
-        Logger.Warn("ReplyImprisonOrTrial, Trial: {0}", trial);
+        Logger.Warn($"ReplyImprisonOrTrial, Trial: {requestTrial}");
+        TrialManager.Instance.ReplyImprisonOrTrial(Connection.ActiveChar, requestTrial);
     }
 }

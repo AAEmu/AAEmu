@@ -222,7 +222,8 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
             return 0;
         }
 
-        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + bundleItem.Item.Refund);
+        var item = bundleItem.Item ?? ItemManager.Instance.GetTemplate(bundleItem.ItemId);
+        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + item?.Refund ?? 0);
     }
 
     public int SellSpecialty(Character player, uint npcObjId)

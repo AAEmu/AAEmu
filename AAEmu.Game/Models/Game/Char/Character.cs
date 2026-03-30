@@ -119,7 +119,7 @@ public partial class Character : Unit, ICharacter
         {
             if (value != field)
             {
-                field = value;
+                field = value >= 0 ? value : (short)0;
                 CheckWantedThreshold();
             }
         }
@@ -127,18 +127,41 @@ public partial class Character : Unit, ICharacter
     /// <summary>
     /// Total infamy
     /// </summary>
-    public int CrimeRecord {
+    public int InfamyPoint {
         get;
         set
         {
             if (value != field)
             {
                 field = value;
+                field = value >= 0 ? value : 0;
                 CheckWantedThreshold();
             }
         }
     }
-    public int JuryPoint { get; set; }
+
+    /// <summary>
+    /// Number of Trials served+1
+    /// Zero means you didn't yet complete the quest to unlock trials
+    /// One means you served no trials so far but are eligible
+    /// </summary>
+    public int JuryPoint {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            try
+            {
+                SendPacket(new SCJuryPointChangedPacket(value));
+            }
+            catch
+            {
+                //
+            }
+        }
+    }
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
@@ -217,7 +240,15 @@ public partial class Character : Unit, ICharacter
             _isUnderWater = value;
             if (!_isUnderWater)
                 Breath = LungCapacity;
-            SendPacket(new SCUnderWaterPacket(_isUnderWater));
+            try
+            {
+                SendPacket(new SCUnderWaterPacket(_isUnderWater));
+            }
+            catch
+            {
+                //
+            }
+            
         }
     }
 
@@ -1708,9 +1739,11 @@ public partial class Character : Unit, ICharacter
         var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
 
         // Ok, we actually changed zone groups, we'll have to do some chat channel stuff
+        // First leave the old previous zone's chat
         if (lastZoneGroupId != 0)
             ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
-        if (newZoneGroupId != 0)
+        // Next add to the new zone. Also check for online here, this prevents offline characters from character select to be added
+        if (newZoneGroupId != 0 && IsOnline)
             ChatManager.Instance.GetZoneChat(newZoneKey).JoinChannel(this);
 
         if (newZone != null)
@@ -1729,7 +1762,7 @@ public partial class Character : Unit, ICharacter
             return;
         }
 
-        // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour!
+        // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behavior!
         if (newZone != null)
             SendMessage(ChatType.System, $"You have entered a closed zone ({newZone.ZoneKey} - {newZone.Name})!\nPlease leave immediately!", Color.Red);
 
@@ -1935,6 +1968,14 @@ public partial class Character : Unit, ICharacter
     }
 
     public TimeSpan OnlineTime { get; set; } = TimeSpan.Zero;
+    // TODO: Save these new stats
+    public int ArrestCount { get; set; }
+    public int AcceptGuiltyCount { get; set; }
+    public int AcceptTrialCount { get; set; }
+    public int NotGuiltyCount { get; set; }
+    public int GuiltyCount { get; set; }
+    public int EvidenceReportedCount { get; set; }
+    public int BotReportedCount { get; set; }
 
     public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
     {
@@ -2049,7 +2090,17 @@ public partial class Character : Unit, ICharacter
             ParentWorld.SlaveManager.UnbindSlave(this, isOnSlave.TlId, reason);
             res = true;
         }
-        // Unbind from any parent
+
+        // If they are still sitting down, detach them first
+        var chairDoodad = Connection.ActiveChar.Bonding?.GetOwner();
+        if (chairDoodad != null)
+        {
+            chairDoodad.Seat.UnLoadPassenger(Connection.ActiveChar, chairDoodad.ObjId);
+            Bonding.SetOwner(null);
+            Bonding = null;
+            BroadcastPacket(new SCUnbondDoodadPacket(ObjId, Id, chairDoodad.ObjId), true);
+        }
+
         Transform.DetachAll();
         return res;
     }
@@ -2173,7 +2224,7 @@ public partial class Character : Unit, ICharacter
                     character.HonorPoint = reader.GetInt32("honor_point");
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
-                    character.CrimeRecord = reader.GetInt32("crime_record");
+                    character.InfamyPoint = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt32("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
@@ -2292,7 +2343,7 @@ public partial class Character : Unit, ICharacter
                     character.HonorPoint = reader.GetInt32("honor_point");
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
-                    character.CrimeRecord = reader.GetInt32("crime_record");
+                    character.InfamyPoint = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt16("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
@@ -2603,7 +2654,7 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@honor_point", HonorPoint);
                 command.Parameters.AddWithValue("@vocation_point", VocationPoint);
                 command.Parameters.AddWithValue("@crime_point", CrimePoint);
-                command.Parameters.AddWithValue("@crime_record", CrimeRecord);
+                command.Parameters.AddWithValue("@crime_record", InfamyPoint);
                 command.Parameters.AddWithValue("@jury_point", JuryPoint);
                 command.Parameters.AddWithValue("@hostile_faction_kills", HostileFactionKills);
                 command.Parameters.AddWithValue("@pvp_honor", HonorGainedInCombat);
@@ -2735,7 +2786,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(Money);
         stream.Write(0L); // moneyAmount ?
         stream.Write(CrimePoint); // current crime points (/50)
-        stream.Write(CrimeRecord); // total infamy 
+        stream.Write(InfamyPoint); // total infamy 
         stream.Write((short)0); // crimeScore? trials served?
         stream.Write(DeleteRequestTime);
         stream.Write(TransferRequestTime);
@@ -2772,11 +2823,11 @@ public partial class Character : Unit, ICharacter
         {
             CrimePoint = (short)newAmount;
         }
-        CrimeRecord += amount; // total amount
-        if (CrimeRecord < 0)
-            CrimeRecord = 0;
+        InfamyPoint += amount; // total amount
+        if (InfamyPoint < 0)
+            InfamyPoint = 0;
         
-        SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, 0));
+        SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, InfamyPoint, GetCrimeState()));
     }
 
     /// <summary>
@@ -2923,5 +2974,15 @@ public partial class Character : Unit, ICharacter
     public override string DebugName()
     {
         return base.DebugName() + " (" + Id + ")";
+    }
+
+    public short GetCrimeState()
+    {
+        // TODO: Check if this is actually correct or not
+        if (Buffs.CheckBuff((uint)BuffConstants.ForciblyAwaitingTrial))
+            return 2;
+        if (Buffs.CheckBuff((uint)BuffConstants.Wanted))
+            return 1;
+        return 0;
     }
 }

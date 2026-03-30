@@ -1,23 +1,23 @@
 ﻿using System.Drawing;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
 
-namespace AAEmu.Game.Scripts.SubCommands.Doodads;
+namespace AAEmu.Game.Scripts.SubCommands.Crimes;
 
-public class DoodadCrimeSubCommand : SubCommandBase
+public class CrimeCreateSubCommand : SubCommandBase
 {
-    public DoodadCrimeSubCommand()
+    public CrimeCreateSubCommand()
     {
-        Title = "[Doodad Spawn Crime]";
-        Description = "Add a new doodad of a specific template 3 meters in front of the player. Default yaw will use characters facing angle.";
-        CallPrefix = $"{CommandManager.CommandPrefix}doodad crime";
+        Title = "[Crime Create]";
+        Description = "Add a new crime evidence doodad of a specific template at your current location.\n" +
+                      $"Valid templates: Small Bloodstain ({DoodadConstants.SmallBloodstain}), Large Bloodstain ({DoodadConstants.LargeBloodstain}), Footprint (male {DoodadConstants.FootprintMale}, female {DoodadConstants.FootprintFemale})";
+        CallPrefix = $"{CommandManager.CommandPrefix}crime create";
         AddParameter(new NumericSubCommandParameter<uint>("templateId", "template id", true));
         AddParameter(new NumericSubCommandParameter<uint>("owner", "owner=<playerId>", true, "owner"));
         AddParameter(new NumericSubCommandParameter<uint>("victim", "victim=<playerId>", true, "victim"));
@@ -33,6 +33,12 @@ public class DoodadCrimeSubCommand : SubCommandBase
         if (!DoodadManager.Instance.Exist(unitTemplateId))
         {
             SendColorMessage(messageOutput, Color.Red, $"Doodad templateId:{unitTemplateId} don't exist");
+            return;
+        }
+
+        if (unitTemplateId != DoodadConstants.SmallBloodstain && unitTemplateId != DoodadConstants.LargeBloodstain && unitTemplateId != DoodadConstants.FootprintMale && unitTemplateId != DoodadConstants.FootprintFemale)
+        {
+            SendColorMessage(messageOutput, Color.Red, $"Doodad templateId:{unitTemplateId} is not related to evidence.");
             return;
         }
 
@@ -55,7 +61,7 @@ public class DoodadCrimeSubCommand : SubCommandBase
 
         if (doodad == null)
         {
-            Logger.Warn($"Doodad {unitTemplateId}, from spawn not exist at db");
+            Logger.Warn($"Evidence {unitTemplateId}, was not able to spawn");
             return;
         }
 
@@ -63,12 +69,12 @@ public class DoodadCrimeSubCommand : SubCommandBase
         doodad.OwnerType = DoodadOwnerType.Character;
         doodad.Spawner = doodadSpawner;
         doodad.Transform.ApplyWorldSpawnPosition(doodadSpawner.Position);
-        doodad.QuestGlow = 0u; // TODO: make this OOP
+        doodad.QuestGlow = 0u;
         doodad.ItemTemplateId = sourceDoodadTemplateId;
         doodad.Data = (int)victimId;
         doodad.PlantTime = DateTime.UtcNow;
         doodad.Spawn();
 
-        character.SendMessage($"Crime Doodad ObjId:{doodad.ObjId}, Template {unitTemplateId} spawned, Owner: {ownerId}, Victim: {victimId}, Source: {sourceDoodadTemplateId}");
+        character.SendMessage($"Crime Evidence Doodad ObjId:{doodad.ObjId}, Template {unitTemplateId} spawned, Owner: {ownerId}, Victim: {victimId}, Source: {sourceDoodadTemplateId}");
     }
 }

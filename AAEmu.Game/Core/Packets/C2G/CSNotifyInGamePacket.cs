@@ -23,8 +23,7 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         // Back in 1.x /trade was zone based, not faction based
         ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId).JoinChannel(Connection.ActiveChar); // shout, trade, lfg
         ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).JoinChannel(Connection.ActiveChar); // nation
-        // TODO: Implement crime system, actual jury channel doesn't exist yet
-        Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Judge, 0, Connection.ActiveChar.Faction.MotherId)); //trial
+        // ChatManager.Instance.GetTrialChat(Connection.ActiveChar)?.JoinChannel(Connection.ActiveChar); // trial
         ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).JoinChannel(Connection.ActiveChar); // faction
 
         // TODO: Maybe move to spawn character?
@@ -33,6 +32,7 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
 
         Connection.ActiveChar.UpdateGearBonuses(null, null);
 
+        TrialManager.Instance.HandlePlayerLogin(Connection.ActiveChar);
         Logger.Info($"NotifyInGame: {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id})");
     }
 }

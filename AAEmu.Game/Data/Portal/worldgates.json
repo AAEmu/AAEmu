@@ -245,5 +245,25 @@
         "Z": 130.5,
         "Yaw": 0,
         "SubZoneId": 1110
-    }
+    },
+	{
+		"Id": 48,
+        "Name": "Nuian Jail Exit",
+        "ZoneId": 183,
+	    "X": 11022.0,
+        "Y": 12207.0,
+        "Z": 134,
+        "Yaw": 200,
+        "SubZoneId": 37
+	},
+	{
+		"Id": 262,
+        "Name": "Haranya Jail Exit",
+        "ZoneId": 141,
+	    "X": 16866.0,
+        "Y": 8770.0,
+        "Z": 149,
+        "Yaw": 90,
+        "SubZoneId": 578
+	}
 ]

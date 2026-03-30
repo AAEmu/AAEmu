@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
@@ -19,12 +20,17 @@ public class SCNpcChatMessagePacket(
     {
         #region Int64_chat
         stream.Write((short)chatType);                     // ChatType -> ChatChannelNo
-        stream.Write((short)(character?.Faction.Id ?? 0)); // chat, subType
-        stream.Write((uint)(character?.Faction.Id ?? 0));  // chat, factionId
+        stream.Write((short)(npc?.Faction.Id ?? 0)); // chat, subType
+        stream.Write((uint)(npc?.Faction.Id ?? 0));  // chat, factionId
         #endregion Int64_chat
 
-        stream.WriteBc(npc.ObjId);             // bc
-        stream.Write(npc.Name);                // name
+        stream.WriteBc(npc?.ObjId ?? 0);             // bc
+        var npcName = npc?.Name ?? string.Empty;
+        if (string.IsNullOrEmpty(npcName))
+        {
+            npcName = LocalizationManager.Instance.Get("npcs", "name", npc?.Template.Id ?? 0, string.Empty);
+        }
+        stream.Write(npcName);                // name
         stream.WriteBc(character?.ObjId ?? 0); // bc
         stream.Write(kind);                    // kind
         if (kind == 1)

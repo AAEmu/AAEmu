@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -7,8 +8,11 @@ public class CSSkipFinalStatementPacket() : GamePacket(CSOffsets.CSSkipFinalStat
 {
     public override void Read(PacketStream stream)
     {
-        var trial = stream.ReadUInt32();
+        var trialId = stream.ReadUInt32();
 
-        Logger.Warn("SkipFinalStatement, Trial: {0}", trial);
+        Logger.Debug($"SkipFinalStatement, Trial: {trialId}");
+        var trial = TrialManager.Instance.GetTrial(trialId);
+        if (trial != null)
+            TrialManager.SkipFinalStatementReply(Connection.ActiveChar, trial);
     }
 }

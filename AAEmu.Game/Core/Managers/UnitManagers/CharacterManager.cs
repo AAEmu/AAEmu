@@ -978,6 +978,7 @@ public class CharacterManager(
         command.CommandText = "UPDATE characters SET `crime_point` = `crime_point` + @crime_point , `crime_record` = `crime_record` + @crime_point WHERE `id` = @id";
         command.Parameters.AddWithValue("@crime_point", crimePointsToAdd);
         command.Parameters.AddWithValue("@id", playerId);
+        // TODO: Add offline EvidenceReportedCount
         command.Prepare();
         if (command.ExecuteNonQuery() != 1)
         {

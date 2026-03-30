@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Exceptions;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -869,8 +869,15 @@ public class SpawnManager(WorldInstance parentWorld)
 
             Logger.Info($"In world {World} Doodads spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
 
-            // you have to wait for all the doodads to spawn before trying to initialize the fish schools
+            // You have to wait for all the doodads to spawn before trying to initialize the fish schools.
             FishSchoolManager.Instance.Load(World);
+            // Link doodads seats to the trial system
+            if (World.Id == WorldManager.DefaultInstanceId)
+            {
+                TrialManager.Instance.Load();
+                TrialManager.Instance.InitializeDoodads(World);
+                TrialManager.Instance.InitializeNpc(World);
+            }
         }));
 
         Logger.Info("Spawning Transfers...");
@@ -1254,5 +1261,54 @@ public class SpawnManager(WorldInstance parentWorld)
         {
             gimmick.Delete();
         }
+    }
+
+    public uint GetNExtSpawnerId()
+    {
+        var res = _nextId;
+        _nextId++;
+        return res;
+    }
+
+    /// <summary>
+    /// Gets a list of all doodad spawners that start with the given specialHeader in their defined SpecialLink field in the .json files.
+    /// </summary>
+    /// <param name="specialHeader"></param>
+    /// <returns></returns>
+    public List<DoodadSpawner> GetSpecialDoodadSpawners(string specialHeader)
+    {
+        var res = new List<DoodadSpawner>();
+        foreach (var doodadSpawner in DoodadSpawners.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(doodadSpawner.SpecialLink) &&
+                doodadSpawner.SpecialLink.StartsWith(specialHeader))
+            {
+                res.Add(doodadSpawner);
+            }
+        }
+        return res;
+    }
+
+    /// <summary>
+    /// Gets a list of all npc spawners that start with the given specialHeader in their defined SpecialLink field in the .json files.
+    /// </summary>
+    /// <param name="specialHeader"></param>
+    /// <returns></returns>
+    public List<NpcSpawner> GetSpecialNpcSpawners(string specialHeader)
+    {
+        var res = new List<NpcSpawner>();
+        foreach (var npcSpawners in NpcSpawners.Values)
+        {
+            foreach (var npcSpawner in npcSpawners)
+            {
+                if (!string.IsNullOrWhiteSpace(npcSpawner.SpecialLink) &&
+                    npcSpawner.SpecialLink.StartsWith(specialHeader))
+                {
+                    res.Add(npcSpawner);
+                }
+            }
+        }
+
+        return res;
     }
 }

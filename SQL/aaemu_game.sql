@@ -622,10 +622,11 @@ CREATE TABLE IF NOT EXISTS `crime` (
 	`z` FLOAT NULL DEFAULT '0',
 	`crime_time` DATETIME NULL DEFAULT NULL,
 	`report_time` DATETIME NULL DEFAULT NULL,
-	`arg1` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument1 of reported crime',
-	`arg2` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument2 of reported crime',
-	`arg3` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument3 of reported crime',
+	`skill_id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Used Skill to report',
+	`next_func_group` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Next FuncGroup of the evidence',
+	`func_id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Current DoodadFunc Id',
 	`msg` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+	`judgement_time` DATETIME NULL DEFAULT NULL COMMENT 'Time when this event has been processed',
 	PRIMARY KEY (`id`) USING BTREE
 )
 COMMENT='Keeps track of the crime events'
