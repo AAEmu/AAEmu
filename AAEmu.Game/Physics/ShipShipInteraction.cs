@@ -28,19 +28,22 @@ public sealed class ShipShipInteraction
     /// Extra tightening of beam in SAT only: <c>MassBoxSizeY</c> is often full deck/rail width, so side-by-side
     /// contact triggered long before hulls meet; length stays full for nose-to-nose.
     /// </summary>
-    private const float BeamDetectTightenMul = 0.86f;
+    private const float BeamDetectTightenMul = 0.78f;
 
     /// <summary>Ignore overlap response below this depth (m) — kills ghost drag from marginal SAT positives.</summary>
     private const float MinPenetrationToAct = 0.055f;
+
+    /// <summary>Ignore periodic hull-damage for marginal SAT overlaps (m) — prevents "rubbing damage" from false contact.</summary>
+    private const float MinPenetrationToDamage = MinPenetrationToAct * 1.15f;
 
     /// <summary>Ramp tangential slip damp from 0 to full over this depth past <see cref="MinPenetrationToAct"/>.</summary>
     private const float TangentialRampDepthMeters = 0.22f;
 
     /// <summary>Multiplies positional separation once overlap exists (mesh wider than mass box).</summary>
-    private const float SeparationPushMultiplier = 1.34f;
+    private const float SeparationPushMultiplier = 1.22f;
 
     /// <summary>Extra push after computed overlap so hulls do not sit exactly tangent (reduces z-fight / next-frame re-entry).</summary>
-    private const float SeparationSlackMeters = 0.032f;
+    private const float SeparationSlackMeters = 0.020f;
 
     /// <summary>When overlapping, relative speed along separation normal is removed this fraction (1 = full stop along normal).</summary>
     private const float ClosingSpeedDamp = 1f;
@@ -115,7 +118,12 @@ public sealed class ShipShipInteraction
                     if (sb.RigidBody is null || sb.RigidBody.Shapes.Count == 0)
                         continue;
 
-                    if (!TryResolvePair(sa, sb, out var impactSpeedMps))
+                    if (!TryResolvePair(sa, sb, out var impactSpeedMps, out var maxPenetration))
+                        continue;
+
+                    // If SAT only detects a marginal overlap (e.g. due to discrete steps / tight mass-box),
+                    // keep the depenetration but don't apply periodic hull damage.
+                    if (maxPenetration < MinPenetrationToDamage)
                         continue;
 
                     const byte holdTicks = 10;
@@ -232,9 +240,10 @@ public sealed class ShipShipInteraction
         return (int)MathF.Round(f);
     }
 
-    private static bool TryResolvePair(Slave sa, Slave sb, out float impactSpeedMps)
+    private static bool TryResolvePair(Slave sa, Slave sb, out float impactSpeedMps, out float maxPenetration)
     {
         impactSpeedMps = 0f;
+        maxPenetration = 0f;
         var bodyA = sa.RigidBody!;
         var bodyB = sb.RigidBody!;
         var ma = sa.ShipController?.ShipModel;
@@ -282,6 +291,8 @@ public sealed class ShipShipInteraction
 
             if (penetration <= 1e-4f || penetration < MinPenetrationToAct)
                 break;
+
+            maxPenetration = MathF.Max(maxPenetration, penetration);
 
             var dx = bx - ax;
             var dz = bz - az;
