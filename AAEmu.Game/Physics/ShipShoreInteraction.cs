@@ -16,10 +16,7 @@ namespace AAEmu.Game.Physics;
 /// </summary>
 public sealed class ShipShoreInteraction
 {
-    /// <summary>
-    /// Production defaults when <see cref="AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled"/> is false.
-    /// <see cref="AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning"/> mirrors these for Hot Reload.
-    /// </summary>
+    /// <summary>Production constants for ship↔shore (single source of truth).</summary>
     public static class ShorePhysicsDefaults
     {
         public const float BoatBottomOffsetFracOfSizeZ = 0f;
@@ -64,15 +61,11 @@ public sealed class ShipShoreInteraction
         if (!isOnLand)
             return;
 
-        var groundFriction = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.GroundFriction
-            : ShorePhysicsDefaults.GroundFriction;
+        var groundFriction = ShorePhysicsDefaults.GroundFriction;
         var frictionForce = new JVector(-slave.RigidBody.Velocity.X * groundFriction, 0, -slave.RigidBody.Velocity.Z * groundFriction);
         slave.RigidBody.AddForce(frictionForce);
 
-        var dryDamp = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.DryGroundCollisionDamping
-            : ShorePhysicsDefaults.DryGroundCollisionDamping;
+        var dryDamp = ShorePhysicsDefaults.DryGroundCollisionDamping;
         slave.RigidBody.Velocity *= dryDamp;
         slave.RigidBody.AngularVelocity *= dryDamp;
 
@@ -82,14 +75,10 @@ public sealed class ShipShoreInteraction
             slave.RigidBody.AngularVelocity = JVector.Zero;
 
             var rollAngle = PhysicsUtil.GetYawPitchRollFromJMatrix(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation)).Item2;
-            var rollDeadZone = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-                ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.DryGroundRollDeadZoneRad
-                : ShorePhysicsDefaults.DryGroundRollDeadZoneRad;
+            var rollDeadZone = ShorePhysicsDefaults.DryGroundRollDeadZoneRad;
             if (Math.Abs(rollAngle) < rollDeadZone)
             {
-                var rollTorqueMul = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-                    ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.DryGroundRollTorqueMul
-                    : ShorePhysicsDefaults.DryGroundRollTorqueMul;
+                var rollTorqueMul = ShorePhysicsDefaults.DryGroundRollTorqueMul;
                 var correctionTorque = new JVector(0, 0, -rollAngle * slave.RigidBody.Mass * rollTorqueMul);
                 slave.RigidBody.AddForce(correctionTorque);
             }
@@ -125,15 +114,9 @@ public sealed class ShipShoreInteraction
         var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
 
-        var groundPitchMaxDeg = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.VisualGroundPitchMaxDeg
-            : ShorePhysicsDefaults.VisualGroundPitchMaxDeg;
-        var groundPitchProbeDistance = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.VisualGroundPitchProbeDistance
-            : ShorePhysicsDefaults.VisualGroundPitchProbeDistance;
-        var groundPitchResponse = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.VisualGroundPitchResponse
-            : ShorePhysicsDefaults.VisualGroundPitchResponse;
+        var groundPitchMaxDeg = ShorePhysicsDefaults.VisualGroundPitchMaxDeg;
+        var groundPitchProbeDistance = ShorePhysicsDefaults.VisualGroundPitchProbeDistance;
+        var groundPitchResponse = ShorePhysicsDefaults.VisualGroundPitchResponse;
         var targetGroundPitch = 0f;
         if (slave.ParentWorld != null && (slave.CachedFloorLevel > slave.CachedWaterSurface || slave.GroundContactLatched))
         {
@@ -149,9 +132,7 @@ public sealed class ShipShoreInteraction
             var frontH = slave.ParentWorld.GetHeight(frontX, frontY);
             var backH = slave.ParentWorld.GetHeight(backX, backY);
 
-            var pitchFloorSmoothResponse = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-                ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.VisualPitchFloorSmoothResponse
-                : ShorePhysicsDefaults.VisualPitchFloorSmoothResponse;
+            var pitchFloorSmoothResponse = ShorePhysicsDefaults.VisualPitchFloorSmoothResponse;
             var floorA = 1f - MathF.Exp(-pitchFloorSmoothResponse * dt);
             if (!slave.GroundPitchFloorSmoothingSeeded)
             {
@@ -187,9 +168,7 @@ public sealed class ShipShoreInteraction
 
         // "Bottom" for penetration is not the rigidbody center. Use a tunable fraction of hull height.
         // This reduces the visible gap when the ship becomes grounded/beached.
-        var boatBottomOffsetFrac = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.BoatBottomOffsetFracOfSizeZ
-            : ShorePhysicsDefaults.BoatBottomOffsetFracOfSizeZ;
+        var boatBottomOffsetFrac = ShorePhysicsDefaults.BoatBottomOffsetFracOfSizeZ;
         var hullHeight = MathF.Max(0.01f, slave.ShipController.ShipModel.MassBoxSizeZ * slave.Scale);
         var boatBottom = slave.RigidBody.Position.Y - hullHeight * boatBottomOffsetFrac;
 
@@ -227,16 +206,10 @@ public sealed class ShipShoreInteraction
         var cliffY = probeY;
         var cliffFloor = contactFloor;
 
-        var shoreEnterHyst = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.ShoreEnterHyst
-            : ShorePhysicsDefaults.ShoreEnterHyst;
-        var shoreExitHyst = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.ShoreExitHyst
-            : ShorePhysicsDefaults.ShoreExitHyst;
+        var shoreEnterHyst = ShorePhysicsDefaults.ShoreEnterHyst;
+        var shoreExitHyst = ShorePhysicsDefaults.ShoreExitHyst;
 
-        var floorSmoothResponse = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.FloorSmoothResponse
-            : ShorePhysicsDefaults.FloorSmoothResponse;
+        var floorSmoothResponse = ShorePhysicsDefaults.FloorSmoothResponse;
         {
             var a = 1f - MathF.Exp(-floorSmoothResponse * dt);
             if (!slave.GroundContactLatched && !slave.GroundContactFloorSmoothingSeeded)
@@ -249,9 +222,7 @@ public sealed class ShipShoreInteraction
         }
         var floorSmoothed = slave.GroundContactFloorSmoothed;
 
-        var preShoreBand = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.PreShoreBand
-            : ShorePhysicsDefaults.PreShoreBand;
+        var preShoreBand = ShorePhysicsDefaults.PreShoreBand;
         // Use water surface at the probe point, not at ship center; near shore these can differ.
         var enterDelta = (waterAtProbe + shoreEnterHyst) - floorSmoothed;
         if (!slave.GroundContactLatched && enterDelta >= 0f && enterDelta <= preShoreBand)
@@ -298,15 +269,11 @@ public sealed class ShipShoreInteraction
             out _);
         var centerAboveWaterline = slave.RigidBody.Position.Y > waterAtCenter + 0.001f;
 
-        var penetrationEpsilon = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.PenetrationEpsilon
-            : ShorePhysicsDefaults.PenetrationEpsilon;
-        var penetrationResponse = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.PenetrationResponse
-            : ShorePhysicsDefaults.PenetrationResponse;
+        var penetrationEpsilon = ShorePhysicsDefaults.PenetrationEpsilon;
+        var penetrationResponse = ShorePhysicsDefaults.PenetrationResponse;
         var maxUpStepPerTick = slave.GroundContactLatchedTime < 0.30f
-            ? (AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.MaxUpStepEarly : ShorePhysicsDefaults.MaxUpStepEarly)
-            : (AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.MaxUpStepLate : ShorePhysicsDefaults.MaxUpStepLate);
+            ? ShorePhysicsDefaults.MaxUpStepEarly
+            : ShorePhysicsDefaults.MaxUpStepLate;
         if (penetration > penetrationEpsilon && !centerAboveWaterline)
         {
             var a = 1f - MathF.Exp(-penetrationResponse * dt);

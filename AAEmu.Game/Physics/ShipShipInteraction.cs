@@ -14,15 +14,12 @@ namespace AAEmu.Game.Physics;
 /// so Jitter contacts do not prevent mesh-deep penetration — we depenetrate in XZ and damp closing speed.
 /// SAT overlap uses a tight mass box (near physics hull) so reaction does not start far before visuals meet.
 /// After overlap is detected, separation is scaled up to approximate client mesh extent without enlarging the hit test.
-/// Separation and velocity damping are mass-weighted; <see cref="AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MassPushStrength"/> blends toward 50/50 (0) or exaggerates beyond inverse-mass (&gt;1).
+/// Separation and velocity damping are mass-weighted; see <see cref="PhysicsDefaults.MassPushStrength"/>.
 /// Centers use the same local mass-center offset as <see cref="ShipController.Build"/> (TransformedShape).
 /// </summary>
 public sealed class ShipShipInteraction
 {
-    /// <summary>
-    /// Production defaults for ship↔ship SAT/response when <see cref="AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled"/> is false.
-    /// <see cref="AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning"/> mirrors these for Hot Reload.
-    /// </summary>
+    /// <summary>Production constants for ship↔ship SAT/response (single source of truth).</summary>
     public static class PhysicsDefaults
     {
         public const float HullDetectInflateLength = 1.025f;
@@ -53,101 +50,30 @@ public sealed class ShipShipInteraction
 
     private static class Tune
     {
-        public static float HullDetectInflateLength => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDetectInflateLength
-            : PhysicsDefaults.HullDetectInflateLength;
-
-        public static float HullDetectInflateBeam => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDetectInflateBeam
-            : PhysicsDefaults.HullDetectInflateBeam;
-
-        public static float BeamDetectTightenMul => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.BeamDetectTightenMul
-            : PhysicsDefaults.BeamDetectTightenMul;
-
-        public static float MinPenetrationToAct => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinPenetrationToAct
-            : PhysicsDefaults.MinPenetrationToAct;
-
-        public static float MinPenetrationToDamage => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinPenetrationToDamage
-            : PhysicsDefaults.MinPenetrationToDamage;
-
-        public static float TangentialRampDepthMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.TangentialRampDepthMeters
-            : PhysicsDefaults.TangentialRampDepthMeters;
-
-        public static float SeparationPushMultiplier => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.SeparationPushMultiplier
-            : PhysicsDefaults.SeparationPushMultiplier;
-
-        public static float SeparationSlackMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.SeparationSlackMeters
-            : PhysicsDefaults.SeparationSlackMeters;
-
-        public static float ClosingSpeedDamp => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.ClosingSpeedDamp
-            : PhysicsDefaults.ClosingSpeedDamp;
-
-        public static float TangentialSlipDamp => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.TangentialSlipDamp
-            : PhysicsDefaults.TangentialSlipDamp;
-
-        public static float MinVerticalOverlap => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinVerticalOverlap
-            : PhysicsDefaults.MinVerticalOverlap;
-
-        public static int ResolvePasses => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.ResolvePasses
-            : PhysicsDefaults.ResolvePasses;
-
-        public static int MaxPairIterations => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MaxPairIterations
-            : PhysicsDefaults.MaxPairIterations;
-
-        public static float DeepPenetrationStart => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.DeepPenetrationStart
-            : PhysicsDefaults.DeepPenetrationStart;
-
-        public static float DeepPenetrationBoost => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.DeepPenetrationBoost
-            : PhysicsDefaults.DeepPenetrationBoost;
-
-        public static float MinHalfSeparationMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinHalfSeparationMeters
-            : PhysicsDefaults.MinHalfSeparationMeters;
-
-        public static float MinLinearSeparationToApplyMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinLinearSeparationToApplyMeters
-            : PhysicsDefaults.MinLinearSeparationToApplyMeters;
-
-        public static float NoseContactCosThreshold => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.NoseContactCosThreshold
-            : PhysicsDefaults.NoseContactCosThreshold;
-
-        public static float HullCollisionDamageCooldownSec => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullCollisionDamageCooldownSec
-            : PhysicsDefaults.HullCollisionDamageCooldownSec;
-
-        public static float HullDamageLowSpeedThresholdMps => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageLowSpeedThresholdMps
-            : PhysicsDefaults.HullDamageLowSpeedThresholdMps;
-
-        public static float HullDamageSpeedInterpMaxMps => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageInterpMaxMps
-            : PhysicsDefaults.HullDamageSpeedInterpMaxMps;
-
-        public static int HullDamageSpeedScaledMinPercent => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageSpeedScaledMinPercent
-            : PhysicsDefaults.HullDamageSpeedScaledMinPercent;
-
-        public static int HullDamageSpeedScaledMaxPercent => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageSpeedScaledMaxPercent
-            : PhysicsDefaults.HullDamageSpeedScaledMaxPercent;
-
-        public static float MassPushStrength => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MassPushStrength
-            : PhysicsDefaults.MassPushStrength;
+        public static float HullDetectInflateLength => PhysicsDefaults.HullDetectInflateLength;
+        public static float HullDetectInflateBeam => PhysicsDefaults.HullDetectInflateBeam;
+        public static float BeamDetectTightenMul => PhysicsDefaults.BeamDetectTightenMul;
+        public static float MinPenetrationToAct => PhysicsDefaults.MinPenetrationToAct;
+        public static float MinPenetrationToDamage => PhysicsDefaults.MinPenetrationToDamage;
+        public static float TangentialRampDepthMeters => PhysicsDefaults.TangentialRampDepthMeters;
+        public static float SeparationPushMultiplier => PhysicsDefaults.SeparationPushMultiplier;
+        public static float SeparationSlackMeters => PhysicsDefaults.SeparationSlackMeters;
+        public static float ClosingSpeedDamp => PhysicsDefaults.ClosingSpeedDamp;
+        public static float TangentialSlipDamp => PhysicsDefaults.TangentialSlipDamp;
+        public static float MinVerticalOverlap => PhysicsDefaults.MinVerticalOverlap;
+        public static int ResolvePasses => PhysicsDefaults.ResolvePasses;
+        public static int MaxPairIterations => PhysicsDefaults.MaxPairIterations;
+        public static float DeepPenetrationStart => PhysicsDefaults.DeepPenetrationStart;
+        public static float DeepPenetrationBoost => PhysicsDefaults.DeepPenetrationBoost;
+        public static float MinHalfSeparationMeters => PhysicsDefaults.MinHalfSeparationMeters;
+        public static float MinLinearSeparationToApplyMeters => PhysicsDefaults.MinLinearSeparationToApplyMeters;
+        public static float NoseContactCosThreshold => PhysicsDefaults.NoseContactCosThreshold;
+        public static float HullCollisionDamageCooldownSec => PhysicsDefaults.HullCollisionDamageCooldownSec;
+        public static float HullDamageLowSpeedThresholdMps => PhysicsDefaults.HullDamageLowSpeedThresholdMps;
+        public static float HullDamageSpeedInterpMaxMps => PhysicsDefaults.HullDamageSpeedInterpMaxMps;
+        public static int HullDamageSpeedScaledMinPercent => PhysicsDefaults.HullDamageSpeedScaledMinPercent;
+        public static int HullDamageSpeedScaledMaxPercent => PhysicsDefaults.HullDamageSpeedScaledMaxPercent;
+        public static float MassPushStrength => PhysicsDefaults.MassPushStrength;
     }
 
     /// <summary>
