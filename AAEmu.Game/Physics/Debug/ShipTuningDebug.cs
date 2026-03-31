@@ -26,6 +26,20 @@ namespace AAEmu.Game.Physics.Debug;
 /// </summary>
 public static class ShipTuningDebug
 {
+    private const int MinChatThrottleIntervalMsFloor = 250;
+    private const int ShipPairContactHoldMs = 800;
+    private const int MassBoxCornerCount = 8;
+
+    private static class ChatTags
+    {
+        public const string ShipSpeed = "[ShipSpeed]";
+        public const string ShipBox = "[ShipBox]";
+        public const string ShipShip = "[ShipShip]";
+        public const string ShipShore = "[ShipShore]";
+    }
+
+    #region Public debug switches
+
     /// <summary>
     /// EN: Master switch for gimmick markers and for per-tick debug (corners, axes, speed/box chat in <see cref="TickShip"/>). Callback chat (ship↔ship detail, shore latch/penetration) uses the separate flags below and may still run when this is false.
     /// RU: Главный выключатель маркеров и тика <see cref="TickShip"/> (углы, оси, чат скорости/бокса). Чат из колбэков (детали ship↔shore, берег) — отдельные флаги ниже; часть может работать при false.
@@ -152,6 +166,10 @@ public static class ShipTuningDebug
     public static bool ShorePenetrationChatEnabled => GetShorePenetrationChatEnabled();
     private static bool GetShorePenetrationChatEnabled() => false;
 
+    #endregion
+
+    #region Throttle & marker state
+
     private static readonly ConcurrentDictionary<uint, long> _lastDetailMsgAtMs = new();
     private static readonly ConcurrentDictionary<uint, long> _lastAxesMsgAtMs = new();
     private static readonly ConcurrentDictionary<uint, long> _lastShorePenMsgAtMs = new();
@@ -166,6 +184,10 @@ public static class ShipTuningDebug
     // ship↔ship contact latch based on ResolvePair events
     private static readonly ConcurrentDictionary<uint, long> _shipContactUntilMs = new();
     private static readonly ConcurrentDictionary<uint, bool> _shipContactLatched = new();
+
+    #endregion
+
+    #region Mass-box geometry (game space)
 
     private sealed class MarkerSet
     {
@@ -225,7 +247,7 @@ public static class ShipTuningDebug
         FillMassBoxLocalCornersGame(g.Hx, g.Hy, g.Hz, cornerScratch);
         minZ = float.PositiveInfinity;
         maxZ = float.NegativeInfinity;
-        for (var i = 0; i < 8; i++)
+        for (var i = 0; i < MassBoxCornerCount; i++)
         {
             var w = g.CenterGame + Vector3.TransformNormal(cornerScratch[i], g.RotGame);
             if (w.Z < minZ) minZ = w.Z;
@@ -239,6 +261,56 @@ public static class ShipTuningDebug
         DespawnMarkers(_shipAxisBeamMarkers, shipId);
         DespawnMarkers(_shipAxisUpMarkers, shipId);
     }
+
+    #endregion
+
+    #region Marker & chat helpers
+
+    /// <summary>
+    /// One gimmick per ship for an axis; despawn when <paramref name="templateId"/> is 0.
+    /// </summary>
+    private static MarkerSet? EnsureSingleAxisMarkerSet(
+        ConcurrentDictionary<uint, MarkerSet> dict,
+        uint shipId,
+        uint zoneId,
+        uint templateId)
+    {
+        if (templateId == 0)
+        {
+            DespawnMarkers(dict, shipId);
+            return null;
+        }
+
+        var set = dict.GetOrAdd(shipId, _ => new MarkerSet(1));
+        if (set.ZoneId != zoneId || set.TemplateId != templateId)
+        {
+            DespawnMarkers(dict, shipId);
+            set = dict.GetOrAdd(shipId, _ => new MarkerSet(1));
+            set.ZoneId = zoneId;
+            set.TemplateId = templateId;
+        }
+
+        return set;
+    }
+
+    /// <returns><see langword="false"/> if this ship is still inside the throttle window.</returns>
+    private static bool TryConsumeDebugChatThrottle(ConcurrentDictionary<uint, long> lastByShip, uint shipId, int intervalMs)
+    {
+        if (intervalMs <= 0)
+            return true;
+
+        var nowMs = Environment.TickCount64;
+        var last = lastByShip.GetOrAdd(shipId, 0);
+        if (nowMs - last < intervalMs)
+            return false;
+
+        lastByShip[shipId] = nowMs;
+        return true;
+    }
+
+    #endregion
+
+    #region Per-tick & markers
 
     /// <summary>
     /// EN: Per-ship debug tick. Updates corner markers and ship↔ship latch messages.
@@ -276,12 +348,9 @@ public static class ShipTuningDebug
         if (driver is null || !CanReceive(driver))
             return;
 
-        var nowMs = Environment.TickCount64;
-        var throttle = Math.Max(250, ThrottleMsPerShip);
-        var last = _lastSpeedMsgAtMs.GetOrAdd(ship.Id, 0);
-        if (nowMs - last < throttle)
+        var intervalMs = Math.Max(MinChatThrottleIntervalMsFloor, ThrottleMsPerShip);
+        if (!TryConsumeDebugChatThrottle(_lastSpeedMsgAtMs, ship.Id, intervalMs))
             return;
-        _lastSpeedMsgAtMs[ship.Id] = nowMs;
 
         var isGrounded = (ship.CachedFloorLevel > ship.CachedWaterSurface) || ship.GroundContactLatched;
         var escapeThrottleSign = ship.GroundedByStern ? 1 : -1;
@@ -290,7 +359,7 @@ public static class ShipTuningDebug
         var cap = ShipController.ShipMotionDefaults.GroundEscapeMaxSpeedAbs;
 
         driver.SendDebugMessage(
-            $"[ShipSpeed] ship={ship.ObjId} v={ship.Speed:F2} grounded={isGrounded} latched={ship.GroundContactLatched} byStern={ship.GroundedByStern} thrReq={ship.ThrottleRequest} escape={isEscapeInputOnGround} escapeCap={cap:F2}");
+            $"{ChatTags.ShipSpeed} ship={ship.ObjId} v={ship.Speed:F2} grounded={isGrounded} latched={ship.GroundContactLatched} byStern={ship.GroundedByStern} thrReq={ship.ThrottleRequest} escape={isEscapeInputOnGround} escapeCap={cap:F2}");
     }
 
     private static void UpdateShipAxisMarkers(Slave ship)
@@ -318,56 +387,9 @@ public static class ShipTuningDebug
         }
 
         var zoneId = ship.Transform.ZoneId;
-        MarkerSet? setLen = null;
-        if (lenTemplateId != 0)
-        {
-            setLen = _shipAxisLenMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
-            if (setLen.ZoneId != zoneId || setLen.TemplateId != lenTemplateId)
-            {
-                DespawnMarkers(_shipAxisLenMarkers, ship.Id);
-                setLen = _shipAxisLenMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
-                setLen.ZoneId = zoneId;
-                setLen.TemplateId = lenTemplateId;
-            }
-        }
-        else
-        {
-            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
-        }
-
-        MarkerSet? setBeam = null;
-        if (beamTemplateId != 0)
-        {
-            setBeam = _shipAxisBeamMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
-            if (setBeam.ZoneId != zoneId || setBeam.TemplateId != beamTemplateId)
-            {
-                DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
-                setBeam = _shipAxisBeamMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
-                setBeam.ZoneId = zoneId;
-                setBeam.TemplateId = beamTemplateId;
-            }
-        }
-        else
-        {
-            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
-        }
-
-        MarkerSet? setUp = null;
-        if (upTemplateId != 0)
-        {
-            setUp = _shipAxisUpMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
-            if (setUp.ZoneId != zoneId || setUp.TemplateId != upTemplateId)
-            {
-                DespawnMarkers(_shipAxisUpMarkers, ship.Id);
-                setUp = _shipAxisUpMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
-                setUp.ZoneId = zoneId;
-                setUp.TemplateId = upTemplateId;
-            }
-        }
-        else
-        {
-            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
-        }
+        var setLen = EnsureSingleAxisMarkerSet(_shipAxisLenMarkers, ship.Id, zoneId, lenTemplateId);
+        var setBeam = EnsureSingleAxisMarkerSet(_shipAxisBeamMarkers, ship.Id, zoneId, beamTemplateId);
+        var setUp = EnsureSingleAxisMarkerSet(_shipAxisUpMarkers, ship.Id, zoneId, upTemplateId);
 
         var extra = MathF.Max(0f, AxisMarkerExtraMeters);
         var hzE = geo.Hz + extra;
@@ -379,7 +401,7 @@ public static class ShipTuningDebug
         var posBeam = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(hxE, 0f, 0f)), geo.RotGame);
         var posUp = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(0f, hyE, 0f)), geo.RotGame);
 
-        Span<Vector3> cornerScratch = stackalloc Vector3[8];
+        Span<Vector3> cornerScratch = stackalloc Vector3[MassBoxCornerCount];
         GetMassBoxWorldVerticalExtent(in geo, cornerScratch, out var minZ, out var maxZ);
 
         if (setLen != null)
@@ -394,16 +416,13 @@ public static class ShipTuningDebug
         if (driver is null || !CanReceive(driver) || !ShipBoxChatEnabled)
             return;
 
-        var nowMs = Environment.TickCount64;
-        var throttle = Math.Max(250, ThrottleMsPerShip);
-        var last = _lastAxesMsgAtMs.GetOrAdd(ship.Id, 0);
-        if (nowMs - last < throttle)
+        var intervalMs = Math.Max(MinChatThrottleIntervalMsFloor, ThrottleMsPerShip);
+        if (!TryConsumeDebugChatThrottle(_lastAxesMsgAtMs, ship.Id, intervalMs))
             return;
-        _lastAxesMsgAtMs[ship.Id] = nowMs;
 
         var waterZ = ship.CachedWaterSurface;
         driver.SendDebugMessage(
-            $"[ShipBox] ship={ship.ObjId} sizeXYZ=({model.MassBoxSizeX:F2},{model.MassBoxSizeY:F2},{model.MassBoxSizeZ:F2}) centerXYZ=({model.MassCenterX:F2},{model.MassCenterY:F2},{model.MassCenterZ:F2}) z=[{minZ:F2}..{maxZ:F2}] waterZ={waterZ:F2}");
+            $"{ChatTags.ShipBox} ship={ship.ObjId} sizeXYZ=({model.MassBoxSizeX:F2},{model.MassBoxSizeY:F2},{model.MassBoxSizeZ:F2}) centerXYZ=({model.MassCenterX:F2},{model.MassCenterY:F2},{model.MassCenterZ:F2}) z=[{minZ:F2}..{maxZ:F2}] waterZ={waterZ:F2}");
     }
 
     private static void UpdateShipContactLatch(Slave ship)
@@ -426,8 +445,8 @@ public static class ShipTuningDebug
             return;
 
         driver.SendDebugMessage(hasContact
-            ? "[ShipShip] Hull contact started"
-            : "[ShipShip] Hull contact ended");
+            ? $"{ChatTags.ShipShip} Hull contact started"
+            : $"{ChatTags.ShipShip} Hull contact ended");
     }
 
     private static void UpdateShipCornerMarkers(Slave ship)
@@ -446,23 +465,27 @@ public static class ShipTuningDebug
         }
 
         var zoneId = ship.Transform!.ZoneId;
-        var set = _shipCornerMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(8));
+        var set = _shipCornerMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(MassBoxCornerCount));
         if (set.ZoneId != zoneId || set.TemplateId != templateId)
         {
             DespawnMarkers(_shipCornerMarkers, ship.Id);
-            set = _shipCornerMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(8));
+            set = _shipCornerMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(MassBoxCornerCount));
             set.ZoneId = zoneId;
             set.TemplateId = templateId;
         }
 
-        Span<Vector3> localCorners = stackalloc Vector3[8];
+        Span<Vector3> localCorners = stackalloc Vector3[MassBoxCornerCount];
         FillMassBoxLocalCornersGame(geo.Hx, geo.Hy, geo.Hz, localCorners);
-        for (var i = 0; i < 8; i++)
+        for (var i = 0; i < MassBoxCornerCount; i++)
         {
             var posGame = geo.CenterGame + Vector3.TransformNormal(localCorners[i], geo.RotGame);
             UpdateMarker(ship.ParentWorld, set, i, templateId, zoneId, posGame);
         }
     }
+
+    #endregion
+
+    #region Ship↔ship & shore callbacks
 
     /// <summary>
     /// EN: Called from ship↔ship resolver when overlap response happened.
@@ -470,15 +493,15 @@ public static class ShipTuningDebug
     /// </summary>
     public static void OnResolvedShipPair(Slave a, Slave b, float penetrationMeters, float nx, float nz, float impactSpeedMps)
     {
-        var anyShipShipDebug = Enabled || ShipShipContactLatchChatEnabled || ShipShipResolveDetailChatEnabled;
-        if (!anyShipShipDebug)
+        var shipPairDebugActive = Enabled || ShipShipContactLatchChatEnabled || ShipShipResolveDetailChatEnabled;
+        if (!shipPairDebugActive)
             return;
 
         // Extend "contact active" window; TickShip will emit start/end messages when Enabled.
         var nowMs = Environment.TickCount64;
-        const int holdMs = 800;
-        _shipContactUntilMs[a.Id] = nowMs + holdMs;
-        _shipContactUntilMs[b.Id] = nowMs + holdMs;
+        var holdUntil = nowMs + ShipPairContactHoldMs;
+        _shipContactUntilMs[a.Id] = holdUntil;
+        _shipContactUntilMs[b.Id] = holdUntil;
 
         if (!ShipShipResolveDetailChatEnabled)
             return;
@@ -493,17 +516,11 @@ public static class ShipTuningDebug
         if (driver is null || !CanReceive(driver))
             return;
 
-        var nowMs = Environment.TickCount64;
-        if (ThrottleMsPerShip > 0)
-        {
-            var last = _lastDetailMsgAtMs.GetOrAdd(self.Id, 0);
-            if (nowMs - last < ThrottleMsPerShip)
-                return;
-            _lastDetailMsgAtMs[self.Id] = nowMs;
-        }
+        if (!TryConsumeDebugChatThrottle(_lastDetailMsgAtMs, self.Id, ThrottleMsPerShip))
+            return;
 
         driver.SendDebugMessage(
-            $"[ShipShip] ship={self.ObjId} pair={other.ObjId} pen={pen:F3}m v={impactSpeedMps:F2}m/s n=({nx:F2},{nz:F2})");
+            $"{ChatTags.ShipShip} ship={self.ObjId} pair={other.ObjId} pen={pen:F3}m v={impactSpeedMps:F2}m/s n=({nx:F2},{nz:F2})");
     }
 
     /// <summary>
@@ -520,8 +537,8 @@ public static class ShipTuningDebug
             return;
 
         driver.SendDebugMessage(latched
-            ? "[ShipShore] Ship collided with ground"
-            : "[ShipShore] Ship is back in water");
+            ? $"{ChatTags.ShipShore} Ship collided with ground"
+            : $"{ChatTags.ShipShore} Ship is back in water");
     }
 
     /// <summary>
@@ -572,17 +589,15 @@ public static class ShipTuningDebug
         if (driver is null || !CanReceive(driver))
             return;
 
-        var nowMs = Environment.TickCount64;
-        if (ThrottleMsPerShip > 0)
-        {
-            var last = _lastShorePenMsgAtMs.GetOrAdd(ship.Id, 0);
-            if (nowMs - last < ThrottleMsPerShip)
-                return;
-            _lastShorePenMsgAtMs[ship.Id] = nowMs;
-        }
+        if (!TryConsumeDebugChatThrottle(_lastShorePenMsgAtMs, ship.Id, ThrottleMsPerShip))
+            return;
 
-        driver.SendDebugMessage($"[ShipShore] ship={ship.ObjId} pen={penetrationMeters:F3}m");
+        driver.SendDebugMessage($"{ChatTags.ShipShore} ship={ship.ObjId} pen={penetrationMeters:F3}m");
     }
+
+    #endregion
+
+    #region Marker spawn & lifecycle
 
     private static void UpdateMarker(AAEmu.Game.Models.Game.World.WorldInstance world, MarkerSet set, int idx, uint templateId, uint zoneId, Vector3 pos)
     {
@@ -659,6 +674,10 @@ public static class ShipTuningDebug
         }
     }
 
+    #endregion
+
+    #region Driver & coordinates
+
     private static Character? TryGetDriver(Slave s)
     {
         return s.AttachedCharacters.TryGetValue(AttachPointKind.Driver, out var driver) ? driver : null;
@@ -689,5 +708,7 @@ public static class ShipTuningDebug
         var q = Quaternion.Normalize(PositionAndRotation.ToQuaternion(rpy));
         return Matrix4x4.CreateFromQuaternion(q);
     }
+
+    #endregion
 }
 
