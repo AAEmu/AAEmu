@@ -97,41 +97,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         public const float WindAgainstMaxMul = 0.85f;
     }
 
-    /// <summary>Extra deceleration when throttle opposes current speed (reverse while moving forward, etc.).</summary>
-    private static float OpposingThrottleAccelMul => PhysicsDefaults.OpposingThrottleAccelMul;
-
-    /// <summary>Only for opposing throttle — extra braking on top (does not affect forward accel).</summary>
-    private static float OpposingThrottleBrakeTuneMul => PhysicsDefaults.OpposingThrottleBrakeTuneMul;
-
-    /// <summary>Steering builds turn rate faster without changing the max turn cap.</summary>
-    private static float SteeringResponsivenessMul => PhysicsDefaults.SteeringResponsivenessMul;
-
-    /// <summary>When rudder fights current yaw rate — faster decay; same-direction turn rate unchanged.</summary>
-    private static float CounterSteerResponsivenessMul => PhysicsDefaults.CounterSteerResponsivenessMul;
-
     /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
     private const float MinSteerVelAsDegPerSec = 8f;
-
-    /// <summary>At zero speed, keep this fraction of turning ability (so you can still rotate in place).</summary>
-    private static float MinTurnFactorAtZeroSpeed => PhysicsDefaults.MinTurnFactorAtZeroSpeed;
-
-    /// <summary>Speed (in current ship speed units) at which turning reaches 100%.</summary>
-    private static float TurnFullFactorAtSpeed => PhysicsDefaults.TurnFullFactorAtSpeed;
-
-    /// <summary>Max forward/back speed multiplier removed at full yaw rate (linear in |ω|/ω_max).</summary>
-    private static float TurnSpeedSlowdownFrac => PhysicsDefaults.TurnSpeedSlowdownFrac;
-
-    /// <summary>Higher = snappier convergence of <see cref="Slave.TurnSpeedVelocityMul"/> toward the turn target.</summary>
-    private static float TurnSpeedVelocityMulResponse => PhysicsDefaults.TurnSpeedVelocityMulResponse;
-
-    /// <summary>Min hull submergence (m) before water upright stabilization runs.</summary>
-    private static float UprightStabilizeMinSubmergedMeters => PhysicsDefaults.UprightStabilizeMinSubmergedMeters;
-
-    /// <summary>Max rotation (rad/s) toward upright per tick — avoids snaps after collisions.</summary>
-    private static float UprightStabilizeMaxRadPerSec => PhysicsDefaults.UprightStabilizeMaxRadPerSec;
-
-    /// <summary>Skip correction when deck normal is already this close to world up (rad).</summary>
-    private static float UprightStabilizeAngleDeadZoneRad => PhysicsDefaults.UprightStabilizeAngleDeadZoneRad;
 
     /// <summary>
     /// Fixed max yaw rate (degrees/s) by <see cref="SlaveKind"/>.
@@ -161,13 +128,6 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
     /// <summary>Shift wind phase in game hours (e.g. if «полночь» в клиенте не совпадает с 0:00).</summary>
     private const float WindTimePhaseOffsetHours = 0f;
-
-    /// <summary>Within this cone from wind axis (±15°) apply full ±15% speed limits.</summary>
-    private static float WindConeHalfAngleDeg => PhysicsDefaults.WindConeHalfAngleDeg;
-
-    private static float WindWithMaxMul => PhysicsDefaults.WindWithMaxMul;
-
-    private static float WindAgainstMaxMul => PhysicsDefaults.WindAgainstMaxMul;
 
     /// <summary>How wind affects max speed: none (rowing/motor), square (downwind best), lateen (beam reach best).</summary>
     private enum ShipWindProfile
@@ -268,25 +228,25 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Square rig: best speed down/up wind (same as original).</summary>
     private static float GetWindSpeedMulSquareRig(float dotMove)
     {
-        var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
+        var cosCone = MathF.Cos(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
         if (dotMove >= cosCone)
-            return WindWithMaxMul;
+            return PhysicsDefaults.WindWithMaxMul;
         if (dotMove <= -cosCone)
-            return WindAgainstMaxMul;
-        return 1f + (WindWithMaxMul - 1f) * (dotMove / cosCone);
+            return PhysicsDefaults.WindAgainstMaxMul;
+        return 1f + (PhysicsDefaults.WindWithMaxMul - 1f) * (dotMove / cosCone);
     }
 
     /// <summary>Lateen / fore-and-aft: best speed on a beam reach (perpendicular to wind).</summary>
     private static float GetWindSpeedMulLateenRig(float dotMove)
     {
-        var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
-        var sinCone = MathF.Sin(WindConeHalfAngleDeg * MathF.PI / 180f);
+        var cosCone = MathF.Cos(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
+        var sinCone = MathF.Sin(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
         var p = 1f - MathF.Abs(dotMove);
         if (p >= cosCone)
-            return WindWithMaxMul;
+            return PhysicsDefaults.WindWithMaxMul;
         if (p <= sinCone)
-            return WindAgainstMaxMul;
-        return WindAgainstMaxMul + (p - sinCone) / (cosCone - sinCone) * (WindWithMaxMul - WindAgainstMaxMul);
+            return PhysicsDefaults.WindAgainstMaxMul;
+        return PhysicsDefaults.WindAgainstMaxMul + (p - sinCone) / (cosCone - sinCone) * (PhysicsDefaults.WindWithMaxMul - PhysicsDefaults.WindAgainstMaxMul);
     }
 
     /// <summary>Multiplier for max speed from wind; depends on <see cref="ResolveShipWindProfile"/>.</summary>
@@ -310,10 +270,10 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
                 return 1f;
 
             // Retail-like: +15% within ±15° of the N↔S axis, both directions (no "against wind" penalty).
-            var cosCone = MathF.Cos(WindConeHalfAngleDeg * MathF.PI / 180f);
+            var cosCone = MathF.Cos(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
             var dotAbs = MathF.Abs(dotBow);
             // Hard cutoff: bonus disappears immediately beyond the angle threshold.
-            return dotAbs >= cosCone ? WindWithMaxMul : 1f;
+            return dotAbs >= cosCone ? PhysicsDefaults.WindWithMaxMul : 1f;
         }
 
         return profile switch
@@ -539,7 +499,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         if (isOpposingThrottle)
         {
             var reverseCap = shipModel.ReverseAccel > 0f ? shipModel.ReverseAccel : shipModel.Accel;
-            linearAccel = Math.Max(shipModel.Accel, reverseCap) * OpposingThrottleAccelMul * OpposingThrottleBrakeTuneMul;
+            linearAccel = Math.Max(shipModel.Accel, reverseCap) * PhysicsDefaults.OpposingThrottleAccelMul * PhysicsDefaults.OpposingThrottleBrakeTuneMul;
         }
 
         // Non-linear approach to max speed: accelerate strongly at low speed, taper off near the cap.
@@ -596,8 +556,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         // Turning factor scales with ship speed, but never reaches zero (so the ship can still turn in place).
         var speedAbs = MathF.Abs(slave.Speed);
-        var speed01 = Math.Clamp(speedAbs / TurnFullFactorAtSpeed, 0f, 1f);
-        var turnFactor = MinTurnFactorAtZeroSpeed + (1f - MinTurnFactorAtZeroSpeed) * speed01;
+        var speed01 = Math.Clamp(speedAbs / PhysicsDefaults.TurnFullFactorAtSpeed, 0f, 1f);
+        var turnFactor = PhysicsDefaults.MinTurnFactorAtZeroSpeed + (1f - PhysicsDefaults.MinTurnFactorAtZeroSpeed) * speed01;
 
         // Reverse steering should be handled at input→rotSpeed stage, not at the final angular velocity assignment.
         // Otherwise when speed crosses zero (e.g. releasing reverse), the last-step inversion toggles and the ship appears
@@ -619,9 +579,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // TurnSpeed is now a multiplier (1.0, 1.3, ...). Keep steering response at the previous "stat-scale"
         // baseline so counter-steer and turn build-up remain responsive.
         var turnSpeed = 100f * turnSpeedBonusMul * (float)deltaTime.TotalSeconds * MathF.PI;
-        var rotDelta = effectiveSteeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * SteeringResponsivenessMul * turnFactor;
+        var rotDelta = effectiveSteeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * PhysicsDefaults.SteeringResponsivenessMul * turnFactor;
         if (slave.RotSpeed != 0f && effectiveSteeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(effectiveSteeringNorm))
-            rotDelta *= CounterSteerResponsivenessMul;
+            rotDelta *= PhysicsDefaults.CounterSteerResponsivenessMul;
 
         // Non-linear approach: turning accelerates normally at low yaw rates, but slows down as we approach the cap.
         // This prevents the turn rate from building linearly all the way up to the limit.
@@ -663,11 +623,11 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         var steerMax = (steerMaxDegNormal * turnFactor).DegToRad();
 
-        // Up to TurnSpeedSlowdownFrac slower at full yaw rate; smooth return on straight course (forward and reverse).
+        // Up to configured turn-speed slowdown at full yaw rate; smooth return on straight course (forward and reverse).
         var steerMaxSafe = Math.Max(steerMax, 1e-5f);
         var turnRateNorm = Math.Clamp(MathF.Abs(slave.RotSpeed) / steerMaxSafe, 0f, 1f);
-        var targetTurnVelMul = 1f - TurnSpeedSlowdownFrac * turnRateNorm;
-        var turnMulA = 1f - MathF.Exp(-TurnSpeedVelocityMulResponse * MathF.Max(0f, dtSec));
+        var targetTurnVelMul = 1f - PhysicsDefaults.TurnSpeedSlowdownFrac * turnRateNorm;
+        var turnMulA = 1f - MathF.Exp(-PhysicsDefaults.TurnSpeedVelocityMulResponse * MathF.Max(0f, dtSec));
         slave.TurnSpeedVelocityMul += (targetTurnVelMul - slave.TurnSpeedVelocityMul) * turnMulA;
 
         // Slow down turning if no steering active
@@ -736,7 +696,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         if (!isGrounded)
         {
             var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
-            if (submerged >= UprightStabilizeMinSubmergedMeters)
+            if (submerged >= PhysicsDefaults.UprightStabilizeMinSubmergedMeters)
                 ApplyWaterUprightStabilization(rigidBody, dtSec);
         }
 
@@ -785,10 +745,10 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             angle = MathF.Acos(dot);
         }
 
-        if (angle < UprightStabilizeAngleDeadZoneRad)
+        if (angle < PhysicsDefaults.UprightStabilizeAngleDeadZoneRad)
             return;
 
-        var maxStep = UprightStabilizeMaxRadPerSec * dtSec;
+        var maxStep = PhysicsDefaults.UprightStabilizeMaxRadPerSec * dtSec;
         var step = MathF.Min(angle, maxStep);
         var deltaQ = Quaternion.CreateFromAxisAngle(axis, step);
         var qNew = Quaternion.Normalize(Quaternion.Multiply(deltaQ, q));
