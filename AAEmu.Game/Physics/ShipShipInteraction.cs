@@ -52,6 +52,8 @@ public sealed class ShipShipInteraction
 
     /// <summary>
     /// Run after all ships have had <see cref="ShipController.ApplyForceAndTorque"/> for this frame.
+    /// Pair loop is O(N²); <see cref="TryResolvePair"/> cheaply rejects distant hulls via world AABB on XZ before SAT.
+    /// For very large N, add a spatial hash / uniform grid on XZ so only nearby indices are paired.
     /// </summary>
     public void ResolveAllPairs(IReadOnlyList<Slave> ships, TimeSpan deltaTime)
     {
@@ -203,6 +205,14 @@ public sealed class ShipShipInteraction
         return (int)MathF.Round(f);
     }
 
+    /// <summary>True if world-space AABBs overlap on X and Z (conservative broadphase for hull SAT on XZ).</summary>
+    private static bool HaveWorldAabbOverlapXz(in JBoundingBox bbA, in JBoundingBox bbB)
+    {
+        var ox = MathF.Min(bbA.Max.X, bbB.Max.X) - MathF.Max(bbA.Min.X, bbB.Min.X);
+        var oz = MathF.Min(bbA.Max.Z, bbB.Max.Z) - MathF.Max(bbA.Min.Z, bbB.Min.Z);
+        return ox > 0f && oz > 0f;
+    }
+
     private static bool TryResolvePair(Slave sa, Slave sb, out float impactSpeedMps, out float maxPenetration)
     {
         impactSpeedMps = 0f;
@@ -218,6 +228,9 @@ public sealed class ShipShipInteraction
         var peakImpactSpeedMps = 0f;
         var bbA = bodyA.Shapes[0].WorldBoundingBox;
         var bbB = bodyB.Shapes[0].WorldBoundingBox;
+        if (!HaveWorldAabbOverlapXz(in bbA, in bbB))
+            return false;
+
         var overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
         if (overlapY < MinVerticalOverlap)
             return false;
@@ -240,6 +253,9 @@ public sealed class ShipShipInteraction
         {
             bbA = bodyA.Shapes[0].WorldBoundingBox;
             bbB = bodyB.Shapes[0].WorldBoundingBox;
+            if (!HaveWorldAabbOverlapXz(in bbA, in bbB))
+                break;
+
             overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
             if (overlapY < MinVerticalOverlap)
                 break;
