@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Physics;
+using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.HeightMaps;
 using AAEmu.Game.Physics.Util;
@@ -291,7 +292,7 @@ public class PhysicsManager
                     {
                         try
                         {
-                            AAEmu.Game.Physics.Debug.ShipTuningDebug.TickShip(slave);
+                            ShipTuningDebug.TickShip(slave);
                         }
                         catch
                         {

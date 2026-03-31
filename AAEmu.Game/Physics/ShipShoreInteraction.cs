@@ -1,6 +1,7 @@
 #nullable enable
 
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
 
@@ -247,7 +248,7 @@ public sealed class ShipShoreInteraction
             {
                 slave.GroundContactLatched = false;
                 slave.GroundContactLatchedTime = 0f;
-                AAEmu.Game.Physics.Debug.ShipTuningDebug.OnShoreLatchChanged(slave, latched: false);
+                ShipTuningDebug.OnShoreLatchChanged(slave, latched: false);
                 return;
             }
         }
@@ -301,7 +302,7 @@ public sealed class ShipShoreInteraction
         slave.RigidBody.Velocity *= collisionDamping;
         slave.RigidBody.AngularVelocity *= collisionDamping;
 
-        AAEmu.Game.Physics.Debug.ShipTuningDebug.OnShoreProbe(
+        ShipTuningDebug.OnShoreProbe(
             slave,
             probeX, probeY, floorSmoothed,
             cliffX, cliffY, cliffFloor,

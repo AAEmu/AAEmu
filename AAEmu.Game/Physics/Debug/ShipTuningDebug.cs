@@ -181,6 +181,65 @@ public static class ShipTuningDebug
         }
     }
 
+    /// <summary>Half-extents (phys local X,Y,Z), box center and rotation in game space — same basis as <see cref="ShipController.Build"/>.</summary>
+    private readonly record struct MassBoxGameGeometry(float Hx, float Hy, float Hz, Vector3 CenterGame, Matrix4x4 RotGame);
+
+    private static bool TryGetMassBoxGameGeometry(Slave ship, out MassBoxGameGeometry geo)
+    {
+        geo = default;
+        var rb = ship.RigidBody;
+        var model = ship.ShipController?.ShipModel;
+        if (rb is null || model is null || ship.Transform is null)
+            return false;
+
+        var scale = MathF.Max(0.01f, ship.Scale);
+        var hx = model.MassBoxSizeX * scale * 0.5f;
+        var hy = ShipController.ShipMassBoxDefaults.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
+        var hz = model.MassBoxSizeY * scale * 0.5f;
+        var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
+        var posGame0 = PhysToGame(rb.Position);
+        var offsetLocalPhys = new JVector(
+            model.MassCenterX * scale,
+            ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale,
+            model.MassCenterY * scale);
+        var offsetLocalGame = PhysVecToGame(offsetLocalPhys);
+        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocalGame, rotGame);
+        geo = new MassBoxGameGeometry(hx, hy, hz, centerGame, rotGame);
+        return true;
+    }
+
+    private static void FillMassBoxLocalCornersGame(float hx, float hy, float hz, Span<Vector3> corners)
+    {
+        corners[0] = PhysVecToGame(new JVector(+hx, +hy, +hz));
+        corners[1] = PhysVecToGame(new JVector(+hx, +hy, -hz));
+        corners[2] = PhysVecToGame(new JVector(+hx, -hy, +hz));
+        corners[3] = PhysVecToGame(new JVector(+hx, -hy, -hz));
+        corners[4] = PhysVecToGame(new JVector(-hx, +hy, +hz));
+        corners[5] = PhysVecToGame(new JVector(-hx, +hy, -hz));
+        corners[6] = PhysVecToGame(new JVector(-hx, -hy, +hz));
+        corners[7] = PhysVecToGame(new JVector(-hx, -hy, -hz));
+    }
+
+    private static void GetMassBoxWorldVerticalExtent(in MassBoxGameGeometry g, Span<Vector3> cornerScratch, out float minZ, out float maxZ)
+    {
+        FillMassBoxLocalCornersGame(g.Hx, g.Hy, g.Hz, cornerScratch);
+        minZ = float.PositiveInfinity;
+        maxZ = float.NegativeInfinity;
+        for (var i = 0; i < 8; i++)
+        {
+            var w = g.CenterGame + Vector3.TransformNormal(cornerScratch[i], g.RotGame);
+            if (w.Z < minZ) minZ = w.Z;
+            if (w.Z > maxZ) maxZ = w.Z;
+        }
+    }
+
+    private static void DespawnAllAxisMarkerSets(uint shipId)
+    {
+        DespawnMarkers(_shipAxisLenMarkers, shipId);
+        DespawnMarkers(_shipAxisBeamMarkers, shipId);
+        DespawnMarkers(_shipAxisUpMarkers, shipId);
+    }
+
     /// <summary>
     /// EN: Per-ship debug tick. Updates corner markers and ship↔ship latch messages.
     /// RU: Дебаг-тик на корабль. Обновляет углы бокса и latch-сообщения ship↔ship.
@@ -238,9 +297,7 @@ public static class ShipTuningDebug
     {
         if (!AxisMarkersEnabled)
         {
-            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
-            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
-            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+            DespawnAllAxisMarkerSets(ship.Id);
             return;
         }
 
@@ -249,19 +306,14 @@ public static class ShipTuningDebug
         var upTemplateId = AxisUpMarkerTemplateId;
         if ((lenTemplateId == 0 && beamTemplateId == 0 && upTemplateId == 0) || ship.ParentWorld is null)
         {
-            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
-            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
-            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+            DespawnAllAxisMarkerSets(ship.Id);
             return;
         }
 
-        var rb = ship.RigidBody;
         var model = ship.ShipController?.ShipModel;
-        if (rb is null || model is null)
+        if (model is null || !TryGetMassBoxGameGeometry(ship, out var geo))
         {
-            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
-            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
-            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+            DespawnAllAxisMarkerSets(ship.Id);
             return;
         }
 
@@ -317,59 +369,18 @@ public static class ShipTuningDebug
             DespawnMarkers(_shipAxisUpMarkers, ship.Id);
         }
 
-        // Same basis as UpdateShipCornerMarkers (ShipController.Build mapping).
-        var scale = MathF.Max(0.01f, ship.Scale);
-        var hx = model.MassBoxSizeX * scale * 0.5f;
-        var hy = ShipController.ShipMassBoxDefaults.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
-        var hz = model.MassBoxSizeY * scale * 0.5f;
-
-        // Use the already-synced Transform rotation (derived from physics via SyncTransformWithRigidBody)
-        // to avoid left/right inversion from phys<->game basis reflections.
-        var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
-
-        var posGame0 = PhysToGame(rb.Position);
-        var offsetLocalPhys = new JVector(
-            model.MassCenterX * scale,
-            ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale,
-            model.MassCenterY * scale);
-        var offsetLocalGame = PhysVecToGame(offsetLocalPhys);
-        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocalGame, rotGame);
-
         var extra = MathF.Max(0f, AxisMarkerExtraMeters);
+        var hzE = geo.Hz + extra;
+        var hxE = geo.Hx + extra;
+        var hyE = geo.Hy + extra;
 
-        // +Length marker: local +Z of the physics box (uses MassBoxSizeY via ShipController.Build third parameter).
-        var localLenGame = PhysVecToGame(new JVector(0f, 0f, hz + extra));
-        var posLen = centerGame + Vector3.TransformNormal(localLenGame, rotGame);
+        // +Length / +Beam / +Up: local +Z / +X / +Y of physics box (see ShipController.Build).
+        var posLen = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(0f, 0f, hzE)), geo.RotGame);
+        var posBeam = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(hxE, 0f, 0f)), geo.RotGame);
+        var posUp = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(0f, hyE, 0f)), geo.RotGame);
 
-        // +Beam marker: local +X of the physics box (uses MassBoxSizeX via ShipController.Build first parameter).
-        var localBeamGame = PhysVecToGame(new JVector(hx + extra, 0f, 0f));
-        var posBeam = centerGame + Vector3.TransformNormal(localBeamGame, rotGame);
-
-        // +Up marker: local +Y of the physics box (uses MassBoxSizeZ via ShipController.Build second parameter).
-        var localUpGame = PhysVecToGame(new JVector(0f, hy + extra, 0f));
-        var posUp = centerGame + Vector3.TransformNormal(localUpGame, rotGame);
-
-        // Compute vertical extent of the OBB in world (game Z is up).
-        var minZ = float.PositiveInfinity;
-        var maxZ = float.NegativeInfinity;
-        Span<JVector> localCornersPhys =
-        [
-            new JVector(+hx, +hy, +hz),
-            new JVector(+hx, +hy, -hz),
-            new JVector(+hx, -hy, +hz),
-            new JVector(+hx, -hy, -hz),
-            new JVector(-hx, +hy, +hz),
-            new JVector(-hx, +hy, -hz),
-            new JVector(-hx, -hy, +hz),
-            new JVector(-hx, -hy, -hz),
-        ];
-        for (var i = 0; i < 8; i++)
-        {
-            var cGame = PhysVecToGame(localCornersPhys[i]);
-            var w = centerGame + Vector3.TransformNormal(cGame, rotGame);
-            if (w.Z < minZ) minZ = w.Z;
-            if (w.Z > maxZ) maxZ = w.Z;
-        }
+        Span<Vector3> cornerScratch = stackalloc Vector3[8];
+        GetMassBoxWorldVerticalExtent(in geo, cornerScratch, out var minZ, out var maxZ);
 
         if (setLen != null)
             UpdateMarker(ship.ParentWorld, setLen, 0, lenTemplateId, zoneId, posLen);
@@ -428,15 +439,13 @@ public static class ShipTuningDebug
             return;
         }
 
-        var rb = ship.RigidBody;
-        var model = ship.ShipController?.ShipModel;
-        if (rb is null || model is null)
+        if (!TryGetMassBoxGameGeometry(ship, out var geo))
         {
             DespawnMarkers(_shipCornerMarkers, ship.Id);
             return;
         }
 
-        var zoneId = ship.Transform.ZoneId;
+        var zoneId = ship.Transform!.ZoneId;
         var set = _shipCornerMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(8));
         if (set.ZoneId != zoneId || set.TemplateId != templateId)
         {
@@ -446,47 +455,11 @@ public static class ShipTuningDebug
             set.TemplateId = templateId;
         }
 
-        // REAL physics box corners, but expressed in GAME coordinates with the same quaternion component mapping
-        // used by PhysicsManager.SyncTransformWithRigidBody (rotation.X, rotation.Z, rotation.Y, rotation.W).
-        //
-        // Reason: a pure axis permutation (phys -> game) is an odd permutation (changes handedness),
-        // so "rotate in phys then permute" can appear to flip left/right in game space.
-        // Computing directly in game space with the mapped quaternion keeps turn direction consistent.
-        //
-        // ShipController.Build():
-        // - BoxShape(MassBoxSizeX, MassBoxSizeZ, MassBoxSizeY)
-        // - TransformedShape offset = (MassCenterX, MassCenterZ, MassCenterY)
-        var scale = MathF.Max(0.01f, ship.Scale);
-        var hx = model.MassBoxSizeX * scale * 0.5f;
-        var hy = ShipController.ShipMassBoxDefaults.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
-        var hz = model.MassBoxSizeY * scale * 0.5f;
-
-        // See UpdateShipAxisMarkers comment above.
-        var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
-
-        var posGame0 = PhysToGame(rb.Position);
-        var offsetLocalPhys = new JVector(
-            model.MassCenterX * scale,
-            ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale,
-            model.MassCenterY * scale);
-        var offsetLocalGame = PhysVecToGame(offsetLocalPhys);
-        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocalGame, rotGame);
-
-        Span<Vector3> localCornersGame =
-        [
-            PhysVecToGame(new JVector(+hx, +hy, +hz)),
-            PhysVecToGame(new JVector(+hx, +hy, -hz)),
-            PhysVecToGame(new JVector(+hx, -hy, +hz)),
-            PhysVecToGame(new JVector(+hx, -hy, -hz)),
-            PhysVecToGame(new JVector(-hx, +hy, +hz)),
-            PhysVecToGame(new JVector(-hx, +hy, -hz)),
-            PhysVecToGame(new JVector(-hx, -hy, +hz)),
-            PhysVecToGame(new JVector(-hx, -hy, -hz)),
-        ];
-
+        Span<Vector3> localCorners = stackalloc Vector3[8];
+        FillMassBoxLocalCornersGame(geo.Hx, geo.Hy, geo.Hz, localCorners);
         for (var i = 0; i < 8; i++)
         {
-            var posGame = centerGame + Vector3.TransformNormal(localCornersGame[i], rotGame);
+            var posGame = geo.CenterGame + Vector3.TransformNormal(localCorners[i], geo.RotGame);
             UpdateMarker(ship.ParentWorld, set, i, templateId, zoneId, posGame);
         }
     }
