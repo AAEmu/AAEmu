@@ -3,6 +3,8 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 
+using AAEmu.Game.Physics;
+
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -19,15 +21,17 @@ namespace AAEmu.Game.Physics.Debug;
 /// <summary>
 /// EN: Dev-only ship physics tuning & debug: ship↔ship, ship↔shore, plus ShipController tuning.
 /// RU: Dev-only тюнинг и дебаг корабельной физики: ship↔ship, ship↔shore, а также тюнинг ShipController.
+/// EN: Gimmick markers use template ids from table <c>gimmicks</c> — see <see cref="CornerMarkerTemplateId"/>, <see cref="ShoreMarkerTemplateId"/>, axis ids; set id to <c>0</c> or use flags (<see cref="Enabled"/>, <see cref="AxisMarkersEnabled"/>) to hide.
+/// RU: Маркеры-гиммики — template id из таблицы <c>gimmicks</c> (см. углы, берег, оси); выключить — id <c>0</c> или флаги (<see cref="Enabled"/>, <see cref="AxisMarkersEnabled"/>).
 /// </summary>
 public static class ShipTuningDebug
 {
     /// <summary>
-    /// EN: Master switch (use Hot Reload; no GM commands).
-    /// RU: Главный переключатель (через Hot Reload; без GM команд).
+    /// EN: Master switch (use Hot Reload; no GM commands). When false: all ship debug gimmicks despawn and runtime tuning overrides fall back to defaults in interaction classes — not only visuals.
+    /// RU: Главный переключатель (Hot Reload; без GM). Если false — снимаются все дебаг-маркеры кораблей и runtime-тюнинг из этого класса не применяется (подставляются дефолты в классах взаимодействий), не только картинка.
     /// </summary>
     public static bool Enabled => GetEnabled();
-    private static bool GetEnabled() => true;
+    private static bool GetEnabled() => false;
 
     /// <summary>
     /// EN: Minimum effective access level to receive chat debug messages.
@@ -55,42 +59,42 @@ public static class ShipTuningDebug
     /// RU: Включить/выключить строку `[ShipSpeed]` в чате (диагностика скорости/мели).
     /// </summary>
     public static bool ShipSpeedChatEnabled => GetShipSpeedChatEnabled();
-    private static bool GetShipSpeedChatEnabled() => true;
+    private static bool GetShipSpeedChatEnabled() => false;
 
     /// <summary>
-    /// EN: Corner markers template id (table <c>gimmicks</c>). Hot Reload: edit this return value.
-    /// RU: TemplateId маркеров углов (таблица <c>gimmicks</c>). Hot Reload: меняй return в этом методе.
+    /// EN: Eight corner markers on the mass-box (table <c>gimmicks</c>). Default id <c>65</c> (toy.flare). To disable only corners: return <c>0</c> (or turn off all visuals via <see cref="Enabled"/>).
+    /// RU: Восемь маркеров углов mass-box (таблица <c>gimmicks</c>). По умолчанию id <c>65</c> (toy.flare). Выключить только углы: <c>return 0</c> (или все маркеры — <see cref="Enabled"/>).
     /// </summary>
     public static uint CornerMarkerTemplateId => GetCornerMarkerTemplateId();
-    private static uint GetCornerMarkerTemplateId() => 65; // toy.flare
+    private static uint GetCornerMarkerTemplateId() => 0; // toy.flare
 
     /// <summary>
-    /// EN: Shore markers template id (table <c>gimmicks</c>). Hot Reload: edit this return value.
-    /// RU: TemplateId маркеров берега (таблица <c>gimmicks</c>). Hot Reload: меняй return в этом методе.
+    /// EN: Shore probe/contact markers (table <c>gimmicks</c>). Default id <c>28</c>. To disable only shore gimmicks: return <c>0</c>. Ship physics uses <see cref="ShipShoreInteraction.ShorePhysicsDefaults"/> when <see cref="Enabled"/> is false.
+    /// RU: Маркеры берега/проб (таблица <c>gimmicks</c>). По умолчанию id <c>28</c>. Выключить только маркеры берега: <c>return 0</c>. Физика берега — дефолты в <see cref="ShipShoreInteraction.ShorePhysicsDefaults"/>, если <see cref="Enabled"/> false.
     /// </summary>
     public static uint ShoreMarkerTemplateId => GetShoreMarkerTemplateId();
-    private static uint GetShoreMarkerTemplateId() => 28;
+    private static uint GetShoreMarkerTemplateId() => 0;
 
     /// <summary>
-    /// EN: Axis marker template id for +Length (local +Z of the physics box).
-    /// RU: TemplateId осевого маркера для +Length (локальная +Z физического бокса).
+    /// EN: Axis marker for +Length (local +Z of the physics box). Default id <c>16</c> (firecracker_green). To disable all axis markers at once: <see cref="AxisMarkersEnabled"/> = false; per-axis: return <c>0</c> here.
+    /// RU: Маркер оси +Length (локальная +Z бокса). По умолчанию id <c>16</c> (firecracker_green). Все оси сразу: <see cref="AxisMarkersEnabled"/> = false; только эта ось: <c>return 0</c>.
     /// </summary>
     public static uint AxisLengthMarkerTemplateId => GetAxisLengthMarkerTemplateId();
-    private static uint GetAxisLengthMarkerTemplateId() => 16; // firecracker_green
+    private static uint GetAxisLengthMarkerTemplateId() => 0; // firecracker_green
 
     /// <summary>
-    /// EN: Axis marker template id for +Beam (local +X of the physics box).
-    /// RU: TemplateId осевого маркера для +Beam (локальная +X физического бокса).
+    /// EN: Axis marker for +Beam (local +X). Default id <c>18</c> (firecracker_blue). Disable with <see cref="AxisMarkersEnabled"/> or return <c>0</c>.
+    /// RU: Маркер оси +Beam (локальная +X). По умолчанию id <c>18</c> (firecracker_blue). Выключение — <see cref="AxisMarkersEnabled"/> или <c>return 0</c>.
     /// </summary>
     public static uint AxisBeamMarkerTemplateId => GetAxisBeamMarkerTemplateId();
-    private static uint GetAxisBeamMarkerTemplateId() => 18; // firecracker_blue (assumed adjacent id)
+    private static uint GetAxisBeamMarkerTemplateId() => 0; // firecracker_blue (assumed adjacent id)
 
     /// <summary>
-    /// EN: Axis marker template id for +Up (local +Y of the physics box).
-    /// RU: TemplateId осевого маркера для +Up (локальная +Y физического бокса).
+    /// EN: Axis marker for +Up (local +Y). Default id <c>28</c> (same id as shore marker; change if you need a distinct look). Disable with <see cref="AxisMarkersEnabled"/> or return <c>0</c>.
+    /// RU: Маркер оси +Up (локальная +Y). По умолчанию id <c>28</c> (тот же id, что у берега; поменяй, если нужен другой вид). Выключение — <see cref="AxisMarkersEnabled"/> или <c>return 0</c>.
     /// </summary>
     public static uint AxisUpMarkerTemplateId => GetAxisUpMarkerTemplateId();
-    private static uint GetAxisUpMarkerTemplateId() => 28; // fallback: visible marker
+    private static uint GetAxisUpMarkerTemplateId() => 0; // fallback: visible marker
 
     /// <summary>
     /// EN: Marker scale.
@@ -107,18 +111,18 @@ public static class ShipTuningDebug
     private static bool GetDrawOnlyWhenDriven() => false;
 
     /// <summary>
-    /// EN: Enable ship↔shore debug (markers + latch messages + tuning override in ShipShoreInteraction).
-    /// RU: Включить ship↔shore дебаг (маркеры + сообщения latch + подмена тюнинга в ShipShoreInteraction).
+    /// EN: Reserved (not used for physics; shore behavior is gated by <see cref="Enabled"/> + <see cref="ShipShoreInteraction.ShorePhysicsDefaults"/>).
+    /// RU: Зарезервировано (физика берега завязана на <see cref="Enabled"/> и <see cref="ShipShoreInteraction.ShorePhysicsDefaults"/>).
     /// </summary>
     public static bool ShoreEnabled => GetShoreEnabled();
-    private static bool GetShoreEnabled() => true;
+    private static bool GetShoreEnabled() => false;
 
     /// <summary>
-    /// EN: Show two extra axis markers: +Length (local +Z of the physics box) and +Beam (local +X of the physics box).
-    /// RU: Показывать 2 дополнительных маркера осей: +Length (локальная +Z физ. бокса) и +Beam (локальная +X физ. бокса).
+    /// EN: Gimmicks for +Length, +Beam, +Up axis (three markers). When false, all three are despawned. Per-axis off: set that axis template id to 0.
+    /// RU: Гиммики для осей +Length, +Beam, +Up (три маркера). Если false — снимаются все три. Отдельную ось: template id этой оси = 0.
     /// </summary>
     public static bool AxisMarkersEnabled => GetAxisMarkersEnabled();
-    private static bool GetAxisMarkersEnabled() => true;
+    private static bool GetAxisMarkersEnabled() => false;
 
     /// <summary>
     /// EN: Extra distance (meters) beyond half-extent for axis markers.
@@ -138,28 +142,28 @@ public static class ShipTuningDebug
         /// RU: Аддитивный вертикальный сдвиг к MassCenterZ (метры). Положительное значение поднимает бокс вверх.
         /// </summary>
         public static float CenterZAddMeters => GetCenterZAddMeters();
-        private static float GetCenterZAddMeters() => 0f;
+        private static float GetCenterZAddMeters() => ShipController.ShipMassBoxDefaults.CenterZAddMeters;
 
         /// <summary>
         /// EN: Additive vertical offset to MassCenterZ as a fraction of MassBoxSizeZ. Example: 0.30 lifts the box by 30% of its height.
         /// RU: Аддитивный вертикальный сдвиг к MassCenterZ как доля MassBoxSizeZ. Например: 0.30 поднимает бокс на 30% его высоты.
         /// </summary>
         public static float CenterZAddFracOfSizeZ => GetCenterZAddFracOfSizeZ();
-        private static float GetCenterZAddFracOfSizeZ() => 0.0f;
+        private static float GetCenterZAddFracOfSizeZ() => ShipController.ShipMassBoxDefaults.CenterZAddFracOfSizeZ;
 
         /// <summary>
         /// EN: Multiply MassBoxSizeZ (height). 1 = no change.
         /// RU: Множитель MassBoxSizeZ (высота). 1 = без изменений.
         /// </summary>
         public static float SizeZMul => GetSizeZMul();
-        private static float GetSizeZMul() => 1f;
+        private static float GetSizeZMul() => ShipController.ShipMassBoxDefaults.SizeZMul;
 
         /// <summary>
         /// EN: Additive adjustment to MassBoxSizeZ (meters). Applied after SizeZMul.
         /// RU: Аддитивная поправка к MassBoxSizeZ (метры). Применяется после SizeZMul.
         /// </summary>
         public static float SizeZAddMeters => GetSizeZAddMeters();
-        private static float GetSizeZAddMeters() => 0f;
+        private static float GetSizeZAddMeters() => ShipController.ShipMassBoxDefaults.SizeZAddMeters;
 
         internal static float GetCenterZ(float baseCenterZ, float baseSizeZ) =>
             baseCenterZ + baseSizeZ * CenterZAddFracOfSizeZ + CenterZAddMeters;
@@ -182,161 +186,168 @@ public static class ShipTuningDebug
         /// RU: Множитель полу-длины только для SAT-детекта (держать близко к 1).
         /// </summary>
         public static float HullDetectInflateLength => GetHullDetectInflateLength();
-        private static float GetHullDetectInflateLength() => 1.025f;
+        private static float GetHullDetectInflateLength() => ShipShipInteraction.PhysicsDefaults.HullDetectInflateLength;
 
         /// <summary>
         /// EN: Half-beam multiplier for SAT overlap test only.
         /// RU: Множитель полу-ширины только для SAT-детекта.
         /// </summary>
         public static float HullDetectInflateBeam => GetHullDetectInflateBeam();
-        private static float GetHullDetectInflateBeam() => 1.015f;
+        private static float GetHullDetectInflateBeam() => ShipShipInteraction.PhysicsDefaults.HullDetectInflateBeam;
 
         /// <summary>
         /// EN: Extra tightening of beam in SAT only (reduces early side contact from oversized mass box).
         /// RU: Доп. ужатие ширины только в SAT (убирает ранний боковой контакт из-за широкого mass box).
         /// </summary>
         public static float BeamDetectTightenMul => GetBeamDetectTightenMul();
-        private static float GetBeamDetectTightenMul() => 0.78f;
+        private static float GetBeamDetectTightenMul() => ShipShipInteraction.PhysicsDefaults.BeamDetectTightenMul;
 
         /// <summary>
         /// EN: Ignore overlap response below this penetration depth (meters).
         /// RU: Игнорировать реакцию, если penetration меньше этого (метры).
         /// </summary>
         public static float MinPenetrationToAct => GetMinPenetrationToAct();
-        private static float GetMinPenetrationToAct() => 0.055f;
+        private static float GetMinPenetrationToAct() => ShipShipInteraction.PhysicsDefaults.MinPenetrationToAct;
 
         /// <summary>
         /// EN: Ignore periodic hull-damage below this penetration depth (meters).
         /// RU: Не наносить периодический урон корпусу, если penetration меньше этого (метры).
         /// </summary>
         public static float MinPenetrationToDamage => GetMinPenetrationToDamage();
-        private static float GetMinPenetrationToDamage() => MinPenetrationToAct * 1.15f;
+        private static float GetMinPenetrationToDamage() => ShipShipInteraction.PhysicsDefaults.MinPenetrationToDamage;
 
         /// <summary>
         /// EN: Ramp tangential slip damping over this depth range past MinPenetrationToAct (meters).
         /// RU: Наращивать демпф тангенциального скольжения на этом диапазоне глубины сверх MinPenetrationToAct (метры).
         /// </summary>
         public static float TangentialRampDepthMeters => GetTangentialRampDepthMeters();
-        private static float GetTangentialRampDepthMeters() => 0.22f;
+        private static float GetTangentialRampDepthMeters() => ShipShipInteraction.PhysicsDefaults.TangentialRampDepthMeters;
 
         /// <summary>
         /// EN: Multiplier on positional separation push once overlap exists.
         /// RU: Множитель раздвижения (push) после обнаружения overlap.
         /// </summary>
         public static float SeparationPushMultiplier => GetSeparationPushMultiplier();
-        private static float GetSeparationPushMultiplier() => 1.22f;
+        private static float GetSeparationPushMultiplier() => ShipShipInteraction.PhysicsDefaults.SeparationPushMultiplier;
 
         /// <summary>
         /// EN: Extra separation slack added to computed overlap (meters).
         /// RU: Доп. зазор к раздвижению сверх overlap (метры).
         /// </summary>
         public static float SeparationSlackMeters => GetSeparationSlackMeters();
-        private static float GetSeparationSlackMeters() => 0.020f;
+        private static float GetSeparationSlackMeters() => ShipShipInteraction.PhysicsDefaults.SeparationSlackMeters;
 
         /// <summary>
         /// EN: Fraction of relative closing speed along normal to remove (1 = full stop along normal).
         /// RU: Доля гашения относительной скорости вдоль нормали (1 = полностью убрать вдоль нормали).
         /// </summary>
         public static float ClosingSpeedDamp => GetClosingSpeedDamp();
-        private static float GetClosingSpeedDamp() => 1f;
+        private static float GetClosingSpeedDamp() => ShipShipInteraction.PhysicsDefaults.ClosingSpeedDamp;
 
         /// <summary>
         /// EN: Tangential slip damping factor while overlapping (0..1).
         /// RU: Коэффициент демпфа тангенциального скольжения при overlap (0..1).
         /// </summary>
         public static float TangentialSlipDamp => GetTangentialSlipDamp();
-        private static float GetTangentialSlipDamp() => 0.86f;
+        private static float GetTangentialSlipDamp() => ShipShipInteraction.PhysicsDefaults.TangentialSlipDamp;
 
         /// <summary>
         /// EN: Minimum vertical overlap (meters) to consider ships colliding.
         /// RU: Минимальный вертикальный overlap (метры) чтобы считать столкновение.
         /// </summary>
         public static float MinVerticalOverlap => GetMinVerticalOverlap();
-        private static float GetMinVerticalOverlap() => 0.12f;
+        private static float GetMinVerticalOverlap() => ShipShipInteraction.PhysicsDefaults.MinVerticalOverlap;
 
         /// <summary>
         /// EN: Outer resolve passes per tick (CPU vs stability).
         /// RU: Внешние проходы резолва за тик (CPU vs стабильность).
         /// </summary>
         public static int ResolvePasses => GetResolvePasses();
-        private static int GetResolvePasses() => 2;
+        private static int GetResolvePasses() => ShipShipInteraction.PhysicsDefaults.ResolvePasses;
 
         /// <summary>
         /// EN: Max depenetration iterations per pair per pass.
         /// RU: Макс. итераций раздвижения на пару за проход.
         /// </summary>
         public static int MaxPairIterations => GetMaxPairIterations();
-        private static int GetMaxPairIterations() => 12;
+        private static int GetMaxPairIterations() => ShipShipInteraction.PhysicsDefaults.MaxPairIterations;
 
         /// <summary>
         /// EN: Penetration depth where “deep penetration” push boost starts (meters).
         /// RU: Глубина penetration, с которой начинается усиление push (метры).
         /// </summary>
         public static float DeepPenetrationStart => GetDeepPenetrationStart();
-        private static float GetDeepPenetrationStart() => 0.12f;
+        private static float GetDeepPenetrationStart() => ShipShipInteraction.PhysicsDefaults.DeepPenetrationStart;
 
         /// <summary>
         /// EN: Boost factor applied as penetration exceeds DeepPenetrationStart.
         /// RU: Коэффициент усиления push при penetration больше DeepPenetrationStart.
         /// </summary>
         public static float DeepPenetrationBoost => GetDeepPenetrationBoost();
-        private static float GetDeepPenetrationBoost() => 0.72f;
+        private static float GetDeepPenetrationBoost() => ShipShipInteraction.PhysicsDefaults.DeepPenetrationBoost;
 
         /// <summary>
         /// EN: Floor on half-separation distance (meters).
         /// RU: Минимальная полу-дистанция раздвижения (метры).
         /// </summary>
         public static float MinHalfSeparationMeters => GetMinHalfSeparationMeters();
-        private static float GetMinHalfSeparationMeters() => 0.02f;
+        private static float GetMinHalfSeparationMeters() => ShipShipInteraction.PhysicsDefaults.MinHalfSeparationMeters;
 
         /// <summary>
         /// EN: Stop iterating if computed separation is below this (meters) to avoid micro-jitter.
         /// RU: Остановить итерации, если раздвижение меньше этого (метры), чтобы убрать микродрожь.
         /// </summary>
         public static float MinLinearSeparationToApplyMeters => GetMinLinearSeparationToApplyMeters();
-        private static float GetMinLinearSeparationToApplyMeters() => 0.018f;
+        private static float GetMinLinearSeparationToApplyMeters() => ShipShipInteraction.PhysicsDefaults.MinLinearSeparationToApplyMeters;
 
         /// <summary>
         /// EN: Cosine threshold for “nose cone” classification.
         /// RU: Порог косинуса для классификации “удар в нос”.
         /// </summary>
         public static float NoseContactCosThreshold => GetNoseContactCosThreshold();
-        private static float GetNoseContactCosThreshold() => 0.65f;
+        private static float GetNoseContactCosThreshold() => ShipShipInteraction.PhysicsDefaults.NoseContactCosThreshold;
 
         /// <summary>
         /// EN: Min interval between hull-collision damage ticks per other ship (seconds).
         /// RU: Минимальный интервал тиков урона от столкновения корпусом на конкретный другой корабль (сек).
         /// </summary>
         public static float HullCollisionDamageCooldownSec => GetHullCollisionDamageCooldownSec();
-        private static float GetHullCollisionDamageCooldownSec() => 1.5f;
+        private static float GetHullCollisionDamageCooldownSec() => ShipShipInteraction.PhysicsDefaults.HullCollisionDamageCooldownSec;
 
         /// <summary>
         /// EN: Relative speed threshold (m/s) where damage uses min % (non-nose).
         /// RU: Порог относительной скорости (м/с), ниже которого урон минимальный (не-носовые удары).
         /// </summary>
         public static float HullDamageLowSpeedThresholdMps => GetHullDamageLowSpeedThresholdMps();
-        private static float GetHullDamageLowSpeedThresholdMps() => 2f;
+        private static float GetHullDamageLowSpeedThresholdMps() => ShipShipInteraction.PhysicsDefaults.HullDamageLowSpeedThresholdMps;
 
         /// <summary>
         /// EN: Relative speed (m/s) where damage reaches max % (linear between thresholds).
         /// RU: Относительная скорость (м/с), при которой урон достигает максимума (линейно между порогами).
         /// </summary>
         public static float HullDamageInterpMaxMps => GetHullDamageInterpMaxMps();
-        private static float GetHullDamageInterpMaxMps() => 10f;
+        private static float GetHullDamageInterpMaxMps() => ShipShipInteraction.PhysicsDefaults.HullDamageSpeedInterpMaxMps;
 
         /// <summary>
         /// EN: Min % hull damage per tick.
         /// RU: Минимальный % урона корпуса за тик.
         /// </summary>
         public static int HullDamageSpeedScaledMinPercent => GetHullDamageSpeedScaledMinPercent();
-        private static int GetHullDamageSpeedScaledMinPercent() => 1;
+        private static int GetHullDamageSpeedScaledMinPercent() => ShipShipInteraction.PhysicsDefaults.HullDamageSpeedScaledMinPercent;
 
         /// <summary>
         /// EN: Max % hull damage per tick.
         /// RU: Максимальный % урона корпуса за тик.
         /// </summary>
         public static int HullDamageSpeedScaledMaxPercent => GetHullDamageSpeedScaledMaxPercent();
-        private static int GetHullDamageSpeedScaledMaxPercent() => 10;
+        private static int GetHullDamageSpeedScaledMaxPercent() => ShipShipInteraction.PhysicsDefaults.HullDamageSpeedScaledMaxPercent;
+
+        /// <summary>
+        /// EN: How strongly mass differences steer who gets pushed: 0 = 50/50, 1 = inverse-mass (physical), &gt;1 = exaggerate (lighter ship moves more; values clamped).
+        /// RU: Насколько масса влияет на раздвижение: 0 = поровну, 1 = обратно массе (как в физике), &gt;1 — усилить контраст (лёгкий сильнее отталкивается; края подрезаются).
+        /// </summary>
+        public static float MassPushStrength => GetMassPushStrength();
+        private static float GetMassPushStrength() => ShipShipInteraction.PhysicsDefaults.MassPushStrength;
     }
 
     /// <summary>
@@ -354,56 +365,56 @@ public static class ShipTuningDebug
         /// RU: Меньше ~0.4 — «дно» выше, меньше penetration и больше визуальный зазор; больше ~0.55 — риск глубокого вдавливания.
         /// </summary>
         public static float BoatBottomOffsetFracOfSizeZ => GetBoatBottomOffsetFracOfSizeZ();
-        private static float GetBoatBottomOffsetFracOfSizeZ() => 0f;
+        private static float GetBoatBottomOffsetFracOfSizeZ() => ShipShoreInteraction.ShorePhysicsDefaults.BoatBottomOffsetFracOfSizeZ;
 
         /// <summary>
         /// EN: Ground friction multiplier on dry ground.
         /// RU: Трение на суше.
         /// </summary>
         public static float GroundFriction => GetGroundFriction();
-        private static float GetGroundFriction() => 0.1f;
+        private static float GetGroundFriction() => ShipShoreInteraction.ShorePhysicsDefaults.GroundFriction;
 
         /// <summary>
         /// EN: Velocity/angular damping on dry ground.
         /// RU: Демпф скорости/угловой скорости на суше.
         /// </summary>
         public static float DryGroundCollisionDamping => GetDryGroundCollisionDamping();
-        private static float GetDryGroundCollisionDamping() => 1f;
+        private static float GetDryGroundCollisionDamping() => ShipShoreInteraction.ShorePhysicsDefaults.DryGroundCollisionDamping;
 
         /// <summary>
         /// EN: Roll correction dead-zone (radians).
         /// RU: Мёртвая зона коррекции roll (радианы).
         /// </summary>
         public static float DryGroundRollDeadZoneRad => GetDryGroundRollDeadZoneRad();
-        private static float GetDryGroundRollDeadZoneRad() => 0.1f;
+        private static float GetDryGroundRollDeadZoneRad() => ShipShoreInteraction.ShorePhysicsDefaults.DryGroundRollDeadZoneRad;
 
         /// <summary>
         /// EN: Roll correction torque factor (tuning).
         /// RU: Коэффициент коррекции roll (тюнинг).
         /// </summary>
         public static float DryGroundRollTorqueMul => GetDryGroundRollTorqueMul();
-        private static float GetDryGroundRollTorqueMul() => 0.1f;
+        private static float GetDryGroundRollTorqueMul() => ShipShoreInteraction.ShorePhysicsDefaults.DryGroundRollTorqueMul;
 
         /// <summary>
         /// EN: Bow probe distance multiplier vs MassBoxSizeY (hull length).
         /// RU: Множитель дистанции носовой пробы от MassBoxSizeY (длина корпуса).
         /// </summary>
         public static float BowProbeMul => GetBowProbeMul();
-        private static float GetBowProbeMul() => 1.5f;
+        private static float GetBowProbeMul() => ShipShoreInteraction.ShorePhysicsDefaults.BowProbeMul;
 
         /// <summary>
         /// EN: Stern probe distance multiplier vs MassBoxSizeY (hull length).
         /// RU: Множитель дистанции кормовой пробы от MassBoxSizeY (длина корпуса).
         /// </summary>
         public static float SternProbeMul => GetSternProbeMul();
-        private static float GetSternProbeMul() => 1.5f;
+        private static float GetSternProbeMul() => ShipShoreInteraction.ShorePhysicsDefaults.SternProbeMul;
 
         /// <summary>
         /// EN: Cliff probe distance multiplier vs MassBoxSizeY (hull length).
         /// RU: Множитель дистанции пробы “обрыва/стены” от MassBoxSizeY (длина корпуса).
         /// </summary>
         public static float CliffProbeMul => GetCliffProbeMul();
-        private static float GetCliffProbeMul() => 0f;
+        private static float GetCliffProbeMul() => ShipShoreInteraction.ShorePhysicsDefaults.CliffProbeMul;
 
         /// <summary>
         /// EN: Wall/cliff look-ahead distance as a fraction of half-length (added beyond the box edge).
@@ -412,112 +423,112 @@ public static class ShipTuningDebug
         /// RU: 0 = проба ровно на кромке бокса нос/корма; 0.2 = +20% half-length дальше.
         /// </summary>
         public static float CliffProbeLookAheadMulOfHalfLength => GetCliffProbeLookAheadMulOfHalfLength();
-        private static float GetCliffProbeLookAheadMulOfHalfLength() => 0.00f;
+        private static float GetCliffProbeLookAheadMulOfHalfLength() => ShipShoreInteraction.ShorePhysicsDefaults.CliffProbeLookAheadMulOfHalfLength;
 
         /// <summary>
         /// EN: Minimum look-ahead (meters) added beyond the box edge for wall/cliff probe.
         /// RU: Минимальный look-ahead (метры) за край бокса для пробы “стены/обрыва”.
         /// </summary>
         public static float CliffProbeMinLookAheadMeters => GetCliffProbeMinLookAheadMeters();
-        private static float GetCliffProbeMinLookAheadMeters() => 0.25f;
+        private static float GetCliffProbeMinLookAheadMeters() => ShipShoreInteraction.ShorePhysicsDefaults.CliffProbeMinLookAheadMeters;
 
         /// <summary>
         /// EN: Cliff slope threshold (Δh / dist).
         /// RU: Порог “крутизны” (Δh / dist).
         /// </summary>
         public static float CliffSlopeFracThreshold => GetCliffSlopeFracThreshold();
-        private static float GetCliffSlopeFracThreshold() => 0.70f;
+        private static float GetCliffSlopeFracThreshold() => ShipShoreInteraction.ShorePhysicsDefaults.CliffSlopeFracThreshold;
 
         /// <summary>
         /// EN: Cliff must be above water by this margin (meters).
         /// RU: “Обрыв” считается только если выше воды на этот запас (метры).
         /// </summary>
         public static float CliffAboveWaterMargin => GetCliffAboveWaterMargin();
-        private static float GetCliffAboveWaterMargin() => 0.30f;
+        private static float GetCliffAboveWaterMargin() => ShipShoreInteraction.ShorePhysicsDefaults.CliffAboveWaterMargin;
 
         /// <summary>
         /// EN: Shore latch enter hysteresis (meters).
         /// RU: Гистерезис входа в latch (метры).
         /// </summary>
         public static float ShoreEnterHyst => GetShoreEnterHyst();
-        private static float GetShoreEnterHyst() => 0.5f;
+        private static float GetShoreEnterHyst() => ShipShoreInteraction.ShorePhysicsDefaults.ShoreEnterHyst;
 
         /// <summary>
         /// EN: Shore latch exit hysteresis (meters).
         /// RU: Гистерезис выхода из latch (метры).
         /// </summary>
         public static float ShoreExitHyst => GetShoreExitHyst();
-        private static float GetShoreExitHyst() => 0.35f;
+        private static float GetShoreExitHyst() => ShipShoreInteraction.ShorePhysicsDefaults.ShoreExitHyst;
 
         /// <summary>
         /// EN: Floor height smoothing response (lambda).
         /// RU: Сглаживание высоты пола (lambda).
         /// </summary>
         public static float FloorSmoothResponse => GetFloorSmoothResponse();
-        private static float GetFloorSmoothResponse() => 16.0f;
+        private static float GetFloorSmoothResponse() => ShipShoreInteraction.ShorePhysicsDefaults.FloorSmoothResponse;
 
         /// <summary>
         /// EN: Pre-shore damping band (meters).
         /// RU: Полоса “перед берегом” для демпфа (метры).
         /// </summary>
         public static float PreShoreBand => GetPreShoreBand();
-        private static float GetPreShoreBand() => 0.5f;
+        private static float GetPreShoreBand() => ShipShoreInteraction.ShorePhysicsDefaults.PreShoreBand;
 
         /// <summary>
         /// EN: Penetration epsilon (meters).
         /// RU: Эпсилон penetration (метры).
         /// </summary>
         public static float PenetrationEpsilon => GetPenetrationEpsilon();
-        private static float GetPenetrationEpsilon() => 0.04f;
+        private static float GetPenetrationEpsilon() => ShipShoreInteraction.ShorePhysicsDefaults.PenetrationEpsilon;
 
         /// <summary>
         /// EN: Penetration response (lambda).
         /// RU: Скорость реакции на penetration (lambda).
         /// </summary>
         public static float PenetrationResponse => GetPenetrationResponse();
-        private static float GetPenetrationResponse() => 4.5f;
+        private static float GetPenetrationResponse() => ShipShoreInteraction.ShorePhysicsDefaults.PenetrationResponse;
 
         /// <summary>
         /// EN: Max up-step early after latching (m/tick).
         /// RU: Макс. подъём на раннем этапе latch (м/тик).
         /// </summary>
         public static float MaxUpStepEarly => GetMaxUpStepEarly();
-        private static float GetMaxUpStepEarly() => 0.04f;
+        private static float GetMaxUpStepEarly() => ShipShoreInteraction.ShorePhysicsDefaults.MaxUpStepEarly;
 
         /// <summary>
         /// EN: Max up-step later while latched (m/tick).
         /// RU: Макс. подъём после стабилизации latch (м/тик).
         /// </summary>
         public static float MaxUpStepLate => GetMaxUpStepLate();
-        private static float GetMaxUpStepLate() => 0.07f;
+        private static float GetMaxUpStepLate() => ShipShoreInteraction.ShorePhysicsDefaults.MaxUpStepLate;
 
         /// <summary>
         /// EN: Visual ground pitch max (degrees).
         /// RU: Макс. визуальный ground pitch (градусы).
         /// </summary>
         public static float VisualGroundPitchMaxDeg => GetVisualGroundPitchMaxDeg();
-        private static float GetVisualGroundPitchMaxDeg() => 8.0f;
+        private static float GetVisualGroundPitchMaxDeg() => ShipShoreInteraction.ShorePhysicsDefaults.VisualGroundPitchMaxDeg;
 
         /// <summary>
         /// EN: Visual ground pitch probe distance (meters).
         /// RU: Дистанция проб для визуального pitch (метры).
         /// </summary>
         public static float VisualGroundPitchProbeDistance => GetVisualGroundPitchProbeDistance();
-        private static float GetVisualGroundPitchProbeDistance() => 6.0f;
+        private static float GetVisualGroundPitchProbeDistance() => ShipShoreInteraction.ShorePhysicsDefaults.VisualGroundPitchProbeDistance;
 
         /// <summary>
         /// EN: Visual ground pitch response (lambda).
         /// RU: Скорость реакции визуального pitch (lambda).
         /// </summary>
         public static float VisualGroundPitchResponse => GetVisualGroundPitchResponse();
-        private static float GetVisualGroundPitchResponse() => 2.0f;
+        private static float GetVisualGroundPitchResponse() => ShipShoreInteraction.ShorePhysicsDefaults.VisualGroundPitchResponse;
 
         /// <summary>
         /// EN: Visual pitch floor smoothing response (lambda).
         /// RU: Сглаживание высот для визуального pitch (lambda).
         /// </summary>
         public static float VisualPitchFloorSmoothResponse => GetVisualPitchFloorSmoothResponse();
-        private static float GetVisualPitchFloorSmoothResponse() => 8.0f;
+        private static float GetVisualPitchFloorSmoothResponse() => ShipShoreInteraction.ShorePhysicsDefaults.VisualPitchFloorSmoothResponse;
     }
 
     /// <summary>
@@ -531,119 +542,119 @@ public static class ShipTuningDebug
         /// RU: Максимальная скорость (по модулю) на мели при правильном газе "на выезд".
         /// </summary>
         public static float GroundEscapeMaxSpeedAbs => GetGroundEscapeMaxSpeedAbs();
-        private static float GetGroundEscapeMaxSpeedAbs() => 1.5f;
+        private static float GetGroundEscapeMaxSpeedAbs() => ShipController.PhysicsDefaults.GroundEscapeMaxSpeedAbs;
 
         /// <summary>
         /// EN: On shoal ground, max reverse speed as percent of max reverse on water (same ship/wind basis). 100 = same as water cap.
         /// RU: На мели: макс. задняя скорость в процентах от макс. задней на воде (та же база корабля/ветра). 100 = как на воде.
         /// </summary>
         public static float GroundReverseSpeedCapPercentOfWater => GetGroundReverseSpeedCapPercentOfWater();
-        private static float GetGroundReverseSpeedCapPercentOfWater() => 100f;
+        private static float GetGroundReverseSpeedCapPercentOfWater() => ShipController.PhysicsDefaults.GroundReverseSpeedCapPercentOfWater;
 
         /// <summary>
         /// EN: Treat very shallow water as "grounded" for speed caps (escape/reverse limit), based on (waterSurface - floor) depth.
         /// RU: Считать очень мелкую воду "мелью" для скоростных капов (escape/лимит заднего), по глубине (уровень воды - дно).
         /// </summary>
         public static float ShallowWaterDepthForGroundSpeedCaps => GetShallowWaterDepthForGroundSpeedCaps();
-        private static float GetShallowWaterDepthForGroundSpeedCaps() => 0.35f;
+        private static float GetShallowWaterDepthForGroundSpeedCaps() => ShipController.PhysicsDefaults.ShallowWaterDepthForGroundSpeedCaps;
 
         /// <summary>
         /// EN: Extra acceleration multiplier when throttle opposes current motion.
         /// RU: Доп. множитель ускорения, когда газ против текущего движения.
         /// </summary>
         public static float OpposingThrottleAccelMul => GetOpposingThrottleAccelMul();
-        private static float GetOpposingThrottleAccelMul() => 1f;
+        private static float GetOpposingThrottleAccelMul() => ShipController.PhysicsDefaults.OpposingThrottleAccelMul;
 
         /// <summary>
         /// EN: Extra braking factor for opposing throttle (multiplies reverse/brake behavior).
         /// RU: Доп. торможение при противоположном газе.
         /// </summary>
         public static float OpposingThrottleBrakeTuneMul => GetOpposingThrottleBrakeTuneMul();
-        private static float GetOpposingThrottleBrakeTuneMul() => 1f;
+        private static float GetOpposingThrottleBrakeTuneMul() => ShipController.PhysicsDefaults.OpposingThrottleBrakeTuneMul;
 
         /// <summary>
         /// EN: Steering responsiveness multiplier.
         /// RU: Множитель отзывчивости руля.
         /// </summary>
         public static float SteeringResponsivenessMul => GetSteeringResponsivenessMul();
-        private static float GetSteeringResponsivenessMul() => 1.45f;
+        private static float GetSteeringResponsivenessMul() => ShipController.PhysicsDefaults.SteeringResponsivenessMul;
 
         /// <summary>
         /// EN: Counter-steer responsiveness multiplier.
         /// RU: Множитель отзывчивости контрруления.
         /// </summary>
         public static float CounterSteerResponsivenessMul => GetCounterSteerResponsivenessMul();
-        private static float GetCounterSteerResponsivenessMul() => 1.35f;
+        private static float GetCounterSteerResponsivenessMul() => ShipController.PhysicsDefaults.CounterSteerResponsivenessMul;
 
         /// <summary>
         /// EN: Minimum turning factor at zero speed.
         /// RU: Минимальный фактор поворота на нулевой скорости.
         /// </summary>
         public static float MinTurnFactorAtZeroSpeed => GetMinTurnFactorAtZeroSpeed();
-        private static float GetMinTurnFactorAtZeroSpeed() => 0.5f;
+        private static float GetMinTurnFactorAtZeroSpeed() => ShipController.PhysicsDefaults.MinTurnFactorAtZeroSpeed;
 
         /// <summary>
         /// EN: Speed at which turning reaches 100% (ship speed units).
         /// RU: Скорость, при которой поворот достигает 100% (в игровых единицах скорости).
         /// </summary>
         public static float TurnFullFactorAtSpeed => GetTurnFullFactorAtSpeed();
-        private static float GetTurnFullFactorAtSpeed() => 2.5f;
+        private static float GetTurnFullFactorAtSpeed() => ShipController.PhysicsDefaults.TurnFullFactorAtSpeed;
 
         /// <summary>
         /// EN: Fraction of speed removed at max yaw rate.
         /// RU: Доля снижения скорости на максимальной скорости поворота.
         /// </summary>
         public static float TurnSpeedSlowdownFrac => GetTurnSpeedSlowdownFrac();
-        private static float GetTurnSpeedSlowdownFrac() => 0.1f;
+        private static float GetTurnSpeedSlowdownFrac() => ShipController.PhysicsDefaults.TurnSpeedSlowdownFrac;
 
         /// <summary>
         /// EN: Response for TurnSpeedVelocityMul smoothing (lambda).
         /// RU: Скорость сглаживания TurnSpeedVelocityMul (lambda).
         /// </summary>
         public static float TurnSpeedVelocityMulResponse => GetTurnSpeedVelocityMulResponse();
-        private static float GetTurnSpeedVelocityMulResponse() => 5.5f;
+        private static float GetTurnSpeedVelocityMulResponse() => ShipController.PhysicsDefaults.TurnSpeedVelocityMulResponse;
 
         /// <summary>
         /// EN: Minimum submergence to start upright stabilization (meters).
         /// RU: Минимальное погружение для выравнивания корпуса (метры).
         /// </summary>
         public static float UprightStabilizeMinSubmergedMeters => GetUprightStabilizeMinSubmergedMeters();
-        private static float GetUprightStabilizeMinSubmergedMeters() => 0.04f;
+        private static float GetUprightStabilizeMinSubmergedMeters() => ShipController.PhysicsDefaults.UprightStabilizeMinSubmergedMeters;
 
         /// <summary>
         /// EN: Max upright correction angular speed (rad/s).
         /// RU: Макс. скорость выравнивания (рад/с).
         /// </summary>
         public static float UprightStabilizeMaxRadPerSec => GetUprightStabilizeMaxRadPerSec();
-        private static float GetUprightStabilizeMaxRadPerSec() => 2.25f;
+        private static float GetUprightStabilizeMaxRadPerSec() => ShipController.PhysicsDefaults.UprightStabilizeMaxRadPerSec;
 
         /// <summary>
         /// EN: Dead-zone for upright correction (radians).
         /// RU: Мёртвая зона выравнивания (радианы).
         /// </summary>
         public static float UprightStabilizeAngleDeadZoneRad => GetUprightStabilizeAngleDeadZoneRad();
-        private static float GetUprightStabilizeAngleDeadZoneRad() => 0.004f;
+        private static float GetUprightStabilizeAngleDeadZoneRad() => ShipController.PhysicsDefaults.UprightStabilizeAngleDeadZoneRad;
 
         /// <summary>
         /// EN: Wind cone half-angle (degrees).
         /// RU: Полуугол конуса ветра (градусы).
         /// </summary>
         public static float WindConeHalfAngleDeg => GetWindConeHalfAngleDeg();
-        private static float GetWindConeHalfAngleDeg() => 15f;
+        private static float GetWindConeHalfAngleDeg() => ShipController.PhysicsDefaults.WindConeHalfAngleDeg;
 
         /// <summary>
         /// EN: Max speed multiplier with wind.
         /// RU: Макс. множитель скорости по ветру.
         /// </summary>
         public static float WindWithMaxMul => GetWindWithMaxMul();
-        private static float GetWindWithMaxMul() => 1.15f;
+        private static float GetWindWithMaxMul() => ShipController.PhysicsDefaults.WindWithMaxMul;
 
         /// <summary>
         /// EN: Max speed multiplier against wind.
         /// RU: Макс. множитель скорости против ветра.
         /// </summary>
         public static float WindAgainstMaxMul => GetWindAgainstMaxMul();
-        private static float GetWindAgainstMaxMul() => 0.85f;
+        private static float GetWindAgainstMaxMul() => ShipController.PhysicsDefaults.WindAgainstMaxMul;
     }
 
     private static readonly ConcurrentDictionary<uint, long> _lastDetailMsgAtMs = new();
@@ -1026,7 +1037,7 @@ public static class ShipTuningDebug
     /// </summary>
     public static void OnShoreLatchChanged(Slave ship, bool latched)
     {
-        if (!Enabled || !ShoreEnabled)
+        if (!Enabled)
             return;
 
         var driver = TryGetDriver(ship);
@@ -1053,7 +1064,7 @@ public static class ShipTuningDebug
         if (ship is null)
             return;
 
-        if (!Enabled || !ShoreEnabled)
+        if (!Enabled)
             return;
 
         var templateId = ShoreMarkerTemplateId;

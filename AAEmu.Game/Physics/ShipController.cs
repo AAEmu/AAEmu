@@ -57,41 +57,103 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     private readonly float _waterLevel = waterLevel;
     private const float FluidDensity = 1025f; // kg/m³
 
+    /// <summary>Identity mass-box Z when <see cref="Debug.ShipTuningDebug.Enabled"/> is false (matches default <see cref="Debug.ShipTuningDebug.HullBoxTuning"/>).</summary>
+    public static class ShipMassBoxDefaults
+    {
+        public const float CenterZAddMeters = 0f;
+        public const float CenterZAddFracOfSizeZ = 0f;
+        public const float SizeZMul = 1f;
+        public const float SizeZAddMeters = 0f;
+
+        public static float GetCenterZ(float baseCenterZ, float baseSizeZ) =>
+            baseCenterZ + baseSizeZ * CenterZAddFracOfSizeZ + CenterZAddMeters;
+
+        public static float GetSizeZ(float baseSizeZ)
+        {
+            var z = baseSizeZ * SizeZMul + SizeZAddMeters;
+            return MathF.Max(0.01f, z);
+        }
+    }
+
+    /// <summary>Production defaults when <see cref="Debug.ShipTuningDebug.Enabled"/> is false. <see cref="Debug.ShipTuningDebug.ShipControllerTuning"/> mirrors these for Hot Reload.</summary>
+    public static class PhysicsDefaults
+    {
+        public const float GroundEscapeMaxSpeedAbs = 1.5f;
+        public const float GroundReverseSpeedCapPercentOfWater = 100f;
+        public const float ShallowWaterDepthForGroundSpeedCaps = 0.35f;
+        public const float OpposingThrottleAccelMul = 1f;
+        public const float OpposingThrottleBrakeTuneMul = 1f;
+        public const float SteeringResponsivenessMul = 1.45f;
+        public const float CounterSteerResponsivenessMul = 1.35f;
+        public const float MinTurnFactorAtZeroSpeed = 0.5f;
+        public const float TurnFullFactorAtSpeed = 2.5f;
+        public const float TurnSpeedSlowdownFrac = 0.1f;
+        public const float TurnSpeedVelocityMulResponse = 5.5f;
+        public const float UprightStabilizeMinSubmergedMeters = 0.04f;
+        public const float UprightStabilizeMaxRadPerSec = 2.25f;
+        public const float UprightStabilizeAngleDeadZoneRad = 0.004f;
+        public const float WindConeHalfAngleDeg = 15f;
+        public const float WindWithMaxMul = 1.15f;
+        public const float WindAgainstMaxMul = 0.85f;
+    }
+
     /// <summary>Extra deceleration when throttle opposes current speed (reverse while moving forward, etc.).</summary>
-    private static float OpposingThrottleAccelMul => Debug.ShipTuningDebug.ShipControllerTuning.OpposingThrottleAccelMul;
+    private static float OpposingThrottleAccelMul => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.OpposingThrottleAccelMul
+        : PhysicsDefaults.OpposingThrottleAccelMul;
 
     /// <summary>Only for opposing throttle — extra braking on top (does not affect forward accel).</summary>
-    private static float OpposingThrottleBrakeTuneMul => Debug.ShipTuningDebug.ShipControllerTuning.OpposingThrottleBrakeTuneMul;
+    private static float OpposingThrottleBrakeTuneMul => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.OpposingThrottleBrakeTuneMul
+        : PhysicsDefaults.OpposingThrottleBrakeTuneMul;
 
     /// <summary>Steering builds turn rate faster without changing the max turn cap.</summary>
-    private static float SteeringResponsivenessMul => Debug.ShipTuningDebug.ShipControllerTuning.SteeringResponsivenessMul;
+    private static float SteeringResponsivenessMul => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.SteeringResponsivenessMul
+        : PhysicsDefaults.SteeringResponsivenessMul;
 
     /// <summary>When rudder fights current yaw rate — faster decay; same-direction turn rate unchanged.</summary>
-    private static float CounterSteerResponsivenessMul => Debug.ShipTuningDebug.ShipControllerTuning.CounterSteerResponsivenessMul;
+    private static float CounterSteerResponsivenessMul => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.CounterSteerResponsivenessMul
+        : PhysicsDefaults.CounterSteerResponsivenessMul;
 
     /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
     private const float MinSteerVelAsDegPerSec = 8f;
 
     /// <summary>At zero speed, keep this fraction of turning ability (so you can still rotate in place).</summary>
-    private static float MinTurnFactorAtZeroSpeed => Debug.ShipTuningDebug.ShipControllerTuning.MinTurnFactorAtZeroSpeed;
+    private static float MinTurnFactorAtZeroSpeed => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.MinTurnFactorAtZeroSpeed
+        : PhysicsDefaults.MinTurnFactorAtZeroSpeed;
 
     /// <summary>Speed (in current ship speed units) at which turning reaches 100%.</summary>
-    private static float TurnFullFactorAtSpeed => Debug.ShipTuningDebug.ShipControllerTuning.TurnFullFactorAtSpeed;
+    private static float TurnFullFactorAtSpeed => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.TurnFullFactorAtSpeed
+        : PhysicsDefaults.TurnFullFactorAtSpeed;
 
     /// <summary>Max forward/back speed multiplier removed at full yaw rate (linear in |ω|/ω_max).</summary>
-    private static float TurnSpeedSlowdownFrac => Debug.ShipTuningDebug.ShipControllerTuning.TurnSpeedSlowdownFrac;
+    private static float TurnSpeedSlowdownFrac => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.TurnSpeedSlowdownFrac
+        : PhysicsDefaults.TurnSpeedSlowdownFrac;
 
     /// <summary>Higher = snappier convergence of <see cref="Slave.TurnSpeedVelocityMul"/> toward the turn target.</summary>
-    private static float TurnSpeedVelocityMulResponse => Debug.ShipTuningDebug.ShipControllerTuning.TurnSpeedVelocityMulResponse;
+    private static float TurnSpeedVelocityMulResponse => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.TurnSpeedVelocityMulResponse
+        : PhysicsDefaults.TurnSpeedVelocityMulResponse;
 
     /// <summary>Min hull submergence (m) before water upright stabilization runs.</summary>
-    private static float UprightStabilizeMinSubmergedMeters => Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeMinSubmergedMeters;
+    private static float UprightStabilizeMinSubmergedMeters => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeMinSubmergedMeters
+        : PhysicsDefaults.UprightStabilizeMinSubmergedMeters;
 
     /// <summary>Max rotation (rad/s) toward upright per tick — avoids snaps after collisions.</summary>
-    private static float UprightStabilizeMaxRadPerSec => Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeMaxRadPerSec;
+    private static float UprightStabilizeMaxRadPerSec => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeMaxRadPerSec
+        : PhysicsDefaults.UprightStabilizeMaxRadPerSec;
 
     /// <summary>Skip correction when deck normal is already this close to world up (rad).</summary>
-    private static float UprightStabilizeAngleDeadZoneRad => Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeAngleDeadZoneRad;
+    private static float UprightStabilizeAngleDeadZoneRad => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeAngleDeadZoneRad
+        : PhysicsDefaults.UprightStabilizeAngleDeadZoneRad;
 
     /// <summary>
     /// Fixed max yaw rate (degrees/s) by <see cref="SlaveKind"/>.
@@ -123,10 +185,17 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     private const float WindTimePhaseOffsetHours = 0f;
 
     /// <summary>Within this cone from wind axis (±15°) apply full ±15% speed limits.</summary>
-    private static float WindConeHalfAngleDeg => Debug.ShipTuningDebug.ShipControllerTuning.WindConeHalfAngleDeg;
+    private static float WindConeHalfAngleDeg => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.WindConeHalfAngleDeg
+        : PhysicsDefaults.WindConeHalfAngleDeg;
 
-    private static float WindWithMaxMul => Debug.ShipTuningDebug.ShipControllerTuning.WindWithMaxMul;
-    private static float WindAgainstMaxMul => Debug.ShipTuningDebug.ShipControllerTuning.WindAgainstMaxMul;
+    private static float WindWithMaxMul => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.WindWithMaxMul
+        : PhysicsDefaults.WindWithMaxMul;
+
+    private static float WindAgainstMaxMul => Debug.ShipTuningDebug.Enabled
+        ? Debug.ShipTuningDebug.ShipControllerTuning.WindAgainstMaxMul
+        : PhysicsDefaults.WindAgainstMaxMul;
 
     /// <summary>How wind affects max speed: none (rowing/motor), square (downwind best), lateen (beam reach best).</summary>
     private enum ShipWindProfile
@@ -315,10 +384,10 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // - local +Z uses MassBoxSizeY (length)
         var sizeZ = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
             ? AAEmu.Game.Physics.Debug.ShipTuningDebug.HullBoxTuning.GetSizeZ(ShipModel.MassBoxSizeZ)
-            : ShipModel.MassBoxSizeZ;
+            : ShipMassBoxDefaults.GetSizeZ(ShipModel.MassBoxSizeZ);
         var centerZ = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
             ? AAEmu.Game.Physics.Debug.ShipTuningDebug.HullBoxTuning.GetCenterZ(ShipModel.MassCenterZ, ShipModel.MassBoxSizeZ)
-            : ShipModel.MassCenterZ;
+            : ShipMassBoxDefaults.GetCenterZ(ShipModel.MassCenterZ, ShipModel.MassBoxSizeZ);
 
         var shipBoxShape = new BoxShape(ShipModel.MassBoxSizeX, sizeZ, ShipModel.MassBoxSizeY);
         // Center offset
@@ -356,7 +425,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Use the latched ground contact from PhysicsManager to avoid shoreline jitter causing
         // abrupt control/velocity changes ("jerks") when transitioning water<->land.
         var isGrounded = (slave.CachedFloorLevel > slave.CachedWaterSurface) || slave.GroundContactLatched;
-        var shallowDepthForCaps = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.ShallowWaterDepthForGroundSpeedCaps;
+        var shallowDepthForCaps = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.ShallowWaterDepthForGroundSpeedCaps
+            : PhysicsDefaults.ShallowWaterDepthForGroundSpeedCaps;
         shallowDepthForCaps = MathF.Max(0f, shallowDepthForCaps);
         var waterDepth = slave.CachedWaterSurface - slave.CachedFloorLevel; // meters
         var isShallowForCaps = waterDepth >= 0f && waterDepth <= shallowDepthForCaps;
@@ -472,7 +543,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Shoal: limit max reverse vs the same water-based cap (percent of |maxBackward| on water).
         if (isGroundedForSpeedCaps)
         {
-            var revPct = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundReverseSpeedCapPercentOfWater;
+            var revPct = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+                ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundReverseSpeedCapPercentOfWater
+                : PhysicsDefaults.GroundReverseSpeedCapPercentOfWater;
             revPct = Math.Clamp(revPct, 0f, 100f);
             maxBackward = -waterMaxReverseAbs * (revPct / 100f);
         }
@@ -488,7 +561,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         if (isGroundedForSpeedCaps && (isEscapeInputOnGround || isFallbackEscapeOnGround))
         {
-            var groundEscapeMaxSpeedAbs = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundEscapeMaxSpeedAbs;
+            var groundEscapeMaxSpeedAbs = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+                ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundEscapeMaxSpeedAbs
+                : PhysicsDefaults.GroundEscapeMaxSpeedAbs;
             var escapeSign = isEscapeInputOnGround ? escapeThrottleSignOnGround : Math.Sign(slave.ThrottleRequest);
             if (escapeSign > 0)
                 maxForward = MathF.Max(maxForward, groundEscapeMaxSpeedAbs);
@@ -526,7 +601,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Anti-stall nudge: when grounded and escape input is held, avoid jitter around zero.
         if (isGroundedForSpeedCaps && isEscapeInputOnGround && slave.GroundStuckTime > 0.35f)
         {
-            var targetEscapeSpeed = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundEscapeMaxSpeedAbs;
+            var targetEscapeSpeed = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+                ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundEscapeMaxSpeedAbs
+                : PhysicsDefaults.GroundEscapeMaxSpeedAbs;
             var escapeA = 1f - MathF.Exp(-(6.0f + 2.0f * slave.GroundEscapeAssist) * MathF.Max(0f, dtSec));
             var target = escapeThrottleSignOnGround * targetEscapeSpeed;
             slave.Speed += (target - slave.Speed) * escapeA;
