@@ -291,6 +291,18 @@ public class PhysicsManager
                     {
                         try
                         {
+                            AAEmu.Game.Physics.Debug.ShipTuningDebug.TickShip(slave);
+                        }
+                        catch
+                        {
+                            // Debug-only; must never affect physics loop.
+                        }
+                    }
+
+                    foreach (var slave in shipsThisTick)
+                    {
+                        try
+                        {
                             SendUpdatedMovementData(slave, slave.RigidBody, physicsTotalDelta);
                         }
                         catch (Exception slaveException)

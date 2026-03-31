@@ -1,0 +1,1061 @@
+#nullable enable
+
+using System.Collections.Concurrent;
+using System.Numerics;
+
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Transform;
+
+using Jitter2.Dynamics;
+using Jitter2.LinearMath;
+
+namespace AAEmu.Game.Physics.Debug;
+
+/// <summary>
+/// EN: Dev-only ship physics tuning & debug: ship↔ship, ship↔shore, plus ShipController tuning.
+/// RU: Dev-only тюнинг и дебаг корабельной физики: ship↔ship, ship↔shore, а также тюнинг ShipController.
+/// </summary>
+public static class ShipTuningDebug
+{
+    /// <summary>
+    /// EN: Master switch (use Hot Reload; no GM commands).
+    /// RU: Главный переключатель (через Hot Reload; без GM команд).
+    /// </summary>
+    public static bool Enabled = true;
+
+    /// <summary>
+    /// EN: Minimum effective access level to receive chat debug messages.
+    /// RU: Минимальный effective access level для получения debug-сообщений в чат.
+    /// </summary>
+    public static int MinAccessLevel = 80;
+
+    /// <summary>
+    /// EN: Throttle detailed messages (ms) per ship.
+    /// RU: Троттлинг подробных сообщений (мс) на корабль.
+    /// </summary>
+    public static int ThrottleMsPerShip = 3000;
+
+    /// <summary>
+    /// EN: Corner markers template id (table <c>gimmicks</c>). Hot Reload: edit this return value.
+    /// RU: TemplateId маркеров углов (таблица <c>gimmicks</c>). Hot Reload: меняй return в этом методе.
+    /// </summary>
+    public static uint CornerMarkerTemplateId => GetCornerMarkerTemplateId();
+    private static uint GetCornerMarkerTemplateId() => 65; // toy.flare
+
+    /// <summary>
+    /// EN: Shore markers template id (table <c>gimmicks</c>). Hot Reload: edit this return value.
+    /// RU: TemplateId маркеров берега (таблица <c>gimmicks</c>). Hot Reload: меняй return в этом методе.
+    /// </summary>
+    public static uint ShoreMarkerTemplateId => GetShoreMarkerTemplateId();
+    private static uint GetShoreMarkerTemplateId() => 28;
+
+    /// <summary>
+    /// EN: Axis marker template id for +Length (local +Z of the physics box).
+    /// RU: TemplateId осевого маркера для +Length (локальная +Z физического бокса).
+    /// </summary>
+    public static uint AxisLengthMarkerTemplateId => GetAxisLengthMarkerTemplateId();
+    private static uint GetAxisLengthMarkerTemplateId() => 16; // firecracker_green
+
+    /// <summary>
+    /// EN: Axis marker template id for +Beam (local +X of the physics box).
+    /// RU: TemplateId осевого маркера для +Beam (локальная +X физического бокса).
+    /// </summary>
+    public static uint AxisBeamMarkerTemplateId => GetAxisBeamMarkerTemplateId();
+    private static uint GetAxisBeamMarkerTemplateId() => 18; // firecracker_blue (assumed adjacent id)
+
+    /// <summary>
+    /// EN: Axis marker template id for +Up (local +Y of the physics box).
+    /// RU: TemplateId осевого маркера для +Up (локальная +Y физического бокса).
+    /// </summary>
+    public static uint AxisUpMarkerTemplateId => GetAxisUpMarkerTemplateId();
+    private static uint GetAxisUpMarkerTemplateId() => 28; // fallback: visible marker
+
+    /// <summary>
+    /// EN: Marker scale.
+    /// RU: Масштаб маркеров.
+    /// </summary>
+    public static float MarkerScale = 0.35f;
+
+    /// <summary>
+    /// EN: If true, draw markers only for ships with a driver.
+    /// RU: Если true — рисовать маркеры только для кораблей с водителем.
+    /// </summary>
+    public static bool DrawOnlyWhenDriven = false;
+
+    /// <summary>
+    /// EN: Enable ship↔shore debug (markers + latch messages + tuning override in ShipShoreInteraction).
+    /// RU: Включить ship↔shore дебаг (маркеры + сообщения latch + подмена тюнинга в ShipShoreInteraction).
+    /// </summary>
+    public static bool ShoreEnabled = true;
+
+    /// <summary>
+    /// EN: Show two extra axis markers: +Length (local +Z of the physics box) and +Beam (local +X of the physics box).
+    /// RU: Показывать 2 дополнительных маркера осей: +Length (локальная +Z физ. бокса) и +Beam (локальная +X физ. бокса).
+    /// </summary>
+    public static bool AxisMarkersEnabled = true;
+
+    /// <summary>
+    /// EN: Extra distance (meters) beyond half-extent for axis markers.
+    /// RU: Доп. расстояние (метры) за пределы half-extent для осевых маркеров.
+    /// </summary>
+    public static float AxisMarkerExtraMeters = 1.25f;
+
+    /// <summary>
+    /// EN: Mass-box tuning (center/size overrides). Useful when the hull OBB is too low/high vs the visible hull.
+    /// RU: Тюнинг mass-box (переопределения центра/размера). Полезно, когда OBB корпуса слишком низко/высоко относительно модели.
+    /// </summary>
+    public static class HullBoxTuning
+    {
+        /// <summary>
+        /// EN: Additive vertical offset to MassCenterZ (meters). Positive lifts the box up.
+        /// RU: Аддитивный вертикальный сдвиг к MassCenterZ (метры). Положительное значение поднимает бокс вверх.
+        /// </summary>
+        public static float CenterZAddMeters = 0f;
+
+        /// <summary>
+        /// EN: Additive vertical offset to MassCenterZ as a fraction of MassBoxSizeZ. Example: 0.30 lifts the box by 30% of its height.
+        /// RU: Аддитивный вертикальный сдвиг к MassCenterZ как доля MassBoxSizeZ. Например: 0.30 поднимает бокс на 30% его высоты.
+        /// </summary>
+        public static float CenterZAddFracOfSizeZ = 0.30f;
+
+        /// <summary>
+        /// EN: Multiply MassBoxSizeZ (height). 1 = no change.
+        /// RU: Множитель MassBoxSizeZ (высота). 1 = без изменений.
+        /// </summary>
+        public static float SizeZMul = 1f;
+
+        /// <summary>
+        /// EN: Additive adjustment to MassBoxSizeZ (meters). Applied after SizeZMul.
+        /// RU: Аддитивная поправка к MassBoxSizeZ (метры). Применяется после SizeZMul.
+        /// </summary>
+        public static float SizeZAddMeters = 0f;
+
+        internal static float GetCenterZ(float baseCenterZ, float baseSizeZ) =>
+            baseCenterZ + baseSizeZ * CenterZAddFracOfSizeZ + CenterZAddMeters;
+
+        internal static float GetSizeZ(float baseSizeZ)
+        {
+            var z = baseSizeZ * SizeZMul + SizeZAddMeters;
+            return MathF.Max(0.01f, z);
+        }
+    }
+
+    /// <summary>
+    /// EN: Ship↔ship SAT/response tuning (runtime fields for Hot Reload).
+    /// RU: Тюнинг ship↔ship SAT/реакции (runtime-поля для Hot Reload).
+    /// </summary>
+    public static class ShipShipTuning
+    {
+        /// <summary>
+        /// EN: Half-length multiplier for SAT overlap test only (keep near 1).
+        /// RU: Множитель полу-длины только для SAT-детекта (держать близко к 1).
+        /// </summary>
+        public static float HullDetectInflateLength = 1.025f;
+
+        /// <summary>
+        /// EN: Half-beam multiplier for SAT overlap test only.
+        /// RU: Множитель полу-ширины только для SAT-детекта.
+        /// </summary>
+        public static float HullDetectInflateBeam = 1.015f;
+
+        /// <summary>
+        /// EN: Extra tightening of beam in SAT only (reduces early side contact from oversized mass box).
+        /// RU: Доп. ужатие ширины только в SAT (убирает ранний боковой контакт из-за широкого mass box).
+        /// </summary>
+        public static float BeamDetectTightenMul = 0.78f;
+
+        /// <summary>
+        /// EN: Ignore overlap response below this penetration depth (meters).
+        /// RU: Игнорировать реакцию, если penetration меньше этого (метры).
+        /// </summary>
+        public static float MinPenetrationToAct = 0.055f;
+
+        /// <summary>
+        /// EN: Ignore periodic hull-damage below this penetration depth (meters).
+        /// RU: Не наносить периодический урон корпусу, если penetration меньше этого (метры).
+        /// </summary>
+        public static float MinPenetrationToDamage = MinPenetrationToAct * 1.15f;
+
+        /// <summary>
+        /// EN: Ramp tangential slip damping over this depth range past MinPenetrationToAct (meters).
+        /// RU: Наращивать демпф тангенциального скольжения на этом диапазоне глубины сверх MinPenetrationToAct (метры).
+        /// </summary>
+        public static float TangentialRampDepthMeters = 0.22f;
+
+        /// <summary>
+        /// EN: Multiplier on positional separation push once overlap exists.
+        /// RU: Множитель раздвижения (push) после обнаружения overlap.
+        /// </summary>
+        public static float SeparationPushMultiplier = 1.22f;
+
+        /// <summary>
+        /// EN: Extra separation slack added to computed overlap (meters).
+        /// RU: Доп. зазор к раздвижению сверх overlap (метры).
+        /// </summary>
+        public static float SeparationSlackMeters = 0.020f;
+
+        /// <summary>
+        /// EN: Fraction of relative closing speed along normal to remove (1 = full stop along normal).
+        /// RU: Доля гашения относительной скорости вдоль нормали (1 = полностью убрать вдоль нормали).
+        /// </summary>
+        public static float ClosingSpeedDamp = 1f;
+
+        /// <summary>
+        /// EN: Tangential slip damping factor while overlapping (0..1).
+        /// RU: Коэффициент демпфа тангенциального скольжения при overlap (0..1).
+        /// </summary>
+        public static float TangentialSlipDamp = 0.86f;
+
+        /// <summary>
+        /// EN: Minimum vertical overlap (meters) to consider ships colliding.
+        /// RU: Минимальный вертикальный overlap (метры) чтобы считать столкновение.
+        /// </summary>
+        public static float MinVerticalOverlap = 0.12f;
+
+        /// <summary>
+        /// EN: Outer resolve passes per tick (CPU vs stability).
+        /// RU: Внешние проходы резолва за тик (CPU vs стабильность).
+        /// </summary>
+        public static int ResolvePasses = 2;
+
+        /// <summary>
+        /// EN: Max depenetration iterations per pair per pass.
+        /// RU: Макс. итераций раздвижения на пару за проход.
+        /// </summary>
+        public static int MaxPairIterations = 12;
+
+        /// <summary>
+        /// EN: Penetration depth where “deep penetration” push boost starts (meters).
+        /// RU: Глубина penetration, с которой начинается усиление push (метры).
+        /// </summary>
+        public static float DeepPenetrationStart = 0.12f;
+
+        /// <summary>
+        /// EN: Boost factor applied as penetration exceeds DeepPenetrationStart.
+        /// RU: Коэффициент усиления push при penetration больше DeepPenetrationStart.
+        /// </summary>
+        public static float DeepPenetrationBoost = 0.72f;
+
+        /// <summary>
+        /// EN: Floor on half-separation distance (meters).
+        /// RU: Минимальная полу-дистанция раздвижения (метры).
+        /// </summary>
+        public static float MinHalfSeparationMeters = 0.02f;
+
+        /// <summary>
+        /// EN: Stop iterating if computed separation is below this (meters) to avoid micro-jitter.
+        /// RU: Остановить итерации, если раздвижение меньше этого (метры), чтобы убрать микродрожь.
+        /// </summary>
+        public static float MinLinearSeparationToApplyMeters = 0.018f;
+
+        /// <summary>
+        /// EN: Cosine threshold for “nose cone” classification.
+        /// RU: Порог косинуса для классификации “удар в нос”.
+        /// </summary>
+        public static float NoseContactCosThreshold = 0.65f;
+
+        /// <summary>
+        /// EN: Min interval between hull-collision damage ticks per other ship (seconds).
+        /// RU: Минимальный интервал тиков урона от столкновения корпусом на конкретный другой корабль (сек).
+        /// </summary>
+        public static float HullCollisionDamageCooldownSec = 1.5f;
+
+        /// <summary>
+        /// EN: Relative speed threshold (m/s) where damage uses min % (non-nose).
+        /// RU: Порог относительной скорости (м/с), ниже которого урон минимальный (не-носовые удары).
+        /// </summary>
+        public static float HullDamageLowSpeedThresholdMps = 2f;
+
+        /// <summary>
+        /// EN: Relative speed (m/s) where damage reaches max % (linear between thresholds).
+        /// RU: Относительная скорость (м/с), при которой урон достигает максимума (линейно между порогами).
+        /// </summary>
+        public static float HullDamageInterpMaxMps = 10f;
+
+        /// <summary>
+        /// EN: Min % hull damage per tick.
+        /// RU: Минимальный % урона корпуса за тик.
+        /// </summary>
+        public static int HullDamageSpeedScaledMinPercent = 1;
+
+        /// <summary>
+        /// EN: Max % hull damage per tick.
+        /// RU: Максимальный % урона корпуса за тик.
+        /// </summary>
+        public static int HullDamageSpeedScaledMaxPercent = 10;
+    }
+
+    /// <summary>
+    /// EN: Ship↔shore tuning mirrors ShipShoreInteraction constants (runtime fields for Hot Reload).
+    /// RU: Тюнинг ship↔shore зеркалит константы ShipShoreInteraction (runtime-поля для Hot Reload).
+    /// </summary>
+    public static class ShoreTuning
+    {
+        /// <summary>
+        /// EN: Ground friction multiplier on dry ground.
+        /// RU: Трение на суше.
+        /// </summary>
+        public static float GroundFriction = 0.4f;
+
+        /// <summary>
+        /// EN: Velocity/angular damping on dry ground.
+        /// RU: Демпф скорости/угловой скорости на суше.
+        /// </summary>
+        public static float DryGroundCollisionDamping = 0.5f;
+
+        /// <summary>
+        /// EN: Roll correction dead-zone (radians).
+        /// RU: Мёртвая зона коррекции roll (радианы).
+        /// </summary>
+        public static float DryGroundRollDeadZoneRad = 0.1f;
+
+        /// <summary>
+        /// EN: Roll correction torque factor (tuning).
+        /// RU: Коэффициент коррекции roll (тюнинг).
+        /// </summary>
+        public static float DryGroundRollTorqueMul = 0.1f;
+
+        /// <summary>
+        /// EN: Bow probe distance multiplier vs MassBoxSizeY (hull length).
+        /// RU: Множитель дистанции носовой пробы от MassBoxSizeY (длина корпуса).
+        /// </summary>
+        public static float BowProbeMul = 1.5f;
+
+        /// <summary>
+        /// EN: Stern probe distance multiplier vs MassBoxSizeY (hull length).
+        /// RU: Множитель дистанции кормовой пробы от MassBoxSizeY (длина корпуса).
+        /// </summary>
+        public static float SternProbeMul = 1.5f;
+
+        /// <summary>
+        /// EN: Cliff probe distance multiplier vs MassBoxSizeY (hull length).
+        /// RU: Множитель дистанции пробы “обрыва/стены” от MassBoxSizeY (длина корпуса).
+        /// </summary>
+        public static float CliffProbeMul = 1.45f;
+
+        /// <summary>
+        /// EN: Cliff slope threshold (Δh / dist).
+        /// RU: Порог “крутизны” (Δh / dist).
+        /// </summary>
+        public static float CliffSlopeFracThreshold = 0.57f;
+
+        /// <summary>
+        /// EN: Cliff must be above water by this margin (meters).
+        /// RU: “Обрыв” считается только если выше воды на этот запас (метры).
+        /// </summary>
+        public static float CliffAboveWaterMargin = 0.20f;
+
+        /// <summary>
+        /// EN: Shore latch enter hysteresis (meters).
+        /// RU: Гистерезис входа в latch (метры).
+        /// </summary>
+        public static float ShoreEnterHyst = 0.35f;
+
+        /// <summary>
+        /// EN: Shore latch exit hysteresis (meters).
+        /// RU: Гистерезис выхода из latch (метры).
+        /// </summary>
+        public static float ShoreExitHyst = 0.10f;
+
+        /// <summary>
+        /// EN: Floor height smoothing response (lambda).
+        /// RU: Сглаживание высоты пола (lambda).
+        /// </summary>
+        public static float FloorSmoothResponse = 10.0f;
+
+        /// <summary>
+        /// EN: Pre-shore damping band (meters).
+        /// RU: Полоса “перед берегом” для демпфа (метры).
+        /// </summary>
+        public static float PreShoreBand = 0.25f;
+
+        /// <summary>
+        /// EN: Penetration epsilon (meters).
+        /// RU: Эпсилон penetration (метры).
+        /// </summary>
+        public static float PenetrationEpsilon = 0.02f;
+
+        /// <summary>
+        /// EN: Penetration response (lambda).
+        /// RU: Скорость реакции на penetration (lambda).
+        /// </summary>
+        public static float PenetrationResponse = 4.5f;
+
+        /// <summary>
+        /// EN: Max up-step early after latching (m/tick).
+        /// RU: Макс. подъём на раннем этапе latch (м/тик).
+        /// </summary>
+        public static float MaxUpStepEarly = 0.04f;
+
+        /// <summary>
+        /// EN: Max up-step later while latched (m/tick).
+        /// RU: Макс. подъём после стабилизации latch (м/тик).
+        /// </summary>
+        public static float MaxUpStepLate = 0.07f;
+
+        /// <summary>
+        /// EN: Visual ground pitch max (degrees).
+        /// RU: Макс. визуальный ground pitch (градусы).
+        /// </summary>
+        public static float VisualGroundPitchMaxDeg = 8.0f;
+
+        /// <summary>
+        /// EN: Visual ground pitch probe distance (meters).
+        /// RU: Дистанция проб для визуального pitch (метры).
+        /// </summary>
+        public static float VisualGroundPitchProbeDistance = 6.0f;
+
+        /// <summary>
+        /// EN: Visual ground pitch response (lambda).
+        /// RU: Скорость реакции визуального pitch (lambda).
+        /// </summary>
+        public static float VisualGroundPitchResponse = 2.0f;
+
+        /// <summary>
+        /// EN: Visual pitch floor smoothing response (lambda).
+        /// RU: Сглаживание высот для визуального pitch (lambda).
+        /// </summary>
+        public static float VisualPitchFloorSmoothResponse = 8.0f;
+    }
+
+    /// <summary>
+    /// EN: ShipController tuning (runtime fields for Hot Reload).
+    /// RU: Тюнинг ShipController (runtime-поля для Hot Reload).
+    /// </summary>
+    public static class ShipControllerTuning
+    {
+        /// <summary>
+        /// EN: Extra acceleration multiplier when throttle opposes current motion.
+        /// RU: Доп. множитель ускорения, когда газ против текущего движения.
+        /// </summary>
+        public static float OpposingThrottleAccelMul = 1.75f;
+
+        /// <summary>
+        /// EN: Extra braking factor for opposing throttle (multiplies reverse/brake behavior).
+        /// RU: Доп. торможение при противоположном газе.
+        /// </summary>
+        public static float OpposingThrottleBrakeTuneMul = 1.2f;
+
+        /// <summary>
+        /// EN: Steering responsiveness multiplier.
+        /// RU: Множитель отзывчивости руля.
+        /// </summary>
+        public static float SteeringResponsivenessMul = 1.45f;
+
+        /// <summary>
+        /// EN: Counter-steer responsiveness multiplier.
+        /// RU: Множитель отзывчивости контрруления.
+        /// </summary>
+        public static float CounterSteerResponsivenessMul = 1.35f;
+
+        /// <summary>
+        /// EN: Minimum turning factor at zero speed.
+        /// RU: Минимальный фактор поворота на нулевой скорости.
+        /// </summary>
+        public static float MinTurnFactorAtZeroSpeed = 0.5f;
+
+        /// <summary>
+        /// EN: Speed at which turning reaches 100% (ship speed units).
+        /// RU: Скорость, при которой поворот достигает 100% (в игровых единицах скорости).
+        /// </summary>
+        public static float TurnFullFactorAtSpeed = 2.5f;
+
+        /// <summary>
+        /// EN: Fraction of speed removed at max yaw rate.
+        /// RU: Доля снижения скорости на максимальной скорости поворота.
+        /// </summary>
+        public static float TurnSpeedSlowdownFrac = 0.1f;
+
+        /// <summary>
+        /// EN: Response for TurnSpeedVelocityMul smoothing (lambda).
+        /// RU: Скорость сглаживания TurnSpeedVelocityMul (lambda).
+        /// </summary>
+        public static float TurnSpeedVelocityMulResponse = 5.5f;
+
+        /// <summary>
+        /// EN: Minimum submergence to start upright stabilization (meters).
+        /// RU: Минимальное погружение для выравнивания корпуса (метры).
+        /// </summary>
+        public static float UprightStabilizeMinSubmergedMeters = 0.04f;
+
+        /// <summary>
+        /// EN: Max upright correction angular speed (rad/s).
+        /// RU: Макс. скорость выравнивания (рад/с).
+        /// </summary>
+        public static float UprightStabilizeMaxRadPerSec = 2.25f;
+
+        /// <summary>
+        /// EN: Dead-zone for upright correction (radians).
+        /// RU: Мёртвая зона выравнивания (радианы).
+        /// </summary>
+        public static float UprightStabilizeAngleDeadZoneRad = 0.004f;
+
+        /// <summary>
+        /// EN: Wind cone half-angle (degrees).
+        /// RU: Полуугол конуса ветра (градусы).
+        /// </summary>
+        public static float WindConeHalfAngleDeg = 15f;
+
+        /// <summary>
+        /// EN: Max speed multiplier with wind.
+        /// RU: Макс. множитель скорости по ветру.
+        /// </summary>
+        public static float WindWithMaxMul = 1.15f;
+
+        /// <summary>
+        /// EN: Max speed multiplier against wind.
+        /// RU: Макс. множитель скорости против ветра.
+        /// </summary>
+        public static float WindAgainstMaxMul = 0.85f;
+    }
+
+    private static readonly ConcurrentDictionary<uint, long> _lastDetailMsgAtMs = new();
+    private static readonly ConcurrentDictionary<uint, long> _lastAxesMsgAtMs = new();
+    private static readonly ConcurrentDictionary<uint, long> _lastShorePenMsgAtMs = new();
+
+    private static readonly ConcurrentDictionary<uint, MarkerSet> _shipCornerMarkers = new();
+    private static readonly ConcurrentDictionary<uint, MarkerSet> _shipAxisLenMarkers = new();
+    private static readonly ConcurrentDictionary<uint, MarkerSet> _shipAxisBeamMarkers = new();
+    private static readonly ConcurrentDictionary<uint, MarkerSet> _shipAxisUpMarkers = new();
+    private static readonly ConcurrentDictionary<uint, MarkerSet> _shoreMarkers = new();
+
+    // ship↔ship contact latch based on ResolvePair events
+    private static readonly ConcurrentDictionary<uint, long> _shipContactUntilMs = new();
+    private static readonly ConcurrentDictionary<uint, bool> _shipContactLatched = new();
+
+    private sealed class MarkerSet
+    {
+        public readonly GimmickSpawner[] Spawners;
+        public readonly Gimmick?[] Markers;
+        public uint ZoneId;
+        public uint TemplateId;
+
+        public MarkerSet(int count)
+        {
+            Spawners = new GimmickSpawner[count];
+            Markers = new Gimmick?[count];
+        }
+    }
+
+    /// <summary>
+    /// EN: Per-ship debug tick. Updates corner markers and ship↔ship latch messages.
+    /// RU: Дебаг-тик на корабль. Обновляет углы бокса и latch-сообщения ship↔ship.
+    /// </summary>
+    public static void TickShip(Slave ship)
+    {
+        if (ship is null)
+            return;
+
+        if (!Enabled)
+        {
+            DespawnAll(ship.Id);
+            return;
+        }
+
+        if (DrawOnlyWhenDriven && TryGetDriver(ship) is null)
+        {
+            DespawnAll(ship.Id);
+            return;
+        }
+
+        UpdateShipCornerMarkers(ship);
+        UpdateShipAxisMarkers(ship);
+        UpdateShipContactLatch(ship);
+    }
+
+    private static void UpdateShipAxisMarkers(Slave ship)
+    {
+        if (!AxisMarkersEnabled)
+        {
+            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
+            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
+            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+            return;
+        }
+
+        var lenTemplateId = AxisLengthMarkerTemplateId;
+        var beamTemplateId = AxisBeamMarkerTemplateId;
+        var upTemplateId = AxisUpMarkerTemplateId;
+        if ((lenTemplateId == 0 && beamTemplateId == 0 && upTemplateId == 0) || ship.ParentWorld is null)
+        {
+            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
+            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
+            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+            return;
+        }
+
+        var rb = ship.RigidBody;
+        var model = ship.ShipController?.ShipModel;
+        if (rb is null || model is null)
+        {
+            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
+            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
+            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+            return;
+        }
+
+        var zoneId = ship.Transform.ZoneId;
+        MarkerSet? setLen = null;
+        if (lenTemplateId != 0)
+        {
+            setLen = _shipAxisLenMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
+            if (setLen.ZoneId != zoneId || setLen.TemplateId != lenTemplateId)
+            {
+                DespawnMarkers(_shipAxisLenMarkers, ship.Id);
+                setLen = _shipAxisLenMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
+                setLen.ZoneId = zoneId;
+                setLen.TemplateId = lenTemplateId;
+            }
+        }
+        else
+        {
+            DespawnMarkers(_shipAxisLenMarkers, ship.Id);
+        }
+
+        MarkerSet? setBeam = null;
+        if (beamTemplateId != 0)
+        {
+            setBeam = _shipAxisBeamMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
+            if (setBeam.ZoneId != zoneId || setBeam.TemplateId != beamTemplateId)
+            {
+                DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
+                setBeam = _shipAxisBeamMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
+                setBeam.ZoneId = zoneId;
+                setBeam.TemplateId = beamTemplateId;
+            }
+        }
+        else
+        {
+            DespawnMarkers(_shipAxisBeamMarkers, ship.Id);
+        }
+
+        MarkerSet? setUp = null;
+        if (upTemplateId != 0)
+        {
+            setUp = _shipAxisUpMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
+            if (setUp.ZoneId != zoneId || setUp.TemplateId != upTemplateId)
+            {
+                DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+                setUp = _shipAxisUpMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(1));
+                setUp.ZoneId = zoneId;
+                setUp.TemplateId = upTemplateId;
+            }
+        }
+        else
+        {
+            DespawnMarkers(_shipAxisUpMarkers, ship.Id);
+        }
+
+        // Same basis as UpdateShipCornerMarkers (ShipController.Build mapping).
+        var scale = MathF.Max(0.01f, ship.Scale);
+        var hx = model.MassBoxSizeX * scale * 0.5f;
+        var hy = HullBoxTuning.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
+        var hz = model.MassBoxSizeY * scale * 0.5f;
+
+        // Use the already-synced Transform rotation (derived from physics via SyncTransformWithRigidBody)
+        // to avoid left/right inversion from phys<->game basis reflections.
+        var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
+
+        var posGame0 = PhysToGame(rb.Position);
+        var offsetLocalPhys = new JVector(
+            model.MassCenterX * scale,
+            HullBoxTuning.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale,
+            model.MassCenterY * scale);
+        var offsetLocalGame = PhysVecToGame(offsetLocalPhys);
+        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocalGame, rotGame);
+
+        var extra = MathF.Max(0f, AxisMarkerExtraMeters);
+
+        // +Length marker: local +Z of the physics box (uses MassBoxSizeY via ShipController.Build third parameter).
+        var localLenGame = PhysVecToGame(new JVector(0f, 0f, hz + extra));
+        var posLen = centerGame + Vector3.TransformNormal(localLenGame, rotGame);
+
+        // +Beam marker: local +X of the physics box (uses MassBoxSizeX via ShipController.Build first parameter).
+        var localBeamGame = PhysVecToGame(new JVector(hx + extra, 0f, 0f));
+        var posBeam = centerGame + Vector3.TransformNormal(localBeamGame, rotGame);
+
+        // +Up marker: local +Y of the physics box (uses MassBoxSizeZ via ShipController.Build second parameter).
+        var localUpGame = PhysVecToGame(new JVector(0f, hy + extra, 0f));
+        var posUp = centerGame + Vector3.TransformNormal(localUpGame, rotGame);
+
+        // Compute vertical extent of the OBB in world (game Z is up).
+        var minZ = float.PositiveInfinity;
+        var maxZ = float.NegativeInfinity;
+        Span<JVector> localCornersPhys =
+        [
+            new JVector(+hx, +hy, +hz),
+            new JVector(+hx, +hy, -hz),
+            new JVector(+hx, -hy, +hz),
+            new JVector(+hx, -hy, -hz),
+            new JVector(-hx, +hy, +hz),
+            new JVector(-hx, +hy, -hz),
+            new JVector(-hx, -hy, +hz),
+            new JVector(-hx, -hy, -hz),
+        ];
+        for (var i = 0; i < 8; i++)
+        {
+            var cGame = PhysVecToGame(localCornersPhys[i]);
+            var w = centerGame + Vector3.TransformNormal(cGame, rotGame);
+            if (w.Z < minZ) minZ = w.Z;
+            if (w.Z > maxZ) maxZ = w.Z;
+        }
+
+        if (setLen != null)
+            UpdateMarker(ship.ParentWorld, setLen, 0, lenTemplateId, zoneId, posLen);
+        if (setBeam != null)
+            UpdateMarker(ship.ParentWorld, setBeam, 0, beamTemplateId, zoneId, posBeam);
+        if (setUp != null)
+            UpdateMarker(ship.ParentWorld, setUp, 0, upTemplateId, zoneId, posUp);
+
+        // One short line to the driver's chat (sizes + centers).
+        var driver = TryGetDriver(ship);
+        if (driver is null || !CanReceive(driver))
+            return;
+
+        var nowMs = Environment.TickCount64;
+        var throttle = Math.Max(250, ThrottleMsPerShip);
+        var last = _lastAxesMsgAtMs.GetOrAdd(ship.Id, 0);
+        if (nowMs - last < throttle)
+            return;
+        _lastAxesMsgAtMs[ship.Id] = nowMs;
+
+        var waterZ = ship.CachedWaterSurface;
+        driver.SendDebugMessage(
+            $"[ShipBox] ship={ship.ObjId} sizeXYZ=({model.MassBoxSizeX:F2},{model.MassBoxSizeY:F2},{model.MassBoxSizeZ:F2}) centerXYZ=({model.MassCenterX:F2},{model.MassCenterY:F2},{model.MassCenterZ:F2}) z=[{minZ:F2}..{maxZ:F2}] waterZ={waterZ:F2}");
+    }
+
+    private static void UpdateShipContactLatch(Slave ship)
+    {
+        var nowMs = Environment.TickCount64;
+        var hasContact = _shipContactUntilMs.TryGetValue(ship.Id, out var untilMs) && untilMs > nowMs;
+        if (!hasContact)
+            _shipContactUntilMs.TryRemove(ship.Id, out _);
+
+        var prev = _shipContactLatched.TryGetValue(ship.Id, out var v) && v;
+        if (prev == hasContact)
+            return;
+
+        _shipContactLatched[ship.Id] = hasContact;
+        var driver = TryGetDriver(ship);
+        if (driver is null || !CanReceive(driver))
+            return;
+
+        driver.SendDebugMessage(hasContact
+            ? "[ShipShip] Hull contact started"
+            : "[ShipShip] Hull contact ended");
+    }
+
+    private static void UpdateShipCornerMarkers(Slave ship)
+    {
+        var templateId = CornerMarkerTemplateId;
+        if (templateId == 0 || ship.ParentWorld is null)
+        {
+            DespawnMarkers(_shipCornerMarkers, ship.Id);
+            return;
+        }
+
+        var rb = ship.RigidBody;
+        var model = ship.ShipController?.ShipModel;
+        if (rb is null || model is null)
+        {
+            DespawnMarkers(_shipCornerMarkers, ship.Id);
+            return;
+        }
+
+        var zoneId = ship.Transform.ZoneId;
+        var set = _shipCornerMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(8));
+        if (set.ZoneId != zoneId || set.TemplateId != templateId)
+        {
+            DespawnMarkers(_shipCornerMarkers, ship.Id);
+            set = _shipCornerMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(8));
+            set.ZoneId = zoneId;
+            set.TemplateId = templateId;
+        }
+
+        // REAL physics box corners, but expressed in GAME coordinates with the same quaternion component mapping
+        // used by PhysicsManager.SyncTransformWithRigidBody (rotation.X, rotation.Z, rotation.Y, rotation.W).
+        //
+        // Reason: a pure axis permutation (phys -> game) is an odd permutation (changes handedness),
+        // so "rotate in phys then permute" can appear to flip left/right in game space.
+        // Computing directly in game space with the mapped quaternion keeps turn direction consistent.
+        //
+        // ShipController.Build():
+        // - BoxShape(MassBoxSizeX, MassBoxSizeZ, MassBoxSizeY)
+        // - TransformedShape offset = (MassCenterX, MassCenterZ, MassCenterY)
+        var scale = MathF.Max(0.01f, ship.Scale);
+        var hx = model.MassBoxSizeX * scale * 0.5f;
+        var hy = HullBoxTuning.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
+        var hz = model.MassBoxSizeY * scale * 0.5f;
+
+        // See UpdateShipAxisMarkers comment above.
+        var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
+
+        var posGame0 = PhysToGame(rb.Position);
+        var offsetLocalPhys = new JVector(
+            model.MassCenterX * scale,
+            HullBoxTuning.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale,
+            model.MassCenterY * scale);
+        var offsetLocalGame = PhysVecToGame(offsetLocalPhys);
+        var centerGame = posGame0 + Vector3.TransformNormal(offsetLocalGame, rotGame);
+
+        Span<Vector3> localCornersGame =
+        [
+            PhysVecToGame(new JVector(+hx, +hy, +hz)),
+            PhysVecToGame(new JVector(+hx, +hy, -hz)),
+            PhysVecToGame(new JVector(+hx, -hy, +hz)),
+            PhysVecToGame(new JVector(+hx, -hy, -hz)),
+            PhysVecToGame(new JVector(-hx, +hy, +hz)),
+            PhysVecToGame(new JVector(-hx, +hy, -hz)),
+            PhysVecToGame(new JVector(-hx, -hy, +hz)),
+            PhysVecToGame(new JVector(-hx, -hy, -hz)),
+        ];
+
+        for (var i = 0; i < 8; i++)
+        {
+            var posGame = centerGame + Vector3.TransformNormal(localCornersGame[i], rotGame);
+            UpdateMarker(ship.ParentWorld, set, i, templateId, zoneId, posGame);
+        }
+    }
+
+    /// <summary>
+    /// EN: Called from ship↔ship resolver when overlap response happened.
+    /// RU: Вызывается из ship↔ship резолвера при наличии overlap/реакции.
+    /// </summary>
+    public static void OnResolvedShipPair(Slave a, Slave b, float penetrationMeters, float nx, float nz, float impactSpeedMps)
+    {
+        if (!Enabled)
+            return;
+
+        // Extend "contact active" window; TickShip will emit start/end messages.
+        var nowMs = Environment.TickCount64;
+        const int holdMs = 800;
+        _shipContactUntilMs[a.Id] = nowMs + holdMs;
+        _shipContactUntilMs[b.Id] = nowMs + holdMs;
+
+        SendShipShipDetail(a, b, penetrationMeters, nx, nz, impactSpeedMps);
+        SendShipShipDetail(b, a, penetrationMeters, -nx, -nz, impactSpeedMps);
+    }
+
+    private static void SendShipShipDetail(Slave self, Slave other, float pen, float nx, float nz, float impactSpeedMps)
+    {
+        var driver = TryGetDriver(self);
+        if (driver is null || !CanReceive(driver))
+            return;
+
+        var nowMs = Environment.TickCount64;
+        if (ThrottleMsPerShip > 0)
+        {
+            var last = _lastDetailMsgAtMs.GetOrAdd(self.Id, 0);
+            if (nowMs - last < ThrottleMsPerShip)
+                return;
+            _lastDetailMsgAtMs[self.Id] = nowMs;
+        }
+
+        driver.SendDebugMessage(
+            $"[ShipShip] ship={self.ObjId} pair={other.ObjId} pen={pen:F3}m v={impactSpeedMps:F2}m/s n=({nx:F2},{nz:F2})");
+    }
+
+    /// <summary>
+    /// EN: Called when shore latch flips. Sends chat messages "collided with ground" / "back in water".
+    /// RU: Вызывается при смене shore latch. Пишет в чат "collided with ground" / "back in water".
+    /// </summary>
+    public static void OnShoreLatchChanged(Slave ship, bool latched)
+    {
+        if (!Enabled || !ShoreEnabled)
+            return;
+
+        var driver = TryGetDriver(ship);
+        if (driver is null || !CanReceive(driver))
+            return;
+
+        driver.SendDebugMessage(latched
+            ? "[ShipShore] Ship collided with ground"
+            : "[ShipShore] Ship is back in water");
+    }
+
+    /// <summary>
+    /// EN: Feed shore probe/contact points for marker visualization.
+    /// RU: Передать точки shore-проб/контакта для визуализации маркерами.
+    /// </summary>
+    public static void OnShoreProbe(
+        Slave ship,
+        float probeX, float probeY, float floorZ,
+        float cliffX, float cliffY, float cliffZ,
+        float boatCenterX, float boatCenterY, float boatBottomZ,
+        float waterSurfaceZ,
+        float penetrationMeters)
+    {
+        if (ship is null)
+            return;
+
+        if (!Enabled || !ShoreEnabled)
+            return;
+
+        var templateId = ShoreMarkerTemplateId;
+        if (templateId == 0 || ship.ParentWorld is null || ship.Transform is null)
+        {
+            DespawnMarkers(_shoreMarkers, ship.Id);
+            return;
+        }
+
+        var zoneId = ship.Transform.ZoneId;
+        var set = _shoreMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(4));
+        if (set.ZoneId != zoneId || set.TemplateId != templateId)
+        {
+            DespawnMarkers(_shoreMarkers, ship.Id);
+            set = _shoreMarkers.GetOrAdd(ship.Id, _ => new MarkerSet(4));
+            set.ZoneId = zoneId;
+            set.TemplateId = templateId;
+        }
+
+        UpdateMarker(ship.ParentWorld, set, 0, templateId, zoneId, new Vector3(probeX, probeY, floorZ));
+        UpdateMarker(ship.ParentWorld, set, 1, templateId, zoneId, new Vector3(cliffX, cliffY, cliffZ));
+        UpdateMarker(ship.ParentWorld, set, 2, templateId, zoneId, new Vector3(boatCenterX, boatCenterY, boatBottomZ));
+        UpdateMarker(ship.ParentWorld, set, 3, templateId, zoneId, new Vector3(probeX, probeY, waterSurfaceZ));
+
+        // Optional detail line while penetrating
+        if (penetrationMeters > 0.0f)
+        {
+            var driver = TryGetDriver(ship);
+            if (driver != null && CanReceive(driver))
+            {
+                var nowMs = Environment.TickCount64;
+                if (ThrottleMsPerShip > 0)
+                {
+                    var last = _lastShorePenMsgAtMs.GetOrAdd(ship.Id, 0);
+                    if (nowMs - last < ThrottleMsPerShip)
+                        return;
+                    _lastShorePenMsgAtMs[ship.Id] = nowMs;
+                }
+
+                driver.SendDebugMessage($"[ShipShore] ship={ship.ObjId} pen={penetrationMeters:F3}m");
+            }
+        }
+    }
+
+    private static void UpdateMarker(AAEmu.Game.Models.Game.World.WorldInstance world, MarkerSet set, int idx, uint templateId, uint zoneId, Vector3 pos)
+    {
+        var g = set.Markers[idx];
+        if (g is null || g.ParentWorld != world)
+        {
+            var spawner = new GimmickSpawner(world)
+            {
+                UnitId = templateId,
+                RespawnTime = 0,
+                Scale = MarkerScale,
+                Position = new WorldSpawnPosition
+                {
+                    ZoneId = zoneId,
+                    X = pos.X,
+                    Y = pos.Y,
+                    Z = pos.Z,
+                    Roll = 0f,
+                    Pitch = 0f,
+                    Yaw = 0f
+                }
+            };
+
+            var spawned = spawner.Spawn(0);
+            if (spawned is null)
+                return;
+
+            spawned.SetScale(MarkerScale);
+            set.Spawners[idx] = spawner;
+            set.Markers[idx] = spawned;
+            g = spawned;
+        }
+
+        g.Transform.Local.SetPosition(pos.X, pos.Y, pos.Z);
+        g.Transform.FinalizeTransform();
+        g.Vel = Vector3.Zero;
+        g.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
+        g.BroadcastPacket(new SCGimmickMovementPacket(g), false);
+    }
+
+    private static void DespawnAll(uint shipId)
+    {
+        DespawnMarkers(_shipCornerMarkers, shipId);
+        DespawnMarkers(_shipAxisLenMarkers, shipId);
+        DespawnMarkers(_shipAxisBeamMarkers, shipId);
+        DespawnMarkers(_shipAxisUpMarkers, shipId);
+        DespawnMarkers(_shoreMarkers, shipId);
+        _shipContactUntilMs.TryRemove(shipId, out _);
+        _shipContactLatched.TryRemove(shipId, out _);
+        _lastDetailMsgAtMs.TryRemove(shipId, out _);
+        _lastAxesMsgAtMs.TryRemove(shipId, out _);
+        _lastShorePenMsgAtMs.TryRemove(shipId, out _);
+    }
+
+    private static void DespawnMarkers(ConcurrentDictionary<uint, MarkerSet> dict, uint shipId)
+    {
+        if (!dict.TryRemove(shipId, out var set))
+            return;
+        for (var i = 0; i < set.Markers.Length; i++)
+        {
+            try
+            {
+                var g = set.Markers[i];
+                var sp = set.Spawners[i];
+                if (g is null || sp is null)
+                    continue;
+                sp.Despawn(g);
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+    }
+
+    private static Character? TryGetDriver(Slave s)
+    {
+        return s.AttachedCharacters.TryGetValue(AttachPointKind.Driver, out var driver) ? driver : null;
+    }
+
+    private static bool CanReceive(Character c)
+    {
+        return CharacterManager.Instance.GetEffectiveAccessLevel(c) >= MinAccessLevel;
+    }
+
+    private static JVector Rotate(JVector v, JQuaternion q)
+    {
+        var qx = q.X;
+        var qy = q.Y;
+        var qz = q.Z;
+        var qw = q.W;
+        var tx = 2f * (qy * v.Z - qz * v.Y);
+        var ty = 2f * (qz * v.X - qx * v.Z);
+        var tz = 2f * (qx * v.Y - qy * v.X);
+        return new JVector(
+            v.X + qw * tx + (qy * tz - qz * ty),
+            v.Y + qw * ty + (qz * tx - qx * tz),
+            v.Z + qw * tz + (qx * ty - qy * tx));
+    }
+
+    private static Vector3 PhysToGame(JVector phys)
+    {
+        // Game coords: (X,Y,Z) == (phys X, phys Z, phys Y)
+        return new Vector3(phys.X, phys.Z, phys.Y);
+    }
+
+    private static Vector3 PhysVecToGame(JVector v)
+    {
+        // Same axis mapping as PhysToGame but for a vector (no translation).
+        return new Vector3(v.X, v.Z, v.Y);
+    }
+
+    private static Matrix4x4 GetTransformRotationMatrix(Vector3 rpy)
+    {
+        // Use the project's own Euler->Quaternion conversion.
+        // PositionAndRotation stores Euler as (roll=X, pitch=Y, yaw=Z) in radians,
+        // with yaw around +Z (up). This matches how Transform is intended to behave.
+        var q = Quaternion.Normalize(PositionAndRotation.ToQuaternion(rpy));
+        return Matrix4x4.CreateFromQuaternion(q);
+    }
+}
+

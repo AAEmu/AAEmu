@@ -58,40 +58,40 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     private const float FluidDensity = 1025f; // kg/m³
 
     /// <summary>Extra deceleration when throttle opposes current speed (reverse while moving forward, etc.).</summary>
-    private const float OpposingThrottleAccelMul = 1.75f;
+    private static float OpposingThrottleAccelMul => Debug.ShipTuningDebug.ShipControllerTuning.OpposingThrottleAccelMul;
 
     /// <summary>Only for opposing throttle — extra braking on top (does not affect forward accel).</summary>
-    private const float OpposingThrottleBrakeTuneMul = 1.2f;
+    private static float OpposingThrottleBrakeTuneMul => Debug.ShipTuningDebug.ShipControllerTuning.OpposingThrottleBrakeTuneMul;
 
     /// <summary>Steering builds turn rate faster without changing the max turn cap.</summary>
-    private const float SteeringResponsivenessMul = 1.45f;
+    private static float SteeringResponsivenessMul => Debug.ShipTuningDebug.ShipControllerTuning.SteeringResponsivenessMul;
 
     /// <summary>When rudder fights current yaw rate — faster decay; same-direction turn rate unchanged.</summary>
-    private const float CounterSteerResponsivenessMul = 1.35f;
+    private static float CounterSteerResponsivenessMul => Debug.ShipTuningDebug.ShipControllerTuning.CounterSteerResponsivenessMul;
 
     /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
     private const float MinSteerVelAsDegPerSec = 8f;
 
     /// <summary>At zero speed, keep this fraction of turning ability (so you can still rotate in place).</summary>
-    private const float MinTurnFactorAtZeroSpeed = 0.5f;
+    private static float MinTurnFactorAtZeroSpeed => Debug.ShipTuningDebug.ShipControllerTuning.MinTurnFactorAtZeroSpeed;
 
     /// <summary>Speed (in current ship speed units) at which turning reaches 100%.</summary>
-    private const float TurnFullFactorAtSpeed = 2.5f;
+    private static float TurnFullFactorAtSpeed => Debug.ShipTuningDebug.ShipControllerTuning.TurnFullFactorAtSpeed;
 
     /// <summary>Max forward/back speed multiplier removed at full yaw rate (linear in |ω|/ω_max).</summary>
-    private const float TurnSpeedSlowdownFrac = 0.1f;
+    private static float TurnSpeedSlowdownFrac => Debug.ShipTuningDebug.ShipControllerTuning.TurnSpeedSlowdownFrac;
 
     /// <summary>Higher = snappier convergence of <see cref="Slave.TurnSpeedVelocityMul"/> toward the turn target.</summary>
-    private const float TurnSpeedVelocityMulResponse = 5.5f;
+    private static float TurnSpeedVelocityMulResponse => Debug.ShipTuningDebug.ShipControllerTuning.TurnSpeedVelocityMulResponse;
 
     /// <summary>Min hull submergence (m) before water upright stabilization runs.</summary>
-    private const float UprightStabilizeMinSubmergedMeters = 0.04f;
+    private static float UprightStabilizeMinSubmergedMeters => Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeMinSubmergedMeters;
 
     /// <summary>Max rotation (rad/s) toward upright per tick — avoids snaps after collisions.</summary>
-    private const float UprightStabilizeMaxRadPerSec = 2.25f;
+    private static float UprightStabilizeMaxRadPerSec => Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeMaxRadPerSec;
 
     /// <summary>Skip correction when deck normal is already this close to world up (rad).</summary>
-    private const float UprightStabilizeAngleDeadZoneRad = 0.004f;
+    private static float UprightStabilizeAngleDeadZoneRad => Debug.ShipTuningDebug.ShipControllerTuning.UprightStabilizeAngleDeadZoneRad;
 
     /// <summary>
     /// Fixed max yaw rate (degrees/s) by <see cref="SlaveKind"/>.
@@ -123,10 +123,10 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     private const float WindTimePhaseOffsetHours = 0f;
 
     /// <summary>Within this cone from wind axis (±15°) apply full ±15% speed limits.</summary>
-    private const float WindConeHalfAngleDeg = 15f;
+    private static float WindConeHalfAngleDeg => Debug.ShipTuningDebug.ShipControllerTuning.WindConeHalfAngleDeg;
 
-    private const float WindWithMaxMul = 1.15f;
-    private const float WindAgainstMaxMul = 0.85f;
+    private static float WindWithMaxMul => Debug.ShipTuningDebug.ShipControllerTuning.WindWithMaxMul;
+    private static float WindAgainstMaxMul => Debug.ShipTuningDebug.ShipControllerTuning.WindAgainstMaxMul;
 
     /// <summary>How wind affects max speed: none (rowing/motor), square (downwind best), lateen (beam reach best).</summary>
     private enum ShipWindProfile
@@ -306,9 +306,23 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         Hull.Position = initialPosition;
         Hull.Orientation = initialOrientation;
         // Ship shape
-        var shipBoxShape = new BoxShape(ShipModel.MassBoxSizeY, ShipModel.MassBoxSizeZ, ShipModel.MassBoxSizeX);
+        // Interpretation:
+        // - MassBoxSizeY = length (forward/back)
+        // - MassBoxSizeX = beam (right/left)
+        // Axis mapping to physics box local axes:
+        // - local +X uses MassBoxSizeX (beam)
+        // - local +Y uses MassBoxSizeZ (height)
+        // - local +Z uses MassBoxSizeY (length)
+        var sizeZ = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.HullBoxTuning.GetSizeZ(ShipModel.MassBoxSizeZ)
+            : ShipModel.MassBoxSizeZ;
+        var centerZ = AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.HullBoxTuning.GetCenterZ(ShipModel.MassCenterZ, ShipModel.MassBoxSizeZ)
+            : ShipModel.MassCenterZ;
+
+        var shipBoxShape = new BoxShape(ShipModel.MassBoxSizeX, sizeZ, ShipModel.MassBoxSizeY);
         // Center offset
-        var shipCenterPoint = new TransformedShape(shipBoxShape, new JVector(ShipModel.MassCenterX, ShipModel.MassCenterZ, ShipModel.MassCenterY));
+        var shipCenterPoint = new TransformedShape(shipBoxShape, new JVector(ShipModel.MassCenterX, centerZ, ShipModel.MassCenterY));
         // Add shape
         Hull.AddShape(shipCenterPoint);
         // Set Mass

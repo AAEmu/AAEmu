@@ -18,74 +18,169 @@ namespace AAEmu.Game.Physics;
 /// </summary>
 public sealed class ShipShipInteraction
 {
+    private static class Tune
+    {
+        public static float HullDetectInflateLength => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDetectInflateLength
+            : HullDetectInflateLengthDefault;
+
+        public static float HullDetectInflateBeam => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDetectInflateBeam
+            : HullDetectInflateBeamDefault;
+
+        public static float BeamDetectTightenMul => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.BeamDetectTightenMul
+            : BeamDetectTightenMulDefault;
+
+        public static float MinPenetrationToAct => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinPenetrationToAct
+            : MinPenetrationToActDefault;
+
+        public static float MinPenetrationToDamage => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinPenetrationToDamage
+            : MinPenetrationToDamageDefault;
+
+        public static float TangentialRampDepthMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.TangentialRampDepthMeters
+            : TangentialRampDepthMetersDefault;
+
+        public static float SeparationPushMultiplier => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.SeparationPushMultiplier
+            : SeparationPushMultiplierDefault;
+
+        public static float SeparationSlackMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.SeparationSlackMeters
+            : SeparationSlackMetersDefault;
+
+        public static float ClosingSpeedDamp => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.ClosingSpeedDamp
+            : ClosingSpeedDampDefault;
+
+        public static float TangentialSlipDamp => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.TangentialSlipDamp
+            : TangentialSlipDampDefault;
+
+        public static float MinVerticalOverlap => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinVerticalOverlap
+            : MinVerticalOverlapDefault;
+
+        public static int ResolvePasses => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.ResolvePasses
+            : ResolvePassesDefault;
+
+        public static int MaxPairIterations => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MaxPairIterations
+            : MaxPairIterationsDefault;
+
+        public static float DeepPenetrationStart => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.DeepPenetrationStart
+            : DeepPenetrationStartDefault;
+
+        public static float DeepPenetrationBoost => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.DeepPenetrationBoost
+            : DeepPenetrationBoostDefault;
+
+        public static float MinHalfSeparationMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinHalfSeparationMeters
+            : MinHalfSeparationMetersDefault;
+
+        public static float MinLinearSeparationToApplyMeters => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.MinLinearSeparationToApplyMeters
+            : MinLinearSeparationToApplyMetersDefault;
+
+        public static float NoseContactCosThreshold => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.NoseContactCosThreshold
+            : NoseContactCosThresholdDefault;
+
+        public static float HullCollisionDamageCooldownSec => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullCollisionDamageCooldownSec
+            : HullCollisionDamageCooldownSecDefault;
+
+        public static float HullDamageLowSpeedThresholdMps => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageLowSpeedThresholdMps
+            : HullDamageLowSpeedThresholdMpsDefault;
+
+        public static float HullDamageSpeedInterpMaxMps => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageInterpMaxMps
+            : HullDamageSpeedInterpMaxMpsDefault;
+
+        public static int HullDamageSpeedScaledMinPercent => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageSpeedScaledMinPercent
+            : HullDamageSpeedScaledMinPercentDefault;
+
+        public static int HullDamageSpeedScaledMaxPercent => AAEmu.Game.Physics.Debug.ShipTuningDebug.Enabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipShipTuning.HullDamageSpeedScaledMaxPercent
+            : HullDamageSpeedScaledMaxPercentDefault;
+    }
+
     /// <summary>Length half-axis multiplier for overlap test only — keep close to 1.</summary>
-    private const float HullDetectInflateLength = 1.025f;
+    private const float HullDetectInflateLengthDefault = 1.025f;
 
     /// <summary>Beam half-axis multiplier for overlap test only.</summary>
-    private const float HullDetectInflateBeam = 1.015f;
+    private const float HullDetectInflateBeamDefault = 1.015f;
 
     /// <summary>
     /// Extra tightening of beam in SAT only: <c>MassBoxSizeY</c> is often full deck/rail width, so side-by-side
     /// contact triggered long before hulls meet; length stays full for nose-to-nose.
     /// </summary>
-    private const float BeamDetectTightenMul = 0.78f;
+    private const float BeamDetectTightenMulDefault = 0.78f;
 
     /// <summary>Ignore overlap response below this depth (m) — kills ghost drag from marginal SAT positives.</summary>
-    private const float MinPenetrationToAct = 0.055f;
+    private const float MinPenetrationToActDefault = 0.055f;
 
     /// <summary>Ignore periodic hull-damage for marginal SAT overlaps (m) — prevents "rubbing damage" from false contact.</summary>
-    private const float MinPenetrationToDamage = MinPenetrationToAct * 1.15f;
+    private const float MinPenetrationToDamageDefault = MinPenetrationToActDefault * 1.15f;
 
     /// <summary>Ramp tangential slip damp from 0 to full over this depth past <see cref="MinPenetrationToAct"/>.</summary>
-    private const float TangentialRampDepthMeters = 0.22f;
+    private const float TangentialRampDepthMetersDefault = 0.22f;
 
     /// <summary>Multiplies positional separation once overlap exists (mesh wider than mass box).</summary>
-    private const float SeparationPushMultiplier = 1.22f;
+    private const float SeparationPushMultiplierDefault = 1.22f;
 
     /// <summary>Extra push after computed overlap so hulls do not sit exactly tangent (reduces z-fight / next-frame re-entry).</summary>
-    private const float SeparationSlackMeters = 0.020f;
+    private const float SeparationSlackMetersDefault = 0.020f;
 
     /// <summary>When overlapping, relative speed along separation normal is removed this fraction (1 = full stop along normal).</summary>
-    private const float ClosingSpeedDamp = 1f;
+    private const float ClosingSpeedDampDefault = 1f;
 
     /// <summary>While hulls overlap, damp relative tangential slip in XZ to reduce slow grind-through.</summary>
-    private const float TangentialSlipDamp = 0.86f;
+    private const float TangentialSlipDampDefault = 0.86f;
 
     /// <summary>Minimum vertical overlap (m) to count as colliding (ignore ships far above/below).</summary>
-    private const float MinVerticalOverlap = 0.12f;
+    private const float MinVerticalOverlapDefault = 0.12f;
 
-    private const int ResolvePasses = 2;
+    private const int ResolvePassesDefault = 2;
 
     /// <summary>Per pair, per outer pass: depenetrate until separated or cap (handles sustained rubbing in one tick).</summary>
-    private const int MaxPairIterations = 12;
+    private const int MaxPairIterationsDefault = 12;
 
     /// <summary>Extra separation scale when penetration exceeds this depth (m).</summary>
-    private const float DeepPenetrationStart = 0.12f;
+    private const float DeepPenetrationStartDefault = 0.12f;
 
-    private const float DeepPenetrationBoost = 0.72f;
+    private const float DeepPenetrationBoostDefault = 0.72f;
 
     /// <summary>Floor on half-separation distance (m) so tiny SAT depths still produce a visible push.</summary>
-    private const float MinHalfSeparationMeters = 0.02f;
+    private const float MinHalfSeparationMetersDefault = 0.02f;
 
     /// <summary>
     /// If <c>halfSep + SeparationSlack</c> is below this (m), stop iterating — avoids high-frequency micro-pushes at marginal overlap.
     /// </summary>
-    private const float MinLinearSeparationToApplyMeters = 0.018f;
+    private const float MinLinearSeparationToApplyMetersDefault = 0.018f;
 
     /// <summary>Cosine threshold: other hull in this forward cone counts as “nose” hit (1% hull); else 3%.</summary>
-    private const float NoseContactCosThreshold = 0.65f;
+    private const float NoseContactCosThresholdDefault = 0.65f;
 
     /// <summary>Min interval between hull-collision %HP ticks per ship while contact persists.</summary>
-    private const float HullCollisionDamageCooldownSec = 1.5f;
+    private const float HullCollisionDamageCooldownSecDefault = 1.5f;
 
     /// <summary>At or below this relative speed (m/s) along separation axis, non–nose-to-nose hits use min % damage.</summary>
-    private const float HullDamageLowSpeedThresholdMps = 2f;
+    private const float HullDamageLowSpeedThresholdMpsDefault = 2f;
 
     /// <summary>Relative speed (m/s) at which non–nose damage reaches <see cref="HullDamageSpeedScaledMaxPercent"/> (linear between thresholds).</summary>
-    private const float HullDamageSpeedInterpMaxMps = 10f;
+    private const float HullDamageSpeedInterpMaxMpsDefault = 10f;
 
-    private const int HullDamageSpeedScaledMinPercent = 1;
-    private const int HullDamageSpeedScaledMaxPercent = 10;
+    private const int HullDamageSpeedScaledMinPercentDefault = 1;
+    private const int HullDamageSpeedScaledMaxPercentDefault = 10;
 
     /// <summary>
     /// Run after all ships have had <see cref="ShipController.ApplyForceAndTorque"/> for this frame.
@@ -104,7 +199,7 @@ public sealed class ShipShipInteraction
 
         var pairDamagedThisTick = new HashSet<ulong>();
 
-        for (var pass = 0; pass < ResolvePasses; pass++)
+        for (var pass = 0; pass < Tune.ResolvePasses; pass++)
         {
             for (var i = 0; i < ships.Count; i++)
             {
@@ -123,7 +218,7 @@ public sealed class ShipShipInteraction
 
                     // If SAT only detects a marginal overlap (e.g. due to discrete steps / tight mass-box),
                     // keep the depenetration but don't apply periodic hull damage.
-                    if (maxPenetration < MinPenetrationToDamage)
+                    if (maxPenetration < Tune.MinPenetrationToDamage)
                         continue;
 
                     const byte holdTicks = 10;
@@ -197,19 +292,19 @@ public sealed class ShipShipInteraction
         var scaledDamage = GetSpeedScaledHullDamagePercent(impactSpeedMps);
         var aHitsWithNose = IsOtherShipInNoseCone(bx - ax, bz - az, bowA);
         var bHitsWithNose = IsOtherShipInNoseCone(ax - bx, az - bz, bowB);
-        var dmgA = aHitsWithNose ? HullDamageSpeedScaledMinPercent : scaledDamage;
-        var dmgB = bHitsWithNose ? HullDamageSpeedScaledMinPercent : scaledDamage;
+        var dmgA = aHitsWithNose ? Tune.HullDamageSpeedScaledMinPercent : scaledDamage;
+        var dmgB = bHitsWithNose ? Tune.HullDamageSpeedScaledMinPercent : scaledDamage;
 
         if (!sa.ShipHullCollisionDamageCooldownByOtherShipId.TryGetValue(sb.Id, out var cdA) || cdA <= 0f)
         {
             sa.ApplyShipHullCollisionDamage(sb, dmgA);
-            sa.ShipHullCollisionDamageCooldownByOtherShipId[sb.Id] = HullCollisionDamageCooldownSec;
+            sa.ShipHullCollisionDamageCooldownByOtherShipId[sb.Id] = Tune.HullCollisionDamageCooldownSec;
         }
 
         if (!sb.ShipHullCollisionDamageCooldownByOtherShipId.TryGetValue(sa.Id, out var cdB) || cdB <= 0f)
         {
             sb.ApplyShipHullCollisionDamage(sa, dmgB);
-            sb.ShipHullCollisionDamageCooldownByOtherShipId[sa.Id] = HullCollisionDamageCooldownSec;
+            sb.ShipHullCollisionDamageCooldownByOtherShipId[sa.Id] = Tune.HullCollisionDamageCooldownSec;
         }
     }
 
@@ -223,20 +318,20 @@ public sealed class ShipShipInteraction
         var fx = MathF.Cos(bowRadians);
         var fz = MathF.Sin(bowRadians);
         var cosAng = (toOtherX * fx + toOtherZ * fz) * invLen;
-        return cosAng >= NoseContactCosThreshold;
+            return cosAng >= Tune.NoseContactCosThreshold;
     }
 
     private static int GetSpeedScaledHullDamagePercent(float relativeSpeedMps)
     {
-        if (relativeSpeedMps <= HullDamageLowSpeedThresholdMps)
-            return HullDamageSpeedScaledMinPercent;
-        if (relativeSpeedMps >= HullDamageSpeedInterpMaxMps)
-            return HullDamageSpeedScaledMaxPercent;
+        if (relativeSpeedMps <= Tune.HullDamageLowSpeedThresholdMps)
+            return Tune.HullDamageSpeedScaledMinPercent;
+        if (relativeSpeedMps >= Tune.HullDamageSpeedInterpMaxMps)
+            return Tune.HullDamageSpeedScaledMaxPercent;
 
-        var span = HullDamageSpeedInterpMaxMps - HullDamageLowSpeedThresholdMps;
-        var t = (relativeSpeedMps - HullDamageLowSpeedThresholdMps) / span;
-        var f = HullDamageSpeedScaledMinPercent +
-                t * (HullDamageSpeedScaledMaxPercent - HullDamageSpeedScaledMinPercent);
+        var span = Tune.HullDamageSpeedInterpMaxMps - Tune.HullDamageLowSpeedThresholdMps;
+        var t = (relativeSpeedMps - Tune.HullDamageLowSpeedThresholdMps) / span;
+        var f = Tune.HullDamageSpeedScaledMinPercent +
+                t * (Tune.HullDamageSpeedScaledMaxPercent - Tune.HullDamageSpeedScaledMinPercent);
         return (int)MathF.Round(f);
     }
 
@@ -256,7 +351,7 @@ public sealed class ShipShipInteraction
         var bbA = bodyA.Shapes[0].WorldBoundingBox;
         var bbB = bodyB.Shapes[0].WorldBoundingBox;
         var overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
-        if (overlapY < MinVerticalOverlap)
+        if (overlapY < Tune.MinVerticalOverlap)
             return false;
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
@@ -264,18 +359,21 @@ public sealed class ShipShipInteraction
         var bowA = rpyA.Item1 + 1.57f;
         var bowB = rpyB.Item1 + 1.57f;
 
-        var halfLenA = ma.MassBoxSizeX * sa.Scale * 0.5f * HullDetectInflateLength;
-        var halfLenB = mb.MassBoxSizeX * sb.Scale * 0.5f * HullDetectInflateLength;
-        var satHalfWidA = ma.MassBoxSizeY * sa.Scale * 0.5f * HullDetectInflateBeam * BeamDetectTightenMul;
-        var satHalfWidB = mb.MassBoxSizeY * sb.Scale * 0.5f * HullDetectInflateBeam * BeamDetectTightenMul;
+        // Interpretation:
+        // - MassBoxSizeY = length (forward/back)
+        // - MassBoxSizeX = beam (right/left)
+        var halfLenA = ma.MassBoxSizeY * sa.Scale * 0.5f * Tune.HullDetectInflateLength;
+        var halfLenB = mb.MassBoxSizeY * sb.Scale * 0.5f * Tune.HullDetectInflateLength;
+        var satHalfWidA = ma.MassBoxSizeX * sa.Scale * 0.5f * Tune.HullDetectInflateBeam * Tune.BeamDetectTightenMul;
+        var satHalfWidB = mb.MassBoxSizeX * sb.Scale * 0.5f * Tune.HullDetectInflateBeam * Tune.BeamDetectTightenMul;
 
         float ax, az, bx, bz, penetration, nx, nz;
-        for (var iter = 0; iter < MaxPairIterations; iter++)
+        for (var iter = 0; iter < Tune.MaxPairIterations; iter++)
         {
             bbA = bodyA.Shapes[0].WorldBoundingBox;
             bbB = bodyB.Shapes[0].WorldBoundingBox;
             overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
-            if (overlapY < MinVerticalOverlap)
+            if (overlapY < Tune.MinVerticalOverlap)
                 break;
 
             GetMassBoxCenterXz(bodyA, ma, sa.Scale, out ax, out az);
@@ -289,7 +387,7 @@ public sealed class ShipShipInteraction
                     out nz))
                 break;
 
-            if (penetration <= 1e-4f || penetration < MinPenetrationToAct)
+            if (penetration <= 1e-4f || penetration < Tune.MinPenetrationToAct)
                 break;
 
             maxPenetration = MathF.Max(maxPenetration, penetration);
@@ -303,14 +401,14 @@ public sealed class ShipShipInteraction
             }
 
             var halfSep = penetration * 0.5f;
-            var deep = MathF.Max(0f, penetration - DeepPenetrationStart);
-            halfSep *= 1f + DeepPenetrationBoost * MathF.Min(1.25f, deep);
-            var linearSep = halfSep + SeparationSlackMeters;
-            if (linearSep < MinLinearSeparationToApplyMeters)
+            var deep = MathF.Max(0f, penetration - Tune.DeepPenetrationStart);
+            halfSep *= 1f + Tune.DeepPenetrationBoost * MathF.Min(1.25f, deep);
+            var linearSep = halfSep + Tune.SeparationSlackMeters;
+            if (linearSep < Tune.MinLinearSeparationToApplyMeters)
                 break;
 
-            var move = MathF.Max(linearSep, MinHalfSeparationMeters);
-            move *= SeparationPushMultiplier;
+            var move = MathF.Max(linearSep, Tune.MinHalfSeparationMeters);
+            move *= Tune.SeparationPushMultiplier;
 
             var va = bodyA.Velocity;
             var vb = bodyB.Velocity;
@@ -322,6 +420,8 @@ public sealed class ShipShipInteraction
             hadResponse = true;
 
             DampPairVelocities(bodyA, bodyB, nx, nz, penetration);
+
+            AAEmu.Game.Physics.Debug.ShipTuningDebug.OnResolvedShipPair(sa, sb, penetration, nx, nz, peakImpactSpeedMps);
         }
 
         if (hadResponse)
@@ -339,16 +439,16 @@ public sealed class ShipShipInteraction
         var closing = (va.X - vb.X) * nx + (va.Z - vb.Z) * nz;
         if (closing > 0f)
         {
-            var remove = closing * 0.5f * ClosingSpeedDamp;
+            var remove = closing * 0.5f * Tune.ClosingSpeedDamp;
             va = new JVector(va.X - nx * remove, va.Y, va.Z - nz * remove);
             vb = new JVector(vb.X + nx * remove, vb.Y, vb.Z + nz * remove);
         }
 
-        var tangentialBlend = Math.Clamp((penetrationDepth - MinPenetrationToAct) / TangentialRampDepthMeters, 0f, 1f);
+        var tangentialBlend = Math.Clamp((penetrationDepth - Tune.MinPenetrationToAct) / Tune.TangentialRampDepthMeters, 0f, 1f);
         var tx = -nz;
         var tz = nx;
         var relT = (va.X - vb.X) * tx + (va.Z - vb.Z) * tz;
-        var slipRemove = relT * 0.5f * (1f - TangentialSlipDamp) * tangentialBlend;
+        var slipRemove = relT * 0.5f * (1f - Tune.TangentialSlipDamp) * tangentialBlend;
         va = new JVector(va.X - tx * slipRemove, va.Y, va.Z - tz * slipRemove);
         vb = new JVector(vb.X + tx * slipRemove, vb.Y, vb.Z + tz * slipRemove);
 
