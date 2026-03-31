@@ -260,6 +260,12 @@ public sealed class ShipShoreInteraction
         if (penetration <= 0.0f)
             return;
 
+        // Mass-box center (rigid body origin) above local waterline: stop vertical "pop" from penetration resolve.
+        var waterAtCenter = slave.ParentWorld.Water.GetWaterSurface(
+            new Vector3(slave.RigidBody.Position.X, slave.RigidBody.Position.Y, slave.RigidBody.Position.Z),
+            out _);
+        var centerAboveWaterline = slave.RigidBody.Position.Y > waterAtCenter + 0.001f;
+
         var penetrationEpsilon = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
             ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.PenetrationEpsilon
             : 0.02f;
@@ -269,7 +275,7 @@ public sealed class ShipShoreInteraction
         var maxUpStepPerTick = slave.GroundContactLatchedTime < 0.30f
             ? (AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.MaxUpStepEarly : 0.04f)
             : (AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.MaxUpStepLate : 0.07f);
-        if (penetration > penetrationEpsilon)
+        if (penetration > penetrationEpsilon && !centerAboveWaterline)
         {
             var a = 1f - MathF.Exp(-penetrationResponse * dt);
             var step = MathF.Min(penetration * a, maxUpStepPerTick);
@@ -277,6 +283,12 @@ public sealed class ShipShoreInteraction
 
             var v = slave.RigidBody.Velocity;
             if (MathF.Abs(v.Y) > 0.01f)
+                slave.RigidBody.Velocity = new JVector(v.X, 0f, v.Z);
+        }
+        else if (centerAboveWaterline)
+        {
+            var v = slave.RigidBody.Velocity;
+            if (v.Y > 0f)
                 slave.RigidBody.Velocity = new JVector(v.X, 0f, v.Z);
         }
         var collisionForce = physWorld.Gravity * -1f;
