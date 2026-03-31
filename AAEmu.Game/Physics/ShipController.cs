@@ -356,6 +356,11 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Use the latched ground contact from PhysicsManager to avoid shoreline jitter causing
         // abrupt control/velocity changes ("jerks") when transitioning water<->land.
         var isGrounded = (slave.CachedFloorLevel > slave.CachedWaterSurface) || slave.GroundContactLatched;
+        var shallowDepthForCaps = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.ShallowWaterDepthForGroundSpeedCaps;
+        shallowDepthForCaps = MathF.Max(0f, shallowDepthForCaps);
+        var waterDepth = slave.CachedWaterSurface - slave.CachedFloorLevel; // meters
+        var isShallowForCaps = waterDepth >= 0f && waterDepth <= shallowDepthForCaps;
+        var isGroundedForSpeedCaps = isGrounded || isShallowForCaps;
 
         // Still compute movement direction for stern/bow logic.
         var rpy0 = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
@@ -367,7 +372,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         var isEscapeInputOnGround = false;
         var escapeThrottleSignOnGround = 0;
 
-        if (isGrounded)
+        if (isGroundedForSpeedCaps)
         {
             // Latch grounding side only when entering ground state.
             // Recomputing it every tick from current speed causes escape direction to flip mid-maneuver.
@@ -378,7 +383,6 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             var escapeThrottleSign = groundedByStern ? 1 : -1; // forward to escape stern-grounding, reverse to escape bow-grounding
             escapeThrottleSignOnGround = escapeThrottleSign;
             isEscapeInputOnGround = slave.ThrottleRequest != 0 && Math.Sign(slave.ThrottleRequest) == escapeThrottleSign;
-            var isTryingMoveDeeper = slave.ThrottleRequest != 0 && !isEscapeInputOnGround;
             var isStuckOnGround = MathF.Abs(slave.Speed) < 0.08f && slave.ThrottleRequest != 0;
 
             if (isStuckOnGround)
@@ -386,14 +390,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             else
                 slave.GroundStuckTime = 0f;
 
-            // Hard-stop "digging into shore": when stern is the leading edge and player keeps reverse,
-            // do not allow building/keeping significant backward speed on land.
-            if (groundedByStern && slave.ThrottleRequest < 0 && isTryingMoveDeeper)
-            {
-                // Kill the "run-on" distance: clamp backward speed and add extra damping.
-                slave.Speed = Math.Max(slave.Speed, -0.15f);
-                slave.Speed *= 0.75f;
-            }
+            // Reverse cap on shoal: GroundReverseSpeedCapPercentOfWater (see speed clamp below).
 
             // If player keeps trying the "escape direction" but ship stays almost still, gradually assist.
             var assistTarget = isEscapeInputOnGround && slave.GroundStuckTime > 1.2f ? 1f : 0f;
@@ -401,8 +398,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             slave.GroundEscapeAssist += (assistTarget - slave.GroundEscapeAssist) * assistA;
 
             // Base asymmetric throttle on ground differs by contact side.
+            // NOTE: per tuning request we do not reduce reverse throttle on ground.
             var groundThrottleForwardMul = groundedByStern ? 0.78f : 0.10f;
-            var groundThrottleReverseMul = groundedByStern ? 0.02f : 0.85f;
+            var groundThrottleReverseMul = 1.0f;
 
             // Boost only the "escape" direction while stuck; suppress direction that digs deeper inland.
             if (isEscapeInputOnGround)
@@ -413,7 +411,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
                 else
                     groundThrottleReverseMul = MathF.Min(1f, groundThrottleReverseMul * escapeBoost);
             }
-            else if (isTryingMoveDeeper)
+            else if (slave.ThrottleRequest != 0 && !isEscapeInputOnGround)
             {
                 if (slave.ThrottleRequest > 0)
                     groundThrottleForwardMul *= 0.55f;
@@ -443,7 +441,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             slave.GroundStuckTime = 0f;
             slave.GroundEscapeAssist = 0f;
         }
-        slave.GroundedLastTick = isGrounded;
+        // Must match the same "grounded for controls/caps" predicate; otherwise shallow-water-only frames
+        // never latch GroundedLastTick and GroundedByStern gets recomputed every tick (breaks escape direction).
+        slave.GroundedLastTick = isGroundedForSpeedCaps;
 
         // Minimum crawl speed when starting in that direction only. Do not apply while still moving
         // the other way — otherwise forward+reverse snaps Speed to ±1 and the ship stops instantly.
@@ -466,7 +466,35 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
         var windMul = GetWindSpeedMul(slave, slaveRotRad);
         var maxForward = shipModel.Velocity * slave.MoveSpeedMul / 2f * windMul;
-        var maxBackward = -shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
+        var waterMaxReverseAbs = shipModel.ReverseVelocity * slave.MoveSpeedMul / 2f * windMul;
+        var maxBackward = -waterMaxReverseAbs;
+
+        // Shoal: limit max reverse vs the same water-based cap (percent of |maxBackward| on water).
+        if (isGroundedForSpeedCaps)
+        {
+            var revPct = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundReverseSpeedCapPercentOfWater;
+            revPct = Math.Clamp(revPct, 0f, 100f);
+            maxBackward = -waterMaxReverseAbs * (revPct / 100f);
+        }
+
+        // Ground escape cap override:
+        // When grounded and the player holds the correct "escape" throttle direction, allow a higher cap than
+        // shipModel.Velocity-driven maxForward/maxBackward. Otherwise some ship models get stuck around ~0.6 m/s
+        // and cannot reliably climb off the shoal.
+        // Fallback: if the ship is grounded and effectively "stuck" (can't get moving) but the player keeps applying throttle,
+        // still allow the higher escape cap in the input direction. This prevents a wrong stern/bow latch from trapping ships
+        // at low model-based caps (~0.6 m/s) on some hulls.
+        var isFallbackEscapeOnGround = isGroundedForSpeedCaps && !isEscapeInputOnGround && slave.ThrottleRequest != 0 && slave.GroundStuckTime > 0.35f;
+
+        if (isGroundedForSpeedCaps && (isEscapeInputOnGround || isFallbackEscapeOnGround))
+        {
+            var groundEscapeMaxSpeedAbs = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundEscapeMaxSpeedAbs;
+            var escapeSign = isEscapeInputOnGround ? escapeThrottleSignOnGround : Math.Sign(slave.ThrottleRequest);
+            if (escapeSign > 0)
+                maxForward = MathF.Max(maxForward, groundEscapeMaxSpeedAbs);
+            else if (escapeSign < 0)
+                maxBackward = MathF.Min(maxBackward, -groundEscapeMaxSpeedAbs);
+        }
 
         // Use data reverse_accel for braking; scale up when fighting current motion (feels less sluggish than forward-only Accel).
         var linearAccel = shipModel.Accel;
@@ -496,9 +524,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         slave.Speed += throttleNorm * (linearAccel * dtSec) / 2f;
 
         // Anti-stall nudge: when grounded and escape input is held, avoid jitter around zero.
-        if (isGrounded && isEscapeInputOnGround && slave.GroundStuckTime > 0.35f)
+        if (isGroundedForSpeedCaps && isEscapeInputOnGround && slave.GroundStuckTime > 0.35f)
         {
-            const float targetEscapeSpeed = 1.6f;
+            var targetEscapeSpeed = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShipControllerTuning.GroundEscapeMaxSpeedAbs;
             var escapeA = 1f - MathF.Exp(-(6.0f + 2.0f * slave.GroundEscapeAssist) * MathF.Max(0f, dtSec));
             var target = escapeThrottleSignOnGround * targetEscapeSpeed;
             slave.Speed += (target - slave.Speed) * escapeA;
@@ -614,15 +642,19 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         // If not in water, seriously slow down the velocity
         const float FloorCollisionSpeedMultiplier = 0.96f;
-        if (isGrounded)
+        if (isGroundedForSpeedCaps)
         {
-            // While applying escape throttle, preserve more momentum to avoid "stuck in place" feel.
-            var groundDamping = isEscapeInputOnGround
-                ? 0.97f + 0.01f * slave.GroundEscapeAssist
-                : FloorCollisionSpeedMultiplier;
+            // While applying escape throttle, do not damp speed/velocity — otherwise it creates an artificial
+            // steady-state ceiling well below GroundEscapeMaxSpeedAbs (e.g. ~0.7).
+            var groundDamping = isEscapeInputOnGround ? 1.0f : FloorCollisionSpeedMultiplier;
             slave.Speed *= groundDamping;
             slave.RigidBody.Velocity *= groundDamping;
         }
+
+        // Holding throttle into the beach (e.g. reverse while stern-grounded) can settle at a tiny non-zero
+        // speed (~0.1) from accel/damping balance and MoveDirEpsilon; snap to full stop when nearly still.
+        if (isGroundedForSpeedCaps && slave.ThrottleRequest != 0 && !isEscapeInputOnGround && MathF.Abs(slave.Speed) < 0.12f)
+            slave.Speed = 0f;
 
         // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
         if (slave.Throttle == 0)

@@ -26,19 +26,36 @@ public static class ShipTuningDebug
     /// EN: Master switch (use Hot Reload; no GM commands).
     /// RU: Главный переключатель (через Hot Reload; без GM команд).
     /// </summary>
-    public static bool Enabled = true;
+    public static bool Enabled => GetEnabled();
+    private static bool GetEnabled() => true;
 
     /// <summary>
     /// EN: Minimum effective access level to receive chat debug messages.
     /// RU: Минимальный effective access level для получения debug-сообщений в чат.
     /// </summary>
-    public static int MinAccessLevel = 80;
+    public static int MinAccessLevel => GetMinAccessLevel();
+    private static int GetMinAccessLevel() => 80;
 
     /// <summary>
     /// EN: Throttle detailed messages (ms) per ship.
     /// RU: Троттлинг подробных сообщений (мс) на корабль.
     /// </summary>
-    public static int ThrottleMsPerShip = 3000;
+    public static int ThrottleMsPerShip => GetThrottleMsPerShip();
+    private static int GetThrottleMsPerShip() => 3000;
+
+    /// <summary>
+    /// EN: Enable/disable `[ShipBox]` chat line (markers still draw).
+    /// RU: Включить/выключить строку `[ShipBox]` в чате (маркеры остаются).
+    /// </summary>
+    public static bool ShipBoxChatEnabled => GetShipBoxChatEnabled();
+    private static bool GetShipBoxChatEnabled() => false;
+
+    /// <summary>
+    /// EN: Enable/disable `[ShipSpeed]` chat line (escape/ground diagnostics).
+    /// RU: Включить/выключить строку `[ShipSpeed]` в чате (диагностика скорости/мели).
+    /// </summary>
+    public static bool ShipSpeedChatEnabled => GetShipSpeedChatEnabled();
+    private static bool GetShipSpeedChatEnabled() => true;
 
     /// <summary>
     /// EN: Corner markers template id (table <c>gimmicks</c>). Hot Reload: edit this return value.
@@ -79,31 +96,36 @@ public static class ShipTuningDebug
     /// EN: Marker scale.
     /// RU: Масштаб маркеров.
     /// </summary>
-    public static float MarkerScale = 0.35f;
+    public static float MarkerScale => GetMarkerScale();
+    private static float GetMarkerScale() => 0.35f;
 
     /// <summary>
     /// EN: If true, draw markers only for ships with a driver.
     /// RU: Если true — рисовать маркеры только для кораблей с водителем.
     /// </summary>
-    public static bool DrawOnlyWhenDriven = false;
+    public static bool DrawOnlyWhenDriven => GetDrawOnlyWhenDriven();
+    private static bool GetDrawOnlyWhenDriven() => false;
 
     /// <summary>
     /// EN: Enable ship↔shore debug (markers + latch messages + tuning override in ShipShoreInteraction).
     /// RU: Включить ship↔shore дебаг (маркеры + сообщения latch + подмена тюнинга в ShipShoreInteraction).
     /// </summary>
-    public static bool ShoreEnabled = true;
+    public static bool ShoreEnabled => GetShoreEnabled();
+    private static bool GetShoreEnabled() => true;
 
     /// <summary>
     /// EN: Show two extra axis markers: +Length (local +Z of the physics box) and +Beam (local +X of the physics box).
     /// RU: Показывать 2 дополнительных маркера осей: +Length (локальная +Z физ. бокса) и +Beam (локальная +X физ. бокса).
     /// </summary>
-    public static bool AxisMarkersEnabled = true;
+    public static bool AxisMarkersEnabled => GetAxisMarkersEnabled();
+    private static bool GetAxisMarkersEnabled() => true;
 
     /// <summary>
     /// EN: Extra distance (meters) beyond half-extent for axis markers.
     /// RU: Доп. расстояние (метры) за пределы half-extent для осевых маркеров.
     /// </summary>
-    public static float AxisMarkerExtraMeters = 1.25f;
+    public static float AxisMarkerExtraMeters => GetAxisMarkerExtraMeters();
+    private static float GetAxisMarkerExtraMeters() => 1.25f;
 
     /// <summary>
     /// EN: Mass-box tuning (center/size overrides). Useful when the hull OBB is too low/high vs the visible hull.
@@ -115,25 +137,29 @@ public static class ShipTuningDebug
         /// EN: Additive vertical offset to MassCenterZ (meters). Positive lifts the box up.
         /// RU: Аддитивный вертикальный сдвиг к MassCenterZ (метры). Положительное значение поднимает бокс вверх.
         /// </summary>
-        public static float CenterZAddMeters = 0f;
+        public static float CenterZAddMeters => GetCenterZAddMeters();
+        private static float GetCenterZAddMeters() => 0f;
 
         /// <summary>
         /// EN: Additive vertical offset to MassCenterZ as a fraction of MassBoxSizeZ. Example: 0.30 lifts the box by 30% of its height.
         /// RU: Аддитивный вертикальный сдвиг к MassCenterZ как доля MassBoxSizeZ. Например: 0.30 поднимает бокс на 30% его высоты.
         /// </summary>
-        public static float CenterZAddFracOfSizeZ = 0.30f;
+        public static float CenterZAddFracOfSizeZ => GetCenterZAddFracOfSizeZ();
+        private static float GetCenterZAddFracOfSizeZ() => 0.0f;
 
         /// <summary>
         /// EN: Multiply MassBoxSizeZ (height). 1 = no change.
         /// RU: Множитель MassBoxSizeZ (высота). 1 = без изменений.
         /// </summary>
-        public static float SizeZMul = 1f;
+        public static float SizeZMul => GetSizeZMul();
+        private static float GetSizeZMul() => 1f;
 
         /// <summary>
         /// EN: Additive adjustment to MassBoxSizeZ (meters). Applied after SizeZMul.
         /// RU: Аддитивная поправка к MassBoxSizeZ (метры). Применяется после SizeZMul.
         /// </summary>
-        public static float SizeZAddMeters = 0f;
+        public static float SizeZAddMeters => GetSizeZAddMeters();
+        private static float GetSizeZAddMeters() => 0f;
 
         internal static float GetCenterZ(float baseCenterZ, float baseSizeZ) =>
             baseCenterZ + baseSizeZ * CenterZAddFracOfSizeZ + CenterZAddMeters;
@@ -155,139 +181,162 @@ public static class ShipTuningDebug
         /// EN: Half-length multiplier for SAT overlap test only (keep near 1).
         /// RU: Множитель полу-длины только для SAT-детекта (держать близко к 1).
         /// </summary>
-        public static float HullDetectInflateLength = 1.025f;
+        public static float HullDetectInflateLength => GetHullDetectInflateLength();
+        private static float GetHullDetectInflateLength() => 1.025f;
 
         /// <summary>
         /// EN: Half-beam multiplier for SAT overlap test only.
         /// RU: Множитель полу-ширины только для SAT-детекта.
         /// </summary>
-        public static float HullDetectInflateBeam = 1.015f;
+        public static float HullDetectInflateBeam => GetHullDetectInflateBeam();
+        private static float GetHullDetectInflateBeam() => 1.015f;
 
         /// <summary>
         /// EN: Extra tightening of beam in SAT only (reduces early side contact from oversized mass box).
         /// RU: Доп. ужатие ширины только в SAT (убирает ранний боковой контакт из-за широкого mass box).
         /// </summary>
-        public static float BeamDetectTightenMul = 0.78f;
+        public static float BeamDetectTightenMul => GetBeamDetectTightenMul();
+        private static float GetBeamDetectTightenMul() => 0.78f;
 
         /// <summary>
         /// EN: Ignore overlap response below this penetration depth (meters).
         /// RU: Игнорировать реакцию, если penetration меньше этого (метры).
         /// </summary>
-        public static float MinPenetrationToAct = 0.055f;
+        public static float MinPenetrationToAct => GetMinPenetrationToAct();
+        private static float GetMinPenetrationToAct() => 0.055f;
 
         /// <summary>
         /// EN: Ignore periodic hull-damage below this penetration depth (meters).
         /// RU: Не наносить периодический урон корпусу, если penetration меньше этого (метры).
         /// </summary>
-        public static float MinPenetrationToDamage = MinPenetrationToAct * 1.15f;
+        public static float MinPenetrationToDamage => GetMinPenetrationToDamage();
+        private static float GetMinPenetrationToDamage() => MinPenetrationToAct * 1.15f;
 
         /// <summary>
         /// EN: Ramp tangential slip damping over this depth range past MinPenetrationToAct (meters).
         /// RU: Наращивать демпф тангенциального скольжения на этом диапазоне глубины сверх MinPenetrationToAct (метры).
         /// </summary>
-        public static float TangentialRampDepthMeters = 0.22f;
+        public static float TangentialRampDepthMeters => GetTangentialRampDepthMeters();
+        private static float GetTangentialRampDepthMeters() => 0.22f;
 
         /// <summary>
         /// EN: Multiplier on positional separation push once overlap exists.
         /// RU: Множитель раздвижения (push) после обнаружения overlap.
         /// </summary>
-        public static float SeparationPushMultiplier = 1.22f;
+        public static float SeparationPushMultiplier => GetSeparationPushMultiplier();
+        private static float GetSeparationPushMultiplier() => 1.22f;
 
         /// <summary>
         /// EN: Extra separation slack added to computed overlap (meters).
         /// RU: Доп. зазор к раздвижению сверх overlap (метры).
         /// </summary>
-        public static float SeparationSlackMeters = 0.020f;
+        public static float SeparationSlackMeters => GetSeparationSlackMeters();
+        private static float GetSeparationSlackMeters() => 0.020f;
 
         /// <summary>
         /// EN: Fraction of relative closing speed along normal to remove (1 = full stop along normal).
         /// RU: Доля гашения относительной скорости вдоль нормали (1 = полностью убрать вдоль нормали).
         /// </summary>
-        public static float ClosingSpeedDamp = 1f;
+        public static float ClosingSpeedDamp => GetClosingSpeedDamp();
+        private static float GetClosingSpeedDamp() => 1f;
 
         /// <summary>
         /// EN: Tangential slip damping factor while overlapping (0..1).
         /// RU: Коэффициент демпфа тангенциального скольжения при overlap (0..1).
         /// </summary>
-        public static float TangentialSlipDamp = 0.86f;
+        public static float TangentialSlipDamp => GetTangentialSlipDamp();
+        private static float GetTangentialSlipDamp() => 0.86f;
 
         /// <summary>
         /// EN: Minimum vertical overlap (meters) to consider ships colliding.
         /// RU: Минимальный вертикальный overlap (метры) чтобы считать столкновение.
         /// </summary>
-        public static float MinVerticalOverlap = 0.12f;
+        public static float MinVerticalOverlap => GetMinVerticalOverlap();
+        private static float GetMinVerticalOverlap() => 0.12f;
 
         /// <summary>
         /// EN: Outer resolve passes per tick (CPU vs stability).
         /// RU: Внешние проходы резолва за тик (CPU vs стабильность).
         /// </summary>
-        public static int ResolvePasses = 2;
+        public static int ResolvePasses => GetResolvePasses();
+        private static int GetResolvePasses() => 2;
 
         /// <summary>
         /// EN: Max depenetration iterations per pair per pass.
         /// RU: Макс. итераций раздвижения на пару за проход.
         /// </summary>
-        public static int MaxPairIterations = 12;
+        public static int MaxPairIterations => GetMaxPairIterations();
+        private static int GetMaxPairIterations() => 12;
 
         /// <summary>
         /// EN: Penetration depth where “deep penetration” push boost starts (meters).
         /// RU: Глубина penetration, с которой начинается усиление push (метры).
         /// </summary>
-        public static float DeepPenetrationStart = 0.12f;
+        public static float DeepPenetrationStart => GetDeepPenetrationStart();
+        private static float GetDeepPenetrationStart() => 0.12f;
 
         /// <summary>
         /// EN: Boost factor applied as penetration exceeds DeepPenetrationStart.
         /// RU: Коэффициент усиления push при penetration больше DeepPenetrationStart.
         /// </summary>
-        public static float DeepPenetrationBoost = 0.72f;
+        public static float DeepPenetrationBoost => GetDeepPenetrationBoost();
+        private static float GetDeepPenetrationBoost() => 0.72f;
 
         /// <summary>
         /// EN: Floor on half-separation distance (meters).
         /// RU: Минимальная полу-дистанция раздвижения (метры).
         /// </summary>
-        public static float MinHalfSeparationMeters = 0.02f;
+        public static float MinHalfSeparationMeters => GetMinHalfSeparationMeters();
+        private static float GetMinHalfSeparationMeters() => 0.02f;
 
         /// <summary>
         /// EN: Stop iterating if computed separation is below this (meters) to avoid micro-jitter.
         /// RU: Остановить итерации, если раздвижение меньше этого (метры), чтобы убрать микродрожь.
         /// </summary>
-        public static float MinLinearSeparationToApplyMeters = 0.018f;
+        public static float MinLinearSeparationToApplyMeters => GetMinLinearSeparationToApplyMeters();
+        private static float GetMinLinearSeparationToApplyMeters() => 0.018f;
 
         /// <summary>
         /// EN: Cosine threshold for “nose cone” classification.
         /// RU: Порог косинуса для классификации “удар в нос”.
         /// </summary>
-        public static float NoseContactCosThreshold = 0.65f;
+        public static float NoseContactCosThreshold => GetNoseContactCosThreshold();
+        private static float GetNoseContactCosThreshold() => 0.65f;
 
         /// <summary>
         /// EN: Min interval between hull-collision damage ticks per other ship (seconds).
         /// RU: Минимальный интервал тиков урона от столкновения корпусом на конкретный другой корабль (сек).
         /// </summary>
-        public static float HullCollisionDamageCooldownSec = 1.5f;
+        public static float HullCollisionDamageCooldownSec => GetHullCollisionDamageCooldownSec();
+        private static float GetHullCollisionDamageCooldownSec() => 1.5f;
 
         /// <summary>
         /// EN: Relative speed threshold (m/s) where damage uses min % (non-nose).
         /// RU: Порог относительной скорости (м/с), ниже которого урон минимальный (не-носовые удары).
         /// </summary>
-        public static float HullDamageLowSpeedThresholdMps = 2f;
+        public static float HullDamageLowSpeedThresholdMps => GetHullDamageLowSpeedThresholdMps();
+        private static float GetHullDamageLowSpeedThresholdMps() => 2f;
 
         /// <summary>
         /// EN: Relative speed (m/s) where damage reaches max % (linear between thresholds).
         /// RU: Относительная скорость (м/с), при которой урон достигает максимума (линейно между порогами).
         /// </summary>
-        public static float HullDamageInterpMaxMps = 10f;
+        public static float HullDamageInterpMaxMps => GetHullDamageInterpMaxMps();
+        private static float GetHullDamageInterpMaxMps() => 10f;
 
         /// <summary>
         /// EN: Min % hull damage per tick.
         /// RU: Минимальный % урона корпуса за тик.
         /// </summary>
-        public static int HullDamageSpeedScaledMinPercent = 1;
+        public static int HullDamageSpeedScaledMinPercent => GetHullDamageSpeedScaledMinPercent();
+        private static int GetHullDamageSpeedScaledMinPercent() => 1;
 
         /// <summary>
         /// EN: Max % hull damage per tick.
         /// RU: Максимальный % урона корпуса за тик.
         /// </summary>
-        public static int HullDamageSpeedScaledMaxPercent = 10;
+        public static int HullDamageSpeedScaledMaxPercent => GetHullDamageSpeedScaledMaxPercent();
+        private static int GetHullDamageSpeedScaledMaxPercent() => 10;
     }
 
     /// <summary>
@@ -297,130 +346,178 @@ public static class ShipTuningDebug
     public static class ShoreTuning
     {
         /// <summary>
+        /// EN: Effective "boat bottom" offset as a fraction of MassBoxSizeZ (height).
+        /// EN: boatBottomY = rigidBodyY - MassBoxSizeZ*scale*frac. ~0.5 = keel near half-box below COM (matches legacy fallback).
+        /// EN: Values &lt; ~0.4 lift the effective bottom (less penetration, more air gap); &gt; ~0.55 can over-embed.
+        /// RU: Смещение "дна" как доля MassBoxSizeZ (высота).
+        /// RU: boatBottomY = rigidBodyY - MassBoxSizeZ*scale*frac. ~0.5 — киль около половины высоты под COM (как legacy 0.5).
+        /// RU: Меньше ~0.4 — «дно» выше, меньше penetration и больше визуальный зазор; больше ~0.55 — риск глубокого вдавливания.
+        /// </summary>
+        public static float BoatBottomOffsetFracOfSizeZ => GetBoatBottomOffsetFracOfSizeZ();
+        private static float GetBoatBottomOffsetFracOfSizeZ() => 0f;
+
+        /// <summary>
         /// EN: Ground friction multiplier on dry ground.
         /// RU: Трение на суше.
         /// </summary>
-        public static float GroundFriction = 0.4f;
+        public static float GroundFriction => GetGroundFriction();
+        private static float GetGroundFriction() => 0.1f;
 
         /// <summary>
         /// EN: Velocity/angular damping on dry ground.
         /// RU: Демпф скорости/угловой скорости на суше.
         /// </summary>
-        public static float DryGroundCollisionDamping = 0.5f;
+        public static float DryGroundCollisionDamping => GetDryGroundCollisionDamping();
+        private static float GetDryGroundCollisionDamping() => 1f;
 
         /// <summary>
         /// EN: Roll correction dead-zone (radians).
         /// RU: Мёртвая зона коррекции roll (радианы).
         /// </summary>
-        public static float DryGroundRollDeadZoneRad = 0.1f;
+        public static float DryGroundRollDeadZoneRad => GetDryGroundRollDeadZoneRad();
+        private static float GetDryGroundRollDeadZoneRad() => 0.1f;
 
         /// <summary>
         /// EN: Roll correction torque factor (tuning).
         /// RU: Коэффициент коррекции roll (тюнинг).
         /// </summary>
-        public static float DryGroundRollTorqueMul = 0.1f;
+        public static float DryGroundRollTorqueMul => GetDryGroundRollTorqueMul();
+        private static float GetDryGroundRollTorqueMul() => 0.1f;
 
         /// <summary>
         /// EN: Bow probe distance multiplier vs MassBoxSizeY (hull length).
         /// RU: Множитель дистанции носовой пробы от MassBoxSizeY (длина корпуса).
         /// </summary>
-        public static float BowProbeMul = 1.5f;
+        public static float BowProbeMul => GetBowProbeMul();
+        private static float GetBowProbeMul() => 1.5f;
 
         /// <summary>
         /// EN: Stern probe distance multiplier vs MassBoxSizeY (hull length).
         /// RU: Множитель дистанции кормовой пробы от MassBoxSizeY (длина корпуса).
         /// </summary>
-        public static float SternProbeMul = 1.5f;
+        public static float SternProbeMul => GetSternProbeMul();
+        private static float GetSternProbeMul() => 1.5f;
 
         /// <summary>
         /// EN: Cliff probe distance multiplier vs MassBoxSizeY (hull length).
         /// RU: Множитель дистанции пробы “обрыва/стены” от MassBoxSizeY (длина корпуса).
         /// </summary>
-        public static float CliffProbeMul = 1.45f;
+        public static float CliffProbeMul => GetCliffProbeMul();
+        private static float GetCliffProbeMul() => 0f;
+
+        /// <summary>
+        /// EN: Wall/cliff look-ahead distance as a fraction of half-length (added beyond the box edge).
+        /// EN: 0 = probe exactly at bow/stern box edge; 0.2 = +20% of half-length further.
+        /// RU: Дистанция look-ahead для “стены/обрыва” как доля half-length (прибавляется за край бокса).
+        /// RU: 0 = проба ровно на кромке бокса нос/корма; 0.2 = +20% half-length дальше.
+        /// </summary>
+        public static float CliffProbeLookAheadMulOfHalfLength => GetCliffProbeLookAheadMulOfHalfLength();
+        private static float GetCliffProbeLookAheadMulOfHalfLength() => 0.00f;
+
+        /// <summary>
+        /// EN: Minimum look-ahead (meters) added beyond the box edge for wall/cliff probe.
+        /// RU: Минимальный look-ahead (метры) за край бокса для пробы “стены/обрыва”.
+        /// </summary>
+        public static float CliffProbeMinLookAheadMeters => GetCliffProbeMinLookAheadMeters();
+        private static float GetCliffProbeMinLookAheadMeters() => 0.25f;
 
         /// <summary>
         /// EN: Cliff slope threshold (Δh / dist).
         /// RU: Порог “крутизны” (Δh / dist).
         /// </summary>
-        public static float CliffSlopeFracThreshold = 0.57f;
+        public static float CliffSlopeFracThreshold => GetCliffSlopeFracThreshold();
+        private static float GetCliffSlopeFracThreshold() => 0.70f;
 
         /// <summary>
         /// EN: Cliff must be above water by this margin (meters).
         /// RU: “Обрыв” считается только если выше воды на этот запас (метры).
         /// </summary>
-        public static float CliffAboveWaterMargin = 0.20f;
+        public static float CliffAboveWaterMargin => GetCliffAboveWaterMargin();
+        private static float GetCliffAboveWaterMargin() => 0.30f;
 
         /// <summary>
         /// EN: Shore latch enter hysteresis (meters).
         /// RU: Гистерезис входа в latch (метры).
         /// </summary>
-        public static float ShoreEnterHyst = 0.35f;
+        public static float ShoreEnterHyst => GetShoreEnterHyst();
+        private static float GetShoreEnterHyst() => 0.5f;
 
         /// <summary>
         /// EN: Shore latch exit hysteresis (meters).
         /// RU: Гистерезис выхода из latch (метры).
         /// </summary>
-        public static float ShoreExitHyst = 0.10f;
+        public static float ShoreExitHyst => GetShoreExitHyst();
+        private static float GetShoreExitHyst() => 0.35f;
 
         /// <summary>
         /// EN: Floor height smoothing response (lambda).
         /// RU: Сглаживание высоты пола (lambda).
         /// </summary>
-        public static float FloorSmoothResponse = 10.0f;
+        public static float FloorSmoothResponse => GetFloorSmoothResponse();
+        private static float GetFloorSmoothResponse() => 16.0f;
 
         /// <summary>
         /// EN: Pre-shore damping band (meters).
         /// RU: Полоса “перед берегом” для демпфа (метры).
         /// </summary>
-        public static float PreShoreBand = 0.25f;
+        public static float PreShoreBand => GetPreShoreBand();
+        private static float GetPreShoreBand() => 0.5f;
 
         /// <summary>
         /// EN: Penetration epsilon (meters).
         /// RU: Эпсилон penetration (метры).
         /// </summary>
-        public static float PenetrationEpsilon = 0.02f;
+        public static float PenetrationEpsilon => GetPenetrationEpsilon();
+        private static float GetPenetrationEpsilon() => 0.04f;
 
         /// <summary>
         /// EN: Penetration response (lambda).
         /// RU: Скорость реакции на penetration (lambda).
         /// </summary>
-        public static float PenetrationResponse = 4.5f;
+        public static float PenetrationResponse => GetPenetrationResponse();
+        private static float GetPenetrationResponse() => 4.5f;
 
         /// <summary>
         /// EN: Max up-step early after latching (m/tick).
         /// RU: Макс. подъём на раннем этапе latch (м/тик).
         /// </summary>
-        public static float MaxUpStepEarly = 0.04f;
+        public static float MaxUpStepEarly => GetMaxUpStepEarly();
+        private static float GetMaxUpStepEarly() => 0.04f;
 
         /// <summary>
         /// EN: Max up-step later while latched (m/tick).
         /// RU: Макс. подъём после стабилизации latch (м/тик).
         /// </summary>
-        public static float MaxUpStepLate = 0.07f;
+        public static float MaxUpStepLate => GetMaxUpStepLate();
+        private static float GetMaxUpStepLate() => 0.07f;
 
         /// <summary>
         /// EN: Visual ground pitch max (degrees).
         /// RU: Макс. визуальный ground pitch (градусы).
         /// </summary>
-        public static float VisualGroundPitchMaxDeg = 8.0f;
+        public static float VisualGroundPitchMaxDeg => GetVisualGroundPitchMaxDeg();
+        private static float GetVisualGroundPitchMaxDeg() => 8.0f;
 
         /// <summary>
         /// EN: Visual ground pitch probe distance (meters).
         /// RU: Дистанция проб для визуального pitch (метры).
         /// </summary>
-        public static float VisualGroundPitchProbeDistance = 6.0f;
+        public static float VisualGroundPitchProbeDistance => GetVisualGroundPitchProbeDistance();
+        private static float GetVisualGroundPitchProbeDistance() => 6.0f;
 
         /// <summary>
         /// EN: Visual ground pitch response (lambda).
         /// RU: Скорость реакции визуального pitch (lambda).
         /// </summary>
-        public static float VisualGroundPitchResponse = 2.0f;
+        public static float VisualGroundPitchResponse => GetVisualGroundPitchResponse();
+        private static float GetVisualGroundPitchResponse() => 2.0f;
 
         /// <summary>
         /// EN: Visual pitch floor smoothing response (lambda).
         /// RU: Сглаживание высот для визуального pitch (lambda).
         /// </summary>
-        public static float VisualPitchFloorSmoothResponse = 8.0f;
+        public static float VisualPitchFloorSmoothResponse => GetVisualPitchFloorSmoothResponse();
+        private static float GetVisualPitchFloorSmoothResponse() => 8.0f;
     }
 
     /// <summary>
@@ -430,93 +527,129 @@ public static class ShipTuningDebug
     public static class ShipControllerTuning
     {
         /// <summary>
+        /// EN: Max allowed speed (abs) while grounded AND using the correct "escape" throttle direction.
+        /// RU: Максимальная скорость (по модулю) на мели при правильном газе "на выезд".
+        /// </summary>
+        public static float GroundEscapeMaxSpeedAbs => GetGroundEscapeMaxSpeedAbs();
+        private static float GetGroundEscapeMaxSpeedAbs() => 1.5f;
+
+        /// <summary>
+        /// EN: On shoal ground, max reverse speed as percent of max reverse on water (same ship/wind basis). 100 = same as water cap.
+        /// RU: На мели: макс. задняя скорость в процентах от макс. задней на воде (та же база корабля/ветра). 100 = как на воде.
+        /// </summary>
+        public static float GroundReverseSpeedCapPercentOfWater => GetGroundReverseSpeedCapPercentOfWater();
+        private static float GetGroundReverseSpeedCapPercentOfWater() => 100f;
+
+        /// <summary>
+        /// EN: Treat very shallow water as "grounded" for speed caps (escape/reverse limit), based on (waterSurface - floor) depth.
+        /// RU: Считать очень мелкую воду "мелью" для скоростных капов (escape/лимит заднего), по глубине (уровень воды - дно).
+        /// </summary>
+        public static float ShallowWaterDepthForGroundSpeedCaps => GetShallowWaterDepthForGroundSpeedCaps();
+        private static float GetShallowWaterDepthForGroundSpeedCaps() => 0.35f;
+
+        /// <summary>
         /// EN: Extra acceleration multiplier when throttle opposes current motion.
         /// RU: Доп. множитель ускорения, когда газ против текущего движения.
         /// </summary>
-        public static float OpposingThrottleAccelMul = 1.75f;
+        public static float OpposingThrottleAccelMul => GetOpposingThrottleAccelMul();
+        private static float GetOpposingThrottleAccelMul() => 1f;
 
         /// <summary>
         /// EN: Extra braking factor for opposing throttle (multiplies reverse/brake behavior).
         /// RU: Доп. торможение при противоположном газе.
         /// </summary>
-        public static float OpposingThrottleBrakeTuneMul = 1.2f;
+        public static float OpposingThrottleBrakeTuneMul => GetOpposingThrottleBrakeTuneMul();
+        private static float GetOpposingThrottleBrakeTuneMul() => 1f;
 
         /// <summary>
         /// EN: Steering responsiveness multiplier.
         /// RU: Множитель отзывчивости руля.
         /// </summary>
-        public static float SteeringResponsivenessMul = 1.45f;
+        public static float SteeringResponsivenessMul => GetSteeringResponsivenessMul();
+        private static float GetSteeringResponsivenessMul() => 1.45f;
 
         /// <summary>
         /// EN: Counter-steer responsiveness multiplier.
         /// RU: Множитель отзывчивости контрруления.
         /// </summary>
-        public static float CounterSteerResponsivenessMul = 1.35f;
+        public static float CounterSteerResponsivenessMul => GetCounterSteerResponsivenessMul();
+        private static float GetCounterSteerResponsivenessMul() => 1.35f;
 
         /// <summary>
         /// EN: Minimum turning factor at zero speed.
         /// RU: Минимальный фактор поворота на нулевой скорости.
         /// </summary>
-        public static float MinTurnFactorAtZeroSpeed = 0.5f;
+        public static float MinTurnFactorAtZeroSpeed => GetMinTurnFactorAtZeroSpeed();
+        private static float GetMinTurnFactorAtZeroSpeed() => 0.5f;
 
         /// <summary>
         /// EN: Speed at which turning reaches 100% (ship speed units).
         /// RU: Скорость, при которой поворот достигает 100% (в игровых единицах скорости).
         /// </summary>
-        public static float TurnFullFactorAtSpeed = 2.5f;
+        public static float TurnFullFactorAtSpeed => GetTurnFullFactorAtSpeed();
+        private static float GetTurnFullFactorAtSpeed() => 2.5f;
 
         /// <summary>
         /// EN: Fraction of speed removed at max yaw rate.
         /// RU: Доля снижения скорости на максимальной скорости поворота.
         /// </summary>
-        public static float TurnSpeedSlowdownFrac = 0.1f;
+        public static float TurnSpeedSlowdownFrac => GetTurnSpeedSlowdownFrac();
+        private static float GetTurnSpeedSlowdownFrac() => 0.1f;
 
         /// <summary>
         /// EN: Response for TurnSpeedVelocityMul smoothing (lambda).
         /// RU: Скорость сглаживания TurnSpeedVelocityMul (lambda).
         /// </summary>
-        public static float TurnSpeedVelocityMulResponse = 5.5f;
+        public static float TurnSpeedVelocityMulResponse => GetTurnSpeedVelocityMulResponse();
+        private static float GetTurnSpeedVelocityMulResponse() => 5.5f;
 
         /// <summary>
         /// EN: Minimum submergence to start upright stabilization (meters).
         /// RU: Минимальное погружение для выравнивания корпуса (метры).
         /// </summary>
-        public static float UprightStabilizeMinSubmergedMeters = 0.04f;
+        public static float UprightStabilizeMinSubmergedMeters => GetUprightStabilizeMinSubmergedMeters();
+        private static float GetUprightStabilizeMinSubmergedMeters() => 0.04f;
 
         /// <summary>
         /// EN: Max upright correction angular speed (rad/s).
         /// RU: Макс. скорость выравнивания (рад/с).
         /// </summary>
-        public static float UprightStabilizeMaxRadPerSec = 2.25f;
+        public static float UprightStabilizeMaxRadPerSec => GetUprightStabilizeMaxRadPerSec();
+        private static float GetUprightStabilizeMaxRadPerSec() => 2.25f;
 
         /// <summary>
         /// EN: Dead-zone for upright correction (radians).
         /// RU: Мёртвая зона выравнивания (радианы).
         /// </summary>
-        public static float UprightStabilizeAngleDeadZoneRad = 0.004f;
+        public static float UprightStabilizeAngleDeadZoneRad => GetUprightStabilizeAngleDeadZoneRad();
+        private static float GetUprightStabilizeAngleDeadZoneRad() => 0.004f;
 
         /// <summary>
         /// EN: Wind cone half-angle (degrees).
         /// RU: Полуугол конуса ветра (градусы).
         /// </summary>
-        public static float WindConeHalfAngleDeg = 15f;
+        public static float WindConeHalfAngleDeg => GetWindConeHalfAngleDeg();
+        private static float GetWindConeHalfAngleDeg() => 15f;
 
         /// <summary>
         /// EN: Max speed multiplier with wind.
         /// RU: Макс. множитель скорости по ветру.
         /// </summary>
-        public static float WindWithMaxMul = 1.15f;
+        public static float WindWithMaxMul => GetWindWithMaxMul();
+        private static float GetWindWithMaxMul() => 1.15f;
 
         /// <summary>
         /// EN: Max speed multiplier against wind.
         /// RU: Макс. множитель скорости против ветра.
         /// </summary>
-        public static float WindAgainstMaxMul = 0.85f;
+        public static float WindAgainstMaxMul => GetWindAgainstMaxMul();
+        private static float GetWindAgainstMaxMul() => 0.85f;
     }
 
     private static readonly ConcurrentDictionary<uint, long> _lastDetailMsgAtMs = new();
     private static readonly ConcurrentDictionary<uint, long> _lastAxesMsgAtMs = new();
     private static readonly ConcurrentDictionary<uint, long> _lastShorePenMsgAtMs = new();
+    private static readonly ConcurrentDictionary<uint, long> _lastSpeedMsgAtMs = new();
 
     private static readonly ConcurrentDictionary<uint, MarkerSet> _shipCornerMarkers = new();
     private static readonly ConcurrentDictionary<uint, MarkerSet> _shipAxisLenMarkers = new();
@@ -565,7 +698,34 @@ public static class ShipTuningDebug
 
         UpdateShipCornerMarkers(ship);
         UpdateShipAxisMarkers(ship);
+        UpdateShipSpeedDebug(ship);
         UpdateShipContactLatch(ship);
+    }
+
+    private static void UpdateShipSpeedDebug(Slave ship)
+    {
+        if (!ShipSpeedChatEnabled)
+            return;
+
+        var driver = TryGetDriver(ship);
+        if (driver is null || !CanReceive(driver))
+            return;
+
+        var nowMs = Environment.TickCount64;
+        var throttle = Math.Max(250, ThrottleMsPerShip);
+        var last = _lastSpeedMsgAtMs.GetOrAdd(ship.Id, 0);
+        if (nowMs - last < throttle)
+            return;
+        _lastSpeedMsgAtMs[ship.Id] = nowMs;
+
+        var isGrounded = (ship.CachedFloorLevel > ship.CachedWaterSurface) || ship.GroundContactLatched;
+        var escapeThrottleSign = ship.GroundedByStern ? 1 : -1;
+        var isEscapeInputOnGround = isGrounded && ship.ThrottleRequest != 0 && Math.Sign(ship.ThrottleRequest) == escapeThrottleSign;
+
+        var cap = ShipControllerTuning.GroundEscapeMaxSpeedAbs;
+
+        driver.SendDebugMessage(
+            $"[ShipSpeed] ship={ship.ObjId} v={ship.Speed:F2} grounded={isGrounded} latched={ship.GroundContactLatched} byStern={ship.GroundedByStern} thrReq={ship.ThrottleRequest} escape={isEscapeInputOnGround} escapeCap={cap:F2}");
     }
 
     private static void UpdateShipAxisMarkers(Slave ship)
@@ -714,7 +874,7 @@ public static class ShipTuningDebug
 
         // One short line to the driver's chat (sizes + centers).
         var driver = TryGetDriver(ship);
-        if (driver is null || !CanReceive(driver))
+        if (driver is null || !CanReceive(driver) || !ShipBoxChatEnabled)
             return;
 
         var nowMs = Environment.TickCount64;
@@ -989,6 +1149,7 @@ public static class ShipTuningDebug
         _lastDetailMsgAtMs.TryRemove(shipId, out _);
         _lastAxesMsgAtMs.TryRemove(shipId, out _);
         _lastShorePenMsgAtMs.TryRemove(shipId, out _);
+        _lastSpeedMsgAtMs.TryRemove(shipId, out _);
     }
 
     private static void DespawnMarkers(ConcurrentDictionary<uint, MarkerSet> dict, uint shipId)

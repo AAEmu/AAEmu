@@ -4,6 +4,8 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
 
+using System.Numerics;
+
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 
@@ -60,12 +62,17 @@ public sealed class ShipShoreInteraction
                 slave.RigidBody.AddForce(correctionTorque);
             }
 
-            slave.ThrottleRequest = 0;
-            slave.SteeringRequest = 0;
-            slave.Throttle = 0;
-            slave.Steering = 0;
-            slave.ThrottleSmoothed = 0f;
-            slave.SteeringSmoothed = 0f;
+            // Only clear controls when the ship is settled AND player is not actively providing input.
+            // Otherwise we can accidentally cancel "escape throttle" attempts while beached.
+            if (slave.ThrottleRequest == 0 && slave.SteeringRequest == 0)
+            {
+                slave.ThrottleRequest = 0;
+                slave.SteeringRequest = 0;
+                slave.Throttle = 0;
+                slave.Steering = 0;
+                slave.ThrottleSmoothed = 0f;
+                slave.SteeringSmoothed = 0f;
+            }
         }
     }
 
@@ -146,7 +153,13 @@ public sealed class ShipShoreInteraction
 
         var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
 
-        var boatBottom = slave.RigidBody.Position.Y;
+        // "Bottom" for penetration is not the rigidbody center. Use a tunable fraction of hull height.
+        // This reduces the visible gap when the ship becomes grounded/beached.
+        var boatBottomOffsetFrac = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
+            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.BoatBottomOffsetFracOfSizeZ
+            : 0.5f;
+        var hullHeight = MathF.Max(0.01f, slave.ShipController.ShipModel.MassBoxSizeZ * slave.Scale);
+        var boatBottom = slave.RigidBody.Position.Y - hullHeight * boatBottomOffsetFrac;
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation));
         var heading = rpy.Item1 + 1.57f;
@@ -158,60 +171,29 @@ public sealed class ShipShoreInteraction
         var along = vX * dirX + vZ * dirZ;
         var movingBackward = along < -0.05f || (MathF.Abs(along) <= 0.05f && slave.ThrottleRequest < 0);
 
-        var bowProbeMul = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.BowProbeMul
-            : 1.5f;
-        var sternProbeMul = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.SternProbeMul
-            : 1.5f;
         var useSternProbe = slave.GroundContactLatched ? slave.GroundedByStern : movingBackward;
-        var probeMul = useSternProbe ? sternProbeMul : bowProbeMul;
-        // MassBoxSizeY is treated as hull length (forward/back).
-        var probeDist = MathF.Max(1.0f, slave.ShipController.ShipModel.MassBoxSizeY * probeMul * slave.Scale);
         var probeSign = useSternProbe ? -1f : 1f;
+        // Shore probe: ray from rigidbody center to OBB face (bow/stern) only.
+        // Do NOT add Bow/SternProbeMul * halfLength here — that pushed the sample far past the box face (~+0.75 hull length
+        // with default 1.5 mul) and caused early shore latch / "invisible wall" meters before the hull reached terrain.
+        var halfLength = 0.5f * slave.ShipController.ShipModel.MassBoxSizeY * slave.Scale;
+        var centerOffsetAlongLength = slave.ShipController.ShipModel.MassCenterY * slave.Scale;
+        var distFromCenterToFace = probeSign > 0f ? (halfLength + centerOffsetAlongLength) : (halfLength - centerOffsetAlongLength);
+        distFromCenterToFace = MathF.Max(0.01f, distFromCenterToFace);
+
+        var probeDist = distFromCenterToFace;
         var probeX = slave.RigidBody.Position.X + dirX * probeDist * probeSign;
         var probeY = slave.RigidBody.Position.Z + dirZ * probeDist * probeSign;
         var contactFloor = slave.ParentWorld.GetHeight(probeX, probeY);
+        var waterAtProbe = slave.ParentWorld.Water.GetWaterSurface(
+            new Vector3(probeX, slave.RigidBody.Position.Y, probeY),
+            out _);
 
-        var cliffProbeMul = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.CliffProbeMul
-            : 1.45f;
-        var cliffSlopeFracThreshold = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.CliffSlopeFracThreshold
-            : 0.57f;
-        // MassBoxSizeY is treated as hull length (forward/back).
-        var cliffDist = MathF.Max(1.0f, slave.ShipController.ShipModel.MassBoxSizeY * cliffProbeMul * slave.Scale);
-        var cliffX = slave.RigidBody.Position.X + dirX * cliffDist * probeSign;
-        var cliffY = slave.RigidBody.Position.Z + dirZ * cliffDist * probeSign;
-        var cliffFloor = slave.ParentWorld.GetHeight(cliffX, cliffY);
-        var cliffAboveWaterMargin = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
-            ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.CliffAboveWaterMargin
-            : 0.20f;
-        if (cliffFloor > slave.CachedWaterSurface + cliffAboveWaterMargin)
-        {
-            var dh = cliffFloor - slave.CachedFloorLevel;
-            var slopeFrac = dh / MathF.Max(0.01f, cliffDist);
-            if (slopeFrac > cliffSlopeFracThreshold)
-            {
-                var v = slave.RigidBody.Velocity;
-                var vAlong = v.X * dirX + v.Z * dirZ;
-                var pushingIntoBarrier = useSternProbe ? (vAlong < 0f) : (vAlong > 0f);
-                if (pushingIntoBarrier)
-                {
-                    slave.Speed = 0f;
-                    var newVX = v.X - vAlong * dirX;
-                    var newVZ = v.Z - vAlong * dirZ;
-                    slave.RigidBody.Velocity = new JVector(newVX * 0.85f, 0f, newVZ * 0.85f);
-                    slave.RigidBody.AngularVelocity *= 0.85f;
-                }
-
-                var pushDirSign = useSternProbe ? 1f : -1f;
-                var pushStep = MathF.Min(0.50f, MathF.Max(0.08f, MathF.Abs(vAlong) * dt * 1.10f));
-                slave.RigidBody.Position += new JVector(dirX * pushStep * pushDirSign, 0f, dirZ * pushStep * pushDirSign);
-
-                return;
-            }
-        }
+        // WALL/CLIFF logic removed per request.
+        // Keep debug probe output fields populated to avoid changing debug marker wiring.
+        var cliffX = probeX;
+        var cliffY = probeY;
+        var cliffFloor = contactFloor;
 
         var shoreEnterHyst = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
             ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.ShoreEnterHyst
@@ -238,7 +220,8 @@ public sealed class ShipShoreInteraction
         var preShoreBand = AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreEnabled
             ? AAEmu.Game.Physics.Debug.ShipTuningDebug.ShoreTuning.PreShoreBand
             : 0.25f;
-        var enterDelta = (slave.CachedWaterSurface + shoreEnterHyst) - floorSmoothed;
+        // Use water surface at the probe point, not at ship center; near shore these can differ.
+        var enterDelta = (waterAtProbe + shoreEnterHyst) - floorSmoothed;
         if (!slave.GroundContactLatched && enterDelta >= 0f && enterDelta <= preShoreBand)
         {
             var v = slave.RigidBody.Velocity;
@@ -249,7 +232,7 @@ public sealed class ShipShoreInteraction
 
         if (!slave.GroundContactLatched)
         {
-            if (slave.CachedWaterSurface + shoreEnterHyst >= floorSmoothed)
+            if (waterAtProbe + shoreEnterHyst >= floorSmoothed)
                 return;
             slave.GroundContactLatched = true;
             slave.GroundContactLatchedTime = 0f;
@@ -257,7 +240,7 @@ public sealed class ShipShoreInteraction
         }
         else
         {
-            if (slave.CachedWaterSurface + shoreExitHyst >= floorSmoothed)
+            if (waterAtProbe + shoreExitHyst >= floorSmoothed)
             {
                 slave.GroundContactLatched = false;
                 slave.GroundContactLatchedTime = 0f;
@@ -302,7 +285,9 @@ public sealed class ShipShoreInteraction
         var escapeThrottleSign = slave.GroundedByStern ? 1 : -1;
         var isEscapeThrottle = slave.ThrottleRequest != 0 && Math.Sign(slave.ThrottleRequest) == escapeThrottleSign;
         var deepContact = penetration > 0.25f;
-        var collisionDamping = isEscapeThrottle ? 0.99f : (deepContact ? 0.88f : 0.95f);
+        // NOTE: per tuning request we do not dampen velocity while applying valid "escape" throttle on ground,
+        // to avoid artificially capping reverse/escape speed on shoals.
+        var collisionDamping = isEscapeThrottle ? 1.0f : (deepContact ? 0.88f : 0.95f);
         slave.RigidBody.Velocity *= collisionDamping;
         slave.RigidBody.AngularVelocity *= collisionDamping;
 
@@ -313,7 +298,7 @@ public sealed class ShipShoreInteraction
             boatCenterX: slave.RigidBody.Position.X,
             boatCenterY: slave.RigidBody.Position.Z,
             boatBottomZ: boatBottom,
-            waterSurfaceZ: slave.CachedWaterSurface,
+            waterSurfaceZ: waterAtProbe,
             penetrationMeters: penetration);
     }
 }
