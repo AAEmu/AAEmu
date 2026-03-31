@@ -14,13 +14,13 @@ namespace AAEmu.Game.Physics;
 /// so Jitter contacts do not prevent mesh-deep penetration — we depenetrate in XZ and damp closing speed.
 /// SAT overlap uses a tight mass box (near physics hull) so reaction does not start far before visuals meet.
 /// After overlap is detected, separation is scaled up to approximate client mesh extent without enlarging the hit test.
-/// Separation and velocity damping are mass-weighted; see <see cref="ShipShipInteraction.PhysicsDefaults.MassPushStrength"/>.
+/// Separation and velocity damping are mass-weighted; see <see cref="ShipShipInteraction.ShipHullPairDefaults.MassPushStrength"/>.
 /// Centers use the same local mass-center offset as <see cref="ShipController.Build"/> (TransformedShape).
 /// </summary>
 public sealed class ShipShipInteraction
 {
-    /// <summary>Production constants for ship↔ship SAT/response (single source of truth).</summary>
-    public static class PhysicsDefaults
+    /// <summary>Ship↔ship SAT/response constants (single source of truth).</summary>
+    public static class ShipHullPairDefaults
     {
         public const float HullDetectInflateLength = 1.025f;
         public const float HullDetectInflateBeam = 1.015f;
@@ -65,7 +65,7 @@ public sealed class ShipShipInteraction
 
         var pairDamagedThisTick = new HashSet<ulong>();
 
-        for (var pass = 0; pass < PhysicsDefaults.ResolvePasses; pass++)
+        for (var pass = 0; pass < ShipHullPairDefaults.ResolvePasses; pass++)
         {
             for (var i = 0; i < ships.Count; i++)
             {
@@ -84,7 +84,7 @@ public sealed class ShipShipInteraction
 
                     // If SAT only detects a marginal overlap (e.g. due to discrete steps / tight mass-box),
                     // keep the depenetration but don't apply periodic hull damage.
-                    if (maxPenetration < PhysicsDefaults.MinPenetrationToDamage)
+                    if (maxPenetration < ShipHullPairDefaults.MinPenetrationToDamage)
                         continue;
 
                     const byte holdTicks = 10;
@@ -158,19 +158,19 @@ public sealed class ShipShipInteraction
         var scaledDamage = GetSpeedScaledHullDamagePercent(impactSpeedMps);
         var aHitsWithNose = IsOtherShipInNoseCone(bx - ax, bz - az, bowA);
         var bHitsWithNose = IsOtherShipInNoseCone(ax - bx, az - bz, bowB);
-        var dmgA = aHitsWithNose ? PhysicsDefaults.HullDamageSpeedScaledMinPercent : scaledDamage;
-        var dmgB = bHitsWithNose ? PhysicsDefaults.HullDamageSpeedScaledMinPercent : scaledDamage;
+        var dmgA = aHitsWithNose ? ShipHullPairDefaults.HullDamageSpeedScaledMinPercent : scaledDamage;
+        var dmgB = bHitsWithNose ? ShipHullPairDefaults.HullDamageSpeedScaledMinPercent : scaledDamage;
 
         if (!sa.ShipHullCollisionDamageCooldownByOtherShipId.TryGetValue(sb.Id, out var cdA) || cdA <= 0f)
         {
             sa.ApplyShipHullCollisionDamage(sb, dmgA);
-            sa.ShipHullCollisionDamageCooldownByOtherShipId[sb.Id] = PhysicsDefaults.HullCollisionDamageCooldownSec;
+            sa.ShipHullCollisionDamageCooldownByOtherShipId[sb.Id] = ShipHullPairDefaults.HullCollisionDamageCooldownSec;
         }
 
         if (!sb.ShipHullCollisionDamageCooldownByOtherShipId.TryGetValue(sa.Id, out var cdB) || cdB <= 0f)
         {
             sb.ApplyShipHullCollisionDamage(sa, dmgB);
-            sb.ShipHullCollisionDamageCooldownByOtherShipId[sa.Id] = PhysicsDefaults.HullCollisionDamageCooldownSec;
+            sb.ShipHullCollisionDamageCooldownByOtherShipId[sa.Id] = ShipHullPairDefaults.HullCollisionDamageCooldownSec;
         }
     }
 
@@ -184,20 +184,20 @@ public sealed class ShipShipInteraction
         var fx = MathF.Cos(bowRadians);
         var fz = MathF.Sin(bowRadians);
         var cosAng = (toOtherX * fx + toOtherZ * fz) * invLen;
-            return cosAng >= PhysicsDefaults.NoseContactCosThreshold;
+            return cosAng >= ShipHullPairDefaults.NoseContactCosThreshold;
     }
 
     private static int GetSpeedScaledHullDamagePercent(float relativeSpeedMps)
     {
-        if (relativeSpeedMps <= PhysicsDefaults.HullDamageLowSpeedThresholdMps)
-            return PhysicsDefaults.HullDamageSpeedScaledMinPercent;
-        if (relativeSpeedMps >= PhysicsDefaults.HullDamageSpeedInterpMaxMps)
-            return PhysicsDefaults.HullDamageSpeedScaledMaxPercent;
+        if (relativeSpeedMps <= ShipHullPairDefaults.HullDamageLowSpeedThresholdMps)
+            return ShipHullPairDefaults.HullDamageSpeedScaledMinPercent;
+        if (relativeSpeedMps >= ShipHullPairDefaults.HullDamageSpeedInterpMaxMps)
+            return ShipHullPairDefaults.HullDamageSpeedScaledMaxPercent;
 
-        var span = PhysicsDefaults.HullDamageSpeedInterpMaxMps - PhysicsDefaults.HullDamageLowSpeedThresholdMps;
-        var t = (relativeSpeedMps - PhysicsDefaults.HullDamageLowSpeedThresholdMps) / span;
-        var f = PhysicsDefaults.HullDamageSpeedScaledMinPercent +
-                t * (PhysicsDefaults.HullDamageSpeedScaledMaxPercent - PhysicsDefaults.HullDamageSpeedScaledMinPercent);
+        var span = ShipHullPairDefaults.HullDamageSpeedInterpMaxMps - ShipHullPairDefaults.HullDamageLowSpeedThresholdMps;
+        var t = (relativeSpeedMps - ShipHullPairDefaults.HullDamageLowSpeedThresholdMps) / span;
+        var f = ShipHullPairDefaults.HullDamageSpeedScaledMinPercent +
+                t * (ShipHullPairDefaults.HullDamageSpeedScaledMaxPercent - ShipHullPairDefaults.HullDamageSpeedScaledMinPercent);
         return (int)MathF.Round(f);
     }
 
@@ -217,7 +217,7 @@ public sealed class ShipShipInteraction
         var bbA = bodyA.Shapes[0].WorldBoundingBox;
         var bbB = bodyB.Shapes[0].WorldBoundingBox;
         var overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
-        if (overlapY < PhysicsDefaults.MinVerticalOverlap)
+        if (overlapY < ShipHullPairDefaults.MinVerticalOverlap)
             return false;
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
@@ -228,18 +228,18 @@ public sealed class ShipShipInteraction
         // Interpretation:
         // - MassBoxSizeY = length (forward/back)
         // - MassBoxSizeX = beam (right/left)
-        var halfLenA = ma.MassBoxSizeY * sa.Scale * 0.5f * PhysicsDefaults.HullDetectInflateLength;
-        var halfLenB = mb.MassBoxSizeY * sb.Scale * 0.5f * PhysicsDefaults.HullDetectInflateLength;
-        var satHalfWidA = ma.MassBoxSizeX * sa.Scale * 0.5f * PhysicsDefaults.HullDetectInflateBeam * PhysicsDefaults.BeamDetectTightenMul;
-        var satHalfWidB = mb.MassBoxSizeX * sb.Scale * 0.5f * PhysicsDefaults.HullDetectInflateBeam * PhysicsDefaults.BeamDetectTightenMul;
+        var halfLenA = ma.MassBoxSizeY * sa.Scale * 0.5f * ShipHullPairDefaults.HullDetectInflateLength;
+        var halfLenB = mb.MassBoxSizeY * sb.Scale * 0.5f * ShipHullPairDefaults.HullDetectInflateLength;
+        var satHalfWidA = ma.MassBoxSizeX * sa.Scale * 0.5f * ShipHullPairDefaults.HullDetectInflateBeam * ShipHullPairDefaults.BeamDetectTightenMul;
+        var satHalfWidB = mb.MassBoxSizeX * sb.Scale * 0.5f * ShipHullPairDefaults.HullDetectInflateBeam * ShipHullPairDefaults.BeamDetectTightenMul;
 
         float ax, az, bx, bz, penetration, nx, nz;
-        for (var iter = 0; iter < PhysicsDefaults.MaxPairIterations; iter++)
+        for (var iter = 0; iter < ShipHullPairDefaults.MaxPairIterations; iter++)
         {
             bbA = bodyA.Shapes[0].WorldBoundingBox;
             bbB = bodyB.Shapes[0].WorldBoundingBox;
             overlapY = MathF.Min(bbA.Max.Y, bbB.Max.Y) - MathF.Max(bbA.Min.Y, bbB.Min.Y);
-            if (overlapY < PhysicsDefaults.MinVerticalOverlap)
+            if (overlapY < ShipHullPairDefaults.MinVerticalOverlap)
                 break;
 
             GetMassBoxCenterXz(bodyA, ma, sa.Scale, out ax, out az);
@@ -253,7 +253,7 @@ public sealed class ShipShipInteraction
                     out nz))
                 break;
 
-            if (penetration <= 1e-4f || penetration < PhysicsDefaults.MinPenetrationToAct)
+            if (penetration <= 1e-4f || penetration < ShipHullPairDefaults.MinPenetrationToAct)
                 break;
 
             maxPenetration = MathF.Max(maxPenetration, penetration);
@@ -267,14 +267,14 @@ public sealed class ShipShipInteraction
             }
 
             var halfSep = penetration * 0.5f;
-            var deep = MathF.Max(0f, penetration - PhysicsDefaults.DeepPenetrationStart);
-            halfSep *= 1f + PhysicsDefaults.DeepPenetrationBoost * MathF.Min(1.25f, deep);
-            var linearSep = halfSep + PhysicsDefaults.SeparationSlackMeters;
-            if (linearSep < PhysicsDefaults.MinLinearSeparationToApplyMeters)
+            var deep = MathF.Max(0f, penetration - ShipHullPairDefaults.DeepPenetrationStart);
+            halfSep *= 1f + ShipHullPairDefaults.DeepPenetrationBoost * MathF.Min(1.25f, deep);
+            var linearSep = halfSep + ShipHullPairDefaults.SeparationSlackMeters;
+            if (linearSep < ShipHullPairDefaults.MinLinearSeparationToApplyMeters)
                 break;
 
-            var move = MathF.Max(linearSep, PhysicsDefaults.MinHalfSeparationMeters);
-            move *= PhysicsDefaults.SeparationPushMultiplier;
+            var move = MathF.Max(linearSep, ShipHullPairDefaults.MinHalfSeparationMeters);
+            move *= ShipHullPairDefaults.SeparationPushMultiplier;
 
             var va = bodyA.Velocity;
             var vb = bodyB.Velocity;
@@ -315,17 +315,17 @@ public sealed class ShipShipInteraction
         var closing = (va.X - vb.X) * nx + (va.Z - vb.Z) * nz;
         if (closing > 0f)
         {
-            var removeA = closing * weightA * PhysicsDefaults.ClosingSpeedDamp;
-            var removeB = closing * weightB * PhysicsDefaults.ClosingSpeedDamp;
+            var removeA = closing * weightA * ShipHullPairDefaults.ClosingSpeedDamp;
+            var removeB = closing * weightB * ShipHullPairDefaults.ClosingSpeedDamp;
             va = new JVector(va.X - nx * removeA, va.Y, va.Z - nz * removeA);
             vb = new JVector(vb.X + nx * removeB, vb.Y, vb.Z + nz * removeB);
         }
 
-        var tangentialBlend = Math.Clamp((penetrationDepth - PhysicsDefaults.MinPenetrationToAct) / PhysicsDefaults.TangentialRampDepthMeters, 0f, 1f);
+        var tangentialBlend = Math.Clamp((penetrationDepth - ShipHullPairDefaults.MinPenetrationToAct) / ShipHullPairDefaults.TangentialRampDepthMeters, 0f, 1f);
         var tx = -nz;
         var tz = nx;
         var relT = (va.X - vb.X) * tx + (va.Z - vb.Z) * tz;
-        var slipK = (1f - PhysicsDefaults.TangentialSlipDamp) * tangentialBlend;
+        var slipK = (1f - ShipHullPairDefaults.TangentialSlipDamp) * tangentialBlend;
         var slipA = relT * weightA * slipK;
         var slipB = relT * weightB * slipK;
         va = new JVector(va.X - tx * slipA, va.Y, va.Z - tz * slipA);
@@ -336,7 +336,7 @@ public sealed class ShipShipInteraction
     }
 
     /// <summary>
-    /// Mass-based split from inverse mass ratio, scaled by <see cref="ShipShipInteraction.PhysicsDefaults.MassPushStrength"/> (blend toward 50/50 or exaggerate).
+    /// Mass-based split from inverse mass ratio, scaled by <see cref="ShipShipInteraction.ShipHullPairDefaults.MassPushStrength"/> (blend toward 50/50 or exaggerate).
     /// </summary>
     private static void GetPairMassWeights(float massA, float massB, out float weightA, out float weightB)
     {
@@ -350,7 +350,7 @@ public sealed class ShipShipInteraction
         var inv = 1f / sum;
         var wPhysA = massB * inv;
         var wPhysB = massA * inv;
-        var t = PhysicsDefaults.MassPushStrength;
+        var t = ShipHullPairDefaults.MassPushStrength;
         weightA = 0.5f + (wPhysA - 0.5f) * t;
         weightB = 0.5f + (wPhysB - 0.5f) * t;
         const float eps = 1e-4f;

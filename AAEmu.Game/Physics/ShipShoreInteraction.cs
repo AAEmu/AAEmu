@@ -296,8 +296,7 @@ public sealed class ShipShoreInteraction
         var escapeThrottleSign = slave.GroundedByStern ? 1 : -1;
         var isEscapeThrottle = slave.ThrottleRequest != 0 && Math.Sign(slave.ThrottleRequest) == escapeThrottleSign;
         var deepContact = penetration > 0.25f;
-        // NOTE: per tuning request we do not dampen velocity while applying valid "escape" throttle on ground,
-        // to avoid artificially capping reverse/escape speed on shoals.
+        // Escape-direction throttle: no extra damping (pairs with full reverse mul on ground in ShipController).
         var collisionDamping = isEscapeThrottle ? 1.0f : (deepContact ? 0.88f : 0.95f);
         slave.RigidBody.Velocity *= collisionDamping;
         slave.RigidBody.AngularVelocity *= collisionDamping;

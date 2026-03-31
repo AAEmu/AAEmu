@@ -19,8 +19,8 @@ using Jitter2.LinearMath;
 namespace AAEmu.Game.Physics.Debug;
 
 /// <summary>
-/// EN: Dev-only ship physics debug: gimmick markers (mass box, axes, shore probes) and chat lines. Physics tuning lives in <see cref="ShipController.PhysicsDefaults"/>, <see cref="ShipController.ShipMassBoxDefaults"/>, interaction defaults classes — not here.
-/// RU: Только дебаг корабельной физики: маркеры-гиммики (бокс, оси, берег) и строки в чат. Тюнинг физики — в <see cref="ShipController.PhysicsDefaults"/>, <see cref="ShipController.ShipMassBoxDefaults"/> и дефолтах взаимодействий, не в этом классе.
+/// EN: Dev-only ship physics debug: gimmick markers (mass box, axes, shore probes) and chat lines. Physics tuning lives in <see cref="ShipController.ShipMotionDefaults"/>, <see cref="ShipController.ShipMassBoxDefaults"/>, <see cref="ShipShipInteraction.ShipHullPairDefaults"/>, <see cref="ShipShoreInteraction.ShorePhysicsDefaults"/> — not here.
+/// RU: Только дебаг корабельной физики: маркеры-гиммики (бокс, оси, берег) и строки в чат. Тюнинг физики — в <see cref="ShipController.ShipMotionDefaults"/>, <see cref="ShipController.ShipMassBoxDefaults"/>, <see cref="ShipShipInteraction.ShipHullPairDefaults"/>, <see cref="ShipShoreInteraction.ShorePhysicsDefaults"/>, не в этом классе.
 /// EN: Marker template ids come from table <c>gimmicks</c> — see <see cref="CornerMarkerTemplateId"/>, <see cref="ShoreMarkerTemplateId"/>, axis ids; set id to <c>0</c> or use <see cref="Enabled"/> / <see cref="AxisMarkersEnabled"/> to hide visuals.
 /// RU: Id шаблонов маркеров — таблица <c>gimmicks</c> (углы, берег, оси); <c>0</c> или флаги <see cref="Enabled"/> / <see cref="AxisMarkersEnabled"/> отключают визуал.
 /// </summary>
@@ -228,7 +228,7 @@ public static class ShipTuningDebug
         var escapeThrottleSign = ship.GroundedByStern ? 1 : -1;
         var isEscapeInputOnGround = isGrounded && ship.ThrottleRequest != 0 && Math.Sign(ship.ThrottleRequest) == escapeThrottleSign;
 
-        var cap = ShipController.PhysicsDefaults.GroundEscapeMaxSpeedAbs;
+        var cap = ShipController.ShipMotionDefaults.GroundEscapeMaxSpeedAbs;
 
         driver.SendDebugMessage(
             $"[ShipSpeed] ship={ship.ObjId} v={ship.Speed:F2} grounded={isGrounded} latched={ship.GroundContactLatched} byStern={ship.GroundedByStern} thrReq={ship.ThrottleRequest} escape={isEscapeInputOnGround} escapeCap={cap:F2}");
@@ -694,21 +694,6 @@ public static class ShipTuningDebug
     private static bool CanReceive(Character c)
     {
         return CharacterManager.Instance.GetEffectiveAccessLevel(c) >= MinAccessLevel;
-    }
-
-    private static JVector Rotate(JVector v, JQuaternion q)
-    {
-        var qx = q.X;
-        var qy = q.Y;
-        var qz = q.Z;
-        var qw = q.W;
-        var tx = 2f * (qy * v.Z - qz * v.Y);
-        var ty = 2f * (qz * v.X - qx * v.Z);
-        var tz = 2f * (qx * v.Y - qy * v.X);
-        return new JVector(
-            v.X + qw * tx + (qy * tz - qz * ty),
-            v.Y + qw * ty + (qz * tx - qx * tz),
-            v.Z + qw * tz + (qx * ty - qy * tx));
     }
 
     private static Vector3 PhysToGame(JVector phys)

@@ -42,7 +42,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         public float VelPz { get; set; }
         /// <summary>Second low-pass on turn bank for replication (softer λ than vertical; targets <see cref="Slave.BankAngle"/>).</summary>
         public float BankSmoothed { get; set; }
-        /// <summary>Second low-pass on shore différent for replication (targets <see cref="Slave.GroundPitchAngle"/>).</summary>
+        /// <summary>Second low-pass on shore pitch delta for replication (targets <see cref="Slave.GroundPitchAngle"/>).</summary>
         public float GroundPitchSmoothed { get; set; }
         /// <summary>Remaining movement broadcasts with stronger smoothing after hull–hull resolution.</summary>
         public byte ContactHoldTicks { get; set; }
@@ -55,28 +55,17 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     }
 
     private readonly float _waterLevel = waterLevel;
-    private const float FluidDensity = 1025f; // kg/m³
 
-    /// <summary>Default mass-box Z center/size (identity; matches physics hull build).</summary>
+    /// <summary>Mass-box Z center/size used by <see cref="Build"/>; change implementations if hull height needs server-side tuning.</summary>
     public static class ShipMassBoxDefaults
     {
-        public const float CenterZAddMeters = 0f;
-        public const float CenterZAddFracOfSizeZ = 0f;
-        public const float SizeZMul = 1f;
-        public const float SizeZAddMeters = 0f;
+        public static float GetCenterZ(float baseCenterZ, float baseSizeZ) => baseCenterZ;
 
-        public static float GetCenterZ(float baseCenterZ, float baseSizeZ) =>
-            baseCenterZ + baseSizeZ * CenterZAddFracOfSizeZ + CenterZAddMeters;
-
-        public static float GetSizeZ(float baseSizeZ)
-        {
-            var z = baseSizeZ * SizeZMul + SizeZAddMeters;
-            return MathF.Max(0.01f, z);
-        }
+        public static float GetSizeZ(float baseSizeZ) => MathF.Max(0.01f, baseSizeZ);
     }
 
     /// <summary>Production ship motion constants (single source of truth).</summary>
-    public static class PhysicsDefaults
+    public static class ShipMotionDefaults
     {
         public const float GroundEscapeMaxSpeedAbs = 1.5f;
         public const float GroundReverseSpeedCapPercentOfWater = 100f;
@@ -137,25 +126,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         LateenRig
     }
 
-    /// <summary>Override: these <see cref="SlaveTemplate.Id"/> use lateen (e.g. trimaran under SmallSailingShip).</summary>
-    private static readonly HashSet<uint> WindProfileLateenTemplateIds = [];
-
-    /// <summary>Override: these template ids use square rig (e.g. Harani sailboat under SmallSailingShip).</summary>
-    private static readonly HashSet<uint> WindProfileSquareTemplateIds = [];
-
-    /// <summary>Override: force no wind (e.g. a sail template you want to treat as motor-only).</summary>
-    private static readonly HashSet<uint> WindProfileNoneTemplateIds = [];
-
+    /// <summary>Per-<see cref="SlaveTemplate.Id"/> wind overrides can branch here before the <see cref="SlaveKind"/> fallback.</summary>
     private static ShipWindProfile ResolveShipWindProfile(Slave slave)
     {
-        var tid = slave.Template.Id;
-        if (WindProfileNoneTemplateIds.Contains(tid))
-            return ShipWindProfile.None;
-        if (WindProfileLateenTemplateIds.Contains(tid))
-            return ShipWindProfile.LateenRig;
-        if (WindProfileSquareTemplateIds.Contains(tid))
-            return ShipWindProfile.SquareRig;
-
         return slave.Template.SlaveKind switch
         {
             SlaveKind.Boat or SlaveKind.Fishboat => ShipWindProfile.None,
@@ -228,25 +201,25 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Square rig: best speed down/up wind (same as original).</summary>
     private static float GetWindSpeedMulSquareRig(float dotMove)
     {
-        var cosCone = MathF.Cos(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
+        var cosCone = MathF.Cos(ShipMotionDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
         if (dotMove >= cosCone)
-            return PhysicsDefaults.WindWithMaxMul;
+            return ShipMotionDefaults.WindWithMaxMul;
         if (dotMove <= -cosCone)
-            return PhysicsDefaults.WindAgainstMaxMul;
-        return 1f + (PhysicsDefaults.WindWithMaxMul - 1f) * (dotMove / cosCone);
+            return ShipMotionDefaults.WindAgainstMaxMul;
+        return 1f + (ShipMotionDefaults.WindWithMaxMul - 1f) * (dotMove / cosCone);
     }
 
     /// <summary>Lateen / fore-and-aft: best speed on a beam reach (perpendicular to wind).</summary>
     private static float GetWindSpeedMulLateenRig(float dotMove)
     {
-        var cosCone = MathF.Cos(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
-        var sinCone = MathF.Sin(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
+        var cosCone = MathF.Cos(ShipMotionDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
+        var sinCone = MathF.Sin(ShipMotionDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
         var p = 1f - MathF.Abs(dotMove);
         if (p >= cosCone)
-            return PhysicsDefaults.WindWithMaxMul;
+            return ShipMotionDefaults.WindWithMaxMul;
         if (p <= sinCone)
-            return PhysicsDefaults.WindAgainstMaxMul;
-        return PhysicsDefaults.WindAgainstMaxMul + (p - sinCone) / (cosCone - sinCone) * (PhysicsDefaults.WindWithMaxMul - PhysicsDefaults.WindAgainstMaxMul);
+            return ShipMotionDefaults.WindAgainstMaxMul;
+        return ShipMotionDefaults.WindAgainstMaxMul + (p - sinCone) / (cosCone - sinCone) * (ShipMotionDefaults.WindWithMaxMul - ShipMotionDefaults.WindAgainstMaxMul);
     }
 
     /// <summary>Multiplier for max speed from wind; depends on <see cref="ResolveShipWindProfile"/>.</summary>
@@ -270,10 +243,10 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
                 return 1f;
 
             // Retail-like: +15% within ±15° of the N↔S axis, both directions (no "against wind" penalty).
-            var cosCone = MathF.Cos(PhysicsDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
+            var cosCone = MathF.Cos(ShipMotionDefaults.WindConeHalfAngleDeg * MathF.PI / 180f);
             var dotAbs = MathF.Abs(dotBow);
             // Hard cutoff: bonus disappears immediately beyond the angle threshold.
-            return dotAbs >= cosCone ? PhysicsDefaults.WindWithMaxMul : 1f;
+            return dotAbs >= cosCone ? ShipMotionDefaults.WindWithMaxMul : 1f;
         }
 
         return profile switch
@@ -353,7 +326,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Use the latched ground contact from PhysicsManager to avoid shoreline jitter causing
         // abrupt control/velocity changes ("jerks") when transitioning water<->land.
         var isGrounded = (slave.CachedFloorLevel > slave.CachedWaterSurface) || slave.GroundContactLatched;
-        var shallowDepthForCaps = PhysicsDefaults.ShallowWaterDepthForGroundSpeedCaps;
+        var shallowDepthForCaps = ShipMotionDefaults.ShallowWaterDepthForGroundSpeedCaps;
         shallowDepthForCaps = MathF.Max(0f, shallowDepthForCaps);
         var waterDepth = slave.CachedWaterSurface - slave.CachedFloorLevel; // meters
         var isShallowForCaps = waterDepth >= 0f && waterDepth <= shallowDepthForCaps;
@@ -394,8 +367,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             var assistA = 1f - MathF.Exp(-4.0f * MathF.Max(0f, dtSec));
             slave.GroundEscapeAssist += (assistTarget - slave.GroundEscapeAssist) * assistA;
 
-            // Base asymmetric throttle on ground differs by contact side.
-            // NOTE: per tuning request we do not reduce reverse throttle on ground.
+            // Base asymmetric throttle on ground differs by contact side. Full reverse mul pairs with
+            // no collision damping for escape-direction throttle in ShipShoreInteraction.
             var groundThrottleForwardMul = groundedByStern ? 0.78f : 0.10f;
             var groundThrottleReverseMul = 1.0f;
 
@@ -469,7 +442,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Shoal: limit max reverse vs the same water-based cap (percent of |maxBackward| on water).
         if (isGroundedForSpeedCaps)
         {
-            var revPct = PhysicsDefaults.GroundReverseSpeedCapPercentOfWater;
+            var revPct = ShipMotionDefaults.GroundReverseSpeedCapPercentOfWater;
             revPct = Math.Clamp(revPct, 0f, 100f);
             maxBackward = -waterMaxReverseAbs * (revPct / 100f);
         }
@@ -485,7 +458,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         if (isGroundedForSpeedCaps && (isEscapeInputOnGround || isFallbackEscapeOnGround))
         {
-            var groundEscapeMaxSpeedAbs = PhysicsDefaults.GroundEscapeMaxSpeedAbs;
+            var groundEscapeMaxSpeedAbs = ShipMotionDefaults.GroundEscapeMaxSpeedAbs;
             var escapeSign = isEscapeInputOnGround ? escapeThrottleSignOnGround : Math.Sign(slave.ThrottleRequest);
             if (escapeSign > 0)
                 maxForward = MathF.Max(maxForward, groundEscapeMaxSpeedAbs);
@@ -499,7 +472,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         if (isOpposingThrottle)
         {
             var reverseCap = shipModel.ReverseAccel > 0f ? shipModel.ReverseAccel : shipModel.Accel;
-            linearAccel = Math.Max(shipModel.Accel, reverseCap) * PhysicsDefaults.OpposingThrottleAccelMul * PhysicsDefaults.OpposingThrottleBrakeTuneMul;
+            linearAccel = Math.Max(shipModel.Accel, reverseCap) * ShipMotionDefaults.OpposingThrottleAccelMul * ShipMotionDefaults.OpposingThrottleBrakeTuneMul;
         }
 
         // Non-linear approach to max speed: accelerate strongly at low speed, taper off near the cap.
@@ -523,7 +496,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Anti-stall nudge: when grounded and escape input is held, avoid jitter around zero.
         if (isGroundedForSpeedCaps && isEscapeInputOnGround && slave.GroundStuckTime > 0.35f)
         {
-            var targetEscapeSpeed = PhysicsDefaults.GroundEscapeMaxSpeedAbs;
+            var targetEscapeSpeed = ShipMotionDefaults.GroundEscapeMaxSpeedAbs;
             var escapeA = 1f - MathF.Exp(-(6.0f + 2.0f * slave.GroundEscapeAssist) * MathF.Max(0f, dtSec));
             var target = escapeThrottleSignOnGround * targetEscapeSpeed;
             slave.Speed += (target - slave.Speed) * escapeA;
@@ -556,8 +529,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
         // Turning factor scales with ship speed, but never reaches zero (so the ship can still turn in place).
         var speedAbs = MathF.Abs(slave.Speed);
-        var speed01 = Math.Clamp(speedAbs / PhysicsDefaults.TurnFullFactorAtSpeed, 0f, 1f);
-        var turnFactor = PhysicsDefaults.MinTurnFactorAtZeroSpeed + (1f - PhysicsDefaults.MinTurnFactorAtZeroSpeed) * speed01;
+        var speed01 = Math.Clamp(speedAbs / ShipMotionDefaults.TurnFullFactorAtSpeed, 0f, 1f);
+        var turnFactor = ShipMotionDefaults.MinTurnFactorAtZeroSpeed + (1f - ShipMotionDefaults.MinTurnFactorAtZeroSpeed) * speed01;
 
         // Reverse steering should be handled at input→rotSpeed stage, not at the final angular velocity assignment.
         // Otherwise when speed crosses zero (e.g. releasing reverse), the last-step inversion toggles and the ship appears
@@ -579,9 +552,9 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // TurnSpeed is now a multiplier (1.0, 1.3, ...). Keep steering response at the previous "stat-scale"
         // baseline so counter-steer and turn build-up remain responsive.
         var turnSpeed = 100f * turnSpeedBonusMul * (float)deltaTime.TotalSeconds * MathF.PI;
-        var rotDelta = effectiveSteeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * PhysicsDefaults.SteeringResponsivenessMul * turnFactor;
+        var rotDelta = effectiveSteeringNorm * (turnSpeed / 100f) * (shipModel.TurnAccel / 360f) * ShipMotionDefaults.SteeringResponsivenessMul * turnFactor;
         if (slave.RotSpeed != 0f && effectiveSteeringNorm != 0f && Math.Sign(slave.RotSpeed) != Math.Sign(effectiveSteeringNorm))
-            rotDelta *= PhysicsDefaults.CounterSteerResponsivenessMul;
+            rotDelta *= ShipMotionDefaults.CounterSteerResponsivenessMul;
 
         // Non-linear approach: turning accelerates normally at low yaw rates, but slows down as we approach the cap.
         // This prevents the turn rate from building linearly all the way up to the limit.
@@ -626,8 +599,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         // Up to configured turn-speed slowdown at full yaw rate; smooth return on straight course (forward and reverse).
         var steerMaxSafe = Math.Max(steerMax, 1e-5f);
         var turnRateNorm = Math.Clamp(MathF.Abs(slave.RotSpeed) / steerMaxSafe, 0f, 1f);
-        var targetTurnVelMul = 1f - PhysicsDefaults.TurnSpeedSlowdownFrac * turnRateNorm;
-        var turnMulA = 1f - MathF.Exp(-PhysicsDefaults.TurnSpeedVelocityMulResponse * MathF.Max(0f, dtSec));
+        var targetTurnVelMul = 1f - ShipMotionDefaults.TurnSpeedSlowdownFrac * turnRateNorm;
+        var turnMulA = 1f - MathF.Exp(-ShipMotionDefaults.TurnSpeedVelocityMulResponse * MathF.Max(0f, dtSec));
         slave.TurnSpeedVelocityMul += (targetTurnVelMul - slave.TurnSpeedVelocityMul) * turnMulA;
 
         // Slow down turning if no steering active
@@ -696,7 +669,7 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
         if (!isGrounded)
         {
             var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
-            if (submerged >= PhysicsDefaults.UprightStabilizeMinSubmergedMeters)
+            if (submerged >= ShipMotionDefaults.UprightStabilizeMinSubmergedMeters)
                 ApplyWaterUprightStabilization(rigidBody, dtSec);
         }
 
@@ -745,10 +718,10 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
             angle = MathF.Acos(dot);
         }
 
-        if (angle < PhysicsDefaults.UprightStabilizeAngleDeadZoneRad)
+        if (angle < ShipMotionDefaults.UprightStabilizeAngleDeadZoneRad)
             return;
 
-        var maxStep = PhysicsDefaults.UprightStabilizeMaxRadPerSec * dtSec;
+        var maxStep = ShipMotionDefaults.UprightStabilizeMaxRadPerSec * dtSec;
         var step = MathF.Min(angle, maxStep);
         var deltaQ = Quaternion.CreateFromAxisAngle(axis, step);
         var qNew = Quaternion.Normalize(Quaternion.Multiply(deltaQ, q));
