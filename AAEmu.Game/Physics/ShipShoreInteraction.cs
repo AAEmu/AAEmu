@@ -20,29 +20,53 @@ public sealed class ShipShoreInteraction
     /// <summary>Production constants for ship↔shore (single source of truth).</summary>
     public static class ShorePhysicsDefaults
     {
+        /// <summary>Offset of the “bottom” point used for penetration, as a fraction of hull height (0 = rigidbody center).</summary>
         public const float BoatBottomOffsetFracOfSizeZ = 0f;
+        /// <summary>Linear damping strength on dry ground (higher = faster slowdown on land).</summary>
         public const float GroundFriction = 0.1f;
+        /// <summary>Extra velocity/ang-vel damping multiplier when fully on land (1 = no extra damping).</summary>
         public const float DryGroundCollisionDamping = 1f;
+        /// <summary>Roll dead-zone (rad) when “settled” on land before applying corrective torque.</summary>
         public const float DryGroundRollDeadZoneRad = 0.1f;
+        /// <summary>Strength of the corrective roll torque on land (scaled by mass).</summary>
         public const float DryGroundRollTorqueMul = 0.1f;
+        /// <summary>Bow probe distance multiplier (legacy; current probe is clamped to OBB face).</summary>
         public const float BowProbeMul = 1.5f;
+        /// <summary>Stern probe distance multiplier (legacy; current probe is clamped to OBB face).</summary>
         public const float SternProbeMul = 1.5f;
+        /// <summary>Cliff/wall probe multiplier (0 disables the cliff probe logic).</summary>
         public const float CliffProbeMul = 0f;
+        /// <summary>Look-ahead for cliff probe, as a multiple of half-length (0 disables).</summary>
         public const float CliffProbeLookAheadMulOfHalfLength = 0f;
+        /// <summary>Minimum cliff probe look-ahead (m) when enabled.</summary>
         public const float CliffProbeMinLookAheadMeters = 0.25f;
+        /// <summary>Threshold for treating terrain as “cliff” based on slope fraction.</summary>
         public const float CliffSlopeFracThreshold = 0.70f;
+        /// <summary>Required margin above water (m) to consider a cliff valid (helps ignore wave noise).</summary>
         public const float CliffAboveWaterMargin = 0.30f;
+        /// <summary>Hysteresis (m): how far below water the probe floor must be to latch “aground”.</summary>
         public const float ShoreEnterHyst = 0.5f;
+        /// <summary>Hysteresis (m): how far below water the probe floor must be to release back to water.</summary>
         public const float ShoreExitHyst = 0.35f;
+        /// <summary>Low-pass response rate for floor height smoothing (higher = less lag, more noise).</summary>
         public const float FloorSmoothResponse = 16.0f;
+        /// <summary>Band (m) near shore where pre-latch damping is applied to soften the approach.</summary>
         public const float PreShoreBand = 0.5f;
+        /// <summary>Penetration depth epsilon (m) below which we don't push the hull up (noise guard).</summary>
         public const float PenetrationEpsilon = 0.04f;
+        /// <summary>Response rate for penetration resolution (higher = faster “push up” out of terrain).</summary>
         public const float PenetrationResponse = 4.5f;
+        /// <summary>Max upward correction step (m) per tick shortly after latching (prevents snapping).</summary>
         public const float MaxUpStepEarly = 0.04f;
+        /// <summary>Max upward correction step (m) per tick after the early window (allows stronger escape).</summary>
         public const float MaxUpStepLate = 0.07f;
+        /// <summary>Max visual pitch (deg) applied while grounded (client feedback only).</summary>
         public const float VisualGroundPitchMaxDeg = 8.0f;
+        /// <summary>Probe distance (m) used to compute visual ground pitch (client feedback only).</summary>
         public const float VisualGroundPitchProbeDistance = 6.0f;
+        /// <summary>Response rate for visual ground pitch smoothing (higher = snappier).</summary>
         public const float VisualGroundPitchResponse = 2.0f;
+        /// <summary>Secondary smoothing response for the visual pitch floor sample (reduces jitter).</summary>
         public const float VisualPitchFloorSmoothResponse = 8.0f;
     }
 

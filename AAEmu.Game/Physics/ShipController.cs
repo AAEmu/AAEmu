@@ -67,22 +67,39 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     /// <summary>Production ship motion constants (single source of truth).</summary>
     public static class ShipMotionDefaults
     {
+        /// <summary>Hard cap (|m/s|) for the assisted “escape” speed target while grounded/beached.</summary>
         public const float GroundEscapeMaxSpeedAbs = 1.5f;
+        /// <summary>Reverse speed cap on ground, as a percent of the current water max speed cap.</summary>
         public const float GroundReverseSpeedCapPercentOfWater = 100f;
+        /// <summary>Below this water depth (m), apply the ground-related speed caps/logic (shoals).</summary>
         public const float ShallowWaterDepthForGroundSpeedCaps = 0.35f;
+        /// <summary>Extra acceleration multiplier when throttle opposes current motion (e.g. reverse while moving forward).</summary>
         public const float OpposingThrottleAccelMul = 1f;
+        /// <summary>Additional braking multiplier for opposing throttle only (does not affect forward accel).</summary>
         public const float OpposingThrottleBrakeTuneMul = 1f;
+        /// <summary>Steering builds yaw rate faster without raising the max yaw cap.</summary>
         public const float SteeringResponsivenessMul = 1.45f;
+        /// <summary>When rudder fights current yaw rate, decay faster (counter-steer responsiveness).</summary>
         public const float CounterSteerResponsivenessMul = 1.35f;
+        /// <summary>At (near) zero speed, keep this fraction of turning ability (so you can still rotate in place).</summary>
         public const float MinTurnFactorAtZeroSpeed = 0.5f;
+        /// <summary>Speed at which turning reaches full effectiveness (used to scale turn factor).</summary>
         public const float TurnFullFactorAtSpeed = 2.5f;
+        /// <summary>Max fraction of forward/back speed removed at full yaw rate (speed loss while turning).</summary>
         public const float TurnSpeedSlowdownFrac = 0.1f;
+        /// <summary>Response rate for smoothing <see cref="Slave.TurnSpeedVelocityMul"/> toward the target (higher = snappier).</summary>
         public const float TurnSpeedVelocityMulResponse = 5.5f;
+        /// <summary>Minimum hull submergence (m) before upright stabilization starts applying torque.</summary>
         public const float UprightStabilizeMinSubmergedMeters = 0.04f;
+        /// <summary>Max angular correction speed (rad/s) toward upright per tick (prevents snapping).</summary>
         public const float UprightStabilizeMaxRadPerSec = 2.25f;
+        /// <summary>Dead-zone angle (rad) under which upright stabilization does nothing.</summary>
         public const float UprightStabilizeAngleDeadZoneRad = 0.004f;
+        /// <summary>Half-angle (deg) of the “with wind / against wind” cone used by the wind speed model.</summary>
         public const float WindConeHalfAngleDeg = 15f;
+        /// <summary>Max speed multiplier when moving “with wind” (inside the cone).</summary>
         public const float WindWithMaxMul = 1.15f;
+        /// <summary>Max speed multiplier when moving “against wind” (inside the opposite cone).</summary>
         public const float WindAgainstMaxMul = 0.85f;
     }
 

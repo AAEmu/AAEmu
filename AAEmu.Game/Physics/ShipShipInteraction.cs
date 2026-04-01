@@ -24,29 +24,53 @@ public sealed class ShipShipInteraction
     /// <summary>Ship↔ship SAT/response constants (single source of truth).</summary>
     public static class ShipHullPairDefaults
     {
+        /// <summary>Length inflation for the SAT hit-test OBB (starts detection slightly earlier along bow/stern).</summary>
         public const float HullDetectInflateLength = 1.025f;
+        /// <summary>Beam inflation for the SAT hit-test OBB (starts detection slightly earlier side-to-side).</summary>
         public const float HullDetectInflateBeam = 1.015f;
+        /// <summary>Tighten the beam used for detection (helps keep “air gap” drag low when ships pass nearby).</summary>
         public const float BeamDetectTightenMul = 0.78f;
+        /// <summary>Ignore overlaps smaller than this (m) to avoid jitter from tiny penetrations.</summary>
         public const float MinPenetrationToAct = 0.055f;
+        /// <summary>Minimum overlap depth (m) required to apply periodic hull collision damage.</summary>
         public const float MinPenetrationToDamage = MinPenetrationToAct * 1.15f;
+        /// <summary>Penetration depth (m) over which tangential slip damping ramps from 0 to full.</summary>
         public const float TangentialRampDepthMeters = 0.22f;
+        /// <summary>Multiplier for the computed separation distance (stronger push-out when overlapped).</summary>
         public const float SeparationPushMultiplier = 1.22f;
+        /// <summary>Extra separation slack (m) added to prevent immediate re-penetration after depenetration.</summary>
         public const float SeparationSlackMeters = 0.020f;
+        /// <summary>Damping factor for relative closing speed into the contact normal (1 = remove fully).</summary>
         public const float ClosingSpeedDamp = 1f;
+        /// <summary>Fraction of tangential relative motion removed at full ramp (lower = more slip).</summary>
         public const float TangentialSlipDamp = 0.86f;
+        /// <summary>Minimum vertical (Y) AABB overlap (m) required before attempting XZ SAT (cheap reject).</summary>
         public const float MinVerticalOverlap = 0.12f;
+        /// <summary>Number of passes over all ship pairs per tick (extra passes help resolve chain overlaps).</summary>
         public const int ResolvePasses = 2;
+        /// <summary>Max iterations per pair while still overlapping (prevents pathological loops).</summary>
         public const int MaxPairIterations = 12;
+        /// <summary>Penetration depth (m) above which separation begins to get an extra “deep overlap” boost.</summary>
         public const float DeepPenetrationStart = 0.12f;
+        /// <summary>Scale of the “deep overlap” separation boost.</summary>
         public const float DeepPenetrationBoost = 0.72f;
+        /// <summary>Minimum per-side separation (m) to apply even when computed overlap is tiny.</summary>
         public const float MinHalfSeparationMeters = 0.02f;
+        /// <summary>Skip applying separation if computed linear separation is below this (m) (noise guard).</summary>
         public const float MinLinearSeparationToApplyMeters = 0.018f;
+        /// <summary>Cosine threshold for considering a contact “nose/bow hit” (affects damage logic).</summary>
         public const float NoseContactCosThreshold = 0.65f;
+        /// <summary>Cooldown (seconds) per other ship for applying %HP hull collision damage.</summary>
         public const float HullCollisionDamageCooldownSec = 1.5f;
+        /// <summary>Below this relative impact speed (m/s), hull damage uses the minimum percent.</summary>
         public const float HullDamageLowSpeedThresholdMps = 2f;
+        /// <summary>At or above this relative impact speed (m/s), hull damage uses the maximum percent.</summary>
         public const float HullDamageSpeedInterpMaxMps = 10f;
+        /// <summary>Minimum periodic hull damage (percent of max HP) for eligible collisions.</summary>
         public const int HullDamageSpeedScaledMinPercent = 1;
+        /// <summary>Maximum periodic hull damage (percent of max HP) for eligible collisions.</summary>
         public const int HullDamageSpeedScaledMaxPercent = 10;
+        /// <summary>How strongly mass affects who gets pushed more (1 = pure inverse-mass split; &gt;1 exaggerates).</summary>
         public const float MassPushStrength = 2f;
     }
 
