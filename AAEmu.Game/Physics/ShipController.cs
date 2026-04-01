@@ -18,7 +18,7 @@ using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics;
 
-public class ShipController(World world, ShipModelV1 shipModel, float waterLevel = 100f)
+public class ShipController(World world, ShipModelV1 shipModel)
 {
     private readonly World _world = world ?? throw new ArgumentNullException(nameof(world));
 
@@ -27,8 +27,6 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
 
     /// <summary>Per-ship replication smoothing state; see <see cref="ReplicationSmoothing"/>.</summary>
     public ReplicationSmoothing Replication { get; } = new();
-
-    private readonly float _waterLevel = waterLevel;
 
     /// <summary>Mass-box Z center/size used by <see cref="Build"/>; change implementations if hull height needs server-side tuning.</summary>
     public static class ShipMassBoxDefaults
