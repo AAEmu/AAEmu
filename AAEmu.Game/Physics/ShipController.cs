@@ -75,9 +75,6 @@ public class ShipController(World world, ShipModelV1 shipModel)
         public const float WindAgainstMaxMul = 0.85f;
     }
 
-    /// <summary>ship_models.steer_vel is often a small coefficient (~1), not °/s — only trust it above this.</summary>
-    private const float MinSteerVelAsDegPerSec = 8f;
-
     /// <summary>
     /// Fixed max yaw rate (degrees/s) by <see cref="SlaveKind"/>.
     /// NOTE: We intentionally do NOT use ship_models.steer_vel because values in DB are not in valid units.
