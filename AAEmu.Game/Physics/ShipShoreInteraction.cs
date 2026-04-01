@@ -285,8 +285,6 @@ public sealed class ShipShoreInteraction
         slave.GroundContactLatchedTime += Math.Max(0f, (float)deltaTime.TotalSeconds);
 
         var penetration = floorSmoothed - boatBottom;
-        slave.CachedGroundCollisionPos = new Vector3(probeX, probeY, floorSmoothed);
-        slave.CachedGroundCollisionImpact = Math.Max(0f, penetration);
         if (penetration <= 0.0f)
             return;
 

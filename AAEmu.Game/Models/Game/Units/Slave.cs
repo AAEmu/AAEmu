@@ -19,7 +19,6 @@ using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Physics;
 using Jitter2.Dynamics;
-using Jitter2.LinearMath;
 
 using MySql.Data.MySqlClient;
 
@@ -104,12 +103,6 @@ public class Slave : Unit
     public Vector3 CachedWaterFlow { get; set; }
     public float CachedWaterSurface { get; set; }
     public float CachedFloorLevel { get; set; }
-
-    /// <summary>Last ground contact point from ship shore probe (game coords X,Y with Z up). Used for collision env-damage position.</summary>
-    public Vector3 CachedGroundCollisionPos { get; set; }
-
-    /// <summary>Last shore penetration depth (m) at the probe point; used as collisionImpact for env-damage.</summary>
-    public float CachedGroundCollisionImpact { get; set; }
 
     public Slave()
     {
@@ -731,17 +724,6 @@ public class Slave : Unit
         }
     }
 
-    // Client-visible collision-damage subtype (last byte in SCEnvDamagePacket when EnvSource.Collision).
-    // TODO: Needs refinement — exact client mapping for these values is currently unknown in this codebase.
-    //       Values below are placeholders for iterative client testing (effects/UI behavior may differ).
-    private static class CollisionEnvDamageSubtype
-    {
-        public const byte Alt1 = 1; 
-        public const byte Alt2 = 2;
-        public const byte Ground = 3;
-        public const byte ShipShip = 4;
-    }
-
     /// <summary>Immediate hull damage from floor/collision (percent of <see cref="MaxHp"/> when <paramref name="isPercent"/>).</summary>
     private void ApplyFloorCollisionDamageImmediate(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
     {
@@ -757,13 +739,13 @@ public class Slave : Unit
         if (dealt <= 0)
             return;
 
-        var collisionPos = CachedGroundCollisionPos != default ? CachedGroundCollisionPos : Transform.World.Position;
-        var collisionImpactValue = CachedGroundCollisionImpact;
-        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt, position: collisionPos, collisionImpact: collisionImpactValue, p: CollisionEnvDamageSubtype.Ground), true);
+        var driver = AttachedCharacters.GetValueOrDefault(AttachPointKind.Driver);
+        if (driver != null)
+            driver.SendPacket(new SCEnvDamagePacket(EnvSource.Falling, driver.ObjId, (uint)dealt));
     }
 
     /// <summary>Hull damage from ship–ship collision (<paramref name="damagePercent"/> of <see cref="MaxHp"/>).</summary>
-    internal void ApplyShipHullCollisionDamage(Slave attacker, int damagePercent, float collisionImpactMps = 0f)
+    internal void ApplyShipHullCollisionDamage(Slave attacker, int damagePercent)
     {
         if (damagePercent <= 0 || Hp <= 0)
             return;
@@ -778,42 +760,9 @@ public class Slave : Unit
         if (dealt <= 0)
             return;
 
-        var a = GetShipMassBoxCenterGamePosition();
-        var b = attacker?.GetShipMassBoxCenterGamePosition() ?? attacker?.Transform.World.Position ?? a;
-        var collisionPos = (a + b) * 0.5f;
-        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt, position: collisionPos, collisionImpact: collisionImpactMps, p: CollisionEnvDamageSubtype.ShipShip), true);
-    }
-
-    private Vector3 GetShipMassBoxCenterGamePosition()
-    {
-        var rb = RigidBody;
-        var model = ShipController?.ShipModel;
-        if (rb is null || model is null)
-            return Transform.World.Position;
-
-        var scale = MathF.Max(0.01f, Scale);
-        var centerZ = ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ);
-        var local = new JVector(model.MassCenterX * scale, centerZ * scale, model.MassCenterY * scale);
-        var w = RotateVectorByQuaternion(local, rb.Orientation);
-        var centerPhys = rb.Position + w;
-
-        // Game coords: (X,Y,Z) == (phys X, phys Z, phys Y)
-        return new Vector3(centerPhys.X, centerPhys.Z, centerPhys.Y);
-    }
-
-    private static JVector RotateVectorByQuaternion(JVector v, JQuaternion q)
-    {
-        var qx = q.X;
-        var qy = q.Y;
-        var qz = q.Z;
-        var qw = q.W;
-        var tx = 2f * (qy * v.Z - qz * v.Y);
-        var ty = 2f * (qz * v.X - qx * v.Z);
-        var tz = 2f * (qx * v.Y - qy * v.X);
-        return new JVector(
-            v.X + qw * tx + (qy * tz - qz * ty),
-            v.Y + qw * ty + (qz * tx - qx * tz),
-            v.Z + qw * tz + (qx * ty - qy * tx));
+        var driver = AttachedCharacters.GetValueOrDefault(AttachPointKind.Driver);
+        if (driver != null)
+            driver.SendPacket(new SCEnvDamagePacket(EnvSource.Falling, driver.ObjId, (uint)dealt));
     }
 
     public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)

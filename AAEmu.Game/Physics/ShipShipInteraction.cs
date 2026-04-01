@@ -191,13 +191,13 @@ public sealed class ShipShipInteraction
 
         if (!sa.ShipHullCollisionDamageCooldownByOtherShipId.TryGetValue(sb.Id, out var cdA) || cdA <= 0f)
         {
-            sa.ApplyShipHullCollisionDamage(sb, dmgA, collisionImpactMps: impactSpeedMps);
+            sa.ApplyShipHullCollisionDamage(sb, dmgA);
             sa.ShipHullCollisionDamageCooldownByOtherShipId[sb.Id] = HullCollisionDamageCooldownSec;
         }
 
         if (!sb.ShipHullCollisionDamageCooldownByOtherShipId.TryGetValue(sa.Id, out var cdB) || cdB <= 0f)
         {
-            sb.ApplyShipHullCollisionDamage(sa, dmgB, collisionImpactMps: impactSpeedMps);
+            sb.ApplyShipHullCollisionDamage(sa, dmgB);
             sb.ShipHullCollisionDamageCooldownByOtherShipId[sa.Id] = HullCollisionDamageCooldownSec;
         }
     }
