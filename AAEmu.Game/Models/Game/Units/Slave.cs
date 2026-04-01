@@ -739,9 +739,7 @@ public class Slave : Unit
         if (dealt <= 0)
             return;
 
-        var driver = AttachedCharacters.GetValueOrDefault(AttachPointKind.Driver);
-        if (driver != null)
-            driver.SendPacket(new SCEnvDamagePacket(EnvSource.Falling, driver.ObjId, (uint)dealt));
+        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt), true);
     }
 
     /// <summary>Hull damage from ship–ship collision (<paramref name="damagePercent"/> of <see cref="MaxHp"/>).</summary>
@@ -760,9 +758,7 @@ public class Slave : Unit
         if (dealt <= 0)
             return;
 
-        var driver = AttachedCharacters.GetValueOrDefault(AttachPointKind.Driver);
-        if (driver != null)
-            driver.SendPacket(new SCEnvDamagePacket(EnvSource.Falling, driver.ObjId, (uint)dealt));
+        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt), true);
     }
 
     public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
