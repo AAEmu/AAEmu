@@ -25,34 +25,8 @@ public class ShipController(World world, ShipModelV1 shipModel, float waterLevel
     public RigidBody Hull { get; private set; } = null!;
     public ShipModelV1 ShipModel { get; init; } = shipModel ?? throw new ArgumentNullException(nameof(shipModel));
 
-    /// <summary>
-    /// Smoothed position, linear velocity, turn bank, and shore trim for packets (see nested type).
-    /// Hull yaw and physics euler from <see cref="RigidBody"/> stay unsmoothed in replication (no yaw smoothing).
-    /// </summary>
+    /// <summary>Per-ship replication smoothing state; see <see cref="ReplicationSmoothing"/>.</summary>
     public ReplicationSmoothing Replication { get; } = new();
-
-    public sealed class ReplicationSmoothing
-    {
-        public bool Seeded { get; set; }
-        public float PosX { get; set; }
-        public float PosY { get; set; }
-        public float PosZ { get; set; }
-        public float VelPx { get; set; }
-        public float VelPy { get; set; }
-        public float VelPz { get; set; }
-        /// <summary>Second low-pass on turn bank for replication (softer λ than vertical; targets <see cref="Slave.BankAngle"/>).</summary>
-        public float BankSmoothed { get; set; }
-        /// <summary>Second low-pass on shore pitch delta for replication (targets <see cref="Slave.GroundPitchAngle"/>).</summary>
-        public float GroundPitchSmoothed { get; set; }
-        /// <summary>Remaining movement broadcasts with stronger smoothing after hull–hull resolution.</summary>
-        public byte ContactHoldTicks { get; set; }
-
-        public void Reset()
-        {
-            Seeded = false;
-            ContactHoldTicks = 0;
-        }
-    }
 
     private readonly float _waterLevel = waterLevel;
 
