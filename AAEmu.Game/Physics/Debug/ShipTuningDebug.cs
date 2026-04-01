@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Numerics;
 
 using AAEmu.Game.Physics;
+using AAEmu.Game.Utils;
 
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -219,12 +220,12 @@ public static class ShipTuningDebug
         var hy = ShipController.ShipMassBoxDefaults.GetSizeZ(model.MassBoxSizeZ) * scale * 0.5f;
         var hz = model.MassBoxSizeY * scale * 0.5f;
         var rotGame = GetTransformRotationMatrix(ship.Transform.Local.Rotation);
-        var posGame0 = PhysToGame(rb.Position);
+        var posGame0 = rb.Position.ToVector();
         var offsetLocalPhys = new JVector(
             model.MassCenterX * scale,
             ShipController.ShipMassBoxDefaults.GetCenterZ(model.MassCenterZ, model.MassBoxSizeZ) * scale,
             model.MassCenterY * scale);
-        var offsetLocalGame = PhysVecToGame(offsetLocalPhys);
+        var offsetLocalGame = offsetLocalPhys.ToVector();
         var centerGame = posGame0 + Vector3.TransformNormal(offsetLocalGame, rotGame);
         geo = new MassBoxGameGeometry(hx, hy, hz, centerGame, rotGame);
         return true;
@@ -232,14 +233,14 @@ public static class ShipTuningDebug
 
     private static void FillMassBoxLocalCornersGame(float hx, float hy, float hz, Span<Vector3> corners)
     {
-        corners[0] = PhysVecToGame(new JVector(+hx, +hy, +hz));
-        corners[1] = PhysVecToGame(new JVector(+hx, +hy, -hz));
-        corners[2] = PhysVecToGame(new JVector(+hx, -hy, +hz));
-        corners[3] = PhysVecToGame(new JVector(+hx, -hy, -hz));
-        corners[4] = PhysVecToGame(new JVector(-hx, +hy, +hz));
-        corners[5] = PhysVecToGame(new JVector(-hx, +hy, -hz));
-        corners[6] = PhysVecToGame(new JVector(-hx, -hy, +hz));
-        corners[7] = PhysVecToGame(new JVector(-hx, -hy, -hz));
+        corners[0] = new JVector(+hx, +hy, +hz).ToVector();
+        corners[1] = new JVector(+hx, +hy, -hz).ToVector();
+        corners[2] = new JVector(+hx, -hy, +hz).ToVector();
+        corners[3] = new JVector(+hx, -hy, -hz).ToVector();
+        corners[4] = new JVector(-hx, +hy, +hz).ToVector();
+        corners[5] = new JVector(-hx, +hy, -hz).ToVector();
+        corners[6] = new JVector(-hx, -hy, +hz).ToVector();
+        corners[7] = new JVector(-hx, -hy, -hz).ToVector();
     }
 
     private static void GetMassBoxWorldVerticalExtent(in MassBoxGameGeometry g, Span<Vector3> cornerScratch, out float minZ, out float maxZ)
@@ -397,9 +398,9 @@ public static class ShipTuningDebug
         var hyE = geo.Hy + extra;
 
         // +Length / +Beam / +Up: local +Z / +X / +Y of physics box (see ShipController.Build).
-        var posLen = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(0f, 0f, hzE)), geo.RotGame);
-        var posBeam = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(hxE, 0f, 0f)), geo.RotGame);
-        var posUp = geo.CenterGame + Vector3.TransformNormal(PhysVecToGame(new JVector(0f, hyE, 0f)), geo.RotGame);
+        var posLen = geo.CenterGame + Vector3.TransformNormal(new JVector(0f, 0f, hzE).ToVector(), geo.RotGame);
+        var posBeam = geo.CenterGame + Vector3.TransformNormal(new JVector(hxE, 0f, 0f).ToVector(), geo.RotGame);
+        var posUp = geo.CenterGame + Vector3.TransformNormal(new JVector(0f, hyE, 0f).ToVector(), geo.RotGame);
 
         Span<Vector3> cornerScratch = stackalloc Vector3[MassBoxCornerCount];
         GetMassBoxWorldVerticalExtent(in geo, cornerScratch, out var minZ, out var maxZ);
@@ -686,18 +687,6 @@ public static class ShipTuningDebug
     private static bool CanReceive(Character c)
     {
         return CharacterManager.Instance.GetEffectiveAccessLevel(c) >= MinAccessLevel;
-    }
-
-    private static Vector3 PhysToGame(JVector phys)
-    {
-        // Game coords: (X,Y,Z) == (phys X, phys Z, phys Y)
-        return new Vector3(phys.X, phys.Z, phys.Y);
-    }
-
-    private static Vector3 PhysVecToGame(JVector v)
-    {
-        // Same axis mapping as PhysToGame but for a vector (no translation).
-        return new Vector3(v.X, v.Z, v.Y);
     }
 
     private static Matrix4x4 GetTransformRotationMatrix(Vector3 rpy)
