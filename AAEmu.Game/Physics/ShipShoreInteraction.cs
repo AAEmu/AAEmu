@@ -263,7 +263,7 @@ public sealed class ShipShoreInteraction
                 return;
             slave.GroundContactLatched = true;
             slave.GroundContactLatchedTime = 0f;
-            AAEmu.Game.Physics.Debug.ShipTuningDebug.OnShoreLatchChanged(slave, latched: true);
+            ShipTuningDebug.OnShoreLatchChanged(slave, latched: true);
         }
         else
         {
