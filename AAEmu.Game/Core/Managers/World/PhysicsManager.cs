@@ -294,9 +294,10 @@ public class PhysicsManager
                         {
                             ShipTuningDebug.TickShip(slave);
                         }
-                        catch
+                        catch (Exception ex)
                         {
-                            // Debug-only; must never affect physics loop.
+                            // Debug-only; must never affect physics loop — log for diagnostics only.
+                            Logger.Debug(ex, $"ShipTuningDebug.TickShip failed for {slave.Name} ({slave.ObjId})");
                         }
                     }
 
