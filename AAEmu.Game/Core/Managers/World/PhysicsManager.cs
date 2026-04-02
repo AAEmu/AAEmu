@@ -408,21 +408,46 @@ public class PhysicsManager
     }
 
     /// <summary>
-    /// Removes a ship from the physics engine
+    /// Removes a ship from the physics engine.
+    /// Jitter2 <see cref="Jitter2.World"/> is not thread-safe: all <c>_physWorld</c> / <c>_buoyancy</c> mutations
+    /// run on the physics thread (same queue as <see cref="_pendingActions"/>, processed before <c>Step</c>).
     /// </summary>
     /// <param name="slave"></param>
     public void RemoveShip(Slave slave)
     {
-        if (slave.RigidBody == null) return;
+        if (slave.RigidBody == null)
+            return;
 
         var rigidBody = slave.RigidBody;
-        rigidBody.SetActivationState(false);
-        EnqueueRemoveBody(rigidBody);
-        _physWorld.Remove(rigidBody);
-        _buoyancy.Remove(rigidBody);
-        slave.RigidBody = null;
+        var slaveId = slave.Id;
+        var slaveRef = slave;
 
-        ShipTuningDebug.DespawnAll(slave.Id);
+        void RemoveFromPhysicsThread()
+        {
+            // Second queued removal (same body): first lambda already nulled RigidBody.
+            if (slaveRef.RigidBody != rigidBody)
+                return;
+
+            rigidBody.SetActivationState(false);
+            _physWorld.Remove(rigidBody);
+            _buoyancy.Remove(rigidBody);
+            _bodies.Remove(rigidBody);
+            _shipControllers.Remove(slaveId, out _);
+
+            ShipTuningDebug.DespawnAll(slaveId);
+
+            slaveRef.RigidBody = null;
+            slaveRef.ShipController = null;
+        }
+
+        if (!ThreadRunning)
+        {
+            RemoveFromPhysicsThread();
+        }
+        else
+        {
+            _pendingActions.Enqueue(RemoveFromPhysicsThread);
+        }
 
         Logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Template.Name}");
     }
