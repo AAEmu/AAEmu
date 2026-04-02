@@ -247,7 +247,8 @@ public class PhysicsManager
                                 }
                             }
 
-                            if (_shipControllers.ContainsKey(slave.Id))
+                            // Single dictionary lookup: ShipController matches _shipControllers[slave.Id] (set together in AddShip).
+                            if (_shipControllers.TryGetValue(slave.Id, out _))
                             {
                                 // Create floor/surface cache
                                 slave.CreateWaterAndLandSurfaceCache();
@@ -270,8 +271,7 @@ public class PhysicsManager
                     {
                         try
                         {
-                            if (_shipControllers.TryGetValue(slave.Id, out var boat))
-                                boat.ApplyForceAndTorque(slave, physicsTotalDelta);
+                            slave.ShipController?.ApplyForceAndTorque(slave, physicsTotalDelta);
                         }
                         catch (Exception slaveException)
                         {
