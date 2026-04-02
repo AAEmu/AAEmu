@@ -881,8 +881,13 @@ public class Doodad : BaseUnit
     /// </summary>
     public override void Delete()
     {
-        base.Delete();
+        if (_deleted)
+            return;
+
+        // Mark as deleted early to avoid re-entry/races (e.g. concurrent packet handlers).
         _deleted = true;
+
+        base.Delete();
         var triggersToRemove = new List<AreaTrigger>(AttachAreaTriggers);
         foreach (var areaTrigger in triggersToRemove)
         {

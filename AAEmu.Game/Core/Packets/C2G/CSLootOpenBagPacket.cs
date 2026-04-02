@@ -1,7 +1,9 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Doodads;
 using System.Linq;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -31,7 +33,7 @@ public class CSLootOpenBagPacket() : GamePacket(CSOffsets.CSLootOpenBagPacket, 1
             doodad.Use(Connection.ActiveChar, 0);
             // For one-shot loot doodads (ship debris), remove object when it transitions out of loot-capable funcs.
             if (!IsFuncDrivenLootDoodad(doodad))
-                doodad.Delete();
+                TaskManager.Instance.Schedule(new DoodadDeleteTask(doodad));
             return true;
         }
 
