@@ -591,7 +591,7 @@ ENGINE=InnoDB
 ;
 
 CREATE TABLE IF NOT EXISTS `crime` (
-	`id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Crime point Id',
+	`id` INT UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Crime point Id',
 	`criminal` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the criminal',
 	`victim` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the victim',
 	`reporter` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Player Id of the reporter',
