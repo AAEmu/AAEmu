@@ -249,6 +249,7 @@ public sealed class ShipShoreInteraction
         var preShoreBand = ShorePhysicsDefaults.PreShoreBand;
         // Use water surface at the probe point, not at ship center; near shore these can differ.
         var enterDelta = (waterAtProbe + shoreEnterHyst) - floorSmoothed;
+        var exitDelta = (waterAtProbe + shoreExitHyst) - floorSmoothed;
         if (!slave.GroundContactLatched && enterDelta >= 0f && enterDelta <= preShoreBand)
         {
             var v = slave.RigidBody.Velocity;
@@ -259,21 +260,14 @@ public sealed class ShipShoreInteraction
 
         if (!slave.GroundContactLatched)
         {
-            if (waterAtProbe + shoreEnterHyst >= floorSmoothed)
+            if (enterDelta >= 0f)
                 return;
-            slave.GroundContactLatched = true;
-            slave.GroundContactLatchedTime = 0f;
-            ShipTuningDebug.OnShoreLatchChanged(slave, latched: true);
+            SetGroundContactLatch(slave, latched: true);
         }
-        else
+        else if (exitDelta >= 0f)
         {
-            if (waterAtProbe + shoreExitHyst >= floorSmoothed)
-            {
-                slave.GroundContactLatched = false;
-                slave.GroundContactLatchedTime = 0f;
-                ShipTuningDebug.OnShoreLatchChanged(slave, latched: false);
-                return;
-            }
+            SetGroundContactLatch(slave, latched: false);
+            return;
         }
 
         {
@@ -334,5 +328,12 @@ public sealed class ShipShoreInteraction
             boatBottomZ: boatBottom,
             waterSurfaceZ: waterAtProbe,
             penetrationMeters: penetration);
+    }
+
+    private static void SetGroundContactLatch(Slave slave, bool latched)
+    {
+        slave.GroundContactLatched = latched;
+        slave.GroundContactLatchedTime = 0f;
+        ShipTuningDebug.OnShoreLatchChanged(slave, latched: latched);
     }
 }
