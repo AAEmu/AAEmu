@@ -639,7 +639,8 @@ public static class ShipTuningDebug
         g.BroadcastPacket(new SCGimmickMovementPacket(g), false);
     }
 
-    private static void DespawnAll(uint shipId)
+    /// <summary>Removes debug markers and per-ship throttle/latch state. Call when a ship leaves physics (e.g. despawn) so static dictionaries do not grow forever.</summary>
+    public static void DespawnAll(uint shipId)
     {
         DespawnMarkers(_shipCornerMarkers, shipId);
         DespawnMarkers(_shipAxisLenMarkers, shipId);

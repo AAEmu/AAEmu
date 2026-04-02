@@ -422,6 +422,8 @@ public class PhysicsManager
         _buoyancy.Remove(rigidBody);
         slave.RigidBody = null;
 
+        ShipTuningDebug.DespawnAll(slave.Id);
+
         Logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Template.Name}");
     }
 
