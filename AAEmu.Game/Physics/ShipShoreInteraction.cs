@@ -113,8 +113,6 @@ public sealed class ShipShoreInteraction
             // Otherwise we can accidentally cancel "escape throttle" attempts while beached.
             if (slave.ThrottleRequest == 0 && slave.SteeringRequest == 0)
             {
-                slave.ThrottleRequest = 0;
-                slave.SteeringRequest = 0;
                 slave.Throttle = 0;
                 slave.Steering = 0;
                 slave.ThrottleSmoothed = 0f;
