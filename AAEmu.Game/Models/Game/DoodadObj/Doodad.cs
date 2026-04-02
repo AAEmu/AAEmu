@@ -579,6 +579,11 @@ public class Doodad : BaseUnit
                 Logger.Trace($"DoFunc Finished execution withOut ToNextPhase = {ToNextPhase}: TemplateId {TemplateId}, Using phase {FuncGroupId} with SkillId {skillId}");
             }
 
+            // DoodadFuncLootItem sets ToNextPhase=false when loot fails (or early chance miss). Multi-item func groups
+            // list several LootItem rows for one phase; return false so Use()'s foreach continues to the next func.
+            if (func.FuncType == "DoodadFuncLootItem")
+                return false;
+
             return true;
         }
 
