@@ -81,7 +81,8 @@ public sealed class ShipShoreInteraction
 
         var submergedDepth = Math.Max(0, slave.CachedWaterSurface - slave.RigidBody.Position.Y);
         var isOnWater = submergedDepth > 0;
-        var isOnLand = !isOnWater && submergedDepth <= 0;
+        // With Max(0, …), depth is never negative: !isOnWater implies depth == 0.
+        var isOnLand = !isOnWater;
 
         if (!isOnLand)
             return;
