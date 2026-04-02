@@ -61,6 +61,8 @@ public class ShipController(World world, ShipModelV1 shipModel)
         public const float TurnSpeedSlowdownFrac = 0.1f;
         /// <summary>Response rate for smoothing <see cref="Slave.TurnSpeedVelocityMul"/> toward the target (higher = snappier).</summary>
         public const float TurnSpeedVelocityMulResponse = 5.5f;
+        /// <summary>Exponential damping (1/s) for velocity perpendicular to bow in XZ on open water — keeps brief sideways drift after hull impulses without a separate lateral state on <see cref="Slave"/>.</summary>
+        public const float LateralVelocityDampPerSec = 5f;
         /// <summary>Minimum hull submergence (m) before upright stabilization starts applying torque.</summary>
         public const float UprightStabilizeMinSubmergedMeters = 0.04f;
         /// <summary>Max angular correction speed (rad/s) toward upright per tick (prevents snapping).</summary>
@@ -649,8 +651,24 @@ public class ShipController(World world, ShipModelV1 shipModel)
 
         var forceThrottle = slave.Speed * slave.MoveSpeedMul / 4f * slave.TurnSpeedVelocityMul; // Not sure if correct, but it feels correct
 
-        // Apply directional force
-        rigidBody.Velocity = new JVector(forceThrottle * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * MathF.Sin(slaveRotRad));
+        // Longitudinal speed from Slave.Speed; preserve damped lateral XZ (perpendicular to bow) so hull impulses can briefly show sideways motion.
+        // On land/shore keep the old overwrite-only model (avoids odd sliding while beached).
+        var fx = MathF.Cos(slaveRotRad);
+        var fz = MathF.Sin(slaveRotRad);
+        if (!isGrounded)
+        {
+            var v = rigidBody.Velocity;
+            var alongDot = v.X * fx + v.Z * fz;
+            var perpX = v.X - alongDot * fx;
+            var perpZ = v.Z - alongDot * fz;
+            var lateralDamp = MathF.Exp(-ShipMotionDefaults.LateralVelocityDampPerSec * MathF.Max(0f, dtSec));
+            rigidBody.Velocity = new JVector(
+                forceThrottle * fx + perpX * lateralDamp,
+                0f,
+                forceThrottle * fz + perpZ * lateralDamp);
+        }
+        else
+            rigidBody.Velocity = new JVector(forceThrottle * fx, 0f, forceThrottle * fz);
 
         if (!isGrounded)
         {
