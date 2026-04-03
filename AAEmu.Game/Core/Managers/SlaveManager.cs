@@ -41,7 +41,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         lock (_slaveListLock)
         {
             var slaves = World.GetAllSlaves();
-            return slaves.FirstOrDefault(slave => slave.Summoner?.ObjId == objId);
+            return slaves.FirstOrDefault(slave => slave.Summoner?.ObjId == objId && !slave.IsDead);
         }
     }
 

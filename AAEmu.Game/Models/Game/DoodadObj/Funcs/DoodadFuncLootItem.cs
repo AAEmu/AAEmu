@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -63,6 +63,7 @@ public class DoodadFuncLootItem : DoodadFuncTemplate
         if (res == false)
             character.SendErrorMessage(ErrorMessageType.BagInvalidItem);
 
-        owner.ToNextPhase = true;
+        // Move to next phase only when loot was actually granted.
+        owner.ToNextPhase = res;
     }
 }

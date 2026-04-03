@@ -4,10 +4,12 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Physics;
+using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.HeightMaps;
 using AAEmu.Game.Physics.Util;
@@ -50,6 +52,8 @@ public class PhysicsManager
     /// List of Ship controllers (slaveId, controller)
     /// </summary>
     private readonly Dictionary<uint, ShipController> _shipControllers = new();
+    private readonly ShipShoreInteraction _shipShore = new();
+    private readonly ShipShipInteraction _shipShip = new();
 
     private readonly ConcurrentQueue<Action> _pendingActions = new();
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
@@ -200,6 +204,7 @@ public class PhysicsManager
 
                     // 4. Sync positions and broadcast outside lock
                     // body, velocity, isMoving
+                    var shipsThisTick = new List<Slave>();
                     foreach (var (body, _, _) in snapshot)
                     {
                         /*
@@ -242,7 +247,8 @@ public class PhysicsManager
                                 }
                             }
 
-                            if (_shipControllers.TryGetValue(slave.Id, out var boat))
+                            // Single dictionary lookup: ShipController matches _shipControllers[slave.Id] (set together in AddShip).
+                            if (_shipControllers.TryGetValue(slave.Id, out _))
                             {
                                 // Create floor/surface cache
                                 slave.CreateWaterAndLandSurfaceCache();
@@ -250,17 +256,59 @@ public class PhysicsManager
                                 SyncTransformWithRigidBody(slave);
                                 // Do physics tick
                                 BoatPhysicsTick(slave, physicsTotalDelta);
-                                // Check if we collided
-                                CheckLandCollisions(slave, physicsTotalDelta);
-                                slave.TickBeachedHullDamage(physicsTotalDelta);
-                                // Update Controls
-                                boat.ApplyForceAndTorque(slave, physicsTotalDelta);
-                                SendUpdatedMovementData(slave, slave.RigidBody, physicsTotalDelta);
+                                _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
+                                shipsThisTick.Add(slave);
                             }
                         }
                         catch (Exception slaveException)
                         {
                             // Put a separate catch here to catch individual errors without it breaking all the physics in this world 
+                            Logger.Error($"PhysicsThread Error on Slave {slave.Id} {slave.Name} ({slave.ObjId}): {slaveException.Message}\n{slaveException.StackTrace}");
+                        }
+                    }
+
+                    foreach (var slave in shipsThisTick)
+                    {
+                        try
+                        {
+                            slave.ShipController?.ApplyForceAndTorque(slave, physicsTotalDelta);
+                        }
+                        catch (Exception slaveException)
+                        {
+                            Logger.Error($"PhysicsThread Error on Slave {slave.Id} {slave.Name} ({slave.ObjId}): {slaveException.Message}\n{slaveException.StackTrace}");
+                        }
+                    }
+
+                    try
+                    {
+                        _shipShip.ResolveAllPairs(shipsThisTick, physicsTotalDelta);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"PhysicsThread ship-ship resolve: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    foreach (var slave in shipsThisTick)
+                    {
+                        try
+                        {
+                            ShipTuningDebug.TickShip(slave);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Debug-only; must never affect physics loop — log for diagnostics only.
+                            Logger.Debug(ex, $"ShipTuningDebug.TickShip failed for {slave.Name} ({slave.ObjId})");
+                        }
+                    }
+
+                    foreach (var slave in shipsThisTick)
+                    {
+                        try
+                        {
+                            SendUpdatedMovementData(slave, slave.RigidBody, physicsTotalDelta);
+                        }
+                        catch (Exception slaveException)
+                        {
                             Logger.Error($"PhysicsThread Error on Slave {slave.Id} {slave.Name} ({slave.ObjId}): {slaveException.Message}\n{slaveException.StackTrace}");
                         }
                     }
@@ -336,7 +384,7 @@ public class PhysicsManager
         var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
-        var ctrl = new ShipController(_physWorld, shipModel, waterLevel: DefaultWaterLevel);
+        var ctrl = new ShipController(_physWorld, shipModel);
 
         ctrl.Build(initialPosition: pos, initialOrientation: rot);
 
@@ -349,6 +397,9 @@ public class PhysicsManager
         // so ensure the initial server-side Transform matches the physics spawn position.
         SyncTransformWithRigidBody(slave);
         slave.Transform.FinalizeTransform();
+        ctrl.Replication.Reset();
+        slave.WavePitchPhase = 0f;
+        slave.ShipHullCollisionDamageCooldownByOtherShipId.Clear();
 
         EnqueueAddBody(slave.RigidBody);
         _buoyancy.AddForRectangularParallelepiped(slave.RigidBody, 3);
@@ -357,19 +408,46 @@ public class PhysicsManager
     }
 
     /// <summary>
-    /// Removes a ship from the physics engine
+    /// Removes a ship from the physics engine.
+    /// Jitter2 <see cref="Jitter2.World"/> is not thread-safe: all <c>_physWorld</c> / <c>_buoyancy</c> mutations
+    /// run on the physics thread (same queue as <see cref="_pendingActions"/>, processed before <c>Step</c>).
     /// </summary>
     /// <param name="slave"></param>
     public void RemoveShip(Slave slave)
     {
-        if (slave.RigidBody == null) return;
+        if (slave.RigidBody == null)
+            return;
 
         var rigidBody = slave.RigidBody;
-        rigidBody.SetActivationState(false);
-        EnqueueRemoveBody(rigidBody);
-        _physWorld.Remove(rigidBody);
-        _buoyancy.Remove(rigidBody);
-        slave.RigidBody = null;
+        var slaveId = slave.Id;
+        var slaveRef = slave;
+
+        void RemoveFromPhysicsThread()
+        {
+            // Second queued removal (same body): first lambda already nulled RigidBody.
+            if (slaveRef.RigidBody != rigidBody)
+                return;
+
+            rigidBody.SetActivationState(false);
+            _physWorld.Remove(rigidBody);
+            _buoyancy.Remove(rigidBody);
+            _bodies.Remove(rigidBody);
+            _shipControllers.Remove(slaveId, out _);
+
+            ShipTuningDebug.DespawnAll(slaveId);
+
+            slaveRef.RigidBody = null;
+            slaveRef.ShipController = null;
+        }
+
+        if (!ThreadRunning)
+        {
+            RemoveFromPhysicsThread();
+        }
+        else
+        {
+            _pendingActions.Enqueue(RemoveFromPhysicsThread);
+        }
 
         Logger.Debug($"RemoveShip {slave.Name} <- {SimulationWorld.Template.Name}");
     }
@@ -384,46 +462,7 @@ public class PhysicsManager
         var shipModel = slave.ShipController?.ShipModel;
         if (shipModel == null) return;
 
-        // Calculate submerged depth and buoyancy force
-        var submergedDepth = Math.Max(0, slave.CachedWaterSurface - slave.RigidBody.Position.Y);
-        var isOnWater = submergedDepth > 0;
-        var isOnLand = !isOnWater && submergedDepth <= 0;
-
-        if (isOnLand)
-        {
-            // Apply ground friction and stop the ship
-            const float GroundFriction = 0.4f; // Sand: around 0.4
-            var frictionForce = new JVector(-slave.RigidBody.Velocity.X * GroundFriction, 0, -slave.RigidBody.Velocity.Z * GroundFriction);
-            slave.RigidBody.AddForce(frictionForce);
-
-            // Gradually reduce speed
-            const float CollisionDamping = 0.5f;
-            slave.RigidBody.Velocity *= CollisionDamping;
-            slave.RigidBody.AngularVelocity *= CollisionDamping;
-
-            // Stop the ship and apply roll
-            if (slave.RigidBody.Velocity.Length() < 0.01f)
-            {
-                slave.RigidBody.Velocity = JVector.Zero;
-                slave.RigidBody.AngularVelocity = JVector.Zero;
-
-                // Apply roll to the ship
-                var rollAngle = GetRollAngle(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation));
-                if (Math.Abs(rollAngle) < 0.1f)
-                {
-                    var correctionTorque = new JVector(0, 0, -rollAngle * slave.RigidBody.Mass * 0.1f);
-                    slave.RigidBody.AddForce(correctionTorque);
-                }
-
-                // Disable control
-                slave.ThrottleRequest = 0;
-                slave.SteeringRequest = 0;
-                slave.Throttle = 0;
-                slave.Steering = 0;
-                slave.ThrottleSmoothed = 0f;
-                slave.SteeringSmoothed = 0f;
-            }
-        }
+        _shipShore.ApplyOnLandPhysics(slave, deltaTime);
 
         // Check if the ship has a driver
         var hasDriver = slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver);
@@ -449,6 +488,107 @@ public class PhysicsManager
     }
 
     /// <summary>
+    /// Waterline length = max(X,Y), beam = min(X,Y), height = Z, mass from <c>ship_models</c> (same convention as bank).
+    /// </summary>
+    private static bool TryGetShipMassBoxWaterlineExtents(ShipModelV1 model, float scale,
+        out float length, out float beam, out float height, out float mass)
+    {
+        if (model == null)
+        {
+            length = beam = height = mass = 0f;
+            return false;
+        }
+
+        var s = MathF.Max(scale, 0.01f);
+        var hx = model.MassBoxSizeX * s;
+        var hy = model.MassBoxSizeY * s;
+        length = MathF.Max(MathF.Max(hx, hy), 0.25f);
+        beam = MathF.Max(MathF.Min(hx, hy), 0.25f);
+        height = MathF.Max(model.MassBoxSizeZ * s, 0.15f);
+        mass = MathF.Max(model.Mass, 10f);
+        return true;
+    }
+
+    /// <summary>
+    /// Visual wave pitch amplitude (rad) and angular frequency from hull length/mass; matches bank reference scale.
+    /// Longer/heavier → smaller amp, slightly slower cycle; short/light dinghies stay closer to legacy ±3° / 0.06 Hz.
+    /// </summary>
+    private static void GetVisualWavePitchModelFactors(ShipModelV1 model, float scale, out float maxAmpRad, out float omega)
+    {
+        const float baseDeg = 3f;
+        const float baseHz = 0.06f;
+        if (!TryGetShipMassBoxWaterlineExtents(model, scale, out var length, out _, out _, out var mass))
+        {
+            maxAmpRad = baseDeg.DegToRad();
+            omega = 2f * MathF.PI * baseHz;
+            return;
+        }
+
+        const float refLength = 14f;
+        const float refMass = 85000f;
+
+        var lenRatio = Math.Clamp(refLength / length, 0.35f, 2.5f);
+        var massRatio = Math.Clamp(MathF.Sqrt(refMass / mass), 0.45f, 2.2f);
+        var ampMul = MathF.Pow(lenRatio, 0.38f) * MathF.Pow(massRatio, 0.28f);
+        var maxDeg = Math.Clamp(baseDeg * ampMul, 1.1f, 5.5f);
+        maxAmpRad = maxDeg.DegToRad();
+
+        var freqMul = MathF.Pow(Math.Clamp(length / refLength, 0.5f, 2.2f), -0.18f);
+        var hz = Math.Clamp(baseHz * freqMul, 0.042f, 0.078f);
+        omega = 2f * MathF.PI * hz;
+    }
+
+    /// <summary>
+    /// Visual-only pitch oscillation on open water, summed with shore différent. Does not affect rigid body.
+    /// </summary>
+    private static float ComputeVisualWavePitchOnWater(Slave slave, RigidBody rigidBody, float dt)
+    {
+        var grounded = slave.CachedFloorLevel > slave.CachedWaterSurface || slave.GroundContactLatched;
+        if (grounded)
+            return 0f;
+
+        var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
+        const float submergedForFullAmp = 0.32f;
+        var depthMul = Math.Clamp(submerged / submergedForFullAmp, 0f, 1f);
+        if (depthMul <= 0f)
+            return 0f;
+
+        GetVisualWavePitchModelFactors(slave.ShipController?.ShipModel, slave.Scale, out var maxAmpRad, out var omega);
+        slave.WavePitchPhase += omega * dt;
+        // keep phase bounded
+        if (slave.WavePitchPhase > MathF.PI * 4000f)
+            slave.WavePitchPhase -= MathF.PI * 4000f;
+
+        var phaseOff = (slave.ObjId & 511) * 0.211f;
+        return MathF.Sin(slave.WavePitchPhase + phaseOff) * maxAmpRad * depthMul;
+    }
+
+    /// <summary>
+    /// Max visual bank (degrees) for turn lean from <c>ship_models</c> mass box and mass.
+    /// Horizontal footprint: <c>mass_box_size_x/y</c> are both in-plane; length = max(X,Y), beam = min(X,Y); height = Z.
+    /// Reference constants coarsely fitted to former per-<see cref="SlaveKind"/> caps using averages from <c>compact.sqlite3</c>.
+    /// </summary>
+    private static float ComputeVisualMaxBankDegFromShipModel(ShipModelV1 model, float scale)
+    {
+        if (!TryGetShipMassBoxWaterlineExtents(model, scale, out var length, out var beam, out var height, out var mass))
+            return 8f;
+
+        const float refLength = 14f;
+        const float refBeam = 1.5f;
+        const float refHeight = 16f;
+        const float refMass = 85000f;
+        const float baseDeg = 9f;
+
+        var lengthFactor = MathF.Pow(Math.Clamp(length / refLength, 0.35f, 2.8f), 0.22f);
+        var beamFactor = MathF.Pow(Math.Clamp(refBeam / beam, 0.65f, 1.6f), 0.28f);
+        var massFactor = MathF.Pow(Math.Clamp(refMass / mass, 0.2f, 4f), 0.18f);
+        var heightFactor = MathF.Pow(Math.Clamp(refHeight / height, 0.5f, 2f), 0.12f);
+
+        var deg = baseDeg * lengthFactor * beamFactor * massFactor * heightFactor;
+        return Math.Clamp(deg, 5f, 14f);
+    }
+
+    /// <summary>
     /// Update ship's movement data and broadcasts it 
     /// </summary>
     /// <param name="slave"></param>
@@ -463,17 +603,7 @@ public class PhysicsManager
 
         // Visual-only bank (ship leans into turns). Applied to replicated rotation, not physics.
         // Coordinate mapping is legacy: GetSlaveRotationFromDegrees reorders axes, so injecting into rpy.Item2 affects client-side roll.
-        var maxBankDeg = slave.Template.SlaveKind switch
-        {
-            SlaveKind.BigSailingShip => 10.0f,
-            SlaveKind.SmallSailingShip => 10.0f,
-            SlaveKind.Speedboat => 8.0f,
-            SlaveKind.Fishboat => 8.0f,
-            SlaveKind.MerchantShip => 8.0f,
-            SlaveKind.Leviathan => 8.0f,
-            SlaveKind.Boat => 8.0f,
-            _ => 0f
-        };
+        var maxBankDeg = ComputeVisualMaxBankDegFromShipModel(slave.ShipController?.ShipModel, slave.Scale);
         const float bankResponse = 7.5f; // higher = snappier
         var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
         var maxBankRad = maxBankDeg.DegToRad();
@@ -486,73 +616,77 @@ public class PhysicsManager
         var a = 1f - MathF.Exp(-bankResponse * dt);
         slave.BankAngle += (targetBank - slave.BankAngle) * a;
 
-        // Visual-only pitch on shoal/ground: align nose/stern to local terrain slope.
-        // This does not affect rigidbody Y/physics, only replicated rotation.
-        const float groundPitchMaxDeg = 8.0f;
-        const float groundPitchProbeDistance = 6.0f;
-        const float groundPitchResponse = 2.0f; // smoother to avoid pitch jitter
-        var targetGroundPitch = 0f;
-        if (slave.CachedFloorLevel > slave.CachedWaterSurface || slave.GroundContactLatched)
+        _shipShore.UpdateVisualGroundPitch(slave, rigidBody, deltaTime);
+
+        var wavePitchRad = ComputeVisualWavePitchOnWater(slave, rigidBody, dt);
+
+        // Replication smoothing for clients only; rigid body and transform stay physics-accurate below.
+        // Horizontal (phys X,Z → packet X,Y) uses snappier lambdas; vertical / trim softer; bank softer still (turn lean jitter).
+        const float repLambdaHorizFree = 22f;
+        const float repLambdaHorizContact = 11f;
+        const float repLambdaVertFree = 8f;
+        const float repLambdaVertContact = 4f;
+        const float repLambdaBankFree = 4f;
+        const float repLambdaBankContact = 2f;
+        var rep = slave.ShipController!.Replication;
+        var repLambdaH = rep.ContactHoldTicks > 0 ? repLambdaHorizContact : repLambdaHorizFree;
+        var repLambdaV = rep.ContactHoldTicks > 0 ? repLambdaVertContact : repLambdaVertFree;
+        var repLambdaB = rep.ContactHoldTicks > 0 ? repLambdaBankContact : repLambdaBankFree;
+        var repAlphaH = 1f - MathF.Exp(-repLambdaH * dt);
+        var repAlphaV = 1f - MathF.Exp(-repLambdaV * dt);
+        var repAlphaB = 1f - MathF.Exp(-repLambdaB * dt);
+
+        var tgtX = rigidBody.Position.X;
+        var tgtY = rigidBody.Position.Z;
+        var tgtZ = rigidBody.Position.Y;
+        var tgtVx = rigidBody.Velocity.X;
+        var tgtVy = rigidBody.Velocity.Z;
+        var tgtVz = rigidBody.Velocity.Y;
+
+        if (!rep.Seeded)
         {
-            var yaw = rpy.Item1 + 1.57f; // bow heading in world X/Y plane
-            var cosYaw = MathF.Cos(yaw);
-            var sinYaw = MathF.Sin(yaw);
-            var cx = rigidBody.Position.X;
-            var cy = rigidBody.Position.Z;
-            var frontX = cx + cosYaw * groundPitchProbeDistance;
-            var frontY = cy + sinYaw * groundPitchProbeDistance;
-            var backX = cx - cosYaw * groundPitchProbeDistance;
-            var backY = cy - sinYaw * groundPitchProbeDistance;
-            var frontH = slave.ParentWorld.GetHeight(frontX, frontY);
-            var backH = slave.ParentWorld.GetHeight(backX, backY);
-
-            // Smooth sampled heights to avoid geo noise causing visual pitch jitter.
-            const float pitchFloorSmoothResponse = 8.0f;
-            var floorA = 1f - MathF.Exp(-pitchFloorSmoothResponse * dt);
-            if (!slave.GroundPitchFloorSmoothingSeeded)
-            {
-                slave.GroundPitchFrontFloorSmoothed = frontH;
-                slave.GroundPitchBackFloorSmoothed = backH;
-                slave.GroundPitchFloorSmoothingSeeded = true;
-            }
-            else
-            {
-                slave.GroundPitchFrontFloorSmoothed += (frontH - slave.GroundPitchFrontFloorSmoothed) * floorA;
-                slave.GroundPitchBackFloorSmoothed += (backH - slave.GroundPitchBackFloorSmoothed) * floorA;
-            }
-
-            var slopeRad = MathF.Atan2(slave.GroundPitchFrontFloorSmoothed - slave.GroundPitchBackFloorSmoothed, groundPitchProbeDistance * 2f);
-            targetGroundPitch = Math.Clamp(slopeRad, -groundPitchMaxDeg.DegToRad(), groundPitchMaxDeg.DegToRad());
-
-            // When beaching in reverse (stern on ground), invert pitch so the stern rises (not the bow).
-            if (slave.GroundedByStern)
-                targetGroundPitch = -targetGroundPitch;
+            rep.PosX = tgtX;
+            rep.PosY = tgtY;
+            rep.PosZ = tgtZ;
+            rep.VelPx = tgtVx;
+            rep.VelPy = tgtVy;
+            rep.VelPz = tgtVz;
+            rep.BankSmoothed = slave.BankAngle;
+            rep.GroundPitchSmoothed = slave.GroundPitchAngle;
+            rep.Seeded = true;
         }
         else
-            slave.GroundPitchFloorSmoothingSeeded = false;
+        {
+            rep.PosX += (tgtX - rep.PosX) * repAlphaH;
+            rep.PosY += (tgtY - rep.PosY) * repAlphaH;
+            rep.PosZ += (tgtZ - rep.PosZ) * repAlphaV;
+            rep.VelPx += (tgtVx - rep.VelPx) * repAlphaH;
+            rep.VelPy += (tgtVy - rep.VelPy) * repAlphaH;
+            rep.VelPz += (tgtVz - rep.VelPz) * repAlphaV;
+            rep.BankSmoothed += (slave.BankAngle - rep.BankSmoothed) * repAlphaB;
+            rep.GroundPitchSmoothed += (slave.GroundPitchAngle - rep.GroundPitchSmoothed) * repAlphaV;
+        }
 
-        var pitchA = 1f - MathF.Exp(-groundPitchResponse * dt);
-        slave.GroundPitchAngle += (targetGroundPitch - slave.GroundPitchAngle) * pitchA;
+        var bankedRpy = (rpy.Item1, rpy.Item2 + rep.BankSmoothed, rpy.Item3 + rep.GroundPitchSmoothed + wavePitchRad);
 
-        var bankedRpy = (rpy.Item1, rpy.Item2 + slave.BankAngle, rpy.Item3 + slave.GroundPitchAngle);
-
-        // Insert new Rotation data into MoveType
+        // Physics yaw + euler; bank uses softer λ than vertical/trim.
         var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(bankedRpy.Item1, bankedRpy.Item2, bankedRpy.Item3);
         moveType.RotationX = rotX;
         moveType.RotationY = rotY;
         moveType.RotationZ = rotZ;
 
-        // Fill in the Velocity Data into the MoveType.
-        // moveType.Velocity = new Vector3(rigidBody.Velocity.X, rigidBody.Velocity.Z, rigidBody.Velocity.Y);
+        moveType.X = rep.PosX;
+        moveType.Y = rep.PosY;
+        moveType.Z = rep.PosZ;
+
         moveType.AngVelX = rigidBody.AngularVelocity.X;
         moveType.AngVelY = rigidBody.AngularVelocity.Z;
         moveType.AngVelZ = rigidBody.AngularVelocity.Y;
 
-        // Seems display the correct speed this way, but what happens if you go over the bounds ?
-        var velMultiplier = 2048; // 1024;
-        moveType.VelX = (short)(rigidBody.Velocity.X * velMultiplier);
-        moveType.VelY = (short)(rigidBody.Velocity.Z * velMultiplier);
-        moveType.VelZ = (short)(rigidBody.Velocity.Y * velMultiplier);
+        const int velMultiplier = 2048;
+        moveType.VelX = (short)(rep.VelPx * velMultiplier);
+        moveType.VelY = (short)(rep.VelPy * velMultiplier);
+        moveType.VelZ = (short)(rep.VelPz * velMultiplier);
 
         // Do not allow the body to flip
         //slave.RigidBody.Orientation = JMatrix.CreateFromYawPitchRoll(rpy.Item1, 0, 0); // TODO: Fix me with proper physics
@@ -562,190 +696,17 @@ public class PhysicsManager
         slave.Transform.Local.ApplyFromQuaternion(rigidBody.Orientation);
         slave.Transform.Local.SetRotation(
             slave.Transform.Local.Rotation.X,
-            slave.Transform.Local.Rotation.Y + slave.BankAngle,
-            slave.Transform.Local.Rotation.Z + slave.GroundPitchAngle);
+            slave.Transform.Local.Rotation.Y + rep.BankSmoothed,
+            slave.Transform.Local.Rotation.Z + rep.GroundPitchSmoothed + wavePitchRad);
 
         // Send the packet
         slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
 
         // Update all to main Slave and it's children
         slave.Transform.FinalizeTransform();
-    }
 
-    /// <summary>
-    /// Apply land collision between the ship and the expected terrain
-    /// </summary>
-    /// <param name="slave"></param>
-    /// <param name="deltaTime"></param>
-    private void CheckLandCollisions(Slave slave, TimeSpan deltaTime)
-    {
-        if (slave.ShipController?.ShipModel is null)
-            return;
-
-        var dt = Math.Max(0.0001f, (float)deltaTime.TotalSeconds);
-
-        // Terrain contact is evaluated at a probe point in front of bow / behind stern (not hull center).
-        // Requested tuning: probe is placed at 2x hull length from center.
-        var boatBottom = slave.RigidBody.Position.Y;
-
-        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation));
-        var heading = rpy.Item1 + 1.57f;
-        var dirX = MathF.Cos(heading);
-        var dirZ = MathF.Sin(heading);
-
-        var vX = slave.RigidBody.Velocity.X;
-        var vZ = slave.RigidBody.Velocity.Z;
-        var along = vX * dirX + vZ * dirZ; // >0 forward, <0 backward
-        var movingBackward = along < -0.05f || (MathF.Abs(along) <= 0.05f && slave.ThrottleRequest < 0);
-
-        const float BowProbeMul = 1.5f;
-        const float SternProbeMul = 1.5f;
-        // IMPORTANT: once we latched ground contact, keep the same hull-end selection stable.
-        // Otherwise, releasing reverse at standstill can flip the probe from stern->bow,
-        // making contactFloor drop and causing GroundContactLatched + visual pitch to flicker.
-        var useSternProbe = slave.GroundContactLatched ? slave.GroundedByStern : movingBackward;
-        var probeMul = useSternProbe ? SternProbeMul : BowProbeMul;
-        var probeDist = MathF.Max(1.0f, slave.ShipController.ShipModel.MassBoxSizeX * probeMul * slave.Scale);
-        var probeSign = useSternProbe ? -1f : 1f; // stern / bow
-        var probeX = slave.RigidBody.Position.X + dirX * probeDist * probeSign;
-        var probeY = slave.RigidBody.Position.Z + dirZ * probeDist * probeSign;
-        var contactFloor = slave.ParentWorld.GetHeight(probeX, probeY);
-
-        // Simple "cliff collision" rule:
-        // look ahead/behind at 2x hull length; if slope is steeper than 45% treat as a barrier.
-        // "Wall / cliff" detection probe distance (independent from beach contact probe).
-        const float CliffProbeMul = 1.45f;
-        // ~30 degrees slope threshold (rounded): 57%
-        const float CliffSlopeFracThreshold = 0.57f;
-        var cliffDist = MathF.Max(1.0f, slave.ShipController.ShipModel.MassBoxSizeX * CliffProbeMul * slave.Scale);
-        var cliffX = slave.RigidBody.Position.X + dirX * cliffDist * probeSign;
-        var cliffY = slave.RigidBody.Position.Z + dirZ * cliffDist * probeSign;
-        var cliffFloor = slave.ParentWorld.GetHeight(cliffX, cliffY);
-        // Prevent underwater terrain ("sea floor") from being treated as a wall:
-        // only run cliff-barrier logic when the probe sample is at/above water; otherwise fall through to beaching.
-        const float CliffAboveWaterMargin = 0.20f;
-        if (cliffFloor > slave.CachedWaterSurface + CliffAboveWaterMargin)
-        {
-            var dh = cliffFloor - slave.CachedFloorLevel;
-            var slopeFrac = dh / MathF.Max(0.01f, cliffDist);
-            if (slopeFrac > CliffSlopeFracThreshold)
-            {
-                // Collision: remove the component of horizontal velocity pushing into the cliff.
-                var v = slave.RigidBody.Velocity;
-                var vAlong = v.X * dirX + v.Z * dirZ;
-                var pushingIntoBarrier = useSternProbe ? (vAlong < 0f) : (vAlong > 0f);
-                if (pushingIntoBarrier)
-                {
-                    // Stop the "poke": ShipController will otherwise re-apply forward/back velocity next tick from slave.Speed.
-                    slave.Speed = 0f;
-                    var newVX = v.X - vAlong * dirX;
-                    var newVZ = v.Z - vAlong * dirZ;
-                    slave.RigidBody.Velocity = new JVector(newVX * 0.85f, 0f, newVZ * 0.85f);
-                    slave.RigidBody.AngularVelocity *= 0.85f;
-                }
-
-                // Push out of the barrier so we don't clip into wall textures.
-                // Single small push opposite to the barrier-facing direction (no loops -> no jitter).
-                var pushDirSign = useSternProbe ? 1f : -1f;
-                var pushStep = MathF.Min(0.50f, MathF.Max(0.08f, MathF.Abs(vAlong) * dt * 1.10f));
-                slave.RigidBody.Position += new JVector(dirX * pushStep * pushDirSign, 0f, dirZ * pushStep * pushDirSign);
-
-                return;
-            }
-        }
-
-        // Latch ground contact with enter/exit hysteresis to avoid rapid toggling (visual jitter).
-        const float ShoreEnterHyst = 0.35f;
-        const float ShoreExitHyst = 0.10f;
-
-        // Smooth contact floor itself (geo height noise + probe jitter).
-        const float FloorSmoothResponse = 10.0f;
-        {
-            var a = 1f - MathF.Exp(-FloorSmoothResponse * dt);
-            if (!slave.GroundContactLatched && !slave.GroundContactFloorSmoothingSeeded)
-            {
-                slave.GroundContactFloorSmoothed = contactFloor;
-                slave.GroundContactFloorSmoothingSeeded = true;
-            }
-            else
-                slave.GroundContactFloorSmoothed += (contactFloor - slave.GroundContactFloorSmoothed) * a;
-        }
-        var floorSmoothed = slave.GroundContactFloorSmoothed;
-
-        // Pre-shore band: damp vertical bobbing right before latch triggers.
-        // This targets the last few "bumps" while approaching the shoreline.
-        const float PreShoreBand = 0.25f;
-        var enterDelta = (slave.CachedWaterSurface + ShoreEnterHyst) - floorSmoothed; // >=0 means "still water side"
-        if (!slave.GroundContactLatched && enterDelta >= 0f && enterDelta <= PreShoreBand)
-        {
-            var v = slave.RigidBody.Velocity;
-            // Fade Y velocity to zero as we approach latch point.
-            var t = 1f - (enterDelta / PreShoreBand); // 0..1
-            var damp = 1f - 0.85f * t;
-            slave.RigidBody.Velocity = new JVector(v.X, v.Y * damp, v.Z);
-        }
-
-        if (!slave.GroundContactLatched)
-        {
-            if (slave.CachedWaterSurface + ShoreEnterHyst >= floorSmoothed)
-                return;
-            slave.GroundContactLatched = true;
-            slave.GroundContactLatchedTime = 0f;
-        }
-        else
-        {
-            // Release latch only when we are clearly back on water side.
-            if (slave.CachedWaterSurface + ShoreExitHyst >= floorSmoothed)
-            {
-                slave.GroundContactLatched = false;
-                slave.GroundContactLatchedTime = 0f;
-                return;
-            }
-        }
-
-        // Remove vertical bobbing near shoreline / on ground contact.
-        // This targets the remaining "bumpy" height jerks right before beaching.
-        {
-            var v = slave.RigidBody.Velocity;
-            if (MathF.Abs(v.Y) > 0.01f)
-                slave.RigidBody.Velocity = new JVector(v.X, 0f, v.Z);
-        }
-        slave.GroundContactLatchedTime += Math.Max(0f, (float)deltaTime.TotalSeconds);
-
-        var penetration = floorSmoothed - boatBottom;
-        if (penetration <= 0.0f)
-            return;
-
-        // Smooth/clamp the vertical correction to prevent shaking on small height changes.
-        const float PenetrationEpsilon = 0.02f;
-        const float PenetrationResponse = 4.5f; // even smoother vertical correction
-        var maxUpStepPerTick = slave.GroundContactLatchedTime < 0.30f ? 0.04f : 0.07f;
-        if (penetration > PenetrationEpsilon)
-        {
-            var a = 1f - MathF.Exp(-PenetrationResponse * dt);
-            var step = MathF.Min(penetration * a, maxUpStepPerTick);
-            slave.RigidBody.Position += new JVector(0, step, 0); // lift toward terrain smoothly
-
-            // Kill vertical bounce when we manually resolve penetration (prevents small height jerks).
-            var v = slave.RigidBody.Velocity;
-            if (MathF.Abs(v.Y) > 0.01f)
-                slave.RigidBody.Velocity = new JVector(v.X, 0f, v.Z);
-        }
-        var collisionForce = _physWorld.Gravity * -1f;
-        slave.RigidBody.AddForce(collisionForce);
-
-        // Gradually reduce speed.
-        // Keep much more momentum for valid escape direction; otherwise the ship can get stuck jittering.
-        var escapeThrottleSign = slave.GroundedByStern ? 1 : -1;
-        var isEscapeThrottle = slave.ThrottleRequest != 0 && Math.Sign(slave.ThrottleRequest) == escapeThrottleSign;
-        // Less aggressive damping on initial shoreline contact to preserve inertia.
-        // Only apply strong damping once penetration is clearly "on land".
-        var deepContact = penetration > 0.25f;
-        var collisionDamping = isEscapeThrottle ? 0.99f : (deepContact ? 0.88f : 0.95f);
-        slave.RigidBody.Velocity *= collisionDamping;
-        slave.RigidBody.AngularVelocity *= collisionDamping;
-
-        // Logger.Debug($"Land Collision detected. Boat adjusted position: {slave.RigidBody.Position}, boat penetration depth: {penetration}");
+        if (rep.ContactHoldTicks > 0)
+            rep.ContactHoldTicks--;
     }
 
     /// <summary>
