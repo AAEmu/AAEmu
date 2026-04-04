@@ -29,9 +29,7 @@ public sealed class ShipCliffInteraction
         public const float EmergedRockProbeMaxDistanceMeters = 14f;
         /// <summary>Ignore |∇h| above this (single-tick spikes / bad cells); treated as non-cliff.</summary>
         public const float MaxGradientMagnitudeSanity = 6f;
-        /// <summary>Half-extent (m) of the virtual wall along the cliff line (SAT long axis). Keep moderate to limit stray axis overlaps.</summary>
-        public const float WallHalfLengthAlongFaceMeters = 22f;
-        /// <summary>Half-thickness (m) of the virtual wall (SAT short axis).</summary>
+        /// <summary>Half-thickness (m) of the virtual wall on the cliff face normal (long axis is tangent ⊥ normal — no extra radius on that axis).</summary>
         public const float WallHalfThicknessMeters = 0.45f;
         /// <summary>Along ascent past first emerged-rock probe: wall anchor sits this far past that point (m).</summary>
         public const float WallLeadBeyondEmergedProbeMeters = 1.15f;
@@ -39,8 +37,6 @@ public sealed class ShipCliffInteraction
         public const float WallAlongAscentMinMeters = 3.5f;
         /// <summary>Vertical half-height (m) of the obstacle column for overlap tests (Jitter Y).</summary>
         public const float VerticalHalfHeightMeters = 22f;
-        /// <summary>Passes per tick (1 avoids double impulse feel).</summary>
-        public const int ResolvePasses = 1;
         /// <summary>Max depenetration iterations per ship per pass — keep low to reduce elastic ping-pong.</summary>
         public const int MaxPairIterations = 3;
         /// <summary>Ignore overlaps with penetration below this (m) to reduce jitter from marginal contacts.</summary>
@@ -71,17 +67,14 @@ public sealed class ShipCliffInteraction
         if (ships.Count == 0)
             return;
 
-        for (var pass = 0; pass < CliffObstacleDefaults.ResolvePasses; pass++)
+        foreach (var ship in ships)
         {
-            foreach (var ship in ships)
-            {
-                if (ship.RigidBody is null || ship.ShipController?.ShipModel is null || ship.Region is null)
-                    continue;
-                if (ship.ParentWorld?.Id != world.Id)
-                    continue;
+            if (ship.RigidBody is null || ship.ShipController?.ShipModel is null || ship.Region is null)
+                continue;
+            if (ship.ParentWorld?.Id != world.Id)
+                continue;
 
-                TryResolveShipVsSteepTerrain(world, ship);
-            }
+            TryResolveShipVsSteepTerrain(world, ship);
         }
 
         foreach (var ship in ships)
@@ -169,10 +162,6 @@ public sealed class ShipCliffInteraction
         if (floorAtWall < waterAtWallPoint + CliffObstacleDefaults.MinRockHeightAboveWaterMeters)
             return;
 
-        var tx = -az;
-        var tz = ax;
-        var bowB = MathF.Atan2(tz, tx);
-
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
         var bowA = rpyA.Item1 + 1.57f;
 
@@ -180,12 +169,10 @@ public sealed class ShipCliffInteraction
         var satHalfWidA = ma.MassBoxSizeX * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateBeam *
                           ShipShipInteraction.ShipHullPairDefaults.BeamDetectTightenMul;
 
-        var halfLenB = CliffObstacleDefaults.WallHalfLengthAlongFaceMeters;
-        var halfWidB = CliffObstacleDefaults.WallHalfThicknessMeters;
-
         var halfH = CliffObstacleDefaults.VerticalHalfHeightMeters;
         var dMinY = floorAtWall - halfH;
         var dMaxY = floorAtWall + halfH;
+        var rB = CliffObstacleDefaults.WallHalfThicknessMeters;
 
         for (var iter = 0; iter < CliffObstacleDefaults.MaxPairIterations; iter++)
         {
@@ -196,14 +183,12 @@ public sealed class ShipCliffInteraction
 
             ShipShipInteraction.GetMassBoxCenterXz(body, ma, ship.Scale, out var acx, out var acz);
 
-            // Face normal = uphill (ship → rock). SAT min-axis would often align with the hull length on a broadside hit and
-            // shove the ship sideways; 1D overlap on this axis matches a vertical wall.
+            // Face normal = uphill (ship → rock). Wall tangent ⊥ n ⇒ projected half-extent on n is only slab thickness.
             var nx = ax;
             var nz = az;
             var cA = acx * nx + acz * nz;
             var cB = bx * nx + bz * nz;
             var rA = ShipShipInteraction.ProjectObbRadiusXz(halfLenA, satHalfWidA, bowA, nx, nz);
-            var rB = ShipShipInteraction.ProjectObbRadiusXz(halfLenB, halfWidB, bowB, nx, nz);
             var penetration = MathF.Min(cA + rA, cB + rB) - MathF.Max(cA - rA, cB - rB);
             if (penetration < CliffObstacleDefaults.MinPenetrationToAct)
                 break;
@@ -211,27 +196,15 @@ public sealed class ShipCliffInteraction
             var move = (penetration * CliffObstacleDefaults.SeparationPushMultiplier + CliffObstacleDefaults.SeparationSlackMeters)
                 * CliffObstacleDefaults.OverlapResolveFractionPerIteration;
             move = MathF.Min(move, CliffObstacleDefaults.MaxSeparationStepMetersPerIteration);
-            body.Position -= new JVector(nx * move, 0f, nz * move);
-
-            var va = body.Velocity;
-            var closing = va.X * nx + va.Z * nz;
-            if (closing > 0f)
-            {
-                va = new JVector(va.X - nx * closing * CliffObstacleDefaults.ClosingSpeedDamp, va.Y,
-                    va.Z - nz * closing * CliffObstacleDefaults.ClosingSpeedDamp);
-            }
-
-            var tnx = -nz;
-            var tnz = nx;
-            var relT = va.X * tnx + va.Z * tnz;
-            var slip = relT * (1f - CliffObstacleDefaults.TangentialSlipDamp);
-            va = new JVector(va.X - tnx * slip, va.Y, va.Z - tnz * slip);
-            body.Velocity = va;
-
-            const byte holdTicks = 8;
-            if (ship.ShipController != null)
-                ship.ShipController.Replication.ContactHoldTicks =
-                    Math.Max(ship.ShipController.Replication.ContactHoldTicks, holdTicks);
+            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXz(
+                body,
+                ship,
+                nx,
+                nz,
+                move,
+                CliffObstacleDefaults.ClosingSpeedDamp,
+                CliffObstacleDefaults.TangentialSlipDamp,
+                ShipStaticObstacleContact.DefaultReplicationContactHoldTicks);
         }
     }
 }

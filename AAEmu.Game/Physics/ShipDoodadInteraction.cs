@@ -16,6 +16,7 @@ namespace AAEmu.Game.Physics;
 /// Resolves ship hull vs static-structure doodads (piers, harbor props, etc.). Client meshes are not in the heightmap,
 /// so <see cref="HeightMaps.HeightmapDetection"/> never sees them; retail uses <c>collide_ship</c> / <c>no_collision</c> on doodad templates.
 /// Uses the same XZ OBB SAT convention as <see cref="ShipShipInteraction"/>; obstacle is treated as infinite mass (only the ship moves).
+/// Separation/damping XZ step is shared with cliffs via <see cref="ShipStaticObstacleContact"/>.
 /// </summary>
 public sealed class ShipDoodadInteraction
 {
@@ -153,27 +154,15 @@ public sealed class ShipDoodadInteraction
             }
 
             var move = penetration * DoodadObstacleDefaults.SeparationPushMultiplier + DoodadObstacleDefaults.SeparationSlackMeters;
-            body.Position -= new JVector(nx * move, 0f, nz * move);
-
-            var va = body.Velocity;
-            var closing = va.X * nx + va.Z * nz;
-            if (closing > 0f)
-            {
-                va = new JVector(va.X - nx * closing * DoodadObstacleDefaults.ClosingSpeedDamp, va.Y,
-                    va.Z - nz * closing * DoodadObstacleDefaults.ClosingSpeedDamp);
-            }
-
-            var tx = -nz;
-            var tz = nx;
-            var relT = va.X * tx + va.Z * tz;
-            var slip = relT * (1f - DoodadObstacleDefaults.TangentialSlipDamp);
-            va = new JVector(va.X - tx * slip, va.Y, va.Z - tz * slip);
-            body.Velocity = va;
-
-            const byte holdTicks = 8;
-            if (ship.ShipController != null)
-                ship.ShipController.Replication.ContactHoldTicks =
-                    Math.Max(ship.ShipController.Replication.ContactHoldTicks, holdTicks);
+            ShipStaticObstacleContact.ApplySeparationAndSurfaceDampXz(
+                body,
+                ship,
+                nx,
+                nz,
+                move,
+                DoodadObstacleDefaults.ClosingSpeedDamp,
+                DoodadObstacleDefaults.TangentialSlipDamp,
+                ShipStaticObstacleContact.DefaultReplicationContactHoldTicks);
 
             had = true;
         }
