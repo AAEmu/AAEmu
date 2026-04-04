@@ -26,6 +26,7 @@ public class LoginSessionTests
     private readonly Mock<IGameController> _mockGameController = Mock.Of<IGameController>();
     private readonly List<LoginPacket> _sentPackets = [];
     private readonly CancellationTokenSource _connectionClosedCts = new();
+    private readonly FakeTimeProvider _fakeTimeProvider = new();
     private readonly LoginSession _session;
 
     public LoginSessionTests()
@@ -34,7 +35,7 @@ public class LoginSessionTests
         _mockConnection.Ip.Returns(s_testIp);
         _mockConnection.ConnectionClosed.Returns(_connectionClosedCts.Token);
         _mockConnection.SendPacketAsync(Any<LoginPacket>(), Any<CancellationToken>())
-            .Callback((LoginPacket p, CancellationToken _) => _sentPackets.Add(p));
+            .Callback((p, _) => _sentPackets.Add(p));
 
         var appConfig = Options.Create(new AppConfiguration
         {
@@ -44,22 +45,7 @@ public class LoginSessionTests
         _session = new LoginSession(
             _mockConnection.Object,
             _mockGameController.Object,
-            TimeProvider.System,
-            appConfig,
-            Mock.Of<ILogger<LoginSession>>().Object);
-    }
-
-    private LoginSession CreateSessionWithTimeProvider(TimeProvider timeProvider)
-    {
-        var appConfig = Options.Create(new AppConfiguration
-        {
-            SecretKey = "test", EnterWorldTimeout = TimeSpan.FromMilliseconds(200), GameServers = []
-        });
-
-        return new LoginSession(
-            _mockConnection.Object,
-            _mockGameController.Object,
-            timeProvider,
+            _fakeTimeProvider,
             appConfig,
             Mock.Of<ILogger<LoginSession>>().Object);
     }
@@ -72,11 +58,10 @@ public class LoginSessionTests
         return mock;
     }
 
-    private async Task AuthenticateSuccessfullyAsync(LoginSession? session = null)
+    private async Task AuthenticateSuccessfullyAsync(CancellationToken cancellationToken)
     {
-        session ??= _session;
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId, "testuser"));
-        await session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
         _sentPackets.Clear();
     }
 
@@ -91,11 +76,11 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task AuthenticateAsync_Success_SendsJoinThenAuthResponse()
+    public async Task AuthenticateAsync_Success_SendsJoinThenAuthResponse(CancellationToken cancellationToken)
     {
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId, "testuser"));
 
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
 
         await Assert.That(_sentPackets.Count).IsEqualTo(2);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACJoinResponsePacket));
@@ -104,11 +89,11 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task AuthenticateAsync_Denied_SendsLoginDeniedPacket()
+    public async Task AuthenticateAsync_Denied_SendsLoginDeniedPacket(CancellationToken cancellationToken)
     {
         var flow = CreateMockFlow(new AuthFlowResult.Denied(LoginDeniedReason.BadAccount));
 
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
 
         await Assert.That(_sentPackets.Count).IsEqualTo(1);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
@@ -116,12 +101,12 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task AuthenticateAsync_FromWrongState_SendsDeniedBadResponse()
+    public async Task AuthenticateAsync_FromWrongState_SendsDeniedBadResponse(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
 
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId));
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
 
         await Assert.That(_sentPackets.Count).IsEqualTo(1);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
@@ -129,47 +114,46 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task AuthenticateAsync_Pending_NoPacketSent()
+    public async Task AuthenticateAsync_Pending_NoPacketSent(CancellationToken cancellationToken)
     {
         var flow = CreateMockFlow(new AuthFlowResult.Pending());
 
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
 
         await Assert.That(_sentPackets).IsEmpty();
         await Assert.That(_session.State).IsEqualTo(LoginState.Authenticating);
     }
 
     [Test]
-    public async Task AuthenticateAsync_Success_SetsConnectionProperties()
+    public async Task AuthenticateAsync_Success_SetsConnectionProperties(CancellationToken cancellationToken)
     {
         // Enable property tracking so setters update the getter return values
         Mock.SetupAllProperties(_mockConnection);
 
         var flow = CreateMockFlow(new AuthFlowResult.Success(s_testAccountId, "testuser"));
 
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
 
         await Assert.That(_mockConnection.Object.AccountId).IsEqualTo(s_testAccountId);
         await Assert.That(_mockConnection.Object.AccountName).IsEqualTo("testuser");
         await Assert.That(_mockConnection.Object.LastIp).IsEqualTo(s_testIp);
-        // LastLogin should be set to approximately now
-        await Assert.That(DateTime.UtcNow - _mockConnection.Object.LastLogin < TimeSpan.FromSeconds(5)).IsTrue();
+        await Assert.That(_mockConnection.Object.LastLogin).IsEqualTo(_fakeTimeProvider.GetUtcNow().DateTime);
     }
 
     [Test]
-    public async Task ContinueAuthAsync_MatchingFlow_Success_SendsAuthPackets()
+    public async Task ContinueAuthAsync_MatchingFlow_Success_SendsAuthPackets(CancellationToken cancellationToken)
     {
         // Start with pending flow
         var flow = Mock.Of<IAuthenticationFlow>();
         flow.StartAsync(Any<ILoginClient>(), Any<CancellationToken>())
             .Returns(new AuthFlowResult.Pending());
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
         _sentPackets.Clear();
 
         // Continue with success
         await _session.ContinueAuthAsync<IAuthenticationFlow>(
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Success(s_testAccountId, "user")),
-            CancellationToken.None);
+            cancellationToken);
 
         await Assert.That(_sentPackets.Count).IsEqualTo(2);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACJoinResponsePacket));
@@ -178,17 +162,17 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task ContinueAuthAsync_MatchingFlow_Denied_SendsDeniedPacket()
+    public async Task ContinueAuthAsync_MatchingFlow_Denied_SendsDeniedPacket(CancellationToken cancellationToken)
     {
         var flow = Mock.Of<IAuthenticationFlow>();
         flow.StartAsync(Any<ILoginClient>(), Any<CancellationToken>())
             .Returns(new AuthFlowResult.Pending());
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
         _sentPackets.Clear();
 
         await _session.ContinueAuthAsync<IAuthenticationFlow>(
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Denied(LoginDeniedReason.BadAccount)),
-            CancellationToken.None);
+            cancellationToken);
 
         await Assert.That(_sentPackets.Count).IsEqualTo(1);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
@@ -201,19 +185,19 @@ public class LoginSessionTests
     private interface IOtherFlow : IAuthenticationFlow;
 
     [Test]
-    public async Task ContinueAuthAsync_WrongFlowType_SendsDeniedAndShutdown()
+    public async Task ContinueAuthAsync_WrongFlowType_SendsDeniedAndShutdown(CancellationToken cancellationToken)
     {
         // Start with a mocked IAuthenticationFlow
         var flow = Mock.Of<IAuthenticationFlow>();
         flow.StartAsync(Any<ILoginClient>(), Any<CancellationToken>())
             .Returns(new AuthFlowResult.Pending());
-        await _session.AuthenticateAsync(flow.Object, CancellationToken.None);
+        await _session.AuthenticateAsync(flow.Object, cancellationToken);
         _sentPackets.Clear();
 
         // Continue expecting IOtherFlow = type mismatch
         await _session.ContinueAuthAsync<IOtherFlow>(
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Success(s_testAccountId)),
-            CancellationToken.None);
+            cancellationToken);
 
         await Assert.That(_sentPackets.Count).IsEqualTo(1);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
@@ -222,12 +206,12 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task ContinueAuthAsync_FromWrongState_SendsDenied()
+    public async Task ContinueAuthAsync_FromWrongState_SendsDenied(CancellationToken cancellationToken)
     {
         // Session is in Connected state (no pending auth)
         await _session.ContinueAuthAsync<IAuthenticationFlow>(
             _ => Task.FromResult<AuthFlowResult>(new AuthFlowResult.Success(s_testAccountId)),
-            CancellationToken.None);
+            cancellationToken);
 
         await Assert.That(_sentPackets.Count).IsEqualTo(1);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACLoginDeniedPacket));
@@ -235,12 +219,12 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task InitiateEnterWorld_Success_SendsWorldCookiePacket()
+    public async Task InitiateEnterWorld_Success_SendsWorldCookiePacket(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
         CreateActiveGameServer(s_testGsId);
 
-        await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
         _session.CompleteEnterWorldRequest(s_testGsId, 0);
         await _session.EnterWorldBackgroundTask!;
 
@@ -250,12 +234,12 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task InitiateEnterWorld_Failure_SendsEnterWorldDeniedPacket()
+    public async Task InitiateEnterWorld_Failure_SendsEnterWorldDeniedPacket(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
         CreateActiveGameServer(s_testGsId);
 
-        await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
         _session.CompleteEnterWorldRequest(s_testGsId, 1);
         await _session.EnterWorldBackgroundTask!;
 
@@ -265,56 +249,54 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task InitiateEnterWorld_Timeout_SendsEnterWorldDenied()
+    public async Task InitiateEnterWorld_Timeout_SendsEnterWorldDenied(CancellationToken cancellationToken)
     {
-        var fakeTime = new FakeTimeProvider();
-        var session = CreateSessionWithTimeProvider(fakeTime);
-        await AuthenticateSuccessfullyAsync(session);
+        await AuthenticateSuccessfullyAsync(cancellationToken);
         CreateActiveGameServer(s_testGsId);
 
-        await session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
 
         // Advance past the 200ms timeout
-        fakeTime.Advance(TimeSpan.FromMilliseconds(300));
-        await session.EnterWorldBackgroundTask!;
+        _fakeTimeProvider.Advance(TimeSpan.FromMilliseconds(300));
+        await _session.EnterWorldBackgroundTask!;
 
         await Assert.That(_sentPackets.Count).IsEqualTo(1);
         await Assert.That(_sentPackets[0].GetType()).IsEqualTo(typeof(ACEnterWorldDeniedPacket));
-        await Assert.That(session.State).IsEqualTo(LoginState.Authenticated);
+        await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
     [Test]
-    public async Task InitiateEnterWorld_FromWrongState_NoAction()
+    public async Task InitiateEnterWorld_FromWrongState_NoAction(CancellationToken cancellationToken)
     {
         // Session is in Connected state
-        await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
 
         await Assert.That(_sentPackets).IsEmpty();
         await Assert.That(_session.State).IsEqualTo(LoginState.Connected);
     }
 
     [Test]
-    public async Task InitiateEnterWorld_ServerNotActive_NoAction()
+    public async Task InitiateEnterWorld_ServerNotActive_NoAction(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
 
         // Server with no connection (not active)
         var server = new GameServer(s_testGsId, "TestServer", "127.0.0.1", 1234);
         _mockGameController.GetGameServer(s_testGsId).Returns(server);
 
-        await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
 
         await Assert.That(_sentPackets).IsEmpty();
         await Assert.That(_session.State).IsEqualTo(LoginState.Authenticated);
     }
 
     [Test]
-    public async Task CompleteEnterWorld_GsIdMismatch_Ignored()
+    public async Task CompleteEnterWorld_GsIdMismatch_Ignored(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
         CreateActiveGameServer(s_testGsId);
 
-        await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
 
         // Complete with a different gsId
         var wrongGsId = new GameServerId(99);
@@ -327,12 +309,12 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task CancelEnterWorld_WhileEntering_CancelsOperation()
+    public async Task CancelEnterWorld_WhileEntering_CancelsOperation(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
         CreateActiveGameServer(s_testGsId);
 
-        await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
         _session.CancelEnterWorld();
         await _session.EnterWorldBackgroundTask!;
 
@@ -343,7 +325,7 @@ public class LoginSessionTests
     [Test]
     public async Task CancelEnterWorld_NotEntering_Ignored()
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(CancellationToken.None);
 
         _session.CancelEnterWorld();
 
@@ -352,12 +334,12 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task DisconnectAsync_CancelsPendingEnterWorld()
+    public async Task DisconnectAsync_CancelsPendingEnterWorld(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
         CreateActiveGameServer(s_testGsId);
 
-        await _session.InitiateEnterWorldAsync(s_testGsId, CancellationToken.None);
+        await _session.InitiateEnterWorldAsync(s_testGsId, cancellationToken);
         await _session.DisconnectAsync();
 
         // Should not send any packets since disconnect cancels before result
@@ -366,9 +348,9 @@ public class LoginSessionTests
     }
 
     [Test]
-    public async Task DisconnectAsync_FromAuthenticated_SetsDisconnected()
+    public async Task DisconnectAsync_FromAuthenticated_SetsDisconnected(CancellationToken cancellationToken)
     {
-        await AuthenticateSuccessfullyAsync();
+        await AuthenticateSuccessfullyAsync(cancellationToken);
 
         await _session.DisconnectAsync();
 
