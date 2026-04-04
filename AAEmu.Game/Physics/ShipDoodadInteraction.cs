@@ -31,12 +31,19 @@ public sealed class ShipDoodadInteraction
         public const float QueryRadiusPaddingMeters = 28f;
         /// <summary>Passes over all ship–doodad pairs (helps when multiple props overlap).</summary>
         public const int ResolvePasses = 2;
+        /// <summary>Max SAT/depentration iterations per ship–doodad pair per pass (caps pathological overlap loops).</summary>
         public const int MaxPairIterations = 10;
+        /// <summary>Ignore overlaps with penetration below this (m) to reduce jitter from marginal contacts.</summary>
         public const float MinPenetrationToAct = 0.05f;
+        /// <summary>Minimum vertical (Jitter Y) AABB overlap (m) between hull and obstacle column before XZ SAT runs.</summary>
         public const float MinVerticalOverlap = 0.12f;
+        /// <summary>Multiplier on computed penetration when pushing the ship out along the contact normal.</summary>
         public const float SeparationPushMultiplier = 1.18f;
+        /// <summary>Extra separation (m) added after depenetration to reduce immediate re-penetration next tick.</summary>
         public const float SeparationSlackMeters = 0.025f;
+        /// <summary>Fraction of velocity into the obstacle (along SAT normal) removed per iteration (1 = fully cancel closing speed).</summary>
         public const float ClosingSpeedDamp = 1f;
+        /// <summary>Fraction of tangential slip removed (1 − value retained); lower = more slide along the wall.</summary>
         public const float TangentialSlipDamp = 0.82f;
     }
 

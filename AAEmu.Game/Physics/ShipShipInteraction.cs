@@ -401,7 +401,7 @@ public sealed class ShipShipInteraction
     }
 
     /// <summary>2D SAT on XZ for rectangles aligned with ship bow (same convention as <see cref="ShipController"/>).</summary>
-    private static bool TryObbXzMinPenetration(
+    internal static bool TryObbXzMinPenetration(
         float ax, float az, float bowA, float halfLenA, float halfWidA,
         float bx, float bz, float bowB, float halfLenB, float halfWidB,
         out float minPenetration,
@@ -456,7 +456,7 @@ public sealed class ShipShipInteraction
         return true;
     }
 
-    private static float ProjectObbRadiusXz(float halfLen, float halfWid, float bow, float nx, float nz)
+    internal static float ProjectObbRadiusXz(float halfLen, float halfWid, float bow, float nx, float nz)
     {
         var d1 = MathF.Cos(bow) * nx + MathF.Sin(bow) * nz;
         var d2 = -MathF.Sin(bow) * nx + MathF.Cos(bow) * nz;
