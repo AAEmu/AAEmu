@@ -134,6 +134,15 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
     {
         var slave = GetSlaveByTlId(tlId);
+        if (slave == null)
+        {
+            character.Transform.Parent = null;
+            character.Transform.StickyParent = null;
+            character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+            character.AttachedPoint = AttachPointKind.None;
+            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
+            return;
+        }
 
         var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
         if (attachPoint != default)
@@ -165,7 +174,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             return;
 
         // Check if the vehicle has the MasterOwnership buff and if the character is not the owner, block the attachment.
-        if (attachPoint == AttachPointKind.Driver && slave.Buffs.CheckBuff((uint)BuffConstants.OwnersMark) && slave.Summoner.ObjId != character.ObjId)
+        if (attachPoint == AttachPointKind.Driver && slave.Buffs.CheckBuff((uint)BuffConstants.OwnersMark) && slave.Summoner?.ObjId != character.ObjId)
         {
             character.SendErrorMessage(ErrorMessageType.SlaveAlreadyHasMaster); // 仅阻止驾驶座附加
             return;
@@ -194,7 +203,12 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     public void BindSlave(GameConnection connection, uint tlId)
     {
         var unit = connection.ActiveChar;
+        if (unit == null)
+            return;
+
         var slave = GetSlaveByTlId(tlId);
+        if (slave == null || slave.IsDead)
+            return;
 
         BindSlave(unit, slave.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster);
     }
