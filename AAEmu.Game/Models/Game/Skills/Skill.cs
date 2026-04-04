@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -23,6 +23,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Physics;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
@@ -858,6 +859,9 @@ public class Skill
         {
             possibleTargets.Add(targetSelf);
         }
+
+        ShipSiegeAoEHit.AppendHostileShipsHitBySiegeHullAoE(caster, Template, targetSelf, targetCaster, possibleTargets);
+
         // Filter out duplicate entries and non-existing
         possibleTargets = possibleTargets.Distinct().ToList();
         // Add origin in case of no targets and using a target position cast
@@ -1024,7 +1028,9 @@ public class Skill
 
                 // TODO: Fix this HACK, only use the first target if it's a position.
                 // Hack added to fix SummonDoodad issues from Skill 15343, spawns Recovered Treasure Chest ( 3483 )
-                if (targetCaster is SkillCastPositionTarget)
+                // AoE skills (siege splash, etc.) must hit every unit in possibleTargets; breaking here left only the first
+                // (often crew), so ship hull added by ShipSiegeAoEHit or second ship in radius never received effects.
+                if (targetCaster is SkillCastPositionTarget && Template.TargetAreaRadius <= 0)
                 {
                     break;
                 }
