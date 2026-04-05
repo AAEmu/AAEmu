@@ -134,7 +134,7 @@ public sealed class ShipDoodadInteraction
 
             ShipShipInteraction.GetMassBoxCenterXz(body, ma, ship.Scale, out var ax, out var az);
 
-            if (!TryObbXzMinPenetration(
+            if (!ShipShipInteraction.TryObbXzMinPenetration(
                     ax, az, bowA, halfLenA, satHalfWidA,
                     bx, bz, bowB, r, r,
                     out var penetration,
@@ -168,68 +168,5 @@ public sealed class ShipDoodadInteraction
         }
 
         return had;
-    }
-
-    /// <summary>2D SAT on XZ (same as ship–ship).</summary>
-    private static bool TryObbXzMinPenetration(
-        float ax, float az, float bowA, float halfLenA, float halfWidA,
-        float bx, float bz, float bowB, float halfLenB, float halfWidB,
-        out float minPenetration,
-        out float bestNx,
-        out float bestNz)
-    {
-        minPenetration = 0f;
-        bestNx = 1f;
-        bestNz = 0f;
-
-        ReadOnlySpan<(float x, float z)> axes =
-        [
-            (MathF.Cos(bowA), MathF.Sin(bowA)),
-            (-MathF.Sin(bowA), MathF.Cos(bowA)),
-            (MathF.Cos(bowB), MathF.Sin(bowB)),
-            (-MathF.Sin(bowB), MathF.Cos(bowB)),
-        ];
-
-        var found = false;
-        var minO = float.MaxValue;
-
-        foreach (var (ux, uz) in axes)
-        {
-            var len = MathF.Sqrt(ux * ux + uz * uz);
-            if (len < 1e-6f)
-                continue;
-            var nx = ux / len;
-            var nz = uz / len;
-
-            var cA = ax * nx + az * nz;
-            var cB = bx * nx + bz * nz;
-            var rA = ProjectObbRadiusXz(halfLenA, halfWidA, bowA, nx, nz);
-            var rB = ProjectObbRadiusXz(halfLenB, halfWidB, bowB, nx, nz);
-
-            var overlap = MathF.Min(cA + rA, cB + rB) - MathF.Max(cA - rA, cB - rB);
-            if (overlap <= 0f)
-                return false;
-
-            if (overlap < minO)
-            {
-                minO = overlap;
-                bestNx = nx;
-                bestNz = nz;
-                found = true;
-            }
-        }
-
-        if (!found)
-            return false;
-
-        minPenetration = minO;
-        return true;
-    }
-
-    private static float ProjectObbRadiusXz(float halfLen, float halfWid, float bow, float nx, float nz)
-    {
-        var d1 = MathF.Cos(bow) * nx + MathF.Sin(bow) * nz;
-        var d2 = -MathF.Sin(bow) * nx + MathF.Cos(bow) * nz;
-        return halfLen * MathF.Abs(d1) + halfWid * MathF.Abs(d2);
     }
 }
