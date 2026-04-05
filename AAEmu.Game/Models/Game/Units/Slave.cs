@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
@@ -1062,7 +1061,7 @@ public class Slave : Unit
 
     public override Character GetOwnerCharacter()
     {
-        var ownerObject = OwnerObjId > 0 ? ParentWorld.GetGameObject(OwnerObjId) as BaseUnit : null;
+        var ownerObject = Summoner ?? (OwnerObjId > 0 ? ParentWorld.GetGameObject(OwnerObjId) as BaseUnit : null);
         return ownerObject?.GetOwnerCharacter();
     }
 }
