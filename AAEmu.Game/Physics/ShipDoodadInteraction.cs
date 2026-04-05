@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Models;
@@ -20,6 +22,9 @@ namespace AAEmu.Game.Physics;
 /// </summary>
 public sealed class ShipDoodadInteraction
 {
+    /// <summary>Reused each tick per ship to avoid allocating a new list on every <see cref="WorldManager.GetAround{T}"/> call.</summary>
+    private readonly List<Doodad> _nearbyDoodads = [];
+
     public static class DoodadObstacleDefaults
     {
         /// <summary>Default horizontal half-size (m) when <see cref="DoodadObj.Templates.DoodadTemplate.SimRadius"/> is 0 or unusable.</summary>
@@ -56,21 +61,22 @@ public sealed class ShipDoodadInteraction
         if (ships.Count == 0)
             return;
 
-        for (var pass = 0; pass < DoodadObstacleDefaults.ResolvePasses; pass++)
+        foreach (var ship in ships)
         {
-            foreach (var ship in ships)
+            if (ship.RigidBody is null || ship.ShipController?.ShipModel is null || ship.Region is null)
+                continue;
+
+            var model = ship.ShipController.ShipModel;
+            var halfLen = model.MassBoxSizeY * ship.Scale * 0.5f;
+            var halfBeam = model.MassBoxSizeX * ship.Scale * 0.5f;
+            var queryR = halfLen + halfBeam + DoodadObstacleDefaults.QueryRadiusPaddingMeters +
+                         DoodadObstacleDefaults.DefaultFootprintHalfExtentMeters * 2f;
+
+            WorldManager.GetAround(ship, queryR, _nearbyDoodads);
+
+            for (var pass = 0; pass < DoodadObstacleDefaults.ResolvePasses; pass++)
             {
-                if (ship.RigidBody is null || ship.ShipController?.ShipModel is null || ship.Region is null)
-                    continue;
-
-                var model = ship.ShipController.ShipModel;
-                var halfLen = model.MassBoxSizeY * ship.Scale * 0.5f;
-                var halfBeam = model.MassBoxSizeX * ship.Scale * 0.5f;
-                var queryR = halfLen + halfBeam + DoodadObstacleDefaults.QueryRadiusPaddingMeters +
-                             DoodadObstacleDefaults.DefaultFootprintHalfExtentMeters * 2f;
-
-                var doodads = WorldManager.GetAround<Doodad>(ship, queryR);
-                foreach (var doodad in doodads)
+                foreach (var doodad in _nearbyDoodads)
                 {
                     if (doodad.ParentWorld?.Id != world.Id)
                         continue;
