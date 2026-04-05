@@ -17,8 +17,12 @@ namespace AAEmu.Game.Physics;
 /// </summary>
 public static class ShipSiegeAoEHit
 {
-    /// <summary>Slaves are queried by pivot; hull can extend this far from pivot along bow/stern.</summary>
-    public const float PivotQuerySlackMeters = 200f;
+    /// <summary>
+    /// Extra meters added to siege radius for <see cref="WorldManager.GetAround{T}"/> so pivots outside the skill circle
+    /// still pick up long hulls. Tuned below a conservative 200 m: largest playable hulls are ~50 m LOA; mass-box half-length,
+    /// beam, and center offset from pivot stay well under ~100 m in normal ship_models data.
+    /// </summary>
+    public const float PivotQuerySlackMeters = 100f;
 
     public static void AppendHostileShipsHitBySiegeHullAoE(
         BaseUnit caster,
