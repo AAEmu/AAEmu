@@ -65,7 +65,7 @@ public sealed class ShipStaticBarrier
             return false;
         }
 
-        var halfT = entry.HalfThicknessMeters > 0f ? entry.HalfThicknessMeters : 1.8f;
+        var halfT = entry.HalfThicknessMeters > 0f ? entry.HalfThicknessMeters : 1.05f;
         var segments = new List<(float, float, float, float)>(pts.Count - 1);
         var minX = float.PositiveInfinity;
         var maxX = float.NegativeInfinity;
@@ -108,7 +108,7 @@ internal sealed class ShipStaticBarrierEntryDto
     public uint ZoneKey { get; set; }
     public float ZMin { get; set; }
     public float ZMax { get; set; }
-    public float HalfThicknessMeters { get; set; } = 1.8f;
+    public float HalfThicknessMeters { get; set; } = 1.05f;
     public bool Enabled { get; set; } = true;
     public List<List<double>> PointsXY { get; set; }
 }

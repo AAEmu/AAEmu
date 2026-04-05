@@ -37,8 +37,8 @@ internal static class ShipStaticBarrierBaiIngestor
         /// <summary>Barrier ceiling: <c>OceanLevel + ZMaxOffsetFromOcean</c> (m); defines vertical overlap range with the hull.</summary>
         public const float ZMaxOffsetFromOcean = 15f;
 
-        /// <summary>Half-width (m) of each segment wall — OBB thickness in the horizontal (Jitter XZ) plane.</summary>
-        public const float HalfThicknessMeters = 1.8f;
+        /// <summary>Half-width (m) of each segment wall — OBB thickness in the horizontal (Jitter XZ) plane. Lower = contact closer to the polyline.</summary>
+        public const float HalfThicknessMeters = 1.05f;
 
         /// <summary>Heightmap sample counts as “coastal / shallow” if <c>h ≤ OceanLevel + CoastalMaxAboveOcean</c> (m).</summary>
         public const float CoastalMaxAboveOcean = 25f;
