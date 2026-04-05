@@ -511,6 +511,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             Spawner = useSpawner,
             OwnerType = owner != null ? BaseUnitType.Character : BaseUnitType.Invalid,
             OwnerId = owner?.Id ?? 0,
+            OwnerObjId = owner?.ObjId ?? 0,
         };
 
         ApplySlaveBonuses(summonedSlave);
