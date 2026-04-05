@@ -55,6 +55,7 @@ public class PhysicsManager
     private readonly ShipShoreInteraction _shipShore = new();
     private readonly ShipShipInteraction _shipShip = new();
     private readonly ShipDoodadInteraction _shipDoodad = new();
+    private readonly ShipStaticBarrierInteraction _shipStaticBarriers = new();
     private readonly ShipCliffInteraction _shipCliff = new();
 
     private readonly ConcurrentQueue<Action> _pendingActions = new();
@@ -297,6 +298,27 @@ public class PhysicsManager
                     catch (Exception e)
                     {
                         Logger.Error($"PhysicsThread ship-doodad resolve: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    try
+                    {
+                        if (AppConfiguration.Instance.World.GeoDataMode && SimulationWorld.ShipStaticBarriers != null)
+                        {
+                            foreach (var slave in shipsThisTick)
+                            {
+                                if (slave.ParentWorld?.Id != SimulationWorld.Id || slave.RigidBody is null)
+                                    continue;
+                                var p = slave.Transform.World.Position;
+                                var (cellX, cellY) = p.ToCellIndex();
+                                ShipStaticBarrierBaiIngestor.EnsureCell(SimulationWorld, cellX, cellY);
+                            }
+                        }
+
+                        _shipStaticBarriers.ResolveAll(SimulationWorld, shipsThisTick, physicsTotalDelta);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"PhysicsThread ship-static-barrier resolve: {e.Message}\n{e.StackTrace}");
                     }
 
                     try

@@ -442,6 +442,7 @@ public class WorldManager(
 
         // Load water data
         world.LoadWaterBodies();
+        world.InitShipStaticBarriers();
 
         // Create and start the actual physics engine
         world.StartPhysics();
