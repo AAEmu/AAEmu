@@ -16,18 +16,37 @@ namespace AAEmu.Game.Physics;
 /// </summary>
 public sealed class ShipStaticBarrierInteraction
 {
+    /// <summary>Ship hull vs barrier segment resolution (XZ OBB SAT + separation).</summary>
     public static class BarrierDefaults
     {
+        /// <summary>Extra margin (m) on barrier <c>ZMin/ZMax</c> when testing hull AABB vs the obstacle vertical slab.</summary>
         public const float VerticalPadMeters = 0.35f;
+
+        /// <summary>Full passes over all ship–barrier pairs per tick (reduces residual overlap after a push).</summary>
         public const int ResolvePasses = 2;
+
+        /// <summary>Max depenetration iterations per ship–segment pair per pass.</summary>
         public const int MaxPairIterations = 10;
+
+        /// <summary>Minimum OBB penetration (m) before applying motion (reduces jitter on hairline overlaps).</summary>
         public const float MinPenetrationToAct = 0.05f;
+
+        /// <summary>Minimum Jitter-Y overlap (m) between hull and barrier height range; XZ SAT is skipped below this.</summary>
         public const float MinVerticalOverlap = 0.12f;
+
+        /// <summary>Multiplier on penetration when pushing along the contact normal (&gt;1 pushes slightly harder).</summary>
         public const float SeparationPushMultiplier = 1.18f;
+
+        /// <summary>Extra separation (m) after a push to reduce immediate re-contact next tick.</summary>
         public const float SeparationSlackMeters = 0.025f;
+
+        /// <summary>Fraction of velocity into the obstacle along the normal removed per iteration (1 ≈ kill closing speed).</summary>
         public const float ClosingSpeedDamp = 1f;
+
+        /// <summary>Fraction of tangential slip removed per iteration (lower = more slide along the wall).</summary>
         public const float TangentialSlipDamp = 0.82f;
-        /// <summary>Extra AABB padding around ship for culling vs barrier bounds (m).</summary>
+
+        /// <summary>Padding (m) around ship mass-box center for broadphase culling before SAT.</summary>
         public const float ShipBoundsPadMeters = 72f;
     }
 

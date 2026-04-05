@@ -14,25 +14,58 @@ namespace AAEmu.Game.Core.Managers.World;
 /// </summary>
 internal static class ShipStaticBarrierBaiIngestor
 {
+    /// <summary>Which <c>areasmission</c> shape lists are ingested (can be combined).</summary>
     [Flags]
     private enum BaiLayers
     {
+        /// <summary><see cref="AreasMissionReader.ForbiddenAreasList"/>.</summary>
         Forbidden = 1,
+        /// <summary><see cref="AreasMissionReader.ForbiddenBoundariesList"/>.</summary>
         Boundaries = 2,
+        /// <summary><see cref="AreasMissionReader.DesignerForbiddenAreasList"/>.</summary>
         Designer = 4
     }
 
-    /// <summary>Matches test-branch defaults (absolute Z was 95–115 at ocean ~100 → offsets from template ocean).</summary>
+    /// <summary>
+    /// Tunables for BAI→barrier conversion (not in <c>World.json</c>). Z slab uses <see cref="WorldTemplate.OceanLevel"/> as baseline.
+    /// </summary>
     private static class Defaults
     {
+        /// <summary>Barrier floor: <c>OceanLevel + ZMinOffsetFromOcean</c> (m, Jitter Y / game Z).</summary>
         public const float ZMinOffsetFromOcean = -5f;
+
+        /// <summary>Barrier ceiling: <c>OceanLevel + ZMaxOffsetFromOcean</c> (m); defines vertical overlap range with the hull.</summary>
         public const float ZMaxOffsetFromOcean = 15f;
+
+        /// <summary>Half-width (m) of each segment wall — OBB thickness in the horizontal (Jitter XZ) plane.</summary>
         public const float HalfThicknessMeters = 1.8f;
+
+        /// <summary>Heightmap sample counts as “coastal / shallow” if <c>h ≤ OceanLevel + CoastalMaxAboveOcean</c> (m).</summary>
         public const float CoastalMaxAboveOcean = 25f;
+
+        /// <summary>Seabed band below ocean (m); combined with <see cref="TerrainSampleFloorBelowOceanMin"/> as <c>max(below, min)</c> for depth samples.</summary>
         public const float CoastalMaxBelowOcean = 40f;
+
+        /// <summary>Grid resolution (cells per axis) on the polygon XY AABB for <see cref="IsMaritimePolygon"/> height samples.</summary>
         public const int MaritimeSampleGrid = 4;
+
+        /// <summary>Hard cap on barriers per world instance (memory guard).</summary>
         public const int MaxTotalBarriers = 100_000;
+
+        /// <summary>Enabled BAI lists for ingest (all three by default).</summary>
         public const BaiLayers Layers = BaiLayers.Forbidden | BaiLayers.Boundaries | BaiLayers.Designer;
+
+        /// <summary>Minimum depth (m) below ocean for terrain samples — piers over deep water need a wide underwater band.</summary>
+        public const float TerrainSampleFloorBelowOceanMin = 180f;
+
+        /// <summary>If every vertex Z is above <c>OceanLevel + InlandMinVertexZAboveOcean</c>, reject as inland hill (m).</summary>
+        public const float InlandMinVertexZAboveOcean = 55f;
+
+        /// <summary>Quick “pier / near-water” accept: vertex Z span intersects <c>[OceanLevel − PierBandBelowOcean, OceanLevel + PierBandAboveOcean]</c> (m).</summary>
+        public const float PierBandBelowOcean = 45f;
+
+        /// <summary>See <see cref="PierBandBelowOcean"/>; upper side of the pier Z band (m).</summary>
+        public const float PierBandAboveOcean = 55f;
     }
 
     public static void EnsureCell(WorldInstance world, int cellX, int cellY)
@@ -136,7 +169,7 @@ internal static class ShipStaticBarrierBaiIngestor
         var ocean = world.Template.OceanLevel;
         var maxBelow = MathF.Max(0f, Defaults.CoastalMaxBelowOcean);
         var maxAbove = MathF.Max(0f, Defaults.CoastalMaxAboveOcean);
-        var extendedBelow = MathF.Max(maxBelow, 180f);
+        var extendedBelow = MathF.Max(maxBelow, Defaults.TerrainSampleFloorBelowOceanMin);
         var grid = Math.Clamp(Defaults.MaritimeSampleGrid, 1, 12);
 
         var minX = float.PositiveInfinity;
@@ -158,10 +191,10 @@ internal static class ShipStaticBarrierBaiIngestor
         if (float.IsInfinity(minX))
             return false;
 
-        if (vMinZ > ocean + 55f)
+        if (vMinZ > ocean + Defaults.InlandMinVertexZAboveOcean)
             return false;
 
-        if (vMaxZ >= ocean - 45f && vMinZ <= ocean + 55f)
+        if (vMaxZ >= ocean - Defaults.PierBandBelowOcean && vMinZ <= ocean + Defaults.PierBandAboveOcean)
             return true;
 
         for (var ix = 0; ix < grid; ix++)
