@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Templates;

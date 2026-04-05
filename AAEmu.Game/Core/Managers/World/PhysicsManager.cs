@@ -293,6 +293,9 @@ public class PhysicsManager
 
                     try
                     {
+                        foreach (var slave in shipsThisTick)
+                            slave.StaticObstacleHullDamageContactActive = false;
+
                         _shipDoodad.ResolveAll(SimulationWorld, shipsThisTick, physicsTotalDelta);
                     }
                     catch (Exception e)
@@ -328,6 +331,18 @@ public class PhysicsManager
                     catch (Exception e)
                     {
                         Logger.Error($"PhysicsThread ship-cliff resolve: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    foreach (var slave in shipsThisTick)
+                    {
+                        try
+                        {
+                            slave.TickStaticObstacleHullDamage(physicsTotalDelta);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"PhysicsThread static-obstacle hull damage: {ex.Message}\n{ex.StackTrace}");
+                        }
                     }
 
                     foreach (var slave in shipsThisTick)
@@ -442,6 +457,9 @@ public class PhysicsManager
         ctrl.Replication.Reset();
         slave.WavePitchPhase = 0f;
         slave.ShipHullCollisionDamageCooldownByOtherShipId.Clear();
+        slave.StaticObstacleHullDamageContactActive = false;
+        slave.StaticObstacleHullDamageSecondsAccumulator = 0f;
+        slave.StaticObstacleHullDamageNoContactSeconds = 0f;
 
         EnqueueAddBody(slave.RigidBody);
         _buoyancy.AddForRectangularParallelepiped(slave.RigidBody, 3);

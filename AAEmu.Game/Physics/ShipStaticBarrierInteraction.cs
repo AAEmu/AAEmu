@@ -172,6 +172,9 @@ public sealed class ShipStaticBarrierInteraction
                     out var nz))
                 break;
 
+            if (penetration >= ShipStaticObstacleContact.MinPenetrationMetersForEnvHullDamage)
+                ship.StaticObstacleHullDamageContactActive = true;
+
             if (penetration < BarrierDefaults.MinPenetrationToAct)
                 break;
 

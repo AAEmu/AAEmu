@@ -190,6 +190,9 @@ public sealed class ShipCliffInteraction
             var cB = bx * nx + bz * nz;
             var rA = ShipShipInteraction.ProjectObbRadiusXz(halfLenA, satHalfWidA, bowA, nx, nz);
             var penetration = MathF.Min(cA + rA, cB + rB) - MathF.Max(cA - rA, cB - rB);
+            if (penetration >= ShipStaticObstacleContact.MinPenetrationMetersForEnvHullDamage)
+                ship.StaticObstacleHullDamageContactActive = true;
+
             if (penetration < CliffObstacleDefaults.MinPenetrationToAct)
                 break;
 
