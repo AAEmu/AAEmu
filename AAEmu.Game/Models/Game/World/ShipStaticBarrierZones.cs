@@ -1,5 +1,7 @@
 using System.Numerics;
 
+using AAEmu.Game.Physics;
+
 namespace AAEmu.Game.Models.Game.World;
 
 /// <summary>
@@ -8,6 +10,11 @@ namespace AAEmu.Game.Models.Game.World;
 public sealed class ShipStaticBarrierZones
 {
     public List<ShipStaticBarrier> Barriers { get; } = [];
+
+    /// <summary>Rebuilt when <see cref="Barriers"/>.Count changes; used only by <see cref="ShipStaticBarrierInteraction"/>.</summary>
+    internal ShipStaticBarrierSpatialGrid SpatialGrid;
+
+    internal int SpatialGridBuiltForBarrierCount = -1;
 }
 
 /// <summary>

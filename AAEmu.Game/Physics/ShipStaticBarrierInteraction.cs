@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Collections.Generic;
+
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -16,8 +18,8 @@ namespace AAEmu.Game.Physics;
 /// </summary>
 public sealed class ShipStaticBarrierInteraction
 {
-    /// <summary>Reused under <see cref="WorldInstance.ShipStaticBarriersMutationLock"/>; avoids per-tick list allocation.</summary>
-    private readonly List<ShipStaticBarrier> _barrierSnapshotBuffer = [];
+    private readonly List<(ShipStaticBarrier barrier, int segmentIndex)> _candidateBuffer = [];
+    private readonly HashSet<(ShipStaticBarrier barrier, int segmentIndex)> _candidateDedupe = [];
 
     /// <summary>Ship hull vs barrier segment resolution (XZ OBB SAT + separation).</summary>
     public static class BarrierDefaults
@@ -70,13 +72,20 @@ public sealed class ShipStaticBarrierInteraction
         if (ships.Count == 0)
             return;
 
+        ShipStaticBarrierSpatialGrid? grid;
         lock (world.ShipStaticBarriersMutationLock)
         {
             var barriers = world.ShipStaticBarriers;
             if (barriers is null || barriers.Barriers.Count == 0)
                 return;
-            _barrierSnapshotBuffer.Clear();
-            _barrierSnapshotBuffer.AddRange(barriers.Barriers);
+            if (barriers.SpatialGridBuiltForBarrierCount != barriers.Barriers.Count)
+            {
+                barriers.SpatialGrid ??= new ShipStaticBarrierSpatialGrid();
+                barriers.SpatialGrid.Rebuild(barriers.Barriers);
+                barriers.SpatialGridBuiltForBarrierCount = barriers.Barriers.Count;
+            }
+
+            grid = barriers.SpatialGrid;
         }
 
         foreach (var ship in ships)
@@ -91,29 +100,24 @@ public sealed class ShipStaticBarrierInteraction
             var halfBeam = model.MassBoxSizeX * ship.Scale * 0.5f;
             var shipPad = halfLen + halfBeam + BarrierDefaults.ShipBoundsPadMeters;
 
+            ShipShipInteraction.GetMassBoxCenterXz(ship.RigidBody, model, ship.Scale, out var scx, out var scz);
+            grid!.Query(scx, scz, shipPad, _candidateBuffer, _candidateDedupe);
+
             var sepBudget = BarrierDefaults.MaxTotalSeparationBudgetPerTick;
             for (var pass = 0; pass < BarrierDefaults.ResolvePasses && sepBudget > 0f; pass++)
             {
-                foreach (var barrier in _barrierSnapshotBuffer)
+                for (var ci = 0; ci < _candidateBuffer.Count; ci++)
                 {
                     if (sepBudget <= 0f)
                         break;
+                    var (barrier, segIdx) = _candidateBuffer[ci];
                     if (!barrier.Enabled)
                         continue;
                     if (barrier.ZoneKey != 0u && ship.Transform.ZoneId != barrier.ZoneKey)
                         continue;
 
-                    ShipShipInteraction.GetMassBoxCenterXz(ship.RigidBody, model, ship.Scale, out var scx, out var scz);
-                    if (scx < barrier.AabbMinX - shipPad || scx > barrier.AabbMaxX + shipPad ||
-                        scz < barrier.AabbMinY - shipPad || scz > barrier.AabbMaxY + shipPad)
-                        continue;
-
-                    foreach (var seg in barrier.Segments)
-                    {
-                        if (sepBudget <= 0f)
-                            break;
-                        TryResolveShipVsSegment(ship, barrier, seg, ref sepBudget);
-                    }
+                    var seg = barrier.Segments[segIdx];
+                    TryResolveShipVsSegment(ship, barrier, seg, ref sepBudget);
                 }
             }
         }
