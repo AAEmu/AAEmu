@@ -59,7 +59,7 @@ public sealed class ShipStaticBarrierInteraction
         /// Multiplier on the ship SAT half-length and half-beam vs barriers only (after <see cref="ShipShipInteraction.ShipHullPairDefaults"/> inflate).
         /// &lt;1 pulls first contact closer to the mesh; ship–ship / doodad unchanged.
         /// </summary>
-        public const float SatShipObbTightenMul = 0.92f;
+        public const float SatShipObbTightenMul = 1.05f;
     }
 
     public void ResolveAll(WorldInstance world, IReadOnlyList<Slave> ships, TimeSpan deltaTime)
