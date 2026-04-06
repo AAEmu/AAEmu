@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -23,6 +23,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Physics;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
@@ -858,12 +859,23 @@ public class Skill
         {
             possibleTargets.Add(targetSelf);
         }
+
+        ShipSiegeAoEHit.AppendHostileShipsHitBySiegeHullAoE(caster, Template, targetSelf, targetCaster, possibleTargets);
+
         // Filter out duplicate entries and non-existing
         possibleTargets = possibleTargets.Distinct().ToList();
         // Add origin in case of no targets and using a target position cast
         if (possibleTargets.Count <= 0 && targetCaster is SkillCastPositionTarget)
         {
             possibleTargets.Add(caster);
+        }
+
+        if (Template.TargetAreaCount > 0 && possibleTargets.Count > Template.TargetAreaCount)
+        {
+            possibleTargets = possibleTargets
+                .OrderBy(t => t.GetDistanceTo(targetSelf))
+                .Take(Template.TargetAreaCount)
+                .ToList();
         }
 
         foreach (var target in possibleTargets)
@@ -1021,13 +1033,6 @@ public class Skill
                 effectsToApply.Add((target, effect));
                 lastAppliedEffect = effect;
                 //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
-
-                // TODO: Fix this HACK, only use the first target if it's a position.
-                // Hack added to fix SummonDoodad issues from Skill 15343, spawns Recovered Treasure Chest ( 3483 )
-                if (targetCaster is SkillCastPositionTarget)
-                {
-                    break;
-                }
             }
         }
 

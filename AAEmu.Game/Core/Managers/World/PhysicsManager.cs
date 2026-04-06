@@ -54,6 +54,8 @@ public class PhysicsManager
     private readonly Dictionary<uint, ShipController> _shipControllers = new();
     private readonly ShipShoreInteraction _shipShore = new();
     private readonly ShipShipInteraction _shipShip = new();
+    private readonly ShipDoodadInteraction _shipDoodad = new();
+    private readonly ShipCliffInteraction _shipCliff = new();
 
     private readonly ConcurrentQueue<Action> _pendingActions = new();
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
@@ -286,6 +288,24 @@ public class PhysicsManager
                     catch (Exception e)
                     {
                         Logger.Error($"PhysicsThread ship-ship resolve: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    try
+                    {
+                        _shipDoodad.ResolveAll(SimulationWorld, shipsThisTick, physicsTotalDelta);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"PhysicsThread ship-doodad resolve: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    try
+                    {
+                        _shipCliff.ResolveAll(SimulationWorld, shipsThisTick, physicsTotalDelta);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"PhysicsThread ship-cliff resolve: {e.Message}\n{e.StackTrace}");
                     }
 
                     foreach (var slave in shipsThisTick)

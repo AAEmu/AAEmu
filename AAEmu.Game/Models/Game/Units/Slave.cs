@@ -829,7 +829,7 @@ public class Slave : Unit
                         if (newDoodad == null)
                         {
                             Logger.Warn($"Dropped Doodad {newDoodadId}, from BackpackDoodadId could not be created");
-                            return;
+                            break;
                         }
                         newDoodad.IsPersistent = true;
                         newDoodad.Transform = doodad.Transform.CloneDetached();

@@ -1038,10 +1038,20 @@ public class WorldManager(
     public static List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
     {
         var result = new List<T>();
+        GetAround(obj, radius, result, useModelSize);
+        return result;
+    }
+
+    /// <summary>
+    /// Fills <paramref name="result"/> (cleared first) with objects within radius. Use from hot paths to avoid per-query <see cref="List{T}"/> allocations.
+    /// </summary>
+    public static void GetAround<T>(GameObject obj, float radius, List<T> result, bool useModelSize = false) where T : class
+    {
+        result.Clear();
         if (radius <= 0f)
-            return result;
+            return;
         if (obj?.Region == null)
-            return result;
+            return;
 
         if (useModelSize)
             radius += obj.ModelSize;
@@ -1055,8 +1065,6 @@ public class WorldManager(
             foreach (var neighbor in obj.Region.GetNeighbors())
                 neighbor?.GetList(result, obj.ObjId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y, radius * radius, useModelSize);
         }
-
-        return result;
     }
 
     /// <summary>
