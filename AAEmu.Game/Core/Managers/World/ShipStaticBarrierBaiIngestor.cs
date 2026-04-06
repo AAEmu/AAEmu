@@ -108,13 +108,18 @@ internal static class ShipStaticBarrierBaiIngestor
                         if (world.ShipStaticBarriers.Barriers.Count >= Defaults.MaxTotalBarriers)
                             return;
 
-                        TryAddList(world, reader.ForbiddenBoundariesList, layers, BaiLayers.Boundaries, "fb");
-                        TryAddList(world, reader.DesignerForbiddenAreasList, layers, BaiLayers.Designer, "df");
-                        TryAddList(world, reader.ForbiddenAreasList, layers, BaiLayers.Forbidden, "fa");
+                        TryAddMissionReaderLayers(world, reader, layers);
                     }
                 }
             }
         }
+    }
+
+    private static void TryAddMissionReaderLayers(WorldInstance world, AreasMissionReader reader, BaiLayers enabled)
+    {
+        TryAddList(world, reader.ForbiddenBoundariesList, enabled, BaiLayers.Boundaries, "fb");
+        TryAddList(world, reader.DesignerForbiddenAreasList, enabled, BaiLayers.Designer, "df");
+        TryAddList(world, reader.ForbiddenAreasList, enabled, BaiLayers.Forbidden, "fa");
     }
 
     private static void TryAddList(

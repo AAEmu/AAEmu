@@ -16,6 +16,9 @@ namespace AAEmu.Game.Physics;
 /// </summary>
 public sealed class ShipStaticBarrierInteraction
 {
+    /// <summary>Reused under <see cref="WorldInstance.ShipStaticBarriersMutationLock"/>; avoids per-tick list allocation.</summary>
+    private readonly List<ShipStaticBarrier> _barrierSnapshotBuffer = [];
+
     /// <summary>Ship hull vs barrier segment resolution (XZ OBB SAT + separation).</summary>
     public static class BarrierDefaults
     {
@@ -67,13 +70,13 @@ public sealed class ShipStaticBarrierInteraction
         if (ships.Count == 0)
             return;
 
-        List<ShipStaticBarrier> barrierSnapshot;
         lock (world.ShipStaticBarriersMutationLock)
         {
             var barriers = world.ShipStaticBarriers;
             if (barriers is null || barriers.Barriers.Count == 0)
                 return;
-            barrierSnapshot = [..barriers.Barriers];
+            _barrierSnapshotBuffer.Clear();
+            _barrierSnapshotBuffer.AddRange(barriers.Barriers);
         }
 
         foreach (var ship in ships)
@@ -91,7 +94,7 @@ public sealed class ShipStaticBarrierInteraction
             var sepBudget = BarrierDefaults.MaxTotalSeparationBudgetPerTick;
             for (var pass = 0; pass < BarrierDefaults.ResolvePasses && sepBudget > 0f; pass++)
             {
-                foreach (var barrier in barrierSnapshot)
+                foreach (var barrier in _barrierSnapshotBuffer)
                 {
                     if (sepBudget <= 0f)
                         break;
