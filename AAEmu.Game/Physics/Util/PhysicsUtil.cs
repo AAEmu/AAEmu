@@ -34,4 +34,14 @@ public class PhysicsUtil
 
         return (roll, pitch, yaw);
     }
+
+    /// <summary>
+    /// Jitter uses (X, Z) as horizontal and Y as up; game world uses (X, Y) as horizontal and Z as up
+    /// (see <c>PhysicsManager.SyncTransformWithRigidBody</c>).
+    /// </summary>
+    public static Vector3 JitterToWorldPosition(JVector p) =>
+        new Vector3(p.X, p.Z, p.Y);
+
+    public static Vector3 JitterToWorldPosition(float jitterX, float jitterYUp, float jitterZ) =>
+        new Vector3(jitterX, jitterZ, jitterYUp);
 }
