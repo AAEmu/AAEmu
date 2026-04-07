@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
