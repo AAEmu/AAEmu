@@ -78,19 +78,28 @@ internal static class ShipStaticBarrierBaiIngestor
         if (cellX < 0 || cellY < 0 || cellX >= world.Template.CellX || cellY >= world.Template.CellY)
             return;
 
+        // Quick double-check to avoid disk I/O when cell is already ingested.
         lock (world.ShipStaticBarriersMutationLock)
         {
+            if (world.ShipBarrierBaiIngestedCells.Contains((cellX, cellY)))
+                return;
+        }
+
+        var cell = world.Template.GetCell(cellX, cellY);
+        if (cell is null)
+            return;
+
+        // Verify/load outside barrier lock (can trigger disk I/O).
+        cell.VerifyCellLoaded();
+
+        lock (world.ShipStaticBarriersMutationLock)
+        {
+            // Double-check in case another thread ingested while we were loading/verifying.
             if (!world.ShipBarrierBaiIngestedCells.Add((cellX, cellY)))
                 return;
 
             if (world.ShipStaticBarriers.Barriers.Count >= Defaults.MaxTotalBarriers)
                 return;
-
-            var cell = world.Template.GetCell(cellX, cellY);
-            if (cell is null)
-                return;
-
-            cell.VerifyCellLoaded();
 
             var layers = Defaults.Layers;
             var seenLoaders = new HashSet<BaseBaiLoader>(ReferenceEqualityComparer.Instance);
