@@ -77,7 +77,6 @@ public sealed class GameService : IHostedService, IDisposable
 
         // --- Stage 3: Post-load special steps ---
         GameDataManager.Instance.PostLoadGameData();
-        ItemManager.Instance.LoadUserItems();
         CashShopManager.Instance.EnabledShop();
 
         // --- Scripts ---

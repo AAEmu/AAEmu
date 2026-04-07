@@ -78,7 +78,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                 while (reader.Read())
                 {
                     var template = new HousingTemplate { Id = reader.GetUInt32("id") };
-                    template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, reader.GetString("name"));
+                    template.Name = reader.GetString("name");
                     template.CategoryId = reader.GetUInt32("category_id");
                     template.MainModelId = reader.GetUInt32("main_model_id");
                     template.DoorModelId = reader.GetUInt32("door_model_id", 0);
@@ -89,8 +89,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                     template.RepairCost = reader.GetUInt32("repair_cost");
                     template.GardenRadius = reader.GetFloat("garden_radius");
                     template.Family = reader.GetString("family");
-                    var taxationId = reader.GetUInt32("taxation_id");
-                    template.Taxation = TaxationsManager.Instance.taxations.GetValueOrDefault(taxationId);
+                    template.TaxationId = reader.GetUInt32("taxation_id");
                     template.GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0);
                     template.CinemaRadius = reader.GetFloat("cinema_radius");
                     template.AutoZOffsetX = reader.GetFloat("auto_z_offset_x");
@@ -226,7 +225,11 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
 
     public void PostLoad()
     {
-        //
+        foreach (var (_, template) in _housingTemplates)
+        {
+            template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, template.Name);
+            template.Taxation = TaxationsManager.Instance.taxations.GetValueOrDefault(template.TaxationId);
+        }
     }
     
     private List<HousingBindingTemplate> LoadHousingBindings(string dataFolder)

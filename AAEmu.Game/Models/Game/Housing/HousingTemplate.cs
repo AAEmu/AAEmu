@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Game.Housing;
 
 public class HousingTemplate
 {
-    public uint Id { get; set; }
+    public uint Id { get; init; }
     public string Name { get; set; }
     public uint CategoryId { get; set; }
     public uint MainModelId { get; set; }
@@ -17,6 +17,8 @@ public class HousingTemplate
     public float GardenRadius { get; set; }
     public string Family { get; set; }
     public Taxation Taxation { get; set; }
+    /// <summary>Use Taxation instead of TaxationId for functions in the server</summary>
+    public uint TaxationId { get; set; }
     public uint GuardTowerSettingId { get; set; }
     public float CinemaRadius { get; set; }
     public float AutoZOffsetX { get; set; }
