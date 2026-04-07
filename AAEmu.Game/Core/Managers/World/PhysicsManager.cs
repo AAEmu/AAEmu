@@ -315,9 +315,9 @@ public class PhysicsManager
                                 var (cellX, cellY) = p.ToCellIndex();
                                 ShipStaticBarrierBaiIngestor.EnsureCell(SimulationWorld, cellX, cellY);
                             }
-                        }
 
-                        _shipStaticBarriers.ResolveAll(SimulationWorld, shipsThisTick, physicsTotalDelta);
+                            _shipStaticBarriers.ResolveAll(SimulationWorld, shipsThisTick, physicsTotalDelta);
+                        }
                     }
                     catch (Exception e)
                     {
