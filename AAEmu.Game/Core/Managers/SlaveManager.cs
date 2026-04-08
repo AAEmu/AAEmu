@@ -454,15 +454,16 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
                 spawnPos.Local.Position += spawnOffsetPos;
 
-                // While the summon portal is active, ships do not simulate buoyancy yet.
-                // If the spawn offset pushes the boat too low, it will appear heavily submerged until PortalTime ends.
-                // Clamp the visual spawn height closer to the waterline to keep a reasonable draft during the portal.
-                var hullHeight = tempShipModel.MassBoxSizeZ;
-                // Keep the ship much closer to the surface during the portal animation.
-                // After PortalTime buoyancy will settle it to its natural draft.
-                var minSpawnZ = worldWaterLevel - hullHeight * 0.02f;
-                if (spawnPos.Local.Position.Z < minSpawnZ)
-                    spawnPos.Local.SetHeight(minSpawnZ);
+                // PortalTime: no buoyancy / no ship physics tick — height must match what AddShip will clamp (PhysicsManager).
+                // Use water at the final spawn X,Y (depth search + offsets move the hull); worldWaterLevel alone was wrong here.
+                var waterAtFinal = world.Water.GetWaterSurface(spawnPos.World.Position, out _);
+                if (waterAtFinal > 0f)
+                {
+                    var hullHeight = tempShipModel.MassBoxSizeZ;
+                    var minSpawnZ = waterAtFinal + hullHeight * PhysicsManager.ShipHullWaterlineVisualHullFrac;
+                    if (spawnPos.Local.Position.Z < minSpawnZ)
+                        spawnPos.Local.SetHeight(minSpawnZ);
+                }
             }
             else
             {
