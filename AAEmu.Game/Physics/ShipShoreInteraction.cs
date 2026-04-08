@@ -220,8 +220,9 @@ public sealed class ShipShoreInteraction
         var probeX = slave.RigidBody.Position.X + dirX * probeDist * probeSign;
         var probeY = slave.RigidBody.Position.Z + dirZ * probeDist * probeSign;
         var contactFloor = slave.ParentWorld.GetHeight(probeX, probeY);
+        var rb = slave.RigidBody;
         var waterAtProbe = slave.ParentWorld.Water.GetWaterSurface(
-            new JVector(probeX, slave.RigidBody.Position.Y, probeY).ToVector(),
+            new Vector3(probeX, probeY, rb.Position.Y),
             out _);
 
         // WALL/CLIFF logic removed per request.
@@ -282,7 +283,9 @@ public sealed class ShipShoreInteraction
             return;
 
         // Mass-box center (rigid body origin) above local waterline: stop vertical "pop" from penetration resolve.
-        var waterAtCenter = slave.ParentWorld.Water.GetWaterSurface(slave.RigidBody.Position.ToVector(), out _);
+        var waterAtCenter = slave.ParentWorld.Water.GetWaterSurface(
+            new Vector3(rb.Position.X, rb.Position.Z, rb.Position.Y),
+            out _);
         var centerAboveWaterline = slave.RigidBody.Position.Y > waterAtCenter + 0.001f;
 
         var penetrationEpsilon = ShorePhysicsDefaults.PenetrationEpsilon;

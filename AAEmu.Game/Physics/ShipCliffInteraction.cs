@@ -3,7 +3,6 @@
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Physics.Util;
-using AAEmu.Game.Utils;
 
 using System.Numerics;
 
@@ -105,7 +104,7 @@ public sealed class ShipCliffInteraction
             var sx = cx + ax * s;
             var sz = cz + az * s;
             var hf = world.GetHeight(sx, sz);
-            var wf = world.Water.GetWaterSurface(new JVector(sx, bodyY, sz).ToVector(), out _);
+            var wf = world.Water.GetWaterSurface(new Vector3(sx, sz, bodyY), out _);
             if (hf >= wf + minAbove)
             {
                 distanceAlongAscent = s;
@@ -122,7 +121,7 @@ public sealed class ShipCliffInteraction
         var body = ship.RigidBody!;
         var ma = ship.ShipController!.ShipModel;
 
-        var waterAtCenter = world.Water.GetWaterSurface(body.Position.ToVector(), out _);
+        var waterAtCenter = world.Water.GetWaterSurface(new Vector3(body.Position.X, body.Position.Z, body.Position.Y), out _);
         if (body.Position.Y > waterAtCenter + CliffObstacleDefaults.AboveWaterlineSkipMeters)
             return;
 
@@ -157,7 +156,7 @@ public sealed class ShipCliffInteraction
         var bx = cx + ax * wallAlong;
         var bz = cz + az * wallAlong;
         var floorAtWall = world.GetHeight(bx, bz);
-        var waterAtWallPoint = world.Water.GetWaterSurface(new JVector(bx, body.Position.Y, bz).ToVector(), out _);
+        var waterAtWallPoint = world.Water.GetWaterSurface(new Vector3(bx, bz, body.Position.Y), out _);
         if (floorAtWall < waterAtWallPoint + CliffObstacleDefaults.MinRockHeightAboveWaterMeters)
             return;
 
