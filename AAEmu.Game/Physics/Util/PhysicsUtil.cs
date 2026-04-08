@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using AAEmu.Game.Utils;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics.Util;
