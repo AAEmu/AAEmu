@@ -104,7 +104,7 @@ public sealed class ShipCliffInteraction
             var sx = cx + ax * s;
             var sz = cz + az * s;
             var hf = world.GetHeight(sx, sz);
-            var wf = world.Water.GetWaterSurface(PhysicsUtil.JitterToWorldPosition(sx, bodyY, sz), out _);
+            var wf = PhysicsUtil.GetWaterSurfaceAtJitterPosition(world, sx, bodyY, sz, out _);
             if (hf >= wf + minAbove)
             {
                 distanceAlongAscent = s;
@@ -121,9 +121,7 @@ public sealed class ShipCliffInteraction
         var body = ship.RigidBody!;
         var ma = ship.ShipController!.ShipModel;
 
-        var waterAtCenter = world.Water.GetWaterSurface(
-            PhysicsUtil.JitterToWorldPosition(body.Position),
-            out _);
+        var waterAtCenter = PhysicsUtil.GetWaterSurfaceAtJitterPosition(world, body.Position, out _);
         if (body.Position.Y > waterAtCenter + CliffObstacleDefaults.AboveWaterlineSkipMeters)
             return;
 
@@ -158,7 +156,7 @@ public sealed class ShipCliffInteraction
         var bx = cx + ax * wallAlong;
         var bz = cz + az * wallAlong;
         var floorAtWall = world.GetHeight(bx, bz);
-        var waterAtWallPoint = world.Water.GetWaterSurface(PhysicsUtil.JitterToWorldPosition(bx, body.Position.Y, bz), out _);
+        var waterAtWallPoint = PhysicsUtil.GetWaterSurfaceAtJitterPosition(world, bx, body.Position.Y, bz, out _);
         if (floorAtWall < waterAtWallPoint + CliffObstacleDefaults.MinRockHeightAboveWaterMeters)
             return;
 
