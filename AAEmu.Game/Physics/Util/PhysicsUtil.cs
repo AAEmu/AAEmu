@@ -1,6 +1,4 @@
 ﻿using System.Numerics;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics.Util;
@@ -35,14 +33,4 @@ public class PhysicsUtil
 
         return (roll, pitch, yaw);
     }
-
-    /// <summary>
-    /// Jitter uses (X, Z) as horizontal and Y as up; game world uses (X, Y) as horizontal and Z as up
-    /// (see <c>PhysicsManager.SyncTransformWithRigidBody</c>).
-    /// </summary>
-    public static float GetWaterSurfaceAtJitterPosition(WorldInstance world, JVector jitterPosition, out Vector3 flowDirection) =>
-        world.Water.GetWaterSurface(jitterPosition.ToVector(), out flowDirection);
-
-    public static float GetWaterSurfaceAtJitterPosition(WorldInstance world, float jitterX, float jitterYUp, float jitterZ, out Vector3 flowDirection) =>
-        world.Water.GetWaterSurface(new JVector(jitterX, jitterYUp, jitterZ).ToVector(), out flowDirection);
 }
