@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Indun;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
@@ -66,6 +67,20 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
     /// Water definitions
     /// </summary>
     public WaterBodies Water { get; set; }
+
+    /// <summary>
+    /// BAI-derived ship collision polylines (non-null when <see cref="WorldConfig.GeoDataMode"/> was on at init).
+    /// </summary>
+    public ShipStaticBarrierZones ShipStaticBarriers { get; set; }
+
+    /// <summary>Serial for BAI-derived barrier names (per instance).</summary>
+    internal int ShipBarrierBaiNameSerial;
+
+    /// <summary>World cells whose <c>areasmission</c> polygons were already ingested for ship barriers.</summary>
+    internal readonly HashSet<(int CellX, int CellY)> ShipBarrierBaiIngestedCells = [];
+
+    /// <summary>Protects <see cref="ShipStaticBarriers"/> mutations and BAI ingest bookkeeping.</summary>
+    internal readonly object ShipStaticBarriersMutationLock = new();
 
     /// <summary>
     /// Event handlers
@@ -362,6 +377,15 @@ public class WorldInstance(WorldTemplate template, uint channelId, bool dontFree
         {
             Water = newWater;
         }
+    }
+
+    /// <summary>
+    /// Allocates ship static barrier storage when geodata is enabled (BAI ingest fills it from physics).
+    /// </summary>
+    public void InitShipStaticBarriers()
+    {
+        if (AppConfiguration.Instance.World.GeoDataMode)
+            ShipStaticBarriers = new ShipStaticBarrierZones();
     }
     #endregion PhysicalProperties
     

@@ -15,6 +15,12 @@ internal static class ShipStaticObstacleContact
     /// <summary>Replication <see cref="ReplicationSmoothing.ContactHoldTicks"/> bump for static contacts.</summary>
     public const byte DefaultReplicationContactHoldTicks = 8;
 
+    /// <summary>
+    /// Hull vs static obstacle SAT penetration (m) that counts as contact for periodic env hull damage.
+    /// Lower than depenetration thresholds so damage still ticks after a push clears overlap on the same frame boundary.
+    /// </summary>
+    public const float MinPenetrationMetersForEnvHullDamage = 0.015f;
+
     public static void ApplySeparationAndSurfaceDampXz(
         RigidBody body,
         Slave ship,

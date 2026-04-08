@@ -88,6 +88,12 @@ public class Slave : Unit
     public float GroundContactLatchedTime { get; set; }
     /// <summary>Seconds accumulated toward periodic hull damage while beached (see <see cref="TickBeachedHullDamage(System.TimeSpan)"/>).</summary>
     public float ShoreGroundDamageSecondsAccumulator { get; set; }
+    /// <summary>Set during ship vs cliff/doodad/barrier resolve when hull overlap was actively corrected this tick.</summary>
+    public bool StaticObstacleHullDamageContactActive { get; set; }
+    /// <summary>Seconds accumulated toward periodic hull damage while against static obstacles (see <see cref="TickStaticObstacleHullDamage(System.TimeSpan)"/>).</summary>
+    public float StaticObstacleHullDamageSecondsAccumulator { get; set; }
+    /// <summary>Continuous time without static-obstacle contact; used to reset <see cref="StaticObstacleHullDamageSecondsAccumulator"/> after a gap.</summary>
+    public float StaticObstacleHullDamageNoContactSeconds { get; set; }
     /// <summary>Per other-ship cooldown (seconds) for hull-collision %HP (see <see cref="Physics.ShipShipInteraction"/>).</summary>
     public Dictionary<uint, float> ShipHullCollisionDamageCooldownByOtherShipId { get; } = new();
     public short RotationZ { get; set; }
@@ -720,6 +726,40 @@ public class Slave : Unit
         {
             ShoreGroundDamageSecondsAccumulator -= IntervalSec;
             ApplyFloorCollisionDamageImmediate(PercentPerTick, isPercent: true);
+        }
+    }
+
+    /// <summary>
+    /// While in contact with static obstacles (rock face, ship-colliding doodads, polyline barriers), advances time toward hull damage
+    /// dealt once per second — same rate as <see cref="TickBeachedHullDamage(System.TimeSpan)"/>.
+    /// Brief gaps without SAT overlap (e.g. after depenetration) do not zero progress until ~0.35s without contact.
+    /// </summary>
+    public void TickStaticObstacleHullDamage(TimeSpan deltaTime)
+    {
+        const float IntervalSec = 1f;
+        const int PercentPerTick = 1;
+        // After this many seconds without obstacle overlap, drop partial progress (avoids paying out damage after leaving).
+        const float ResetAccumulatorAfterNoContactSec = 0.35f;
+
+        var dt = (float)deltaTime.TotalSeconds;
+        if (dt <= 0f)
+            return;
+
+        if (StaticObstacleHullDamageContactActive)
+        {
+            StaticObstacleHullDamageNoContactSeconds = 0f;
+            StaticObstacleHullDamageSecondsAccumulator += dt;
+            while (StaticObstacleHullDamageSecondsAccumulator >= IntervalSec)
+            {
+                StaticObstacleHullDamageSecondsAccumulator -= IntervalSec;
+                ApplyFloorCollisionDamageImmediate(PercentPerTick, isPercent: true);
+            }
+        }
+        else
+        {
+            StaticObstacleHullDamageNoContactSeconds += dt;
+            if (StaticObstacleHullDamageNoContactSeconds >= ResetAccumulatorAfterNoContactSec)
+                StaticObstacleHullDamageSecondsAccumulator = 0f;
         }
     }
 
