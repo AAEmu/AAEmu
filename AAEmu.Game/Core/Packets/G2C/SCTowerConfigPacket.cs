@@ -19,7 +19,7 @@ public class SCTowerConfigPacket : GamePacket
         _unk2 = 0;
         _unk3 = 1;
         _msg1 = "tower_def";
-        _msg2 = "tower_kraken_newserver";
+        _msg2 = "TowerDef_Kraken_newserver";
     }
 
     public override PacketStream Write(PacketStream stream)
