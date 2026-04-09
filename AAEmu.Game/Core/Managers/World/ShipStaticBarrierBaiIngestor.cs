@@ -61,11 +61,17 @@ internal static class ShipStaticBarrierBaiIngestor
         /// <summary>If every vertex Z is above <c>OceanLevel + InlandMinVertexZAboveOcean</c>, reject as inland hill (m).</summary>
         public const float InlandMinVertexZAboveOcean = 55f;
 
+        /// <summary>
+        /// Reject bridge/road decks: if every vertex Z is above <c>OceanLevel + BridgeDeckMinVertexZAboveOcean</c>,
+        /// do not ingest as a ship barrier. This prevents "invisible walls" under bridges whose AI shapes sit high above water.
+        /// </summary>
+        public const float BridgeDeckMinVertexZAboveOcean = 5f;
+
         /// <summary>Quick “pier / near-water” accept: vertex Z span intersects <c>[OceanLevel − PierBandBelowOcean, OceanLevel + PierBandAboveOcean]</c> (m).</summary>
-        public const float PierBandBelowOcean = 45f;
+        public const float PierBandBelowOcean = 15f;
 
         /// <summary>See <see cref="PierBandBelowOcean"/>; upper side of the pier Z band (m).</summary>
-        public const float PierBandAboveOcean = 55f;
+        public const float PierBandAboveOcean = 15f;
     }
 
     public static void EnsureCell(WorldInstance world, int cellX, int cellY)
@@ -206,6 +212,10 @@ internal static class ShipStaticBarrierBaiIngestor
             return false;
 
         if (vMinZ > ocean + Defaults.InlandMinVertexZAboveOcean)
+            return false;
+
+        // Bridge/road decks (all vertices well above water) often cross navigable water and would create a ship-blocking wall.
+        if (vMinZ > ocean + Defaults.BridgeDeckMinVertexZAboveOcean)
             return false;
 
         if (vMaxZ >= ocean - Defaults.PierBandBelowOcean && vMinZ <= ocean + Defaults.PierBandAboveOcean)
