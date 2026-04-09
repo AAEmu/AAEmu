@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Mission;
@@ -61,17 +62,11 @@ internal static class ShipStaticBarrierBaiIngestor
         /// <summary>If every vertex Z is above <c>WaterSurface + InlandMinVertexZAboveWater</c>, reject as inland hill (m).</summary>
         public const float InlandMinVertexZAboveWater = 55f;
 
-        /// <summary>
-        /// Reject bridge/road decks: if every vertex Z is above <c>WaterSurface + BridgeDeckMinVertexZAboveWater</c>,
-        /// do not ingest as a ship barrier. This prevents "invisible walls" under bridges whose AI shapes sit high above water.
-        /// </summary>
-        public const float BridgeDeckMinVertexZAboveWater = 5f;
-
         /// <summary>Quick “pier / near-water” accept: vertex Z span intersects <c>[WaterSurface − PierBandBelowWater, WaterSurface + PierBandAboveWater]</c> (m).</summary>
-        public const float PierBandBelowWater = 15f;
+        public const float PierBandBelowWater = 25f;
 
         /// <summary>See <see cref="PierBandBelowWater"/>; upper side of the pier Z band (m).</summary>
-        public const float PierBandAboveWater = 15f;
+        public const float PierBandAboveWater = 25f;
     }
 
     public static void EnsureCell(WorldInstance world, int cellX, int cellY)
@@ -155,7 +150,7 @@ internal static class ShipStaticBarrierBaiIngestor
             if (shape.Points is null || shape.Points.Count < 2)
                 continue;
 
-            if (!IsMaritimePolygon(world, shape, out var waterSurfaceRef))
+            if (!TryClassifyForShipBarriers(world, shape, out var waterSurfaceRef, out var isBridgeDeck, out var deckBottomZ))
                 continue;
 
             var pointsXy = ClosedPolylinePointsXy(shape.Points);
@@ -163,8 +158,19 @@ internal static class ShipStaticBarrierBaiIngestor
                 continue;
 
             var name = $"bai_{shortTag}_{world.ShipBarrierBaiNameSerial++}_{SanitizeName(shape.Name)}";
-            var zMin = waterSurfaceRef + Defaults.ZMinOffsetFromWaterSurface;
-            var zMax = waterSurfaceRef + Defaults.ZMaxOffsetFromWaterSurface;
+
+            float zMin;
+            float zMax;
+            if (isBridgeDeck)
+            {
+                zMin = deckBottomZ;
+                zMax = deckBottomZ + 0.5f;
+            }
+            else
+            {
+                zMin = waterSurfaceRef + Defaults.ZMinOffsetFromWaterSurface;
+                zMax = waterSurfaceRef + Defaults.ZMaxOffsetFromWaterSurface;
+            }
             var dto = new ShipStaticBarrierEntryDto
             {
                 Name = name,
@@ -181,9 +187,16 @@ internal static class ShipStaticBarrierBaiIngestor
         }
     }
 
-    /// <summary>Same heuristic as test branch (inland reject, pier Z band, heightmap samples).</summary>
-    public static bool IsMaritimePolygon(WorldInstance world, AiShape shape, out float waterSurfaceRef)
+    private static bool TryClassifyForShipBarriers(
+        WorldInstance world,
+        AiShape shape,
+        out float waterSurfaceRef,
+        out bool isBridgeDeck,
+        out float bridgeDeckBottomZ)
     {
+        isBridgeDeck = false;
+        bridgeDeckBottomZ = 0f;
+
         var ocean = world.Template.OceanLevel;
         var maxBelow = MathF.Max(0f, Defaults.CoastalMaxBelowWater);
         var maxAbove = MathF.Max(0f, Defaults.CoastalMaxAboveWater);
@@ -228,12 +241,19 @@ internal static class ShipStaticBarrierBaiIngestor
         if (vMinZ > waterSurfaceRef + Defaults.InlandMinVertexZAboveWater)
             return false;
 
-        // Bridge/road decks (all vertices well above water) often cross navigable water and would create a ship-blocking wall.
-        if (vMinZ > waterSurfaceRef + Defaults.BridgeDeckMinVertexZAboveWater)
-            return false;
+        // Deck candidate if the whole polygon is above local water surface.
+        // We still require maritime relevance checks (pier-band or heightmap samples) below.
+        var deckCandidate = vMinZ > waterSurfaceRef;
 
         if (vMaxZ >= waterSurfaceRef - Defaults.PierBandBelowWater && vMinZ <= waterSurfaceRef + Defaults.PierBandAboveWater)
+        {
+            if (deckCandidate)
+            {
+                isBridgeDeck = true;
+                bridgeDeckBottomZ = EstimateDeckBottomZ(shape.Points, waterSurfaceRef, vMinZ);
+            }
             return true;
+        }
 
         for (var ix = 0; ix < grid; ix++)
         {
@@ -245,11 +265,37 @@ internal static class ShipStaticBarrierBaiIngestor
                 var sy = minY + (maxY - minY) * ty;
                 var h = world.GetHeight(sx, sy);
                 if (h >= waterSurfaceRef - extendedBelow && h <= waterSurfaceRef + maxAbove)
+                {
+                    if (deckCandidate)
+                    {
+                        isBridgeDeck = true;
+                        bridgeDeckBottomZ = EstimateDeckBottomZ(shape.Points, waterSurfaceRef, vMinZ);
+                    }
                     return true;
+                }
             }
         }
 
         return false;
+    }
+
+    private static float EstimateDeckBottomZ(List<Vector3> points, float waterSurfaceRef, float fallbackMinZ)
+    {
+        const float minAboveWater = 0.25f;
+        var zs = new List<float>(points.Count);
+        for (var i = 0; i < points.Count; i++)
+        {
+            var z = points[i].Z;
+            if (z > waterSurfaceRef + minAboveWater)
+                zs.Add(z);
+        }
+
+        if (zs.Count == 0)
+            return fallbackMinZ;
+
+        zs.Sort();
+        var mid = zs.Count / 2;
+        return (zs.Count % 2 == 1) ? zs[mid] : (zs[mid - 1] + zs[mid]) * 0.5f;
     }
 
     private static List<List<double>> ClosedPolylinePointsXy(List<Vector3> pts)

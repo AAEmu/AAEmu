@@ -117,7 +117,7 @@ public sealed class ShipStaticBarrierInteraction
                         continue;
 
                     var seg = barrier.Segments[segIdx];
-                    TryResolveShipVsSegment(ship, barrier, seg, ref sepBudget);
+                    TryResolveShipVsSegment(world, ship, barrier, seg, ref sepBudget);
                 }
             }
         }
@@ -126,7 +126,7 @@ public sealed class ShipStaticBarrierInteraction
             ShipShipInteraction.SyncSlaveSpeedFromBowVelocity(ship);
     }
 
-    private static bool TryResolveShipVsSegment(Slave ship, ShipStaticBarrier barrier, (float x0, float y0, float x1, float y1) seg, ref float separationBudgetMeters)
+    private static bool TryResolveShipVsSegment(WorldInstance world, Slave ship, ShipStaticBarrier barrier, (float x0, float y0, float x1, float y1) seg, ref float separationBudgetMeters)
     {
         var body = ship.RigidBody!;
         var ma = ship.ShipController!.ShipModel;
@@ -143,10 +143,21 @@ public sealed class ShipStaticBarrierInteraction
         var halfLenB = segLen * 0.5f;
         var halfWidB = barrier.HalfThicknessMeters;
 
-        var bbA = body.Shapes[0].WorldBoundingBox;
+        // Vertical test uses ship model height (MassBoxSizeZ×scale) vs barrier slab relative to local water surface.
+        var shipHeight = ma.MassBoxSizeZ * ship.Scale;
+        var shipPos = ship.Transform.World.Position;
+        var waterSurface = world.Water?.GetWaterSurface(shipPos, out _) ?? world.Template.OceanLevel;
+        var shipBottom = waterSurface;
+        var shipTop = waterSurface + shipHeight;
+
+        // Early out for ceiling slabs: if ship fits under the ceiling (below barrier.ZMin), skip.
+        var clearance = barrier.ZMin - waterSurface;
+        if (shipHeight > 0f && clearance > 0f && shipHeight < clearance)
+            return false;
+
         var dMinY = barrier.ZMin - BarrierDefaults.VerticalPadMeters;
         var dMaxY = barrier.ZMax + BarrierDefaults.VerticalPadMeters;
-        var overlapY = MathF.Min(bbA.Max.Y, dMaxY) - MathF.Max(bbA.Min.Y, dMinY);
+        var overlapY = MathF.Min(shipTop, dMaxY) - MathF.Max(shipBottom, dMinY);
         if (overlapY < BarrierDefaults.MinVerticalOverlap)
             return false;
 
@@ -164,8 +175,11 @@ public sealed class ShipStaticBarrierInteraction
             if (separationBudgetMeters <= 0f)
                 break;
 
-            bbA = body.Shapes[0].WorldBoundingBox;
-            overlapY = MathF.Min(bbA.Max.Y, dMaxY) - MathF.Max(bbA.Min.Y, dMinY);
+            shipPos = ship.Transform.World.Position;
+            waterSurface = world.Water?.GetWaterSurface(shipPos, out _) ?? world.Template.OceanLevel;
+            shipBottom = waterSurface;
+            shipTop = waterSurface + shipHeight;
+            overlapY = MathF.Min(shipTop, dMaxY) - MathF.Max(shipBottom, dMinY);
             if (overlapY < BarrierDefaults.MinVerticalOverlap)
                 break;
 
