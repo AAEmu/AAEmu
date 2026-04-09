@@ -147,10 +147,6 @@ internal static class ShipStaticBarrierBaiIngestor
         if ((enabled & layer) == 0 || shapes.Count == 0)
             return;
 
-        var ocean = world.Template.OceanLevel;
-        var zMin = ocean + Defaults.ZMinOffsetFromOcean;
-        var zMax = ocean + Defaults.ZMaxOffsetFromOcean;
-
         foreach (var shape in shapes)
         {
             if (world.ShipStaticBarriers!.Barriers.Count >= Defaults.MaxTotalBarriers)
@@ -159,7 +155,7 @@ internal static class ShipStaticBarrierBaiIngestor
             if (shape.Points is null || shape.Points.Count < 2)
                 continue;
 
-            if (!IsMaritimePolygon(world, shape))
+            if (!IsMaritimePolygon(world, shape, out var waterSurfaceRef))
                 continue;
 
             var pointsXy = ClosedPolylinePointsXy(shape.Points);
@@ -167,6 +163,8 @@ internal static class ShipStaticBarrierBaiIngestor
                 continue;
 
             var name = $"bai_{shortTag}_{world.ShipBarrierBaiNameSerial++}_{SanitizeName(shape.Name)}";
+            var zMin = waterSurfaceRef + Defaults.ZMinOffsetFromOcean;
+            var zMax = waterSurfaceRef + Defaults.ZMaxOffsetFromOcean;
             var dto = new ShipStaticBarrierEntryDto
             {
                 Name = name,
@@ -184,7 +182,7 @@ internal static class ShipStaticBarrierBaiIngestor
     }
 
     /// <summary>Same heuristic as test branch (inland reject, pier Z band, heightmap samples).</summary>
-    public static bool IsMaritimePolygon(WorldInstance world, AiShape shape)
+    public static bool IsMaritimePolygon(WorldInstance world, AiShape shape, out float waterSurfaceRef)
     {
         var ocean = world.Template.OceanLevel;
         var maxBelow = MathF.Max(0f, Defaults.CoastalMaxBelowOcean);
@@ -209,16 +207,32 @@ internal static class ShipStaticBarrierBaiIngestor
         }
 
         if (float.IsInfinity(minX))
+        {
+            waterSurfaceRef = ocean;
             return false;
+        }
 
-        if (vMinZ > ocean + Defaults.InlandMinVertexZAboveOcean)
+        // Reference water surface for this polygon:
+        // use WaterBodies surface at the polygon center (probe Z uses vMaxZ to avoid early ocean short-circuit).
+        var cx = (minX + maxX) * 0.5f;
+        var cy = (minY + maxY) * 0.5f;
+        try
+        {
+            waterSurfaceRef = world.Water?.GetWaterSurface(new Vector3(cx, cy, vMaxZ), out _) ?? ocean;
+        }
+        catch
+        {
+            waterSurfaceRef = ocean;
+        }
+
+        if (vMinZ > waterSurfaceRef + Defaults.InlandMinVertexZAboveOcean)
             return false;
 
         // Bridge/road decks (all vertices well above water) often cross navigable water and would create a ship-blocking wall.
-        if (vMinZ > ocean + Defaults.BridgeDeckMinVertexZAboveOcean)
+        if (vMinZ > waterSurfaceRef + Defaults.BridgeDeckMinVertexZAboveOcean)
             return false;
 
-        if (vMaxZ >= ocean - Defaults.PierBandBelowOcean && vMinZ <= ocean + Defaults.PierBandAboveOcean)
+        if (vMaxZ >= waterSurfaceRef - Defaults.PierBandBelowOcean && vMinZ <= waterSurfaceRef + Defaults.PierBandAboveOcean)
             return true;
 
         for (var ix = 0; ix < grid; ix++)
@@ -230,7 +244,7 @@ internal static class ShipStaticBarrierBaiIngestor
                 var sx = minX + (maxX - minX) * tx;
                 var sy = minY + (maxY - minY) * ty;
                 var h = world.GetHeight(sx, sy);
-                if (h >= ocean - extendedBelow && h <= ocean + maxAbove)
+                if (h >= waterSurfaceRef - extendedBelow && h <= waterSurfaceRef + maxAbove)
                     return true;
             }
         }
