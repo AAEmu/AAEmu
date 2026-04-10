@@ -1,5 +1,4 @@
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -11,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 /// <summary>
 /// Debug/GM helpers for BAI-derived ship static barriers (GeoDataMode).
-/// Allows clearing the in-memory ingest cache so tuning values can be tested without restarting the server.
+/// Uses only <see cref="WorldInstance"/> public barrier helpers so Roslyn script compilation (compiler-check) succeeds.
 /// </summary>
 public sealed class ShipBarrierCmd : ICommand
 {
@@ -90,22 +89,7 @@ public sealed class ShipBarrierCmd : ICommand
             return;
         }
 
-        var beforeBarriers = 0;
-        var beforeCells = 0;
-
-        lock (world.ShipStaticBarriersMutationLock)
-        {
-            beforeBarriers = world.ShipStaticBarriers.Barriers.Count;
-            beforeCells = world.ShipBarrierBaiIngestedCells.Count;
-
-            // For now, reset "cell" is implemented as a full reset.
-            // (We currently don't tag barriers by cell, so selective removal would be error-prone.)
-            world.ShipStaticBarriers.Barriers.Clear();
-            world.ShipStaticBarriers.SpatialGridBuiltForBarrierCount = -1;
-            world.ShipStaticBarriers.SpatialGrid = null;
-            world.ShipBarrierBaiIngestedCells.Clear();
-            world.ShipBarrierBaiNameSerial = 0;
-        }
+        world.ClearShipStaticBarriersAndBaiIngest(out var beforeBarriers, out var beforeCells);
 
         CommandManager.SendNormalText(this, messageOutput,
             $"Cleared ship barriers for {world}. Barriers {beforeBarriers}→0, ingested cells {beforeCells}→0.");
@@ -123,13 +107,9 @@ public sealed class ShipBarrierCmd : ICommand
         {
             var tx = cx + dx;
             var ty = cy + dy;
-            int preCount;
-            lock (world.ShipStaticBarriersMutationLock)
-                preCount = world.ShipStaticBarriers?.Barriers.Count ?? 0;
-            ShipStaticBarrierBaiIngestor.EnsureCell(world, tx, ty);
-            int postCount;
-            lock (world.ShipStaticBarriersMutationLock)
-                postCount = world.ShipStaticBarriers?.Barriers.Count ?? 0;
+            var preCount = world.GetShipStaticBarrierCountLocked();
+            world.EnsureShipStaticBarrierBaiCell(tx, ty);
+            var postCount = world.GetShipStaticBarrierCountLocked();
             if (postCount > preCount)
                 ingested++;
         }
@@ -140,16 +120,9 @@ public sealed class ShipBarrierCmd : ICommand
 
     private void SendStatus(WorldInstance world, IMessageOutput messageOutput)
     {
-        int barriers;
-        int cells;
-        lock (world.ShipStaticBarriersMutationLock)
-        {
-            barriers = world.ShipStaticBarriers?.Barriers.Count ?? 0;
-            cells = world.ShipBarrierBaiIngestedCells.Count;
-        }
+        world.GetShipStaticBarrierDebugCounts(out var barriers, out var cells);
 
         CommandManager.SendNormalText(this, messageOutput,
             $"World={world} GeoDataMode={AppConfiguration.Instance.World.GeoDataMode} barriers={barriers} ingestedCells={cells}");
     }
 }
-
