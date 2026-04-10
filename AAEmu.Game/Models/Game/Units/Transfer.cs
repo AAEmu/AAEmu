@@ -16,6 +16,11 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class Transfer : Unit
 {
+    /// <summary>
+    /// Signed offset along the motor's forward axis for the bounded child (not in client DB; tuned for default carriage pair).
+    /// </summary>
+    public const float BoundedChildAlongFrontOffsetMeters = -9.24417f;
+
     public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Transfer; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Transfer;
 
@@ -644,8 +649,7 @@ public class Transfer : Unit
         if (transfer.Bounded is not null)
         {
             var child = transfer.Bounded;
-            const float defaultBehindMeters = -9.24417f;
-            var (cx, cy) = MathUtil.AddDistanceToFront(defaultBehindMeters,
+            var (cx, cy) = MathUtil.AddDistanceToFront(BoundedChildAlongFrontOffsetMeters,
                 transfer.vPosition.X,
                 transfer.vPosition.Y,
                 (float)transfer.Angle);

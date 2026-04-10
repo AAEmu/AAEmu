@@ -142,7 +142,7 @@ public class TransferManager
         transfer.Hp = transfer.MaxHp;
         transfer.Mp = transfer.MaxMp;
         transfer.Transform.ApplyWorldSpawnPosition(spawner.Position);
-        transfer.Transform.Local.AddDistanceToFront(-9.24417f);
+        transfer.Transform.Local.AddDistanceToFront(Transfer.BoundedChildAlongFrontOffsetMeters);
         transfer.Transform.Local.SetHeight(transfer.ParentWorld.Template.GeoData.GetHeight(transfer.Transform.World.Position)); // WorldManager.Instance.GetHeight(transfer.Transform)));
         transfer.Transform.StickyParent = owner.Transform; // stick it to the driver/motor
         transfer.Transform.Parent = null;
