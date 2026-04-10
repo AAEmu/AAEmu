@@ -453,17 +453,6 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 }
 
                 spawnPos.Local.Position += spawnOffsetPos;
-
-                // PortalTime: no buoyancy / no ship physics tick — height must match what AddShip will clamp (PhysicsManager).
-                // Use water at the final spawn X,Y (depth search + offsets move the hull); worldWaterLevel alone was wrong here.
-                var waterAtFinal = world.Water.GetWaterSurface(spawnPos.World.Position, out _);
-                if (waterAtFinal > 0f)
-                {
-                    var hullHeight = tempShipModel.MassBoxSizeZ;
-                    var minSpawnZ = waterAtFinal + hullHeight * PhysicsManager.ShipHullWaterlineVisualHullFrac;
-                    if (spawnPos.Local.Position.Z < minSpawnZ)
-                        spawnPos.Local.SetHeight(minSpawnZ);
-                }
             }
             else
             {
@@ -561,6 +550,29 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         // Move it to target location, and call spawn packet
         summonedSlave.Transform = spawnPos.CloneDetached(summonedSlave);
+
+        // PortalTime: no buoyancy yet — Z must match PhysicsManager.AddShip clamp: MassBoxSizeZ * Slave.Scale.
+        // Done here (not on spawnPos) so we use the same Scale AddShip will use. Not slaves.portal_scale (VFX).
+        if (summonedSlave.Template.IsABoat())
+        {
+            var spawnWorld = WorldManager.Instance.GetWorld(summonedSlave.Transform.InstanceId);
+            if (spawnWorld != null)
+            {
+                var waterAtFinal = spawnWorld.Water.GetWaterSurface(summonedSlave.Transform.World.Position, out _);
+                if (waterAtFinal > 0f)
+                {
+                    var shipModelForClamp = ModelManager.Instance.GetShipModel(summonedSlave.ModelId);
+                    if (shipModelForClamp != null)
+                    {
+                        var hullHeight = shipModelForClamp.MassBoxSizeZ * summonedSlave.Scale;
+                        var minSpawnZ = waterAtFinal + hullHeight * PhysicsManager.ShipHullWaterlineVisualHullFrac;
+                        if (summonedSlave.Transform.Local.Position.Z < minSpawnZ)
+                            summonedSlave.Transform.Local.SetHeight(minSpawnZ);
+                    }
+                }
+            }
+        }
+
         summonedSlave.Spawn();
         #endregion
 
