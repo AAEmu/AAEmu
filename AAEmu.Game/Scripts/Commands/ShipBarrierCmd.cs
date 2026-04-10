@@ -123,9 +123,13 @@ public sealed class ShipBarrierCmd : ICommand
         {
             var tx = cx + dx;
             var ty = cy + dy;
-            var preCount = world.ShipStaticBarriers.Barriers.Count;
+            int preCount;
+            lock (world.ShipStaticBarriersMutationLock)
+                preCount = world.ShipStaticBarriers?.Barriers.Count ?? 0;
             ShipStaticBarrierBaiIngestor.EnsureCell(world, tx, ty);
-            var postCount = world.ShipStaticBarriers.Barriers.Count;
+            int postCount;
+            lock (world.ShipStaticBarriersMutationLock)
+                postCount = world.ShipStaticBarriers?.Barriers.Count ?? 0;
             if (postCount > preCount)
                 ingested++;
         }
