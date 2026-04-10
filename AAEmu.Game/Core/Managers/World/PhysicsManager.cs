@@ -743,6 +743,10 @@ public class PhysicsManager
         moveType.X = rep.PosX;
         moveType.Y = rep.PosY;
         moveType.Z = rep.PosZ;
+        // Visual-only Z bump on replicated movement (see ShipHullWaterlineVisualHullFrac). Physics body and
+        // slave.Transform below stay aligned with rigidBody — intentional: tuning hull vs waterline for clients
+        // without changing buoyancy/collisions. Server logic using Transform will see a slightly lower Z than
+        // moveType.Z in water; do not mirror waterZUp into Transform unless physics is updated to match.
         var hullHeight = (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 0f) * slave.Scale;
         var waterZUp = hullHeight * ShipHullWaterlineVisualHullFrac;
         if (waterZUp != 0f && slave.ParentWorld?.IsWater(new Vector3(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y)) == true)
