@@ -558,7 +558,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             var spawnWorld = WorldManager.Instance.GetWorld(summonedSlave.Transform.InstanceId);
             if (spawnWorld != null)
             {
-                var waterAtFinal = spawnWorld.Water.GetWaterSurface(summonedSlave.Transform.World.Position, out _);
+                var waterAtFinal = spawnWorld.Water?.GetWaterSurface(summonedSlave.Transform.World.Position, out _) ?? 0f;
                 if (waterAtFinal > 0f)
                 {
                     var shipModelForClamp = ModelManager.Instance.GetShipModel(summonedSlave.ModelId);
