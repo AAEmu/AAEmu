@@ -150,6 +150,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             slave.AttachedCharacters.Remove(attachPoint);
             character.Transform.Parent = null;
             character.Transform.StickyParent = null;
+            ShipHarpoonRopeController.OnOperatorLeftSlave(slave, character);
         }
 
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);

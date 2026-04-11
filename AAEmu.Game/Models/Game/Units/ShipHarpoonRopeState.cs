@@ -10,6 +10,8 @@ public sealed class ShipHarpoonRopeState
     public float RopeLength { get; set; }
     public bool LastTeared { get; set; }
     public bool LastCutout { get; set; }
+    /// <summary>Max range from Launch Harpoon skill template (world units); used to auto-break when hook moves out.</summary>
+    public float MaxLaunchRange { get; set; }
 
     public void Clear()
     {
@@ -18,5 +20,6 @@ public sealed class ShipHarpoonRopeState
         RopeLength = 0f;
         LastTeared = false;
         LastCutout = false;
+        MaxLaunchRange = 0f;
     }
 }
