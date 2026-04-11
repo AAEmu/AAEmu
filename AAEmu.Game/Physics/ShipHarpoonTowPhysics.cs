@@ -29,7 +29,7 @@ public static class ShipHarpoonTowPhysics
 
     /// <summary>Cap on tow acceleration toward the hook (m/s²).</summary>
     public static float TowMaxAccel => GetTowMaxAccel();
-    private static float GetTowMaxAccel() => 1f;
+    private static float GetTowMaxAccel() => 2f;
 
     /// <summary>If paid rope exceeds distance by more than this, treat as slack (no tow).</summary>
     public static float SlackMarginMeters => GetSlackMarginMeters();
