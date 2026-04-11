@@ -116,6 +116,15 @@ public class WorldConfig
     /// Server-side Actability Points multiplier (on top of buffs)
     /// </summary>
     public double ActabilityRate { get; set; } = 1.0;
+
+    /// <summary>
+    /// When true, housing bound doodads (doors, windows, planters, drills, animals) are saved to the
+    /// database and their state (open/closed, fill level, growth phase) is restored on server restart.
+    /// When false (default), bound doodads are re-created fresh from template data on every restart,
+    /// matching the original behaviour.
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.UsePersistentHouseDoodads</c>.
+    /// </summary>
+    public bool UsePersistentHouseDoodads { get; set; } = false;
 }
 
 public class DungeonLoadConfig

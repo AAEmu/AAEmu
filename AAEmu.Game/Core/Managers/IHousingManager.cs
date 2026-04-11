@@ -36,4 +36,5 @@ public interface IHousingManager
     House GetHouseAtLocation(float x, float y);
     bool PayWeeklyTax(House house);
     (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
+    void ReconcileBoundDoodads();
 }
