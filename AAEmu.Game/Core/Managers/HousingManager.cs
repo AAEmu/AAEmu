@@ -284,6 +284,7 @@ public class HousingManager(
                     doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(bindingDoodad.Position);
                     doodad.IsPersistent = true;
                     doodad.InitDoodad();
+                    doodad.Spawn(); // register in world and make visible
                     doodad.Save();
                     house.AttachedDoodads.Add(doodad);
                     house.ParentWorld.SpawnManager.AddPlayerDoodad(doodad);
@@ -297,6 +298,8 @@ public class HousingManager(
                     {
                         var extra = matches[i];
                         house.AttachedDoodads.Remove(extra);
+                        if (extra.ObjId > 0)
+                            ObjectIdManager.Instance.ReleaseId(extra.ObjId);
                         extra.Delete();
                         removedCount++;
                     }

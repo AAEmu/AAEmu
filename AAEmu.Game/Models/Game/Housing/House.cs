@@ -111,7 +111,11 @@ public sealed class House : Unit
                 foreach (var doodad in AttachedDoodads)
                 {
                     if (doodad.IsPersistent)
+                    {
+                        if (doodad.ObjId > 0)
+                            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
                         doodad.Delete();
+                    }
                     else if (doodad.ObjId > 0)
                         ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
                 }
