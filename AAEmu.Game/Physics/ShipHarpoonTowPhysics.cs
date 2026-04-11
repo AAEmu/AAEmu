@@ -11,7 +11,7 @@ namespace AAEmu.Game.Physics;
 /// <summary>
 /// Tow force when a ship harpoon is hooked to dry land: if the paid rope length is not slack
 /// (<see cref="SlackMarginMeters"/>), accelerate the parent hull toward the hook in the horizontal plane.
-/// Applied after helm/throttle velocity so <see cref="Slave.Speed"/> is resynced from the clamped along-bow component.
+/// Optional bow yaw toward average tow pull (<see cref="TowYawAssistRadPerSec"/>). Applied after helm/throttle velocity so <see cref="Slave.Speed"/> is resynced from the clamped along-bow component.
 /// Tunables are not <c>const</c> — edit the private <c>Get*()</c> return literals below and save; <c>dotnet watch</c> hot reload applies like <see cref="ShipTuningDebug"/>.
 /// </summary>
 public static class ShipHarpoonTowPhysics
@@ -40,6 +40,10 @@ public static class ShipHarpoonTowPhysics
     /// </summary>
     public static float ServerRopePaidLengthAdditiveMeters => GetServerRopePaidLengthAdditiveMeters();
     private static float GetServerRopePaidLengthAdditiveMeters() => 12.5f;
+
+    /// <summary>Yaw rate assist (rad/s per unit cross) so bow follows tow pull; use <c>-cross</c> vs body angular velocity sign.</summary>
+    public static float TowYawAssistRadPerSec => GetTowYawAssistRadPerSec();
+    private static float GetTowYawAssistRadPerSec() => 0.3f;
 
     #endregion
 
@@ -113,5 +117,14 @@ public static class ShipHarpoonTowPhysics
             alongVel * bowDirZ + perpZ);
 
         hull.Speed = alongVel / mul;
+
+        var sumLen = MathF.Sqrt(sum.X * sum.X + sum.Z * sum.Z);
+        if (sumLen < 1e-6f)
+            return;
+        var sx = sum.X / sumLen;
+        var sz = sum.Z / sumLen;
+        var cross = bowDirX * sz - bowDirZ * sx;
+        // ShipController sets angular velocity as -RotSpeed on rigid body Y — negate cross so bow turns toward pull.
+        hull.RotSpeed += Math.Clamp(-cross * TowYawAssistRadPerSec * dtSec, -0.85f, 0.85f);
     }
 }
