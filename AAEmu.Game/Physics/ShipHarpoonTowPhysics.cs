@@ -5,7 +5,6 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Util;
 using Jitter2;
 using Jitter2.Dynamics;
@@ -17,71 +16,54 @@ namespace AAEmu.Game.Physics;
 /// Tow force when a ship harpoon is hooked to dry land: if the paid rope length is not slack
 /// (<see cref="SlackMarginMeters"/>), accelerate the parent hull toward the hook in the horizontal plane.
 /// Optional bow yaw toward average tow pull (<see cref="TowYawAssistRadPerSec"/>). Applied after helm/throttle velocity so <see cref="Slave.Speed"/> is resynced from the clamped along-bow component.
-/// Tunables are not <c>const</c> — edit the private <c>Get*()</c> return literals below and save; <c>dotnet watch</c> hot reload applies like <see cref="ShipTuningDebug"/>.
+/// Tunables are <see cref="TowAccelPerMeterStretch"/> and related <c>const</c> fields below.
 /// </summary>
 public static class ShipHarpoonTowPhysics
 {
-    #region Hot-reload tunables (edit literal in Get* body, save — dotnet watch)
-
     /// <summary>m/s² per meter of (cannon–hook distance − paid rope length) in the taut regime.</summary>
-    public static float TowAccelPerMeterStretch => GetTowAccelPerMeterStretch();
-    private static float GetTowAccelPerMeterStretch() => 1f;
+    public const float TowAccelPerMeterStretch = 1f;
 
     /// <summary>Cap on tow acceleration toward the hook (m/s²).</summary>
-    public static float TowMaxAccel => GetTowMaxAccel();
-    private static float GetTowMaxAccel() => 2f;
+    public const float TowMaxAccel = 2f;
 
     /// <summary>If paid rope exceeds distance by more than this, treat as slack (no tow).</summary>
-    public static float SlackMarginMeters => GetSlackMarginMeters();
-    private static float GetSlackMarginMeters() => 0.5f;
+    public const float SlackMarginMeters = 0.5f;
 
     /// <summary>Ignore hooks this close to hull center (avoids spikes).</summary>
-    public static float MinHookHorizontalDistance => GetMinHookHorizontalDistance();
-    private static float GetMinHookHorizontalDistance() => 0.2f;
+    public const float MinHookHorizontalDistance = 0.2f;
 
     /// <summary>
     /// Hack: added to <c>RopeLength</c> (client / initial stored value) only when judging slack/stretch in tow — avoids double-count at launch.
-    /// Tune if fixed payout / <c>len</c> disagrees with server chord; hot-reload.
+    /// Tune if fixed payout / <c>len</c> disagrees with server chord.
     /// </summary>
-    public static float ServerRopePaidLengthAdditiveMeters => GetServerRopePaidLengthAdditiveMeters();
-    private static float GetServerRopePaidLengthAdditiveMeters() => 12.5f;
+    public const float ServerRopePaidLengthAdditiveMeters = 12.5f;
 
     /// <summary>Yaw rate assist (rad/s per unit cross) so bow follows tow pull; use <c>-cross</c> vs body angular velocity sign.</summary>
-    public static float TowYawAssistRadPerSec => GetTowYawAssistRadPerSec();
-    private static float GetTowYawAssistRadPerSec() => 0.3f;
+    public const float TowYawAssistRadPerSec = 0.3f;
 
     /// <summary>Weights mass×(1 + k·|v|) dominance so a heavier/faster hull pulls the other more along a taut ship-to-ship harpoon.</summary>
-    public static float ShipPairDominanceSpeedCoeff => GetShipPairDominanceSpeedCoeff();
-    private static float GetShipPairDominanceSpeedCoeff() => 0.04f;
+    public const float ShipPairDominanceSpeedCoeff = 0.04f;
 
     /// <summary>Extra impulse scale when the towing hull wins dominance (≥1).</summary>
-    public static float ShipPairDominantTowHullMul => GetShipPairDominantTowHullMul();
-    private static float GetShipPairDominantTowHullMul() => 1.12f;
+    public const float ShipPairDominantTowHullMul = 1.12f;
 
     /// <summary>Extra impulse scale when the hooked hull wins dominance (≥1).</summary>
-    public static float ShipPairDominantBasisHullMul => GetShipPairDominantBasisHullMul();
-    private static float GetShipPairDominantBasisHullMul() => 1.12f;
+    public const float ShipPairDominantBasisHullMul = 1.12f;
 
     /// <summary>Added to <see cref="SlackMarginMeters"/> only for ship–ship taut checks (client <c>RopeLength</c> often stays looser than chord).</summary>
-    public static float ShipPairExtraSlackMarginMeters => GetShipPairExtraSlackMarginMeters();
-    private static float GetShipPairExtraSlackMarginMeters() => 22f;
+    public const float ShipPairExtraSlackMarginMeters = 22f;
 
     /// <summary>Floor on stretch (m) when computing ship–pair tow so a tiny positive impulse still applies near taut.</summary>
-    public static float ShipPairMinStretchMeters => GetShipPairMinStretchMeters();
-    private static float GetShipPairMinStretchMeters() => 0.12f;
+    public const float ShipPairMinStretchMeters = 0.12f;
 
     /// <summary>When <see cref="ShipHarpoonRopeState.HookBasisObjId"/> is 0, pick nearest other boat hull within this distance of hook (world).</summary>
-    public static float ShipPairMaxGuessBasisDistanceMeters => GetShipPairMaxGuessBasisDistanceMeters();
-    private static float GetShipPairMaxGuessBasisDistanceMeters() => 45f;
+    public const float ShipPairMaxGuessBasisDistanceMeters = 45f;
 
     /// <summary>
     /// If cannon–hook chord exceeds paid rope + this (m), treat as in-flight / not bearing load — no ship–pair tow or yaw.
     /// Stops basis hull moving before the hook can physically span the rope.
     /// </summary>
-    public static float ShipPairMaxChordOverPaidMeters => GetShipPairMaxChordOverPaidMeters();
-    private static float GetShipPairMaxChordOverPaidMeters() => 12f;
-
-    #endregion
+    public const float ShipPairMaxChordOverPaidMeters = 12f;
 
     /// <summary>Depth-first over <paramref name="root"/>’s attached slaves (harpoon may be nested under mounts).</summary>
     public static IEnumerable<Slave> EnumerateAttachedSlaveDescendants(Slave root)
