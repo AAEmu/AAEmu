@@ -20,19 +20,26 @@ public static class ShipHarpoonTowPhysics
 
     /// <summary>m/s² per meter of (cannon–hook distance − paid rope length) in the taut regime.</summary>
     public static float TowAccelPerMeterStretch => GetTowAccelPerMeterStretch();
-    private static float GetTowAccelPerMeterStretch() => 4.5f;
+    private static float GetTowAccelPerMeterStretch() => 3f;
 
     /// <summary>Cap on tow acceleration toward the hook (m/s²).</summary>
     public static float TowMaxAccel => GetTowMaxAccel();
-    private static float GetTowMaxAccel() => 12f;
+    private static float GetTowMaxAccel() => 6f;
 
     /// <summary>If paid rope exceeds distance by more than this, treat as slack (no tow).</summary>
     public static float SlackMarginMeters => GetSlackMarginMeters();
-    private static float GetSlackMarginMeters() => 0.45f;
+    private static float GetSlackMarginMeters() => 0.5f;
 
     /// <summary>Ignore hooks this close to hull center (avoids spikes).</summary>
     public static float MinHookHorizontalDistance => GetMinHookHorizontalDistance();
     private static float GetMinHookHorizontalDistance() => 0.2f;
+
+    /// <summary>
+    /// Hack: added to <c>RopeLength</c> (client / initial stored value) only when judging slack/stretch in tow — avoids double-count at launch.
+    /// Tune if fixed payout / <c>len</c> disagrees with server chord; hot-reload.
+    /// </summary>
+    public static float ServerRopePaidLengthAdditiveMeters => GetServerRopePaidLengthAdditiveMeters();
+    private static float GetServerRopePaidLengthAdditiveMeters() => 12.5f;
 
     #endregion
 
@@ -59,7 +66,7 @@ public static class ShipHarpoonTowPhysics
             var cannonPos = child.Transform.World.Position;
             var hook = st.HookWorld;
             var dist = Vector3.Distance(cannonPos, hook);
-            var paid = st.RopeLength;
+            var paid = st.RopeLength + ServerRopePaidLengthAdditiveMeters;
             if (paid > dist + SlackMarginMeters)
                 continue;
 
