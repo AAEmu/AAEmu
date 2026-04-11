@@ -53,6 +53,8 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
         if (flagType > 0) skillObject.Read(stream);
 
+        HarpoonMechanicsDebug.LogCsStartSkillIfHarpoon(skillId, flag, flagType, skillCaster, skillCastTarget, skillObject);
+
         if (Connection.ActiveChar != null)
             Connection.ActiveChar.LastPacketActivityTime = DateTime.UtcNow;
         var world = Connection.ActiveChar?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
@@ -88,9 +90,17 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             }
 
             // Use the main skill on the mate/slave
-            if (skill.Use(caster, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue) != SkillResult.Success)
+            var mountPrimaryResult = skill.Use(caster, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
+            if (mountPrimaryResult != SkillResult.Success)
             {
                 // skill.Stop(caster, null, skillCaster);
+            }
+            else if (slave != null)
+            {
+                if (skillId == HarpoonMechanicsDebug.ShipLaunchHarpoonSkillId)
+                    ShipHarpoonRopeController.OnLaunchSucceeded(slave, skillCastTarget);
+                else if (skillId == HarpoonMechanicsDebug.ShipCutHarpoonRopeSkillId)
+                    ShipHarpoonRopeController.OnCutRope(slave);
             }
 
             // If no rider/operator skill is linked, we can stop here

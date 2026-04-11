@@ -519,8 +519,18 @@ public class Skill
                 break;
             case SkillTargetType.SummonPos:
                 break;
+            // Ship harpoon Launch Harpoon (13749) uses target_type_id 13 = RelativePos with a world Position from the client.
             case SkillTargetType.RelativePos:
-                break;
+                {
+                    if (targetCaster is SkillCastPositionTarget or SkillCastPosition2Target or SkillCastPosition3Target)
+                    {
+                        target = SetInitialTarget(caster, targetCaster);
+                        if (caster.ObjId == target.ObjId)
+                            return null;
+                    }
+
+                    break;
+                }
             case SkillTargetType.SourcePos:
                 break;
             case SkillTargetType.ArtilleryPos:
