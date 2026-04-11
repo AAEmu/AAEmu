@@ -1,14 +1,21 @@
+using AAEmu.Game.Models.Game.Skills;
 using NLog;
 
-namespace AAEmu.Game.Models.Game.Skills;
+namespace AAEmu.Game.Physics.Debug;
 
 /// <summary>
 /// Debug hooks only for ship harpoon skills (Launch Harpoon / Cut Harpoon Rope). Skill IDs from compact.skills + localized_texts (dumpsql).
-/// Rope length / controller traffic uses shared packets — see <see cref="SkillControllerPacketDebug"/>.
+/// Rope length / controller traffic uses shared packets — see <see cref="AAEmu.Game.Core.Packets.Debug.SkillControllerPacketDebug"/>.
 /// </summary>
 public static class HarpoonMechanicsDebug
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
+    /// <summary>
+    /// When true, emits harpoon-specific NLog Debug (CSStartSkill payload, rope engage/break in <see cref="AAEmu.Game.Models.Game.Skills.SkillControllers.ShipHarpoonRopeController"/>).
+    /// Default is off. Does not affect <see cref="AAEmu.Game.Core.Packets.Debug.SkillControllerPacketDebug"/> (shared packet logger).
+    /// </summary>
+    public static bool EnableVerboseHarpoonMechanicsLogging;
 
     /// <summary>Ship-mounted Launch Harpoon (EN localized name).</summary>
     public const uint ShipLaunchHarpoonSkillId = 13749;
@@ -21,7 +28,7 @@ public static class HarpoonMechanicsDebug
 
     public static void LogCsStartSkillIfHarpoon(uint skillId, byte flag, int flagType, SkillCaster caster, SkillCastTarget target, SkillObject skillObject)
     {
-        if (!IsShipHarpoonSkill(skillId))
+        if (!EnableVerboseHarpoonMechanicsLogging || !IsShipHarpoonSkill(skillId))
             return;
 
         // NLog.config: console uses minlevel Debug — Trace would not appear in the terminal.

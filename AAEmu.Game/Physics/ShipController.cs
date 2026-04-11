@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Models;
-using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;

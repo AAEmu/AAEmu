@@ -3,7 +3,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Util;

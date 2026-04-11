@@ -6,12 +6,14 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Physics.Debug;
 using NLog;
 
-namespace AAEmu.Game.Models.Game.Skills;
+namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
 /// <summary>Server-side harpoon rope lifecycle (Launch 13749, Cut 13750, CSSkillControllerState).</summary>
 public static class ShipHarpoonRopeController
@@ -51,9 +53,10 @@ public static class ShipHarpoonRopeController
         harpoonSlave.HarpoonRope.HookAttachedToTerrain = pw != null && !pw.IsWater(hookWorld) && !hookBasisIsOtherBoat;
         harpoonSlave.HarpoonRope.ControllerExpireAtUtc = ResolveRopeControllerExpireUtc(launchTemplate);
 
-        Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6} controllerExpireUtc={7}",
-            harpoonSlave.ObjId, hookWorld.X, hookWorld.Y, hookWorld.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain,
-            harpoonSlave.HarpoonRope.ControllerExpireAtUtc?.ToString("u") ?? "(none)");
+        if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
+            Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6} controllerExpireUtc={7}",
+                harpoonSlave.ObjId, hookWorld.X, hookWorld.Y, hookWorld.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain,
+                harpoonSlave.HarpoonRope.ControllerExpireAtUtc?.ToString("u") ?? "(none)");
 
         BroadcastSkillControllerRopeState(harpoonSlave, initialLen, teared: false, cutouted: false, except: operatorChar);
     }
@@ -114,7 +117,8 @@ public static class ShipHarpoonRopeController
         var st = node.HarpoonRope;
         if (st.IsEngaged && st.ControllerExpireAtUtc is { } until && now >= until)
         {
-            Log.Debug("Harpoon rope auto-break (skill_controllers Rope lifetime): slaveObjId={0}", node.ObjId);
+            if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
+                Log.Debug("Harpoon rope auto-break (skill_controllers Rope lifetime): slaveObjId={0}", node.ObjId);
             BreakRopeForClients(node, cutouted: false, alsoNotify: null);
         }
 
@@ -167,8 +171,9 @@ public static class ShipHarpoonRopeController
         if (alsoNotify?.Connection != null && alsoNotify.ObjId != slave.Summoner?.ObjId)
             alsoNotify.SendPacket(pkt);
 
-        Log.Debug("Harpoon rope server break + SCSkillControllerState: slaveObjId={0} len={1:F2} cutouted={2}",
-            objId, len, cutouted);
+        if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
+            Log.Debug("Harpoon rope server break + SCSkillControllerState: slaveObjId={0} len={1:F2} cutouted={2}",
+                objId, len, cutouted);
     }
 
     /// <summary>
@@ -219,8 +224,9 @@ public static class ShipHarpoonRopeController
             return false;
 
         var maxSaved = slave.HarpoonRope.MaxLaunchRange;
-        Log.Debug("Harpoon rope auto-break (hook beyond range): slaveObjId={0} dist={1:F2} max={2:F2}",
-            slave.ObjId, dist, maxSaved);
+        if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
+            Log.Debug("Harpoon rope auto-break (hook beyond range): slaveObjId={0} dist={1:F2} max={2:F2}",
+                slave.ObjId, dist, maxSaved);
         BreakRopeForClients(slave, cutouted: false, alsoNotify);
         return true;
     }

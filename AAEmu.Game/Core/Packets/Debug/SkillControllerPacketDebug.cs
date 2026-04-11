@@ -1,7 +1,7 @@
 using System.Globalization;
 using NLog;
 
-namespace AAEmu.Game.Models.Game.Skills;
+namespace AAEmu.Game.Core.Packets.Debug;
 
 /// <summary>
 /// Debug logging for skill-controller packets (shared by harpoon rope, gliders, and other mechanics — not harpoon-specific).

@@ -9,6 +9,8 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
