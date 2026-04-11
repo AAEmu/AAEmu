@@ -670,6 +670,9 @@ public class ShipController(World world, ShipModelV1 shipModel)
         else
             rigidBody.Velocity = new JVector(forceThrottle * fx, 0f, forceThrottle * fz);
 
+        var speedToAlongVel = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
+        ShipHarpoonTowPhysics.ApplyTerrainHookTow(slave, rigidBody, dtSec, fx, fz, speedToAlongVel, maxForward, maxBackward);
+
         if (!isGrounded)
         {
             var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);

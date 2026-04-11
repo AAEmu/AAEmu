@@ -35,9 +35,11 @@ public static class ShipHarpoonRopeController
         harpoonSlave.HarpoonRope.MaxLaunchRange = maxRange;
         harpoonSlave.HarpoonRope.LastTeared = false;
         harpoonSlave.HarpoonRope.LastCutout = false;
+        var pw = harpoonSlave.ParentWorld;
+        harpoonSlave.HarpoonRope.HookAttachedToTerrain = pw != null && !pw.IsWater(hook);
 
-        Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1}",
-            harpoonSlave.ObjId, hook.X, hook.Y, hook.Z, initialLen, maxRange);
+        Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6}",
+            harpoonSlave.ObjId, hook.X, hook.Y, hook.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain);
     }
 
     public static void OnCutRope(Slave harpoonSlave, Character? operatorChar)
