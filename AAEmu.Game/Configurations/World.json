@@ -17,6 +17,7 @@
         "MaxInstances": 32,
         "TargetPhysicsTps": 25.0,
         "WindModel": "Official",
-        "ActabilityRate": 1.0
+        "ActabilityRate": 1.0,
+        "UsePersistentHouseDoodads": false
     }
 }
