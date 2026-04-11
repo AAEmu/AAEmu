@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -42,6 +43,8 @@ public static class ShipHarpoonRopeController
 
         Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6}",
             harpoonSlave.ObjId, hook.X, hook.Y, hook.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain);
+
+        BroadcastSkillControllerRopeState(harpoonSlave, initialLen, teared: false, cutouted: false, except: operatorChar);
     }
 
     public static void OnCutRope(Slave harpoonSlave, Character? operatorChar)
@@ -71,7 +74,12 @@ public static class ShipHarpoonRopeController
             return;
 
         if (teared || cutouted)
-            slave.HarpoonRope.Clear();
+        {
+            BreakRopeForClients(slave, cutouted, character);
+            return;
+        }
+
+        BroadcastSkillControllerRopeState(slave, len, teared: false, cutouted: false, except: character);
     }
 
     /// <summary>When the operator leaves this slave seat (harpoon station), drop the line per game design.</summary>
@@ -91,24 +99,33 @@ public static class ShipHarpoonRopeController
         slave.HarpoonRope.Clear();
 
         var pkt = new SCSkillControllerStatePacket(objId, 0, len, teared: true, cutouted);
-        var sent = new HashSet<uint>();
-        foreach (var ch in slave.AttachedCharacters.Values)
-        {
-            if (ch?.Connection == null)
-                continue;
-            if (!sent.Add(ch.ObjId))
-                continue;
-            ch.SendPacket(pkt);
-        }
-
-        if (slave.Summoner?.Connection != null && sent.Add(slave.Summoner.ObjId))
+        slave.BroadcastPacket(pkt, false);
+        if (slave.Summoner?.Connection != null)
             slave.Summoner.SendPacket(pkt);
-
-        if (alsoNotify?.Connection != null && sent.Add(alsoNotify.ObjId))
+        if (alsoNotify?.Connection != null && alsoNotify.ObjId != slave.Summoner?.ObjId)
             alsoNotify.SendPacket(pkt);
 
         Log.Debug("Harpoon rope server break + SCSkillControllerState: slaveObjId={0} len={1:F2} cutouted={2}",
             objId, len, cutouted);
+    }
+
+    /// <summary>
+    /// Syncs rope / skill-controller visuals to characters near the harpoon slave.
+    /// Excludes <paramref name="except"/> (operator) so their client is not fed duplicate SC on top of their own CS.
+    /// Uses the same <paramref name="len"/> as server state — do not inflate vs chord (that skewed third-party slack vs operator).
+    /// </summary>
+    private static void BroadcastSkillControllerRopeState(Slave harpoonSlave, float len, bool teared, bool cutouted, Character? except = null)
+    {
+        if (harpoonSlave.ParentWorld == null)
+            return;
+
+        var pkt = new SCSkillControllerStatePacket(harpoonSlave.ObjId, 0, len, teared, cutouted);
+        foreach (var chr in WorldManager.GetAround<Character>(harpoonSlave))
+        {
+            if (except != null && chr.ObjId == except.ObjId)
+                continue;
+            chr.SendPacket(pkt);
+        }
     }
 
     private static bool TryBreakRopeIfHookOutOfRange(Slave slave, Character? alsoNotify)

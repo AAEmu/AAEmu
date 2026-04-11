@@ -20,11 +20,11 @@ public static class ShipHarpoonTowPhysics
 
     /// <summary>m/s² per meter of (cannon–hook distance − paid rope length) in the taut regime.</summary>
     public static float TowAccelPerMeterStretch => GetTowAccelPerMeterStretch();
-    private static float GetTowAccelPerMeterStretch() => 3f;
+    private static float GetTowAccelPerMeterStretch() => 1f;
 
     /// <summary>Cap on tow acceleration toward the hook (m/s²).</summary>
     public static float TowMaxAccel => GetTowMaxAccel();
-    private static float GetTowMaxAccel() => 6f;
+    private static float GetTowMaxAccel() => 1f;
 
     /// <summary>If paid rope exceeds distance by more than this, treat as slack (no tow).</summary>
     public static float SlackMarginMeters => GetSlackMarginMeters();
