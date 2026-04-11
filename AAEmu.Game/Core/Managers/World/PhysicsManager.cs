@@ -3,6 +3,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
@@ -271,6 +272,28 @@ public class PhysicsManager
                         catch (Exception slaveException)
                         {
                             // Put a separate catch here to catch individual errors without it breaking all the physics in this world 
+                            Logger.Error($"PhysicsThread Error on Slave {slave.Id} {slave.Name} ({slave.ObjId}): {slaveException.Message}\n{slaveException.StackTrace}");
+                        }
+                    }
+
+                    // Rope controller expiry must run even when the hull rigid body is inactive (sleeping);
+                    // otherwise ControllerExpireAtUtc is never checked while the client already dropped the rope.
+                    foreach (var (body, _, _) in snapshot)
+                    {
+                        if (body.Tag is not Slave slave)
+                            continue;
+                        try
+                        {
+                            if (slave.Transform.WorldId != SimulationWorld.Id)
+                                continue;
+                            if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
+                                continue;
+                            if (!_shipControllers.ContainsKey(slave.Id))
+                                continue;
+                            ShipHarpoonRopeController.TickHarpoonRopeControllerLifetime(slave);
+                        }
+                        catch (Exception slaveException)
+                        {
                             Logger.Error($"PhysicsThread Error on Slave {slave.Id} {slave.Name} ({slave.ObjId}): {slaveException.Message}\n{slaveException.StackTrace}");
                         }
                     }

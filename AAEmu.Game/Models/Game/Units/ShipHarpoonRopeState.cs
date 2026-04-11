@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 
 namespace AAEmu.Game.Models.Game.Units;
@@ -14,6 +15,11 @@ public sealed class ShipHarpoonRopeState
     public float MaxLaunchRange { get; set; }
     /// <summary>Hook is a world point on land (not water); enables hull tow physics toward the hook.</summary>
     public bool HookAttachedToTerrain { get; set; }
+    /// <summary>
+    /// When non-null, server clears engaged rope at this time so tow physics does not outlive the client rope UI
+    /// (compact <c>skill_controllers</c> Rope value1/value2 ms — we use the minimum positive of the first two values).
+    /// </summary>
+    public DateTime? ControllerExpireAtUtc { get; set; }
 
     public void Clear()
     {
@@ -24,5 +30,6 @@ public sealed class ShipHarpoonRopeState
         LastCutout = false;
         MaxLaunchRange = 0f;
         HookAttachedToTerrain = false;
+        ControllerExpireAtUtc = null;
     }
 }

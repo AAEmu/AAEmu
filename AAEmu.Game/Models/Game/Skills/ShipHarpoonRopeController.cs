@@ -1,11 +1,12 @@
 #nullable enable
 
-using System.Collections.Generic;
+using System;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -40,9 +41,11 @@ public static class ShipHarpoonRopeController
         harpoonSlave.HarpoonRope.LastCutout = false;
         var pw = harpoonSlave.ParentWorld;
         harpoonSlave.HarpoonRope.HookAttachedToTerrain = pw != null && !pw.IsWater(hook);
+        harpoonSlave.HarpoonRope.ControllerExpireAtUtc = ResolveRopeControllerExpireUtc(launchTemplate);
 
-        Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6}",
-            harpoonSlave.ObjId, hook.X, hook.Y, hook.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain);
+        Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6} controllerExpireUtc={7}",
+            harpoonSlave.ObjId, hook.X, hook.Y, hook.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain,
+            harpoonSlave.HarpoonRope.ControllerExpireAtUtc?.ToString("u") ?? "(none)");
 
         BroadcastSkillControllerRopeState(harpoonSlave, initialLen, teared: false, cutouted: false, except: operatorChar);
     }
@@ -86,6 +89,57 @@ public static class ShipHarpoonRopeController
     public static void OnOperatorLeftSlave(Slave slave, Character? leavingOperator)
     {
         BreakRopeForClients(slave, cutouted: false, leavingOperator);
+    }
+
+    /// <summary>
+    /// Per physics tick on the parent hull: if a child harpoon stayed <see cref="ShipHarpoonRopeState.IsEngaged"/> past
+    /// <see cref="ShipHarpoonRopeState.ControllerExpireAtUtc"/>, break server-side so tow does not continue after the client drops the rope.
+    /// Walks the whole <see cref="Slave.AttachedSlaves"/> tree (harpoon may be nested under another mount).
+    /// </summary>
+    public static void TickHarpoonRopeControllerLifetime(Slave hull)
+    {
+        TryExpireHarpoonRopeInSubtree(hull, DateTime.UtcNow);
+    }
+
+    private static void TryExpireHarpoonRopeInSubtree(Slave node, DateTime now)
+    {
+        var st = node.HarpoonRope;
+        if (st.IsEngaged && st.ControllerExpireAtUtc is { } until && now >= until)
+        {
+            Log.Debug("Harpoon rope auto-break (skill_controllers Rope lifetime): slaveObjId={0}", node.ObjId);
+            BreakRopeForClients(node, cutouted: false, alsoNotify: null);
+        }
+
+        foreach (var child in node.AttachedSlaves)
+            TryExpireHarpoonRopeInSubtree(child, now);
+    }
+
+    /// <summary>Matches <c>SkillControllerKind.Rope</c> (5) in compact DB; value1/value2 are ms in ship harpoon rows.</summary>
+    private const uint SkillControllerKindRope = 5;
+
+    /// <summary>
+    /// Uses the minimum positive of <c>value1</c> and <c>value2</c> from the Launch skill's skill_controller row
+    /// (e.g. 3961 → 100000 vs 180000 → 100 s) so the server clears before or with the first client timer.
+    /// </summary>
+    private static DateTime? ResolveRopeControllerExpireUtc(SkillTemplate? launchSkill)
+    {
+        if (launchSkill == null || launchSkill.SkillControllerId == 0)
+            return null;
+        var scId = launchSkill.SkillControllerId;
+        if (SkillManager.Instance.GetEffectTemplate(scId, "SkillController") is not SkillControllerTemplate sc)
+            return null;
+        if (sc.KindId != SkillControllerKindRope)
+            return null;
+
+        var ms = int.MaxValue;
+        if (sc.Value[0] > 0)
+            ms = Math.Min(ms, sc.Value[0]);
+        if (sc.Value[1] > 0)
+            ms = Math.Min(ms, sc.Value[1]);
+        if (ms == int.MaxValue)
+            return null;
+
+        return DateTime.UtcNow.AddMilliseconds(ms);
     }
 
     /// <summary>Clears server rope state and mirrors break to clients (skill controller UI).</summary>
