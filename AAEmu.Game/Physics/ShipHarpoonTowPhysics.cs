@@ -2,6 +2,7 @@
 
 using System.Numerics;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Physics.Debug;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 
@@ -11,19 +12,29 @@ namespace AAEmu.Game.Physics;
 /// Tow force when a ship harpoon is hooked to dry land: if the paid rope length is not slack
 /// (<see cref="SlackMarginMeters"/>), accelerate the parent hull toward the hook in the horizontal plane.
 /// Applied after helm/throttle velocity so <see cref="Slave.Speed"/> is resynced from the clamped along-bow component.
+/// Tunables are not <c>const</c> — edit the private <c>Get*()</c> return literals below and save; <c>dotnet watch</c> hot reload applies like <see cref="ShipTuningDebug"/>.
 /// </summary>
 public static class ShipHarpoonTowPhysics
 {
-    /// <summary>m/s² per meter of (cannon–hook distance − paid rope length) in the taut regime.</summary>
-    public const float TowAccelPerMeterStretch = 4.5f;
+    #region Hot-reload tunables (edit literal in Get* body, save — dotnet watch)
 
-    public const float TowMaxAccel = 12f;
+    /// <summary>m/s² per meter of (cannon–hook distance − paid rope length) in the taut regime.</summary>
+    public static float TowAccelPerMeterStretch => GetTowAccelPerMeterStretch();
+    private static float GetTowAccelPerMeterStretch() => 4.5f;
+
+    /// <summary>Cap on tow acceleration toward the hook (m/s²).</summary>
+    public static float TowMaxAccel => GetTowMaxAccel();
+    private static float GetTowMaxAccel() => 12f;
 
     /// <summary>If paid rope exceeds distance by more than this, treat as slack (no tow).</summary>
-    public const float SlackMarginMeters = 0.45f;
+    public static float SlackMarginMeters => GetSlackMarginMeters();
+    private static float GetSlackMarginMeters() => 0.45f;
 
     /// <summary>Ignore hooks this close to hull center (avoids spikes).</summary>
-    public const float MinHookHorizontalDistance = 0.2f;
+    public static float MinHookHorizontalDistance => GetMinHookHorizontalDistance();
+    private static float GetMinHookHorizontalDistance() => 0.2f;
+
+    #endregion
 
     public static void ApplyTerrainHookTow(
         Slave hull,
