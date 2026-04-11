@@ -74,6 +74,13 @@ public static class ShipHarpoonTowPhysics
     public static float ShipPairMaxGuessBasisDistanceMeters => GetShipPairMaxGuessBasisDistanceMeters();
     private static float GetShipPairMaxGuessBasisDistanceMeters() => 45f;
 
+    /// <summary>
+    /// If cannon–hook chord exceeds paid rope + this (m), treat as in-flight / not bearing load — no ship–pair tow or yaw.
+    /// Stops basis hull moving before the hook can physically span the rope.
+    /// </summary>
+    public static float ShipPairMaxChordOverPaidMeters => GetShipPairMaxChordOverPaidMeters();
+    private static float GetShipPairMaxChordOverPaidMeters() => 12f;
+
     #endregion
 
     /// <summary>Depth-first over <paramref name="root"/>’s attached slaves (harpoon may be nested under mounts).</summary>
@@ -284,7 +291,7 @@ public static class ShipHarpoonTowPhysics
 
             foreach (var child in EnumerateAttachedSlaveDescendants(towHull))
             {
-                if (!TryBuildShipPairTowDelta(towHull, child, towRb, shipsThisTick, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis))
+                if (!TryBuildShipPairTowDelta(towHull, child, towRb, shipsThisTick, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis, out var basisPullUx, out var basisPullUz))
                     continue;
 
                 towRb.Velocity += new JVector(dvxTow, 0f, dvzTow);
@@ -295,6 +302,7 @@ public static class ShipHarpoonTowPhysics
                     continue;
                 bRb.Velocity += new JVector(dvxBasis, 0f, dvzBasis);
                 ResyncSlaveSpeedFromRigidBodyAlongBow(basis, bRb);
+                ApplyShipPairBowYawTowardPull(basis, bRb, basisPullUx, basisPullUz, dtSec);
             }
         }
     }
@@ -309,10 +317,13 @@ public static class ShipHarpoonTowPhysics
         out float dvxTow,
         out float dvzTow,
         out float dvxBasis,
-        out float dvzBasis)
+        out float dvzBasis,
+        out float basisPullUnitX,
+        out float basisPullUnitZ)
     {
         basisShip = null!;
         dvxTow = dvzTow = dvxBasis = dvzBasis = 0f;
+        basisPullUnitX = basisPullUnitZ = 0f;
 
         var st = harpoonChild.HarpoonRope;
         if (!st.IsEngaged)
@@ -330,12 +341,23 @@ public static class ShipHarpoonTowPhysics
         var cannonPos = harpoonChild.Transform.World.Position;
         var dist = Vector3.Distance(cannonPos, hook);
         var paid = st.RopeLength + ServerRopePaidLengthAdditiveMeters;
+
+        // In flight: chord >> paid — no tow (otherwise MinStretch invented force and yaw before hook lands).
+        if (dist > paid + ShipPairMaxChordOverPaidMeters)
+            return false;
+
         var slackCut = SlackMarginMeters + ShipPairExtraSlackMarginMeters;
         if (paid > dist + slackCut)
             return false;
 
-        var stretch = MathF.Max(0f, dist - paid);
-        stretch = MathF.Max(stretch, ShipPairMinStretchMeters);
+        var rawStretch = dist - paid;
+        // Chord shorter than paid = rope slack, not load-bearing — do not invent positive stretch.
+        if (rawStretch < -SlackMarginMeters)
+            return false;
+        if (rawStretch <= 0f)
+            return false;
+
+        var stretch = MathF.Max(rawStretch, ShipPairMinStretchMeters);
         var accel = MathF.Min(TowMaxAccel, TowAccelPerMeterStretch * stretch);
         if (accel <= 0f)
             return false;
@@ -372,8 +394,34 @@ public static class ShipHarpoonTowPhysics
         dvxBasis = -dx * imp * basisShare;
         dvzBasis = -dz * imp * basisShare;
 
+        basisPullUnitX = -dx;
+        basisPullUnitZ = -dz;
+
         basisShip = basis;
         return true;
+    }
+
+    /// <summary>
+    /// Nudge <see cref="Slave.RotSpeed"/> so the bow turns toward the horizontal pull (same 2D cross and clamp as terrain harpoon tow).
+    /// Applied to the hooked / basis hull so it does not only slide without yawing toward the tug.
+    /// </summary>
+    private static void ApplyShipPairBowYawTowardPull(Slave slave, RigidBody rb, float pullUnitX, float pullUnitZ, float dtSec)
+    {
+        if (dtSec <= 0f)
+            return;
+        var pl = MathF.Sqrt(pullUnitX * pullUnitX + pullUnitZ * pullUnitZ);
+        if (pl < 1e-5f)
+            return;
+        var px = pullUnitX / pl;
+        var pz = pullUnitZ / pl;
+
+        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
+        var bowRad = rpy.Item1 + 1.57f;
+        var fx = MathF.Cos(bowRad);
+        var fz = MathF.Sin(bowRad);
+        var cross = fx * pz - fz * px;
+        // ShipController sets angular velocity from -RotSpeed on body Y — same sign as terrain tow pull assist.
+        slave.RotSpeed += Math.Clamp(-cross * TowYawAssistRadPerSec * dtSec, -0.85f, 0.85f);
     }
 
     private static float HorizontalSpeedXZ(RigidBody rb)
