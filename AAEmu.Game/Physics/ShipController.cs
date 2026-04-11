@@ -406,7 +406,9 @@ public class ShipController(World world, ShipModelV1 shipModel)
         // Minimum crawl speed when starting in that direction only. Do not apply while still moving
         // the other way — otherwise forward+reverse snaps Speed to ±1 and the ship stops instantly.
         // Do not force crawl while grounded, otherwise ships can "slide-drive" on land at low speed.
-        if (!isGrounded)
+        // Do not force crawl while a harpoon line is taut: ±1 Speed keeps the hull creeping
+        // against the anchor (client rope stretches / "breaks") while tow physics cannot fully cancel it.
+        if (!isGrounded && !HasTautHarpoonEngaged(slave))
         {
             if (slave is { Throttle: > 0, Speed: < 1f } && slave.Speed >= 0f)
                 slave.Speed = 1f;
@@ -683,6 +685,31 @@ public class ShipController(World world, ShipModelV1 shipModel)
         rigidBody.AngularVelocity = new JVector(0, slave.RotSpeed * -1f, 0);
 
         //Logger.Debug($"Slave: {slave.Name}, Throttle: {throttleFloatVal:F1} ({slave.ThrottleRequest}), Steering {steeringFloatVal:F1} ({slave.SteeringRequest}), speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}");
+    }
+
+    /// <summary>
+    /// Same taut-vs-slack test as <see cref="ShipHarpoonTowPhysics.ApplyTerrainHookTow"/> (paid rope vs cannon–hook
+    /// distance + margin). Any engaged child harpoon counts — not only terrain hooks — so crawl does not fight
+    /// a taut line when tow force is inactive (e.g. hook in water).
+    /// </summary>
+    private static bool HasTautHarpoonEngaged(Slave hull)
+    {
+        if (hull.AttachedSlaves is not { Count: > 0 })
+            return false;
+
+        foreach (var child in hull.AttachedSlaves)
+        {
+            var st = child.HarpoonRope;
+            if (!st.IsEngaged)
+                continue;
+
+            var dist = Vector3.Distance(child.Transform.World.Position, st.HookWorld);
+            var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
+            if (paid <= dist + ShipHarpoonTowPhysics.SlackMarginMeters)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
