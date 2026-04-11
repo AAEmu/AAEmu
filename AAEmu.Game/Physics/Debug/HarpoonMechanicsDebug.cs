@@ -13,7 +13,7 @@ public static class HarpoonMechanicsDebug
 
     /// <summary>
     /// When true, emits harpoon-specific NLog Debug (CSStartSkill payload, rope engage/break in <see cref="AAEmu.Game.Models.Game.Skills.SkillControllers.ShipHarpoonRopeController"/>).
-    /// Default is off. Does not affect <see cref="AAEmu.Game.Core.Packets.Debug.SkillControllerPacketDebug"/> (shared packet logger).
+    /// Default is off. Shared skill-controller packet lines use <see cref="AAEmu.Game.Core.Packets.Debug.SkillControllerPacketDebug.EnableVerbosePacketLogging"/> (also default off).
     /// </summary>
     public static bool EnableVerboseHarpoonMechanicsLogging;
 
