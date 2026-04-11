@@ -312,6 +312,15 @@ public class PhysicsManager
 
                     try
                     {
+                        ShipHarpoonTowPhysics.ApplyShipPairHarpoonTowImpulses(shipsThisTick, (float)physicsTotalDelta.TotalSeconds);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"PhysicsThread ship-pair harpoon tow: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    try
+                    {
                         _shipShip.ResolveAllPairs(shipsThisTick, physicsTotalDelta);
                     }
                     catch (Exception e)

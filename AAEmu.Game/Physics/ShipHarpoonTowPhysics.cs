@@ -1,9 +1,13 @@
 #nullable enable
 
+using System.Collections.Generic;
 using System.Numerics;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Debug;
+using AAEmu.Game.Physics.Util;
+using Jitter2;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 
@@ -45,6 +49,18 @@ public static class ShipHarpoonTowPhysics
     /// <summary>Yaw rate assist (rad/s per unit cross) so bow follows tow pull; use <c>-cross</c> vs body angular velocity sign.</summary>
     public static float TowYawAssistRadPerSec => GetTowYawAssistRadPerSec();
     private static float GetTowYawAssistRadPerSec() => 0.3f;
+
+    /// <summary>Weights mass×(1 + k·|v|) dominance so a heavier/faster hull pulls the other more along a taut ship-to-ship harpoon.</summary>
+    public static float ShipPairDominanceSpeedCoeff => GetShipPairDominanceSpeedCoeff();
+    private static float GetShipPairDominanceSpeedCoeff() => 0.04f;
+
+    /// <summary>Extra impulse scale when the towing hull wins dominance (≥1).</summary>
+    public static float ShipPairDominantTowHullMul => GetShipPairDominantTowHullMul();
+    private static float GetShipPairDominantTowHullMul() => 1.12f;
+
+    /// <summary>Extra impulse scale when the hooked hull wins dominance (≥1).</summary>
+    public static float ShipPairDominantBasisHullMul => GetShipPairDominantBasisHullMul();
+    private static float GetShipPairDominantBasisHullMul() => 1.12f;
 
     #endregion
 
@@ -127,5 +143,133 @@ public static class ShipHarpoonTowPhysics
         var cross = bowDirX * sz - bowDirZ * sx;
         // ShipController sets angular velocity as -RotSpeed on rigid body Y — negate cross so bow turns toward pull.
         hull.RotSpeed += Math.Clamp(-cross * TowYawAssistRadPerSec * dtSec, -0.85f, 0.85f);
+    }
+
+    /// <summary>
+    /// After per-hull <see cref="ShipController.ApplyForceAndTorque"/>: when a harpoon is hooked to another boat's hull
+    /// (<see cref="ShipHarpoonRopeState.HookBasisObjId"/>), apply a mass-weighted closing impulse on both rigid bodies
+    /// if the rope is taut. Dominance uses mass × (1 + k·horizontal speed) so a heavier/faster ship drags the other.
+    /// </summary>
+    public static void ApplyShipPairHarpoonTowImpulses(IReadOnlyList<Slave> shipsThisTick, float dtSec)
+    {
+        if (shipsThisTick.Count == 0 || dtSec <= 0f)
+            return;
+
+        foreach (var towHull in shipsThisTick)
+        {
+            var towRb = towHull.RigidBody;
+            if (towRb is null || towHull.AttachedSlaves.Count == 0)
+                continue;
+
+            foreach (var child in towHull.AttachedSlaves)
+            {
+                if (!TryBuildShipPairTowDelta(towHull, child, towRb, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis))
+                    continue;
+
+                towRb.Velocity += new JVector(dvxTow, 0f, dvzTow);
+                ResyncSlaveSpeedFromRigidBodyAlongBow(towHull, towRb);
+
+                var bRb = basis.RigidBody;
+                if (bRb is null)
+                    continue;
+                bRb.Velocity += new JVector(dvxBasis, 0f, dvzBasis);
+                ResyncSlaveSpeedFromRigidBodyAlongBow(basis, bRb);
+            }
+        }
+    }
+
+    private static bool TryBuildShipPairTowDelta(
+        Slave towHull,
+        Slave harpoonChild,
+        RigidBody towHullRb,
+        float dtSec,
+        out Slave basisShip,
+        out float dvxTow,
+        out float dvzTow,
+        out float dvxBasis,
+        out float dvzBasis)
+    {
+        basisShip = null!;
+        dvxTow = dvzTow = dvxBasis = dvzBasis = 0f;
+
+        var st = harpoonChild.HarpoonRope;
+        if (!st.IsEngaged || st.HookBasisObjId == 0)
+            return false;
+
+        var world = towHull.ParentWorld ?? WorldManager.Instance.GetWorld(towHull.Transform.InstanceId);
+        if (world?.GetBaseUnit(st.HookBasisObjId) is not Slave basis)
+            return false;
+        if (!basis.Template.IsABoat() || basis.ObjId == towHull.ObjId)
+            return false;
+
+        var basisRb = basis.RigidBody;
+        if (basisRb is null)
+            return false;
+
+        var hook = ShipHarpoonRopeController.GetHookWorldPosition(harpoonChild);
+        var cannonPos = harpoonChild.Transform.World.Position;
+        var dist = Vector3.Distance(cannonPos, hook);
+        var paid = st.RopeLength + ServerRopePaidLengthAdditiveMeters;
+        if (paid > dist + SlackMarginMeters)
+            return false;
+
+        var stretch = MathF.Max(0f, dist - paid);
+        var accel = MathF.Min(TowMaxAccel, TowAccelPerMeterStretch * stretch);
+        if (accel <= 0f)
+            return false;
+
+        var hx = towHullRb.Position.X;
+        var hz = towHullRb.Position.Z;
+        var dx = hook.X - hx;
+        var dz = hook.Y - hz;
+        var len = MathF.Sqrt(dx * dx + dz * dz);
+        if (len < MinHookHorizontalDistance)
+            return false;
+
+        dx /= len;
+        dz /= len;
+
+        var mTow = towHullRb.Mass;
+        var mBasis = basisRb.Mass;
+        var total = mTow + mBasis;
+        if (total < 1e-3f)
+            return false;
+
+        var vTow = HorizontalSpeedXZ(towHullRb);
+        var vBasis = HorizontalSpeedXZ(basisRb);
+        var sTow = mTow * (1f + ShipPairDominanceSpeedCoeff * vTow);
+        var sBasis = mBasis * (1f + ShipPairDominanceSpeedCoeff * vBasis);
+        var impulseMul = sTow >= sBasis ? ShipPairDominantTowHullMul : ShipPairDominantBasisHullMul;
+
+        var imp = accel * dtSec * impulseMul;
+        var towShare = mBasis / total;
+        var basisShare = mTow / total;
+
+        dvxTow = dx * imp * towShare;
+        dvzTow = dz * imp * towShare;
+        dvxBasis = -dx * imp * basisShare;
+        dvzBasis = -dz * imp * basisShare;
+
+        basisShip = basis;
+        return true;
+    }
+
+    private static float HorizontalSpeedXZ(RigidBody rb)
+    {
+        var vx = rb.Velocity.X;
+        var vz = rb.Velocity.Z;
+        return MathF.Sqrt(vx * vx + vz * vz);
+    }
+
+    /// <summary>Keeps <see cref="Slave.Speed"/> consistent with rigid-body XZ after an external velocity nudge (same bow convention as <see cref="ShipController"/>).</summary>
+    private static void ResyncSlaveSpeedFromRigidBodyAlongBow(Slave slave, RigidBody rb)
+    {
+        var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
+        var bowRad = rpy.Item1 + 1.57f;
+        var fx = MathF.Cos(bowRad);
+        var fz = MathF.Sin(bowRad);
+        var mul = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
+        var along = rb.Velocity.X * fx + rb.Velocity.Z * fz;
+        slave.Speed = along / mul;
     }
 }
