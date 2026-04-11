@@ -19,7 +19,7 @@ public static class ShipHarpoonRopeController
 
     public static void OnLaunchSucceeded(Slave harpoonSlave, SkillCastTarget target, Character? operatorChar)
     {
-        if (!TryGetHookWorld(target, out var hook))
+        if (!TryResolveHookFromSkillTarget(target, harpoonSlave, out var hookWorld, out var hookBasisObjId, out var hookLocal))
             return;
 
         if (harpoonSlave.HarpoonRope.IsEngaged)
@@ -31,20 +31,22 @@ public static class ShipHarpoonRopeController
         var maxRange = launchTemplate != null ? Math.Max(0f, launchTemplate.MaxRange) : 0f;
 
         var origin = harpoonSlave.Transform.World.Position;
-        var initialLen = Vector3.Distance(origin, hook);
+        var initialLen = Vector3.Distance(origin, hookWorld);
 
         harpoonSlave.HarpoonRope.IsEngaged = true;
-        harpoonSlave.HarpoonRope.HookWorld = hook;
+        harpoonSlave.HarpoonRope.HookWorld = hookWorld;
+        harpoonSlave.HarpoonRope.HookBasisObjId = hookBasisObjId;
+        harpoonSlave.HarpoonRope.HookLocalInBasis = hookLocal;
         harpoonSlave.HarpoonRope.RopeLength = initialLen;
         harpoonSlave.HarpoonRope.MaxLaunchRange = maxRange;
         harpoonSlave.HarpoonRope.LastTeared = false;
         harpoonSlave.HarpoonRope.LastCutout = false;
         var pw = harpoonSlave.ParentWorld;
-        harpoonSlave.HarpoonRope.HookAttachedToTerrain = pw != null && !pw.IsWater(hook);
+        harpoonSlave.HarpoonRope.HookAttachedToTerrain = pw != null && !pw.IsWater(hookWorld);
         harpoonSlave.HarpoonRope.ControllerExpireAtUtc = ResolveRopeControllerExpireUtc(launchTemplate);
 
         Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6} controllerExpireUtc={7}",
-            harpoonSlave.ObjId, hook.X, hook.Y, hook.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain,
+            harpoonSlave.ObjId, hookWorld.X, hookWorld.Y, hookWorld.Z, initialLen, maxRange, harpoonSlave.HarpoonRope.HookAttachedToTerrain,
             harpoonSlave.HarpoonRope.ControllerExpireAtUtc?.ToString("u") ?? "(none)");
 
         BroadcastSkillControllerRopeState(harpoonSlave, initialLen, teared: false, cutouted: false, except: operatorChar);
@@ -182,12 +184,30 @@ public static class ShipHarpoonRopeController
         }
     }
 
+    /// <summary>Current world hook; recomputes when the hit uses a moving basis unit (<see cref="ShipHarpoonRopeState.HookBasisObjId"/>).</summary>
+    public static Vector3 GetHookWorldPosition(Slave harpoonSlave)
+    {
+        var st = harpoonSlave.HarpoonRope;
+        if (!st.IsEngaged)
+            return default;
+        if (st.HookBasisObjId == 0)
+            return st.HookWorld;
+
+        var worldInst = harpoonSlave.ParentWorld ?? WorldManager.Instance.GetWorld(harpoonSlave.Transform.InstanceId);
+        if (worldInst?.GetBaseUnit(st.HookBasisObjId) is not BaseUnit basis)
+            return st.HookWorld;
+
+        var basisRot = basis.Transform.World.ToQuaternion();
+        var basisScale = basis.Scale;
+        return Vector3.Transform(st.HookLocalInBasis * basisScale, basisRot) + basis.Transform.World.Position;
+    }
+
     private static bool TryBreakRopeIfHookOutOfRange(Slave slave, Character? alsoNotify)
     {
         if (!slave.HarpoonRope.IsEngaged || slave.HarpoonRope.MaxLaunchRange <= 0f)
             return false;
 
-        var dist = Vector3.Distance(slave.Transform.World.Position, slave.HarpoonRope.HookWorld);
+        var dist = Vector3.Distance(slave.Transform.World.Position, GetHookWorldPosition(slave));
         const float margin = 1.5f;
         if (dist <= slave.HarpoonRope.MaxLaunchRange + margin)
             return false;
@@ -210,21 +230,37 @@ public static class ShipHarpoonRopeController
         return false;
     }
 
-    private static bool TryGetHookWorld(SkillCastTarget target, out Vector3 hook)
+    /// <summary>Same basis-frame rules as <see cref="Skill"/> <c>SetInitialTarget</c> for position casts (hull hit = <c>ObjId1</c> + local).</summary>
+    private static bool TryResolveHookFromSkillTarget(SkillCastTarget target, BaseUnit caster, out Vector3 hookWorld, out uint hookBasisObjId, out Vector3 hookLocal)
     {
+        hookBasisObjId = 0;
+        hookLocal = default;
+        hookWorld = default;
         switch (target)
         {
             case SkillCastPositionTarget p:
-                hook = new Vector3(p.PosX, p.PosY, p.PosZ);
+                if (p.ObjId1 != 0)
+                {
+                    var worldInst = caster.ParentWorld ?? WorldManager.Instance.GetWorld(caster.Transform.InstanceId);
+                    if (worldInst?.GetBaseUnit(p.ObjId1) is BaseUnit basisUnit)
+                    {
+                        hookBasisObjId = p.ObjId1;
+                        hookLocal = new Vector3(p.PosX, p.PosY, p.PosZ);
+                        var basisRot = basisUnit.Transform.World.ToQuaternion();
+                        hookWorld = Vector3.Transform(hookLocal * basisUnit.Scale, basisRot) + basisUnit.Transform.World.Position;
+                        return true;
+                    }
+                }
+
+                hookWorld = new Vector3(p.PosX, p.PosY, p.PosZ);
                 return true;
             case SkillCastPosition2Target p2:
-                hook = new Vector3(p2.PosX, p2.PosY, p2.PosZ);
+                hookWorld = new Vector3(p2.PosX, p2.PosY, p2.PosZ);
                 return true;
             case SkillCastPosition3Target p3:
-                hook = new Vector3(p3.PosX, p3.PosY, p3.PosZ);
+                hookWorld = new Vector3(p3.PosX, p3.PosY, p3.PosZ);
                 return true;
             default:
-                hook = default;
                 return false;
         }
     }

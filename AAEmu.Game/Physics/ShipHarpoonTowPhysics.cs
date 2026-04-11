@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Numerics;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Debug;
 using Jitter2.Dynamics;
@@ -68,7 +69,7 @@ public static class ShipHarpoonTowPhysics
                 continue;
 
             var cannonPos = child.Transform.World.Position;
-            var hook = st.HookWorld;
+            var hook = ShipHarpoonRopeController.GetHookWorldPosition(child);
             var dist = Vector3.Distance(cannonPos, hook);
             var paid = st.RopeLength + ServerRopePaidLengthAdditiveMeters;
             if (paid > dist + SlackMarginMeters)

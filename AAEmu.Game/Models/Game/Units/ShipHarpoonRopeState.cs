@@ -7,7 +7,11 @@ namespace AAEmu.Game.Models.Game.Units;
 public sealed class ShipHarpoonRopeState
 {
     public bool IsEngaged { get; set; }
+    /// <summary>World hook when <see cref="HookBasisObjId"/> is 0; otherwise snapshot at engage (resolver uses basis + local).</summary>
     public Vector3 HookWorld { get; set; }
+    /// <summary>When non-zero, hook point is in this unit's local basis (e.g. hull hit = cast <c>ObjId1</c> + local offset).</summary>
+    public uint HookBasisObjId { get; set; }
+    public Vector3 HookLocalInBasis { get; set; }
     public float RopeLength { get; set; }
     public bool LastTeared { get; set; }
     public bool LastCutout { get; set; }
@@ -25,6 +29,8 @@ public sealed class ShipHarpoonRopeState
     {
         IsEngaged = false;
         HookWorld = default;
+        HookBasisObjId = 0;
+        HookLocalInBasis = default;
         RopeLength = 0f;
         LastTeared = false;
         LastCutout = false;

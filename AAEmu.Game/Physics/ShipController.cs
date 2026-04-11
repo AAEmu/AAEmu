@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;
@@ -703,7 +704,8 @@ public class ShipController(World world, ShipModelV1 shipModel)
             if (!st.IsEngaged)
                 continue;
 
-            var dist = Vector3.Distance(child.Transform.World.Position, st.HookWorld);
+            var hookWorld = ShipHarpoonRopeController.GetHookWorldPosition(child);
+            var dist = Vector3.Distance(child.Transform.World.Position, hookWorld);
             var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
             if (paid <= dist + ShipHarpoonTowPhysics.SlackMarginMeters)
                 return true;

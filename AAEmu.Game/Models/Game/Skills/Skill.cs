@@ -1,3 +1,5 @@
+using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -565,6 +567,21 @@ public class Skill
                 {
                     if (caster is Npc { CurrentTarget: not null } npc)
                         positionUnit.Transform.Local.SetPosition(npc.CurrentTarget.Transform.Local.Position.X, npc.CurrentTarget.Transform.Local.Position.Y, npc.CurrentTarget.Transform.Local.Position.Z);
+                    else if (positionTarget.ObjId1 != 0)
+                    {
+                        var worldInst = caster.ParentWorld ?? WorldManager.Instance.GetWorld(caster.Transform.InstanceId);
+                        if (worldInst?.GetBaseUnit(positionTarget.ObjId1) is BaseUnit basisUnit)
+                        {
+                            // Hit in basis unit's local frame (e.g. harpoon on hull); Pos* are not world meters.
+                            var basisRot = basisUnit.Transform.World.ToQuaternion();
+                            var basisScale = basisUnit.Scale;
+                            var localHit = new Vector3(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            var worldHit = Vector3.Transform(localHit * basisScale, basisRot) + basisUnit.Transform.World.Position;
+                            positionUnit.Transform.Local.SetPosition(worldHit.X, worldHit.Y, worldHit.Z);
+                        }
+                        else
+                            positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                    }
                     else
                         positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                     break;
