@@ -82,6 +82,11 @@ public sealed class House : Unit
                     foreach (var bindingDoodad in Template.HousingBindingDoodad)
                     {
                         var doodad = DoodadManager.Instance.Create(ParentWorld, 0, bindingDoodad.DoodadId, this, true);
+                        if (doodad == null)
+                        {
+                            Logger.Error($"CurrentStep: Failed to create bound doodad templateId={bindingDoodad.DoodadId} for house {Id} — template not found, skipping.");
+                            continue;
+                        }
                         doodad.AttachPoint = bindingDoodad.AttachPointId;
                         doodad.ParentObj = this;
                         doodad.Transform = this.Transform.CloneDetached(doodad);
@@ -197,7 +202,11 @@ public sealed class House : Unit
         foreach (var doodad in AttachedDoodads)
         {
             if (doodad.IsPersistent)
+            {
+                if (doodad.ObjId > 0)
+                    ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
                 doodad.Delete(); // removes from DB and PlayerDoodads
+            }
             else
             {
                 if (doodad.AttachPoint == AttachPointKind.None)
