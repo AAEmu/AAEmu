@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -42,7 +43,12 @@ public static class ShipHarpoonRopeController
         harpoonSlave.HarpoonRope.LastTeared = false;
         harpoonSlave.HarpoonRope.LastCutout = false;
         var pw = harpoonSlave.ParentWorld;
-        harpoonSlave.HarpoonRope.HookAttachedToTerrain = pw != null && !pw.IsWater(hookWorld);
+        // Deck / hull hits often fail IsWater() like dry land; that must not enable terrain tow when the basis is another boat
+        // (otherwise only the shooter hull is pulled — same as an anchor). Ship–ship uses HookBasisObjId + pair impulses only.
+        var hookBasisIsOtherBoat = hookBasisObjId != 0 && pw != null
+            && pw.GetBaseUnit(hookBasisObjId) is Slave basisForHook
+            && basisForHook.Template.IsABoat();
+        harpoonSlave.HarpoonRope.HookAttachedToTerrain = pw != null && !pw.IsWater(hookWorld) && !hookBasisIsOtherBoat;
         harpoonSlave.HarpoonRope.ControllerExpireAtUtc = ResolveRopeControllerExpireUtc(launchTemplate);
 
         Log.Debug("Harpoon rope engaged: slaveObjId={0} hook=({1:F1},{2:F1},{3:F1}) initialLen={4:F2} maxRange={5:F1} terrainHook={6} controllerExpireUtc={7}",

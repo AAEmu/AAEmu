@@ -312,15 +312,6 @@ public class PhysicsManager
 
                     try
                     {
-                        ShipHarpoonTowPhysics.ApplyShipPairHarpoonTowImpulses(shipsThisTick, (float)physicsTotalDelta.TotalSeconds);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error($"PhysicsThread ship-pair harpoon tow: {e.Message}\n{e.StackTrace}");
-                    }
-
-                    try
-                    {
                         _shipShip.ResolveAllPairs(shipsThisTick, physicsTotalDelta);
                     }
                     catch (Exception e)
@@ -368,6 +359,17 @@ public class PhysicsManager
                     catch (Exception e)
                     {
                         Logger.Error($"PhysicsThread ship-cliff resolve: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    // Ship–ship overlap resolution removes relative closing velocity along SAT normals; harpooned
+                    // hulls are often in that overlap band, which zeroed the basis hull’s tow impulse if tow ran first.
+                    try
+                    {
+                        ShipHarpoonTowPhysics.ApplyShipPairHarpoonTowImpulses(shipsThisTick, (float)physicsTotalDelta.TotalSeconds);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"PhysicsThread ship-pair harpoon tow: {e.Message}\n{e.StackTrace}");
                     }
 
                     foreach (var slave in shipsThisTick)

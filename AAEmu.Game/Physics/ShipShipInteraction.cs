@@ -107,7 +107,7 @@ public sealed class ShipShipInteraction
                     if (sb.RigidBody is null || sb.RigidBody.Shapes.Count == 0)
                         continue;
 
-                    if (!TryResolvePair(sa, sb, out var impactSpeedMps, out var maxPenetration))
+                    if (!TryResolvePair(sa, sb, ships, out var impactSpeedMps, out var maxPenetration))
                         continue;
 
                     // If SAT only detects a marginal overlap (e.g. due to discrete steps / tight mass-box),
@@ -237,7 +237,7 @@ public sealed class ShipShipInteraction
         return ox > 0f && oz > 0f;
     }
 
-    private static bool TryResolvePair(Slave sa, Slave sb, out float impactSpeedMps, out float maxPenetration)
+    private static bool TryResolvePair(Slave sa, Slave sb, IReadOnlyList<Slave> allShipsThisTick, out float impactSpeedMps, out float maxPenetration)
     {
         impactSpeedMps = 0f;
         maxPenetration = 0f;
@@ -250,6 +250,7 @@ public sealed class ShipShipInteraction
 
         var hadResponse = false;
         var peakImpactSpeedMps = 0f;
+        var skipVelDampFromHarpoon = ShipHarpoonTowPhysics.AreBoatHullsLinkedByEngagedShipHarpoon(sa, sb, allShipsThisTick);
         var bbA = bodyA.Shapes[0].WorldBoundingBox;
         var bbB = bodyB.Shapes[0].WorldBoundingBox;
         if (!HaveWorldAabbOverlapXz(in bbA, in bbB))
@@ -330,7 +331,9 @@ public sealed class ShipShipInteraction
             bodyB.Position += new JVector(nx * moveB, 0f, nz * moveB);
             hadResponse = true;
 
-            DampPairVelocities(bodyA, bodyB, nx, nz, penetration, wA, wB);
+            // Harpoon ship–ship tow relies on coordinated XZ velocity; overlap SAT is common — damping would zero it each tick.
+            if (!skipVelDampFromHarpoon)
+                DampPairVelocities(bodyA, bodyB, nx, nz, penetration, wA, wB);
 
             ShipTuningDebug.OnResolvedShipPair(sa, sb, penetration, nx, nz, peakImpactSpeedMps);
         }

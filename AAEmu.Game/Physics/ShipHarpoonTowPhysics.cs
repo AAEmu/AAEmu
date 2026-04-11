@@ -62,7 +62,127 @@ public static class ShipHarpoonTowPhysics
     public static float ShipPairDominantBasisHullMul => GetShipPairDominantBasisHullMul();
     private static float GetShipPairDominantBasisHullMul() => 1.12f;
 
+    /// <summary>Added to <see cref="SlackMarginMeters"/> only for ship–ship taut checks (client <c>RopeLength</c> often stays looser than chord).</summary>
+    public static float ShipPairExtraSlackMarginMeters => GetShipPairExtraSlackMarginMeters();
+    private static float GetShipPairExtraSlackMarginMeters() => 22f;
+
+    /// <summary>Floor on stretch (m) when computing ship–pair tow so a tiny positive impulse still applies near taut.</summary>
+    public static float ShipPairMinStretchMeters => GetShipPairMinStretchMeters();
+    private static float GetShipPairMinStretchMeters() => 0.12f;
+
+    /// <summary>When <see cref="ShipHarpoonRopeState.HookBasisObjId"/> is 0, pick nearest other boat hull within this distance of hook (world).</summary>
+    public static float ShipPairMaxGuessBasisDistanceMeters => GetShipPairMaxGuessBasisDistanceMeters();
+    private static float GetShipPairMaxGuessBasisDistanceMeters() => 45f;
+
     #endregion
+
+    /// <summary>Depth-first over <paramref name="root"/>’s attached slaves (harpoon may be nested under mounts).</summary>
+    public static IEnumerable<Slave> EnumerateAttachedSlaveDescendants(Slave root)
+    {
+        foreach (var c in root.AttachedSlaves)
+        {
+            yield return c;
+            foreach (var d in EnumerateAttachedSlaveDescendants(c))
+                yield return d;
+        }
+    }
+
+    /// <summary>
+    /// True when an engaged ship-harpoon links these hulls (explicit <see cref="ShipHarpoonRopeState.HookBasisObjId"/> or world-hook guess).
+    /// Used to skip ship–ship velocity damping that otherwise removes closing motion every tick while OBBs overlap.
+    /// </summary>
+    public static bool AreBoatHullsLinkedByEngagedShipHarpoon(Slave hullA, Slave hullB, IReadOnlyList<Slave>? shipsThisTick = null)
+    {
+        if (hullA.ObjId == hullB.ObjId)
+            return false;
+        if (AnyAttachedEngagedHarpoonPullsBasis(hullA, hullB.ObjId)
+            || AnyAttachedEngagedHarpoonPullsBasis(hullB, hullA.ObjId))
+            return true;
+        if (shipsThisTick is not { Count: >= 2 })
+            return false;
+        return GuessedShipPairFromWorldHook(hullA, hullB, shipsThisTick)
+               || GuessedShipPairFromWorldHook(hullB, hullA, shipsThisTick);
+    }
+
+    /// <summary>World-hook fallback only; explicit <see cref="ShipHarpoonRopeState.HookBasisObjId"/> is handled in <see cref="AnyAttachedEngagedHarpoonPullsBasis"/>.</summary>
+    private static bool GuessedShipPairFromWorldHook(Slave towHull, Slave candidateBasis, IReadOnlyList<Slave> ships)
+    {
+        foreach (var node in EnumerateAttachedSlaveDescendants(towHull))
+        {
+            var st = node.HarpoonRope;
+            if (!st.IsEngaged || st.HookBasisObjId != 0)
+                continue;
+            if (ResolveShipPairBasisSlave(towHull, node, st, ships) is { } resolved && resolved.ObjId == candidateBasis.ObjId)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool AnyAttachedEngagedHarpoonPullsBasis(Slave root, uint basisObjId)
+    {
+        foreach (var child in root.AttachedSlaves)
+        {
+            if (EngagedShipHarpoonPullsBasisInSubtree(child, basisObjId))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool EngagedShipHarpoonPullsBasisInSubtree(Slave node, uint basisObjId)
+    {
+        var st = node.HarpoonRope;
+        if (st is { IsEngaged: true } && st.HookBasisObjId != 0 && st.HookBasisObjId == basisObjId)
+            return true;
+
+        foreach (var child in node.AttachedSlaves)
+        {
+            if (EngagedShipHarpoonPullsBasisInSubtree(child, basisObjId))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Resolves the other boat hull for ship–ship tow: explicit basis id, or nearest boat when client sent world-only hook.</summary>
+    private static Slave? ResolveShipPairBasisSlave(Slave towHull, Slave harpoonChild, ShipHarpoonRopeState st, IReadOnlyList<Slave> shipsThisTick)
+    {
+        if (st.HookBasisObjId != 0)
+        {
+            var world = towHull.ParentWorld ?? WorldManager.Instance.GetWorld(towHull.Transform.InstanceId);
+            if (world?.GetBaseUnit(st.HookBasisObjId) is Slave b
+                && b.Template.IsABoat()
+                && b.ObjId != towHull.ObjId)
+                return b;
+            return null;
+        }
+
+        if (st.HookAttachedToTerrain)
+            return null;
+
+        var hook = ShipHarpoonRopeController.GetHookWorldPosition(harpoonChild);
+        Slave? best = null;
+        var bestD2 = float.MaxValue;
+        var maxD = ShipPairMaxGuessBasisDistanceMeters;
+        var maxD2 = maxD * maxD;
+        foreach (var s in shipsThisTick)
+        {
+            if (s.ObjId == towHull.ObjId || !s.Template.IsABoat())
+                continue;
+            var p = s.Transform.World.Position;
+            var dx = hook.X - p.X;
+            var dy = hook.Y - p.Y;
+            var dz = hook.Z - p.Z;
+            var d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 > maxD2 || d2 >= bestD2)
+                continue;
+            bestD2 = d2;
+            best = s;
+        }
+
+        return best;
+    }
 
     public static void ApplyTerrainHookTow(
         Slave hull,
@@ -78,7 +198,7 @@ public static class ShipHarpoonTowPhysics
             return;
 
         var sum = JVector.Zero;
-        foreach (var child in hull.AttachedSlaves)
+        foreach (var child in EnumerateAttachedSlaveDescendants(hull))
         {
             var st = child.HarpoonRope;
             if (!st.IsEngaged || !st.HookAttachedToTerrain)
@@ -146,9 +266,10 @@ public static class ShipHarpoonTowPhysics
     }
 
     /// <summary>
-    /// After per-hull <see cref="ShipController.ApplyForceAndTorque"/>: when a harpoon is hooked to another boat's hull
-    /// (<see cref="ShipHarpoonRopeState.HookBasisObjId"/>), apply a mass-weighted closing impulse on both rigid bodies
-    /// if the rope is taut. Dominance uses mass × (1 + k·horizontal speed) so a heavier/faster ship drags the other.
+    /// Late in the physics tick (after ship–ship overlap damping and cliff/doodad resolvers): harpoon engaged to another
+    /// boat (explicit <see cref="ShipHarpoonRopeState.HookBasisObjId"/> or world-hook guess vs <paramref name="shipsThisTick"/>)
+    /// applies a mass-weighted closing impulse on both rigid bodies when the rope is taut-ish. Descends <see cref="Slave.AttachedSlaves"/>
+    /// so nested cannon slaves are included. Dominance uses mass × (1 + k·horizontal speed).
     /// </summary>
     public static void ApplyShipPairHarpoonTowImpulses(IReadOnlyList<Slave> shipsThisTick, float dtSec)
     {
@@ -161,9 +282,9 @@ public static class ShipHarpoonTowPhysics
             if (towRb is null || towHull.AttachedSlaves.Count == 0)
                 continue;
 
-            foreach (var child in towHull.AttachedSlaves)
+            foreach (var child in EnumerateAttachedSlaveDescendants(towHull))
             {
-                if (!TryBuildShipPairTowDelta(towHull, child, towRb, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis))
+                if (!TryBuildShipPairTowDelta(towHull, child, towRb, shipsThisTick, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis))
                     continue;
 
                 towRb.Velocity += new JVector(dvxTow, 0f, dvzTow);
@@ -182,6 +303,7 @@ public static class ShipHarpoonTowPhysics
         Slave towHull,
         Slave harpoonChild,
         RigidBody towHullRb,
+        IReadOnlyList<Slave> shipsThisTick,
         float dtSec,
         out Slave basisShip,
         out float dvxTow,
@@ -193,13 +315,11 @@ public static class ShipHarpoonTowPhysics
         dvxTow = dvzTow = dvxBasis = dvzBasis = 0f;
 
         var st = harpoonChild.HarpoonRope;
-        if (!st.IsEngaged || st.HookBasisObjId == 0)
+        if (!st.IsEngaged)
             return false;
 
-        var world = towHull.ParentWorld ?? WorldManager.Instance.GetWorld(towHull.Transform.InstanceId);
-        if (world?.GetBaseUnit(st.HookBasisObjId) is not Slave basis)
-            return false;
-        if (!basis.Template.IsABoat() || basis.ObjId == towHull.ObjId)
+        var basis = ResolveShipPairBasisSlave(towHull, harpoonChild, st, shipsThisTick);
+        if (basis is null || basis.ObjId == towHull.ObjId)
             return false;
 
         var basisRb = basis.RigidBody;
@@ -210,10 +330,12 @@ public static class ShipHarpoonTowPhysics
         var cannonPos = harpoonChild.Transform.World.Position;
         var dist = Vector3.Distance(cannonPos, hook);
         var paid = st.RopeLength + ServerRopePaidLengthAdditiveMeters;
-        if (paid > dist + SlackMarginMeters)
+        var slackCut = SlackMarginMeters + ShipPairExtraSlackMarginMeters;
+        if (paid > dist + slackCut)
             return false;
 
         var stretch = MathF.Max(0f, dist - paid);
+        stretch = MathF.Max(stretch, ShipPairMinStretchMeters);
         var accel = MathF.Min(TowMaxAccel, TowAccelPerMeterStretch * stretch);
         if (accel <= 0f)
             return false;
