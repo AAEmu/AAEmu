@@ -165,8 +165,14 @@ public class HousingManager(
                         house.Transform.InstanceId = house.ParentWorld.Id; // Just to be sure
                         house.Transform.ZoneId = worldManager.GetZoneId(house.ParentWorld.Template, house.Transform.World.Position.X, house.Transform.World.Position.Y);
                         house.IsBeingLoadedFromDb = AppConfiguration.Instance.World.UsePersistentHouseDoodads;
-                        house.CurrentStep = reader.GetInt32("current_step");
-                        house.IsBeingLoadedFromDb = false;
+                        try
+                        {
+                            house.CurrentStep = reader.GetInt32("current_step");
+                        }
+                        finally
+                        {
+                            house.IsBeingLoadedFromDb = false;
+                        }
                         house.NumAction = reader.GetInt32("current_action");
                         house.Permission = (HousingPermission)reader.GetByte("permission");
                         house.PlaceDate = reader.GetDateTime("place_date");
