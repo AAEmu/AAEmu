@@ -690,8 +690,11 @@ public class ShipController(World world, ShipModelV1 shipModel)
 
     /// <summary>
     /// Same taut-vs-slack test as <see cref="ShipHarpoonTowPhysics.ApplyTerrainHookTow"/> (paid rope vs cannon–hook
-    /// distance + margin). Any engaged child harpoon counts — not only terrain hooks — so crawl does not fight
-    /// a taut line when tow force is inactive (e.g. hook in water).
+    /// distance + margin). Only <see cref="Slave.AttachedSlaves"/> of the hull (direct children), not the full mount
+    /// subtree: this gates the ±1 crawl-speed floor on the hull; expanding to descendants matched retail layout poorly
+    /// in practice (false taut). Tow impulses still walk descendants in <see cref="ShipHarpoonTowPhysics.ApplyTerrainHookTow"/>.
+    /// Counts any engaged harpoon taut by this test — not only terrain hooks — so crawl does not fight a taut line
+    /// when tow force is inactive (e.g. hook in water).
     /// </summary>
     private static bool HasTautHarpoonEngaged(Slave hull)
     {

@@ -175,8 +175,9 @@ public static class ShipHarpoonRopeController
     }
 
     /// <summary>
-    /// Syncs rope / skill-controller visuals to characters near the harpoon slave.
-    /// Excludes <paramref name="except"/> (operator) so their client is not fed duplicate SC on top of their own CS.
+    /// Syncs rope / skill-controller visuals to characters near the harpoon slave (same AOI as <see cref="GameObject.BroadcastPacket"/>).
+    /// Uses an explicit <c>GetAround</c> loop instead of <c>BroadcastPacket</c> so <paramref name="except"/> (operator) is skipped —
+    /// their client already applied state from CS and must not receive a duplicate SC.
     /// Uses the same <paramref name="len"/> as server state — do not inflate vs chord (that skewed third-party slack vs operator).
     /// </summary>
     private static void BroadcastSkillControllerRopeState(Slave harpoonSlave, float len, bool teared, bool cutouted, Character? except = null)
