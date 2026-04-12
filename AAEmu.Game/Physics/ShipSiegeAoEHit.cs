@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;
+using AAEmu.Game.Utils;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics;
@@ -79,7 +80,7 @@ public static class ShipSiegeAoEHit
 
         ShipShipInteraction.GetMassBoxCenterXz(body, model, ship.Scale, out var cx, out var cz);
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
-        var bow = rpy.Item1 + 1.57f;
+        var bow = rpy.Item1 + MathUtil.HalfPi;
         var halfLen = model.MassBoxSizeY * ship.Scale * 0.5f;
         var halfBeam = model.MassBoxSizeX * ship.Scale * 0.5f;
 

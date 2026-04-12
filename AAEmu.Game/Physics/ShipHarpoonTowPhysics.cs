@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;
+using AAEmu.Game.Utils;
 using Jitter2;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
@@ -413,7 +414,7 @@ public static class ShipHarpoonTowPhysics
         var pz = pullUnitZ / pl;
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bowRad = rpy.Item1 + MathF.PI / 2f;
+        var bowRad = rpy.Item1 + MathUtil.HalfPi;
         var fx = MathF.Cos(bowRad);
         var fz = MathF.Sin(bowRad);
         var cross = fx * pz - fz * px;
@@ -432,7 +433,7 @@ public static class ShipHarpoonTowPhysics
     private static void ResyncSlaveSpeedFromRigidBodyAlongBow(Slave slave, RigidBody rb)
     {
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bowRad = rpy.Item1 + MathF.PI / 2f;
+        var bowRad = rpy.Item1 + MathUtil.HalfPi;
         var fx = MathF.Cos(bowRad);
         var fz = MathF.Sin(bowRad);
         var mul = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);

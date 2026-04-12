@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Physics.Util;
+using AAEmu.Game.Utils;
 
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
@@ -119,12 +120,12 @@ public sealed class ShipDoodadInteraction
             return false;
 
         var r = GetObstacleFootprintHalfExtent(doodad);
-        var bowB = w.Rotation.Z + 1.57f;
+        var bowB = w.Rotation.Z + MathUtil.HalfPi;
         var bx = w.Position.X;
         var bz = w.Position.Y;
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
-        var bowA = rpyA.Item1 + 1.57f;
+        var bowA = rpyA.Item1 + MathUtil.HalfPi;
 
         var halfLenA = ma.MassBoxSizeY * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateLength;
         var satHalfWidA = ma.MassBoxSizeX * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateBeam *

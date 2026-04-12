@@ -3,6 +3,7 @@
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Debug;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Physics.Util;
 using static AAEmu.Game.Physics.ShipShipInteraction.ShipHullPairDefaults;
 
@@ -177,8 +178,8 @@ public sealed class ShipShipInteraction
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
         var rpyB = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyB.Orientation));
-        var bowA = rpyA.Item1 + 1.57f;
-        var bowB = rpyB.Item1 + 1.57f;
+        var bowA = rpyA.Item1 + MathUtil.HalfPi;
+        var bowB = rpyB.Item1 + MathUtil.HalfPi;
 
         GetMassBoxCenterXz(bodyA, ma, sa.Scale, out var ax, out var az);
         GetMassBoxCenterXz(bodyB, mb, sb.Scale, out var bx, out var bz);
@@ -262,8 +263,8 @@ public sealed class ShipShipInteraction
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
         var rpyB = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyB.Orientation));
-        var bowA = rpyA.Item1 + 1.57f;
-        var bowB = rpyB.Item1 + 1.57f;
+        var bowA = rpyA.Item1 + MathUtil.HalfPi;
+        var bowB = rpyB.Item1 + MathUtil.HalfPi;
 
         // Interpretation:
         // - MassBoxSizeY = length (forward/back)
@@ -502,7 +503,7 @@ public sealed class ShipShipInteraction
             return;
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bow = rpy.Item1 + 1.57f;
+        var bow = rpy.Item1 + MathUtil.HalfPi;
         var alongPhys = rb.Velocity.X * MathF.Cos(bow) + rb.Velocity.Z * MathF.Sin(bow);
         var denom = (slave.MoveSpeedMul / 4f) * slave.TurnSpeedVelocityMul;
         if (denom < 1e-5f)

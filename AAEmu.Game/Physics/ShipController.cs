@@ -323,7 +323,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
 
         // Still compute movement direction for stern/bow logic.
         var rpy0 = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
-        var heading0 = rpy0.Item1 + 1.57f;
+        var heading0 = rpy0.Item1 + MathUtil.HalfPi;
         var dirX0 = MathF.Cos(heading0);
         var dirZ0 = MathF.Sin(heading0);
         var along0 = rigidBody.Velocity.X * dirX0 + rigidBody.Velocity.Z * dirZ0;
@@ -422,7 +422,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
-        var slaveRotRad = rpy.Item1 + 1.57f; // bow heading in physics XZ; reused for wind + velocity
+        var slaveRotRad = rpy.Item1 + MathUtil.HalfPi; // bow heading in physics XZ; reused for wind + velocity
 
         // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
         var windMul = GetWindSpeedMul(slave, slaveRotRad);
