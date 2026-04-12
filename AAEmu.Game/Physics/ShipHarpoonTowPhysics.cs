@@ -263,7 +263,7 @@ public static class ShipHarpoonTowPhysics
     /// <summary>
     /// Late in the physics tick (after ship–ship overlap damping and cliff/doodad resolvers): harpoon engaged to another
     /// boat (explicit <see cref="ShipHarpoonRopeState.HookBasisObjId"/> or world-hook guess vs <paramref name="shipsThisTick"/>)
-    /// applies a mass-weighted closing impulse on both rigid bodies when the rope is taut-ish. Descends <see cref="Slave.AttachedSlaves"/>
+    /// applies a mass-weighted closing impulse on both rigid bodies when the rope is taut-ish, plus bow-yaw assist on tug and hooked hull toward the rope line. Descends <see cref="Slave.AttachedSlaves"/>
     /// so nested cannon slaves are included. Dominance uses mass × (1 + k·horizontal speed).
     /// </summary>
     public static void ApplyShipPairHarpoonTowImpulses(IReadOnlyList<Slave> shipsThisTick, float dtSec)
@@ -284,6 +284,8 @@ public static class ShipHarpoonTowPhysics
 
                 towRb.Velocity += new JVector(dvxTow, 0f, dvzTow);
                 ResyncSlaveSpeedFromRigidBodyAlongBow(towHull, towRb);
+                // basisPull is (-dx,-dz) with (dx,dz) unit tow hull → hook; tug bow follows hook along rope.
+                ApplyShipPairBowYawTowardPull(towHull, towRb, -basisPullUx, -basisPullUz, dtSec, bowYawMassScale);
 
                 var bRb = basis.RigidBody;
                 if (bRb is null)
@@ -398,8 +400,8 @@ public static class ShipHarpoonTowPhysics
     }
 
     /// <summary>
-    /// Nudge <see cref="Slave.RotSpeed"/> so the bow turns toward the horizontal pull (same 2D cross and clamp as terrain harpoon tow).
-    /// Applied to the hooked / basis hull so it does not only slide without yawing toward the tug.
+    /// Nudge <see cref="Slave.RotSpeed"/> so the bow turns toward the horizontal pull unit (same 2D cross and clamp as terrain harpoon tow).
+    /// Used for both tug and hooked hull during ship–pair harpoon tow; pull direction differs per hull.
     /// </summary>
     /// <param name="yawMassScale">From <see cref="TryBuildShipPairTowDelta"/> (same mass split as tow impulses).</param>
     private static void ApplyShipPairBowYawTowardPull(Slave slave, RigidBody rb, float pullUnitX, float pullUnitZ, float dtSec, float yawMassScale)
