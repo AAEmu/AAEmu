@@ -16,6 +16,11 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public class Transfer : Unit
 {
+    /// <summary>
+    /// Signed offset along the motor's forward axis for the bounded child (not in client DB; tuned for default carriage pair).
+    /// </summary>
+    public const float BoundedChildAlongFrontOffsetMeters = -9.24417f;
+
     public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Transfer; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Transfer;
 
@@ -637,6 +642,27 @@ public class Transfer : Unit
         transfer.Transform.FinalizeTransform();
         transfer.SetPosition(transfer.vPosition.X, transfer.vPosition.Y, transfer.vPosition.Z, 0, 0, (float)transfer.Angle);
         transfer.Transform.World.SetPosition(transfer.vPosition, new Vector3(0, 0, (float)transfer.Angle));
+
+        // Keep bound carriage parts in sync server-side.
+        // The client may initially render them attached at the station, but without server-side position updates
+        // they can later "snap back" to the spawn point when the streaming/visibility refreshes.
+        if (transfer.Bounded is not null)
+        {
+            var child = transfer.Bounded;
+            var (cx, cy) = MathUtil.AddDistanceToFront(BoundedChildAlongFrontOffsetMeters,
+                transfer.vPosition.X,
+                transfer.vPosition.Y,
+                (float)transfer.Angle);
+            var cz = transfer.vPosition.Z;
+
+            child.SetPosition(cx, cy, cz, 0, 0, (float)transfer.Angle);
+            child.Transform.World.SetPosition(new Vector3(cx, cy, cz), new Vector3(0, 0, (float)transfer.Angle));
+            child.Rot = transfer.Rot;
+
+            var childMove = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
+            childMove.UseTransferBase(child);
+            child.BroadcastPacket(new SCOneUnitMovementPacket(child.ObjId, childMove), false);
+        }
     }
 
     private void NextPoint(Transfer transfer)

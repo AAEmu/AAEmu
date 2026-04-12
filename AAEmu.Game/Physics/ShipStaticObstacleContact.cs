@@ -16,6 +16,12 @@ internal static class ShipStaticObstacleContact
     public const byte DefaultReplicationContactHoldTicks = 8;
 
     /// <summary>
+    /// Stronger replication hold for thin bridge-deck ceiling slabs: reduces client vs server jitter when the hull is
+    /// blocked by headroom while the client mesh (rigging/sails) still intersects the bridge visually.
+    /// </summary>
+    public const byte BridgeCeilingReplicationContactHoldTicks = 24;
+
+    /// <summary>
     /// Hull vs static obstacle SAT penetration (m) that counts as contact for periodic env hull damage.
     /// Lower than depenetration thresholds so damage still ticks after a push clears overlap on the same frame boundary.
     /// </summary>

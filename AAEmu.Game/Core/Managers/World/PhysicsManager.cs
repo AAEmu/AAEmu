@@ -33,6 +33,11 @@ public class PhysicsManager
     private const float DefaultWaterLevel = 100f;
 
     /// <summary>
+    /// Single hull-height fraction <c>k</c> for portal spawn / <see cref="AddShip"/> clamp and for extra Z in <c>SCOneUnitMovementPacket</c> on water (physics unchanged). Uses <c>MassBoxSizeZ×</c><see cref="Slave.Scale"/> where the slave exists. Packet: <c>moveType.Z += hullHeight×k</c>. Spawn: center height <c>water + hullHeight×k</c> (same meters as packet bump). <c>0</c> = waterline / no packet bump.
+    /// </summary>
+    public const float ShipHullWaterlineVisualHullFrac = 0.03f;
+
+    /// <summary>
     /// Target Ticks per Second for Physics in this world, use setting as default value
     /// </summary>
     // TODO: Make this variable or configurable from a GM command or dynamic load system
@@ -429,7 +434,7 @@ public class PhysicsManager
             {
                 var hullHeight = (slave.ShipController?.ShipModel.MassBoxSizeZ ?? shipModel.MassBoxSizeZ) * slave.Scale;
                 // Keep the ship close to the surface at spawn; buoyancy will settle the final draft.
-                var minCenterY = waterSurface - hullHeight * 0.02f;
+                var minCenterY = waterSurface + hullHeight * ShipHullWaterlineVisualHullFrac;
                 if (pos.Y < minCenterY)
                     pos.Y = minCenterY;
             }
@@ -738,6 +743,14 @@ public class PhysicsManager
         moveType.X = rep.PosX;
         moveType.Y = rep.PosY;
         moveType.Z = rep.PosZ;
+        // Visual-only Z bump on replicated movement (see ShipHullWaterlineVisualHullFrac). Physics body and
+        // slave.Transform below stay aligned with rigidBody — intentional: tuning hull vs waterline for clients
+        // without changing buoyancy/collisions. Server logic using Transform will see a slightly lower Z than
+        // moveType.Z in water; do not mirror waterZUp into Transform unless physics is updated to match.
+        var hullHeight = (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 0f) * slave.Scale;
+        var waterZUp = hullHeight * ShipHullWaterlineVisualHullFrac;
+        if (waterZUp != 0f && slave.ParentWorld?.IsWater(new Vector3(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y)) == true)
+            moveType.Z += waterZUp;
 
         moveType.AngVelX = rigidBody.AngularVelocity.X;
         moveType.AngVelY = rigidBody.AngularVelocity.Z;

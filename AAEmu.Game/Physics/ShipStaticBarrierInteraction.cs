@@ -54,8 +54,16 @@ public sealed class ShipStaticBarrierInteraction
         /// <summary>Fraction of velocity into the obstacle along the normal removed per iteration; lower = softer in tight slips.</summary>
         public const float ClosingSpeedDamp = 0.38f;
 
+        /// <summary>
+        /// For thin ceiling slabs (bridge decks): remove inbound velocity fully each step to avoid hunting vs client visuals.
+        /// </summary>
+        public const float CeilingClosingSpeedDamp = 1f;
+
         /// <summary>Fraction of tangential slip removed per iteration; higher = more slide along walls (easier to creep out of corners).</summary>
         public const float TangentialSlipDamp = 0.91f;
+
+        /// <summary>Max vertical thickness (m) of a barrier slab to treat as a bridge deck ceiling (not a coastal wall column).</summary>
+        public const float CeilingSlabMaxThicknessMeters = 2f;
 
         /// <summary>Padding (m) around ship mass-box center for broadphase culling before SAT.</summary>
         public const float ShipBoundsPadMeters = 72f;
@@ -117,7 +125,7 @@ public sealed class ShipStaticBarrierInteraction
                         continue;
 
                     var seg = barrier.Segments[segIdx];
-                    TryResolveShipVsSegment(ship, barrier, seg, ref sepBudget);
+                    TryResolveShipVsSegment(world, ship, barrier, seg, ref sepBudget);
                 }
             }
         }
@@ -126,7 +134,7 @@ public sealed class ShipStaticBarrierInteraction
             ShipShipInteraction.SyncSlaveSpeedFromBowVelocity(ship);
     }
 
-    private static bool TryResolveShipVsSegment(Slave ship, ShipStaticBarrier barrier, (float x0, float y0, float x1, float y1) seg, ref float separationBudgetMeters)
+    private static bool TryResolveShipVsSegment(WorldInstance world, Slave ship, ShipStaticBarrier barrier, (float x0, float y0, float x1, float y1) seg, ref float separationBudgetMeters)
     {
         var body = ship.RigidBody!;
         var ma = ship.ShipController!.ShipModel;
@@ -143,10 +151,21 @@ public sealed class ShipStaticBarrierInteraction
         var halfLenB = segLen * 0.5f;
         var halfWidB = barrier.HalfThicknessMeters;
 
-        var bbA = body.Shapes[0].WorldBoundingBox;
+        // Vertical test uses ship model height (MassBoxSizeZ×scale) vs barrier slab relative to local water surface.
+        var shipHeight = ma.MassBoxSizeZ * ship.Scale;
+        var shipPos = ship.Transform.World.Position;
+        var waterSurface = world.Water?.GetWaterSurface(shipPos, out _) ?? world.Template.OceanLevel;
+        var shipBottom = waterSurface;
+        var shipTop = waterSurface + shipHeight;
+
+        // Early out for ceiling slabs: if ship fits under the ceiling (below barrier.ZMin), skip.
+        var clearance = barrier.ZMin - waterSurface;
+        if (shipHeight > 0f && clearance > 0f && shipHeight < clearance)
+            return false;
+
         var dMinY = barrier.ZMin - BarrierDefaults.VerticalPadMeters;
         var dMaxY = barrier.ZMax + BarrierDefaults.VerticalPadMeters;
-        var overlapY = MathF.Min(bbA.Max.Y, dMaxY) - MathF.Max(bbA.Min.Y, dMinY);
+        var overlapY = MathF.Min(shipTop, dMaxY) - MathF.Max(shipBottom, dMinY);
         if (overlapY < BarrierDefaults.MinVerticalOverlap)
             return false;
 
@@ -158,14 +177,24 @@ public sealed class ShipStaticBarrierInteraction
         var satHalfWidA = ma.MassBoxSizeX * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateBeam *
                           ShipShipInteraction.ShipHullPairDefaults.BeamDetectTightenMul * BarrierDefaults.SatShipObbTightenMul;
 
+        // Thin Z slabs are bridge deck ceilings (ingest uses ~0.5m). Full normal velocity kill + longer rep hold reduces shake.
+        var isCeilingSlab = barrier.ZMax - barrier.ZMin <= BarrierDefaults.CeilingSlabMaxThicknessMeters;
+        var closingDamp = isCeilingSlab ? BarrierDefaults.CeilingClosingSpeedDamp : BarrierDefaults.ClosingSpeedDamp;
+        var repHold = isCeilingSlab
+            ? ShipStaticObstacleContact.BridgeCeilingReplicationContactHoldTicks
+            : ShipStaticObstacleContact.DefaultReplicationContactHoldTicks;
+
         var had = false;
         for (var iter = 0; iter < BarrierDefaults.MaxPairIterations; iter++)
         {
             if (separationBudgetMeters <= 0f)
                 break;
 
-            bbA = body.Shapes[0].WorldBoundingBox;
-            overlapY = MathF.Min(bbA.Max.Y, dMaxY) - MathF.Max(bbA.Min.Y, dMinY);
+            shipPos = ship.Transform.World.Position;
+            waterSurface = world.Water?.GetWaterSurface(shipPos, out _) ?? world.Template.OceanLevel;
+            shipBottom = waterSurface;
+            shipTop = waterSurface + shipHeight;
+            overlapY = MathF.Min(shipTop, dMaxY) - MathF.Max(shipBottom, dMinY);
             if (overlapY < BarrierDefaults.MinVerticalOverlap)
                 break;
 
@@ -206,9 +235,9 @@ public sealed class ShipStaticBarrierInteraction
                 nx,
                 nz,
                 move,
-                BarrierDefaults.ClosingSpeedDamp,
+                closingDamp,
                 BarrierDefaults.TangentialSlipDamp,
-                ShipStaticObstacleContact.DefaultReplicationContactHoldTicks);
+                repHold);
 
             had = true;
         }

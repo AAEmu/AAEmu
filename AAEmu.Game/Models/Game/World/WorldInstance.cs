@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.World;
 /// <summary>
 /// Instance of a World
 /// </summary>
-public class WorldInstance(WorldTemplate template, uint channelId, bool dontFreeInstanceId, uint instanceId)
+public partial class WorldInstance(WorldTemplate template, uint channelId, bool dontFreeInstanceId, uint instanceId)
 {
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
     // ReSharper disable once InconsistentNaming
