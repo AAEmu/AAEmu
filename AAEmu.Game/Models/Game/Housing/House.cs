@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -22,6 +23,7 @@ public sealed class House : Unit
     private readonly object _lock = new();
     private HousingTemplate _template;
     private int _currentStep;
+    private bool _isBeingLoadedFromDb;
     private int _allAction;
     private uint _id;
     private uint _accountId;
@@ -42,6 +44,10 @@ public sealed class House : Unit
     /// after it's initial addition to the table, like position/rotation. Therefore it's ok to only set the dirty marker on the other properties
     /// </summary>
     public bool IsDirty { get => _isDirty; set => _isDirty = value; }
+    /// <summary>
+    /// When true, suppresses bound doodad spawning in the CurrentStep setter so they can be loaded from the database instead.
+    /// </summary>
+    public bool IsBeingLoadedFromDb { get => _isBeingLoadedFromDb; set => _isBeingLoadedFromDb = value; }
     public new uint Id { get => _id; set { _id = value; _isDirty = true; } }
     public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
     public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
@@ -71,25 +77,48 @@ public sealed class House : Unit
             ModelId = _currentStep == -1 ? Template.MainModelId : Template.BuildSteps[_currentStep].ModelId;
             if (_currentStep == -1) // TODO ...
             {
-                foreach (var bindingDoodad in Template.HousingBindingDoodad)
+                if (!_isBeingLoadedFromDb)
                 {
-                    var doodad = DoodadManager.Instance.Create(ParentWorld, 0, bindingDoodad.DoodadId, this, true);
-                    doodad.AttachPoint = bindingDoodad.AttachPointId;
-                    doodad.ParentObj = this;
-                    doodad.Transform = this.Transform.CloneDetached(doodad);
-                    doodad.Transform.Parent = this.Transform;
-                    doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(bindingDoodad.Position);
-                    doodad.InitDoodad();
-
-                    AttachedDoodads.Add(doodad);
+                    foreach (var bindingDoodad in Template.HousingBindingDoodad)
+                    {
+                        var doodad = DoodadManager.Instance.Create(ParentWorld, 0, bindingDoodad.DoodadId, this, true);
+                        if (doodad == null)
+                        {
+                            Logger.Error($"CurrentStep: Failed to create bound doodad templateId={bindingDoodad.DoodadId} for house {Id} — template not found, skipping.");
+                            continue;
+                        }
+                        doodad.AttachPoint = bindingDoodad.AttachPointId;
+                        doodad.ParentObj = this;
+                        doodad.Transform = this.Transform.CloneDetached(doodad);
+                        doodad.Transform.Parent = this.Transform;
+                        doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(bindingDoodad.Position);
+                        if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
+                        {
+                            doodad.IsPersistent = true;
+                            doodad.InitDoodad();
+                            doodad.Save();
+                        }
+                        else
+                        {
+                            doodad.InitDoodad();
+                        }
+                        AttachedDoodads.Add(doodad);
+                    }
                 }
             }
             else if (AttachedDoodads.Count > 0)
             {
                 foreach (var doodad in AttachedDoodads)
-                    if (doodad.ObjId > 0)
+                {
+                    if (doodad.IsPersistent)
+                    {
+                        if (doodad.ObjId > 0)
+                            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                        doodad.Delete();
+                    }
+                    else if (doodad.ObjId > 0)
                         ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
-
+                }
                 AttachedDoodads.Clear();
             }
 
@@ -174,10 +203,22 @@ public sealed class House : Unit
 
     public override void Delete()
     {
-        // Detach children that aren't part of the house itself
         foreach (var doodad in AttachedDoodads)
-            if (doodad.AttachPoint == AttachPointKind.None)
-                doodad.Transform.Parent = null;
+        {
+            if (doodad.IsPersistent)
+            {
+                if (doodad.ObjId > 0)
+                    ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                doodad.Delete(); // removes from DB and PlayerDoodads
+            }
+            else
+            {
+                if (doodad.AttachPoint == AttachPointKind.None)
+                    doodad.Transform.Parent = null; // detach furniture from transform hierarchy
+                if (doodad.ObjId > 0)
+                    ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            }
+        }
         base.Delete();
     }
 

@@ -164,7 +164,15 @@ public class HousingManager(
                         );
                         house.Transform.InstanceId = house.ParentWorld.Id; // Just to be sure
                         house.Transform.ZoneId = worldManager.GetZoneId(house.ParentWorld.Template, house.Transform.World.Position.X, house.Transform.World.Position.Y);
-                        house.CurrentStep = reader.GetInt32("current_step");
+                        house.IsBeingLoadedFromDb = AppConfiguration.Instance.World.UsePersistentHouseDoodads;
+                        try
+                        {
+                            house.CurrentStep = reader.GetInt32("current_step");
+                        }
+                        finally
+                        {
+                            house.IsBeingLoadedFromDb = false;
+                        }
                         house.NumAction = reader.GetInt32("current_action");
                         house.Permission = (HousingPermission)reader.GetByte("permission");
                         house.PlaceDate = reader.GetDateTime("place_date");
@@ -239,6 +247,73 @@ public class HousingManager(
             house.Transform.InstanceId = WorldManager.DefaultInstanceId;
             house.Spawn();
         }
+    }
+
+    /// <summary>
+    /// After persistent housing doodads have been loaded from DB, reconcile bound doodads for each completed house.
+    /// Spawns and saves any bound doodads missing from the DB (first-run migration), and removes duplicates.
+    /// </summary>
+    public void ReconcileBoundDoodads()
+    {
+        Logger.Info("Reconciling bound doodads for completed houses...");
+        var addedCount = 0;
+        var removedCount = 0;
+
+        foreach (var house in _houses.Values)
+        {
+            if (house.CurrentStep != -1)
+                continue;
+            if (house.Template.HousingBindingDoodad == null || house.Template.HousingBindingDoodad.Length == 0)
+                continue;
+
+            foreach (var bindingDoodad in house.Template.HousingBindingDoodad)
+            {
+                var matches = house.AttachedDoodads
+                    .Where(d => d.TemplateId == bindingDoodad.DoodadId
+                             && d.AttachPoint == bindingDoodad.AttachPointId)
+                    .ToList();
+
+                if (matches.Count == 0)
+                {
+                    // Missing from DB — spawn fresh and save (first-run migration or data loss recovery)
+                    Logger.Debug($"Reconcile: Spawning missing bound doodad templateId={bindingDoodad.DoodadId} attachPoint={bindingDoodad.AttachPointId} for house {house.Id}");
+                    var doodad = doodadManager.Create(house.ParentWorld, 0, bindingDoodad.DoodadId, house, true);
+                    if (doodad == null)
+                    {
+                        Logger.Error($"Reconcile: Failed to create doodad templateId={bindingDoodad.DoodadId} for house {house.Id} — template not found, skipping.");
+                        continue;
+                    }
+                    doodad.AttachPoint = bindingDoodad.AttachPointId;
+                    doodad.ParentObj = house;
+                    doodad.Transform = house.Transform.CloneDetached(doodad);
+                    doodad.Transform.Parent = house.Transform;
+                    doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(bindingDoodad.Position);
+                    doodad.IsPersistent = true;
+                    doodad.InitDoodad();
+                    doodad.Spawn(); // register in world and make visible
+                    doodad.Save();
+                    house.AttachedDoodads.Add(doodad);
+                    house.ParentWorld.SpawnManager.AddPlayerDoodad(doodad);
+                    addedCount++;
+                }
+                else if (matches.Count > 1)
+                {
+                    // Duplicates — keep the first (earliest loaded = lowest DbId), delete extras
+                    Logger.Warn($"Reconcile: Removing {matches.Count - 1} duplicate(s) for templateId={bindingDoodad.DoodadId} attachPoint={bindingDoodad.AttachPointId} on house {house.Id}");
+                    for (var i = 1; i < matches.Count; i++)
+                    {
+                        var extra = matches[i];
+                        house.AttachedDoodads.Remove(extra);
+                        if (extra.ObjId > 0)
+                            ObjectIdManager.Instance.ReleaseId(extra.ObjId);
+                        extra.Delete();
+                        removedCount++;
+                    }
+                }
+            }
+        }
+
+        Logger.Info($"Bound doodad reconciliation complete: {addedCount} added, {removedCount} duplicates removed.");
     }
 
     /// <summary>

@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
@@ -301,8 +302,11 @@ public class SpawnManager(WorldInstance parentWorld)
             Logger.Info($"Loading persistent doodads for {World}");
             var doodadsSpawned = 0;
 
-            // Load furniture
+            // Load furniture and bound doodads
             doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Housing);
+            // Reconcile bound doodads: spawn any missing from DB, remove duplicates
+            if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
+                HousingManager.Instance.ReconcileBoundDoodads();
             // Load plants/packs and everything else that was placed into the world by players
             doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.System);
             doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Character);
@@ -776,6 +780,18 @@ public class SpawnManager(WorldInstance parentWorld)
                             doodad.Transform.Parent = owningHouse.Transform;
                             doodad.ParentObj = owningHouse;
                             doodad.ParentObjId = owningHouse.ObjId;
+
+                            // If persistent house doodads are enabled and this doodad matches a binding
+                            // from the house template, register it in AttachedDoodads so
+                            // House.Spawn/Show/Hide/Delete handle it correctly.
+                            if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
+                            {
+                                var isBoundDoodad = owningHouse.Template?.HousingBindingDoodad != null &&
+                                    owningHouse.Template.HousingBindingDoodad.Any(b =>
+                                        b.DoodadId == templateId && b.AttachPointId == attachPoint);
+                                if (isBoundDoodad)
+                                    owningHouse.AttachedDoodads.Add(doodad);
+                            }
                         }
                     }
 
