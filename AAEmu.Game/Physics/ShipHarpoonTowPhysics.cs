@@ -343,8 +343,6 @@ public static class ShipHarpoonTowPhysics
 
         var rawStretch = dist - paid;
         // Chord shorter than paid = rope slack, not load-bearing — do not invent positive stretch.
-        if (rawStretch < -SlackMarginMeters)
-            return false;
         if (rawStretch <= 0f)
             return false;
 
