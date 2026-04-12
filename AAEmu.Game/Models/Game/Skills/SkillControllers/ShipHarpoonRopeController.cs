@@ -159,7 +159,7 @@ public static class ShipHarpoonRopeController
     /// <summary>Clears server rope state and mirrors break to clients (skill controller UI). Sends only via the harpoon slave's broadcast (neighborhood).</summary>
     public static void BreakRopeForClients(Slave slave, bool cutouted)
     {
-        if (slave?.HarpoonRope.IsEngaged != true)
+        if (slave is null || !slave.HarpoonRope.IsEngaged)
             return;
 
         var len = slave.HarpoonRope.RopeLength;

@@ -141,7 +141,7 @@ public static class ShipHarpoonTowPhysics
     }
 
     /// <summary>Resolves the other boat hull for ship–ship tow: explicit basis id, or nearest boat when client sent world-only hook.</summary>
-    private static Slave? ResolveShipPairBasisSlave(Slave towHull, Slave harpoonChild, ShipHarpoonRopeState st, IReadOnlyList<Slave> shipsThisTick)
+    private static Slave? ResolveShipPairBasisSlave(Slave towHull, Slave harpoonChild, in ShipHarpoonRopeState st, IReadOnlyList<Slave> shipsThisTick)
     {
         if (st.HookBasisObjId != 0)
         {

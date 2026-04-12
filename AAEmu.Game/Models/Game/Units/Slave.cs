@@ -105,8 +105,8 @@ public class Slave : Unit
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
     public ShipController ShipController { get; set; }
-    /// <summary>When this slave is a ship harpoon cannon, holds the active line / client-reported rope length.</summary>
-    public ShipHarpoonRopeState HarpoonRope { get; } = new();
+    /// <summary>Ship harpoon rope / skill-controller sync (only meaningful for harpoon cannon slaves; default struct = disengaged, no heap alloc).</summary>
+    public ShipHarpoonRopeState HarpoonRope;
     public Vector3 CachedWaterFlow { get; set; }
     public float CachedWaterSurface { get; set; }
     public float CachedFloorLevel { get; set; }

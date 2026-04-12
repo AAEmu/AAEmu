@@ -3,8 +3,8 @@ using System.Numerics;
 
 namespace AAEmu.Game.Models.Game.Units;
 
-/// <summary>Active harpoon line for a ship harpoon cannon slave.</summary>
-public sealed class ShipHarpoonRopeState
+/// <summary>Active harpoon line for a ship harpoon cannon slave. Struct so each <see cref="Slave"/> embeds state without a per-slave heap object.</summary>
+public struct ShipHarpoonRopeState
 {
     public bool IsEngaged { get; set; }
     /// <summary>World hook when <see cref="HookBasisObjId"/> is 0; otherwise snapshot at engage (resolver uses basis + local).</summary>
