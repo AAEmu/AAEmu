@@ -415,7 +415,7 @@ public static class ShipHarpoonTowPhysics
         var pz = pullUnitZ / pl;
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bowRad = rpy.Item1 + 1.57f;
+        var bowRad = rpy.Item1 + MathF.PI / 2f;
         var fx = MathF.Cos(bowRad);
         var fz = MathF.Sin(bowRad);
         var cross = fx * pz - fz * px;
@@ -434,7 +434,7 @@ public static class ShipHarpoonTowPhysics
     private static void ResyncSlaveSpeedFromRigidBodyAlongBow(Slave slave, RigidBody rb)
     {
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bowRad = rpy.Item1 + 1.57f;
+        var bowRad = rpy.Item1 + MathF.PI / 2f;
         var fx = MathF.Cos(bowRad);
         var fz = MathF.Sin(bowRad);
         var mul = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
