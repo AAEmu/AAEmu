@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Physics;
 using AAEmu.Game.Physics.Debug;
 using NLog;
 
@@ -80,7 +81,8 @@ public static class ShipHarpoonRopeController
         if (!slave.HarpoonRope.IsEngaged)
             return;
 
-        slave.HarpoonRope.RopeLength = len;
+        var clampedLen = ClampClientReportedRopeLength(slave, len);
+        slave.HarpoonRope.RopeLength = clampedLen;
         slave.HarpoonRope.LastTeared = teared;
         slave.HarpoonRope.LastCutout = cutouted;
 
@@ -93,7 +95,7 @@ public static class ShipHarpoonRopeController
             return;
         }
 
-        BroadcastSkillControllerRopeState(slave, len, teared: false, cutouted: false, except: character);
+        BroadcastSkillControllerRopeState(slave, clampedLen, teared: false, cutouted: false, except: character);
     }
 
     /// <summary>When the operator leaves this slave seat (harpoon station), drop the line per game design.</summary>
@@ -211,6 +213,25 @@ public static class ShipHarpoonRopeController
         var basisRot = basis.Transform.World.ToQuaternion();
         var basisScale = basis.Scale;
         return Vector3.Transform(st.HookLocalInBasis * basisScale, basisRot) + basis.Transform.World.Position;
+    }
+
+    /// <summary>
+    /// <see cref="AAEmu.Game.Core.Packets.C2G.CSSkillControllerStatePacket"/> supplies <paramref name="len"/> from the client; clamp before physics
+    /// taut/slack so spoofed values cannot force or suppress tow (see PR review / Greptile P1).
+    /// </summary>
+    private static float ClampClientReportedRopeLength(Slave slave, float len)
+    {
+        if (!float.IsFinite(len))
+            return slave.HarpoonRope.RopeLength;
+
+        len = MathF.Max(0f, len);
+        var additive = ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
+        if (slave.HarpoonRope.MaxLaunchRange > 0f)
+            return MathF.Min(len, slave.HarpoonRope.MaxLaunchRange + additive);
+
+        var chord = Vector3.Distance(slave.Transform.World.Position, GetHookWorldPosition(slave));
+        var generousCap = chord + additive + ShipHarpoonTowPhysics.SlackMarginMeters + 40f;
+        return MathF.Min(len, generousCap);
     }
 
     private static bool TryBreakRopeIfHookOutOfRange(Slave slave, Character? alsoNotify)
