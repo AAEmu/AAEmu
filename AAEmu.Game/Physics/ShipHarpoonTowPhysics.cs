@@ -15,7 +15,7 @@ namespace AAEmu.Game.Physics;
 /// <summary>
 /// Tow force when a ship harpoon is hooked to dry land: if the paid rope length is not slack
 /// (<see cref="SlackMarginMeters"/>), accelerate the parent hull toward the hook in the horizontal plane.
-/// Optional bow yaw toward average tow pull (<see cref="TowYawAssistRadPerSec"/>). Applied after helm/throttle velocity so <see cref="Slave.Speed"/> is resynced from the clamped along-bow component.
+/// Optional bow yaw toward average tow pull (<see cref="TowYawAssistRadPerSec"/>); ship–pair basis hull yaw is scaled by mass (see <see cref="ShipPairBowYawMassScaleReference"/>). Applied after helm/throttle velocity so <see cref="Slave.Speed"/> is resynced from the clamped along-bow component.
 /// Tunables are <see cref="TowAccelPerMeterStretch"/> and related <c>const</c> fields below.
 /// </summary>
 public static class ShipHarpoonTowPhysics
@@ -64,6 +64,12 @@ public static class ShipHarpoonTowPhysics
     /// Stops basis hull moving before the hook can physically span the rope.
     /// </summary>
     public const float ShipPairMaxChordOverPaidMeters = 12f;
+
+    /// <summary>Reference in <c>scale = clamp(ref/(ref+μ), min, 1)</c>; μ = <c>total·towShare·basisShare</c> from <see cref="TryBuildShipPairTowDelta"/>.</summary>
+    public const float ShipPairBowYawMassScaleReference = 2000f;
+
+    /// <summary>Lower clamp on that ship–pair bow-yaw mass scale.</summary>
+    public const float ShipPairBowYawMassScaleMin = 0.2f;
 
     /// <summary>Depth-first over <paramref name="root"/>’s attached slaves (harpoon may be nested under mounts).</summary>
     public static IEnumerable<Slave> EnumerateAttachedSlaveDescendants(Slave root)
@@ -273,7 +279,7 @@ public static class ShipHarpoonTowPhysics
 
             foreach (var child in EnumerateAttachedSlaveDescendants(towHull))
             {
-                if (!TryBuildShipPairTowDelta(towHull, child, towRb, shipsThisTick, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis, out var basisPullUx, out var basisPullUz))
+                if (!TryBuildShipPairTowDelta(towHull, child, towRb, shipsThisTick, dtSec, out var basis, out var dvxTow, out var dvzTow, out var dvxBasis, out var dvzBasis, out var basisPullUx, out var basisPullUz, out var bowYawMassScale))
                     continue;
 
                 towRb.Velocity += new JVector(dvxTow, 0f, dvzTow);
@@ -284,7 +290,7 @@ public static class ShipHarpoonTowPhysics
                     continue;
                 bRb.Velocity += new JVector(dvxBasis, 0f, dvzBasis);
                 ResyncSlaveSpeedFromRigidBodyAlongBow(basis, bRb);
-                ApplyShipPairBowYawTowardPull(basis, bRb, basisPullUx, basisPullUz, dtSec);
+                ApplyShipPairBowYawTowardPull(basis, bRb, basisPullUx, basisPullUz, dtSec, bowYawMassScale);
             }
         }
     }
@@ -301,11 +307,12 @@ public static class ShipHarpoonTowPhysics
         out float dvxBasis,
         out float dvzBasis,
         out float basisPullUnitX,
-        out float basisPullUnitZ)
+        out float basisPullUnitZ,
+        out float bowYawMassScale)
     {
         basisShip = null!;
         dvxTow = dvzTow = dvxBasis = dvzBasis = 0f;
-        basisPullUnitX = basisPullUnitZ = 0f;
+        basisPullUnitX = basisPullUnitZ = bowYawMassScale = 0f;
 
         var st = harpoonChild.HarpoonRope;
         if (!st.IsEngaged)
@@ -379,6 +386,13 @@ public static class ShipHarpoonTowPhysics
         basisPullUnitX = -dx;
         basisPullUnitZ = -dz;
 
+        // μ = mTow·mBasis/total — same as total·towShare·basisShare (shares already used for impulses above).
+        var reducedPairMass = total * towShare * basisShare;
+        bowYawMassScale = Math.Clamp(
+            ShipPairBowYawMassScaleReference / (ShipPairBowYawMassScaleReference + reducedPairMass),
+            ShipPairBowYawMassScaleMin,
+            1f);
+
         basisShip = basis;
         return true;
     }
@@ -387,7 +401,8 @@ public static class ShipHarpoonTowPhysics
     /// Nudge <see cref="Slave.RotSpeed"/> so the bow turns toward the horizontal pull (same 2D cross and clamp as terrain harpoon tow).
     /// Applied to the hooked / basis hull so it does not only slide without yawing toward the tug.
     /// </summary>
-    private static void ApplyShipPairBowYawTowardPull(Slave slave, RigidBody rb, float pullUnitX, float pullUnitZ, float dtSec)
+    /// <param name="yawMassScale">From <see cref="TryBuildShipPairTowDelta"/> (same mass split as tow impulses).</param>
+    private static void ApplyShipPairBowYawTowardPull(Slave slave, RigidBody rb, float pullUnitX, float pullUnitZ, float dtSec, float yawMassScale)
     {
         if (dtSec <= 0f)
             return;
@@ -403,7 +418,7 @@ public static class ShipHarpoonTowPhysics
         var fz = MathF.Sin(bowRad);
         var cross = fx * pz - fz * px;
         // ShipController sets angular velocity from -RotSpeed on body Y — same sign as terrain tow pull assist.
-        slave.RotSpeed += Math.Clamp(-cross * TowYawAssistRadPerSec * dtSec, -0.85f, 0.85f);
+        slave.RotSpeed += Math.Clamp(-cross * TowYawAssistRadPerSec * dtSec * yawMassScale, -0.85f, 0.85f);
     }
 
     private static float HorizontalSpeedXZ(RigidBody rb)
