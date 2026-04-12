@@ -185,12 +185,7 @@ public static class ShipHarpoonRopeController
             return;
 
         var pkt = new SCSkillControllerStatePacket(harpoonSlave.ObjId, 0, len, teared, cutouted);
-        foreach (var chr in WorldManager.GetAround<Character>(harpoonSlave))
-        {
-            if (except != null && chr.ObjId == except.ObjId)
-                continue;
-            chr.SendPacket(pkt);
-        }
+        harpoonSlave.BroadcastPacket(pkt, except);
     }
 
     /// <summary>Current world hook; recomputes when the hit uses a moving basis unit (<see cref="ShipHarpoonRopeState.HookBasisObjId"/>).</summary>

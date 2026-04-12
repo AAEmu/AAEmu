@@ -139,6 +139,20 @@ public class GameObject : IGameObject
     }
 
     /// <summary>
+    /// Broadcasts packet to all players near this GameObject, optionally skipping one recipient
+    /// (e.g. operator who already applied state from a CS packet — avoids duplicate SC). Pass <c>null</c> to skip nobody.
+    /// </summary>
+    public virtual void BroadcastPacket(GamePacket packet, Character exceptRecipient)
+    {
+        foreach (var character in WorldManager.GetAround<Character>(this))
+        {
+            if (exceptRecipient != null && character.ObjId == exceptRecipient.ObjId)
+                continue;
+            character.SendPacket(packet);
+        }
+    }
+
+    /// <summary>
     /// Broadcasts packet to all players in the list of targets, non-players get ignored
     /// </summary>
     /// <param name="targets">List of units that might need to be sent to</param>
