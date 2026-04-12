@@ -27,7 +27,7 @@ public static class ShipHarpoonRopeController
             return;
 
         if (harpoonSlave.HarpoonRope.IsEngaged)
-            BreakRopeForClients(harpoonSlave, cutouted: false, operatorChar);
+            BreakRopeForClients(harpoonSlave, cutouted: false);
         else
             harpoonSlave.HarpoonRope.Clear();
 
@@ -64,7 +64,7 @@ public static class ShipHarpoonRopeController
 
     public static void OnCutRope(Slave harpoonSlave, Character? operatorChar)
     {
-        BreakRopeForClients(harpoonSlave, cutouted: true, operatorChar);
+        BreakRopeForClients(harpoonSlave, cutouted: true);
     }
 
     public static void TryApplySkillControllerState(Character character, uint objId, float len, bool teared, bool cutouted)
@@ -86,12 +86,12 @@ public static class ShipHarpoonRopeController
         slave.HarpoonRope.LastTeared = teared;
         slave.HarpoonRope.LastCutout = cutouted;
 
-        if (TryBreakRopeIfHookOutOfRange(slave, character))
+        if (TryBreakRopeIfHookOutOfRange(slave))
             return;
 
         if (teared || cutouted)
         {
-            BreakRopeForClients(slave, cutouted, character);
+            BreakRopeForClients(slave, cutouted);
             return;
         }
 
@@ -101,7 +101,7 @@ public static class ShipHarpoonRopeController
     /// <summary>When the operator leaves this slave seat (harpoon station), drop the line per game design.</summary>
     public static void OnOperatorLeftSlave(Slave slave, Character? leavingOperator)
     {
-        BreakRopeForClients(slave, cutouted: false, leavingOperator);
+        BreakRopeForClients(slave, cutouted: false);
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public static class ShipHarpoonRopeController
         {
             if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
                 Log.Debug("Harpoon rope auto-break (skill_controllers Rope lifetime): slaveObjId={0}", node.ObjId);
-            BreakRopeForClients(node, cutouted: false, alsoNotify: null);
+            BreakRopeForClients(node, cutouted: false);
         }
 
         foreach (var child in node.AttachedSlaves)
@@ -156,8 +156,8 @@ public static class ShipHarpoonRopeController
         return DateTime.UtcNow.AddMilliseconds(ms);
     }
 
-    /// <summary>Clears server rope state and mirrors break to clients (skill controller UI).</summary>
-    public static void BreakRopeForClients(Slave slave, bool cutouted, Character? alsoNotify = null)
+    /// <summary>Clears server rope state and mirrors break to clients (skill controller UI). Sends only via the harpoon slave's broadcast (neighborhood).</summary>
+    public static void BreakRopeForClients(Slave slave, bool cutouted)
     {
         if (slave?.HarpoonRope.IsEngaged != true)
             return;
@@ -168,10 +168,6 @@ public static class ShipHarpoonRopeController
 
         var pkt = new SCSkillControllerStatePacket(objId, 0, len, teared: true, cutouted);
         slave.BroadcastPacket(pkt, false);
-        if (slave.Summoner?.Connection != null)
-            slave.Summoner.SendPacket(pkt);
-        if (alsoNotify?.Connection != null && alsoNotify.ObjId != slave.Summoner?.ObjId)
-            alsoNotify.SendPacket(pkt);
 
         if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
             Log.Debug("Harpoon rope server break + SCSkillControllerState: slaveObjId={0} len={1:F2} cutouted={2}",
@@ -234,7 +230,7 @@ public static class ShipHarpoonRopeController
         return MathF.Min(len, generousCap);
     }
 
-    private static bool TryBreakRopeIfHookOutOfRange(Slave slave, Character? alsoNotify)
+    private static bool TryBreakRopeIfHookOutOfRange(Slave slave)
     {
         if (!slave.HarpoonRope.IsEngaged || slave.HarpoonRope.MaxLaunchRange <= 0f)
             return false;
@@ -248,7 +244,7 @@ public static class ShipHarpoonRopeController
         if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
             Log.Debug("Harpoon rope auto-break (hook beyond range): slaveObjId={0} dist={1:F2} max={2:F2}",
                 slave.ObjId, dist, maxSaved);
-        BreakRopeForClients(slave, cutouted: false, alsoNotify);
+        BreakRopeForClients(slave, cutouted: false);
         return true;
     }
 

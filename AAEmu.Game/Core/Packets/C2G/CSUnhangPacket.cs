@@ -35,6 +35,6 @@ public class CSUnhangPacket() : GamePacket(CSOffsets.CSUnhangPacket, 1)
         Connection.ActiveChar.BroadcastPacket(new SCUnhungPacket(unitObjId, targetObjId, reason), false);
 
         if (stickySlave != null)
-            ShipHarpoonRopeController.BreakRopeForClients(stickySlave, cutouted: false, Connection.ActiveChar);
+            ShipHarpoonRopeController.BreakRopeForClients(stickySlave, cutouted: false);
     }
 }
