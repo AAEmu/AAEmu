@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -150,6 +151,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             slave.AttachedCharacters.Remove(attachPoint);
             character.Transform.Parent = null;
             character.Transform.StickyParent = null;
+            ShipHarpoonRopeController.OnOperatorLeftSlave(slave, character);
         }
 
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);

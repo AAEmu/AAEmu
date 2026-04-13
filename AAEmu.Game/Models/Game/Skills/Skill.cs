@@ -1,3 +1,5 @@
+using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -519,8 +521,18 @@ public class Skill
                 break;
             case SkillTargetType.SummonPos:
                 break;
+            // Ship harpoon Launch Harpoon (13749) uses target_type_id 13 = RelativePos with a world Position from the client.
             case SkillTargetType.RelativePos:
-                break;
+                {
+                    if (targetCaster is SkillCastPositionTarget or SkillCastPosition2Target or SkillCastPosition3Target)
+                    {
+                        target = SetInitialTarget(caster, targetCaster);
+                        if (caster.ObjId == target.ObjId)
+                            return null;
+                    }
+
+                    break;
+                }
             case SkillTargetType.SourcePos:
                 break;
             case SkillTargetType.ArtilleryPos:
@@ -555,6 +567,21 @@ public class Skill
                 {
                     if (caster is Npc { CurrentTarget: not null } npc)
                         positionUnit.Transform.Local.SetPosition(npc.CurrentTarget.Transform.Local.Position.X, npc.CurrentTarget.Transform.Local.Position.Y, npc.CurrentTarget.Transform.Local.Position.Z);
+                    else if (positionTarget.ObjId1 != 0)
+                    {
+                        var worldInst = caster.ParentWorld ?? WorldManager.Instance.GetWorld(caster.Transform.InstanceId);
+                        if (worldInst?.GetBaseUnit(positionTarget.ObjId1) is BaseUnit basisUnit)
+                        {
+                            // Hit in basis unit's local frame (e.g. harpoon on hull); Pos* are not world meters.
+                            var basisRot = basisUnit.Transform.World.ToQuaternion();
+                            var basisScale = basisUnit.Scale;
+                            var localHit = new Vector3(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            var worldHit = Vector3.Transform(localHit * basisScale, basisRot) + basisUnit.Transform.World.Position;
+                            positionUnit.Transform.Local.SetPosition(worldHit.X, worldHit.Y, worldHit.Z);
+                        }
+                        else
+                            positionUnit.Transform.Local.SetPosition(caster.Transform.World.Position.X, caster.Transform.World.Position.Y, caster.Transform.World.Position.Z);
+                    }
                     else
                         positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                     break;

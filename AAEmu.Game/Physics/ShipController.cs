@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Util;
@@ -322,7 +323,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
 
         // Still compute movement direction for stern/bow logic.
         var rpy0 = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
-        var heading0 = rpy0.Item1 + 1.57f;
+        var heading0 = rpy0.Item1 + MathUtil.HalfPi;
         var dirX0 = MathF.Cos(heading0);
         var dirZ0 = MathF.Sin(heading0);
         var along0 = rigidBody.Velocity.X * dirX0 + rigidBody.Velocity.Z * dirZ0;
@@ -406,7 +407,9 @@ public class ShipController(World world, ShipModelV1 shipModel)
         // Minimum crawl speed when starting in that direction only. Do not apply while still moving
         // the other way — otherwise forward+reverse snaps Speed to ±1 and the ship stops instantly.
         // Do not force crawl while grounded, otherwise ships can "slide-drive" on land at low speed.
-        if (!isGrounded)
+        // Do not force crawl while a harpoon line is taut: ±1 Speed keeps the hull creeping
+        // against the anchor (client rope stretches / "breaks") while tow physics cannot fully cancel it.
+        if (!isGrounded && !HasTautHarpoonEngaged(slave))
         {
             if (slave is { Throttle: > 0, Speed: < 1f } && slave.Speed >= 0f)
                 slave.Speed = 1f;
@@ -419,7 +422,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         var steeringNorm = slave.Steering * 0.00787401575f; // sbyte -> float
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rigidBody.Orientation));
-        var slaveRotRad = rpy.Item1 + 1.57f; // bow heading in physics XZ; reused for wind + velocity
+        var slaveRotRad = rpy.Item1 + MathUtil.HalfPi; // bow heading in physics XZ; reused for wind + velocity
 
         // Clamp speed between min and max Velocity (wind: ±15% of max speed when within ±15° of with/against wind)
         var windMul = GetWindSpeedMul(slave, slaveRotRad);
@@ -670,6 +673,9 @@ public class ShipController(World world, ShipModelV1 shipModel)
         else
             rigidBody.Velocity = new JVector(forceThrottle * fx, 0f, forceThrottle * fz);
 
+        var speedToAlongVel = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
+        ShipHarpoonTowPhysics.ApplyTerrainHookTow(slave, rigidBody, dtSec, fx, fz, speedToAlongVel, maxForward, maxBackward);
+
         if (!isGrounded)
         {
             var submerged = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
@@ -680,6 +686,35 @@ public class ShipController(World world, ShipModelV1 shipModel)
         rigidBody.AngularVelocity = new JVector(0, slave.RotSpeed * -1f, 0);
 
         //Logger.Debug($"Slave: {slave.Name}, Throttle: {throttleFloatVal:F1} ({slave.ThrottleRequest}), Steering {steeringFloatVal:F1} ({slave.SteeringRequest}), speed: {slave.Speed}, rotSpeed: {slave.RotSpeed}");
+    }
+
+    /// <summary>
+    /// Same taut-vs-slack test as <see cref="ShipHarpoonTowPhysics.ApplyTerrainHookTow"/> (paid rope vs cannon–hook
+    /// distance + margin). Only <see cref="Slave.AttachedSlaves"/> of the hull (direct children), not the full mount
+    /// subtree: this gates the ±1 crawl-speed floor on the hull; expanding to descendants matched retail layout poorly
+    /// in practice (false taut). Tow impulses still walk descendants in <see cref="ShipHarpoonTowPhysics.ApplyTerrainHookTow"/>.
+    /// Counts any engaged harpoon taut by this test — not only terrain hooks — so crawl does not fight a taut line
+    /// when tow force is inactive (e.g. hook in water).
+    /// </summary>
+    private static bool HasTautHarpoonEngaged(Slave hull)
+    {
+        if (hull.AttachedSlaves is not { Count: > 0 })
+            return false;
+
+        foreach (var child in hull.AttachedSlaves)
+        {
+            var st = child.HarpoonRope;
+            if (!st.IsEngaged)
+                continue;
+
+            var hookWorld = ShipHarpoonRopeController.GetHookWorldPosition(child);
+            var dist = Vector3.Distance(child.Transform.World.Position, hookWorld);
+            var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
+            if (paid <= dist + ShipHarpoonTowPhysics.SlackMarginMeters)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

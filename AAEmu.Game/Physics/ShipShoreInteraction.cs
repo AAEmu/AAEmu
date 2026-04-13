@@ -144,7 +144,7 @@ public sealed class ShipShoreInteraction
         var targetGroundPitch = 0f;
         if (slave.ParentWorld != null && (slave.CachedFloorLevel > slave.CachedWaterSurface || slave.GroundContactLatched))
         {
-            var yaw = rpy.Item1 + 1.57f;
+            var yaw = rpy.Item1 + MathUtil.HalfPi;
             var cosYaw = MathF.Cos(yaw);
             var sinYaw = MathF.Sin(yaw);
             var cx = rigidBody.Position.X;
@@ -197,7 +197,7 @@ public sealed class ShipShoreInteraction
         var boatBottom = slave.RigidBody.Position.Y - hullHeight * boatBottomOffsetFrac;
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(slave.RigidBody.Orientation));
-        var heading = rpy.Item1 + 1.57f;
+        var heading = rpy.Item1 + MathUtil.HalfPi;
         var dirX = MathF.Cos(heading);
         var dirZ = MathF.Sin(heading);
 

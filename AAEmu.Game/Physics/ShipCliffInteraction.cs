@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Physics.Util;
 
 using System.Numerics;
@@ -161,7 +162,7 @@ public sealed class ShipCliffInteraction
             return;
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(body.Orientation));
-        var bowA = rpyA.Item1 + 1.57f;
+        var bowA = rpyA.Item1 + MathUtil.HalfPi;
 
         var halfLenA = ma.MassBoxSizeY * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateLength;
         var satHalfWidA = ma.MassBoxSizeX * ship.Scale * 0.5f * ShipShipInteraction.ShipHullPairDefaults.HullDetectInflateBeam *

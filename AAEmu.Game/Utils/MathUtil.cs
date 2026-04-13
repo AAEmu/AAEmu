@@ -7,6 +7,9 @@ namespace AAEmu.Game.Utils;
 
 public class MathUtil
 {
+    /// <summary>π/2 radians — ship bow-from-yaw in physics XZ (single named constant vs scattered approximations).</summary>
+    public const float HalfPi = (float)(Math.PI / 2.0);
+
     /*www.demo2s.c o m*/
     private static readonly Vector3 UnitXAxis = new(1, 0, 0);
     private static readonly Vector3 UnitYAxis = new(0, 1, 0);

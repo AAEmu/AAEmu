@@ -3,6 +3,7 @@
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Physics.Debug;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Physics.Util;
 using static AAEmu.Game.Physics.ShipShipInteraction.ShipHullPairDefaults;
 
@@ -107,7 +108,7 @@ public sealed class ShipShipInteraction
                     if (sb.RigidBody is null || sb.RigidBody.Shapes.Count == 0)
                         continue;
 
-                    if (!TryResolvePair(sa, sb, out var impactSpeedMps, out var maxPenetration))
+                    if (!TryResolvePair(sa, sb, ships, out var impactSpeedMps, out var maxPenetration))
                         continue;
 
                     // If SAT only detects a marginal overlap (e.g. due to discrete steps / tight mass-box),
@@ -177,8 +178,8 @@ public sealed class ShipShipInteraction
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
         var rpyB = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyB.Orientation));
-        var bowA = rpyA.Item1 + 1.57f;
-        var bowB = rpyB.Item1 + 1.57f;
+        var bowA = rpyA.Item1 + MathUtil.HalfPi;
+        var bowB = rpyB.Item1 + MathUtil.HalfPi;
 
         GetMassBoxCenterXz(bodyA, ma, sa.Scale, out var ax, out var az);
         GetMassBoxCenterXz(bodyB, mb, sb.Scale, out var bx, out var bz);
@@ -237,7 +238,7 @@ public sealed class ShipShipInteraction
         return ox > 0f && oz > 0f;
     }
 
-    private static bool TryResolvePair(Slave sa, Slave sb, out float impactSpeedMps, out float maxPenetration)
+    private static bool TryResolvePair(Slave sa, Slave sb, IReadOnlyList<Slave> allShipsThisTick, out float impactSpeedMps, out float maxPenetration)
     {
         impactSpeedMps = 0f;
         maxPenetration = 0f;
@@ -250,6 +251,7 @@ public sealed class ShipShipInteraction
 
         var hadResponse = false;
         var peakImpactSpeedMps = 0f;
+        var skipVelDampFromHarpoon = ShipHarpoonTowPhysics.AreBoatHullsLinkedByEngagedShipHarpoon(sa, sb, allShipsThisTick);
         var bbA = bodyA.Shapes[0].WorldBoundingBox;
         var bbB = bodyB.Shapes[0].WorldBoundingBox;
         if (!HaveWorldAabbOverlapXz(in bbA, in bbB))
@@ -261,8 +263,8 @@ public sealed class ShipShipInteraction
 
         var rpyA = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyA.Orientation));
         var rpyB = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(bodyB.Orientation));
-        var bowA = rpyA.Item1 + 1.57f;
-        var bowB = rpyB.Item1 + 1.57f;
+        var bowA = rpyA.Item1 + MathUtil.HalfPi;
+        var bowB = rpyB.Item1 + MathUtil.HalfPi;
 
         // Interpretation:
         // - MassBoxSizeY = length (forward/back)
@@ -330,7 +332,9 @@ public sealed class ShipShipInteraction
             bodyB.Position += new JVector(nx * moveB, 0f, nz * moveB);
             hadResponse = true;
 
-            DampPairVelocities(bodyA, bodyB, nx, nz, penetration, wA, wB);
+            // Harpoon ship–ship tow relies on coordinated XZ velocity; overlap SAT is common — damping would zero it each tick.
+            if (!skipVelDampFromHarpoon)
+                DampPairVelocities(bodyA, bodyB, nx, nz, penetration, wA, wB);
 
             ShipTuningDebug.OnResolvedShipPair(sa, sb, penetration, nx, nz, peakImpactSpeedMps);
         }
@@ -499,7 +503,7 @@ public sealed class ShipShipInteraction
             return;
 
         var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(JMatrix.CreateFromQuaternion(rb.Orientation));
-        var bow = rpy.Item1 + 1.57f;
+        var bow = rpy.Item1 + MathUtil.HalfPi;
         var alongPhys = rb.Velocity.X * MathF.Cos(bow) + rb.Velocity.Z * MathF.Sin(bow);
         var denom = (slave.MoveSpeedMul / 4f) * slave.TurnSpeedVelocityMul;
         if (denom < 1e-5f)

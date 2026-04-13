@@ -3,6 +3,8 @@ using System.Numerics;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Units;
@@ -275,6 +277,28 @@ public class PhysicsManager
                         }
                     }
 
+                    // Rope controller expiry must run even when the hull rigid body is inactive (sleeping);
+                    // otherwise ControllerExpireAtUtc is never checked while the client already dropped the rope.
+                    foreach (var (body, _, _) in snapshot)
+                    {
+                        if (body.Tag is not Slave slave)
+                            continue;
+                        try
+                        {
+                            if (slave.Transform.WorldId != SimulationWorld.Id)
+                                continue;
+                            if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.UtcNow)
+                                continue;
+                            if (!_shipControllers.ContainsKey(slave.Id))
+                                continue;
+                            ShipHarpoonRopeController.TickHarpoonRopeControllerLifetime(slave);
+                        }
+                        catch (Exception slaveException)
+                        {
+                            Logger.Error($"PhysicsThread Error on Slave {slave.Id} {slave.Name} ({slave.ObjId}): {slaveException.Message}\n{slaveException.StackTrace}");
+                        }
+                    }
+
                     foreach (var slave in shipsThisTick)
                     {
                         try
@@ -336,6 +360,17 @@ public class PhysicsManager
                     catch (Exception e)
                     {
                         Logger.Error($"PhysicsThread ship-cliff resolve: {e.Message}\n{e.StackTrace}");
+                    }
+
+                    // Ship–ship overlap resolution removes relative closing velocity along SAT normals; harpooned
+                    // hulls are often in that overlap band, which zeroed the basis hull’s tow impulse if tow ran first.
+                    try
+                    {
+                        ShipHarpoonTowPhysics.ApplyShipPairHarpoonTowImpulses(shipsThisTick, (float)physicsTotalDelta.TotalSeconds);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"PhysicsThread ship-pair harpoon tow: {e.Message}\n{e.StackTrace}");
                     }
 
                     foreach (var slave in shipsThisTick)
