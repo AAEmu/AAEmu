@@ -280,6 +280,8 @@ public static class ShipHarpoonRopeController
                         hookWorld = Vector3.Transform(hookLocal * basisUnit.Scale, basisRot) + basisUnit.Transform.World.Position;
                         return true;
                     }
+
+                    return false;
                 }
 
                 hookWorld = new Vector3(p.PosX, p.PosY, p.PosZ);

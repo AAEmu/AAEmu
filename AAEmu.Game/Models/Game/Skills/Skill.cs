@@ -580,7 +580,7 @@ public class Skill
                             positionUnit.Transform.Local.SetPosition(worldHit.X, worldHit.Y, worldHit.Z);
                         }
                         else
-                            positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                            positionUnit.Transform.Local.SetPosition(caster.Transform.World.Position.X, caster.Transform.World.Position.Y, caster.Transform.World.Position.Z);
                     }
                     else
                         positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
