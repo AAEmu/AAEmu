@@ -68,28 +68,17 @@ public class SpawnFishEffect : EffectTemplate
         try
         {
             var spawnedList = npcTemplateEntry.Spawn(tempSpawner, player.Id);
-
             if (spawnedList == null || spawnedList.Count == 0)
             {
                 Logger.Warn($"npcTemplate.Spawn returned no fish for template {npcTemplateEntry.MemberId}");
                 return;
             }
-
             var fish = spawnedList.First();
-
-            var spawnTransform = target.Transform.Clone();
-
-            fish.Transform = spawnTransform;
-            fish.ParentWorld = player.ParentWorld;
-
-            fish.Spawn();
-
             // Aggro & targeting
             fish.CurrentTarget = player;
             fish.AddUnitAggro(AggroKind.Damage, player, 10000);
             player.CurrentTarget = fish;
             player.BroadcastPacket(new SCTargetChangedPacket(player.ObjId, fish.ObjId), true);
-
             Logger.Debug($"Successfully spawned fish {npcTemplateEntry.MemberId} (owner {player.Id}) at bobber for {player.Name}");
         }
         catch (Exception ex)
@@ -103,7 +92,7 @@ public class SpawnFishEffect : EffectTemplate
         var totalWeight = npcs.Sum(x => x.Weight);
         if (totalWeight <= 0) return npcs[0];
 
-        var roll = new Random().NextDouble() * totalWeight;
+        var roll = Random.Shared.NextDouble() * totalWeight;
         var current = 0.0;
 
         foreach (var entry in npcs)
