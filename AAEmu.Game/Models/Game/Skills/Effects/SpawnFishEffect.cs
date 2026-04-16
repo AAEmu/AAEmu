@@ -100,7 +100,7 @@ public class SpawnFishEffect : EffectTemplate
         foreach (var entry in npcs)
         {
             current += entry.Weight;
-            if (roll <= current)
+            if (roll < current)
                 return entry;
         }
         return npcs[0];
