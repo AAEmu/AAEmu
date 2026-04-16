@@ -73,6 +73,8 @@ public class SpawnFishEffect : EffectTemplate
                 Logger.Warn($"npcTemplate.Spawn returned no fish for template {npcTemplateEntry.MemberId}");
                 return;
             }
+            // Register so that Despawn() -> RemoveNpcFromSpawnedList doesn't log a false warning
+            tempSpawner.SpawnedNpcs.TryAdd(fishSpawnerId, spawnedList);
             var fish = spawnedList.First();
             // Aggro & targeting
             fish.CurrentTarget = player;
