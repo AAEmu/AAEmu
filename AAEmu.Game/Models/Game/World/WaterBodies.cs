@@ -111,15 +111,7 @@ public class WaterBodies
             }
         }
 
-        if (worldCell.LoadedVisAreasDat != null)
-        {
-            prefabIdx = 1_000_000;
-            foreach (var prefab in worldCell.LoadedVisAreasDat.PrefabsList)
-            {
-                prefabIdx++;
-                AddObjectDataFromWorldCell(prefab, cellOffset, worldCell, prefabIdx);
-            }
-        }
+        // Skip visareas.dat — gameplay water comes from object.dat only.
     }
 
     private void AddObjectDataFromWorldCell(ObjectDataBase prefab, Vector3 cellOffset, WorldCell worldCell, int prefabIdx)

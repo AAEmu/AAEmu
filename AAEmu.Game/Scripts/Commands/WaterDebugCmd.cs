@@ -11,7 +11,7 @@ using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
-/// <summary>GM debug for water zones loaded from client cell object.dat / visareas.dat.</summary>
+/// <summary>GM debug for water zones loaded from client cell object.dat (visareas.dat is not ingested).</summary>
 public sealed class WaterDebugCmd : ICommand
 {
     private const float OceanTol = 0.25f;
@@ -30,7 +30,7 @@ public sealed class WaterDebugCmd : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Water zones from client cells.\n" +
+        return "Water zones from object.dat per cell (not visareas).\n" +
                CommandManager.CommandPrefix + CommandNames[0] + " reload — rebuild Water.Areas from Loaded cells.\n" +
                CommandManager.CommandPrefix + CommandNames[0] + " info — snapshot at your position.";
     }
