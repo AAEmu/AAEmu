@@ -261,6 +261,13 @@ public class PhysicsManager
                                 SyncTransformWithRigidBody(slave);
                                 // Do physics tick
                                 BoatPhysicsTick(slave, physicsTotalDelta);
+                                var dtSec = (float)physicsTotalDelta.TotalSeconds;
+                                var recoilDv = ShipHarpoonRopeController.TickTensionTearAndGetHullRecoilDeltaV(slave, dtSec);
+                                if (slave.RigidBody != null && (recoilDv.X * recoilDv.X + recoilDv.Y * recoilDv.Y) > 1e-8f)
+                                {
+                                    // RigidBody horizontal plane is XZ; rigid-body Z maps to world Y (see AddShip and SyncTransformWithRigidBody).
+                                    _ = new OneShotVelocityKick(_physWorld, slave.RigidBody, new JVector(recoilDv.X, 0f, recoilDv.Y));
+                                }
                                 _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
                                 shipsThisTick.Add(slave);
                             }
