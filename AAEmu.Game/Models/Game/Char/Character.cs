@@ -1650,17 +1650,27 @@ public partial class Character : Unit, ICharacter
             }
         }
 
-        var waterSurface = world?.Water?.GetWaterSurface(probePos, out _) ?? world?.Template.OceanLevel ?? 100f;
+        // Breath must match actual water volume (same as physics IsWater): comparing only Z to GetWaterSurface
+        // triggers false underwater state when XY projects onto a river polygon but Z is outside the water slab (e.g. bridge).
+        if (world == null || !world.IsWater(probePos))
+        {
+            if (IsUnderWater)
+                IsUnderWater = false;
+        }
+        else
+        {
+            var waterSurface = world.Water?.GetWaterSurface(probePos, out _) ?? world.Template.OceanLevel;
 
-        const float surfaceBand = 2f;
-        const float hysteresis = 0.35f;
-        var enterThreshold = waterSurface - surfaceBand;
-        var exitThreshold = waterSurface - surfaceBand + hysteresis;
+            const float surfaceBand = 2f;
+            const float hysteresis = 0.35f;
+            var enterThreshold = waterSurface - surfaceBand;
+            var exitThreshold = waterSurface - surfaceBand + hysteresis;
 
-        if (!IsUnderWater && probePos.Z < enterThreshold)
-            IsUnderWater = true;
-        else if (IsUnderWater && probePos.Z > exitThreshold)
-            IsUnderWater = false;
+            if (!IsUnderWater && probePos.Z < enterThreshold)
+                IsUnderWater = true;
+            else if (IsUnderWater && probePos.Z > exitThreshold)
+                IsUnderWater = false;
+        }
 
         // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
 

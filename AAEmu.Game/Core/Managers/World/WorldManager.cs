@@ -440,8 +440,7 @@ public class WorldManager(
             }
         }
 
-        // Load water data
-        world.LoadWaterBodies();
+        world.InitWaterFromTemplate();
         world.InitShipStaticBarriers();
 
         // Create and start the actual physics engine
