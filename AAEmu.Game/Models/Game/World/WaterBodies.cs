@@ -7,12 +7,6 @@ namespace AAEmu.Game.Models.Game.World;
 
 public class WaterBodies
 {
-    /// <summary>
-    /// Client often tags inland lakes/rivers as <see cref="WaterObjectVolumeType.Ocean"/>.
-    /// Only skip volumes at/near template sea level; high-altitude "Ocean" chunks are ingested like River/Area.
-    /// </summary>
-    private const float InlandOceanMinAboveTemplateOcean = 15f;
-
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float OceanLevel { get; set; }
 
@@ -20,6 +14,9 @@ public class WaterBodies
     public List<WaterBodyArea> Areas { get; set; } = [];
 
     [JsonIgnore] public object _lock = new();
+
+    // Max height (m) above world.xml sea: Cry Ocean rows with SurfaceHeight in this band are skipped (same open sea as IsWater for Z<=OceanLevel).
+    private const float TemplateSeaDuplicateSurfaceMarginMeters = 1f;
 
     public bool IsWater(Vector3 point, out Vector3 flowDirection)
     {
@@ -70,6 +67,9 @@ public class WaterBodies
             {
                 if (!area.GetSurface(point, out var surfacePoint, out var f))
                     continue;
+                if (point.Z < surfacePoint.Z - area.Depth)
+                    continue;
+
                 var surfaceDistance = MathF.Abs(surfacePoint.Z - point.Z);
                 if (surfaceDistance < closestSurfaceDist)
                 {
@@ -86,9 +86,6 @@ public class WaterBodies
         return OceanLevel;
     }
 
-    /// <summary>
-    /// Cry water vertices are either cell-local (≈0…1024) or already in world XY; never mix both on one volume.
-    /// </summary>
     private static Vector3 WaterPointToWorld(Vector3 cellOffset, Vector3 filePoint, float surfaceZ)
     {
         const float localBand = WorldManager.CELL_SIZE * 2f;
@@ -135,18 +132,18 @@ public class WaterBodies
         if (prefab is not ObjectDataType11Water water)
             return;
 
-        var oceanSeaLevel =
-            water.VolumeType == WaterObjectVolumeType.Ocean &&
-            water.SurfaceHeight <= worldCell.Template.OceanLevel + InlandOceanMinAboveTemplateOcean;
-        if (oceanSeaLevel)
+        if (water.VolumeType == WaterObjectVolumeType.Ocean &&
+            water.SurfaceHeight <= worldCell.Template.OceanLevel + TemplateSeaDuplicateSurfaceMarginMeters)
             return;
 
         var likeRiver =
             water.VolumeType == WaterObjectVolumeType.River ||
-            water.VolumeType == WaterObjectVolumeType.Ocean;
+            water.VolumeType == WaterObjectVolumeType.Ocean ||
+            water.VolumeType == WaterObjectVolumeType.Sector;
         var likeArea =
             water.VolumeType == WaterObjectVolumeType.Area ||
-            water.VolumeType == WaterObjectVolumeType.Ocean;
+            water.VolumeType == WaterObjectVolumeType.Ocean ||
+            water.VolumeType == WaterObjectVolumeType.Sector;
 
         if (likeRiver)
         {
