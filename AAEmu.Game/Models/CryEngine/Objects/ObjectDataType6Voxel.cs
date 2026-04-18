@@ -104,9 +104,9 @@ public class ObjectDataType6Voxel() : ObjectDataBase(ObjectDataType.Voxel)
             UnknownPadding1 = BitConverter.ToInt32(Data, currentOffset); currentOffset += 4;
             CullDistance = BitConverter.ToSingle(Data, currentOffset); currentOffset += 4;
             BitMask = BitConverter.ToInt32(Data, currentOffset); currentOffset += 4;
-            ViewDistanceRatio = blockData[currentOffset]; currentOffset += 1;
-            LodRatio = blockData[currentOffset]; currentOffset += 1;
-            UnknownPadding2 = blockData[currentOffset]; currentOffset += 1;
+            ViewDistanceRatio = Data[currentOffset]; currentOffset += 1;
+            LodRatio = Data[currentOffset]; currentOffset += 1;
+            UnknownPadding2 = Data[currentOffset]; currentOffset += 1;
 
             // Voxel Header
             VoxelChunkType = BitConverter.ToInt32(Data, currentOffset); currentOffset += 4;
