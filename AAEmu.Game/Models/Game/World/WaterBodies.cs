@@ -20,7 +20,7 @@ public class WaterBodies
 
     /// <summary>Skip water zones whose XY bbox area is below this (m²).</summary>
     public static float MinWaterBboxAreaSquareMeters => GetMinWaterBboxAreaSquareMeters();
-    private static float GetMinWaterBboxAreaSquareMeters() => 20000f;
+    private static float GetMinWaterBboxAreaSquareMeters() => 7000f;
 
     private static bool IsWaterFootprintTooSmall(WaterBodyArea area)
     {
