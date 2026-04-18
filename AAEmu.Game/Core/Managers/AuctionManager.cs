@@ -663,7 +663,6 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             player.SendPacket(new SCAuctionSearchedPacket(search.Page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
             return;
         }
-        }
         player.SendPacket(new SCAuctionSearchedPacket(search.Page, dividedLists[search.Page].Length, dividedLists[search.Page].ToList(), (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
     }
 
