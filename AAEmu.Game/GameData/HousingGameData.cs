@@ -77,34 +77,36 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new HousingTemplate { Id = reader.GetUInt32("id") };
-                    template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, reader.GetString("name"));
-                    template.CategoryId = reader.GetUInt32("category_id");
-                    template.MainModelId = reader.GetUInt32("main_model_id");
-                    template.DoorModelId = reader.GetUInt32("door_model_id", 0);
-                    template.StairModelId = reader.GetUInt32("stair_model_id", 0);
-                    template.AutoZ = reader.GetBoolean("auto_z", true);
-                    template.GateExists = reader.GetBoolean("gate_exists", true);
-                    template.Hp = reader.GetInt32("hp");
-                    template.RepairCost = reader.GetUInt32("repair_cost");
-                    template.GardenRadius = reader.GetFloat("garden_radius");
-                    template.Family = reader.GetString("family");
-                    var taxationId = reader.GetUInt32("taxation_id");
-                    template.Taxation = TaxationsManager.Instance.taxations.GetValueOrDefault(taxationId);
-                    template.GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0);
-                    template.CinemaRadius = reader.GetFloat("cinema_radius");
-                    template.AutoZOffsetX = reader.GetFloat("auto_z_offset_x");
-                    template.AutoZOffsetY = reader.GetFloat("auto_z_offset_y");
-                    template.AutoZOffsetZ = reader.GetFloat("auto_z_offset_z");
-                    template.Alley = reader.GetFloat("alley");
-                    template.ExtraHeightAbove = reader.GetFloat("extra_height_above");
-                    template.ExtraHeightBelow = reader.GetFloat("extra_height_below");
-                    template.DecoLimit = reader.GetUInt32("deco_limit");
-                    template.AbsoluteDecoLimit = reader.GetUInt32("absolute_deco_limit");
-                    template.HousingDecoLimitId = reader.GetUInt32("housing_deco_limit_id", 0);
-                    template.IsSellable = reader.GetBoolean("is_sellable", true);
-                    template.HeavyTax = reader.GetBoolean("heavy_tax", true);
-                    template.AlwaysPublic = reader.GetBoolean("always_public", true);
+                    var template = new HousingTemplate
+                    {
+                        Id = reader.GetUInt32("id"),
+                        Name = reader.GetString("name"),
+                        CategoryId = reader.GetUInt32("category_id"),
+                        MainModelId = reader.GetUInt32("main_model_id"),
+                        DoorModelId = reader.GetUInt32("door_model_id", 0),
+                        StairModelId = reader.GetUInt32("stair_model_id", 0),
+                        AutoZ = reader.GetBoolean("auto_z", true),
+                        GateExists = reader.GetBoolean("gate_exists", true),
+                        Hp = reader.GetInt32("hp"),
+                        RepairCost = reader.GetUInt32("repair_cost"),
+                        GardenRadius = reader.GetFloat("garden_radius"),
+                        Family = reader.GetString("family"),
+                        TaxationId = reader.GetUInt32("taxation_id"),
+                        GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0),
+                        CinemaRadius = reader.GetFloat("cinema_radius"),
+                        AutoZOffsetX = reader.GetFloat("auto_z_offset_x"),
+                        AutoZOffsetY = reader.GetFloat("auto_z_offset_y"),
+                        AutoZOffsetZ = reader.GetFloat("auto_z_offset_z"),
+                        Alley = reader.GetFloat("alley"),
+                        ExtraHeightAbove = reader.GetFloat("extra_height_above"),
+                        ExtraHeightBelow = reader.GetFloat("extra_height_below"),
+                        DecoLimit = reader.GetUInt32("deco_limit"),
+                        AbsoluteDecoLimit = reader.GetUInt32("absolute_deco_limit"),
+                        HousingDecoLimitId = reader.GetUInt32("housing_deco_limit_id", 0),
+                        IsSellable = reader.GetBoolean("is_sellable", true),
+                        HeavyTax = reader.GetBoolean("heavy_tax", true),
+                        AlwaysPublic = reader.GetBoolean("always_public", true)
+                    };
                     _housingTemplates.Add(template.Id, template);
 
                     var templateBindings = binding.Find(x => x.TemplateId.Contains(template.Id));
@@ -226,7 +228,11 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
 
     public void PostLoad()
     {
-        //
+        foreach (var (_, template) in _housingTemplates)
+        {
+            template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, template.Name);
+            template.Taxation = TaxationsManager.Instance.taxations.GetValueOrDefault(template.TaxationId);
+        }
     }
     
     private List<HousingBindingTemplate> LoadHousingBindings(string dataFolder)
