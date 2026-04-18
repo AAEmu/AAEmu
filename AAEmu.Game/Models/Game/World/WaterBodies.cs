@@ -19,8 +19,7 @@ public class WaterBodies
     private const float TemplateSeaDuplicateSurfaceMarginMeters = 1f;
 
     /// <summary>Skip water zones whose XY bbox area is below this (m²).</summary>
-    public static float MinWaterBboxAreaSquareMeters => GetMinWaterBboxAreaSquareMeters();
-    private static float GetMinWaterBboxAreaSquareMeters() => 7000f;
+    public const float MinWaterBboxAreaSquareMeters = 10000f;
 
     private static bool IsWaterFootprintTooSmall(WaterBodyArea area)
     {
