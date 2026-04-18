@@ -3,6 +3,8 @@ using System.IO.Compression;
 using System.Numerics;
 using CgfConverter.Structs;
 
+#nullable enable
+
 namespace AAEmu.Game.Models.CryEngine.Objects;
 
 public class ObjectDataType6Voxel() : ObjectDataBase(ObjectDataType.Voxel)
@@ -201,8 +203,8 @@ public class ObjectDataType6Voxel() : ObjectDataBase(ObjectDataType.Voxel)
             return true; // Already parsed
 
         // Decompress the model data
-        var decompressionStream = new ZLibStream(new MemoryStream(CompressedModelData), CompressionMode.Decompress);
-        using (var memStream = new MemoryStream())
+        using (var input = new MemoryStream(CompressedModelData))
+        using (var decompressionStream = new ZLibStream(input, CompressionMode.Decompress))
         {
             DecompressedModelData.SetLength(0);
             decompressionStream.CopyTo(DecompressedModelData);
@@ -225,12 +227,6 @@ public class ObjectDataType6Voxel() : ObjectDataBase(ObjectDataType.Voxel)
 
         // Process the mesh from the reader
         MeshProcessor = new VoxelMeshProcessor(MeshReader);
-        if (MeshProcessor == null)
-        {
-            // Mesh processor failed to process
-            return false;
-        }
-
         if (MeshProcessor.Process() == false)
         {
             // Mesh processor failed to process

@@ -18,6 +18,16 @@ public class WaterBodies
     // Max height (m) above world.xml sea: Cry Ocean rows with SurfaceHeight in this band are skipped (same open sea as IsWater for Z<=OceanLevel).
     private const float TemplateSeaDuplicateSurfaceMarginMeters = 1f;
 
+    /// <summary>Skip water zones whose XY bbox area is below this (m²).</summary>
+    public static float MinWaterBboxAreaSquareMeters => GetMinWaterBboxAreaSquareMeters();
+    private static float GetMinWaterBboxAreaSquareMeters() => 20000f;
+
+    private static bool IsWaterFootprintTooSmall(WaterBodyArea area)
+    {
+        var bboxArea = area.BoundingBox.Width * area.BoundingBox.Height;
+        return bboxArea < MinWaterBboxAreaSquareMeters;
+    }
+
     public bool IsWater(Vector3 point, out Vector3 flowDirection)
     {
         flowDirection = Vector3.Zero;
@@ -176,10 +186,13 @@ public class WaterBodies
                 newRiver.RiverWidth = maxWidth;
                 newRiver.Speed = water.Speed;
                 newRiver.UpdateBounds();
-                lock (_lock)
+                if (!IsWaterFootprintTooSmall(newRiver))
                 {
-                    newRiver.Id = (uint)Areas.Count;
-                    Areas.Add(newRiver);
+                    lock (_lock)
+                    {
+                        newRiver.Id = (uint)Areas.Count;
+                        Areas.Add(newRiver);
+                    }
                 }
             }
         }
@@ -214,6 +227,8 @@ public class WaterBodies
         newLake.Points.Add(newLake.Points[0]);
         newLake.UpdateBounds();
         newLake.Speed = water.Speed;
+        if (IsWaterFootprintTooSmall(newLake))
+            return;
         lock (_lock)
         {
             newLake.Id = (uint)Areas.Count;
