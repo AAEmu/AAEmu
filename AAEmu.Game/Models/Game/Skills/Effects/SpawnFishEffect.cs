@@ -23,63 +23,87 @@ public class SpawnFishEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
+        if (caster is not Character player) return;
 
-        if (caster is Character player)
+        var fishSpawnerId = GetFishSpawnerId(player);
+        if (fishSpawnerId == 0)
         {
-            var fishSpawnerId = GetFishSpawnerId(player);
-            if (fishSpawnerId == 0)
+            Logger.Debug($"Fish Spawner ID not found for player {player.Name}.");
+            return;
+        }
+
+        var template = NpcGameData.Instance.GetNpcSpawnerTemplate(fishSpawnerId);
+        if (template?.Npcs == null || template.Npcs.Count == 0)
+        {
+            Logger.Warn($"No NPC templates available for fish spawner {fishSpawnerId}.");
+            return;
+        }
+
+        // Weighted random fish selection
+        NpcSpawnerNpc npcTemplateEntry = template.Npcs.Count == 1
+            ? template.Npcs[0]
+            : SelectWeightedRandom(template.Npcs);
+
+        if (npcTemplateEntry == null)
+        {
+            Logger.Warn($"Failed to select random fish for spawner {fishSpawnerId}");
+            return;
+        }
+
+        Logger.Debug($"Selected fish template {npcTemplateEntry.MemberId} from spawner {fishSpawnerId}");
+
+        // Create temporary spawner with correct position
+        var tempSpawner = new NpcSpawner
+        {
+            ParentWorld = player.ParentWorld,
+            SpawnerId = fishSpawnerId,
+            UnitId = npcTemplateEntry.MemberId,
+            Template = template
+        };
+
+        // Fix for CloneAsSpawnPosition not existing / type mismatch
+        using var spawnPos = target.Transform.Clone();
+        tempSpawner.Position = spawnPos.CloneAsSpawnPosition();
+
+        try
+        {
+            var spawnedList = npcTemplateEntry.Spawn(tempSpawner, player.Id);
+            if (spawnedList == null || spawnedList.Count == 0)
             {
-                Logger.Debug($"Fish Spawner ID not found.");
+                Logger.Warn($"npcTemplate.Spawn returned no fish for template {npcTemplateEntry.MemberId}");
                 return;
             }
-            // Process: Spawn the fish, add it to the world at the correct location, then: combat engaged, target, aggro target before starting fish AI.
-
-            // We need to get the spawner at the target location.
-            var npcSpawnerNpc = NpcGameData.Instance.GetNpcSpawnerNpc(fishSpawnerId);
-            var unitId = npcSpawnerNpc.MemberId;
-            var spawner = player.ParentWorld.SpawnManager.GetNpcSpawner(fishSpawnerId);
-            var spawnerId = spawner.Count;
-
-            spawner.Add(new NpcSpawner());
-            spawner[spawnerId].ParentWorld = player.ParentWorld;
-            spawner[spawnerId].UnitId = unitId;
-            spawner[spawnerId].Id = fishSpawnerId;
-            spawner[spawnerId].NpcSpawnerIds = [fishSpawnerId];
-            spawner[spawnerId].Template = NpcGameData.Instance.GetNpcSpawnerTemplate(fishSpawnerId);
-            if (spawner[spawnerId].Template == null) { return; }
-
-            if (spawner[spawnerId].Template.Npcs.Count == 0)
-            {
-                spawner[spawnerId].Template.Npcs = [];
-                var nsn = NpcGameData.Instance.GetNpcSpawnerNpc(fishSpawnerId);
-                if (nsn == null) { return; }
-                spawner[spawnerId].Template.Npcs.Add(nsn);
-            }
-            if (spawner[spawnerId].Template.Npcs == null) { return; }
-
-            spawner[spawnerId].Template.Npcs[0].MemberId = unitId;
-            spawner[spawnerId].Template.Npcs[0].UnitId = unitId;
-
-            using var spawnPos = target.Transform.Clone();
-
-            spawner[spawnerId].Position = spawnPos.CloneAsSpawnPosition();
-
-            // Spawn the NPC
-            var fish = spawner[spawnerId].DoRandomSpawn(fishSpawnerId, player.Id);
-
-            if (fish != null) // Ensure the fish spawned
-            {
-                fish.CurrentTarget = player;
-                fish.AddUnitAggro(AggroKind.Damage, player, 1);
-                player.CurrentTarget = fish;
-                player.BroadcastPacket(new SCTargetChangedPacket(player.ObjId, fish.ObjId), true);
-                //Fish immediately does Bite skill from its own tree.
-            }
-            else
-            {
-                Logger.Info("No fish to target.");
-            }
+            // Register so that Despawn() -> RemoveNpcFromSpawnedList doesn't log a false warning
+            tempSpawner.SpawnedNpcs.TryAdd(fishSpawnerId, spawnedList);
+            var fish = spawnedList.First();
+            // Aggro & targeting
+            fish.CurrentTarget = player;
+            fish.AddUnitAggro(AggroKind.Damage, player, 10000);
+            player.CurrentTarget = fish;
+            player.BroadcastPacket(new SCTargetChangedPacket(player.ObjId, fish.ObjId), true);
+            Logger.Debug($"Successfully spawned fish {npcTemplateEntry.MemberId} (owner {player.Id}) at bobber for {player.Name}");
         }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Error spawning fish from template {npcTemplateEntry.MemberId}");
+        }
+    }
+
+    private NpcSpawnerNpc SelectWeightedRandom(List<NpcSpawnerNpc> npcs)
+    {
+        var totalWeight = npcs.Sum(x => x.Weight);
+        if (totalWeight <= 0) return npcs[0];
+
+        var roll = Random.Shared.NextDouble() * totalWeight;
+        var current = 0.0;
+
+        foreach (var entry in npcs)
+        {
+            current += entry.Weight;
+            if (roll < current)
+                return entry;
+        }
+        return npcs[0];
     }
 
     private uint GetFishSpawnerId(Character player)
@@ -91,14 +115,12 @@ public class SpawnFishEffect : EffectTemplate
             {
                 foreach (var func in doodad.CurrentPhaseFuncs)
                 {
-                    var template = DoodadManager.Instance.GetPhaseFuncTemplate(func.FuncId, func.FuncType);
-                    if (template is DoodadFuncFishSchool doodadFuncFishSchoolTemplate)
-                    {
-                        return doodadFuncFishSchoolTemplate.NpcSpawnerId;
-                    }
+                    var funcTemplate = DoodadManager.Instance.GetPhaseFuncTemplate(func.FuncId, func.FuncType);
+                    if (funcTemplate is DoodadFuncFishSchool schoolFunc)
+                        return schoolFunc.NpcSpawnerId;
                 }
             }
         }
-        return 0; // not found
+        return 0;
     }
 }
