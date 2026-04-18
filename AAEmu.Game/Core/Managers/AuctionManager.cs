@@ -242,6 +242,13 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
 
         var articles = SortArticles(searchedArticles, AuctionSearchSortKind.Default, AuctionSearchSortOrder.Asc).ToArray();
         var dividedLists = Helpers.SplitArray(articles, 9); // Разделяем массив на массивы по 9 значений
+           
+        if (page < 0 || page >= dividedLists.Length) //Stops client DC when requesting an out-of-bounds page
+        {
+            Logger.Warn($"[AH-BIDS] {player.Name} requested an out-of-bounds page: {page}/{dividedLists.Length - 1}");
+            player.SendPacket(new SCAuctionSearchedPacket(page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
+            return;
+        }
         player.SendPacket(new SCAuctionSearchedPacket(page, dividedLists[page].Length, dividedLists[page].ToList(), (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
     }
 
@@ -649,6 +656,13 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
 
         var articles = SortArticles(searchedArticles, search.SortKind, search.SortOrder).ToArray();
         var dividedLists = Helpers.SplitArray(articles, 9); // Разделяем массив на массивы по 9 значений
+
+        if (search.Page < 0 || search.Page >= dividedLists.Length) // Stops client DC when requesting an out-of-bounds page
+        {
+            Logger.Warn($"[AH] {player.Name} requested an out-of-bounds page: {search.Page}/{dividedLists.Length - 1}");
+            player.SendPacket(new SCAuctionSearchedPacket(search.Page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
+            return;
+        }
         player.SendPacket(new SCAuctionSearchedPacket(search.Page, dividedLists[search.Page].Length, dividedLists[search.Page].ToList(), (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
     }
 
