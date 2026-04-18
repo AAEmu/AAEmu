@@ -4,34 +4,36 @@ namespace AAEmu.Game.Models.Game.Housing;
 
 public class HousingTemplate
 {
-    public uint Id { get; set; }
+    public uint Id { get; init; }
     public string Name { get; set; }
     public uint CategoryId { get; set; }
-    public uint MainModelId { get; set; }
-    public uint DoorModelId { get; set; }
-    public uint StairModelId { get; set; }
-    public bool AutoZ { get; set; }
-    public bool GateExists { get; set; }
-    public int Hp { get; set; }
-    public uint RepairCost { get; set; }
-    public float GardenRadius { get; set; }
-    public string Family { get; set; }
+    public uint MainModelId { get; init; }
+    public uint DoorModelId { get; init; }
+    public uint StairModelId { get; init; }
+    public bool AutoZ { get; init; }
+    public bool GateExists { get; init; }
+    public int Hp { get; init; }
+    public uint RepairCost { get; init; }
+    public float GardenRadius { get; init; }
+    public string Family { get; init; }
     public Taxation Taxation { get; set; }
-    public uint GuardTowerSettingId { get; set; }
-    public float CinemaRadius { get; set; }
-    public float AutoZOffsetX { get; set; }
-    public float AutoZOffsetY { get; set; }
-    public float AutoZOffsetZ { get; set; }
-    public float Alley { get; set; }
-    public float ExtraHeightAbove { get; set; }
-    public float ExtraHeightBelow { get; set; }
-    public uint DecoLimit { get; set; }
-    public uint AbsoluteDecoLimit { get; set; }
-    public uint HousingDecoLimitId { get; set; }
-    public bool IsSellable { get; set; }
-    public bool HeavyTax { get; set; }
-    public bool AlwaysPublic { get; set; }
+    /// <summary>Use Taxation instead of TaxationId for functions in the server</summary>
+    internal uint TaxationId { get; init; }
+    public uint GuardTowerSettingId { get; init; }
+    public float CinemaRadius { get; init; }
+    public float AutoZOffsetX { get; init; }
+    public float AutoZOffsetY { get; init; }
+    public float AutoZOffsetZ { get; init; }
+    public float Alley { get; init; }
+    public float ExtraHeightAbove { get; init; }
+    public float ExtraHeightBelow { get; init; }
+    public uint DecoLimit { get; init; }
+    public uint AbsoluteDecoLimit { get; init; }
+    public uint HousingDecoLimitId { get; init; }
+    public bool IsSellable { get; init; }
+    public bool HeavyTax { get; init; }
+    public bool AlwaysPublic { get; init; }
 
-    public Dictionary<int, HousingBuildStep> BuildSteps { get; set; } = [];
+    public Dictionary<int, HousingBuildStep> BuildSteps { get; } = [];
     public HousingBindingDoodad[] HousingBindingDoodad { get; set; }
 }

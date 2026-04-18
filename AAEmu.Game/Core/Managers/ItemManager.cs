@@ -1416,6 +1416,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
         OnItemsLoaded?.Invoke(this, EventArgs.Empty);
         _loaded = true;
+        LoadUserItems();
     }
 
     public Item GetItemByItemId(ulong itemId)
