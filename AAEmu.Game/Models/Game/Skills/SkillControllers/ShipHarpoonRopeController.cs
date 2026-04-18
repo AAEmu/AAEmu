@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Concurrent;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -61,7 +62,7 @@ public static class ShipHarpoonRopeController
         public float Stretch;
     }
 
-    private static readonly Dictionary<uint, RopeTensionHistory> _tensionHistoryByHarpoonObjId = new();
+    private static readonly ConcurrentDictionary<uint, RopeTensionHistory> _tensionHistoryByHarpoonObjId = new();
 
     public static void OnLaunchSucceeded(Slave harpoonSlave, SkillCastTarget target, Character? operatorChar)
     {
