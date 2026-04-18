@@ -243,11 +243,12 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         var articles = SortArticles(searchedArticles, AuctionSearchSortKind.Default, AuctionSearchSortOrder.Asc).ToArray();
         var dividedLists = Helpers.SplitArray(articles, 9); // Разделяем массив на массивы по 9 значений
            
-        if (page >= dividedLists.Length) //Stops client CD when requesting an out-of-bounds page
+        if (page < 0 || page >= dividedLists.Length) //Stops client DC when requesting an out-of-bounds page
         {
             Logger.Warn($"[AH-BIDS] {player.Name} requested an out-of-bounds page: {page}/{dividedLists.Length - 1}");
             player.SendPacket(new SCAuctionSearchedPacket(page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
             return;
+        }
         }
         player.SendPacket(new SCAuctionSearchedPacket(page, dividedLists[page].Length, dividedLists[page].ToList(), (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
     }
