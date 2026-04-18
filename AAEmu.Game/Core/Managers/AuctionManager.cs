@@ -249,7 +249,6 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             player.SendPacket(new SCAuctionSearchedPacket(page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
             return;
         }
-        }
         player.SendPacket(new SCAuctionSearchedPacket(page, dividedLists[page].Length, dividedLists[page].ToList(), (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
     }
 
