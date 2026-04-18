@@ -93,10 +93,14 @@ public class ObjectDataType11Water() : ObjectDataBase(ObjectDataType.WaterVolume
         for (var i = 0; i < PhysicsContourPointsCount; i++)
             PhysicsContourPointsList.Add(GetVector3(blockData, offset + entryStart2 + (i * 12)));
 
-        Data = (ShapePointsCount <= 0) && (PhysicsContourPointsCount <= 0)
-            ? [] // Return as invalid if no points are defined
-            : blockData.Skip(offset).Take(totalObjectSize).ToArray();
+        // Zero-point volumes (e.g. bare Ocean marker): still consume the fixed header so ParseObjectBlockData advances.
+        if (ShapePointsCount <= 0 && PhysicsContourPointsCount <= 0)
+        {
+            Data = blockData.Skip(offset).Take(StartOfVariableData).ToArray();
+            return StartOfVariableData;
+        }
 
+        Data = blockData.Skip(offset).Take(totalObjectSize).ToArray();
         return Data.Length;
     }
 

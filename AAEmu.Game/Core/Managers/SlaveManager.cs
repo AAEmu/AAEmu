@@ -563,7 +563,9 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 if (mul > 0f)
                 {
                     var targetSubmerged = 1f / (AAEmu.Game.Physics.Forces.Buoyancy.BaseWaterDensity * mul);
-                    summonedSlave.Transform.Local.SetHeight(waterAtFinal - targetSubmerged);
+                    var targetZ = waterAtFinal - targetSubmerged;
+                    if (summonedSlave.Transform.Local.Position.Z < targetZ)
+                        summonedSlave.Transform.Local.SetHeight(targetZ);
                 }
             }
         }
