@@ -13,7 +13,7 @@ public class WaterBodies
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public List<WaterBodyArea> Areas { get; set; } = [];
 
-    [JsonIgnore] public object _lock = new();
+    [JsonIgnore] internal readonly object _lock = new();
 
     // Max height (m) above world.xml sea: Cry Ocean rows with SurfaceHeight in this band are skipped (same open sea as IsWater for Z<=OceanLevel).
     private const float TemplateSeaDuplicateSurfaceMarginMeters = 1f;
