@@ -30,7 +30,10 @@ public class WaterBodyArea
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float RiverWidth { get; set; }
-    
+
+    /// <summary>Extra half-width (m) beyond <see cref="RiverWidth"/> for LineArray corridor tests (edge tolerance).</summary>
+    private const float RiverCorridorEdgePaddingMeters = 1f;
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public List<Vector3> Points { get; set; }
 
@@ -260,7 +263,7 @@ public class WaterBodyArea
         var p = new Vector3(x, y, _highest);
         var bestDist = float.PositiveInfinity;
         var bestFlow = Vector3.Zero;
-        var halfWidth = RiverWidth + 1f;
+        var halfWidth = RiverWidth + RiverCorridorEdgePaddingMeters;
 
         for (var side = 0; side < Points.Count - 1; side++)
         {

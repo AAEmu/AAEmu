@@ -233,7 +233,7 @@ public static class ShipHarpoonRopeController
             var st = child.HarpoonRope;
             if (!st.IsEngaged)
             {
-                _tensionHistoryByHarpoonObjId.Remove(child.ObjId);
+                _tensionHistoryByHarpoonObjId.TryRemove(child.ObjId, out _);
                 continue;
             }
 

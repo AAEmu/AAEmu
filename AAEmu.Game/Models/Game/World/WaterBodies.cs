@@ -52,7 +52,7 @@ public class WaterBodies
 
             if (targets > 0)
             {
-                flowDirection = totalFlow;
+                flowDirection = totalFlow / targets;
                 return true;
             }
         }
@@ -120,7 +120,7 @@ public class WaterBodies
             }
         }
 
-        // Skip visareas.dat — gameplay water comes from object.dat only.
+        // Gameplay water comes from object.dat only.
     }
 
     private void AddObjectDataFromWorldCell(ObjectDataBase prefab, Vector3 cellOffset, WorldCell worldCell, int prefabIdx)

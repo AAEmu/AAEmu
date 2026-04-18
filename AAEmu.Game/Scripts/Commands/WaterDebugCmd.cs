@@ -11,7 +11,7 @@ using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
-/// <summary>GM debug for water zones loaded from client cell object.dat (visareas.dat is not ingested).</summary>
+/// <summary>GM debug for water zones loaded from client cell <c>object.dat</c>.</summary>
 public sealed class WaterDebugCmd : ICommand
 {
     private const float OceanTol = 0.25f;
@@ -30,7 +30,7 @@ public sealed class WaterDebugCmd : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Water zones from object.dat per cell (not visareas).\n" +
+        return "Water zones from object.dat per cell.\n" +
                CommandManager.CommandPrefix + CommandNames[0] + " reload — rebuild Water.Areas from Loaded cells.\n" +
                CommandManager.CommandPrefix + CommandNames[0] + " info — snapshot at your position.";
     }
@@ -105,9 +105,8 @@ public sealed class WaterDebugCmd : ICommand
             var cell = template.Cells[cx, cy];
             cell.VerifyCellLoaded();
             var obj = cell.LoadedObjectDat != null;
-            var vis = cell.LoadedVisAreasDat != null;
             CommandManager.SendNormalText(cmd, messageOutput,
-                $"Cell ({cx},{cy}) Loaded={cell.Loaded}, object.dat={(obj ? "yes" : "no")}, visareas.dat={(vis ? "yes" : "no")}");
+                $"Cell ({cx},{cy}) Loaded={cell.Loaded}, object.dat={(obj ? "yes" : "no")}");
             SendCellClientWaterDump(cmd, cell, messageOutput);
         }
 
@@ -240,7 +239,6 @@ public sealed class WaterDebugCmd : ICommand
         }
 
         DumpList("object", cell.LoadedObjectDat?.PrefabsList);
-        DumpList("visareas", cell.LoadedVisAreasDat?.PrefabsList);
     }
 
     /// <summary>Same XY rule as water ingest (<see cref="WaterBodies"/>).</summary>

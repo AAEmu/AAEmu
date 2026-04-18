@@ -36,9 +36,6 @@ public class WorldCell
     /// <summary>Prefab tree from cell <c>client/object.dat</c> (CryEngine).</summary>
     public ObjectsFile LoadedObjectDat { get; set; }
 
-    /// <summary>Prefab tree from cell <c>client/visareas.dat</c> if present.</summary>
-    public VisAreasFile LoadedVisAreasDat { get; set; }
-
     public WorldCell(int cellX, int cellY, WorldTemplate template)
     {
         CellX = cellX;
@@ -211,20 +208,6 @@ public class WorldCell
                 LoadedObjectDat = objects;
                 if (objects.AssetPathsList.Count > 0 || objects.PrefabsList.Count > 0)
                     Logger.Error($"Error loading objects from {objectDatFile}, only {objects.AssetPathsList.Count} assets and {objects.PrefabsList.Count} prefabs read");
-            }
-        }
-
-        var visAreasDatFile = Path.Combine(cellFolder, "client", "visareas.dat");
-        if (ClientFileManager.FileExists(visAreasDatFile))
-        {
-            var visObjects = new VisAreasFile(visAreasDatFile);
-            if (visObjects.ReadFile())
-                LoadedVisAreasDat = visObjects;
-            else
-            {
-                LoadedVisAreasDat = visObjects;
-                if (visObjects.AssetPathsList.Count > 0 || visObjects.PrefabsList.Count > 0 || visObjects.VisAreas.Count > 0)
-                    Logger.Error($"Error loading visareas from {visAreasDatFile}, only {visObjects.AssetPathsList.Count} assets, {visObjects.PrefabsList.Count} prefabs and {visObjects.VisAreas.Count} visareas read");
             }
         }
 
