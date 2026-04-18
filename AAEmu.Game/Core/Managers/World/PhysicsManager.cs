@@ -60,6 +60,12 @@ public class PhysicsManager
     private readonly ShipStaticBarrierInteraction _shipStaticBarriers = new();
     private readonly ShipCliffInteraction _shipCliff = new();
 
+    /// <summary>Physics-thread loop counter for throttling <see cref="Slave.CreateWaterAndLandSurfaceCache"/>.</summary>
+    private ulong _physicsLoopIndex;
+
+    /// <summary>Last loop index and XY at which water/terrain cache was rebuilt (per ship slave id).</summary>
+    private readonly Dictionary<uint, (ulong Loop, Vector2 Xy)> _waterLandCacheStamp = new();
+
     private readonly ConcurrentQueue<Action> _pendingActions = new();
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _worldLock = new();
@@ -184,6 +190,7 @@ public class PhysicsManager
 
                 var physicsTotalDelta = TimeSpan.FromMilliseconds(Environment.TickCount64) - lastTick; 
                 lastTick = currentTick;
+                _physicsLoopIndex++;
 
                 // 1. Process pending add/remove actions
                 while (_pendingActions.TryDequeue(out var action)) { action(); }
@@ -239,24 +246,35 @@ public class PhysicsManager
                             if (!body.IsActive)
                                 continue;
 
-                            // TODO: move this
-                            var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
-                            if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
-                            {
-                                if (flowDirection.Length() > 0f)
-                                {
-                                    // We are in moving water, apply force
-                                    // var multiplier = slave.RigidBody.Mass / TargetPhysicsTickTime;
-                                    // slave.RigidBody.AddForce(new JVector(flowDirection.X * multiplier, flowDirection.Z * multiplier, flowDirection.Y * multiplier));
-                                    slave.RigidBody.Position += new JVector(flowDirection.X * (float)physicsTotalDelta.TotalSeconds,flowDirection.Z * (float)physicsTotalDelta.TotalSeconds, flowDirection.Y * (float)physicsTotalDelta.TotalSeconds);
-                                }
-                            }
-
                             // Single dictionary lookup: ShipController matches _shipControllers[slave.Id] (set together in AddShip).
+                            // River flow / water queries are ship-only: do not scan Water.Areas every tick for every mount/pet slave.
                             if (_shipControllers.TryGetValue(slave.Id, out _))
                             {
-                                // Create floor/surface cache
-                                slave.CreateWaterAndLandSurfaceCache();
+                                var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
+                                if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
+                                {
+                                    if (flowDirection.Length() > 0f)
+                                    {
+                                        slave.RigidBody.Position += new JVector(flowDirection.X * (float)physicsTotalDelta.TotalSeconds, flowDirection.Z * (float)physicsTotalDelta.TotalSeconds, flowDirection.Y * (float)physicsTotalDelta.TotalSeconds);
+                                    }
+                                }
+
+                                // Create floor/surface cache (GetWaterSurface + GetHeight): skip most ticks when nearly idle; refresh sooner when moving fast across XY.
+                                var xy = new Vector2(slave.Transform.World.Position.X, slave.Transform.World.Position.Y);
+                                var refreshCache = true;
+                                if (_waterLandCacheStamp.TryGetValue(slave.Id, out var stamp))
+                                {
+                                    var loopsSince = _physicsLoopIndex - stamp.Loop;
+                                    var movedSq = Vector2.DistanceSquared(xy, stamp.Xy);
+                                    refreshCache = loopsSince >= 2 || movedSq > 1f;
+                                }
+
+                                if (refreshCache)
+                                {
+                                    slave.CreateWaterAndLandSurfaceCache();
+                                    _waterLandCacheStamp[slave.Id] = (_physicsLoopIndex, xy);
+                                }
+
                                 // Sync transform
                                 SyncTransformWithRigidBody(slave);
                                 // Do physics tick
@@ -515,6 +533,7 @@ public class PhysicsManager
             _buoyancy.Remove(rigidBody);
             _bodies.Remove(rigidBody);
             _shipControllers.Remove(slaveId, out _);
+            _waterLandCacheStamp.Remove(slaveId);
 
             ShipTuningDebug.DespawnAll(slaveId);
 

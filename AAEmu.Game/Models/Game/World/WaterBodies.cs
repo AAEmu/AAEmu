@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.CryEngine.Objects;
@@ -15,6 +16,17 @@ public class WaterBodies
 
     [JsonIgnore] internal readonly object _lock = new();
 
+    /// <summary>XY grid for <see cref="Areas"/> so river/lake queries above <see cref="OceanLevel"/> do not scan thousands of segments.</summary>
+    private const float SpatialCellSize = 256f;
+
+    /// <summary>Not readonly: hot reload can add this field to an existing instance (initializer does not run → null without lazy init).</summary>
+    [JsonIgnore]
+    private Dictionary<(int cx, int cy), List<uint>> _areaIndexByCell;
+
+    /// <summary>When not equal to <see cref="Areas"/> count, spatial index is rebuilt on next query (ingest updates incrementally; tests/JSON may desync).</summary>
+    [JsonIgnore]
+    private int _indexedAreaCount;
+
     // Max height (m) above world.xml sea: Cry Ocean rows with SurfaceHeight in this band are skipped (same open sea as IsWater for Z<=OceanLevel).
     private const float TemplateSeaDuplicateSurfaceMarginMeters = 1f;
 
@@ -27,6 +39,66 @@ public class WaterBodies
         return bboxArea < MinWaterBboxAreaSquareMeters;
     }
 
+    private void EnsureSpatialIndexUnderLock()
+    {
+        _areaIndexByCell ??= new();
+        if (_indexedAreaCount == Areas.Count)
+            return;
+        _areaIndexByCell.Clear();
+        foreach (var area in Areas)
+            SpatialIndexAddUnderLock(area);
+        _indexedAreaCount = Areas.Count;
+    }
+
+    /// <summary>Caller must hold <see cref="_lock"/>. Registers <paramref name="area"/> in every cell overlapped by its XY bbox.</summary>
+    private void SpatialIndexAddUnderLock(WaterBodyArea area)
+    {
+        _areaIndexByCell ??= new();
+        var id = area.Id;
+        var bb = area.BoundingBox;
+        var minCx = (int)MathF.Floor(bb.Left / SpatialCellSize);
+        var maxCx = (int)MathF.Floor((bb.Left + bb.Width) / SpatialCellSize);
+        var minCy = (int)MathF.Floor(bb.Top / SpatialCellSize);
+        var maxCy = (int)MathF.Floor((bb.Top + bb.Height) / SpatialCellSize);
+
+        for (var cx = minCx; cx <= maxCx; cx++)
+        {
+            for (var cy = minCy; cy <= maxCy; cy++)
+            {
+                var key = (cx, cy);
+                if (!_areaIndexByCell.TryGetValue(key, out var list))
+                {
+                    list = [];
+                    _areaIndexByCell[key] = list;
+                }
+
+                list.Add(id);
+            }
+        }
+    }
+
+    /// <summary>Clears ingested areas and the spatial index (e.g. <see cref="WorldInstance.ReloadWaterFromLoadedCells"/>).</summary>
+    internal void ClearIngestedAreas()
+    {
+        lock (_lock)
+        {
+            Areas.Clear();
+            _areaIndexByCell?.Clear();
+            _indexedAreaCount = 0;
+        }
+    }
+
+    /// <summary>For tests or manual <see cref="Areas"/> edits outside <see cref="AddFromCellData"/>.</summary>
+    internal void RebuildSpatialIndex()
+    {
+        lock (_lock)
+        {
+            _areaIndexByCell?.Clear();
+            _indexedAreaCount = 0;
+            EnsureSpatialIndexUnderLock();
+        }
+    }
+
     public bool IsWater(Vector3 point, out Vector3 flowDirection)
     {
         flowDirection = Vector3.Zero;
@@ -36,16 +108,32 @@ public class WaterBodies
 
         lock (_lock)
         {
+            EnsureSpatialIndexUnderLock();
+
             var totalFlow = Vector3.Zero;
             var targets = 0;
+            var px = point.X;
+            var py = point.Y;
+            var cx = (int)MathF.Floor(px / SpatialCellSize);
+            var cy = (int)MathF.Floor(py / SpatialCellSize);
 
-            foreach (var area in Areas)
+            if (_areaIndexByCell == null || !_areaIndexByCell.TryGetValue((cx, cy), out var inCell))
             {
-                if (area.GetSurface(point, out var surfacePoint, out flowDirection) &&
+                flowDirection = Vector3.Zero;
+                return false;
+            }
+
+            foreach (var areaId in inCell)
+            {
+                var area = Areas[(int)areaId];
+                if (!area.BoundingBox.Contains(px, py))
+                    continue;
+
+                if (area.GetSurface(point, out var surfacePoint, out var fd) &&
                     point.Z <= surfacePoint.Z &&
                     point.Z >= surfacePoint.Z - area.Depth)
                 {
-                    totalFlow += flowDirection;
+                    totalFlow += fd;
                     targets++;
                 }
             }
@@ -70,21 +158,35 @@ public class WaterBodies
 
         lock (_lock)
         {
+            EnsureSpatialIndexUnderLock();
+
             var closestSurfaceDist = float.PositiveInfinity;
             var chosenZ = OceanLevel;
-            foreach (var area in Areas)
-            {
-                if (!area.GetSurface(point, out var surfacePoint, out var f))
-                    continue;
-                if (point.Z < surfacePoint.Z - area.Depth)
-                    continue;
+            var px = point.X;
+            var py = point.Y;
+            var cx = (int)MathF.Floor(px / SpatialCellSize);
+            var cy = (int)MathF.Floor(py / SpatialCellSize);
 
-                var surfaceDistance = MathF.Abs(surfacePoint.Z - point.Z);
-                if (surfaceDistance < closestSurfaceDist)
+            if (_areaIndexByCell != null && _areaIndexByCell.TryGetValue((cx, cy), out var inCell))
+            {
+                foreach (var areaId in inCell)
                 {
-                    closestSurfaceDist = surfaceDistance;
-                    chosenZ = surfacePoint.Z;
-                    flowDirection = f;
+                    var area = Areas[(int)areaId];
+                    if (!area.BoundingBox.Contains(px, py))
+                        continue;
+
+                    if (!area.GetSurface(point, out var surfacePoint, out var f))
+                        continue;
+                    if (point.Z < surfacePoint.Z - area.Depth)
+                        continue;
+
+                    var surfaceDistance = MathF.Abs(surfacePoint.Z - point.Z);
+                    if (surfaceDistance < closestSurfaceDist)
+                    {
+                        closestSurfaceDist = surfaceDistance;
+                        chosenZ = surfacePoint.Z;
+                        flowDirection = f;
+                    }
                 }
             }
 
@@ -191,6 +293,8 @@ public class WaterBodies
                     {
                         newRiver.Id = (uint)Areas.Count;
                         Areas.Add(newRiver);
+                        SpatialIndexAddUnderLock(newRiver);
+                        _indexedAreaCount = Areas.Count;
                     }
                 }
             }
@@ -232,6 +336,8 @@ public class WaterBodies
         {
             newLake.Id = (uint)Areas.Count;
             Areas.Add(newLake);
+            SpatialIndexAddUnderLock(newLake);
+            _indexedAreaCount = Areas.Count;
         }
     }
 }

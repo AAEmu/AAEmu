@@ -371,7 +371,7 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     {
         lock (Water._lock)
         {
-            Water.Areas.Clear();
+            Water.ClearIngestedAreas();
             Water.OceanLevel = Template.OceanLevel;
         }
 
