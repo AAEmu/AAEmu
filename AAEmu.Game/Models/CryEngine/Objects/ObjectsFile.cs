@@ -194,7 +194,7 @@ public class ObjectsFile(string fileName)
             }
             else
             {
-                Logger.Debug($"Error reading type {objectType} @ 0x{br.BaseStream.Position:X}, DataOffset: 0x{startOfObjectOffset:X} in {FileName}");
+                Logger.Warn($"Error reading type {objectType} @ 0x{br.BaseStream.Position:X}, DataOffset: 0x{startOfObjectOffset:X} in {FileName}");
                 return false;
             }
             offset += totalObjectSize;
