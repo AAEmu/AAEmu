@@ -33,7 +33,7 @@ public class WaterBodies
     /// <summary>Skip water zones whose XY bbox area is below this (m²).</summary>
     public const float MinWaterBboxAreaSquareMeters = 5000f;
 
-    // Heuristic: some client maps mark large lake-like zones as River (LineArray) with non-zero Speed.
+    // Heuristic: some client maps encode lake-like zones with non-zero Speed (often as River/Sector/Ocean).
     // Keep the water slab but zero the flow so ships do not drift in lakes.
     private const float LakeLikeRiverMinContourAreaSquareMeters = 75000f;
     private const float LakeLikeRiverMinHalfWidthMeters = 60f;
@@ -53,7 +53,7 @@ public class WaterBodies
         return (float)Math.Abs(sum * 0.5d);
     }
 
-    private static bool IsLakeLikeRiver(ObjectDataType11Water water, Vector3 cellOffset, float riverHalfWidthMeters)
+    private static bool IsLakeLikeFlowZone(ObjectDataType11Water water, Vector3 cellOffset, float riverHalfWidthMeters)
     {
         if (water?.PhysicsContourPointsList is not { Count: >= 3 })
             return false;
@@ -276,9 +276,10 @@ public class WaterBodies
             water.SurfaceHeight <= worldCell.Template.OceanLevel + TemplateSeaDuplicateSurfaceMarginMeters)
             return;
 
-        // Only River volumes should produce flow (LineArray). Area/Sector/Ocean are treated as flat water zones.
-        // Some client maps encode lakes as Sector/Ocean with a non-zero Speed; ingesting those as "rivers" makes ships drift in lakes.
-        var likeRiver = water.VolumeType == WaterObjectVolumeType.River;
+        var likeRiver =
+            water.VolumeType == WaterObjectVolumeType.River ||
+            water.VolumeType == WaterObjectVolumeType.Ocean ||
+            water.VolumeType == WaterObjectVolumeType.Sector;
         var likeArea =
             water.VolumeType == WaterObjectVolumeType.Area ||
             water.VolumeType == WaterObjectVolumeType.Ocean ||
@@ -321,7 +322,7 @@ public class WaterBodies
                 }
 
                 newRiver.RiverWidth = maxWidth;
-                newRiver.Speed = IsLakeLikeRiver(water, cellOffset, maxWidth) ? 0f : water.Speed;
+                newRiver.Speed = IsLakeLikeFlowZone(water, cellOffset, maxWidth) ? 0f : water.Speed;
                 newRiver.UpdateBounds();
                 if (!IsWaterFootprintTooSmall(newRiver))
                 {
@@ -365,8 +366,7 @@ public class WaterBodies
 
         newLake.Points.Add(newLake.Points[0]);
         newLake.UpdateBounds();
-        // Polygons do not have a well-defined flow direction; keep flow at zero to avoid "lake currents".
-        newLake.Speed = 0f;
+        newLake.Speed = water.Speed;
         if (IsWaterFootprintTooSmall(newLake))
             return;
         lock (_lock)
