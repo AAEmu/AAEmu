@@ -33,6 +33,43 @@ public class WaterBodies
     /// <summary>Skip water zones whose XY bbox area is below this (m²).</summary>
     public const float MinWaterBboxAreaSquareMeters = 5000f;
 
+    // Heuristic: some client maps mark large lake-like zones as River (LineArray) with non-zero Speed.
+    // Keep the water slab but zero the flow so ships do not drift in lakes.
+    private const float LakeLikeRiverMinContourAreaSquareMeters = 75000f;
+    private const float LakeLikeRiverMinHalfWidthMeters = 60f;
+
+    private static float GetContourAreaSqm(IReadOnlyList<Vector3> points)
+    {
+        if (points is null || points.Count < 3)
+            return 0f;
+
+        double sum = 0d;
+        for (var i = 0; i < points.Count; i++)
+        {
+            var j = (i + 1) % points.Count;
+            sum += (double)points[i].X * points[j].Y - (double)points[j].X * points[i].Y;
+        }
+
+        return (float)Math.Abs(sum * 0.5d);
+    }
+
+    private static bool IsLakeLikeRiver(ObjectDataType11Water water, Vector3 cellOffset, float riverHalfWidthMeters)
+    {
+        if (water?.PhysicsContourPointsList is not { Count: >= 3 })
+            return false;
+
+        // Fast path: extremely wide "rivers" are almost always lakes.
+        if (riverHalfWidthMeters >= LakeLikeRiverMinHalfWidthMeters)
+            return true;
+
+        // Area test in world XY using the contour list.
+        List<Vector3> world = [];
+        foreach (var v in water.PhysicsContourPointsList)
+            world.Add(WaterPointToWorld(cellOffset, v, water.SurfaceHeight));
+
+        return GetContourAreaSqm(world) >= LakeLikeRiverMinContourAreaSquareMeters;
+    }
+
     private static bool IsWaterFootprintTooSmall(WaterBodyArea area)
     {
         var bboxArea = area.BoundingBox.Width * area.BoundingBox.Height;
@@ -284,7 +321,7 @@ public class WaterBodies
                 }
 
                 newRiver.RiverWidth = maxWidth;
-                newRiver.Speed = water.Speed;
+                newRiver.Speed = IsLakeLikeRiver(water, cellOffset, maxWidth) ? 0f : water.Speed;
                 newRiver.UpdateBounds();
                 if (!IsWaterFootprintTooSmall(newRiver))
                 {
