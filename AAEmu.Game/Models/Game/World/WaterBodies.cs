@@ -239,10 +239,9 @@ public class WaterBodies
             water.SurfaceHeight <= worldCell.Template.OceanLevel + TemplateSeaDuplicateSurfaceMarginMeters)
             return;
 
-        var likeRiver =
-            water.VolumeType == WaterObjectVolumeType.River ||
-            water.VolumeType == WaterObjectVolumeType.Ocean ||
-            water.VolumeType == WaterObjectVolumeType.Sector;
+        // Only River volumes should produce flow (LineArray). Area/Sector/Ocean are treated as flat water zones.
+        // Some client maps encode lakes as Sector/Ocean with a non-zero Speed; ingesting those as "rivers" makes ships drift in lakes.
+        var likeRiver = water.VolumeType == WaterObjectVolumeType.River;
         var likeArea =
             water.VolumeType == WaterObjectVolumeType.Area ||
             water.VolumeType == WaterObjectVolumeType.Ocean ||
@@ -329,7 +328,8 @@ public class WaterBodies
 
         newLake.Points.Add(newLake.Points[0]);
         newLake.UpdateBounds();
-        newLake.Speed = water.Speed;
+        // Polygons do not have a well-defined flow direction; keep flow at zero to avoid "lake currents".
+        newLake.Speed = 0f;
         if (IsWaterFootprintTooSmall(newLake))
             return;
         lock (_lock)
