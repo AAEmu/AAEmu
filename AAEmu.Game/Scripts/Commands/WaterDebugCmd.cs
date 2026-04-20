@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers.World.Debug;
 using AAEmu.Game.Models.CryEngine.Objects;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;

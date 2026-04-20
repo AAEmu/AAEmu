@@ -1,8 +1,9 @@
 using System.Drawing;
 using System.Numerics;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
-namespace AAEmu.Game.Models.Game.World;
+namespace AAEmu.Game.Core.Managers.World.Debug;
 
 public static class WaterDebugSnapshot
 {
@@ -143,4 +144,3 @@ public static class WaterDebugSnapshot
         return s.Length <= max ? s : s[..max] + "…";
     }
 }
-
