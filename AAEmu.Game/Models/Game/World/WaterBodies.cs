@@ -277,9 +277,7 @@ public class WaterBodies
             return;
 
         var likeRiver =
-            water.VolumeType == WaterObjectVolumeType.River ||
-            water.VolumeType == WaterObjectVolumeType.Ocean ||
-            water.VolumeType == WaterObjectVolumeType.Sector;
+            water.VolumeType == WaterObjectVolumeType.River;
         var likeArea =
             water.VolumeType == WaterObjectVolumeType.Area ||
             water.VolumeType == WaterObjectVolumeType.Ocean ||

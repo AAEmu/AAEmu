@@ -54,8 +54,60 @@ public sealed class WaterDebugCmd : ICommand
         {
             case "reload":
                 world.ReloadWaterFromLoadedCells();
+                var loadedCells = 0;
+                var clientVolumes = 0;
+                var river = 0;
+                var area = 0;
+                var ocean = 0;
+                var sector = 0;
+                var likeRiver = 0;
+                var likeArea = 0;
+                var clientWithFlow = 0;
+
+                var template = world.Template;
+                for (var cy = 0; cy < template.CellY; cy++)
+                for (var cx = 0; cx < template.CellX; cx++)
+                {
+                    var cell = template.Cells[cx, cy];
+                    if (!cell.Loaded)
+                        continue;
+                    loadedCells++;
+
+                    var list = cell.LoadedObjectDat?.PrefabsList;
+                    if (list == null || list.Count == 0)
+                        continue;
+
+                    foreach (var p in list)
+                    {
+                        if (p is not ObjectDataType11Water w)
+                            continue;
+
+                        clientVolumes++;
+                        switch (w.VolumeType)
+                        {
+                            case WaterObjectVolumeType.River: river++; break;
+                            case WaterObjectVolumeType.Area: area++; break;
+                            case WaterObjectVolumeType.Ocean: ocean++; break;
+                            case WaterObjectVolumeType.Sector: sector++; break;
+                        }
+
+                        if (w.VolumeType is WaterObjectVolumeType.River or WaterObjectVolumeType.Ocean or WaterObjectVolumeType.Sector)
+                            likeRiver++;
+                        if (w.VolumeType is WaterObjectVolumeType.Area or WaterObjectVolumeType.Ocean or WaterObjectVolumeType.Sector)
+                            likeArea++;
+                        if (w.Speed != 0f)
+                            clientWithFlow++;
+                    }
+                }
+
+                var serverZonesWithFlow = world.Water.Areas.Count(a => a.Speed != 0f);
+
                 CommandManager.SendNormalText(this, messageOutput,
-                    $"Water reload: OceanLevel={world.Water.OceanLevel}, areas={world.Water.Areas.Count}");
+                    $"Water reload: OceanLevel={world.Water.OceanLevel}, areas={world.Water.Areas.Count}, loadedCells={loadedCells}");
+                CommandManager.SendNormalText(this, messageOutput,
+                    $"Client water volumes={clientVolumes} (River={river} Area={area} Ocean={ocean} Sector={sector}), likeRiver={likeRiver}, likeArea={likeArea}, withFlow={clientWithFlow}");
+                CommandManager.SendNormalText(this, messageOutput,
+                    $"Server ingested zones with flow (Speed!=0): {serverZonesWithFlow}");
                 return;
 
             case "info":
