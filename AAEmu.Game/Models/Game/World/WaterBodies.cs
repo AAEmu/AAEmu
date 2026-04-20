@@ -42,7 +42,7 @@ public class WaterBodies
     // River-like thresholds (meters)
     private const float RiverLikeMinLengthMeters = 120f;
     private const float RiverLikeMinAspectRatio = 2.5f;
-    private const float RiverLikeMaxHalfWidthMeters = 120f;
+    private const float RiverLikeMaxHalfWidthMeters = 130f;
 
     internal static bool TryGetRiverLikePolygonMetrics(List<Vector3> points, out float lengthMeters,
         out float maxHalfWidthMeters, out float meanFullWidthMeters, out float areaSqm, out float aspect,
