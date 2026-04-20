@@ -36,6 +36,9 @@ public class WaterBodies
     // New contract: gameplay flow is heuristic-only, fixed speed.
     private const float HeuristicRiverFlowSpeed = 1f;
 
+    /// <summary>Multiply <see cref="WaterBodyArea.FlowSpeedSigned"/> after terrain/geometry (+1 or −1). Set −1 if drift is opposite to client polyline/PCA.</summary>
+    private const float HeuristicFlowSignHack = -1f;
+
     // River-like thresholds (meters)
     private const float RiverLikeMinLengthMeters = 120f;
     private const float RiverLikeMinAspectRatio = 2.5f;
@@ -456,7 +459,7 @@ public class WaterBodies
         var dir = b - a;
         newRiver.FlowAxis = dir.LengthSquared() > 1e-12f ? Vector2.Normalize(dir) : Vector2.UnitX;
         newRiver.FlowSpeedAbs = HeuristicRiverFlowSpeed;
-        newRiver.FlowSpeedSigned = GetSignedSpeedFromTerrainNoLoad(worldCell.Template, a, b, HeuristicRiverFlowSpeed);
+        newRiver.FlowSpeedSigned = GetSignedSpeedFromTerrainNoLoad(worldCell.Template, a, b, HeuristicRiverFlowSpeed) * HeuristicFlowSignHack;
         newRiver.Speed = newRiver.FlowSpeedSigned;
         newRiver.UpdateBounds();
         if (IsWaterFootprintTooSmall(newRiver))
@@ -500,7 +503,7 @@ public class WaterBodies
             var halfLen = Math.Max(10f, newLake.BoundingBox.Width + newLake.BoundingBox.Height) * 0.25f;
             var p0 = mean - axis * halfLen;
             var p1 = mean + axis * halfLen;
-            newLake.FlowSpeedSigned = GetSignedSpeedFromTerrainNoLoad(template, p0, p1, HeuristicRiverFlowSpeed);
+            newLake.FlowSpeedSigned = GetSignedSpeedFromTerrainNoLoad(template, p0, p1, HeuristicRiverFlowSpeed) * HeuristicFlowSignHack;
             newLake.Speed = newLake.FlowSpeedSigned;
         }
 
