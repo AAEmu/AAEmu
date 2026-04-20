@@ -4,9 +4,9 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World;
 
-internal static class WaterDebugSnapshot
+public static class WaterDebugSnapshot
 {
-    internal static IEnumerable<string> Capture(WorldInstance world, Vector3 pos, bool includeClientDump)
+    public static IEnumerable<string> Capture(WorldInstance world, Vector3 pos, bool includeClientDump)
     {
         var w = world.Water;
         var template = world.Template;
@@ -82,7 +82,7 @@ internal static class WaterDebugSnapshot
         }
     }
 
-    internal static string CaptureOneLine(WorldInstance world, Vector3 pos)
+    public static string CaptureOneLine(WorldInstance world, Vector3 pos)
     {
         var isW = world.IsWater(pos, out var flow);
         return $"[waterprobe] Pos ({pos.X:F1},{pos.Y:F1},{pos.Z:F1}) IsWater={isW} flow=({flow.X:F3},{flow.Y:F3},{flow.Z:F3}) len={flow.Length():F3}";
