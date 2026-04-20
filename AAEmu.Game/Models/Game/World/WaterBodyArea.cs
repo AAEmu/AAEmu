@@ -28,6 +28,18 @@ public class WaterBodyArea
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float Speed { get; set; }
 
+    /// <summary>Unit flow axis in XY (ignored if <see cref="FlowSpeedAbs"/> is 0).</summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public Vector2 FlowAxis { get; set; }
+
+    /// <summary>Absolute flow speed (m/s). Contract: {0,1} for gameplay.</summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public float FlowSpeedAbs { get; set; }
+
+    /// <summary>Signed flow speed along <see cref="FlowAxis"/> (downhill sign). Contract: {-1,0,1}.</summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public float FlowSpeedSigned { get; set; }
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float RiverWidth { get; set; }
 
@@ -57,6 +69,7 @@ public class WaterBodyArea
         AreaType = WaterBodyAreaType.Polygon;
         Points = [];
         BorderPoints = [];
+        FlowAxis = Vector2.UnitX;
     }
 
     public WaterBodyArea(string name, WaterBodyAreaType areaType)
@@ -65,6 +78,7 @@ public class WaterBodyArea
         Name = name;
         Points = [];
         BorderPoints = [];
+        FlowAxis = Vector2.UnitX;
     }
 
     /// <summary>
@@ -226,7 +240,21 @@ public class WaterBodyArea
         if (AreaType == WaterBodyAreaType.LineArray)
             return ContainsRiverCorridor(x, y, out flowVector);
 
-        return PointInsidePolygon2D(x, y);
+        var inside = PointInsidePolygon2D(x, y);
+        if (!inside)
+            return false;
+
+        if (FlowSpeedAbs <= 0f || FlowSpeedSigned == 0f)
+            return true;
+
+        var axis = FlowAxis;
+        var axisLenSq = axis.LengthSquared();
+        if (axisLenSq <= 1e-12f)
+            return true;
+
+        var axisUnit = axis / MathF.Sqrt(axisLenSq);
+        flowVector = new Vector3(axisUnit.X, axisUnit.Y, 0f) * FlowSpeedSigned;
+        return true;
     }
 
     /// <summary>Odd-even horizontal ray along +X (stable for lakes vs diagonal ray from bbox corner).</summary>
@@ -275,7 +303,7 @@ public class WaterBodyArea
                 continue;
             bestDist = d;
             var seg = Points[side + 1] - Points[side];
-            bestFlow = seg.LengthSquared() > 1e-12f ? Vector3.Normalize(seg) * Speed : Vector3.Zero;
+            bestFlow = seg.LengthSquared() > 1e-12f ? Vector3.Normalize(seg) * FlowSpeedSigned : Vector3.Zero;
         }
 
         if (bestDist > halfWidth)

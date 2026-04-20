@@ -239,7 +239,7 @@ public class WorldCell
             return 0f; // out of bounds or not loaded
         }
 
-        return (float)(HeightMap[heightMapDataX, heightMapDataX] / Template.HeightMaxCoefficient);
+        return (float)(HeightMap[heightMapDataX, heightMapDataY] / Template.HeightMaxCoefficient);
     }
 
     /// <summary>

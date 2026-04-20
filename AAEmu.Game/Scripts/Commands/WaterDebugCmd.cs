@@ -25,14 +25,17 @@ public sealed class WaterDebugCmd : ICommand
 
     public string GetCommandLineHelp()
     {
-        return "reload | info";
+        return "reload | info [x y z] | reloadinfo [x y z] | setprobe x y z | probeoff";
     }
 
     public string GetCommandHelpText()
     {
         return "Water zones from object.dat per cell.\n" +
                CommandManager.CommandPrefix + CommandNames[0] + " reload — rebuild Water.Areas from Loaded cells.\n" +
-               CommandManager.CommandPrefix + CommandNames[0] + " info — snapshot at your position.";
+               CommandManager.CommandPrefix + CommandNames[0] + " info [x y z] — snapshot at your position or coordinates.\n" +
+               CommandManager.CommandPrefix + CommandNames[0] + " reloadinfo [x y z] — reload then info.\n" +
+               CommandManager.CommandPrefix + CommandNames[0] + " setprobe x y z — enable autoprobe logging.\n" +
+               CommandManager.CommandPrefix + CommandNames[0] + " probeoff — disable autoprobe logging.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -111,7 +114,27 @@ public sealed class WaterDebugCmd : ICommand
                 return;
 
             case "info":
-                SendInfo(this, character, world, messageOutput);
+                SendInfo(this, character, world, args, messageOutput);
+                return;
+
+            case "reloadinfo":
+                world.ReloadWaterFromLoadedCells();
+                SendInfo(this, character, world, args, messageOutput);
+                return;
+
+            case "setprobe":
+                if (!TryParseXYZ(args, 1, out var probePos))
+                {
+                    CommandManager.SendErrorText(this, messageOutput, "Usage: setprobe x y z");
+                    return;
+                }
+                WorldManager.AutoWaterProbeEnable(probePos);
+                CommandManager.SendNormalText(this, messageOutput, $"AutoWaterProbe enabled at ({probePos.X:F1},{probePos.Y:F1},{probePos.Z:F1})");
+                return;
+
+            case "probeoff":
+                WorldManager.AutoWaterProbeDisable();
+                CommandManager.SendNormalText(this, messageOutput, "AutoWaterProbe disabled.");
                 return;
 
             default:
@@ -120,99 +143,29 @@ public sealed class WaterDebugCmd : ICommand
         }
     }
 
-    private static void SendInfo(WaterDebugCmd cmd, Character character, WorldInstance world, IMessageOutput messageOutput)
+    private static void SendInfo(WaterDebugCmd cmd, Character character, WorldInstance world, string[] args, IMessageOutput messageOutput)
     {
         var pos = character.Transform.World.Position;
-        var pz = pos.Z;
-        var w = world.Water;
-        var template = world.Template;
-        var oceanTpl = template.OceanLevel;
+        if (TryParseXYZ(args, 1, out var parsed))
+            pos = parsed;
 
-        CommandManager.SendNormalText(cmd, messageOutput,
-            $"Water.OceanLevel={w.OceanLevel} (template {oceanTpl}), areas={w.Areas.Count}");
-        CommandManager.SendNormalText(cmd, messageOutput,
-            $"Pos ({pos.X:F2}, {pos.Y:F2}, {pos.Z:F2})");
+        foreach (var line in WaterDebugSnapshot.Capture(world, pos, includeClientDump: true))
+            CommandManager.SendNormalText(cmd, messageOutput, line);
+    }
 
-        var isW = world.IsWater(pos, out var flow);
-        var flowLen = flow.Length();
-        CommandManager.SendNormalText(cmd, messageOutput,
-            $"IsWater={isW}, flow=({flow.X:F3},{flow.Y:F3},{flow.Z:F3}), len={flowLen:F3}");
-
-        var surfZ = w.GetWaterSurface(pos, out var flowSurf);
-        CommandManager.SendNormalText(cmd, messageOutput,
-            $"GetWaterSurface Z={surfZ:F3}, flowSurf=({flowSurf.X:F3},{flowSurf.Y:F3},{flowSurf.Z:F3})");
-
-        var depthBelow = surfZ - pz;
-        CommandManager.SendNormalText(cmd, messageOutput,
-            $"depthBelowSurface (surface - pos.Z)={depthBelow:F3}, IsUnderWater={character.IsUnderWater}");
-
-        var (cx, cy) = pos.ToCellIndex();
-        if (cx < 0 || cx >= template.CellX || cy < 0 || cy >= template.CellY)
-        {
-            CommandManager.SendNormalText(cmd, messageOutput,
-                $"Cell ({cx},{cy}) — outside template grid ({template.CellX}x{template.CellY} cells)");
-        }
-        else
-        {
-            var cell = template.Cells[cx, cy];
-            cell.VerifyCellLoaded();
-            var obj = cell.LoadedObjectDat != null;
-            CommandManager.SendNormalText(cmd, messageOutput,
-                $"Cell ({cx},{cy}) Loaded={cell.Loaded}, object.dat={(obj ? "yes" : "no")}");
-            SendCellClientWaterDump(cmd, cell, messageOutput);
-        }
-
-        var px = pos.X;
-        var py = pos.Y;
-        var bboxHits = w.Areas.Count(a => a.BoundingBox.Contains(px, py));
-        CommandManager.SendNormalText(cmd, messageOutput,
-            $"Areas with XY inside rough bbox: {bboxHits}");
-
-        CommandManager.SendNormalText(cmd, messageOutput,
-            "Nearest 4 water bodies (short id, full checks):");
-
-        var ranked = w.Areas
-            .Select(a => (Area: a, DistSq: DistSqPointToRect(px, py, a.BoundingBox)))
-            .OrderBy(x => x.DistSq)
-            .Take(4)
-            .ToList();
-
-        var anyZoneSurface = w.Areas.Exists(a => a.GetSurface(pos, out _, out _));
-
-        foreach (var item in ranked)
-        {
-            var a = item.Area;
-            var dist = MathF.Sqrt(item.DistSq);
-            var tag = a.AreaType == WaterBodyAreaType.Polygon ? "[P]" : "[L]";
-            var shortName = ShortWaterName(a.Name);
-            var bb = a.BoundingBox.Contains(px, py);
-            var rwExtra = a.AreaType == WaterBodyAreaType.LineArray ? $" rw={a.RiverWidth:F1}" : "";
-
-            if (!a.GetSurface(pos, out var sPt, out var fSurf))
-            {
-                CommandManager.SendNormalText(cmd, messageOutput,
-                    $"{tag} id={a.Id} ~ {shortName} dist={dist:F2} bbox={bb}{rwExtra} XY-in-surface=False");
-                continue;
-            }
-
-            var zMin = sPt.Z - a.Depth;
-            var zMax = sPt.Z;
-            var vertOk = pz <= zMax && pz >= zMin;
-            var fLen = fSurf.Length();
-            CommandManager.SendNormalText(cmd, messageOutput,
-                $"{tag} id={a.Id} ~ {shortName} dist={dist:F2} bbox={bb}{rwExtra} surfZ={sPt.Z:F3} depth={a.Depth:F3} [zMin,zMax]=[{zMin:F3},{zMax:F3}] vertOk={vertOk} flowLen={fLen:F3}");
-        }
-
-        if (pz > oceanTpl && !isW)
-        {
-            var oceanish = MathF.Abs(surfZ - oceanTpl) < OceanTol;
-            if (oceanish && !anyZoneSurface)
-                CommandManager.SendNormalText(cmd, messageOutput,
-                    "Hint: surface≈ocean — no zone gave XY in GetSurface (rivers/lakes missing or XY outside strips).");
-            else if (!oceanish && anyZoneSurface)
-                CommandManager.SendNormalText(cmd, messageOutput,
-                    "Hint: XY hit a zone surface but Z outside water slab (check vertOk / depth).");
-        }
+    private static bool TryParseXYZ(string[] args, int startIdx, out Vector3 pos)
+    {
+        pos = Vector3.Zero;
+        if (args.Length < startIdx + 3)
+            return false;
+        if (!float.TryParse(args[startIdx], out var x))
+            return false;
+        if (!float.TryParse(args[startIdx + 1], out var y))
+            return false;
+        if (!float.TryParse(args[startIdx + 2], out var z))
+            return false;
+        pos = new Vector3(x, y, z);
+        return true;
     }
 
     /// <summary>

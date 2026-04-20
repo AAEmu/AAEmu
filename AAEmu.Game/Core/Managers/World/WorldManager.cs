@@ -363,6 +363,67 @@ public class WorldManager(
     public void Initialize()
     {
         tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
+        tickManager.OnTick.Subscribe(AutoWaterProbeTick, TimeSpan.FromSeconds(10));
+    }
+
+    private static readonly Lock AutoWaterProbeLock = new();
+    private static bool _autoWaterProbeEnabled;
+    private static Vector3 _autoWaterProbePos;
+    private static float _autoWaterProbeLastLen;
+    private static DateTime _autoWaterProbeLastLogUtc;
+
+    public static void AutoWaterProbeEnable(Vector3 pos)
+    {
+        lock (AutoWaterProbeLock)
+        {
+            _autoWaterProbeEnabled = true;
+            _autoWaterProbePos = pos;
+            _autoWaterProbeLastLen = float.NaN;
+            _autoWaterProbeLastLogUtc = DateTime.MinValue;
+        }
+    }
+
+    public static void AutoWaterProbeDisable()
+    {
+        lock (AutoWaterProbeLock)
+        {
+            _autoWaterProbeEnabled = false;
+        }
+    }
+
+    private void AutoWaterProbeTick(TimeSpan delta)
+    {
+        Vector3 pos;
+        bool enabled;
+        lock (AutoWaterProbeLock)
+        {
+            enabled = _autoWaterProbeEnabled;
+            pos = _autoWaterProbePos;
+        }
+        if (!enabled)
+            return;
+
+        var world = MainWorld;
+        if (world == null)
+            return;
+
+        var line = WaterDebugSnapshot.CaptureOneLine(world, pos);
+        var isW = world.IsWater(pos, out var flow);
+        var len = flow.Length();
+        var now = DateTime.UtcNow;
+
+        lock (AutoWaterProbeLock)
+        {
+            var changed = !float.IsFinite(_autoWaterProbeLastLen) || MathF.Abs(_autoWaterProbeLastLen - len) > 0.05f;
+            var heartbeat = (now - _autoWaterProbeLastLogUtc) >= TimeSpan.FromMinutes(1);
+            if (!changed && !heartbeat)
+                return;
+            _autoWaterProbeLastLen = len;
+            _autoWaterProbeLastLogUtc = now;
+        }
+
+        Logger.Info(line);
+        _ = isW; // keep call above for flow/len computation
     }
 
     /// <summary>
