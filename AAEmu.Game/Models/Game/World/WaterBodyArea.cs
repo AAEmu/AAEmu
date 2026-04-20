@@ -135,12 +135,11 @@ public class WaterBodyArea
             BorderPoints = [];
             var otherSide = new List<Vector3>();
             
-            var directionVector = Vector3.Zero;
+            var directionVector = Points.Count >= 2 ? Vector3.Normalize(Points[0] - Points[1]) : Vector3.Zero;
             // going downstream 0 -> max
-            for (var side = 0; side < Points.Count-1; side++)
+            for (var side = 0; side < Points.Count - 1; side++)
             {
-                if (side < Points.Count - 2)
-                    directionVector = Vector3.Normalize(Points[side] - Points[side + 1]);
+                directionVector = Vector3.Normalize(Points[side] - Points[side + 1]);
                 
                 var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
                 

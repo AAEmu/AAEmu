@@ -11,7 +11,7 @@ public class ObjectDataType13Road() : ObjectDataBase(ObjectDataType.Road)
     public override int ReadData(byte[] blockData, int offset)
     {
         var objectType = (ObjectDataType)BitConverter.ToInt32(blockData, offset + 0x00);
-        if (objectType != PrefabType || (offset + 44 > blockData.Length))
+        if (objectType != PrefabType || (offset + 67 > blockData.Length))
         {
             // Type mismatch or not enough bytes, return as error
             Data = [];
@@ -20,13 +20,25 @@ public class ObjectDataType13Road() : ObjectDataBase(ObjectDataType.Road)
 
         ArrayCount = blockData[offset + 43];
         var totalObjectSize = (ArrayCount * 12) + 67;
+        if (offset + totalObjectSize > blockData.Length)
+        {
+            Data = blockData.Skip(offset).ToArray();
+            return Data.Length;
+        }
+
         PointsList = [];
         for (var i = 0; i < ArrayCount; i++)
         {
-            PointsList.Add(GetVector3(blockData, 67 + (i * 12)));
+            PointsList.Add(GetVector3(blockData, offset + 67 + (i * 12)));
         }
 
-        Data = ArrayCount <= 0 ? [] : blockData.Skip(offset).Take(totalObjectSize).ToArray();
+        if (ArrayCount <= 0)
+        {
+            Data = blockData.Skip(offset).Take(67).ToArray();
+            return 67;
+        }
+
+        Data = blockData.Skip(offset).Take(totalObjectSize).ToArray();
         return Data.Length;
     }
 }

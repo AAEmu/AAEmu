@@ -82,6 +82,12 @@ public class ObjectDataType11Water() : ObjectDataBase(ObjectDataType.WaterVolume
         // TODO: Find out if there is a directional vector for water speed, or if uses the segment data for its direction
 
         var totalObjectSize = (ShapePointsCount * 12) + (PhysicsContourPointsCount * 12) + StartOfVariableData;
+        if (offset + totalObjectSize > blockData.Length)
+        {
+            Data = blockData.Skip(offset).ToArray();
+            return Data.Length;
+        }
+
         // Read points for inside data
         ShapePointsList = [];
         PhysicsContourPointsList = [];
