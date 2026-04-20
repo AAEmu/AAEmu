@@ -158,16 +158,20 @@ public class WaterBodyArea
             BorderPoints = [];
         }
         
+        var boundsPad = RiverWidth;
+        if (AreaType == WaterBodyAreaType.LineArray)
+            boundsPad += RiverCorridorEdgePaddingMeters;
+
         foreach (var point in Points)
         {
             // Just take the first point
             if (first)
             {
                 first = false;
-                xMin = point.X - RiverWidth;
-                yMin = point.Y - RiverWidth;
-                xMax = point.X + RiverWidth;
-                yMax = point.Y + RiverWidth;
+                xMin = point.X - boundsPad;
+                yMin = point.Y - boundsPad;
+                xMax = point.X + boundsPad;
+                yMax = point.Y + boundsPad;
                 
                 if (AreaType == WaterBodyAreaType.Polygon)
                 {
@@ -184,14 +188,14 @@ public class WaterBodyArea
             else
             {
                 // The RiverWidth is used to generate a very rough range of the river's width for the rough bounds check
-                if (point.X - RiverWidth < xMin)
-                    xMin = point.X - RiverWidth;
-                if (point.X + RiverWidth > xMax)
-                    xMax = point.X + RiverWidth;
-                if (point.Y - RiverWidth < yMin)
-                    yMin = point.Y - RiverWidth;
-                if (point.Y + RiverWidth > yMax)
-                    yMax = point.Y + RiverWidth;
+                if (point.X - boundsPad < xMin)
+                    xMin = point.X - boundsPad;
+                if (point.X + boundsPad > xMax)
+                    xMax = point.X + boundsPad;
+                if (point.Y - boundsPad < yMin)
+                    yMin = point.Y - boundsPad;
+                if (point.Y + boundsPad > yMax)
+                    yMax = point.Y + boundsPad;
                 
                 // Z
                 if (point.Z > _highest)
