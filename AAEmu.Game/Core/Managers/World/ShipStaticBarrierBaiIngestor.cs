@@ -67,6 +67,9 @@ internal static class ShipStaticBarrierBaiIngestor
 
         /// <summary>See <see cref="PierBandBelowWater"/>; upper side of the pier Z band (m).</summary>
         public const float PierBandAboveWater = 25f;
+
+        /// <summary>Deck points must be at least this far above local water surface (m) to count as bridge slab samples.</summary>
+        public const float BridgeDeckMinAboveWaterMeters = 0.25f;
     }
 
     public static void EnsureCell(WorldInstance world, int cellX, int cellY)
@@ -241,16 +244,18 @@ internal static class ShipStaticBarrierBaiIngestor
         if (vMinZ > waterSurfaceRef + Defaults.InlandMinVertexZAboveWater)
             return false;
 
-        // Deck candidate if the whole polygon is above local water surface.
-        // We still require maritime relevance checks (pier-band or heightmap samples) below.
-        var deckCandidate = vMinZ > waterSurfaceRef;
+        // Deck candidate if there is a consistent "top slab" above water.
+        // BAI shapes for bridges often include low vertices (piers/ramps) that would fail a strict vMinZ check,
+        // so use an estimate of deck bottom from points above the surface.
+        var estDeckBottom = EstimateDeckBottomZ(shape.Points, waterSurfaceRef, vMinZ);
+        var deckCandidate = estDeckBottom > waterSurfaceRef + Defaults.BridgeDeckMinAboveWaterMeters;
 
         if (vMaxZ >= waterSurfaceRef - Defaults.PierBandBelowWater && vMinZ <= waterSurfaceRef + Defaults.PierBandAboveWater)
         {
             if (deckCandidate)
             {
                 isBridgeDeck = true;
-                bridgeDeckBottomZ = EstimateDeckBottomZ(shape.Points, waterSurfaceRef, vMinZ);
+                bridgeDeckBottomZ = estDeckBottom;
             }
             return true;
         }
@@ -269,7 +274,7 @@ internal static class ShipStaticBarrierBaiIngestor
                     if (deckCandidate)
                     {
                         isBridgeDeck = true;
-                        bridgeDeckBottomZ = EstimateDeckBottomZ(shape.Points, waterSurfaceRef, vMinZ);
+                        bridgeDeckBottomZ = estDeckBottom;
                     }
                     return true;
                 }
@@ -281,12 +286,11 @@ internal static class ShipStaticBarrierBaiIngestor
 
     private static float EstimateDeckBottomZ(List<Vector3> points, float waterSurfaceRef, float fallbackMinZ)
     {
-        const float minAboveWater = 0.25f;
         var zs = new List<float>(points.Count);
         for (var i = 0; i < points.Count; i++)
         {
             var z = points[i].Z;
-            if (z > waterSurfaceRef + minAboveWater)
+            if (z > waterSurfaceRef + Defaults.BridgeDeckMinAboveWaterMeters)
                 zs.Add(z);
         }
 
