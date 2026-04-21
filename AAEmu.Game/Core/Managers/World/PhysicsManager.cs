@@ -250,15 +250,6 @@ public class PhysicsManager
                             // River flow / water queries are ship-only: do not scan Water.Areas every tick for every mount/pet slave.
                             if (_shipControllers.TryGetValue(slave.Id, out _))
                             {
-                                var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
-                                if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
-                                {
-                                    if (flowDirection.Length() > 0f)
-                                    {
-                                        slave.RigidBody.Position += new JVector(flowDirection.X * (float)physicsTotalDelta.TotalSeconds, flowDirection.Z * (float)physicsTotalDelta.TotalSeconds, flowDirection.Y * (float)physicsTotalDelta.TotalSeconds);
-                                    }
-                                }
-
                                 // Create floor/surface cache (GetWaterSurface + GetHeight): skip most ticks when nearly idle; refresh sooner when moving fast across XY.
                                 var xy = new Vector2(slave.Transform.World.Position.X, slave.Transform.World.Position.Y);
                                 var refreshCache = true;
@@ -287,6 +278,21 @@ public class PhysicsManager
                                     _ = new OneShotVelocityKick(_physWorld, slave.RigidBody, new JVector(recoilDv.X, 0f, recoilDv.Y));
                                 }
                                 _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
+
+                                // Apply current drift after shore resolve/cache refresh; never drag ships while grounded/beached.
+                                var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
+                                if (SimulationWorld.Water.IsWater(underPos, out var flowDirection) && flowDirection.LengthSquared() > 1e-10f)
+                                {
+                                    // Height cache isn't perfectly stable near shorelines; this small margin prevents "grounded" state jitter
+                                    // and ensures current drift never drags a ship while it's effectively beached / touching bottom.
+                                    const float groundedMarginMeters = 0.12f;
+                                    var groundedNow = slave.GroundContactLatched || slave.CachedFloorLevel >= slave.CachedWaterSurface - groundedMarginMeters;
+                                    if (!groundedNow)
+                                    {
+                                        var dtFlow = (float)physicsTotalDelta.TotalSeconds;
+                                        slave.RigidBody.Position += new JVector(flowDirection.X * dtFlow, flowDirection.Z * dtFlow, flowDirection.Y * dtFlow);
+                                    }
+                                }
                                 shipsThisTick.Add(slave);
                             }
                         }
