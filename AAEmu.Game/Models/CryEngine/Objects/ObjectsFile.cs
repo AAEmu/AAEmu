@@ -194,8 +194,8 @@ public class ObjectsFile(string fileName)
             }
             else
             {
-                Logger.Warn($"Error reading type {objectType} @ 0x{br.BaseStream.Position:X}, DataOffset: 0x{startOfObjectOffset:X} in {FileName}");
-                return false;
+                Logger.Warn($"Unknown/unreadable type {objectType} @ 0x{br.BaseStream.Position:X}, DataOffset: 0x{startOfObjectOffset:X} in {FileName} — stopping block parse");
+                break;
             }
             offset += totalObjectSize;
         }
