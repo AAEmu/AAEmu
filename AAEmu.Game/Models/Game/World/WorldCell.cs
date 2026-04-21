@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.CryEngine.Loaders;
+using AAEmu.Game.Models.CryEngine.Objects;
 using Jitter2.LinearMath;
 using NLog;
 
@@ -31,6 +32,9 @@ public class WorldCell
     /// Bounding box for use in Jitter
     /// </summary>
     public JBoundingBox BoundingBox { get; private set; }
+
+    /// <summary>Prefab tree from cell <c>client/object.dat</c> (CryEngine).</summary>
+    public ObjectsFile LoadedObjectDat { get; set; }
 
     public WorldCell(int cellX, int cellY, WorldTemplate template)
     {
@@ -191,6 +195,22 @@ public class WorldCell
             new JVector(CellOffset.X + WorldManager.CELL_SIZE, MaxHeight, CellOffset.Y + WorldManager.CELL_SIZE)
         );
 
+        var cellFolder = Path.Combine("game", "worlds", Template.Name, "cells", cellFileName);
+
+        var objectDatFile = Path.Combine(cellFolder, "client", "object.dat");
+        if (ClientFileManager.FileExists(objectDatFile))
+        {
+            var objects = new ObjectsFile(objectDatFile);
+            if (objects.ReadFile())
+                LoadedObjectDat = objects;
+            else
+            {
+                LoadedObjectDat = objects;
+                if (objects.AssetPathsList.Count > 0 || objects.PrefabsList.Count > 0)
+                    Logger.Error($"Error loading objects from {objectDatFile}, only {objects.AssetPathsList.Count} assets and {objects.PrefabsList.Count} prefabs read");
+            }
+        }
+
         #region update_physics_hmap
 
         // Update Physics world's heightmaps
@@ -198,6 +218,7 @@ public class WorldCell
         foreach (var worldInstance in WorldManager.Instance.GetWorldsByTemplate(Template.Id))
         {
             worldInstance.Physics?.UpdateHeightMapFromCellBody(this);
+            worldInstance.Water.AddFromCellData(this);
         }
         #endregion
         return true;
@@ -218,7 +239,7 @@ public class WorldCell
             return 0f; // out of bounds or not loaded
         }
 
-        return (float)(HeightMap[heightMapDataX, heightMapDataX] / Template.HeightMaxCoefficient);
+        return (float)(HeightMap[heightMapDataX, heightMapDataY] / Template.HeightMaxCoefficient);
     }
 
     /// <summary>
@@ -233,4 +254,6 @@ public class WorldCell
         var yy = (int)(y - CellOffset.Y) / 2;
         return GetHeightMapDataInCell(xx, yy);
     }
+
+    public Vector3 GetCellWorldOffset() => CellOffset;
 }

@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Concurrent;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -20,6 +21,48 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 public static class ShipHarpoonRopeController
 {
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+
+    /// <summary>
+    /// Rope tear threshold (meters) based on steady tension: tear when \(stretch = chord - paid\) reaches this value.
+    /// Lower = easier to tear under sustained pull.
+    /// </summary>
+    private const float TearStretchMeters = 3f;
+
+    /// <summary>
+    /// Rope tear threshold (m/s) based on sudden tension spike: tear when \(jerk = Δstretch / dt\) reaches this value.
+    /// Lower = easier to tear on quick yanks.
+    /// </summary>
+    private const float TearJerkMetersPerSec = 9f;
+
+    /// <summary>
+    /// Minimum stretch (meters) required to allow jerk-based tearing. Prevents tearing from noise while the rope is mostly slack.
+    /// Lower = jerk-tear can trigger earlier (even with little tension).
+    /// </summary>
+    private const float TearJerkMinStretchMeters = 1f;
+
+    /// <summary>
+    /// Recoil scale: delta-V added to the shooter's hull (m/s) per meter of stretch at the moment of tear.
+    /// Higher = stronger kickback on tear.
+    /// </summary>
+    private const float RecoilDvPerStretch = 0.12f;
+
+    /// <summary>
+    /// Recoil scale: delta-V added to the shooter's hull (m/s) per (m/s) of jerk above <see cref="TearJerkMetersPerSec"/>.
+    /// Higher = extra kickback for very sharp yanks.
+    /// </summary>
+    private const float RecoilDvPerJerk = 0.02f;
+
+    /// <summary>
+    /// Maximum recoil delta-V applied to the shooter's hull (m/s) when the rope tears.
+    /// </summary>
+    private const float RecoilMaxDeltaV = 1.6f;
+
+    private struct RopeTensionHistory
+    {
+        public float Stretch;
+    }
+
+    private static readonly ConcurrentDictionary<uint, RopeTensionHistory> _tensionHistoryByHarpoonObjId = new();
 
     public static void OnLaunchSucceeded(Slave harpoonSlave, SkillCastTarget target, Character? operatorChar)
     {
@@ -83,13 +126,14 @@ public static class ShipHarpoonRopeController
 
         var clampedLen = ClampClientReportedRopeLength(slave, len);
         slave.HarpoonRope.RopeLength = clampedLen;
-        slave.HarpoonRope.LastTeared = teared;
+        // Client-reported "teared" must not drive server break — server computes tear from tension/jerk.
+        slave.HarpoonRope.LastTeared = false;
         slave.HarpoonRope.LastCutout = cutouted;
 
         if (TryBreakRopeIfHookOutOfRange(slave))
             return;
 
-        if (teared || cutouted)
+        if (cutouted)
         {
             BreakRopeForClients(slave, cutouted);
             return;
@@ -172,6 +216,71 @@ public static class ShipHarpoonRopeController
         if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
             Log.Debug("Harpoon rope server break + SCSkillControllerState: slaveObjId={0} len={1:F2} cutouted={2}",
                 objId, len, cutouted);
+    }
+
+    /// <summary>
+    /// Per physics tick on a ship hull: breaks engaged harpoon ropes when tension exceeds threshold or stretch spikes (jerk).
+    /// Returns a recoil delta-V to apply to the shooter hull (horizontal plane, world X/Y).
+    /// </summary>
+    public static Vector3 TickTensionTearAndGetHullRecoilDeltaV(Slave hull, float dtSec)
+    {
+        if (hull.AttachedSlaves.Count == 0 || dtSec <= 0f)
+            return default;
+
+        var recoilSum = Vector3.Zero;
+        foreach (var child in ShipHarpoonTowPhysics.EnumerateAttachedSlaveDescendants(hull))
+        {
+            var st = child.HarpoonRope;
+            if (!st.IsEngaged)
+            {
+                _tensionHistoryByHarpoonObjId.TryRemove(child.ObjId, out _);
+                continue;
+            }
+
+            var cannonPos = child.Transform.World.Position;
+            var hook = GetHookWorldPosition(child);
+            var dist = Vector3.Distance(cannonPos, hook);
+            var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
+            var stretch = dist - paid;
+            if (stretch <= 0f)
+            {
+                _tensionHistoryByHarpoonObjId[child.ObjId] = new RopeTensionHistory { Stretch = 0f };
+                continue;
+            }
+
+            var hadHistory = _tensionHistoryByHarpoonObjId.TryGetValue(child.ObjId, out var hist);
+            var jerk = hadHistory ? (stretch - hist.Stretch) / dtSec : 0f;
+            _tensionHistoryByHarpoonObjId[child.ObjId] = new RopeTensionHistory { Stretch = stretch };
+
+            var tearByStretch = stretch >= TearStretchMeters;
+            var tearByJerk = jerk >= TearJerkMetersPerSec && stretch >= TearJerkMinStretchMeters;
+            if (!tearByStretch && !tearByJerk)
+                continue;
+
+            if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
+                Log.Debug("Harpoon rope auto-tear (tension/jerk): hullObjId={0} harpoonObjId={1} dist={2:F2} paid={3:F2} stretch={4:F2} jerk={5:F2}",
+                    hull.ObjId, child.ObjId, dist, paid, stretch, jerk);
+
+            // Break first (clears IsEngaged and broadcasts SCSkillControllerState teared=true).
+            BreakRopeForClients(child, cutouted: false);
+
+            // Recoil: opposite the tension direction, horizontal (world X/Y) only.
+            var dx = hook.X - cannonPos.X;
+            var dy = hook.Y - cannonPos.Y;
+            var d2 = dx * dx + dy * dy;
+            if (d2 < 1e-6f)
+                continue;
+
+            var invLen = 1f / MathF.Sqrt(d2);
+            var ux = dx * invLen;
+            var uy = dy * invLen;
+            var jerkExcess = MathF.Max(0f, jerk - TearJerkMetersPerSec);
+            var dvMag = MathF.Min(RecoilMaxDeltaV, stretch * RecoilDvPerStretch + jerkExcess * RecoilDvPerJerk);
+            recoilSum.X += -ux * dvMag;
+            recoilSum.Y += -uy * dvMag;
+        }
+
+        return recoilSum;
     }
 
     /// <summary>

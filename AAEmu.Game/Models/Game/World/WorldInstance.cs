@@ -66,7 +66,7 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     /// <summary>
     /// Water definitions
     /// </summary>
-    public WaterBodies Water { get; set; }
+    public WaterBodies Water { get; set; } = new();
 
     /// <summary>
     /// BAI-derived ship collision polylines (non-null when <see cref="WorldConfig.GeoDataMode"/> was on at init).
@@ -360,22 +360,28 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
         Physics.StartPhysics();
     }
 
-    /// <summary>
-    /// Loads water body date for this world
-    /// </summary>
-    public void LoadWaterBodies()
+    /// <summary>Syncs <see cref="WaterBodies.OceanLevel"/> from the world template (river/lake zones come from client cell object.dat).</summary>
+    public void InitWaterFromTemplate()
     {
-        // Try to load from saved json data
-        var customFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", Template.Name, "water_bodies.json");
-        if (!File.Exists(customFile))
+        Water.OceanLevel = Template.OceanLevel;
+    }
+
+    /// <summary>Clears ingested zones and rebuilds them from cells already loaded (after code or data tweaks).</summary>
+    public void ReloadWaterFromLoadedCells()
+    {
+        lock (Water._lock)
         {
-            return;
+            Water.ClearIngestedAreas();
+            Water.OceanLevel = Template.OceanLevel;
         }
 
-        Logger.Debug($"Loading water body data for instance {this}");
-        if (WaterBodies.Load(customFile, out var newWater))
+        for (var cy = 0; cy < Template.CellY; cy++)
+        for (var cx = 0; cx < Template.CellX; cx++)
         {
-            Water = newWater;
+            var cell = Template.Cells[cx, cy];
+            if (!cell.Loaded)
+                continue;
+            Water.AddFromCellData(cell);
         }
     }
 

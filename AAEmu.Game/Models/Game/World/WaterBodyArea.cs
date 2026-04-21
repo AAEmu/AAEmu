@@ -1,7 +1,6 @@
 using System.Drawing;
 using System.Numerics;
 using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Utils;
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -29,9 +28,24 @@ public class WaterBodyArea
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float Speed { get; set; }
 
+    /// <summary>Unit flow axis in XY (ignored if <see cref="FlowSpeedAbs"/> is 0).</summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public Vector2 FlowAxis { get; set; }
+
+    /// <summary>Absolute flow speed (m/s). Contract: {0,1} for gameplay.</summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public float FlowSpeedAbs { get; set; }
+
+    /// <summary>Signed flow speed along <see cref="FlowAxis"/> (downhill sign). Contract: {-1,0,1}.</summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public float FlowSpeedSigned { get; set; }
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public float RiverWidth { get; set; }
-    
+
+    /// <summary>Extra half-width (m) beyond <see cref="RiverWidth"/> for LineArray corridor tests (edge tolerance).</summary>
+    private const float RiverCorridorEdgePaddingMeters = 1f;
+
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public List<Vector3> Points { get; set; }
 
@@ -55,6 +69,7 @@ public class WaterBodyArea
         AreaType = WaterBodyAreaType.Polygon;
         Points = [];
         BorderPoints = [];
+        FlowAxis = Vector2.UnitX;
     }
 
     public WaterBodyArea(string name, WaterBodyAreaType areaType)
@@ -63,6 +78,7 @@ public class WaterBodyArea
         Name = name;
         Points = [];
         BorderPoints = [];
+        FlowAxis = Vector2.UnitX;
     }
 
     /// <summary>
@@ -91,7 +107,7 @@ public class WaterBodyArea
             // For flowing water find the actual closest point, and use its position as height
             var closestPoint = Points[0];
             var closestDistance = 1000000000f;
-            for (var i = 0; i < Points.Count - 1; i++)
+            for (var i = 0; i < Points.Count; i++)
             {
                 // Using Length² as it's faster, and we don't care about the actual distance other than finding the closest
                 var thisDistance = (point - Points[i]).LengthSquared();
@@ -133,12 +149,11 @@ public class WaterBodyArea
             BorderPoints = [];
             var otherSide = new List<Vector3>();
             
-            var directionVector = Vector3.Zero;
+            var directionVector = Points.Count >= 2 ? Vector3.Normalize(Points[0] - Points[1]) : Vector3.Zero;
             // going downstream 0 -> max
-            for (var side = 0; side < Points.Count-1; side++)
+            for (var side = 0; side < Points.Count - 1; side++)
             {
-                if (side < Points.Count - 2)
-                    directionVector = Vector3.Normalize(Points[side] - Points[side + 1]);
+                directionVector = Vector3.Normalize(Points[side] - Points[side + 1]);
                 
                 var perpendicular = Vector3.Normalize(Vector3.Cross(directionVector, Vector3.UnitZ));
                 
@@ -157,16 +172,20 @@ public class WaterBodyArea
             BorderPoints = [];
         }
         
+        var boundsPad = RiverWidth;
+        if (AreaType == WaterBodyAreaType.LineArray)
+            boundsPad += RiverCorridorEdgePaddingMeters;
+
         foreach (var point in Points)
         {
             // Just take the first point
             if (first)
             {
                 first = false;
-                xMin = point.X - RiverWidth;
-                yMin = point.Y - RiverWidth;
-                xMax = point.X + RiverWidth;
-                yMax = point.Y + RiverWidth;
+                xMin = point.X - boundsPad;
+                yMin = point.Y - boundsPad;
+                xMax = point.X + boundsPad;
+                yMax = point.Y + boundsPad;
                 
                 if (AreaType == WaterBodyAreaType.Polygon)
                 {
@@ -183,14 +202,14 @@ public class WaterBodyArea
             else
             {
                 // The RiverWidth is used to generate a very rough range of the river's width for the rough bounds check
-                if (point.X - RiverWidth < xMin)
-                    xMin = point.X - RiverWidth;
-                if (point.X + RiverWidth > xMax)
-                    xMax = point.X + RiverWidth;
-                if (point.Y - RiverWidth < yMin)
-                    yMin = point.Y - RiverWidth;
-                if (point.Y + RiverWidth > yMax)
-                    yMax = point.Y + RiverWidth;
+                if (point.X - boundsPad < xMin)
+                    xMin = point.X - boundsPad;
+                if (point.X + boundsPad > xMax)
+                    xMax = point.X + boundsPad;
+                if (point.Y - boundsPad < yMin)
+                    yMin = point.Y - boundsPad;
+                if (point.Y + boundsPad > yMax)
+                    yMax = point.Y + boundsPad;
                 
                 // Z
                 if (point.Z > _highest)
@@ -202,58 +221,6 @@ public class WaterBodyArea
         _boundingBox = new RectangleF(xMin, yMin, xMax - xMin, yMax - yMin);
     }
 
-    private static bool AreLinesIntersecting(Vector2 v1Start, Vector2 v1End, Vector2 v2Start, Vector2 v2End)
-    {
-        // Convert vector 1 to a line (line 1) of infinite length.
-        // We want the line in linear equation standard form: A*x + B*y + C = 0
-        // See: http://en.wikipedia.org/wiki/Linear_equation
-        var a1 = v1End.Y - v1Start.Y;
-        var b1 = v1Start.X - v1End.X;
-        var c1 = v1End.X * v1Start.Y - v1Start.X * v1End.Y;
-
-        // Every point (x,y), that solves the equation above, is on the line,
-        // every point that does not solve it, is not. The equation will have a
-        // positive result if it is on one side of the line and a negative one 
-        // if is on the other side of it. We insert (x1,y1) and (x2,y2) of vector
-        // 2 into the equation above.
-        var d1 = a1 * v2Start.X + b1 * v2Start.Y + c1;
-        var d2 = a1 * v2End.X + b1 * v2End.Y + c1;
-
-        // If d1 and d2 both have the same sign, they are both on the same side
-        // of our line 1 and in that case no intersection is possible. Careful, 
-        // 0 is a special case, that's why we don't test ">=" and "<=", 
-        // but "<" and ">".
-        if (d1 > 0 && d2 > 0) return false;
-        if (d1 < 0 && d2 < 0) return false;
-
-        // The fact that vector 2 intersected the infinite line 1 above doesn't 
-        // mean it also intersects the vector 1. Vector 1 is only a subset of that
-        // infinite line 1, so it may have intersected that line before the vector
-        // started or after it ended. To know for sure, we have to repeat the
-        // same test the other way round. We start by calculating the 
-        // infinite line 2 in linear equation standard form.
-        var a2 = v2End.Y - v2Start.Y;
-        var b2 = v2Start.X - v2End.X;
-        var c2 = v2End.X * v2Start.Y - v2Start.X * v2End.Y;
-
-        // Calculate d1 and d2 again, this time using points of vector 1.
-        d1 = a2 * v1Start.X + b2 * v1Start.Y + c2;
-        d2 = a2 * v1End.X + b2 * v1End.Y + c2;
-
-        // Again, if both have the same sign (and neither one is 0),
-        // no intersection is possible.
-        if (d1 > 0 && d2 > 0) return false;
-        if (d1 < 0 && d2 < 0) return false;
-
-        // If we get here, only two possibilities are left. Either the two
-        // vectors intersect in exactly one point or they are collinear, which
-        // means they intersect in any number of points from zero to infinite.
-        if (a1 * b2 - a2 * b1 == 0.0f) return false; // COLLINEAR;
-
-        // If they are not collinear, they must intersect in exactly one point.
-        return true;
-    }
-
     /// <summary>
     /// Checks if a point is inside the water body, and also returns the direction vector if it's a flowing river
     /// </summary>
@@ -263,85 +230,87 @@ public class WaterBodyArea
     /// <returns></returns>
     private bool Contains(float x, float y, out Vector3 flowVector)
     {
-        // Info: https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
-        flowVector = Vector3.Zero; // Only river (line array) types can return a flow direction
+        flowVector = Vector3.Zero;
 
-        // Very rough test for better speed
         if (!_boundingBox.Contains(x, y))
             return false;
 
-        // Check for Polygon type, or rough LineArray shape
-        // if (AreaType == WaterBodyAreaType.Polygon)
-        // Test the ray against all sides
-        var intersections = 0;
-        for (var side = 0; side < BorderPoints.Count - 1; side++)
-        {
-            var sideStart = new Vector2(BorderPoints[side].X, BorderPoints[side].Y);
-            var sideEnd = new Vector2(BorderPoints[side + 1].X, BorderPoints[side + 1].Y);
-            var rayStart = new Vector2(_boundingBox.X - 1f, _boundingBox.Y - 1f);
-            var rayEnd = new Vector2(x, y);
+        // Rivers: corridor around the centerline (2D distance to segments). The old ray+BorderPoints+angle
+        // path dropped valid points (e.g. 2-point rivers had zero direction; angle checks skipped segments).
+        if (AreaType == WaterBodyAreaType.LineArray)
+            return ContainsRiverCorridor(x, y, out flowVector);
 
-            // Test if current side intersects with ray.
-            // If yes, intersections++;
-            if (AreLinesIntersecting(rayStart, rayEnd, sideStart, sideEnd))
-                intersections++;
+        var inside = PointInsidePolygon2D(x, y);
+        if (!inside)
+            return false;
+
+        if (FlowSpeedAbs <= 0f || FlowSpeedSigned == 0f)
+            return true;
+
+        var axis = FlowAxis;
+        var axisLenSq = axis.LengthSquared();
+        if (axisLenSq <= 1e-12f)
+            return true;
+
+        var axisUnit = axis / MathF.Sqrt(axisLenSq);
+        flowVector = new Vector3(axisUnit.X, axisUnit.Y, 0f) * FlowSpeedSigned;
+        return true;
+    }
+
+    /// <summary>Odd-even horizontal ray along +X (stable for lakes vs diagonal ray from bbox corner).</summary>
+    private bool PointInsidePolygon2D(float x, float y)
+    {
+        if (BorderPoints == null || BorderPoints.Count < 3)
+            return false;
+
+        var inside = false;
+        for (var i = 0; i + 1 < BorderPoints.Count; i++)
+        {
+            var yi = BorderPoints[i].Y;
+            var yj = BorderPoints[i + 1].Y;
+            if ((yi > y) == (yj > y))
+                continue;
+
+            var xi = BorderPoints[i].X;
+            var xj = BorderPoints[i + 1].X;
+            var denom = yj - yi;
+            if (MathF.Abs(denom) < 1e-20f)
+                continue;
+
+            var xinters = xi + (y - yi) / denom * (xj - xi);
+            if (x < xinters)
+                inside = !inside;
         }
 
-        var res = (intersections & 1) == 1;
+        return inside;
+    }
 
-        // Check for Area Types
-        if (res && AreaType == WaterBodyAreaType.LineArray)
+    private bool ContainsRiverCorridor(float x, float y, out Vector3 flowVector)
+    {
+        flowVector = Vector3.Zero;
+        if (Points.Count < 2)
+            return false;
+
+        var p = new Vector3(x, y, _highest);
+        var bestDist = float.PositiveInfinity;
+        var bestFlow = Vector3.Zero;
+        var halfWidth = RiverWidth + RiverCorridorEdgePaddingMeters;
+
+        for (var side = 0; side < Points.Count - 1; side++)
         {
-            var p = new Vector3(x, y, _highest);
-            var closestPoint = -1;
-            var closestDistance = 1000000f;
-
-            // Test the ray against all sides
-            for (var side = 0; side < Points.Count - 2; side++)
-            {
-                var distanceToLine = MinimumDistanceToLine(Points[side], Points[side + 1], p);
-
-                var nextPointDirection = MathUtil.CalculateDirection(Points[side + 1], Points[side]);
-
-                // For the first point in the line, make sure it's in front of it
-                //if (side <= 0)
-                {
-                    var fromPointDirection = MathUtil.CalculateDirection(p, Points[side]);
-                    var diff = Math.Abs(nextPointDirection - fromPointDirection) * (180 / MathF.PI);
-
-                    if (diff is >= 90 and <= 270) // in front
-                        continue;
-                }
-
-                // For the last point in the line, make sure it's behind it
-                if (side >= Points.Count - 1)
-                {
-                    var fromPointDirection = MathUtil.CalculateDirection(p, Points[side]);
-                    var diff = Math.Abs(nextPointDirection - fromPointDirection) * (180 / MathF.PI);
-
-                    if (diff is < 90 or > 270) // NOT in front
-                        continue;
-                }
-
-                if (distanceToLine < RiverWidth)
-                {
-                    // looks like it's roughly in range of the river
-
-                    if (distanceToLine < closestDistance)
-                    {
-                        closestDistance = distanceToLine;
-                        closestPoint = side;
-                        flowVector = Points[side + 1] - Points[side];
-                        flowVector = Vector3.Normalize(flowVector) * Speed;
-                    }
-                }
-            }
-
-            if (closestPoint < 0)
-                res = false;
+            var d = MinimumDistanceToLine(Points[side], Points[side + 1], p);
+            if (d >= bestDist)
+                continue;
+            bestDist = d;
+            var seg = Points[side + 1] - Points[side];
+            bestFlow = seg.LengthSquared() > 1e-12f ? Vector3.Normalize(seg) * FlowSpeedSigned : Vector3.Zero;
         }
 
-        return res;
+        if (bestDist > halfWidth)
+            return false;
+
+        flowVector = bestFlow;
+        return true;
     }
 
     public Vector3 GetCenter(bool atSurface)

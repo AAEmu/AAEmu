@@ -553,24 +553,19 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // Move it to target location, and call spawn packet
         summonedSlave.Transform = spawnPos.CloneDetached(summonedSlave);
 
-        // PortalTime: no buoyancy yet — Z must match PhysicsManager.AddShip clamp: MassBoxSizeZ * Slave.Scale.
-        // Done here (not on spawnPos) so we use the same Scale AddShip will use. Not slaves.portal_scale (VFX).
-        if (summonedSlave.Template.IsABoat())
+        if (summonedSlave.Template.IsABoat() && summonedSlave.Template.PortalTime > 0f)
         {
             var spawnWorld = WorldManager.Instance.GetWorld(summonedSlave.Transform.InstanceId);
-            if (spawnWorld != null)
+            var waterAtFinal = spawnWorld?.Water?.GetWaterSurface(summonedSlave.Transform.World.Position, out _) ?? 0f;
+            if (waterAtFinal > 0f)
             {
-                var waterAtFinal = spawnWorld.Water?.GetWaterSurface(summonedSlave.Transform.World.Position, out _) ?? 0f;
-                if (waterAtFinal > 0f)
+                var mul = AAEmu.Game.Physics.Forces.Buoyancy.ShipWaterDensityMul;
+                if (mul > 0f)
                 {
-                    var shipModelForClamp = ModelManager.Instance.GetShipModel(summonedSlave.ModelId);
-                    if (shipModelForClamp != null)
-                    {
-                        var hullHeight = shipModelForClamp.MassBoxSizeZ * summonedSlave.Scale;
-                        var minSpawnZ = waterAtFinal + hullHeight * PhysicsManager.ShipHullWaterlineVisualHullFrac;
-                        if (summonedSlave.Transform.Local.Position.Z < minSpawnZ)
-                            summonedSlave.Transform.Local.SetHeight(minSpawnZ);
-                    }
+                    var targetSubmerged = 1f / (AAEmu.Game.Physics.Forces.Buoyancy.BaseWaterDensity * mul);
+                    var targetZ = waterAtFinal - targetSubmerged;
+                    if (summonedSlave.Transform.Local.Position.Z < targetZ)
+                        summonedSlave.Transform.Local.SetHeight(targetZ);
                 }
             }
         }

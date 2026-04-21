@@ -15,6 +15,15 @@ namespace AAEmu.Game.Physics.Forces;
 /// </summary>
 public class Buoyancy : ForceGenerator
 {
+    public static float BaseWaterDensity = 1.025f;
+
+    /// <summary>
+    /// Hot-reload tuning knob: scales ship buoyancy via an "effective water density" multiplier.
+    /// 1.0 = default, higher floats higher (less draft), lower sits deeper.
+    /// Applied only for ships (bodies tagged with <see cref="Slave"/> that have a <c>ShipController</c>).
+    /// </summary>
+    public static float ShipWaterDensityMul = 3f;
+
 
     /// <summary>
     /// Returns true if the given point is within the area.
@@ -56,7 +65,7 @@ public class Buoyancy : ForceGenerator
     /// <param name="world">The world.</param>
     public Buoyancy(World world) : base(world)
     {
-        Density = 1.025f; // 1025 кг/м³ (seawater density)
+        Density = BaseWaterDensity;
         Damping = 0.1f;
         Flow = JVector.Zero;
     }
@@ -228,7 +237,7 @@ public class Buoyancy : ForceGenerator
             if (isOnWater)
             {
                 // Apply buoyancy and drag forces
-                var buoyancyForce = new JVector(0, submergedDepth * body.Mass * Density * 9.81f, 0);
+                var buoyancyForce = new JVector(0, submergedDepth * body.Mass * Density * ShipWaterDensityMul * 9.81f, 0);
                 body.AddForce(buoyancyForce);
 
                 var dragForce = new JVector(-body.Velocity.X * Density, -body.Velocity.Y * Density, -body.Velocity.Z * Density);

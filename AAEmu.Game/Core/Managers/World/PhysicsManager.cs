@@ -35,11 +35,6 @@ public class PhysicsManager
     private const float DefaultWaterLevel = 100f;
 
     /// <summary>
-    /// Single hull-height fraction <c>k</c> for portal spawn / <see cref="AddShip"/> clamp and for extra Z in <c>SCOneUnitMovementPacket</c> on water (physics unchanged). Uses <c>MassBoxSizeZ×</c><see cref="Slave.Scale"/> where the slave exists. Packet: <c>moveType.Z += hullHeight×k</c>. Spawn: center height <c>water + hullHeight×k</c> (same meters as packet bump). <c>0</c> = waterline / no packet bump.
-    /// </summary>
-    public const float ShipHullWaterlineVisualHullFrac = 0.03f;
-
-    /// <summary>
     /// Target Ticks per Second for Physics in this world, use setting as default value
     /// </summary>
     // TODO: Make this variable or configurable from a GM command or dynamic load system
@@ -64,6 +59,12 @@ public class PhysicsManager
     private readonly ShipDoodadInteraction _shipDoodad = new();
     private readonly ShipStaticBarrierInteraction _shipStaticBarriers = new();
     private readonly ShipCliffInteraction _shipCliff = new();
+
+    /// <summary>Physics-thread loop counter for throttling <see cref="Slave.CreateWaterAndLandSurfaceCache"/>.</summary>
+    private ulong _physicsLoopIndex;
+
+    /// <summary>Last loop index and XY at which water/terrain cache was rebuilt (per ship slave id).</summary>
+    private readonly Dictionary<uint, (ulong Loop, Vector2 Xy)> _waterLandCacheStamp = new();
 
     private readonly ConcurrentQueue<Action> _pendingActions = new();
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
@@ -189,6 +190,7 @@ public class PhysicsManager
 
                 var physicsTotalDelta = TimeSpan.FromMilliseconds(Environment.TickCount64) - lastTick; 
                 lastTick = currentTick;
+                _physicsLoopIndex++;
 
                 // 1. Process pending add/remove actions
                 while (_pendingActions.TryDequeue(out var action)) { action(); }
@@ -244,29 +246,50 @@ public class PhysicsManager
                             if (!body.IsActive)
                                 continue;
 
-                            // TODO: move this
-                            var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
-                            if (SimulationWorld.Water.IsWater(underPos, out var flowDirection))
-                            {
-                                if (flowDirection.Length() > 0f)
-                                {
-                                    // We are in moving water, apply force
-                                    // var multiplier = slave.RigidBody.Mass / TargetPhysicsTickTime;
-                                    // slave.RigidBody.AddForce(new JVector(flowDirection.X * multiplier, flowDirection.Z * multiplier, flowDirection.Y * multiplier));
-                                    slave.RigidBody.Position += new JVector(flowDirection.X * (float)physicsTotalDelta.TotalSeconds,flowDirection.Z * (float)physicsTotalDelta.TotalSeconds, flowDirection.Y * (float)physicsTotalDelta.TotalSeconds);
-                                }
-                            }
-
                             // Single dictionary lookup: ShipController matches _shipControllers[slave.Id] (set together in AddShip).
+                            // River flow / water queries are ship-only: do not scan Water.Areas every tick for every mount/pet slave.
                             if (_shipControllers.TryGetValue(slave.Id, out _))
                             {
-                                // Create floor/surface cache
-                                slave.CreateWaterAndLandSurfaceCache();
+                                // Create floor/surface cache (GetWaterSurface + GetHeight): skip most ticks when nearly idle; refresh sooner when moving fast across XY.
+                                var xy = new Vector2(slave.Transform.World.Position.X, slave.Transform.World.Position.Y);
+                                var refreshCache = true;
+                                if (_waterLandCacheStamp.TryGetValue(slave.Id, out var stamp))
+                                {
+                                    var loopsSince = _physicsLoopIndex - stamp.Loop;
+                                    var movedSq = Vector2.DistanceSquared(xy, stamp.Xy);
+                                    refreshCache = loopsSince >= 2 || movedSq > 1f;
+                                }
+
+                                if (refreshCache)
+                                {
+                                    slave.CreateWaterAndLandSurfaceCache();
+                                    _waterLandCacheStamp[slave.Id] = (_physicsLoopIndex, xy);
+                                }
+
                                 // Sync transform
                                 SyncTransformWithRigidBody(slave);
                                 // Do physics tick
                                 BoatPhysicsTick(slave, physicsTotalDelta);
+                                var dtSec = (float)physicsTotalDelta.TotalSeconds;
+                                var recoilDv = ShipHarpoonRopeController.TickTensionTearAndGetHullRecoilDeltaV(slave, dtSec);
+                                if (slave.RigidBody != null && (recoilDv.X * recoilDv.X + recoilDv.Y * recoilDv.Y) > 1e-8f)
+                                {
+                                    // RigidBody horizontal plane is XZ; rigid-body Z maps to world Y (see AddShip and SyncTransformWithRigidBody).
+                                    _ = new OneShotVelocityKick(_physWorld, slave.RigidBody, new JVector(recoilDv.X, 0f, recoilDv.Y));
+                                }
                                 _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
+
+                                // Apply current drift after shore resolve/cache refresh; never drag ships while beached/on land.
+                                var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
+                                if (SimulationWorld.Water.IsWater(underPos, out var flowDirection) && flowDirection.LengthSquared() > 1e-10f)
+                                {
+                                    var groundedNow = slave.GroundContactLatched || slave.CachedFloorLevel > slave.CachedWaterSurface;
+                                    if (!groundedNow)
+                                    {
+                                        var dtFlow = (float)physicsTotalDelta.TotalSeconds;
+                                        slave.RigidBody.Position += new JVector(flowDirection.X * dtFlow, flowDirection.Z * dtFlow, flowDirection.Y * dtFlow);
+                                    }
+                                }
                                 shipsThisTick.Add(slave);
                             }
                         }
@@ -458,26 +481,6 @@ public class PhysicsManager
         }
 
         var pos = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y);
-
-        // When a ship is summoned, buoyancy/gravity is disabled until PortalTime ends.
-        // If the spawn point height is below the water surface, the ship will appear heavily submerged
-        // and then "pop" up once buoyancy kicks in. Clamp the initial physics height closer to the waterline.
-        try
-        {
-            var waterSurface = SimulationWorld.Water.GetWaterSurface(slave.Transform.World.Position, out _);
-            if (waterSurface > 0f)
-            {
-                var hullHeight = (slave.ShipController?.ShipModel.MassBoxSizeZ ?? shipModel.MassBoxSizeZ) * slave.Scale;
-                // Keep the ship close to the surface at spawn; buoyancy will settle the final draft.
-                var minCenterY = waterSurface + hullHeight * ShipHullWaterlineVisualHullFrac;
-                if (pos.Y < minCenterY)
-                    pos.Y = minCenterY;
-            }
-        }
-        catch
-        {
-            // If water query fails, keep original spawn height.
-        }
         var rot = JQuaternion.CreateRotationY(slave.Transform.World.Rotation.Z);
         //                                     Width                   Length                  Height
         // var dimensions = new JVector(shipModel.MassBoxSizeX, shipModel.MassBoxSizeY, shipModel.MassBoxSizeZ);
@@ -533,6 +536,7 @@ public class PhysicsManager
             _buoyancy.Remove(rigidBody);
             _bodies.Remove(rigidBody);
             _shipControllers.Remove(slaveId, out _);
+            _waterLandCacheStamp.Remove(slaveId);
 
             ShipTuningDebug.DespawnAll(slaveId);
 
@@ -778,14 +782,6 @@ public class PhysicsManager
         moveType.X = rep.PosX;
         moveType.Y = rep.PosY;
         moveType.Z = rep.PosZ;
-        // Visual-only Z bump on replicated movement (see ShipHullWaterlineVisualHullFrac). Physics body and
-        // slave.Transform below stay aligned with rigidBody — intentional: tuning hull vs waterline for clients
-        // without changing buoyancy/collisions. Server logic using Transform will see a slightly lower Z than
-        // moveType.Z in water; do not mirror waterZUp into Transform unless physics is updated to match.
-        var hullHeight = (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 0f) * slave.Scale;
-        var waterZUp = hullHeight * ShipHullWaterlineVisualHullFrac;
-        if (waterZUp != 0f && slave.ParentWorld?.IsWater(new Vector3(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y)) == true)
-            moveType.Z += waterZUp;
 
         moveType.AngVelX = rigidBody.AngularVelocity.X;
         moveType.AngVelY = rigidBody.AngularVelocity.Z;
