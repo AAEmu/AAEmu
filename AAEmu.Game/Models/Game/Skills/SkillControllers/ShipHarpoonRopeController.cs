@@ -248,8 +248,8 @@ public static class ShipHarpoonRopeController
                 continue;
             }
 
-            _tensionHistoryByHarpoonObjId.TryGetValue(child.ObjId, out var hist);
-            var jerk = (stretch - hist.Stretch) / dtSec;
+            var hadHistory = _tensionHistoryByHarpoonObjId.TryGetValue(child.ObjId, out var hist);
+            var jerk = hadHistory ? (stretch - hist.Stretch) / dtSec : 0f;
             _tensionHistoryByHarpoonObjId[child.ObjId] = new RopeTensionHistory { Stretch = stretch };
 
             var tearByStretch = stretch >= TearStretchMeters;
