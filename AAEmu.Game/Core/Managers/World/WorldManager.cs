@@ -408,9 +408,9 @@ public class WorldManager(
         if (world == null)
             return;
 
-        var line = WaterDebugSnapshot.CaptureOneLine(world, pos);
         var isW = world.IsWater(pos, out var flow);
         var len = flow.Length();
+        var line = WaterDebugSnapshot.FormatOneLine(pos, isW, flow);
         var now = DateTime.UtcNow;
 
         lock (AutoWaterProbeLock)
@@ -424,7 +424,6 @@ public class WorldManager(
         }
 
         Logger.Info(line);
-        _ = isW; // keep call above for flow/len computation
     }
 
     /// <summary>
