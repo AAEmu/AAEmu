@@ -279,14 +279,11 @@ public class PhysicsManager
                                 }
                                 _shipShore.ResolveTerrainContacts(slave, physicsTotalDelta, _physWorld);
 
-                                // Apply current drift after shore resolve/cache refresh; never drag ships while grounded/beached.
+                                // Apply current drift after shore resolve/cache refresh; never drag ships while beached/on land.
                                 var underPos = slave.Transform.World.Position + Vector3.UnitZ * (slave.ShipController?.ShipModel.MassBoxSizeZ ?? 1f) / -2f * slave.Scale;
                                 if (SimulationWorld.Water.IsWater(underPos, out var flowDirection) && flowDirection.LengthSquared() > 1e-10f)
                                 {
-                                    // Height cache isn't perfectly stable near shorelines; this small margin prevents "grounded" state jitter
-                                    // and ensures current drift never drags a ship while it's effectively beached / touching bottom.
-                                    const float groundedMarginMeters = 0.12f;
-                                    var groundedNow = slave.GroundContactLatched || slave.CachedFloorLevel >= slave.CachedWaterSurface - groundedMarginMeters;
+                                    var groundedNow = slave.GroundContactLatched || slave.CachedFloorLevel > slave.CachedWaterSurface;
                                     if (!groundedNow)
                                     {
                                         var dtFlow = (float)physicsTotalDelta.TotalSeconds;
