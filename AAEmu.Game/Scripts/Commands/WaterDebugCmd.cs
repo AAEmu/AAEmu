@@ -104,13 +104,9 @@ public sealed class WaterDebugCmd : ICommand
                     }
                 }
 
-                int serverZonesWithFlow;
-                int serverAreas;
-                lock (world.Water._lock)
-                {
-                    serverAreas = world.Water.Areas.Count;
-                    serverZonesWithFlow = world.Water.Areas.Count(a => a.Speed != 0f);
-                }
+                var areaSnapshot = world.Water.GetAreasSnapshot();
+                var serverAreas = areaSnapshot.Count;
+                var serverZonesWithFlow = areaSnapshot.Count(a => a.Speed != 0f);
 
                 CommandManager.SendNormalText(this, messageOutput,
                     $"Water reload: OceanLevel={world.Water.OceanLevel}, areas={serverAreas}, loadedCells={loadedCells}");

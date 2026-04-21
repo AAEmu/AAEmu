@@ -282,6 +282,15 @@ public class WaterBodies
         }
     }
 
+    /// <summary>
+    /// Returns a stable snapshot of <see cref="Areas"/> for debug/commands without exposing the internal lock.
+    /// </summary>
+    public List<WaterBodyArea> GetAreasSnapshot()
+    {
+        lock (_lock)
+            return [.. Areas];
+    }
+
     public bool IsWater(Vector3 point, out Vector3 flowDirection)
     {
         flowDirection = Vector3.Zero;
