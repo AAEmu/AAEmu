@@ -50,10 +50,8 @@ public class ShipController(World world, ShipModelV1 shipModel)
         public const float OpposingThrottleAccelMul = 1f;
         /// <summary>Additional braking multiplier for opposing throttle only (does not affect forward accel).</summary>
         public const float OpposingThrottleBrakeTuneMul = 2.4f;
-
         /// <summary>Max coast decay (1/s) when in water — keep below <see cref="ShoalCoastDragCapPerSec"/> so «отпустил газ» glides longer than active reverse brake.</summary>
         public const float OpenWaterCoastDragCapPerSec = 0.085f;
-
         /// <summary>Shoal / beached: allow stronger coast decay than open water (was single cap for all water).</summary>
         public const float ShoalCoastDragCapPerSec = 0.22f;
         /// <summary>Steering builds yaw rate faster without raising the max yaw cap.</summary>
@@ -82,6 +80,8 @@ public class ShipController(World world, ShipModelV1 shipModel)
         public const float WindWithMaxMul = 1.15f;
         /// <summary>Max speed multiplier when moving “against wind” (inside the opposite cone).</summary>
         public const float WindAgainstMaxMul = 0.85f;
+        /// <summary>Vertical velocity damping (1/s) applied while submerged to prevent buoyancy oscillations.</summary>
+        public const float WaterVerticalVelocityDampPerSec = 6.0f;
     }
 
     /// <summary>
@@ -669,17 +669,28 @@ public class ShipController(World world, ShipModelV1 shipModel)
         if (!isGrounded)
         {
             var v = rigidBody.Velocity;
+            // Do not zero vertical velocity (lets ships fall off waterfalls),
+            // but damp it when submerged to prevent buoyancy oscillations / runaway upward launch.
+            var submergedNow = MathF.Max(0f, slave.CachedWaterSurface - rigidBody.Position.Y);
+            if (submergedNow > 0.01f)
+            {
+                v.Y *= MathF.Exp(-ShipMotionDefaults.WaterVerticalVelocityDampPerSec * MathF.Max(0f, dtSec));
+                v.Y = Math.Clamp(v.Y, -18f, 6f);
+            }
             var alongDot = v.X * fx + v.Z * fz;
             var perpX = v.X - alongDot * fx;
             var perpZ = v.Z - alongDot * fz;
             var lateralDamp = MathF.Exp(-ShipMotionDefaults.LateralVelocityDampPerSec * MathF.Max(0f, dtSec));
             rigidBody.Velocity = new JVector(
                 forceThrottle * fx + perpX * lateralDamp,
-                0f,
+                v.Y,
                 forceThrottle * fz + perpZ * lateralDamp);
         }
         else
-            rigidBody.Velocity = new JVector(forceThrottle * fx, 0f, forceThrottle * fz);
+        {
+            var v = rigidBody.Velocity;
+            rigidBody.Velocity = new JVector(forceThrottle * fx, v.Y, forceThrottle * fz);
+        }
 
         var speedToAlongVel = slave.MoveSpeedMul / 4f * MathF.Max(0.001f, slave.TurnSpeedVelocityMul);
         ShipHarpoonTowPhysics.ApplyTerrainHookTow(slave, rigidBody, dtSec, fx, fz, speedToAlongVel, maxForward, maxBackward);
