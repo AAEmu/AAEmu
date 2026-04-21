@@ -126,9 +126,8 @@ public class WaterBodies
         return true;
     }
 
-    private static bool IsRiverLikePolygon(List<Vector3> points, out float riverHalfWidthMeters, out Vector2 axisUnit)
+    private static bool IsRiverLikePolygon(List<Vector3> points, out Vector2 axisUnit)
     {
-        riverHalfWidthMeters = 0f;
         axisUnit = Vector2.UnitX;
         if (!TryGetRiverLikePolygonMetrics(points, out var length, out var maxHalfWidth, out var meanFullWidth, out _,
                 out var aspect, out var axis))
@@ -140,7 +139,6 @@ public class WaterBodies
         if (aspect < RiverLikeMinAspectRatio)
             return false;
 
-        riverHalfWidthMeters = Math.Max(4f, maxHalfWidth);
         axisUnit = axis;
         return true;
     }
@@ -511,7 +509,7 @@ public class WaterBodies
         newLake.FlowSpeedAbs = 0f;
         newLake.FlowSpeedSigned = 0f;
         newLake.Speed = 0f;
-        if (IsRiverLikePolygon(newLake.Points, out _, out var axis))
+        if (IsRiverLikePolygon(newLake.Points, out var axis))
         {
             newLake.FlowAxis = axis;
             newLake.FlowSpeedAbs = HeuristicRiverFlowSpeed;
