@@ -95,7 +95,7 @@ public sealed class WaterDebugCmd : ICommand
                             case WaterObjectVolumeType.Sector: sector++; break;
                         }
 
-                        if (w.VolumeType is WaterObjectVolumeType.River or WaterObjectVolumeType.Ocean or WaterObjectVolumeType.Sector)
+                        if (w.VolumeType == WaterObjectVolumeType.River)
                             likeRiver++;
                         if (w.VolumeType is WaterObjectVolumeType.Area or WaterObjectVolumeType.Ocean or WaterObjectVolumeType.Sector)
                             likeArea++;
