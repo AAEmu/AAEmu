@@ -66,6 +66,9 @@ public class WaterBodies
             n = points.Count;
         }
 
+        // Many callers already pass closed rings (last == first). Avoid double-counting the closing vertex in PCA metrics.
+        var pcaCount = n >= 2 && points[0] == points[^1] ? n - 1 : n;
+
         // Area (shoelace) in XY.
         double sum = 0d;
         for (var i = 0; i + 1 < n; i++)
@@ -75,8 +78,8 @@ public class WaterBodies
             return false;
 
         // PCA axis in XY from covariance.
-        var mean = GetMeanXY(points);
-        GetCovarianceXY(points, mean, out var cxx, out var cxy, out var cyy);
+        var mean = GetMeanXY(points, pcaCount);
+        GetCovarianceXY(points, pcaCount, mean, out var cxx, out var cxy, out var cyy);
         if (!float.IsFinite(cxx) || !float.IsFinite(cxy) || !float.IsFinite(cyy))
             return false;
 
@@ -144,9 +147,16 @@ public class WaterBodies
 
     private static Vector2 GetMeanXY(List<Vector3> points)
     {
+        var n = points.Count;
+        if (n >= 2 && points[0] == points[^1])
+            n -= 1;
+        return GetMeanXY(points, n);
+    }
+
+    private static Vector2 GetMeanXY(List<Vector3> points, int n)
+    {
         double sx = 0d;
         double sy = 0d;
-        var n = points.Count;
         for (var i = 0; i < n; i++)
         {
             sx += points[i].X;
@@ -159,10 +169,17 @@ public class WaterBodies
 
     private static void GetCovarianceXY(List<Vector3> points, Vector2 mean, out float cxx, out float cxy, out float cyy)
     {
+        var n = points.Count;
+        if (n >= 2 && points[0] == points[^1])
+            n -= 1;
+        GetCovarianceXY(points, n, mean, out cxx, out cxy, out cyy);
+    }
+
+    private static void GetCovarianceXY(List<Vector3> points, int n, Vector2 mean, out float cxx, out float cxy, out float cyy)
+    {
         double sxx = 0d;
         double sxy = 0d;
         double syy = 0d;
-        var n = points.Count;
         for (var i = 0; i < n; i++)
         {
             var dx = points[i].X - mean.X;
