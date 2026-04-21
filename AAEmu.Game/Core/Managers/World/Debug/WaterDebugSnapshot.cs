@@ -12,8 +12,13 @@ public static class WaterDebugSnapshot
         var w = world.Water;
         var template = world.Template;
         var oceanTpl = template.OceanLevel;
+        List<WaterBodyArea> areasSnapshot;
+        lock (w._lock)
+        {
+            areasSnapshot = [.. w.Areas];
+        }
 
-        yield return $"[waterprobe] Water.OceanLevel={w.OceanLevel} (template {oceanTpl}), areas={w.Areas.Count}";
+        yield return $"[waterprobe] Water.OceanLevel={w.OceanLevel} (template {oceanTpl}), areas={areasSnapshot.Count}";
         yield return $"[waterprobe] Pos ({pos.X:F2}, {pos.Y:F2}, {pos.Z:F2})";
 
         var isW = world.IsWater(pos, out var flow);
@@ -42,10 +47,10 @@ public static class WaterDebugSnapshot
 
         var px = pos.X;
         var py = pos.Y;
-        yield return $"[waterprobe] Areas with XY inside rough bbox: {w.Areas.Count(a => a.BoundingBox.Contains(px, py))}";
+        yield return $"[waterprobe] Areas with XY inside rough bbox: {areasSnapshot.Count(a => a.BoundingBox.Contains(px, py))}";
         yield return "[waterprobe] Nearest 4 water bodies (short id, full checks):";
 
-        var ranked = w.Areas
+        var ranked = areasSnapshot
             .Select(a => (Area: a, DistSq: DistSqPointToRect(px, py, a.BoundingBox)))
             .OrderBy(x => x.DistSq)
             .Take(4)
