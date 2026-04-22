@@ -871,6 +871,7 @@ public class SpawnManager(WorldInstance parentWorld)
 
             // you have to wait for all the doodads to spawn before trying to initialize the fish schools
             FishSchoolManager.Instance.Load(World);
+            SeaWeatherPointManager.Instance.Load(World);
         }));
 
         Logger.Info("Spawning Transfers...");
@@ -1219,6 +1220,9 @@ public class SpawnManager(WorldInstance parentWorld)
             return [];
         return DoodadSpawners.Values.Where(ds => chestTemplateIds.Contains(ds.RespawnDoodadTemplateId) || chestTemplateIds.Contains(ds.UnitId)).ToList();
     }
+
+    public List<DoodadSpawner> GetDoodadSpawnersByUnitId(uint unitId) =>
+        DoodadSpawners.Values.Where(ds => ds.UnitId == unitId).ToList();
 
     public void DeleteAllSpawners()
     {
