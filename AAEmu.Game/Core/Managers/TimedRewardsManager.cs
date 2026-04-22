@@ -51,7 +51,7 @@ public class TimedRewardsManager : Singleton<TimedRewardsManager>, ITimedRewards
 
     public void DoTick()
     {
-        var connections = GameConnectionTable.Instance.GetConnections().ToList();
+        var connections = GameConnectionTable.Instance.GetConnections();
         foreach (var connection in connections)
         {
             //var character = connection.ActiveChar;
