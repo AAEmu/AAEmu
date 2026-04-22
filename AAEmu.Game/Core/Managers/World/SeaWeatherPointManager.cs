@@ -12,21 +12,33 @@ using GameTask = AAEmu.Game.Models.Tasks.Task;
 namespace AAEmu.Game.Core.Managers.World;
 
 /// <summary>
-/// Cycles marine weather doodads at spawners whose unit template is the technical marker 2768 (technical half / active 3085 or 3086).
+/// Cycles marine weather doodads at spawners whose unit template is the technical marker 2768 (technical half / active variants below).
 /// </summary>
 public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    // Technical half / shared cycle: marker spawner unit, ratio pool for next active template, fallback half length when MinTime unset.
     private const uint MarkerTemplateId = 2768;
     private const uint RatioPoolPhaseGroupId = 7055;
-    private const uint RainTemplateId = 3085;
-    private const uint WhirlpoolTemplateId = 3086;
-    private const int RainLaunchPhase = 7132;
-    private const int WhirlpoolLaunchPhase = 7139;
-    private const int WhirlpoolShutdownPhase = 7054;
-    private const int DefaultHalfMs = 600_000;
-    private const int WhirlpoolShutdownLeadMs = 10_000;
+    private const int FallbackHalfMs = 600_000;
+
+    /// <summary>
+    /// One active marine-weather doodad variant: same server logic for all rows; only template and phase group ids differ.
+    /// </summary>
+    private readonly record struct SeaWeatherActiveKind(
+        uint TemplateId,
+        int LaunchPhaseGroupId,
+        int ShutdownPhaseGroupId,
+        int ShutdownPhaseDurationMs);
+
+    private static readonly SeaWeatherActiveKind[] ActiveKinds =
+    [
+        // Rain cloud
+        new(TemplateId: 3085, LaunchPhaseGroupId: 7132, ShutdownPhaseGroupId: 7052, ShutdownPhaseDurationMs: 10_000),
+        // Whirlpool
+        new(TemplateId: 3086, LaunchPhaseGroupId: 7139, ShutdownPhaseGroupId: 7054, ShutdownPhaseDurationMs: 10_000),
+    ];
 
     private readonly ConcurrentDictionary<uint, List<SeaWeatherPointRunner>> _runnersByWorld = new();
 
@@ -61,12 +73,27 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
             runner.Dispose();
     }
 
+    private static bool TryGetActiveKind(uint templateId, out SeaWeatherActiveKind kind)
+    {
+        foreach (var k in ActiveKinds)
+        {
+            if (k.TemplateId == templateId)
+            {
+                kind = k;
+                return true;
+            }
+        }
+
+        kind = default;
+        return false;
+    }
+
     private static int DurationMsForTemplate(uint templateId)
     {
         var template = DoodadManager.Instance.GetTemplate(templateId);
         if (template is { MinTime: > 0 })
             return template.MinTime;
-        return DefaultHalfMs;
+        return FallbackHalfMs;
     }
 
     private static uint PickActiveTemplateId()
@@ -78,7 +105,7 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
                 continue;
             if (DoodadManager.Instance.GetPhaseFuncTemplate(pf.FuncId, pf.FuncType) is not DoodadFuncRatioRespawn rr)
                 continue;
-            if (rr.SpawnDoodadId is not (RainTemplateId or WhirlpoolTemplateId))
+            if (!TryGetActiveKind(rr.SpawnDoodadId, out _))
                 continue;
             if (rr.Ratio <= 0)
                 continue;
@@ -86,7 +113,7 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
         }
 
         if (weights.Count == 0)
-            return Random.Shared.Next(2) == 0 ? RainTemplateId : WhirlpoolTemplateId;
+            return ActiveKinds[Random.Shared.Next(ActiveKinds.Length)].TemplateId;
 
         var total = 0;
         foreach (var w in weights)
@@ -152,8 +179,13 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
                 return;
 
             var nextId = PickActiveTemplateId();
-            var activeMs = DurationMsForTemplate(nextId);
-            var launchPhase = nextId == RainTemplateId ? RainLaunchPhase : WhirlpoolLaunchPhase;
+            if (!TryGetActiveKind(nextId, out var kind))
+            {
+                Logger.Warn("SeaWeatherPointManager: unknown active template {0}, using first configured kind", nextId);
+                kind = ActiveKinds[0];
+            }
+
+            var activeMs = DurationMsForTemplate(kind.TemplateId);
 
             lock (_sync)
             {
@@ -161,21 +193,18 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
                     return;
                 if (_spawner.Last != null)
                     _spawner.Despawn(_spawner.Last);
-                _spawner.RespawnDoodadTemplateId = nextId;
+                _spawner.RespawnDoodadTemplateId = kind.TemplateId;
                 var doodad = _spawner.Spawn(0);
-                doodad?.DoChangePhase(null, launchPhase);
+                doodad?.DoChangePhase(null, kind.LaunchPhaseGroupId);
             }
 
-            if (nextId == WhirlpoolTemplateId)
-            {
-                var lead = Math.Max(0, activeMs - WhirlpoolShutdownLeadMs);
-                Schedule(new WhirlpoolShutdownTask(this), TimeSpan.FromMilliseconds(lead));
-            }
+            var msUntilShutdownPhase = Math.Max(0, activeMs - kind.ShutdownPhaseDurationMs);
+            Schedule(new ForcedShutdownPhaseTask(this, kind.TemplateId, kind.ShutdownPhaseGroupId), TimeSpan.FromMilliseconds(msUntilShutdownPhase));
 
             Schedule(new ActiveHalfEndTask(this), TimeSpan.FromMilliseconds(activeMs));
         }
 
-        private void OnWhirlpoolShutdownPhase()
+        private void TryBeginForcedShutdownPhase(uint expectedActiveTemplateId, int shutdownPhaseGroupId)
         {
             if (_disposed)
                 return;
@@ -184,8 +213,8 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
             {
                 if (_disposed)
                     return;
-                if (_spawner.Last is { TemplateId: WhirlpoolTemplateId })
-                    _spawner.Last.DoChangePhase(null, WhirlpoolShutdownPhase);
+                if (_spawner.Last is { TemplateId: var tid } && tid == expectedActiveTemplateId)
+                    _spawner.Last.DoChangePhase(null, shutdownPhaseGroupId);
             }
         }
 
@@ -219,14 +248,14 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
             }
         }
 
-        private sealed class WhirlpoolShutdownTask(SeaWeatherPointRunner runner) : GameTask
+        private sealed class ForcedShutdownPhaseTask(SeaWeatherPointRunner runner, uint expectedActiveTemplateId, int shutdownPhaseGroupId) : GameTask
         {
             public override void Execute()
             {
                 runner.Unregister(this);
                 if (runner._disposed)
                     return;
-                runner.OnWhirlpoolShutdownPhase();
+                runner.TryBeginForcedShutdownPhase(expectedActiveTemplateId, shutdownPhaseGroupId);
             }
         }
 
