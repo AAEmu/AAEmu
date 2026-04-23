@@ -24,16 +24,16 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
     private readonly Dictionary<uint, float> _hullDamageAccSecBySlaveObjId = new();
 
     /// <summary>Base pull speed toward center in m/s.</summary>
-    public static float PullSpeedMetersPerSec = 3f;
+    public const float PullSpeedMetersPerSec = 3f;
 
     /// <summary>
     /// Minimum pull multiplier at full throttle.
     /// 1.0 = full pull even at full throttle; 0.0 = no pull at full throttle.
     /// </summary>
-    public static float PullAtFullThrottleMulMin = 0.5f;
+    public const float PullAtFullThrottleMulMin = 0.5f;
 
     /// <summary>Minimum horizontal distance (m) before applying pull (prevents jitter near exact center).</summary>
-    public static float MinDistanceMeters = 0.35f;
+    public const float MinDistanceMeters = 0.35f;
 
     public override void PreStep(float timeStep)
     {
