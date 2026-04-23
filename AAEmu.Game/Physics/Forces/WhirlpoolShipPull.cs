@@ -23,6 +23,11 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
     private const int HullDamagePercentPerTick = 1;
     private readonly Dictionary<uint, float> _hullDamageAccSecBySlaveObjId = new();
 
+    // Per-tick buffers (physics hot path): reused to avoid GC churn.
+    private readonly List<Vector2> _whirlpools = new(16);
+    private readonly HashSet<uint> _affectedThisTick = new();
+    private readonly List<uint> _keysToRemove = new(16);
+
     /// <summary>Base pull speed toward center in m/s.</summary>
     public const float PullSpeedMetersPerSec = 3f;
 
@@ -44,18 +49,32 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
         if (gameWorld == null)
             return;
 
+        // Avoid scanning all doodads if no ship is currently affected.
+        var slaves = gameWorld.GetAllSlaves();
+        var anyAffectedShip = false;
+        foreach (var s in slaves)
+        {
+            if (s?.Buffs.CheckBuff(WhirlpoolBuffId) == true)
+            {
+                anyAffectedShip = true;
+                break;
+            }
+        }
+        if (!anyAffectedShip)
+            return;
+
         // Clamp dt to avoid a long hitch applying too many damage loops at once.
         var dt = Math.Clamp(timeStep, 0f, 0.5f);
 
         // Snapshot active whirlpools once per step.
-        var whirlpools = new List<Vector2>();
+        _whirlpools.Clear();
         foreach (var d in gameWorld.GetAllDoodads())
         {
             if (d is { IsVisible: true, TemplateId: WhirlpoolDoodadTemplateId })
-                whirlpools.Add(new Vector2(d.Transform.World.Position.X, d.Transform.World.Position.Y));
+                _whirlpools.Add(new Vector2(d.Transform.World.Position.X, d.Transform.World.Position.Y));
         }
 
-        if (whirlpools.Count == 0)
+        if (_whirlpools.Count == 0)
             return;
 
         var baseSpeed = PullSpeedMetersPerSec;
@@ -65,9 +84,9 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
         var minDistSq = MinDistanceMeters * MinDistanceMeters;
 
         // Track ships that are currently affected this tick, to cleanup stale accumulators.
-        var affectedThisTick = new HashSet<uint>();
+        _affectedThisTick.Clear();
 
-        foreach (var slave in gameWorld.GetAllSlaves())
+        foreach (var slave in slaves)
         {
             if (slave?.RigidBody is not { } body || body.IsStatic || !body.IsActive)
                 continue;
@@ -80,14 +99,14 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
             if (groundedNow)
                 continue;
 
-            affectedThisTick.Add(slave.ObjId);
+            _affectedThisTick.Add(slave.ObjId);
 
             var shipPos = new Vector2(slave.Transform.World.Position.X, slave.Transform.World.Position.Y);
 
             // Find nearest whirlpool.
             var bestDistSq = float.MaxValue;
             var bestCenter = default(Vector2);
-            foreach (var c in whirlpools)
+            foreach (var c in _whirlpools)
             {
                 var distSq = Vector2.DistanceSquared(shipPos, c);
                 if (distSq < bestDistSq)
@@ -128,11 +147,14 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
 
         if (_hullDamageAccSecBySlaveObjId.Count > 0)
         {
-            foreach (var key in _hullDamageAccSecBySlaveObjId.Keys.ToList())
+            _keysToRemove.Clear();
+            foreach (var key in _hullDamageAccSecBySlaveObjId.Keys)
             {
-                if (!affectedThisTick.Contains(key))
-                    _hullDamageAccSecBySlaveObjId.Remove(key);
+                if (!_affectedThisTick.Contains(key))
+                    _keysToRemove.Add(key);
             }
+            foreach (var key in _keysToRemove)
+                _hullDamageAccSecBySlaveObjId.Remove(key);
         }
     }
 }
