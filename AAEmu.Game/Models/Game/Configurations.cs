@@ -3,6 +3,22 @@ using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game;
 
+public enum WindModelType
+{
+    /// <summary>Retail-like: wind only along N↔S axis. 15 angle bonus for wind in the direction of the ship.</summary>
+    Official,
+    /// <summary>More realistic: wind direction rotates smoothly over the day.</summary>
+    Realistic
+}
+
+public enum SeaWeatherModelType
+{
+    /// <summary>Retail-like sea weather ship behavior (default).</summary>
+    Official,
+    /// <summary>Experimental/realistic sea weather ship behavior.</summary>
+    Realistic
+}
+
 public class Configurations : PacketMarshaler
 {
     public string Key { get; set; }
@@ -11,22 +27,6 @@ public class Configurations : PacketMarshaler
 
 public class WorldConfig
 {
-    public enum WindModelType
-    {
-        /// <summary>Retail-like: wind only along N↔S axis. 15 angle bonus for wind in the direction of the ship.</summary>
-        Official,
-        /// <summary>More realistic: wind direction rotates smoothly over the day.</summary>
-        Realistic
-    }
-
-    public enum SeaWeatherModelType
-    {
-        /// <summary>Retail-like sea weather ship behavior (default).</summary>
-        Official,
-        /// <summary>Experimental/realistic sea weather ship behavior.</summary>
-        Realistic
-    }
-
     /// <summary>
     /// Message of the Day that gets displayed in player's chat upon login
     /// </summary>

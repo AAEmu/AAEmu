@@ -96,8 +96,8 @@ public class PhysicsManager
         _buoyancy.UseOwnFluidArea(CustomWater);
 
         _whirlpoolShipPull = new WhirlpoolShipPull(_physWorld, () => SimulationWorld);
-        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? WorldConfig.SeaWeatherModelType.Official;
-        if (seaWeatherModel == WorldConfig.SeaWeatherModelType.Realistic)
+        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? SeaWeatherModelType.Official;
+        if (seaWeatherModel == SeaWeatherModelType.Realistic)
             _stormShipLogic = new StormShipLogic(_physWorld, () => SimulationWorld);
 
         Logger.Info($"{SimulationWorld.Template.Name} initialized.");

@@ -23,7 +23,7 @@ namespace AAEmu.Game.Physics.Forces;
 
 /// <summary>
 /// Placeholder for ship-in-storm ("cloud") behavior.
-/// Enabled only when <see cref="WorldConfig.SeaWeatherModelType.Realistic"/> is selected.
+/// Enabled only when <see cref="SeaWeatherModelType.Realistic"/> is selected.
 /// </summary>
 public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : ForceGenerator(world)
 {
@@ -41,8 +41,8 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         if (character is null)
             return null;
 
-        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? WorldConfig.SeaWeatherModelType.Official;
-        if (seaWeatherModel != WorldConfig.SeaWeatherModelType.Realistic)
+        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? SeaWeatherModelType.Official;
+        if (seaWeatherModel != SeaWeatherModelType.Realistic)
             return null;
 
         if (!character.Buffs.CheckBuff(StormBuffId))
@@ -70,8 +70,8 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         Models.Game.Char.Character operatorCharacter,
         Slave casterSlave)
     {
-        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? WorldConfig.SeaWeatherModelType.Official;
-        if (seaWeatherModel != WorldConfig.SeaWeatherModelType.Realistic)
+        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? SeaWeatherModelType.Official;
+        if (seaWeatherModel != SeaWeatherModelType.Realistic)
             return false;
 
         // Harpoon is also a ship-mounted weapon/slot; storm rules shouldn't block it.
