@@ -708,7 +708,7 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
 
     public void CleanupInstance()
     {
-        SeaWeatherPointManager.Instance.UnregisterWorld(Id);
+        SeaWeatherPointManager.Instance.UnregisterWorld(Id); // Safe even if SpawnManager is null; CleanupInstance can run for test worlds.
 
         // Stop respawn system (check for null as SpawnManager may not be initialized in tests)
         if (SpawnManager == null)
