@@ -19,6 +19,14 @@ public class WorldConfig
         Realistic
     }
 
+    public enum SeaWeatherModelType
+    {
+        /// <summary>Retail-like sea weather ship behavior (default).</summary>
+        Official,
+        /// <summary>Experimental/realistic sea weather ship behavior.</summary>
+        Realistic
+    }
+
     /// <summary>
     /// Message of the Day that gets displayed in player's chat upon login
     /// </summary>
@@ -111,6 +119,13 @@ public class WorldConfig
     /// Default: <c>Official</c>.
     /// </summary>
     public WindModelType WindModel { get; set; } = WindModelType.Official;
+
+    /// <summary>
+    /// Sea weather ship model used for marine weather effects (whirlpool / storm cloud).
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.SeaWeatherModel</c>.
+    /// Default: <c>Official</c>.
+    /// </summary>
+    public SeaWeatherModelType SeaWeatherModel { get; set; } = SeaWeatherModelType.Official;
 
     /// <summary>
     /// Server-side Actability Points multiplier (on top of buffs)

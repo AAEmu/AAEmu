@@ -85,6 +85,11 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             var slave = caster as Slave;
             var mountAttachedSkill = 0u;
 
+            if (slave != null && Connection.ActiveChar != null &&
+                AAEmu.Game.Physics.Forces.StormShipLogic.TryBlockMountOrSlaveSkillAndSend(
+                    Connection, world, skillId, skillCaster, skillCastTarget, skill, skillObject, Connection.ActiveChar, slave))
+                return;
+
             if (mate != null || slave != null)
             {
                 // check if it's a mate or slave skill and return its rider/operator related skill

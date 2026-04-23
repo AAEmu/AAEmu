@@ -17,6 +17,7 @@
         "MaxInstances": 32,
         "TargetPhysicsTps": 25.0,
         "WindModel": "Official",
+        "SeaWeatherModel": "Realistic",
         "ActabilityRate": 1.0,
         "UsePersistentHouseDoodads": false
     }

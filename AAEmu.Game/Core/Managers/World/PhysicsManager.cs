@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -49,6 +50,7 @@ public class PhysicsManager
 
     internal Buoyancy _buoyancy;
     private WhirlpoolShipPull _whirlpoolShipPull;
+    private StormShipLogic _stormShipLogic;
     internal bool ThreadRunning { get; set; }
 
     /// <summary>
@@ -94,6 +96,9 @@ public class PhysicsManager
         _buoyancy.UseOwnFluidArea(CustomWater);
 
         _whirlpoolShipPull = new WhirlpoolShipPull(_physWorld, () => SimulationWorld);
+        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? WorldConfig.SeaWeatherModelType.Official;
+        if (seaWeatherModel == WorldConfig.SeaWeatherModelType.Realistic)
+            _stormShipLogic = new StormShipLogic(_physWorld, () => SimulationWorld);
 
         Logger.Info($"{SimulationWorld.Template.Name} initialized.");
     }
