@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Physics.Debug;
 
 using Jitter2;
@@ -27,6 +28,24 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
     // Storm cloud doodad and its clout buff (configured in client data / compact sqlite).
     private const uint StormDoodadTemplateId = 3085;
     private const uint StormBuffId = 1917;
+
+    /// <summary>Client-visible time-of-day while storm buff is active (in-game hours).</summary>
+    public const float StormClientTimeOfDayHours = 2f;
+
+    /// <summary>
+    /// If storm rules should override the client's displayed time-of-day, returns the forced hours; otherwise null.
+    /// </summary>
+    public static float? ResolveClientTimeOfDayHours(Character character)
+    {
+        var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? WorldConfig.SeaWeatherModelType.Official;
+        if (seaWeatherModel != WorldConfig.SeaWeatherModelType.Realistic)
+            return null;
+
+        if (!character.Buffs.CheckBuff(StormBuffId))
+            return null;
+
+        return StormClientTimeOfDayHours;
+    }
 
     private static bool IsCannonAttachPoint(AttachPointKind ap) =>
         ap is >= AttachPointKind.Cannon0 and <= AttachPointKind.Cannon8
