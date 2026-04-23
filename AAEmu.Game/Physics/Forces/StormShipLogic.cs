@@ -127,8 +127,6 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         if (gameWorld == null)
             return;
 
-        var now = DateTime.UtcNow;
-
         // Cleanup: remove states for ships that no longer exist or no longer have the buff.
         if (_stateBySlaveObjId.Count > 0)
         {
