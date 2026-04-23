@@ -18,6 +18,11 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
     private const uint WhirlpoolBuffId = 1918;
     private const uint WhirlpoolDoodadTemplateId = 3086;
 
+    // Hull damage while pulled by a whirlpool: 1% HP per second.
+    private const float HullDamageIntervalSec = 1f;
+    private const int HullDamagePercentPerTick = 1;
+    private readonly Dictionary<uint, float> _hullDamageAccSecBySlaveObjId = new();
+
     /// <summary>Base pull speed toward center in m/s.</summary>
     public static float PullSpeedMetersPerSec = 3f;
 
@@ -39,6 +44,9 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
         if (gameWorld == null)
             return;
 
+        // Clamp dt to avoid a long hitch applying too many damage loops at once.
+        var dt = Math.Clamp(timeStep, 0f, 0.5f);
+
         // Snapshot active whirlpools once per step.
         var whirlpools = new List<Vector2>();
         foreach (var d in gameWorld.GetAllDoodads())
@@ -56,6 +64,9 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
 
         var minDistSq = MinDistanceMeters * MinDistanceMeters;
 
+        // Track ships that are currently affected this tick, to cleanup stale accumulators.
+        var affectedThisTick = new HashSet<uint>();
+
         foreach (var slave in gameWorld.GetAllSlaves())
         {
             if (slave?.RigidBody is not { } body || body.IsStatic || !body.IsActive)
@@ -68,6 +79,8 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
             var groundedNow = slave.GroundContactLatched || slave.CachedFloorLevel > slave.CachedWaterSurface;
             if (groundedNow)
                 continue;
+
+            affectedThisTick.Add(slave.ObjId);
 
             var shipPos = new Vector2(slave.Transform.World.Position.X, slave.Transform.World.Position.Y);
 
@@ -101,6 +114,25 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
 
             // Physics rigid-body horizontal plane is XZ; rigid-body Z maps to world Y.
             body.Position += new JVector(dxy.X, 0f, dxy.Y);
+
+            // Hull damage while affected by the whirlpool pull.
+            _hullDamageAccSecBySlaveObjId.TryGetValue(slave.ObjId, out var acc);
+            acc += dt;
+            while (acc >= HullDamageIntervalSec)
+            {
+                acc -= HullDamageIntervalSec;
+                slave.ApplyShipHullCollisionDamage(slave, HullDamagePercentPerTick);
+            }
+            _hullDamageAccSecBySlaveObjId[slave.ObjId] = acc;
+        }
+
+        if (_hullDamageAccSecBySlaveObjId.Count > 0)
+        {
+            foreach (var key in _hullDamageAccSecBySlaveObjId.Keys.ToList())
+            {
+                if (!affectedThisTick.Contains(key))
+                    _hullDamageAccSecBySlaveObjId.Remove(key);
+            }
         }
     }
 }
