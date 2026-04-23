@@ -92,6 +92,7 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
     {
         var template = DoodadManager.Instance.GetTemplate(templateId);
         if (template is { MinTime: > 0 })
+            // `min_time` in compact.sqlite3 doodad funcs is stored in milliseconds (e.g., 3_600_000 for 1h, 86_400_000 for 24h).
             return template.MinTime;
         return FallbackHalfMs;
     }
