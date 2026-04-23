@@ -28,7 +28,6 @@ namespace AAEmu.Game.Physics.Forces;
 public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : ForceGenerator(world)
 {
     // Storm cloud doodad and its clout buff (configured in client data / compact sqlite).
-    private const uint StormDoodadTemplateId = 3085;
     private const uint StormBuffId = 1917;
 
     /// <summary>Client-visible time-of-day while storm buff is active (in-game hours).</summary>
