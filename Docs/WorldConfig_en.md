@@ -119,3 +119,39 @@ Examples:
 }
 ```
 
+## Sea weather (marine events)
+
+### `SeaWeatherModel`
+- **Type**: `string`
+- **Path**: `World.SeaWeatherModel`
+- **What it affects**: ship-side behavior while marine weather doodads are active (storm cloud / whirlpool). It does **not** control spawn locations; those are driven by marine-weather spawners (marker template `2768`) in world spawn data.
+- **Allowed values**:
+  - **`Official`**: retail-like (default).
+    - keeps the **retail-like slowdown** behavior in storms;
+    - whirlpool pull (buff-driven drift toward active whirlpools) still applies.
+  - **`Realistic`**: advanced / more immersive.
+    - keeps the **retail-like slowdown** behavior in storms;
+    - enables additional ship-in-storm behavior when the storm buff is active:
+      - blocks firing **ship cannons** while in storm (harpoon is not blocked);
+      - automatically turns on ship lamps (front/rear) while in storm;
+      - forces the client time-of-day display to **02:00** while the storm buff is active.
+    - whirlpool pull remains enabled (same as `Official`).
+
+Examples:
+
+```json
+{
+  "World": {
+    "SeaWeatherModel": "Official"
+  }
+}
+```
+
+```json
+{
+  "World": {
+    "SeaWeatherModel": "Realistic"
+  }
+}
+```
+
