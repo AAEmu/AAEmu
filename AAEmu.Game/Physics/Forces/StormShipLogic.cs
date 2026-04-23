@@ -51,10 +51,6 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         return StormClientTimeOfDayHours;
     }
 
-    private static bool IsCannonAttachPoint(AttachPointKind ap) =>
-        ap is >= AttachPointKind.Cannon0 and <= AttachPointKind.Cannon8
-            or >= AttachPointKind.Cannon9 and <= AttachPointKind.Cannon19;
-
     private static bool IsCannonAttachPointId(sbyte apId) =>
         apId is >= (sbyte)AttachPointKind.Cannon0 and <= (sbyte)AttachPointKind.Cannon8
             or >= (sbyte)AttachPointKind.Cannon9 and <= (sbyte)AttachPointKind.Cannon19;
@@ -86,7 +82,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         // and only use operator attach-point as a fallback.
         if (!IsCannonAttachPointId(casterSlave.AttachPointId))
         {
-            if (operatorCharacter?.AttachedPoint is not { } ap || !IsCannonAttachPoint(ap))
+            if (operatorCharacter?.AttachedPoint is not { } ap || !IsCannonAttachPointId((sbyte)ap))
                 return false;
         }
 
