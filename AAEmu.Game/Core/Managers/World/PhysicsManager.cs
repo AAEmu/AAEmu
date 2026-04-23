@@ -48,6 +48,7 @@ public class PhysicsManager
     internal Jitter2.World _physWorld;
 
     internal Buoyancy _buoyancy;
+    private WhirlpoolShipPull _whirlpoolShipPull;
     internal bool ThreadRunning { get; set; }
 
     /// <summary>
@@ -91,6 +92,8 @@ public class PhysicsManager
             )
         };
         _buoyancy.UseOwnFluidArea(CustomWater);
+
+        _whirlpoolShipPull = new WhirlpoolShipPull(_physWorld, () => SimulationWorld);
 
         Logger.Info($"{SimulationWorld.Template.Name} initialized.");
     }
