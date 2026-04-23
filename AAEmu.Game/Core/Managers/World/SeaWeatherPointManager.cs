@@ -220,8 +220,9 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
             {
                 if (_disposed)
                     return;
-                if (_spawner.Last is { TemplateId: var tid } && tid == expectedActiveTemplateId)
-                    _spawner.Last.DoChangePhase(null, shutdownPhaseGroupId);
+                var last = _spawner.Last;
+                if (last is { TemplateId: var tid } && tid == expectedActiveTemplateId)
+                    last.DoChangePhase(null, shutdownPhaseGroupId);
             }
         }
 
