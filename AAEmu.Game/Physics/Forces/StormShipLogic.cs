@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Physics.Debug;
 
 using Jitter2;
 using Jitter2.Dynamics;
@@ -54,6 +55,10 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         if (seaWeatherModel != WorldConfig.SeaWeatherModelType.Realistic)
             return false;
 
+        // Harpoon is also a ship-mounted weapon/slot; storm rules shouldn't block it.
+        if (HarpoonMechanicsDebug.IsShipHarpoonSkill(skillId))
+            return false;
+
         // Cannon skills are typically cast by the cannon slave; prefer its own attach-point id,
         // and only use operator attach-point as a fallback.
         if (!IsCannonAttachPointId(casterSlave.AttachPointId))
@@ -91,13 +96,9 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
     private sealed class StormState
     {
         public bool LampsIgnited;
-        public DateTime NextSailDropUtc;
     }
 
     private readonly Dictionary<uint, StormState> _stateBySlaveObjId = new();
-
-    private static TimeSpan SailDropInterval => GetSailDropInterval();
-    private static TimeSpan GetSailDropInterval() => TimeSpan.FromSeconds(10);
 
     public override void PreStep(float timeStep)
     {
@@ -129,7 +130,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
 
             if (!_stateBySlaveObjId.TryGetValue(slave.ObjId, out var st))
             {
-                st = new StormState { LampsIgnited = false, NextSailDropUtc = now + SailDropInterval };
+                st = new StormState { LampsIgnited = false };
                 _stateBySlaveObjId[slave.ObjId] = st;
             }
 
@@ -137,12 +138,6 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
             {
                 IgniteShipLamps(slave);
                 st.LampsIgnited = true;
-            }
-
-            if (now >= st.NextSailDropUtc)
-            {
-                DropRandomSail(slave);
-                st.NextSailDropUtc = now + SailDropInterval;
             }
 
             // Blocking cannon fire is handled in CSStartSkillPacket (skill start gate) while storm buff is active.
@@ -162,20 +157,6 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         }
     }
 
-    private static void DropRandomSail(Slave ship)
-    {
-        var sails = ship.AttachedDoodads
-            .Where(d => d is { AttachPoint: AttachPointKind.Sail0 or AttachPointKind.Sail1 or AttachPointKind.Sail2 })
-            .ToList();
-
-        if (sails.Count == 0)
-            return;
-
-        var sail = sails[Random.Shared.Next(sails.Count)];
-        if (sail != null)
-            TrySwitchDoodadToEndOrNormalPhase(sail);
-    }
-
     private static void TrySwitchDoodadToNonStartPhase(Doodad doodad)
     {
         if (doodad?.Template?.FuncGroups == null || doodad.Template.FuncGroups.Count == 0)
@@ -185,28 +166,6 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
             .Where(g => g.GroupKindId is DoodadFuncGroups.DoodadFuncGroupKind.Normal or DoodadFuncGroups.DoodadFuncGroupKind.End)
             .Select(g => g.Id)
             .FirstOrDefault();
-
-        if (target > 0 && doodad.FuncGroupId != target)
-            doodad.DoChangePhase(null, (int)target);
-    }
-
-    private static void TrySwitchDoodadToEndOrNormalPhase(Doodad doodad)
-    {
-        if (doodad?.Template?.FuncGroups == null || doodad.Template.FuncGroups.Count == 0)
-            return;
-
-        var target = doodad.Template.FuncGroups
-            .Where(g => g.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.End)
-            .Select(g => g.Id)
-            .FirstOrDefault();
-
-        if (target == 0)
-        {
-            target = doodad.Template.FuncGroups
-                .Where(g => g.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Normal)
-                .Select(g => g.Id)
-                .FirstOrDefault();
-        }
 
         if (target > 0 && doodad.FuncGroupId != target)
             doodad.DoChangePhase(null, (int)target);
