@@ -152,6 +152,13 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
 
         public void StartInitialTechnicalHalf()
         {
+            lock (_sync)
+            {
+                _spawner.DespawnAllSpawnedDoodads();
+                _spawner.RespawnDoodadTemplateId = 0;
+                _spawner.Spawn(0);
+            }
+
             var ms = DurationMsForTemplate(MarkerTemplateId);
             Schedule(new TechnicalHalfEndTask(this), TimeSpan.FromMilliseconds(ms));
         }
@@ -191,8 +198,7 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
             {
                 if (_disposed)
                     return;
-                if (_spawner.Last != null)
-                    _spawner.Despawn(_spawner.Last);
+                _spawner.DespawnAllSpawnedDoodads();
                 _spawner.RespawnDoodadTemplateId = kind.TemplateId;
                 var doodad = _spawner.Spawn(0);
                 doodad?.DoChangePhase(null, kind.LaunchPhaseGroupId);
@@ -227,8 +233,7 @@ public sealed class SeaWeatherPointManager : Singleton<SeaWeatherPointManager>
             {
                 if (_disposed)
                     return;
-                if (_spawner.Last != null)
-                    _spawner.Despawn(_spawner.Last);
+                _spawner.DespawnAllSpawnedDoodads();
                 _spawner.RespawnDoodadTemplateId = MarkerTemplateId;
                 _spawner.Spawn(0);
             }

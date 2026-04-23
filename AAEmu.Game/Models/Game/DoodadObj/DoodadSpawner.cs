@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -178,6 +179,12 @@ public class DoodadSpawner : Spawner<Doodad>
     /// <param name="doodad"></param>
     public override void Despawn(Doodad doodad)
     {
+        if (doodad.FuncTask != null)
+        {
+            doodad.FuncTask.Cancel();
+            doodad.FuncTask = null;
+        }
+
         doodad.Delete();
 
         if (doodad.Respawn == DateTime.MinValue)
@@ -185,6 +192,39 @@ public class DoodadSpawner : Spawner<Doodad>
             ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
         }
 
+        _spawned.Remove(doodad);
+        if (ReferenceEquals(Last, doodad))
+            Last = null;
+    }
+
+    /// <summary>
+    /// Despawns every doodad tied to this spawner, including orphans from <see cref="Spawn(uint)"/> resetting <see cref="_spawned"/>.
+    /// </summary>
+    public void DespawnAllSpawnedDoodads()
+    {
+        var set = new HashSet<Doodad>();
+        foreach (var d in _spawned)
+        {
+            if (d != null)
+                set.Add(d);
+        }
+
+        if (Last != null)
+            set.Add(Last);
+
+        if (ParentWorld != null)
+        {
+            foreach (var d in ParentWorld.GetAllDoodads())
+            {
+                if (d.Spawner == this)
+                    set.Add(d);
+            }
+        }
+
+        foreach (var d in set)
+            Despawn(d);
+
+        _spawned = [];
         Last = null;
     }
 
