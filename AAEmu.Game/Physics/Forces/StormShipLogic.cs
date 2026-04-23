@@ -31,11 +31,6 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
     private const uint StormDoodadTemplateId = 3085;
     private const uint StormBuffId = 1917;
 
-    // "Naval Lantern" doodad templates (localized name in client data).
-    // Ships don't consistently use AttachPointKind.LampFront/LampRear for these, so we also match by template id.
-    private static bool IsNavalLanternTemplateId(uint templateId) =>
-        templateId is 2612 or 6587;
-
     /// <summary>Client-visible time-of-day while storm buff is active (in-game hours).</summary>
     public const float StormClientTimeOfDayHours = 2f;
 
@@ -177,8 +172,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         {
             if (doodad == null)
                 continue;
-            var isLampSlot = doodad.AttachPoint is AttachPointKind.LampFront or AttachPointKind.LampRear;
-            if (!isLampSlot && !IsNavalLanternTemplateId(doodad.TemplateId))
+            if (doodad.AttachPoint is not (AttachPointKind.LampFront or AttachPointKind.LampRear))
                 continue;
             TrySwitchDoodadToNonStartPhase(doodad);
         }
