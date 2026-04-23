@@ -80,7 +80,12 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
 
         // Cannon skills are typically cast by the cannon slave; prefer its own attach-point id,
         // and only use operator attach-point as a fallback.
-        if (!IsCannonAttachPointId(casterSlave.AttachPointId))
+        if (casterSlave.AttachPointId != -1)
+        {
+            if (!IsCannonAttachPointId(casterSlave.AttachPointId))
+                return false;
+        }
+        else
         {
             if (operatorCharacter?.AttachedPoint is not { } ap || !IsCannonAttachPointId((sbyte)ap))
                 return false;
