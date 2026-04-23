@@ -56,11 +56,7 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
         }
 
         if (whirlpools.Count == 0)
-        {
-            // Avoid carrying fractional hull-damage credit across separate whirlpool events.
-            _hullDamageAccSecBySlaveObjId.Clear();
             return;
-        }
 
         var baseSpeed = PullSpeedMetersPerSec;
         if (baseSpeed <= 0f)
