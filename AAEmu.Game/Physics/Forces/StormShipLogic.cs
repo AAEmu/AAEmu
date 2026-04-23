@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Game.Core.Network.Connections;
@@ -28,6 +30,11 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
     // Storm cloud doodad and its clout buff (configured in client data / compact sqlite).
     private const uint StormDoodadTemplateId = 3085;
     private const uint StormBuffId = 1917;
+
+    // "Naval Lantern" doodad templates (localized name in client data).
+    // Ships don't consistently use AttachPointKind.LampFront/LampRear for these, so we also match by template id.
+    private static bool IsNavalLanternTemplateId(uint templateId) =>
+        templateId is 2612 or 6587;
 
     /// <summary>Client-visible time-of-day while storm buff is active (in-game hours).</summary>
     public const float StormClientTimeOfDayHours = 2f;
@@ -170,7 +177,8 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         {
             if (doodad == null)
                 continue;
-            if (doodad.AttachPoint is not (AttachPointKind.LampFront or AttachPointKind.LampRear))
+            var isLampSlot = doodad.AttachPoint is AttachPointKind.LampFront or AttachPointKind.LampRear;
+            if (!isLampSlot && !IsNavalLanternTemplateId(doodad.TemplateId))
                 continue;
             TrySwitchDoodadToNonStartPhase(doodad);
         }
@@ -181,13 +189,43 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         if (doodad?.Template?.FuncGroups == null || doodad.Template.FuncGroups.Count == 0)
             return;
 
-        var target = doodad.Template.FuncGroups
-            .Where(g => g.GroupKindId is DoodadFuncGroups.DoodadFuncGroupKind.Normal or DoodadFuncGroups.DoodadFuncGroupKind.End)
-            .Select(g => g.Id)
-            .FirstOrDefault();
+        var target = PickStormLitFuncGroupId(doodad);
 
         if (target > 0 && doodad.FuncGroupId != target)
             doodad.DoChangePhase(null, (int)target);
+    }
+
+    /// <summary>
+    /// Many ship lamps have multiple <see cref="DoodadFuncGroups.DoodadFuncGroupKind.Normal"/> phases (off/on variants).
+    /// Pick the best "lit" candidate instead of blindly taking <c>FirstOrDefault()</c>.
+    /// </summary>
+    private static uint PickStormLitFuncGroupId(Doodad doodad)
+    {
+        var groups = doodad.Template.FuncGroups
+            .Where(g => g.GroupKindId is DoodadFuncGroups.DoodadFuncGroupKind.Normal or DoodadFuncGroups.DoodadFuncGroupKind.End)
+            .ToList();
+
+        if (groups.Count == 0)
+            return 0;
+
+        static bool LooksLit(string model) =>
+            !string.IsNullOrEmpty(model)
+            && model.Contains("_on", StringComparison.OrdinalIgnoreCase);
+
+        static bool LooksUnlit(string model) =>
+            !string.IsNullOrEmpty(model)
+            && model.Contains("_off", StringComparison.OrdinalIgnoreCase);
+
+        // Prefer explicit "on" prefab/model markers.
+        foreach (var g in groups.OrderByDescending(g => g.Id))
+        {
+            if (LooksLit(g.Model) && !LooksUnlit(g.Model))
+                return g.Id;
+        }
+
+        // If we can't infer on/off from the model string, fall back to the highest-id normal/end group
+        // (often the last authored phase is the "active" visual for toggles).
+        return groups.Max(g => g.Id);
     }
 }
 
