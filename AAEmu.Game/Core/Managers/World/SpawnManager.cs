@@ -871,7 +871,6 @@ public class SpawnManager(WorldInstance parentWorld)
 
             // you have to wait for all the doodads to spawn before trying to initialize the fish schools
             FishSchoolManager.Instance.Load(World);
-            SeaWeatherPointManager.Instance.Load(World);
         }));
 
         Logger.Info("Spawning Transfers...");
