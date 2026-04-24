@@ -1,6 +1,6 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Physics.Forces;
+using AAEmu.Game.Weather;
 
 namespace AAEmu.Game.Models.Observers;
 

@@ -6,20 +6,21 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Physics.Debug;
+using AAEmu.Game.Physics.Forces;
 
 using Jitter2;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 
-namespace AAEmu.Game.Physics.Forces;
+namespace AAEmu.Game.Weather;
 
 /// <summary>
 /// Placeholder for ship-in-storm ("cloud") behavior.
@@ -67,7 +68,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         SkillCastTarget skillCastTarget,
         Skill skill,
         SkillObject skillObject,
-        Models.Game.Char.Character operatorCharacter,
+        Character operatorCharacter,
         Slave casterSlave)
     {
         var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? SeaWeatherModelType.Official;

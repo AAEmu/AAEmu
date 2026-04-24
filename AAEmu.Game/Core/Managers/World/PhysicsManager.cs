@@ -16,6 +16,7 @@ using AAEmu.Game.Physics.Debug;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.HeightMaps;
 using AAEmu.Game.Physics.Util;
+using AAEmu.Game.Weather;
 using AAEmu.Game.Utils;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;

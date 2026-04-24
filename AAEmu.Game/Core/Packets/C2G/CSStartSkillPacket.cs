@@ -86,7 +86,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             var mountAttachedSkill = 0u;
 
             if (slave != null && Connection.ActiveChar != null &&
-                AAEmu.Game.Physics.Forces.StormShipLogic.TryBlockMountOrSlaveSkillAndSend(
+                AAEmu.Game.Weather.StormShipLogic.TryBlockMountOrSlaveSkillAndSend(
                     Connection, world, skillId, skillCaster, skillCastTarget, skill, skillObject, Connection.ActiveChar, slave))
                 return;
 
