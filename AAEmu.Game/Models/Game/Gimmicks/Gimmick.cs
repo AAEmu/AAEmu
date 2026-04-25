@@ -204,7 +204,7 @@ public class Gimmick : Unit
 
         var deltaTime = (float)delta.TotalSeconds;
         var deltaPosition = Transform.World.Position - LastPos;
-        Vel = deltaPosition * deltaTime;
+        Vel = deltaTime > 0f ? (deltaPosition / deltaTime) : Vector3.Zero;
         AngVel = new Vector3(0f, 0f, 0f);
 
         // Time += (uint)delta.Milliseconds;

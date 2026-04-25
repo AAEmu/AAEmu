@@ -17,6 +17,10 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
         if (dt <= 0f)
             return;
 
+        // Movement must never crash the global tick loop
+        if (owner.Transform?.World == null)
+            return;
+
         var vel = owner.Vel;
         var pos = owner.Transform.World.Position;
 

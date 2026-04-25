@@ -91,6 +91,13 @@ public class GimmickManager(WorldInstance parentWorld)
                 gimmick.MovementHandler ??= new GimmickMovementProjectile(gimmick);
         }
 
+        // Prevent first-tick "cosmic velocity" caused by default LastPos/LastRot = 0
+        if (gimmick.Transform?.World != null)
+        {
+            gimmick.LastPos = gimmick.Transform.World.Position;
+            gimmick.LastRot = gimmick.Transform.World.Rotation;
+        }
+
         gimmick.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         lock (_activeGimmicks)
             _activeGimmicks.TryAdd(gimmick.ObjId, gimmick);
