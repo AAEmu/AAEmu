@@ -44,14 +44,23 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
 
         // Detonate on ship hull collision (mass-box OBB in XY).
         {
+            // Prevent immediate self-hit when firing from a ship deck (projectile starts inside the hull OBB).
+            if (owner.TotalLifeTime.TotalMilliseconds < 200)
+                goto AfterShipCollision;
+
             const float projectileRadius = 0.5f;
             const float shipQueryRadius = 120f;
             var nearbyShips = WorldManager.GetAround<Slave>(owner, shipQueryRadius, false);
+
+            var spawner = owner.ParentWorld?.GetUnit(owner.SpawnerUnitId);
+            var spawnerObjId = spawner?.ObjId ?? 0;
             foreach (var ship in nearbyShips)
             {
                 if (!ship.Template.IsABoat())
                     continue;
                 if (ship.RigidBody is null || ship.ShipController?.ShipModel is null)
+                    continue;
+                if (spawnerObjId != 0 && ship.AttachedCharacters.Values.Any(c => c.ObjId == spawnerObjId))
                     continue;
                 if (!ShipSiegeAoEHit.TrySiegePointHitsShipMassBoxXz(pos.X, pos.Y, projectileRadius, ship))
                     continue;
@@ -71,6 +80,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                 return;
             }
         }
+        AfterShipCollision: ;
 
         // Detonate on water surface impact (ocean + river/lake surfaces).
         // We intentionally check this before ground so projectiles explode on splash even if terrain is below.
