@@ -10,23 +10,26 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
     {
         base.Tick(delta);
 
-        if (owner.Template == null)
+        var template = owner.Template;
+        if (template == null)
+            return;
+
+        // Movement must never crash the global tick loop
+        var worldTf = owner.Transform?.World;
+        if (worldTf == null)
             return;
 
         var dt = (float)delta.TotalSeconds;
         if (dt <= 0f)
             return;
 
-        // Movement must never crash the global tick loop
-        if (owner.Transform?.World == null)
-            return;
-
         var vel = owner.Vel;
-        var pos = owner.Transform.World.Position;
+        var pos = worldTf.Position;
+        var oldPos = pos;
 
-        vel.Z -= owner.Template.Gravity * dt;
+        vel.Z -= template.Gravity * dt;
 
-        var air = owner.Template.AirResistance;
+        var air = template.AirResistance;
         if (air > 0f)
         {
             var k = MathF.Max(0f, 1f - air * dt);
@@ -35,8 +38,34 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
 
         pos += vel * dt;
 
+        if (!template.NoGroundCollider)
+        {
+            var world = owner.ParentWorld;
+            if (world != null)
+            {
+                var floorZ = world.GetHeight(pos.X, pos.Y);
+                if (oldPos.Z > floorZ && pos.Z <= floorZ)
+                {
+                    pos.Z = floorZ;
+                    worldTf.Position = pos;
+                    owner.Vel = Vector3.Zero;
+
+                    var impactSpeed = vel.Length();
+                    if (impactSpeed >= template.CollisionMinSpeed)
+                    {
+                        var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
+                        owner.TriggerSkill(skillId);
+                    }
+
+                    if (template.DisappearByCollision)
+                        owner.Spawner?.Despawn(owner);
+                    return;
+                }
+            }
+        }
+
         owner.Vel = vel;
-        owner.Transform.World.Position = pos;
+        worldTf.Position = pos;
     }
 }
 

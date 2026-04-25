@@ -165,7 +165,8 @@ public class Gimmick : Unit
         }
 
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
-        var caster = ParentWorld.GetUnit(SpawnerUnitId);
+        // Use the gimmick itself as the caster so collision-triggered skills don't fail range checks vs the original spawner.
+        BaseUnit caster = this;
         var skillCaster = new SkillDoodad(ObjId);
         var skillCastTarget = new SkillCastPositionTarget
         {
@@ -184,6 +185,8 @@ public class Gimmick : Unit
 
         BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"Gimmick {ObjId} used skill {skillId}"), false);
     }
+
+    public void TriggerSkill(uint skillId) => DoGimmickSkill(skillId);
 
     public void GimmickTick(TimeSpan delta)
     {
