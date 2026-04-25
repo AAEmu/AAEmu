@@ -2,8 +2,6 @@ using System;
 using System.Linq;
 using System.Numerics;
 
-using AAEmu.Game.Core.Network.Connections;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -55,20 +53,18 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         slave?.Template?.ModelId == RegularCannonVehicleModelId;
 
     /// <summary>
-    /// Storm skill gate + response sender. If blocked, sends a <see cref="SCSkillStartedPacket"/> with the error result
-    /// and returns true so the caller can exit early.
+    /// Storm skill gate. If blocked, returns true and provides the fail result so the caller can handle packet sending.
     /// </summary>
-    public static bool TryBlockMountOrSlaveSkillAndSend(
-        GameConnection connection,
+    public static bool TryBlockMountOrSlaveSkill(
         WorldInstance world,
         uint skillId,
-        SkillCaster skillCaster,
-        SkillCastTarget skillCastTarget,
-        Skill skill,
-        SkillObject skillObject,
-        Character operatorCharacter,
-        Slave casterSlave)
+        Slave casterSlave,
+        out SkillResult result,
+        out uint errorValue)
     {
+        result = SkillResult.Success;
+        errorValue = 0u;
+
         var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? SeaWeatherModelType.Official;
         if (seaWeatherModel != SeaWeatherModelType.Realistic)
             return false;
@@ -92,19 +88,8 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         if (!parentShip.Buffs.CheckBuff(StormBuffId))
             return false;
 
-        var res = SkillResult.NoPerm;
-        const uint err = 0u;
-
-        var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
-        {
-            RealCastTimeDiv10 = 0,
-            BaseCastTimeDiv10 = 0
-        };
-        scSkillStartedPacket.SetSkillResult(res);
-        scSkillStartedPacket.SetResultUInt(err);
-        connection.SendPacket(scSkillStartedPacket);
-        // Otherwise the skill press can feel like "nothing happens" client-side.
-        operatorCharacter?.SendErrorMessage(ErrorMessageType.NotReady, 0, true);
+        result = SkillResult.NoPerm;
+        errorValue = 0u;
         return true;
     }
 

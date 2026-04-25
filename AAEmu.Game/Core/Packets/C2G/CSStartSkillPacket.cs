@@ -85,10 +85,16 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             var slave = caster as Slave;
             var mountAttachedSkill = 0u;
 
-            if (slave != null && Connection.ActiveChar != null &&
-                AAEmu.Game.Weather.StormShipLogic.TryBlockMountOrSlaveSkillAndSend(
-                    Connection, world, skillId, skillCaster, skillCastTarget, skill, skillObject, Connection.ActiveChar, slave))
-                return;
+            if (slave != null && Connection.ActiveChar != null
+                && AAEmu.Game.Weather.StormShipLogic.TryBlockMountOrSlaveSkill(
+                    world, skillId, slave, out var blockResult, out var blockErrorValue))
+            {
+                skillResult = blockResult;
+                skillResultErrorValue = blockErrorValue;
+                // Otherwise the skill press can feel like "nothing happens" client-side.
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.NotReady, 0, true);
+                goto SendSkillFailIfNeeded;
+            }
 
             if (mate != null || slave != null)
             {
@@ -172,6 +178,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
 
+SendSkillFailIfNeeded:
         if (skillResult != SkillResult.Success)
         {
             // It actually sends a skill started packet, but not a skill fired or stopped
