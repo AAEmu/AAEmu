@@ -38,9 +38,35 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
 
         pos += vel * dt;
 
+        // Detonate on water surface impact (ocean + river/lake surfaces).
+        // We intentionally check this before ground so projectiles explode on splash even if terrain is below.
+        var world = owner.ParentWorld;
+        if (world != null)
+        {
+            var probeZ = MathF.Max(oldPos.Z, pos.Z);
+            var surfaceZ = world.Water.GetWaterSurface(new Vector3(pos.X, pos.Y, probeZ), out _);
+            var crossesSurface = oldPos.Z > surfaceZ && pos.Z <= surfaceZ;
+            if (crossesSurface && world.Water.IsWater(new Vector3(pos.X, pos.Y, surfaceZ - 0.01f), out _))
+            {
+                pos.Z = surfaceZ;
+                worldTf.Position = pos;
+                owner.Vel = Vector3.Zero;
+
+                var impactSpeed = vel.Length();
+                if (impactSpeed >= template.CollisionMinSpeed)
+                {
+                    var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
+                    owner.TriggerSkill(skillId);
+                }
+
+                if (template.DisappearByCollision)
+                    owner.Spawner?.Despawn(owner);
+                return;
+            }
+        }
+
         if (!template.NoGroundCollider)
         {
-            var world = owner.ParentWorld;
             if (world != null)
             {
                 var floorZ = world.GetHeight(pos.X, pos.Y);
