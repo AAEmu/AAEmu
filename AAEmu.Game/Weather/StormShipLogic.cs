@@ -30,6 +30,8 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
 {
     // Storm cloud doodad and its clout buff (configured in client data / compact sqlite).
     private const uint StormBuffId = 1917;
+    // Regular ship cannons use VehicleModel 10 (per ArcheAge data).
+    private const uint RegularCannonVehicleModelId = 10;
 
     /// <summary>Client-visible time-of-day while storm buff is active (in-game hours).</summary>
     public const float StormClientTimeOfDayHours = 2f;
@@ -49,9 +51,8 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         return StormClientTimeOfDayHours;
     }
 
-    private static bool IsCannonAttachPointId(sbyte apId) =>
-        apId is >= (sbyte)AttachPointKind.Cannon0 and <= (sbyte)AttachPointKind.Cannon8
-            or >= (sbyte)AttachPointKind.Cannon9 and <= (sbyte)AttachPointKind.Cannon19;
+    private static bool IsRegularCannonSlave(Slave slave) =>
+        slave?.Template?.ModelId == RegularCannonVehicleModelId;
 
     /// <summary>
     /// Storm skill gate + response sender. If blocked, sends a <see cref="SCSkillStartedPacket"/> with the error result
@@ -76,18 +77,10 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         if (HarpoonMechanicsDebug.IsShipHarpoonSkill(skillId))
             return false;
 
-        // Cannon skills are typically cast by the cannon slave; prefer its own attach-point id,
-        // and only use operator attach-point as a fallback.
-        if (casterSlave.AttachPointId != -1)
-        {
-            if (!IsCannonAttachPointId(casterSlave.AttachPointId))
-                return false;
-        }
-        else
-        {
-            if (operatorCharacter?.AttachedPoint is not { } ap || !IsCannonAttachPointId((sbyte)ap))
-                return false;
-        }
+        // Do not infer "cannon-ness" from the slot/attach point: future versions can place trade packs
+        // in cannon slots (e.g. Merchant Schooner). Prefer checking the slave's model instead.
+        if (!IsRegularCannonSlave(casterSlave))
+            return false;
 
         // Cannon skills are cast by the cannon slave; its parent ship is stored as owner obj id.
         if (casterSlave.OwnerType != BaseUnitType.Slave || casterSlave.OwnerObjId == 0)
