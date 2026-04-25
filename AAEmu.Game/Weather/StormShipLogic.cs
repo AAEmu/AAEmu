@@ -28,8 +28,9 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
 {
     // Storm cloud doodad and its clout buff (configured in client data / compact sqlite).
     private const uint StormBuffId = 1917;
-    // Regular ship cannons use VehicleModel 10 (per ArcheAge data).
-    private const uint RegularCannonVehicleModelId = 10;
+    // In ArcheAge data, regular cannons are VehicleModelId 10 with base model id 117.
+    // In our `slaves.model_id` / `SlaveTemplate.ModelId` this shows up as the base model id (117).
+    private const uint RegularCannonModelId = 117;
 
     /// <summary>Client-visible time-of-day while storm buff is active (in-game hours).</summary>
     public const float StormClientTimeOfDayHours = 2f;
@@ -50,7 +51,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
     }
 
     private static bool IsRegularCannonSlave(Slave slave) =>
-        slave?.Template?.ModelId == RegularCannonVehicleModelId;
+        slave?.Template?.ModelId == RegularCannonModelId;
 
     /// <summary>
     /// Storm skill gate. If blocked, returns true and provides the fail result so the caller can handle packet sending.
