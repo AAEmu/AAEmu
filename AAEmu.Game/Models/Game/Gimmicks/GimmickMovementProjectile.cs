@@ -59,6 +59,18 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                     continue;
                 if (spawnerObjId != 0 && ship.AttachedCharacters.Values.Any(c => c.ObjId == spawnerObjId))
                     continue;
+
+                // Cheap early-out: if we're far from the ship mass-box center, skip the expensive OBB distance test.
+                // World horizontal plane is X/Y; ship mass-box math uses X/Z which maps to world X/Y.
+                ShipShipInteraction.GetMassBoxCenterXz(ship.RigidBody, ship.ShipController.ShipModel, ship.Scale, out var cx, out var cz);
+                var halfLen = ship.ShipController.ShipModel.MassBoxSizeY * ship.Scale * 0.5f;
+                var halfBeam = ship.ShipController.ShipModel.MassBoxSizeX * ship.Scale * 0.5f;
+                var maxR = MathF.Sqrt(halfLen * halfLen + halfBeam * halfBeam) + projectileRadius;
+                var dx = pos.X - cx;
+                var dz = pos.Y - cz;
+                if (dx * dx + dz * dz > maxR * maxR)
+                    continue;
+
                 if (!ShipSiegeAoEHit.TrySiegePointHitsShipMassBoxXz(pos.X, pos.Y, projectileRadius, ship))
                     continue;
 
