@@ -45,7 +45,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
         // Detonate on ship hull collision (mass-box OBB in XY).
         {
             const float projectileRadius = 0.5f;
-            const float shipQueryRadius = 100f;
+            const float shipQueryRadius = 200f;
             var nearbyShips = WorldManager.GetAround<Slave>(owner, shipQueryRadius, false);
             foreach (var ship in nearbyShips)
             {
