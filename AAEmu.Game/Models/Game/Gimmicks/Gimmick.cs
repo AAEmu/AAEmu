@@ -165,8 +165,9 @@ public class Gimmick : Unit
         }
 
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
-        // Use the gimmick itself as the caster so collision-triggered skills don't fail range checks vs the original spawner.
-        BaseUnit caster = this;
+        // Prefer the original spawner as caster so relation/faction damage filtering works correctly.
+        // Range checks are handled elsewhere for position-targeted skills with MaxRange=0.
+        BaseUnit caster = ParentWorld?.GetUnit(SpawnerUnitId) ?? this;
         var skillCaster = new SkillDoodad(ObjId);
         var skillCastTarget = new SkillCastPositionTarget
         {
