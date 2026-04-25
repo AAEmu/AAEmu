@@ -39,14 +39,11 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
     /// </summary>
     public static float? ResolveClientTimeOfDayHours(Character character)
     {
-        if (character is null)
-            return null;
-
         var seaWeatherModel = AppConfiguration.Instance.World?.SeaWeatherModel ?? SeaWeatherModelType.Official;
         if (seaWeatherModel != SeaWeatherModelType.Realistic)
             return null;
 
-        if (!character.Buffs.CheckBuff(StormBuffId))
+        if (!(character?.Buffs.CheckBuff(StormBuffId) ?? false))
             return null;
 
         return StormClientTimeOfDayHours;
