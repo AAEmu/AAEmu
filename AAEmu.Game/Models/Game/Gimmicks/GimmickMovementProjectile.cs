@@ -1,5 +1,9 @@
 using System.Numerics;
 
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Physics;
+
 namespace AAEmu.Game.Models.Game.Gimmicks;
 
 #pragma warning disable CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor.
@@ -37,6 +41,36 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
         }
 
         pos += vel * dt;
+
+        // Detonate on ship hull collision (mass-box OBB in XY).
+        {
+            const float projectileRadius = 0.25f;
+            const float shipQueryRadius = 120f;
+            var nearbyShips = WorldManager.GetAround<Slave>(owner, shipQueryRadius, false);
+            foreach (var ship in nearbyShips)
+            {
+                if (!ship.Template.IsABoat())
+                    continue;
+                if (ship.RigidBody is null || ship.ShipController?.ShipModel is null)
+                    continue;
+                if (!ShipSiegeAoEHit.TrySiegePointHitsShipMassBoxXz(pos.X, pos.Y, projectileRadius, ship))
+                    continue;
+
+                worldTf.Position = pos;
+                owner.Vel = Vector3.Zero;
+
+                var impactSpeed = vel.Length();
+                if (impactSpeed >= template.CollisionMinSpeed)
+                {
+                    var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
+                    owner.TriggerSkill(skillId);
+                }
+
+                if (template.DisappearByCollision)
+                    owner.Spawner?.Despawn(owner);
+                return;
+            }
+        }
 
         // Detonate on water surface impact (ocean + river/lake surfaces).
         // We intentionally check this before ground so projectiles explode on splash even if terrain is below.
