@@ -103,6 +103,7 @@ public class GimmickSpawner : Spawner<Gimmick>
         }
 
         gimmick.SetScale(Scale);
+        gimmick.Vel = new Vector3(VelocityX, VelocityY, VelocityZ);
         gimmick.Spawn(); // добавляем в мир
         ParentWorld.GimmickManager.AddActiveGimmick(gimmick);
 
