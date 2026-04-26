@@ -18,6 +18,10 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
         if (template == null)
             return;
 
+        // When CollisionUnitOnly is set, we still stop on world barriers (water/ground),
+        // but we only treat collisions with Units as a "detonation" (collision-skill / disappear-by-collision).
+        var detonateOnlyOnUnits = template.CollisionUnitOnly;
+
         // Movement must never crash the global tick loop
         var worldTf = owner.Transform?.World;
         if (worldTf == null)
@@ -100,15 +104,19 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                 worldTf.Position = pos;
                 owner.Vel = Vector3.Zero;
 
-                var impactSpeed = vel.Length();
-                if (impactSpeed >= template.CollisionMinSpeed)
+                if (!detonateOnlyOnUnits)
                 {
-                    var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
-                    owner.TriggerSkill(skillId);
+                    var impactSpeed = vel.Length();
+                    if (impactSpeed >= template.CollisionMinSpeed)
+                    {
+                        var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
+                        owner.TriggerSkill(skillId);
+                    }
+
+                    if (template.DisappearByCollision)
+                        owner.Spawner?.Despawn(owner);
                 }
 
-                if (template.DisappearByCollision)
-                    owner.Spawner?.Despawn(owner);
                 return;
             }
         }
@@ -124,15 +132,19 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                     worldTf.Position = pos;
                     owner.Vel = Vector3.Zero;
 
-                    var impactSpeed = vel.Length();
-                    if (impactSpeed >= template.CollisionMinSpeed)
+                    if (!detonateOnlyOnUnits)
                     {
-                        var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
-                        owner.TriggerSkill(skillId);
+                        var impactSpeed = vel.Length();
+                        if (impactSpeed >= template.CollisionMinSpeed)
+                        {
+                            var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
+                            owner.TriggerSkill(skillId);
+                        }
+
+                        if (template.DisappearByCollision)
+                            owner.Spawner?.Despawn(owner);
                     }
 
-                    if (template.DisappearByCollision)
-                        owner.Spawner?.Despawn(owner);
                     return;
                 }
             }
