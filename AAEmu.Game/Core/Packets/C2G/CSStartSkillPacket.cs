@@ -68,6 +68,23 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         var skillResultErrorValue = 0u;
         Skill skill = null;
 
+        void SendSkillFailIfNeeded()
+        {
+            if (skillResult == SkillResult.Success)
+                return;
+
+            // It actually sends a skill started packet, but not a skill fired or stopped
+            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
+            {
+                RealCastTimeDiv10 = 0,
+                BaseCastTimeDiv10 = 0
+            };
+            // ExtraData at the end of the packet is used to mark a use error
+            scSkillStartedPacket.SetSkillResult(skillResult);
+            scSkillStartedPacket.SetResultUInt(skillResultErrorValue);
+            Connection.ActiveChar.SendPacket(scSkillStartedPacket);
+        }
+
         if (skillCaster is SkillCasterUnit scu)
         {
             var unit = world.GetUnit(scu.ObjId);
@@ -94,7 +111,8 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 skillResultErrorValue = blockErrorValue;
                 // Otherwise the skill press can feel like "nothing happens" client-side.
                 Connection.ActiveChar.SendErrorMessage(ErrorMessageType.NotReady, 0, true);
-                goto SendSkillFailIfNeeded;
+                SendSkillFailIfNeeded();
+                return;
             }
 
             if (mate != null || slave != null)
@@ -178,19 +196,6 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
-
-SendSkillFailIfNeeded:
-        if (skillResult != SkillResult.Success)
-        {
-            // It actually sends a skill started packet, but not a skill fired or stopped
-            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
-            {
-                RealCastTimeDiv10 = 0, BaseCastTimeDiv10 = 0
-            };
-            // ExtraData at the end of the packet is used to mark a use error
-            scSkillStartedPacket.SetSkillResult(skillResult);
-            scSkillStartedPacket.SetResultUInt(skillResultErrorValue);
-            Connection.ActiveChar.SendPacket(scSkillStartedPacket);
-        }
+        SendSkillFailIfNeeded();
     }
 }
