@@ -55,6 +55,16 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
             owner.Vel = Vector3.Zero;
         }
 
+        void DespawnByCollisionIfNeeded(float impactSpeed)
+        {
+            if (!template.DisappearByCollision || impactSpeed < template.CollisionMinSpeed)
+                return;
+
+            if (owner.Despawn <= DateTime.MinValue)
+                owner.Despawn = DateTime.UtcNow;
+            owner.Spawner?.Despawn(owner);
+        }
+
         // After impact/detonation we keep the gimmick in-place (fade-out / lifetime),
         // but we must not keep integrating gravity, otherwise it "slides" down surfaces.
         if (_stuckAfterImpact)
@@ -121,7 +131,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                 }
 
                 if (template.DisappearByCollision && impactSpeed >= template.CollisionMinSpeed)
-                    owner.Spawner?.Despawn(owner);
+                    DespawnByCollisionIfNeeded(impactSpeed);
                 else
                 {
                     // Keep the projectile stuck at the impact point until it fades/despawns by lifetime.
@@ -155,7 +165,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                     }
 
                     if (template.DisappearByCollision && impactSpeed >= template.CollisionMinSpeed)
-                        owner.Spawner?.Despawn(owner);
+                        DespawnByCollisionIfNeeded(impactSpeed);
                 }
 
                 return;
@@ -182,7 +192,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                         }
 
                         if (template.DisappearByCollision && impactSpeed >= template.CollisionMinSpeed)
-                            owner.Spawner?.Despawn(owner);
+                            DespawnByCollisionIfNeeded(impactSpeed);
                     }
 
                     return;
