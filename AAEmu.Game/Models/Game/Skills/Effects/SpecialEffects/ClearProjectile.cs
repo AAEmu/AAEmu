@@ -20,14 +20,5 @@ public class ClearProjectile : SpecialEffectAction
     {
         if (caster is Character)
             Logger.Debug("Special effects: ClearProjectile value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
-
-        if (caster is not Unit casterUnit)
-            return;
-
-        if (casterUnit.Gimmick == null)
-            return;
-
-        casterUnit.Gimmick.Spawner?.Despawn(casterUnit.Gimmick);
-        casterUnit.Gimmick = null;
     }
 }
