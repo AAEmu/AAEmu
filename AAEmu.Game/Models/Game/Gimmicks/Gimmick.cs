@@ -208,8 +208,11 @@ public class Gimmick : Unit
 
         var deltaTime = (float)delta.TotalSeconds;
         var deltaPosition = Transform.World.Position - LastPos;
-        Vel = deltaTime > 0f ? (deltaPosition / deltaTime) : Vector3.Zero;
-        AngVel = new Vector3(0f, 0f, 0f);
+        if (MovementHandler == null)
+        {
+            Vel = deltaTime > 0f ? (deltaPosition / deltaTime) : Vector3.Zero;
+            AngVel = new Vector3(0f, 0f, 0f);
+        }
 
         // Time += (uint)delta.Milliseconds;
         Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
