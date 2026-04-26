@@ -49,15 +49,11 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
             const float projectileRadius = 0.5f;
             const float shipQueryRadius = 120f;
             var nearbyShips = WorldManager.GetAround<Slave>(owner, shipQueryRadius, false);
-
-            var spawnerObjId = owner.SpawnerUnitId;
             foreach (var ship in nearbyShips)
             {
                 if (!ship.Template.IsABoat())
                     continue;
                 if (ship.RigidBody is null || ship.ShipController?.ShipModel is null)
-                    continue;
-                if (spawnerObjId != 0 && ship.AttachedCharacters.Values.Any(c => c.ObjId == spawnerObjId))
                     continue;
 
                 // Cheap early-out: if we're far from the ship mass-box center, skip the expensive OBB distance test.
