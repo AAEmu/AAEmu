@@ -12,6 +12,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
 {
     private bool _stuckAfterImpact;
     private Vector3 _impactPos;
+    private bool _stuckOnShip;
 
     public override void Tick(TimeSpan delta)
     {
@@ -33,8 +34,24 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
         void StickAtImpact(Vector3 impactPos)
         {
             _stuckAfterImpact = true;
+            _stuckOnShip = false;
+            owner.Transform.Parent = null;
             _impactPos = impactPos;
             worldTf.Position = impactPos;
+            owner.Vel = Vector3.Zero;
+        }
+
+        void StickOnShip(Slave ship, Vector3 impactPos)
+        {
+            _stuckAfterImpact = true;
+            _stuckOnShip = true;
+
+            // Parent re-computes child Local from the current unparented local-as-world state.
+            // So we set Local.Position to the intended world impact point BEFORE parenting,
+            // and do not touch Local.Position after parenting (otherwise we overwrite the computed offset).
+            owner.Transform.Local.Position = impactPos; // parent == null => local == world
+            owner.Transform.Parent = ship.Transform;
+
             owner.Vel = Vector3.Zero;
         }
 
@@ -42,7 +59,8 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
         // but we must not keep integrating gravity, otherwise it "slides" down surfaces.
         if (_stuckAfterImpact)
         {
-            worldTf.Position = _impactPos;
+            if (!_stuckOnShip)
+                worldTf.Position = _impactPos;
             owner.Vel = Vector3.Zero;
             return;
         }
@@ -95,7 +113,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                     continue;
 
                 var impactSpeed = vel.Length();
-                StickAtImpact(pos);
+                StickOnShip(ship, pos);
                 if (impactSpeed >= template.CollisionMinSpeed)
                 {
                     var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
