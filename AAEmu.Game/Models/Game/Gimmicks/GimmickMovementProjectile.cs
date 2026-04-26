@@ -10,6 +10,9 @@ namespace AAEmu.Game.Models.Game.Gimmicks;
 public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(owner)
 #pragma warning restore CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor.
 {
+    private bool _stuckAfterImpact;
+    private Vector3 _impactPos;
+
     public override void Tick(TimeSpan delta)
     {
         base.Tick(delta);
@@ -26,6 +29,23 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
         var worldTf = owner.Transform?.World;
         if (worldTf == null)
             return;
+
+        void StickAtImpact(Vector3 impactPos)
+        {
+            _stuckAfterImpact = true;
+            _impactPos = impactPos;
+            worldTf.Position = impactPos;
+            owner.Vel = Vector3.Zero;
+        }
+
+        // After impact/detonation we keep the gimmick in-place (fade-out / lifetime),
+        // but we must not keep integrating gravity, otherwise it "slides" down surfaces.
+        if (_stuckAfterImpact)
+        {
+            worldTf.Position = _impactPos;
+            owner.Vel = Vector3.Zero;
+            return;
+        }
 
         var dt = (float)delta.TotalSeconds;
         if (dt <= 0f)
@@ -74,18 +94,20 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                 if (!ShipSiegeAoEHit.TrySiegePointHitsShipMassBoxXz(pos.X, pos.Y, projectileRadius, ship))
                     continue;
 
-                worldTf.Position = pos;
-                owner.Vel = Vector3.Zero;
-
                 var impactSpeed = vel.Length();
+                StickAtImpact(pos);
                 if (impactSpeed >= template.CollisionMinSpeed)
                 {
                     var skillId = template.CollisionSkillId != 0 ? template.CollisionSkillId : template.SkillId;
                     owner.TriggerSkill(skillId);
                 }
 
-                if (template.DisappearByCollision)
+                if (template.DisappearByCollision && impactSpeed >= template.CollisionMinSpeed)
                     owner.Spawner?.Despawn(owner);
+                else
+                {
+                    // Keep the projectile stuck at the impact point until it fades/despawns by lifetime.
+                }
                 return;
             }
         }
@@ -101,6 +123,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
             if (crossesSurface && world.Water.IsWater(new Vector3(pos.X, pos.Y, surfaceZ - 0.01f), out _))
             {
                 pos.Z = surfaceZ;
+                // On water contact we do not "stick" to the surface; we either detonate or continue sinking.
                 worldTf.Position = pos;
                 owner.Vel = Vector3.Zero;
 
@@ -113,7 +136,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                         owner.TriggerSkill(skillId);
                     }
 
-                    if (template.DisappearByCollision)
+                    if (template.DisappearByCollision && impactSpeed >= template.CollisionMinSpeed)
                         owner.Spawner?.Despawn(owner);
                 }
 
@@ -129,8 +152,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                 if (oldPos.Z > floorZ && pos.Z <= floorZ)
                 {
                     pos.Z = floorZ;
-                    worldTf.Position = pos;
-                    owner.Vel = Vector3.Zero;
+                    StickAtImpact(pos);
 
                     if (!detonateOnlyOnUnits)
                     {
@@ -141,7 +163,7 @@ public class GimmickMovementProjectile(Gimmick owner) : GimmickMovementHandler(o
                             owner.TriggerSkill(skillId);
                         }
 
-                        if (template.DisappearByCollision)
+                        if (template.DisappearByCollision && impactSpeed >= template.CollisionMinSpeed)
                             owner.Spawner?.Despawn(owner);
                     }
 
