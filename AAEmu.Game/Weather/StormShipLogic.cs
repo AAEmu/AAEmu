@@ -174,7 +174,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
     private static uint PickStormLitFuncGroupId(Doodad doodad)
     {
         var groups = doodad.Template.FuncGroups
-            .Where(g => g.GroupKindId is DoodadFuncGroups.DoodadFuncGroupKind.Normal or DoodadFuncGroups.DoodadFuncGroupKind.End)
+            .Where(g => g.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Normal)
             .ToList();
 
         if (groups.Count == 0)
@@ -195,7 +195,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
                 return g.Id;
         }
 
-        // If we can't infer on/off from the model string, fall back to the highest-id normal/end group
+        // If we can't infer on/off from the model string, fall back to the highest-id normal group
         // (often the last authored phase is the "active" visual for toggles).
         return groups.Max(g => g.Id);
     }
