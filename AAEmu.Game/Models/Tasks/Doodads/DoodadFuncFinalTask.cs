@@ -41,9 +41,12 @@ public class DoodadFuncFinalTask : DoodadFuncTask
         {
             if (_respawnTime == null && _owner.FuncTask != null)
             {
+                // DoodadSpawner.Despawn() clears _owner.FuncTask; avoid rescheduling via that reference.
+                // We reschedule this task instance directly for the second stage.
+                _owner.FuncTask = null;
                 _owner.Spawner.Despawn(_owner);
                 _respawnTime = DateTime.UtcNow;
-                TaskManager.Instance.Schedule(_owner.FuncTask, TimeSpan.FromMilliseconds(_delay));
+                TaskManager.Instance.Schedule(this, TimeSpan.FromMilliseconds(_delay));
                 return;
             }
 
