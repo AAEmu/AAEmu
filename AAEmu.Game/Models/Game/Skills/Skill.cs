@@ -1468,6 +1468,13 @@ AlwaysHit:
     /// <returns></returns>
     public int ManaCost(Unit caster)
     {
+        // A skill is genuinely free (crafting, vehicle summon, etc.) only when
+        // BOTH `mana_cost` and `mana_level_md` are 0. Most magical skills have
+        // `mana_cost = 0` but rely on `mana_level_md` to scale the cost with
+        // ability level, so we cannot short-circuit on `mana_cost` alone.
+        if (Template.ManaCost <= 0 && Template.ManaLevelMd <= 0f)
+            return 0;
+
         var baseCost = ((caster.GetAbLevel(Template.AbilityId) - 1) * 1.6 + 8) * 3 / 3.65;
         var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
         var manaCost = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
@@ -1480,7 +1487,14 @@ AlwaysHit:
             return;
 
         var manaCost = ManaCost(unit);
-        unit.ReduceCurrentMp(null, manaCost);
+
+        // Skip ReduceCurrentMp entirely when the skill costs no mana.
+        // ReduceCurrentMp always broadcasts an SCUnitPointsPacket, which on
+        // truly free skills (crafting, vehicle summon, ...) causes a redundant
+        // client-side re-sync that briefly desyncs the displayed Mp bar even
+        // though the server-side Mp value is unchanged.
+        if (manaCost > 0)
+            unit.ReduceCurrentMp(null, manaCost);
 
         if (caster is not Character character)
             return;

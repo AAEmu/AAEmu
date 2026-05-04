@@ -24,6 +24,15 @@ public class ManaCost : SpecialEffectAction
         // TODO ...
         if (caster is Character) { Logger.Debug("Special effects: ManaCost value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
+        // Skills marked as truly free in the `skills` table (e.g. crafting,
+        // vehicle summoning - both mana_cost AND mana_level_md at 0) must not
+        // consume mana through a ManaCost SpecialEffect either. Without this
+        // guard, value1/value2 from special_effects would be deducted from the
+        // caster's Mp on every cast, causing a cascading mana drain on
+        // crafting skills.
+        if (skill?.Template != null && skill.Template.ManaCost <= 0 && skill.Template.ManaLevelMd <= 0f)
+            return;
+
         if (caster is Character character)
         {
             // TODO: Value1 is used by Mana Stars, value2 is used by other skills. They are never used both at once.
