@@ -11,6 +11,7 @@ public interface ISkillManager : ILoadable
     List<uint> GetBuffsByTagId(uint tagId);
     List<uint> GetBuffTags(uint buffId);
     BuffTemplate GetBuffTemplate(uint id);
+    int ResolveDynamicBonusValue(DynamicBonusTemplate template, uint abLevel);
     List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId);
     List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId);
     List<DefaultSkill> GetDefaultSkills();
