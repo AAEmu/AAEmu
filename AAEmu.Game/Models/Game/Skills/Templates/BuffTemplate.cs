@@ -207,10 +207,52 @@ public class BuffTemplate
 
     public void Start(BaseUnit caster, BaseUnit owner, Buff buff)
     {
+        var ownerUnit = owner as Unit;
+        var oldMaxHp = ownerUnit?.MaxHp ?? 0;
+        var oldMaxMp = ownerUnit?.MaxMp ?? 0;
+
         foreach (var template in Bonuses)
         {
             var bonus = new Bonus { Template = template, Value = (int)Math.Round(template.Value + template.LinearLevelBonus * (buff.AbLevel / 100f)) };
             owner.AddBonus(buff.Index, bonus);
+        }
+
+        foreach (var template in DynamicBonuses)
+        {
+            // Resolve once to avoid duplicate dictionary lookups / log warnings
+            var resolvedValue = SkillManager.Instance.ResolveDynamicBonusValue(template, buff.AbLevel);
+            var bonus = new Bonus
+            {
+                Template = new BonusTemplate
+                {
+                    Attribute = template.Attribute,
+                    ModifierType = template.ModifierType,
+                    Value = resolvedValue,
+                    LinearLevelBonus = 0
+                },
+                Value = resolvedValue
+            };
+            owner.AddBonus(buff.Index, bonus);
+        }
+
+        var hpDelta = 0;
+        var mpDelta = 0;
+        if (ownerUnit != null)
+        {
+            var newMaxHp = ownerUnit.MaxHp;
+            var newMaxMp = ownerUnit.MaxMp;
+            hpDelta = newMaxHp - oldMaxHp;
+            mpDelta = newMaxMp - oldMaxMp;
+
+            if (hpDelta > 0 && ownerUnit.Hp >= oldMaxHp)
+                ownerUnit.Hp = Math.Min(ownerUnit.Hp + hpDelta, newMaxHp);
+            else
+                ownerUnit.Hp = Math.Min(ownerUnit.Hp, newMaxHp);
+
+            if (mpDelta > 0 && ownerUnit.Mp >= oldMaxMp)
+                ownerUnit.Mp = Math.Min(ownerUnit.Mp + mpDelta, newMaxMp);
+            else
+                ownerUnit.Mp = Math.Min(ownerUnit.Mp, newMaxMp);
         }
 
         if (buff.Charge == 0)
@@ -218,6 +260,12 @@ public class BuffTemplate
 
         if (!buff.Passive)
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
+
+        // Only broadcast unit points when MaxHp/MaxMp actually changed.
+        // Buffs that don't touch HP/MP (speed, stealth, silence, ...) shouldn't
+        // trigger redundant network traffic.
+        if (ownerUnit != null && (hpDelta != 0 || mpDelta != 0))
+            owner.BroadcastPacket(new SCUnitPointsPacket(ownerUnit.ObjId, ownerUnit.Hp, ownerUnit.Mp), true);
 
         // Special properties handling
         if (owner is Character character)
@@ -314,6 +362,25 @@ public class BuffTemplate
     {
         foreach (var template in Bonuses)
             owner.RemoveBonus(buff.Index, template.Attribute);
+
+        foreach (var template in DynamicBonuses)
+            owner.RemoveBonus(buff.Index, template.Attribute);
+
+        if (owner is Unit ownerUnit)
+        {
+            var newHp = Math.Min(ownerUnit.Hp, ownerUnit.MaxHp);
+            var newMp = Math.Min(ownerUnit.Mp, ownerUnit.MaxMp);
+            // Only broadcast when the buff actually changed MaxHp/MaxMp enough
+            // to clamp current Hp/Mp. Avoids redundant packets for movement,
+            // silence, stealth and other buffs that don't affect HP/MP.
+            if (newHp != ownerUnit.Hp || newMp != ownerUnit.Mp)
+            {
+                ownerUnit.Hp = newHp;
+                ownerUnit.Mp = newMp;
+                owner.BroadcastPacket(new SCUnitPointsPacket(ownerUnit.ObjId, ownerUnit.Hp, ownerUnit.Mp), true);
+            }
+        }
+
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
             requiringBuff.Exit();
