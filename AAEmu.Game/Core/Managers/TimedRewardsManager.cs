@@ -9,14 +9,14 @@ namespace AAEmu.Game.Core.Managers;
 /// <summary>
 /// For timed adding credits and loyalty
 /// </summary>
-public class TimedRewardsManager : Singleton<TimedRewardsManager>, ITimedRewardsManager
+public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewardsManager>, ITimedRewardsManager
 {
     private const short MaxLabor = 2000;
     private const short MaxLaborPremium = 5000;
 
     public void Initialize()
     {
-        TaskManager.Instance.Schedule(new TimedRewardsTask(), TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        taskManager.Schedule(new TimedRewardsTask(), TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
     public static short GetMaxLabor(bool isPremium)
