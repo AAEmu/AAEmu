@@ -112,17 +112,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         if (template == null)
             return 0;
 
-        switch (template.FuncType)
+        var funcType = template.FuncType?.Replace("_", string.Empty).ToLowerInvariant();
+        switch (funcType)
         {
-            case "LinearFunc":
-                if (_linearFuncs != null && _linearFuncs.TryGetValue(template.FuncId, out var linearFunc))
+            case "linearfunc":
+            case "manualfunc": // the DB has a few legacy ManualFunc rows that still point to linear_funcs
+                if (_linearFuncs.TryGetValue(template.FuncId, out var linearFunc))
                     return linearFunc.Evaluate(abLevel);
 
-                Logger.Warn($"Dynamic bonus references missing LinearFunc id={template.FuncId}");
+                Logger.Warn($"Dynamic unit modifier references missing linear_funcs row: func_type={template.FuncType}, func_id={template.FuncId}");
                 return 0;
 
             default:
-                Logger.Warn($"Unsupported dynamic bonus func type={template.FuncType}, id={template.FuncId}");
+                Logger.Warn($"Unsupported dynamic unit modifier func_type={template.FuncType}, func_id={template.FuncId}");
                 return 0;
         }
     }

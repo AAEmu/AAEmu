@@ -215,20 +215,15 @@ public class BuffTemplate
 
         foreach (var template in DynamicBonuses)
         {
-            // Resolve once to avoid duplicate dictionary lookups / log warnings
             var resolvedValue = SkillManager.Instance.ResolveDynamicBonusValue(template, buff.AbLevel);
-            var bonus = new Bonus
+            var bonusTemplate = new BonusTemplate
             {
-                Template = new BonusTemplate
-                {
-                    Attribute = template.Attribute,
-                    ModifierType = template.ModifierType,
-                    Value = resolvedValue,
-                    LinearLevelBonus = 0
-                },
-                Value = resolvedValue
+                Attribute = template.Attribute,
+                ModifierType = template.ModifierType,
+                Value = resolvedValue,
+                LinearLevelBonus = 0
             };
-            owner.AddBonus(buff.Index, bonus);
+            owner.AddBonus(buff.Index, new Bonus { Template = bonusTemplate, Value = resolvedValue });
         }
 
         if (buff.Charge == 0)
@@ -236,14 +231,6 @@ public class BuffTemplate
 
         if (!buff.Passive)
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
-
-        // NOTE: do NOT broadcast SCUnitPointsPacket here. MaxHp / MaxMp on
-        // Character are computed dynamically from Bonuses by CalculateWithBonuses,
-        // so they update automatically. Touching Hp/Mp on every buff start would
-        // cause crafting skills to appear to consume mana (any buff that changes
-        // a stat shifts MaxMp, leaving Mp behind) and would cause newly spawned
-        // doodads to show partial health bars. UnitPointsRegenTask already keeps
-        // Hp / Mp in sync over time.
 
         // Special properties handling
         if (owner is Character character)
@@ -340,16 +327,8 @@ public class BuffTemplate
     {
         foreach (var template in Bonuses)
             owner.RemoveBonus(buff.Index, template.Attribute);
-
         foreach (var template in DynamicBonuses)
             owner.RemoveBonus(buff.Index, template.Attribute);
-
-        // NOTE: do NOT clamp Hp / Mp here and do NOT broadcast SCUnitPointsPacket.
-        // MaxHp / MaxMp are recomputed automatically from the remaining bonuses,
-        // and UnitPointsRegenTask resynchronizes Hp / Mp over time. Clamping here
-        // would shave the player's resources on every buff cycle (cast → expire
-        // → cast → expire) and produce a stair-stepping mana / health bar.
-
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
             requiringBuff.Exit();
