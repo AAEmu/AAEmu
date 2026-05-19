@@ -220,9 +220,16 @@ public class BuffTemplate
         //      duration (e.g. buff 2504 "저주의 시선" with -50 -> -150 MeleeSpeedMul over 10s,
         //      or buff 114 "현기증" with -250 -> -600 over 3s). For (B), the bonus value is recomputed
         //      every tick in TimeToTimeApply.
-        // Heuristic for (B): buff has Duration > 0 AND Tick > 0 AND the LinearFunc has
+        // Heuristic for (B): actualDuration > 0 AND Tick > 0 AND the LinearFunc has
         // start_value != end_value. Otherwise treat as (A).
-        var hasDuration = Duration > 0 && Tick > 0;
+        //
+        // IMPORTANT: actualDuration is computed via GetDuration(buff.AbLevel) — NOT the raw DB
+        // Duration field. Some buffs use LevelDuration so that the effective duration is
+        // (LevelDuration * abLevel + Duration). buff.Duration is not yet set at this point in
+        // the flow (it gets assigned by UpdateEffect/ScheduleEffect just after Start returns),
+        // so we recompute it here.
+        var actualDuration = GetDuration(buff.AbLevel);
+        var hasDuration = actualDuration > 0 && Tick > 0;
         foreach (var template in DynamicBonuses)
         {
             int initialValue;
@@ -231,7 +238,7 @@ public class BuffTemplate
             if (hasDuration && IsTimeEvolvingDynamic(template))
             {
                 // Start at t=0 -> start_value
-                initialValue = SkillManager.Instance.ResolveDynamicBonusValueTime(template, 0L, Duration);
+                initialValue = SkillManager.Instance.ResolveDynamicBonusValueTime(template, 0L, actualDuration);
                 evolves = true;
             }
             else
@@ -304,12 +311,17 @@ public class BuffTemplate
         // up the new value. The Bonus object kept in EvolvingDynamicBonuses is the same instance
         // stored in owner.Bonuses[buff.Index], so this update is visible without re-registering
         // (which would risk stacking on the same buff.Index).
-        if (buff.EvolvingDynamicBonuses.Count > 0 && Duration > 0)
+        //
+        // IMPORTANT: use buff.Duration (set by UpdateEffect/ScheduleEffect right after Start
+        // returned, equal to GetDuration(AbLevel)) rather than the raw BuffTemplate.Duration,
+        // so that the interpolation aligns with the actual buff lifetime even for buffs that
+        // use LevelDuration.
+        if (buff.EvolvingDynamicBonuses.Count > 0 && buff.Duration > 0)
         {
             var elapsed = (long)buff.GetTimeElapsed();
             foreach (var (template, bonus) in buff.EvolvingDynamicBonuses)
             {
-                var newValue = SkillManager.Instance.ResolveDynamicBonusValueTime(template, elapsed, Duration);
+                var newValue = SkillManager.Instance.ResolveDynamicBonusValueTime(template, elapsed, buff.Duration);
                 bonus.Value = newValue;
                 if (bonus.Template != null)
                     bonus.Template.Value = newValue;
