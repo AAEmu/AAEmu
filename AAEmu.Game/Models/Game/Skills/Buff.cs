@@ -44,6 +44,15 @@ public class Buff
     public BuffTriggersHandler Triggers { get; }
     public Dictionary<uint, FactionsEnum> saveFactions { get; set; }
 
+    /// <summary>
+    /// Bonuses created from dynamic_unit_modifiers (LinearFunc) whose value evolves over the buff
+    /// lifetime. Populated by BuffTemplate.Start when (Duration > 0 &amp;&amp; Tick > 0 &amp;&amp; start_value != end_value).
+    /// Each tick, BuffTemplate.TimeToTimeApply refreshes bonus.Value in place using
+    /// SkillManager.ResolveDynamicBonusValueTime. Stays empty for static dynamic_unit_modifiers
+    /// (the original PR #1433 case) so the existing behavior is unchanged.
+    /// </summary>
+    public List<(DynamicBonusTemplate Template, Bonus Bonus)> EvolvingDynamicBonuses { get; } = [];
+
     public Buff(IBaseUnit owner, IBaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
     {
         Owner = (BaseUnit)owner;

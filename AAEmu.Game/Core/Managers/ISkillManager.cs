@@ -12,6 +12,9 @@ public interface ISkillManager : ILoadable
     List<uint> GetBuffTags(uint buffId);
     BuffTemplate GetBuffTemplate(uint id);
     int ResolveDynamicBonusValue(DynamicBonusTemplate template, uint abLevel);
+    // Time-based variant for LinearFunc dynamic_unit_modifiers that evolve over the buff duration
+    // (e.g. buffs 2504 and 114). elapsedMs and durationMs are in milliseconds.
+    int ResolveDynamicBonusValueTime(DynamicBonusTemplate template, long elapsedMs, long durationMs);
     List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId);
     List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId);
     List<DefaultSkill> GetDefaultSkills();

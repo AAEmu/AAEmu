@@ -213,17 +213,44 @@ public class BuffTemplate
             owner.AddBonus(buff.Index, bonus);
         }
 
+        // dynamic_unit_modifiers handling.
+        // Two cases:
+        //  (A) Static dynamic: resolved once via abLevel (PR #1433 behavior, e.g. buff 1895 +1040 MaxMana).
+        //  (B) Time-evolving dynamic: the LinearFunc describes start_value -> end_value over the buff
+        //      duration (e.g. buff 2504 "저주의 시선" with -50 -> -150 MeleeSpeedMul over 10s,
+        //      or buff 114 "현기증" with -250 -> -600 over 3s). For (B), the bonus value is recomputed
+        //      every tick in TimeToTimeApply.
+        // Heuristic for (B): buff has Duration > 0 AND Tick > 0 AND the LinearFunc has
+        // start_value != end_value. Otherwise treat as (A).
+        var hasDuration = Duration > 0 && Tick > 0;
         foreach (var template in DynamicBonuses)
         {
-            var resolvedValue = SkillManager.Instance.ResolveDynamicBonusValue(template, buff.AbLevel);
+            int initialValue;
+            bool evolves = false;
+
+            if (hasDuration && IsTimeEvolvingDynamic(template))
+            {
+                // Start at t=0 -> start_value
+                initialValue = SkillManager.Instance.ResolveDynamicBonusValueTime(template, 0L, Duration);
+                evolves = true;
+            }
+            else
+            {
+                initialValue = SkillManager.Instance.ResolveDynamicBonusValue(template, buff.AbLevel);
+            }
+
             var bonusTemplate = new BonusTemplate
             {
                 Attribute = template.Attribute,
                 ModifierType = template.ModifierType,
-                Value = resolvedValue,
+                Value = initialValue,
                 LinearLevelBonus = 0
             };
-            owner.AddBonus(buff.Index, new Bonus { Template = bonusTemplate, Value = resolvedValue });
+            var bonus = new Bonus { Template = bonusTemplate, Value = initialValue };
+            owner.AddBonus(buff.Index, bonus);
+
+            if (evolves)
+                buff.EvolvingDynamicBonuses.Add((template, bonus));
         }
 
         if (buff.Charge == 0)
@@ -249,8 +276,46 @@ public class BuffTemplate
         }
     }
 
+    /// <summary>
+    /// Returns true when the dynamic_unit_modifier references a LinearFunc whose start_value
+    /// differs from its end_value, indicating the value evolves over the buff duration rather
+    /// than being a flat snapshot at apply time.
+    /// </summary>
+    private static bool IsTimeEvolvingDynamic(DynamicBonusTemplate template)
+    {
+        if (template == null)
+            return false;
+
+        var funcType = template.FuncType?.Replace("_", string.Empty).ToLowerInvariant();
+        if (funcType != "linearfunc" && funcType != "manualfunc")
+            return false;
+
+        // Probe: t=0 returns StartValue, t=duration returns EndValue. If they differ, the function evolves.
+        // We use any positive duration; only the ratio matters for the comparison.
+        var atStart = SkillManager.Instance.ResolveDynamicBonusValueTime(template, 0L, 1L);
+        var atEnd = SkillManager.Instance.ResolveDynamicBonusValueTime(template, 1L, 1L);
+        return atStart != atEnd;
+    }
+
     public void TimeToTimeApply(BaseUnit caster, BaseUnit owner, Buff buff)
     {
+        // Refresh time-evolving dynamic bonuses (e.g. buff 2504, buff 114).
+        // We mutate bonus.Value in place so that CalculateWithBonuses on the next stat read picks
+        // up the new value. The Bonus object kept in EvolvingDynamicBonuses is the same instance
+        // stored in owner.Bonuses[buff.Index], so this update is visible without re-registering
+        // (which would risk stacking on the same buff.Index).
+        if (buff.EvolvingDynamicBonuses.Count > 0 && Duration > 0)
+        {
+            var elapsed = (long)buff.GetTimeElapsed();
+            foreach (var (template, bonus) in buff.EvolvingDynamicBonuses)
+            {
+                var newValue = SkillManager.Instance.ResolveDynamicBonusValueTime(template, elapsed, Duration);
+                bonus.Value = newValue;
+                if (bonus.Template != null)
+                    bonus.Template.Value = newValue;
+            }
+        }
+
         if (TickAreaRadius > 0)
         {
             DoAreaTick(caster, owner, buff);
@@ -329,6 +394,7 @@ public class BuffTemplate
             owner.RemoveBonus(buff.Index, template.Attribute);
         foreach (var template in DynamicBonuses)
             owner.RemoveBonus(buff.Index, template.Attribute);
+        buff.EvolvingDynamicBonuses.Clear();
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
             requiringBuff.Exit();
