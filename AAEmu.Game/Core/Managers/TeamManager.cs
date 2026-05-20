@@ -453,26 +453,20 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         activeTeam.IsParty = false;
         activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
 
-        var onlineMembers = new List<Character>();
         foreach (var m in activeTeam.Members)
         {
-            if (m?.Character == null) continue;
-            chatManager.GetRaidChat(activeTeam).JoinChannel(m.Character);
-            if (m.Character.IsOnline)
-                onlineMembers.Add(m.Character);
+            if (m?.Character != null)
+                chatManager.GetRaidChat(activeTeam).JoinChannel(m.Character);
         }
 
-        // Pairwise ObjId-refresh — once the party becomes a raid, members spread out
-        // across the world, so the client must know everyone's ObjId for the raid UI.
-        for (var i = 0; i < onlineMembers.Count; i++)
+        // Once the party becomes a raid, members spread out across the world, so the
+        // client must know everyone's ObjId for the raid UI even when out of render.
+        // Refresh each member's view against every other — RefreshTeamMemberObjIds
+        // already skips pairs that are still in render distance.
+        foreach (var m in activeTeam.Members)
         {
-            for (var j = i + 1; j < onlineMembers.Count; j++)
-            {
-                if (AreInRenderDistance(onlineMembers[i], onlineMembers[j]))
-                    continue;
-                onlineMembers[i].SendPacket(new SCRefreshTeamMemberPacket(activeTeam.Id, onlineMembers[j].Id, onlineMembers[j].ObjId));
-                onlineMembers[j].SendPacket(new SCRefreshTeamMemberPacket(activeTeam.Id, onlineMembers[i].Id, onlineMembers[i].ObjId));
-            }
+            if (m?.Character?.IsOnline == true)
+                RefreshTeamMemberObjIds(activeTeam, m.Character);
         }
         // TODO: Handle raids in dungeons
     }
@@ -618,14 +612,9 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         // re-joining client gets all current HP/MP/positions in one shot, AND refresh
         // ObjIds for out-of-range pairs. Avoids the "Member XYZ joined" chat spam
         // that SCTeamMemberJoinedPacket would otherwise produce on a real reconnect.
-        var allMembers = new List<TeamMember>();
-        foreach (var m in activeTeam.Members)
-        {
-            if (m?.Character != null)
-                allMembers.Add(m);
-        }
-        if (allMembers.Count > 0)
-            activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(allMembers.ToArray()));
+        var allMembers = activeTeam.Members.Where(m => m?.Character != null).ToArray();
+        if (allMembers.Length > 0)
+            activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(allMembers));
 
         RefreshTeamMemberObjIds(activeTeam, unit);
 
@@ -636,13 +625,20 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
     public void Load()
     {
-        TickManager.Instance.OnTick.Subscribe(UpdateAllTeams, TimeSpan.FromMilliseconds(TeamSyncIntervalMs), true);
-        Logger.Info("TeamManager initialised with {0}ms remote-sync interval", TeamSyncIntervalMs);
+        // Synchronous tick (useAsync: false). UpdateAllTeams iterates _activeTeams +
+        // _lastSyncState, which are mutated by game-handler threads on player join/
+        // leave/disband. Running synchronously on the tick thread keeps these
+        // reads simple and consistent with the rest of the manager.
+        TickManager.Instance.OnTick.Subscribe(UpdateAllTeams, TimeSpan.FromMilliseconds(TeamSyncIntervalMs), false);
+        Logger.Info("TeamManager loaded with {0}ms remote-sync interval", TeamSyncIntervalMs);
     }
 
     // ──────────────────────────────────────────────────────────────────────
     //  Remote-member sync
     // ──────────────────────────────────────────────────────────────────────
+
+    /// <summary>Reusable scratch list to avoid per-tick allocations inside <see cref="UpdateAllTeams"/>.</summary>
+    private readonly List<TeamMember> _onlineMembersScratch = [];
 
     /// <summary>
     /// 500ms tick: walk every active team and broadcast HP/MP/position to members
@@ -655,20 +651,31 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     {
         var now = DateTime.UtcNow;
 
-        foreach (var team in _activeTeams.Values)
+        // Snapshot the team list so a parallel Add/Remove on _activeTeams can't
+        // invalidate the enumerator while we tick (defence-in-depth even with
+        // useAsync: false — disband/join handlers may still run on other threads).
+        Team[] teams;
+        lock (_activeTeams)
         {
-            var onlineMembers = new List<TeamMember>();
+            if (_activeTeams.Count == 0) return;
+            teams = new Team[_activeTeams.Count];
+            _activeTeams.Values.CopyTo(teams, 0);
+        }
+
+        foreach (var team in teams)
+        {
+            _onlineMembersScratch.Clear();
             foreach (var m in team.Members)
             {
                 if (m?.Character?.IsOnline == true)
-                    onlineMembers.Add(m);
+                    _onlineMembersScratch.Add(m);
             }
-            if (onlineMembers.Count <= 1)
+            if (_onlineMembersScratch.Count <= 1)
                 continue;
 
-            foreach (var recipient in onlineMembers)
+            foreach (var recipient in _onlineMembersScratch)
             {
-                foreach (var source in onlineMembers)
+                foreach (var source in _onlineMembersScratch)
                 {
                     if (source.Character.Id == recipient.Character.Id)
                         continue;
@@ -688,15 +695,18 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                         source.Character.ObjId,
                         now);
 
-                    if (_lastSyncState.TryGetValue(key, out var prev) &&
-                        prev.HasSameSnapshotAs(nextState) &&
-                        (now - prev.LastSyncTime).TotalMilliseconds < ForcedResyncIntervalMs)
+                    lock (_lastSyncState)
                     {
-                        continue;
+                        if (_lastSyncState.TryGetValue(key, out var prev) &&
+                            prev.HasSameSnapshotAs(nextState) &&
+                            (now - prev.LastSyncTime).TotalMilliseconds < ForcedResyncIntervalMs)
+                        {
+                            continue;
+                        }
+                        _lastSyncState[key] = nextState;
                     }
 
                     recipient.Character.SendPacket(new SCTeamRemoteMembersExPacket([source]));
-                    _lastSyncState[key] = nextState;
                 }
             }
         }
@@ -707,16 +717,21 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     /// as either recipient or source. Called whenever a character leaves the team
     /// (offline / leave / kick / disband) so the cache cannot leak.
     /// </summary>
-    public void ClearSyncState(uint characterId)
+    internal void ClearSyncState(uint characterId)
     {
-        var toRemove = new List<(uint, uint)>();
-        foreach (var key in _lastSyncState.Keys)
+        lock (_lastSyncState)
         {
-            if (key.recipientId == characterId || key.sourceId == characterId)
-                toRemove.Add(key);
+            if (_lastSyncState.Count == 0) return;
+
+            var toRemove = new List<(uint, uint)>();
+            foreach (var key in _lastSyncState.Keys)
+            {
+                if (key.recipientId == characterId || key.sourceId == characterId)
+                    toRemove.Add(key);
+            }
+            foreach (var key in toRemove)
+                _lastSyncState.Remove(key);
         }
-        foreach (var key in toRemove)
-            _lastSyncState.Remove(key);
     }
 
     /// <summary>
@@ -742,9 +757,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     }
 
     /// <summary>
-    /// Returns true if <paramref name="a"/> and <paramref name="b"/> live in the
-    /// same world Region or in any of its 8 neighbours. Region-based check is the
-    /// same coarse "render-distance" definition the world streaming uses.
+    /// Symmetric region-based render-distance check: returns true if <paramref name="a"/>
+    /// and <paramref name="b"/> share a Region or are listed as neighbours from either
+    /// side. The bidirectional test guards against edge-of-world Regions whose
+    /// <c>GetNeighbors()</c> set may not be symmetric.
     /// </summary>
     private static bool AreInRenderDistance(Character a, Character b)
     {
@@ -753,8 +769,11 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         foreach (var neighbour in a.Region.GetNeighbors())
         {
-            if (neighbour == b.Region)
-                return true;
+            if (neighbour == b.Region) return true;
+        }
+        foreach (var neighbour in b.Region.GetNeighbors())
+        {
+            if (neighbour == a.Region) return true;
         }
         return false;
     }

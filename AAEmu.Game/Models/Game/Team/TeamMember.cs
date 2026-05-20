@@ -24,9 +24,9 @@ public class TeamMember(Character character = null) : PacketMarshaler
 
     /// <summary>
     /// Writes a 50-byte "remote team member" snapshot used by SCTeamRemoteMembersExPacket
-    /// and SCJoinedTeamPacket. The ObjId is carried explicitly (0 when offline) so the
-    /// client can correlate the member against units it has already learned about even
-    /// when the member is outside its render distance.
+    /// and SCTeamMemberDisconnectedPacket. The ObjId is carried explicitly (0 when offline)
+    /// so the client can correlate the member against units it has already learned about,
+    /// even when the member is outside its render distance.
     /// </summary>
     public PacketStream WritePerson(PacketStream stream)
     {

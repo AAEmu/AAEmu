@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -994,12 +995,18 @@ public partial class Npc : Unit
         if (AppConfiguration.Instance.World.TagShareEnabled)
         {
             var alreadyCredited = new HashSet<Character>(eligiblePlayers);
-            if (killer is Character ck) alreadyCredited.Add(ck);
+            if (killer is Character ck)
+            {
+                alreadyCredited.Add(ck);
+            }
 
-            var contributors = CharacterTagging.GetAllContributors(Items.Containers.LootingContainer.MaxLootingRange);
+            var contributors = CharacterTagging.GetAllContributors(LootingContainer.MaxLootingRange);
             foreach (var contributor in contributors)
             {
-                if (!alreadyCredited.Add(contributor)) continue;
+                if (!alreadyCredited.Add(contributor))
+                {
+                    continue;
+                }
                 QuestManager.Instance.DoOnMonsterHuntEvents(contributor, this);
             }
         }

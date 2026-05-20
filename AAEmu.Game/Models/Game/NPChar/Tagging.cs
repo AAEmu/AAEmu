@@ -116,27 +116,34 @@ public class Tagging(Unit owner)
     /// </summary>
     public HashSet<Character> GetAllContributors(float range)
     {
-        var result = new HashSet<Character>();
+        // Snapshot the damage-dealer keys under the tagging lock, then resolve teams
+        // outside the lock to avoid holding the tagging lock while reaching into
+        // TeamManager (which has its own lock domain).
+        Character[] dealers;
         lock (_lock)
         {
-            foreach (var (dealer, _) in _taggers)
+            dealers = new Character[_taggers.Count];
+            _taggers.Keys.CopyTo(dealers, 0);
+        }
+
+        var result = new HashSet<Character>();
+        foreach (var dealer in dealers)
+        {
+            if (dealer == null || !dealer.IsOnline) continue;
+            if (dealer.GetDistanceTo(Owner, true) > range) continue;
+
+            result.Add(dealer);
+
+            // Pull in party / raid mates within range
+            if (!dealer.InParty) continue;
+            var team = TeamManager.Instance.GetTeamByObjId(dealer.ObjId);
+            if (team == null) continue;
+
+            foreach (var member in team.Members)
             {
-                if (dealer == null || !dealer.IsOnline) continue;
-                if (dealer.GetDistanceTo(Owner, true) > range) continue;
-
-                result.Add(dealer);
-
-                // Pull in party / raid mates within range
-                if (!dealer.InParty) continue;
-                var team = TeamManager.Instance.GetTeamByObjId(dealer.ObjId);
-                if (team == null) continue;
-
-                foreach (var member in team.Members)
-                {
-                    if (member?.Character == null || !member.Character.IsOnline) continue;
-                    if (member.Character.GetDistanceTo(Owner, true) > range) continue;
-                    result.Add(member.Character);
-                }
+                if (member?.Character == null || !member.Character.IsOnline) continue;
+                if (member.Character.GetDistanceTo(Owner, true) > range) continue;
+                result.Add(member.Character);
             }
         }
         return result;
