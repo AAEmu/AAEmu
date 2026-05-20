@@ -148,6 +148,14 @@ public class BaseUnit : GameObject, IBaseUnit
     {
     }
 
+    public virtual void AddDynamicBonus(uint bonusIndex, DynamicBonus bonus)
+    {
+    }
+
+    public virtual void RemoveDynamicBonus(uint bonusIndex, UnitAttribute attribute)
+    {
+    }
+
     public virtual double ApplySkillModifiers(Skill skill, SkillAttribute attribute, double baseValue)
     {
         return SkillModifiersCache.ApplyModifiers(skill, attribute, baseValue);

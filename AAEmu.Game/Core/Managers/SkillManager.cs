@@ -37,6 +37,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, List<SkillModifier>> _skillModifiers;
     private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers;
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
+    private Dictionary<uint, LinearFuncTemplate> _linearFuncs;
     private Dictionary<uint, SkillReagent> _skillReagents;
     private Dictionary<uint, SkillProduct> _skillProducts;
     // private HashSet<ushort> _skillIds = new();
@@ -104,6 +105,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public BuffTemplate GetBuffTemplate(uint id)
     {
         return _buffs.GetValueOrDefault(id);
+    }
+
+    public LinearFuncTemplate GetLinearFunc(uint funcId)
+    {
+        return _linearFuncs.GetValueOrDefault(funcId);
     }
 
     public List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId)
@@ -299,6 +305,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         _skillTags = [];
         _taggedSkills = [];
         _combatBuffs = [];
+        _linearFuncs = [];
         _skillReagents = [];
         _skillProducts = [];
 
@@ -728,6 +735,25 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     }
                 }
             }
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM linear_funcs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new LinearFuncTemplate
+                        {
+                            Id = reader.GetUInt32("id"),
+                            StartValue = reader.GetInt32("start_value"),
+                            EndValue = reader.GetInt32("end_value")
+                        };
+                        _linearFuncs[template.Id] = template;
+                    }
+                }
+            }
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM dynamic_unit_modifiers";

@@ -9,12 +9,15 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
+using NLog;
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace AAEmu.Game.Models.Game.Skills.Templates;
 
 public class BuffTemplate
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     public uint Id { get; init; }
     public uint BuffId => Id;
     public uint AnimStartId { get; init; }
@@ -213,6 +216,42 @@ public class BuffTemplate
             owner.AddBonus(buff.Index, bonus);
         }
 
+        // dynamic_unit_modifiers: register as time-evaluated DynamicBonus tied to the source buff
+        // (NOT snapshotted here). The value is computed on the fly in Unit.CalculateWithBonuses.
+        foreach (var template in DynamicBonuses)
+        {
+            switch (template.FuncType)
+            {
+                case "LinearFunc":
+                {
+                    var linearFunc = SkillManager.Instance.GetLinearFunc(template.FuncId);
+                    if (linearFunc == null)
+                    {
+                        Logger.Warn($"Missing linear_func {template.FuncId} for dynamic_unit_modifier on buff {Id}.");
+                        continue;
+                    }
+
+                    var dynamicBonus = new DynamicBonus
+                    {
+                        Template = template,
+                        SourceBuff = buff,
+                        LinearFunc = linearFunc
+                    };
+                    owner.AddDynamicBonus(buff.Index, dynamicBonus);
+                    break;
+                }
+
+                case "ManualFunc":
+                    // Not implemented: don't silently apply a wrong value.
+                    Logger.Warn($"ManualFunc dynamic_unit_modifier not implemented (func_id={template.FuncId}, buff {Id}).");
+                    break;
+
+                default:
+                    Logger.Warn($"Unsupported dynamic_unit_modifier FuncType={template.FuncType}, FuncId={template.FuncId}, buff {Id}.");
+                    break;
+            }
+        }
+
         if (buff.Charge == 0)
             buff.Charge = Random.Shared.Next(InitMinCharge, InitMaxCharge);
 
@@ -314,6 +353,8 @@ public class BuffTemplate
     {
         foreach (var template in Bonuses)
             owner.RemoveBonus(buff.Index, template.Attribute);
+        foreach (var template in DynamicBonuses)
+            owner.RemoveDynamicBonus(buff.Index, template.Attribute);
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
             requiringBuff.Exit();
