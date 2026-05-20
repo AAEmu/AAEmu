@@ -835,14 +835,16 @@ public class Skill
         if (Template.FireAnim != null && Template.UseAnimTime)
             totalDelay += (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
 
-        // Determine weapon-based animation for auto-attacks (skill 2/3/4)
+        // Determine weapon-based animation for auto-attacks (skill 2/3/4).
+        // 0 means "no override" — packet keeps its default (skill template's FireAnim).
         var weaponAnimId = GetWeaponAttackAnimId(caster);
-
-        caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+        var firedPacket = new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
         {
-            ComputedDelay = (short)totalDelay,
-            OverrideFireAnimId = weaponAnimId
-        }, true);
+            ComputedDelay = (short)totalDelay
+        };
+        if (weaponAnimId > 0)
+            firedPacket.FireAnimId = (int)weaponAnimId;
+        caster.BroadcastPacket(firedPacket, true);
 
         if (totalDelay > 0)
         {
@@ -859,11 +861,22 @@ public class Skill
     /// <summary>
     /// Get the weapon-based attack animation ID for auto-attack skills (2/3/4).
     /// Returns 0 for non-auto-attack skills (packet will use FireAnim from template).
+    /// NPCs cycle between melee animation IDs 1 and 2 so AI mobs always have a visible swing.
     /// </summary>
     private uint GetWeaponAttackAnimId(BaseUnit caster)
     {
         if (Template.Id is not (2 or 3 or 4))
             return 0;
+
+        if (caster is NPChar.Npc)
+        {
+            // NPCs cycle between two melee attack animations (side strikes).
+            // Without this, NPC auto-attacks would inherit the skill template's
+            // FireAnim — often null or wrong, causing the "AI feels broken" symptom.
+            var npcAnim = (uint)((AutoAttackIndex % 2) + 1); // animation IDs 1 and 2
+            AutoAttackIndex++;
+            return npcAnim;
+        }
 
         if (caster is not Character character)
             return 0;

@@ -4,8 +4,6 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-#pragma warning disable IDE0052 // Remove unread private members
-
 public class SCSkillFiredPacket : GamePacket
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
@@ -17,13 +15,14 @@ public class SCSkillFiredPacket : GamePacket
     private readonly SkillObject _skillObject;
     private readonly Skill _skill;
 
-    private short _effectDelay = 37;
-    private bool _dist;
-
     public short ComputedDelay { get; set; }
 
-    /// <summary>Override animation ID. If &gt; 0, uses this instead of skill template FireAnim.</summary>
-    public uint OverrideFireAnimId { get; set; }
+    /// <summary>
+    /// The fire animation ID sent to the client.
+    /// Default = skill template's FireAnim ID. Caller can override for weapon-based
+    /// auto-attack animation (Skill.GetWeaponAttackAnimId) or NPC anim cycling.
+    /// </summary>
+    public int FireAnimId { get; set; }
 
     public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) : base(SCOffsets.SCSkillFiredPacket, 1)
     {
@@ -33,19 +32,7 @@ public class SCSkillFiredPacket : GamePacket
         _target = target;
         _skill = skill;
         _skillObject = skillObject;
-    }
-
-    public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject, short effectDelay = 37, int fireAnimId = 2, bool dist = true) : base(SCOffsets.SCSkillFiredPacket, 1)
-    {
-        _id = id;
-        _tl = tl;
-        _caster = caster;
-        _target = target;
-        _skill = skill;
-        _skillObject = skillObject;
-        _effectDelay = effectDelay;
-        OverrideFireAnimId = (uint)fireAnimId;
-        _dist = dist;
+        FireAnimId = (int)(skill.Template.FireAnim?.Id ?? 0);
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -59,13 +46,7 @@ public class SCSkillFiredPacket : GamePacket
         stream.Write((short)(ComputedDelay / 10 + 10));
         stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
         stream.Write((byte)0); // f
-
-        // Use override anim if set, otherwise use skill template FireAnim
-        if (OverrideFireAnimId > 0)
-            stream.Write(OverrideFireAnimId);
-        else
-            stream.Write(_skill.Template.FireAnim?.Id ?? 0);
-
+        stream.Write(FireAnimId);
         stream.Write((byte)0); // flag
 
         return stream;

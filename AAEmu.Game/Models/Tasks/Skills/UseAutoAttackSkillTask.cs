@@ -9,14 +9,19 @@ namespace AAEmu.Game.Models.Tasks.Skills;
 
 public class UseAutoAttackSkillTask : SkillTask
 {
-    private readonly Skill _skill;
     private readonly Character _caster;
+    private readonly Skill _mainhandSkill;
+
+    // Offhand skill — only set when dual-wielding (two 1H weapons in mainhand + offhand)
+    private Skill _offhandSkill;
 
     public UseAutoAttackSkillTask(Skill skill, Character caster) : base(skill)
     {
-        _skill = skill;
+        _mainhandSkill = skill;
         _caster = caster;
         Cancelled = false;
+
+        DetectDualWield();
     }
 
     public override void Execute()
@@ -40,8 +45,7 @@ public class UseAutoAttackSkillTask : SkillTask
         if (!_caster.CanAttack(target))
             return;
 
-        // Range check using weapon max range or skill max range — pause (don't cancel)
-        // if target moved out of range, so player walking back into range resumes attacks.
+        // Range check — pause (don't cancel) if target moved out of range
         var maxRange = GetEffectiveMaxRange();
         var distance = _caster.GetDistanceTo(target);
         if (distance > maxRange)
@@ -51,12 +55,43 @@ public class UseAutoAttackSkillTask : SkillTask
         var targetCaster = new SkillCastUnitTarget(target.ObjId);
         var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
-        _skill.Use(_caster, casterCaster, targetCaster, skillObject, true, out _);
+        // Fire mainhand attack
+        _mainhandSkill.Use(_caster, casterCaster, targetCaster, skillObject, true, out _);
 
-        // Dynamically adjust delay if attack speed changed (buff/debuff)
-        var newDelay = TimeSpan.FromMilliseconds(SkillManager.GetAttackDelay(_skill.Template, _caster));
+        // Dual-wield: fire offhand attack on the same swing
+        if (_offhandSkill != null)
+        {
+            var offCaster = new SkillCasterUnit(_caster.ObjId);
+            var offTarget = new SkillCastUnitTarget(target.ObjId);
+            var offSkillObject = SkillObject.GetByType(SkillObjectType.None);
+            _offhandSkill.Use(_caster, offCaster, offTarget, offSkillObject, true, out _);
+        }
+
+        // Adjust delay if attack speed changed (buff/debuff/weapon swap)
+        var newDelay = TimeSpan.FromMilliseconds(SkillManager.GetAttackDelay(_mainhandSkill.Template, _caster));
         if (newDelay != RepeatInterval)
             RepeatInterval = newDelay;
+    }
+
+    /// <summary>
+    /// If we wield a melee weapon mainhand AND another weapon (not shield) offhand,
+    /// queue the offhand auto-attack skill (id 3) on the same swing as mainhand (id 2).
+    /// </summary>
+    private void DetectDualWield()
+    {
+        // Only for melee mainhand (skill 2)
+        if (_mainhandSkill.Template.Id != 2)
+            return;
+
+        var offhandItem = _caster.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+        if (offhandItem?.Template is not WeaponTemplate)
+            return; // Shield, empty, or non-weapon — not dual-wield
+
+        var offhandTemplate = SkillManager.Instance.GetSkillTemplate(3);
+        if (offhandTemplate == null)
+            return;
+
+        _offhandSkill = new Skill(offhandTemplate);
     }
 
     private void StopAutoAttack()
@@ -70,10 +105,8 @@ public class UseAutoAttackSkillTask : SkillTask
     /// <summary>Get max attack range from equipped weapon or fall back to skill template.</summary>
     private float GetEffectiveMaxRange()
     {
-        EquipmentItemSlot slot = _skill.Template.Id switch
+        EquipmentItemSlot slot = _mainhandSkill.Template.Id switch
         {
-            2 => EquipmentItemSlot.Mainhand,
-            3 => EquipmentItemSlot.Offhand,
             4 => EquipmentItemSlot.Ranged,
             _ => EquipmentItemSlot.Mainhand
         };
@@ -82,7 +115,6 @@ public class UseAutoAttackSkillTask : SkillTask
         if (weapon?.Template is WeaponTemplate wt && wt.HoldableTemplate != null && wt.HoldableTemplate.MaxRange > 0)
             return wt.HoldableTemplate.MaxRange;
 
-        // Fallback to skill template max range
-        return _skill.Template.MaxRange > 0 ? _skill.Template.MaxRange : 4f;
+        return _mainhandSkill.Template.MaxRange > 0 ? _mainhandSkill.Template.MaxRange : 4f;
     }
 }
