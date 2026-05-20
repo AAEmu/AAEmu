@@ -405,6 +405,7 @@ public class Doodad : BaseUnit
     public void Use(BaseUnit caster, uint startedSkillId = 0, int funcGroupId = 0)
     {
         var skillId = startedSkillId;
+        var startedSkillTemplate = SkillManager.Instance.GetSkillTemplate(startedSkillId);
         if (caster == null)
         {
             return;
@@ -466,7 +467,7 @@ public class Doodad : BaseUnit
             // and also not being the owner seems to be a good enough criteria.
             // If somebody finds an edge-case where this would generate a footprint when not needed, we need to adjust this
             var casterOwningCharacter = caster.GetOwnerCharacter();
-            if (OwnerType == DoodadOwnerType.Character && OwnerId != casterOwningCharacter?.Id)
+            if (OwnerType == DoodadOwnerType.Character && OwnerId != casterOwningCharacter?.Id && startedSkillTemplate?.CrimePoint > 0)
             {
                 // Picking up something from a doodad that isn't owned by the player, need to check permissions
                 // TODO: Enforce theft minimum level
