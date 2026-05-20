@@ -982,6 +982,28 @@ public partial class Npc : Unit
                 QuestManager.Instance.DoOnMonsterHuntEvents(pl, this);
             }
         }
+
+        // ── Tag Share toggle ──────────────────────────────────────────────
+        // When enabled, fan out monster-hunt quest events to every player
+        // that dealt damage (plus their party / raid mates in range). This
+        // runs AFTER both branches above (eligible-players loop AND the
+        // killer-only fallback) so two parties or two raids hitting the
+        // same mob can both progress kill quests, even when neither broke
+        // the 50% HP tag threshold. XP and loot are NOT affected — only
+        // quest progress fans out.
+        if (AppConfiguration.Instance.World.TagShareEnabled)
+        {
+            var alreadyCredited = new HashSet<Character>(eligiblePlayers);
+            if (killer is Character ck) alreadyCredited.Add(ck);
+
+            var contributors = CharacterTagging.GetAllContributors(Items.Containers.LootingContainer.MaxLootingRange);
+            foreach (var contributor in contributors)
+            {
+                if (!alreadyCredited.Add(contributor)) continue;
+                QuestManager.Instance.DoOnMonsterHuntEvents(contributor, this);
+            }
+        }
+
         base.DoDie(killer, killReason);
         ClearAllAggroTargetsAndCheckCombatState();
         // AggroTable.Clear();

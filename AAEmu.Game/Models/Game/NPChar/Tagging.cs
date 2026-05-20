@@ -106,4 +106,39 @@ public class Tagging(Unit owner)
             // TODO: packet to set red-but-not-aggro HP bar for taggers, "dull red" HP bar for not-taggers
         }
     }
+
+    /// <summary>
+    /// Returns every player who dealt damage to this NPC plus their party / raid
+    /// mates that are within <paramref name="range"/>. Used by the TagShareEnabled
+    /// feature in <c>Npc.DoDie</c> to fan out quest credit to all contributors —
+    /// even ones who didn't pass the 50% HP threshold that <see cref="Tagger"/> uses.
+    /// Loot and XP are NOT routed through this list; only quest events.
+    /// </summary>
+    public HashSet<Character> GetAllContributors(float range)
+    {
+        var result = new HashSet<Character>();
+        lock (_lock)
+        {
+            foreach (var (dealer, _) in _taggers)
+            {
+                if (dealer == null || !dealer.IsOnline) continue;
+                if (dealer.GetDistanceTo(Owner, true) > range) continue;
+
+                result.Add(dealer);
+
+                // Pull in party / raid mates within range
+                if (!dealer.InParty) continue;
+                var team = TeamManager.Instance.GetTeamByObjId(dealer.ObjId);
+                if (team == null) continue;
+
+                foreach (var member in team.Members)
+                {
+                    if (member?.Character == null || !member.Character.IsOnline) continue;
+                    if (member.Character.GetDistanceTo(Owner, true) > range) continue;
+                    result.Add(member.Character);
+                }
+            }
+        }
+        return result;
+    }
 }
