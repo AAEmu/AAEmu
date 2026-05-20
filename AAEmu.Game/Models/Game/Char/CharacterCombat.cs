@@ -20,10 +20,11 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public partial class Character
 {
-    private static readonly NLog.Logger PvpLogger = NLog.LogManager.GetCurrentClassLogger();
-
     /// <summary>Time window in seconds for PvP assist credit</summary>
     private const int PvpAssistWindowSeconds = 30;
+
+    /// <summary>War-zone death honor penalty (clamped to victim's current honor).</summary>
+    private const int WarZoneHonorLoss = 10;
 
     /// <summary>Escalating death respawn wait times in seconds. Resets after 5 min without dying.</summary>
     private static readonly int[] DeathWaitTimesSeconds = [15, 30, 60, 90, 120, 150, 180, 210, 240];
@@ -36,20 +37,14 @@ public partial class Character
     public uint HostileFactionKills { get; set; }
     public uint HonorGainedInCombat { get; set; }
 
-    /// <summary>Temporary res-caster coords (used by in-place resurrection).</summary>
-    public float ResurrectX { get; set; }
-    public float ResurrectY { get; set; }
-    public float ResurrectZ { get; set; }
-    public float ResurrectYaw { get; set; }
-
-    /// <summary>True if last death was a PvP kill in a War zone (Leech debuff on res).</summary>
+    /// <summary>True if last death was a PvP kill in a War zone (Leech debuff on temple-revive).</summary>
     public bool DiedInPvpWarZone { get; set; }
-    /// <summary>True if last death was a PvP kill (any zone — skip Weakened Body debuff).</summary>
+    /// <summary>True if last death was a PvP kill (any zone — skips Weakened Body debuff on temple-revive).</summary>
     public bool DiedInPvp { get; set; }
 
     /// <summary>Char IDs that recently damaged us. Cleared on death.</summary>
     private readonly ConcurrentDictionary<uint, DateTime> _pvpDamageHistory = new();
-    /// <summary>Char IDs that recently healed us. NOT cleared on death (so heal-assists carry across the healer's next kill too).</summary>
+    /// <summary>Char IDs that recently healed us. NOT cleared on death (so heal-assists carry across the healer's next kill).</summary>
     private readonly ConcurrentDictionary<uint, DateTime> _pvpHealHistory = new();
 
     /// <summary>Record that a player dealt damage to us (for assist tracking).</summary>
@@ -71,44 +66,44 @@ public partial class Character
 
         base.DoDie(killer, killReason);
 
+        // Resolve the victim's zone-conflict state once for both PvP-honor award and War-zone honor-loss
+        var victimZone = ZoneManager.Instance.GetZoneByKey(Transform.ZoneId);
+        var conflictData = victimZone != null
+            ? ZoneManager.Instance.GetConflicts().FirstOrDefault(c => c.ZoneGroupId == victimZone.GroupId)
+            : null;
+        var zoneState = conflictData?.CurrentZoneState ?? ZoneConflictType.Peace;
+
         var relationState = killer.GetRelationStateTo(this);
         if (killer is Character enemy)
         {
             if (relationState != RelationState.Friendly)
             {
                 enemy.HostileFactionKills++;
-                AwardPvpHonor(enemy);
+                AwardPvpHonor(enemy, victimZone, conflictData, zoneState);
 
-                // Mark victim as PvP death (prevents Weakened Body debuff)
+                // Mark victim as PvP death (prevents Weakened Body debuff on temple-revive)
                 DiedInPvp = true;
+                if (zoneState == ZoneConflictType.War)
+                    DiedInPvpWarZone = true;
 
-                // Broadcast PvP stats
-                // kind=0 → HonorGainedInCombat, kind=1 → HostileFactionKills
+                // Broadcast PvP stats: kind=0 → HonorGainedInCombat, kind=1 → HostileFactionKills
                 enemy.BroadcastPacket(new SCUnitPvPPointsChangedPacket(enemy.ObjId, 0, (int)enemy.HonorGainedInCombat), true);
                 enemy.BroadcastPacket(new SCUnitPvPPointsChangedPacket(enemy.ObjId, 1, (int)enemy.HostileFactionKills), true);
 
-                // Victim loses 10 honor in War zone (hardcoded, clamped to >= 0)
-                var victimZone = ZoneManager.Instance.GetZoneByKey(Transform.ZoneId);
-                if (victimZone != null)
+                // Victim loses honor in War zone (clamped >= 0)
+                if (zoneState == ZoneConflictType.War && HonorPoint > 0)
                 {
-                    var conflict = ZoneManager.Instance.GetConflicts()?.FirstOrDefault(c => c.ZoneGroupId == victimZone.GroupId);
-                    if (conflict?.CurrentZoneState == ZoneConflictType.War && HonorPoint > 0)
-                    {
-                        var loss = Math.Min(10, HonorPoint);
-                        ChangeGamePoints(GamePointKind.Honor, -loss);
-                        PvpLogger.Info($"PvP Death: {Name} lost {loss} honor (War zone death)");
-                    }
+                    var loss = Math.Min(WarZoneHonorLoss, HonorPoint);
+                    ChangeGamePoints(GamePointKind.Honor, -loss);
+                    Logger.Debug($"PvP Death: {Name} lost {loss} honor (War zone death)");
                 }
             }
             else
             {
                 // Friendly-fire kill → generate crime evidence (unless retaliation)
                 var killerOwner = killer.GetOwnerCharacter();
-                if (killerOwner != null)
-                {
-                    if (!AssaultedBy.Contains(killerOwner.Id))
-                        _ = CrimeManager.Instance.GenerateEvidenceFromKill(killer, this);
-                }
+                if (killerOwner != null && !AssaultedBy.Contains(killerOwner.Id))
+                    _ = CrimeManager.Instance.GenerateEvidenceFromKill(killer, this);
             }
         }
 
@@ -140,7 +135,7 @@ public partial class Character
         _consecutiveDeathCount++;
         _lastDeathTime = DateTime.UtcNow;
 
-        PvpLogger.Info($"Death #{_consecutiveDeathCount} for {Name}: respawn wait = {waitSeconds}s");
+        Logger.Debug($"Death #{_consecutiveDeathCount} for {Name}: respawn wait = {waitSeconds}s");
     }
 
     /// <summary>
@@ -148,19 +143,9 @@ public partial class Character
     /// Conflict: 10 solo (6 killer + 4 each assist). War: 20 solo (16 killer + 4 each assist).
     /// Also registers the kill in the zone conflict system.
     /// </summary>
-    private void AwardPvpHonor(Character killer)
+    private void AwardPvpHonor(Character killer, Zone victimZone, ZoneConflict conflictData, ZoneConflictType zoneState)
     {
-        var currentZone = ZoneManager.Instance.GetZoneByKey(Transform.ZoneId);
-        if (currentZone == null)
-            return;
-
-        var conflictData = ZoneManager.Instance.GetConflicts()?.FirstOrDefault(c => c.ZoneGroupId == currentZone.GroupId);
-        var zoneState = conflictData?.CurrentZoneState ?? ZoneConflictType.Peace;
-
-        int soloHonor;
-        int killerShareHonor;
-        int assistShareHonor;
-
+        int soloHonor, killerShareHonor, assistShareHonor;
         switch (zoneState)
         {
             case ZoneConflictType.Conflict:
@@ -172,7 +157,6 @@ public partial class Character
                 soloHonor = 20;
                 killerShareHonor = 16;
                 assistShareHonor = 4;
-                DiedInPvpWarZone = true;
                 break;
             default:
                 // No honor outside Conflict/War zones
@@ -192,7 +176,7 @@ public partial class Character
             {
                 killer.ChangeGamePoints(GamePointKind.Honor, killerHonor);
                 killer.HonorGainedInCombat += (uint)killerHonor;
-                PvpLogger.Info($"PvP Kill: {killer.Name} killed {Name} in {zoneState} zone — {killerHonor} honor (killer share)");
+                Logger.Debug($"PvP Kill: {killer.Name} killed {Name} in {zoneState} zone — {killerHonor} honor (killer share)");
             }
 
             var assistHonor = (int)Math.Round(assistShareHonor * pvpRate);
@@ -201,13 +185,13 @@ public partial class Character
                 foreach (var assistId in assists)
                 {
                     var assistant = WorldManager.Instance.GetCharacterById(assistId);
-                    if (assistant is { IsOnline: true })
-                    {
-                        assistant.ChangeGamePoints(GamePointKind.Honor, assistHonor);
-                        assistant.HonorGainedInCombat += (uint)assistHonor;
-                        PvpLogger.Info($"PvP Assist: {assistant.Name} assisted {killer.Name} killing {Name} — {assistHonor} honor");
-                        assistant.BroadcastPacket(new SCUnitPvPPointsChangedPacket(assistant.ObjId, 0, (int)assistant.HonorGainedInCombat), true);
-                    }
+                    if (assistant is not { IsOnline: true })
+                        continue;
+
+                    assistant.ChangeGamePoints(GamePointKind.Honor, assistHonor);
+                    assistant.HonorGainedInCombat += (uint)assistHonor;
+                    Logger.Debug($"PvP Assist: {assistant.Name} assisted {killer.Name} killing {Name} — {assistHonor} honor");
+                    assistant.BroadcastPacket(new SCUnitPvPPointsChangedPacket(assistant.ObjId, 0, (int)assistant.HonorGainedInCombat), true);
                 }
             }
         }
@@ -218,11 +202,12 @@ public partial class Character
             {
                 killer.ChangeGamePoints(GamePointKind.Honor, honor);
                 killer.HonorGainedInCombat += (uint)honor;
-                PvpLogger.Info($"PvP Solo Kill: {killer.Name} killed {Name} in {zoneState} zone — {honor} honor");
+                Logger.Debug($"PvP Solo Kill: {killer.Name} killed {Name} in {zoneState} zone — {honor} honor");
             }
         }
 
-        killer.SendPacket(new SCConflictZoneHonorPointSumPacket((ushort)currentZone.ZoneKey, (int)killer.HonorGainedInCombat));
+        if (victimZone != null)
+            killer.SendPacket(new SCConflictZoneHonorPointSumPacket((ushort)victimZone.ZoneKey, (int)killer.HonorGainedInCombat));
     }
 
     /// <summary>
@@ -248,19 +233,19 @@ public partial class Character
         }
 
         // 3) Active CC-debuff casters on the victim
-        var badBuffs = new List<Buff>();
         var goodBuffs = new List<Buff>();
+        var badBuffs = new List<Buff>();
         var hiddenBuffs = new List<Buff>();
         Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs, false);
 
         foreach (var buff in badBuffs)
         {
-            if (buff.Caster is Character ccCaster && ccCaster.Id != killer.Id)
-            {
-                var template = buff.Template;
-                if (template.Stun || template.Root || template.Sleep || template.Silence || template.Cripled)
-                    assists.Add(ccCaster.Id);
-            }
+            if (buff.Caster is not Character ccCaster || ccCaster.Id == killer.Id)
+                continue;
+
+            var template = buff.Template;
+            if (template.Stun || template.Root || template.Sleep || template.Silence || template.Cripled)
+                assists.Add(ccCaster.Id);
         }
 
         return assists;

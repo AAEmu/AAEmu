@@ -105,16 +105,14 @@ public class UseAutoAttackSkillTask : SkillTask
     /// <summary>Get max attack range from equipped weapon or fall back to skill template.</summary>
     private float GetEffectiveMaxRange()
     {
-        EquipmentItemSlot slot = _mainhandSkill.Template.Id switch
-        {
-            4 => EquipmentItemSlot.Ranged,
-            _ => EquipmentItemSlot.Mainhand
-        };
+        var slot = _mainhandSkill.Template.Id == 4
+            ? EquipmentItemSlot.Ranged
+            : EquipmentItemSlot.Mainhand;
 
         var weapon = _caster.Equipment?.GetItemBySlot((int)slot);
         if (weapon?.Template is WeaponTemplate wt && wt.HoldableTemplate != null && wt.HoldableTemplate.MaxRange > 0)
             return wt.HoldableTemplate.MaxRange;
 
-        return _mainhandSkill.Template.MaxRange > 0 ? _mainhandSkill.Template.MaxRange : 4f;
+        return _mainhandSkill.Template.MaxRange > 0 ? _mainhandSkill.Template.MaxRange : 3f;
     }
 }

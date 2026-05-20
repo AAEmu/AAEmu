@@ -1,9 +1,10 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -14,6 +15,9 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectCharacterPacket, 1)
 {
+    /// <summary>Duration of the post-revive Respawn-Cooldown debuff in milliseconds (5 min).</summary>
+    private const int RespawnCooldownDurationMs = 300_000;
+
     public override void Read(PacketStream stream)
     {
         var inPlace = stream.ReadBoolean();
@@ -46,7 +50,7 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             var currentZone = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Transform.ZoneId);
             if (currentZone != null)
             {
-                var conflictData = ZoneManager.Instance.GetConflicts()?.FirstOrDefault(c => c.ZoneGroupId == currentZone.GroupId);
+                var conflictData = ZoneManager.Instance.GetConflicts().FirstOrDefault(c => c.ZoneGroupId == currentZone.GroupId);
                 if (conflictData?.CurrentZoneState == ZoneConflictType.War)
                 {
                     switch (Connection.ActiveChar.Faction.MotherId)
@@ -66,7 +70,7 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             {
                 portal = PortalManager.Instance.GetRespawnById(usePortalId);
             }
-            
+
             // Find the closest return portal (in the world) for the player if none has been found yet
             if (usePortalId == 0 || portal == null)
             {
@@ -125,63 +129,65 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             true
         );
 
-        // ── PvP-Honor system: route death-debuffs by death context ─────────
-        if (inPlace)
-        {
-            // Player-resurrected → no debuffs at all
-            Connection.ActiveChar.DiedInPvpWarZone = false;
-            Connection.ActiveChar.DiedInPvp = false;
-        }
-        else if (Connection.ActiveChar.DiedInPvpWarZone)
-        {
-            // War-zone PvP death → Leech (4424) + Respawn-CD (2385, 5min)
-            Connection.ActiveChar.DiedInPvpWarZone = false;
-            Connection.ActiveChar.DiedInPvp = false;
-            var casterObj = new SkillCasterUnit(Connection.ActiveChar.ObjId);
-
-            var leechTemplate = SkillManager.Instance.GetBuffTemplate(4424);
-            if (leechTemplate != null)
-                Connection.ActiveChar.Buffs.AddBuff(new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, leechTemplate, null, DateTime.UtcNow));
-
-            var cdTemplate = SkillManager.Instance.GetBuffTemplate(2385);
-            if (cdTemplate != null)
-            {
-                var cdBuff = new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, cdTemplate, null, DateTime.UtcNow);
-                Connection.ActiveChar.Buffs.AddBuff(cdBuff, forcedDuration: 300_000);
-            }
-        }
-        else if (Connection.ActiveChar.DiedInPvp)
-        {
-            // Conflict-zone PvP death → Respawn-CD only (no Weakened Body)
-            Connection.ActiveChar.DiedInPvp = false;
-            var casterObj = new SkillCasterUnit(Connection.ActiveChar.ObjId);
-
-            var cdTemplate = SkillManager.Instance.GetBuffTemplate(2385);
-            if (cdTemplate != null)
-            {
-                var cdBuff = new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, cdTemplate, null, DateTime.UtcNow);
-                Connection.ActiveChar.Buffs.AddBuff(cdBuff, forcedDuration: 300_000);
-            }
-        }
-        else
-        {
-            // PvE death → Weakened Body (1128) + Respawn-CD (2385, 5min)
-            var casterObj = new SkillCasterUnit(Connection.ActiveChar.ObjId);
-
-            var weakenedTemplate = SkillManager.Instance.GetBuffTemplate(1128);
-            if (weakenedTemplate != null)
-                Connection.ActiveChar.Buffs.AddBuff(new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, weakenedTemplate, null, DateTime.UtcNow));
-
-            var cdTemplate = SkillManager.Instance.GetBuffTemplate(2385);
-            if (cdTemplate != null)
-            {
-                var cdBuff = new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, cdTemplate, null, DateTime.UtcNow);
-                Connection.ActiveChar.Buffs.AddBuff(cdBuff, forcedDuration: 300_000);
-            }
-        }
+        // Route death-debuffs based on death context (set by Character.DoDie).
+        ApplyRevivalDebuffs(Connection.ActiveChar, inPlace);
 
         Connection.ActiveChar.IsUnderWater = false;
         //Connection.ActiveChar.StartRegen();
         Connection.ActiveChar.Breath = Connection.ActiveChar.LungCapacity;
+    }
+
+    /// <summary>
+    /// Apply post-revive debuffs based on the death context:
+    ///   inPlace (player-res) → no debuffs at all
+    ///   DiedInPvpWarZone     → Leech + 5 min Respawn-CD
+    ///   DiedInPvp            → 5 min Respawn-CD only (no Weakened Body)
+    ///   PvE death            → Weakened Body + 5 min Respawn-CD
+    /// </summary>
+    private static void ApplyRevivalDebuffs(Character character, bool inPlace)
+    {
+        if (inPlace)
+        {
+            // Player-resurrected (e.g. by another player's resurrect skill): no debuffs.
+            character.DiedInPvpWarZone = false;
+            character.DiedInPvp = false;
+            return;
+        }
+
+        var casterObj = new SkillCasterUnit(character.ObjId);
+
+        if (character.DiedInPvpWarZone)
+        {
+            // PvP death in War zone → Leech + Respawn-CD
+            character.DiedInPvpWarZone = false;
+            character.DiedInPvp = false;
+            ApplyBuff(character, casterObj, (uint)BuffConstants.WarZoneLeech);
+            ApplyBuff(character, casterObj, (uint)BuffConstants.RespawnCooldown, RespawnCooldownDurationMs);
+        }
+        else if (character.DiedInPvp)
+        {
+            // PvP death outside War zone → Respawn-CD only (no Weakened Body)
+            character.DiedInPvp = false;
+            ApplyBuff(character, casterObj, (uint)BuffConstants.RespawnCooldown, RespawnCooldownDurationMs);
+        }
+        else
+        {
+            // PvE death → Weakened Body + Respawn-CD
+            ApplyBuff(character, casterObj, (uint)BuffConstants.WeakenedBody);
+            ApplyBuff(character, casterObj, (uint)BuffConstants.RespawnCooldown, RespawnCooldownDurationMs);
+        }
+    }
+
+    private static void ApplyBuff(Character character, SkillCasterUnit casterObj, uint buffId, int forcedDurationMs = 0)
+    {
+        var template = SkillManager.Instance.GetBuffTemplate(buffId);
+        if (template == null)
+            return;
+
+        var buff = new Buff(character, character, casterObj, template, null, DateTime.UtcNow);
+        if (forcedDurationMs > 0)
+            character.Buffs.AddBuff(buff, forcedDuration: forcedDurationMs);
+        else
+            character.Buffs.AddBuff(buff);
     }
 }

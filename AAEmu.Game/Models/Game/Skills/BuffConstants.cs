@@ -9,6 +9,9 @@ public enum BuffConstants : uint
     EquipmentBuffTag = 156,
     Untouchable = 545,
     NpcReturn = 550, // NPC returning home
+    WeakenedBody = 1128, // PvE death penalty
+    RespawnCooldown = 2385, // 5 min cooldown after temple-revive
+    WarZoneLeech = 4424, // PvP death penalty in War zones
     Cloth4P = 713,
     Cloth7P = 714,
     Leather4P = 715,

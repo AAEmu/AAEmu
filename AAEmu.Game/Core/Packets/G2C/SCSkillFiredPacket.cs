@@ -19,10 +19,10 @@ public class SCSkillFiredPacket : GamePacket
 
     /// <summary>
     /// The fire animation ID sent to the client.
-    /// Default = skill template's FireAnim ID. Caller can override for weapon-based
+    /// Default = skill template's FireAnim ID. Callers can override for weapon-based
     /// auto-attack animation (Skill.GetWeaponAttackAnimId) or NPC anim cycling.
     /// </summary>
-    public int FireAnimId { get; set; }
+    public uint FireAnimId { get; set; }
 
     public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) : base(SCOffsets.SCSkillFiredPacket, 1)
     {
@@ -32,7 +32,7 @@ public class SCSkillFiredPacket : GamePacket
         _target = target;
         _skill = skill;
         _skillObject = skillObject;
-        FireAnimId = (int)(skill.Template.FireAnim?.Id ?? 0);
+        FireAnimId = skill.Template.FireAnim?.Id ?? 0;
     }
 
     public override PacketStream Write(PacketStream stream)

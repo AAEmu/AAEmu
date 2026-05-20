@@ -5,15 +5,13 @@ using AAEmu.Game.Models.Tasks.Zones;
 
 using NLog;
 
-#pragma warning disable IDE0005
-#pragma warning disable IDE0052 // Remove unread private members
-
 namespace AAEmu.Game.Models.Game.World.Zones;
 
 public class ZoneConflict(ZoneGroup owner)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
+    // ReSharper disable once NotAccessedField.Local
     private ZoneGroup _owner = owner;
     public ushort ZoneGroupId { get; set; }
     public int[] NumKills { get; } = new int[5];
@@ -87,12 +85,12 @@ public class ZoneConflict(ZoneGroup owner)
         {
             var lpConflictStartTask = new ZoneStateChangeTask(this);
             var delay = NextStateTime - DateTime.UtcNow;
-            Logger.Info($"SetTimerTask: ZoneGroup {ZoneGroupId} scheduling next state check in {delay.TotalMinutes:F1} min (NextStateTime={NextStateTime:HH:mm:ss})");
+            Logger.Debug($"ZoneGroup {ZoneGroupId}: scheduling next state check in {delay.TotalMinutes:F1} min (NextStateTime={NextStateTime:HH:mm:ss})");
             TaskManager.Instance.Schedule(lpConflictStartTask, delay);
         }
         else
         {
-            Logger.Warn($"SetTimerTask: ZoneGroup {ZoneGroupId} has no NextStateTime set — timer chain stopped.");
+            Logger.Debug($"ZoneGroup {ZoneGroupId}: no NextStateTime set — timer chain stopped.");
         }
     }
 
@@ -117,7 +115,7 @@ public class ZoneConflict(ZoneGroup owner)
     {
         if (NextStateTime > DateTime.MinValue && DateTime.UtcNow >= NextStateTime)
         {
-            Logger.Info($"CheckTimer: ZoneGroup {ZoneGroupId} timer elapsed, current state={CurrentZoneState}, advancing...");
+            Logger.Debug($"ZoneGroup {ZoneGroupId}: timer elapsed, current state={CurrentZoneState}, advancing...");
             ForceNextState();
         }
     }
@@ -125,10 +123,7 @@ public class ZoneConflict(ZoneGroup owner)
     public void SetState(ZoneConflictType ct)
     {
         if (ct == CurrentZoneState)
-        {
-            Logger.Debug($"SetState: ZoneGroup {ZoneGroupId} already at {ct}, skipping.");
             return;
-        }
 
         var previousState = CurrentZoneState;
 
@@ -151,13 +146,12 @@ public class ZoneConflict(ZoneGroup owner)
                 break;
         }
         CurrentZoneState = ct;
-        Logger.Info($"SetState: ZoneGroup {ZoneGroupId} changed from {previousState} → {ct} (NextStateTime={NextStateTime:HH:mm:ss}, ConflictMin={ConflictMin}, WarMin={WarMin}, PeaceMin={PeaceMin})");
+        Logger.Info($"ZoneGroup {ZoneGroupId} changed from {previousState} → {ct} (next state at {NextStateTime:HH:mm:ss})");
         SendSwitchZoneState();
     }
 
     public void ForceNextState()
     {
-        Logger.Info($"ForceNextState: ZoneGroup {ZoneGroupId} current={CurrentZoneState}, PeaceMin={PeaceMin}");
         if (CurrentZoneState < ZoneConflictType.Peace)
         {
             if (CurrentZoneState == ZoneConflictType.War && PeaceMin <= 0)

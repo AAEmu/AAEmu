@@ -843,7 +843,7 @@ public class Skill
             ComputedDelay = (short)totalDelay
         };
         if (weaponAnimId > 0)
-            firedPacket.FireAnimId = (int)weaponAnimId;
+            firedPacket.FireAnimId = weaponAnimId;
         caster.BroadcastPacket(firedPacket, true);
 
         if (totalDelay > 0)
@@ -881,7 +881,7 @@ public class Skill
         if (caster is not Character character)
             return 0;
 
-        EquipmentItemSlot slot = Template.Id switch
+        var slot = Template.Id switch
         {
             3 => EquipmentItemSlot.Offhand,
             4 => EquipmentItemSlot.Ranged,
@@ -891,7 +891,7 @@ public class Skill
         var weapon = character.Equipment?.GetItemBySlot((int)slot);
         if (weapon?.Template is WeaponTemplate wt && wt.HoldableTemplate != null)
         {
-            bool leftHand = Template.Id == 3; // Offhand = left hand
+            var leftHand = Template.Id == 3; // Offhand = left hand
             var animId = wt.HoldableTemplate.GetAttackAnimId(AutoAttackIndex, leftHand);
             AutoAttackIndex++;
             return animId;
