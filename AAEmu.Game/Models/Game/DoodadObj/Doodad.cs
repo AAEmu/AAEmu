@@ -405,6 +405,7 @@ public class Doodad : BaseUnit
     public void Use(BaseUnit caster, uint startedSkillId = 0, int funcGroupId = 0)
     {
         var skillId = startedSkillId;
+        var startedSkillTemplate = SkillManager.Instance.GetSkillTemplate(startedSkillId);
         if (caster == null)
         {
             return;
@@ -443,6 +444,13 @@ public class Doodad : BaseUnit
 
             if (skillId == 0)
             {
+                // Iterate over loot-driven funcs handled via skill-less Use() (ship debris and similar).
+                // IMPORTANT: DoodadFuncRecoverItem is intentionally NOT handled here. It is routed by
+                // CSLootOpenBagPacket through RecoverItem.Execute (the same path as the right-click pickup
+                // skill 11361), which enforces the "player must not already wear a pack" guard. Calling it
+                // from Use(0) would bypass that guard and cause the player's current backpack to be silently
+                // swapped into inventory whenever the client sends a stray CSLootOpenBagPacket (observed
+                // right after a F-pickup followed by a re-place via PutDownBackpackEffect).
                 foreach (var funcWithoutSkill in allFuncsForGroup.Where(f => f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack" or "DoodadFuncCutdowning"))
                 {
                     if (DoFunc(caster, startedSkillId, funcWithoutSkill))
@@ -466,7 +474,7 @@ public class Doodad : BaseUnit
             // and also not being the owner seems to be a good enough criteria.
             // If somebody finds an edge-case where this would generate a footprint when not needed, we need to adjust this
             var casterOwningCharacter = caster.GetOwnerCharacter();
-            if (OwnerType == DoodadOwnerType.Character && OwnerId != casterOwningCharacter?.Id)
+            if (OwnerType == DoodadOwnerType.Character && OwnerId != casterOwningCharacter?.Id && startedSkillTemplate?.CrimePoint > 0)
             {
                 // Picking up something from a doodad that isn't owned by the player, need to check permissions
                 // TODO: Enforce theft minimum level
@@ -861,8 +869,14 @@ public class Doodad : BaseUnit
         }
 
         stream.Write(Scale); //The size of the object
-        // Mark doodad as lootable for client UI (gear icon) when its current phase has any loot/recover interaction func.
-        var hasLootItem = CurrentFuncs.Any(func => IsFuncDrivenLootFunc(func.FuncType));
+        // Mark doodad as lootable for client UI (gear icon) ONLY when its current phase is exclusively driven by
+        // loot/recover funcs. If the group also contains non-loot interaction funcs (CraftPack, StoreUi, Use, etc.),
+        // the doodad must keep the normal interaction wheel (F/G/H...). Otherwise the client would route every
+        // interaction through CSLootOpenBagPacket -> doodad.Use(skillId=0) and silently break workshops/shops while
+        // accidentally despawning them (RecoverItem with NextPhase=-1 deletes the doodad). This restriction keeps
+        // pickup working for trade packs, chests and crafting tables stored in the world (single-RecoverItem groups)
+        // while preserving multi-action doodads (workshops with CraftPack+StoreUi+RecoverItem).
+        var hasLootItem = CurrentFuncs.Count > 0 && CurrentFuncs.All(func => IsFuncDrivenLootFunc(func.FuncType));
         stream.Write(hasLootItem); // hasLootItem
         stream.Write(FuncGroupId); // doodad_func_group_id
         stream.Write(OwnerId); // characterId (Database relative)
