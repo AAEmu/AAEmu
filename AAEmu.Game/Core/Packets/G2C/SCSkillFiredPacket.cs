@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 
@@ -18,10 +18,12 @@ public class SCSkillFiredPacket : GamePacket
     private readonly Skill _skill;
 
     private short _effectDelay = 37;
-    private int _fireAnimId = 2;
     private bool _dist;
 
     public short ComputedDelay { get; set; }
+
+    /// <summary>Override animation ID. If &gt; 0, uses this instead of skill template FireAnim.</summary>
+    public uint OverrideFireAnimId { get; set; }
 
     public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) : base(SCOffsets.SCSkillFiredPacket, 1)
     {
@@ -32,6 +34,7 @@ public class SCSkillFiredPacket : GamePacket
         _skill = skill;
         _skillObject = skillObject;
     }
+
     public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject, short effectDelay = 37, int fireAnimId = 2, bool dist = true) : base(SCOffsets.SCSkillFiredPacket, 1)
     {
         _id = id;
@@ -41,7 +44,7 @@ public class SCSkillFiredPacket : GamePacket
         _skill = skill;
         _skillObject = skillObject;
         _effectDelay = effectDelay;
-        _fireAnimId = fireAnimId;
+        OverrideFireAnimId = (uint)fireAnimId;
         _dist = dist;
     }
 
@@ -53,13 +56,15 @@ public class SCSkillFiredPacket : GamePacket
         stream.Write(_target);
         stream.Write(_skillObject);
 
-        stream.Write((short)(ComputedDelay / 10 + 10)); // TODO +10 It became visible flying arrows
+        stream.Write((short)(ComputedDelay / 10 + 10));
         stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
         stream.Write((byte)0); // f
-        if (_skill.Template.Id != 2) // TODO: rotate between mainhand and offhand animation?
-            stream.Write(_skill.Template.FireAnim?.Id ?? 0); // fire_anim_id 
+
+        // Use override anim if set, otherwise use skill template FireAnim
+        if (OverrideFireAnimId > 0)
+            stream.Write(OverrideFireAnimId);
         else
-            stream.Write(2);
+            stream.Write(_skill.Template.FireAnim?.Id ?? 0);
 
         stream.Write((byte)0); // flag
 

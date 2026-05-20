@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -1834,12 +1836,44 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     /// <returns></returns>
     public static double GetAttackDelay(SkillTemplate skillTemplate, Unit caster, bool includeCooldown = true, double additionalDelay = 1000.0)
     {
-        // This isn't 100% accurate, but it feels "close enough"
-        // TODO: Implement weapon speed delays
+        // Auto-attack skills (2=melee, 3=offhand, 4=ranged) use weapon speed
+        if (skillTemplate.Id is 2 or 3 or 4 && caster is Character character)
+        {
+            var weaponSpeed = GetWeaponSpeed(character, skillTemplate.Id);
+            var delay = weaponSpeed * (caster.GlobalCooldownMul / 100.0);
+            return Math.Clamp(delay, 400.0, 5000.0);
+        }
+
+        // Non-auto-attack skills: original formula
         var castTime = skillTemplate.CastingTime * caster.CastTimeMul * 1.0;
         var coolDownTime = includeCooldown ? skillTemplate.CooldownTime * (caster.GlobalCooldownMul / 100.0) : 0.0;
         var additionalTime = additionalDelay * (caster.GlobalCooldownMul / 100.0);
         return castTime + coolDownTime + additionalTime;
+    }
+
+    /// <summary>
+    /// Get the weapon speed in ms for an auto-attack skill based on equipped weapon.
+    /// </summary>
+    private static double GetWeaponSpeed(Character character, uint skillId)
+    {
+        const double DefaultMeleeSpeed = 1500.0;
+        const double DefaultRangedSpeed = 1800.0;
+
+        EquipmentItemSlot slot;
+        double fallback;
+        switch (skillId)
+        {
+            case 2: slot = EquipmentItemSlot.Mainhand; fallback = DefaultMeleeSpeed; break;
+            case 3: slot = EquipmentItemSlot.Offhand;  fallback = DefaultMeleeSpeed; break;
+            case 4: slot = EquipmentItemSlot.Ranged;   fallback = DefaultRangedSpeed; break;
+            default: return DefaultMeleeSpeed;
+        }
+
+        var weapon = character.Equipment?.GetItemBySlot((int)slot);
+        if (weapon?.Template is WeaponTemplate wt && wt.HoldableTemplate != null && wt.HoldableTemplate.Speed > 0)
+            return wt.HoldableTemplate.Speed;
+
+        return fallback;
     }
 
     /// <summary>
