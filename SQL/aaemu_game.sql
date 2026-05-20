@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `jury_point` int NOT NULL DEFAULT '0',
   `hostile_faction_kills` int NOT NULL DEFAULT '0',
   `pvp_honor` int NOT NULL DEFAULT '0',
+  `died_in_pvp` tinyint(1) NOT NULL DEFAULT '0',
+  `died_in_pvp_war_zone` tinyint(1) NOT NULL DEFAULT '0',
   `delete_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `transfer_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `delete_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
