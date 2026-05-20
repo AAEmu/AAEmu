@@ -107,53 +107,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _buffs.GetValueOrDefault(id);
     }
 
-    public int ResolveDynamicBonusValue(DynamicBonusTemplate template, uint abLevel)
+    public LinearFuncTemplate GetLinearFunc(uint funcId)
     {
-        if (template == null)
-            return 0;
-
-        var funcType = template.FuncType?.Replace("_", string.Empty).ToLowerInvariant();
-        switch (funcType)
-        {
-            case "linearfunc":
-            case "manualfunc": // the DB has a few legacy ManualFunc rows that still point to linear_funcs
-                if (_linearFuncs.TryGetValue(template.FuncId, out var linearFunc))
-                    return linearFunc.Evaluate(abLevel);
-
-                Logger.Warn($"Dynamic unit modifier references missing linear_funcs row: func_type={template.FuncType}, func_id={template.FuncId}");
-                return 0;
-
-            default:
-                Logger.Warn($"Unsupported dynamic unit modifier func_type={template.FuncType}, func_id={template.FuncId}");
-                return 0;
-        }
-    }
-
-    /// <summary>
-    /// Time-based resolution for LinearFunc dynamic_unit_modifiers that evolve over the buff
-    /// lifetime (e.g. buff 2504 "저주의 시선" or buff 114 "현기증" where the value goes from
-    /// start_value at t=0 to end_value at t=duration). Called from BuffTemplate at each tick.
-    /// </summary>
-    public int ResolveDynamicBonusValueTime(DynamicBonusTemplate template, long elapsedMs, long durationMs)
-    {
-        if (template == null)
-            return 0;
-
-        var funcType = template.FuncType?.Replace("_", string.Empty).ToLowerInvariant();
-        switch (funcType)
-        {
-            case "linearfunc":
-            case "manualfunc":
-                if (_linearFuncs.TryGetValue(template.FuncId, out var linearFunc))
-                    return linearFunc.EvaluateTime(elapsedMs, durationMs);
-
-                Logger.Warn($"Dynamic unit modifier references missing linear_funcs row: func_type={template.FuncType}, func_id={template.FuncId}");
-                return 0;
-
-            default:
-                Logger.Warn($"Unsupported dynamic unit modifier func_type={template.FuncType}, func_id={template.FuncId}");
-                return 0;
-        }
+        return _linearFuncs.GetValueOrDefault(funcId);
     }
 
     public List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId)
