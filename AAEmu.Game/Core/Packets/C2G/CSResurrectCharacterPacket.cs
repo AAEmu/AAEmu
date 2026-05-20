@@ -4,6 +4,8 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
@@ -122,6 +124,62 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             ),
             true
         );
+
+        // ── PvP-Honor system: route death-debuffs by death context ─────────
+        if (inPlace)
+        {
+            // Player-resurrected → no debuffs at all
+            Connection.ActiveChar.DiedInPvpWarZone = false;
+            Connection.ActiveChar.DiedInPvp = false;
+        }
+        else if (Connection.ActiveChar.DiedInPvpWarZone)
+        {
+            // War-zone PvP death → Leech (4424) + Respawn-CD (2385, 5min)
+            Connection.ActiveChar.DiedInPvpWarZone = false;
+            Connection.ActiveChar.DiedInPvp = false;
+            var casterObj = new SkillCasterUnit(Connection.ActiveChar.ObjId);
+
+            var leechTemplate = SkillManager.Instance.GetBuffTemplate(4424);
+            if (leechTemplate != null)
+                Connection.ActiveChar.Buffs.AddBuff(new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, leechTemplate, null, DateTime.UtcNow));
+
+            var cdTemplate = SkillManager.Instance.GetBuffTemplate(2385);
+            if (cdTemplate != null)
+            {
+                var cdBuff = new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, cdTemplate, null, DateTime.UtcNow);
+                Connection.ActiveChar.Buffs.AddBuff(cdBuff, forcedDuration: 300_000);
+            }
+        }
+        else if (Connection.ActiveChar.DiedInPvp)
+        {
+            // Conflict-zone PvP death → Respawn-CD only (no Weakened Body)
+            Connection.ActiveChar.DiedInPvp = false;
+            var casterObj = new SkillCasterUnit(Connection.ActiveChar.ObjId);
+
+            var cdTemplate = SkillManager.Instance.GetBuffTemplate(2385);
+            if (cdTemplate != null)
+            {
+                var cdBuff = new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, cdTemplate, null, DateTime.UtcNow);
+                Connection.ActiveChar.Buffs.AddBuff(cdBuff, forcedDuration: 300_000);
+            }
+        }
+        else
+        {
+            // PvE death → Weakened Body (1128) + Respawn-CD (2385, 5min)
+            var casterObj = new SkillCasterUnit(Connection.ActiveChar.ObjId);
+
+            var weakenedTemplate = SkillManager.Instance.GetBuffTemplate(1128);
+            if (weakenedTemplate != null)
+                Connection.ActiveChar.Buffs.AddBuff(new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, weakenedTemplate, null, DateTime.UtcNow));
+
+            var cdTemplate = SkillManager.Instance.GetBuffTemplate(2385);
+            if (cdTemplate != null)
+            {
+                var cdBuff = new Buff(Connection.ActiveChar, Connection.ActiveChar, casterObj, cdTemplate, null, DateTime.UtcNow);
+                Connection.ActiveChar.Buffs.AddBuff(cdBuff, forcedDuration: 300_000);
+            }
+        }
+
         Connection.ActiveChar.IsUnderWater = false;
         //Connection.ActiveChar.StartRegen();
         Connection.ActiveChar.Breath = Connection.ActiveChar.LungCapacity;

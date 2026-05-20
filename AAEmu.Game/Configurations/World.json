@@ -18,6 +18,7 @@
         "TargetPhysicsTps": 25.0,
         "WindModel": "Official",
         "ActabilityRate": 1.0,
-        "UsePersistentHouseDoodads": false
+        "UsePersistentHouseDoodads": false,
+        "PvpHonorRate": 1.0
     }
 }

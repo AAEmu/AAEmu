@@ -1945,6 +1945,10 @@ public partial class Character : Unit, ICharacter
             value = 0;
         }
 
+        // PvP assist tracking: remember who hit us recently
+        if (attacker is Character enemyChar && value > 0 && enemyChar.Id != this.Id)
+            RecordPvpDamageFrom(enemyChar);
+
         base.ReduceCurrentHp(attacker, value, killReason);
     }
 
