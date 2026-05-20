@@ -11,6 +11,11 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSLootOpenBagPacket() : GamePacket(CSOffsets.CSLootOpenBagPacket, 1)
 {
+    // Generic RecoverItem pickup skill used by world trade/material packs (same path as the right-click pickup).
+    // 15309 = housing crate recover; that one is intentionally NOT handled here and stays on the normal doodad
+    // interaction path (see IsLootPacketRecoverSkill).
+    private const uint GenericRecoverItemSkillId = 11361u;
+
     public override void Read(PacketStream stream)
     {
         var objId = stream.ReadBc();
@@ -29,7 +34,7 @@ public class CSLootOpenBagPacket() : GamePacket(CSOffsets.CSLootOpenBagPacket, 1
 
         bool IsRecoverItemDoodad(Doodad d) =>
             // Trade packs / material packs are routed via DoodadFuncRecoverItem only for
-            // the generic world pickup skill. Housing crate recover uses skill 15309 and
+            // the generic world pickup skill (GenericRecoverItemSkillId). Housing crate recover uses skill 15309 and
             // must NOT be consumed by CSLootOpenBagPacket, otherwise a right-click store
             // immediately triggers a recover and cancels the storage visually.
             d.CurrentFuncs.Any(func =>
@@ -37,9 +42,9 @@ public class CSLootOpenBagPacket() : GamePacket(CSOffsets.CSLootOpenBagPacket, 1
                 IsLootPacketRecoverSkill(func.SkillId));
 
         bool IsLootPacketRecoverSkill(uint skillId) =>
-            // 11361 = generic RecoverItem pickup used by world trade/material packs.
+            // GenericRecoverItemSkillId = generic RecoverItem pickup used by world trade/material packs.
             // 15309 = housing crate recover; keep it on the normal doodad interaction path.
-            skillId == 11361;
+            skillId == GenericRecoverItemSkillId;
 
         bool TryHandleFuncDrivenLoot(BaseUnit target)
         {
@@ -48,12 +53,14 @@ public class CSLootOpenBagPacket() : GamePacket(CSOffsets.CSLootOpenBagPacket, 1
             if (doodad.LootingContainer.Items.Count > 0 || !IsFuncDrivenLootDoodad(doodad))
                 return false;
 
-            // Pack-style pickup -> route through RecoverItem with backpack guard, same as right-click (skill 11361).
-            // This is the only safe path for DoodadFuncRecoverItem: it refuses to fire if the player already
-            // wears a pack, preventing the duplication / pack-swap parasites observed on housing tradepacks.
+            // Pack-style pickup -> route through RecoverItem with backpack guard, same as right-click
+            // (GenericRecoverItemSkillId). This is the only safe path for DoodadFuncRecoverItem: it refuses to fire
+            // if the player already wears a pack, preventing the duplication / pack-swap parasites observed on
+            // housing tradepacks. We forward the real recover skillId so the F-key path stays consistent with the
+            // right-click path (DoodadFuncRecoverItem currently only logs it, but later checks/effects may rely on it).
             if (IsRecoverItemDoodad(doodad))
             {
-                new RecoverItem().Execute(Connection.ActiveChar, null, doodad, null, 0, 0, null);
+                new RecoverItem().Execute(Connection.ActiveChar, null, doodad, null, GenericRecoverItemSkillId, 0, null);
                 return true;
             }
 

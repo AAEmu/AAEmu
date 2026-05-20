@@ -446,8 +446,8 @@ public class Doodad : BaseUnit
             {
                 // Iterate over loot-driven funcs handled via skill-less Use() (ship debris and similar).
                 // IMPORTANT: DoodadFuncRecoverItem is intentionally NOT handled here. It is routed by
-                // CSLootOpenBagPacket through RecoverItem.Execute (the same path as the right-click pickup
-                // skill 11361), which enforces the "player must not already wear a pack" guard. Calling it
+                // CSLootOpenBagPacket through RecoverItem.Execute (the same path as the right-click pickup,
+                // GenericRecoverItemSkillId), which enforces the "player must not already wear a pack" guard. Calling it
                 // from Use(0) would bypass that guard and cause the player's current backpack to be silently
                 // swapped into inventory whenever the client sends a stray CSLootOpenBagPacket (observed
                 // right after a F-pickup followed by a re-place via PutDownBackpackEffect).
@@ -474,7 +474,23 @@ public class Doodad : BaseUnit
             // and also not being the owner seems to be a good enough criteria.
             // If somebody finds an edge-case where this would generate a footprint when not needed, we need to adjust this
             var casterOwningCharacter = caster.GetOwnerCharacter();
-            if (OwnerType == DoodadOwnerType.Character && OwnerId != casterOwningCharacter?.Id && startedSkillTemplate?.CrimePoint > 0)
+
+            // Theft happens whenever a player interacts with a doodad directly owned by a *different* character.
+            var isDifferentCharacterOwner =
+                OwnerType == DoodadOwnerType.Character && OwnerId != casterOwningCharacter?.Id;
+
+            // CrimePoint > 0 alone is NOT a sufficient guard: it makes theft evidence 100% dependent on the DB and
+            // silently drops the footprint for legitimate theft paths when:
+            //   - startedSkillId == 0 (skill-less loot/recover, e.g. CSLootOpenBagPacket -> Use(..., 0) on ship debris
+            //     and similar loot-driven doodads), so startedSkillTemplate is null;
+            //   - the skill exists but has CrimePoint == 0 / unset in the DB.
+            // So we keep the historical "owned by another character" fallback for skill-less pickups, and only rely on
+            // CrimePoint > 0 as an *additional* explicit-crime signal when an actual skill is involved.
+            var isExplicitCrimeSkill = startedSkillTemplate?.CrimePoint > 0;
+            var isSkillLessPickup = startedSkillId == 0;
+            var shouldGenerateTheftEvidence = isDifferentCharacterOwner && (isSkillLessPickup || isExplicitCrimeSkill);
+
+            if (shouldGenerateTheftEvidence)
             {
                 // Picking up something from a doodad that isn't owned by the player, need to check permissions
                 // TODO: Enforce theft minimum level
