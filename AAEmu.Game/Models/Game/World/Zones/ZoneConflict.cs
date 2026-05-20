@@ -1,14 +1,19 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Tasks.Zones;
 
-namespace AAEmu.Game.Models.Game.World.Zones;
+using NLog;
 
+#pragma warning disable IDE0005
 #pragma warning disable IDE0052 // Remove unread private members
+
+namespace AAEmu.Game.Models.Game.World.Zones;
 
 public class ZoneConflict(ZoneGroup owner)
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     private ZoneGroup _owner = owner;
     public ushort ZoneGroupId { get; set; }
     public int[] NumKills { get; } = new int[5];
@@ -22,7 +27,6 @@ public class ZoneConflict(ZoneGroup owner)
     public uint NuiaReturnPointId { get; set; }
     public uint HariharaReturnPointId { get; set; }
     public uint WarTowerDefId { get; set; }
-    // TODO 1.2 // public uint PeaceTowerDefId { get; set; }
     public bool Closed { get; set; } = false;
 
     public ZoneConflictType CurrentZoneState { get; protected set; } = ZoneConflictType.Tension;
@@ -32,7 +36,6 @@ public class ZoneConflict(ZoneGroup owner)
     /// <summary>
     /// Call this function if a PvP kill happens in a zone
     /// </summary>
-    /// <param name="NumberOfKills"></param>
     public void AddZoneKill(uint NumberOfKills = 1)
     {
         // Ignore when in conflict, war or peace
@@ -83,28 +86,52 @@ public class ZoneConflict(ZoneGroup owner)
         if (NextStateTime > DateTime.MinValue)
         {
             var lpConflictStartTask = new ZoneStateChangeTask(this);
-            TaskManager.Instance.Schedule(lpConflictStartTask, this.NextStateTime - DateTime.UtcNow);
+            var delay = NextStateTime - DateTime.UtcNow;
+            Logger.Info($"SetTimerTask: ZoneGroup {ZoneGroupId} scheduling next state check in {delay.TotalMinutes:F1} min (NextStateTime={NextStateTime:HH:mm:ss})");
+            TaskManager.Instance.Schedule(lpConflictStartTask, delay);
+        }
+        else
+        {
+            Logger.Warn($"SetTimerTask: ZoneGroup {ZoneGroupId} has no NextStateTime set — timer chain stopped.");
         }
     }
 
     public void SendSwitchZoneState()
     {
-        //broadcast to all online clients in server
-        WorldManager.Instance.BroadcastPacketToServer(new SCConflictZoneStatePacket(ZoneGroupId, CurrentZoneState, NextStateTime));
-
+        // Schedule the next timer FIRST, before broadcasting to clients.
+        // This guarantees the timer chain is preserved even if BroadcastPacketToServer
+        // throws (e.g. transient connection issue, packet encode error).
         SetTimerTask();
+
+        try
+        {
+            WorldManager.Instance.BroadcastPacketToServer(new SCConflictZoneStatePacket(ZoneGroupId, CurrentZoneState, NextStateTime));
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"SendSwitchZoneState: Failed to broadcast zone state for ZoneGroup {ZoneGroupId}, State={CurrentZoneState}");
+        }
     }
 
     public void CheckTimer()
     {
         if (NextStateTime > DateTime.MinValue && DateTime.UtcNow >= NextStateTime)
+        {
+            Logger.Info($"CheckTimer: ZoneGroup {ZoneGroupId} timer elapsed, current state={CurrentZoneState}, advancing...");
             ForceNextState();
+        }
     }
 
     public void SetState(ZoneConflictType ct)
     {
         if (ct == CurrentZoneState)
+        {
+            Logger.Debug($"SetState: ZoneGroup {ZoneGroupId} already at {ct}, skipping.");
             return;
+        }
+
+        var previousState = CurrentZoneState;
+
         switch (ct)
         {
             case ZoneConflictType.Conflict:
@@ -124,11 +151,13 @@ public class ZoneConflict(ZoneGroup owner)
                 break;
         }
         CurrentZoneState = ct;
+        Logger.Info($"SetState: ZoneGroup {ZoneGroupId} changed from {previousState} → {ct} (NextStateTime={NextStateTime:HH:mm:ss}, ConflictMin={ConflictMin}, WarMin={WarMin}, PeaceMin={PeaceMin})");
         SendSwitchZoneState();
     }
 
     public void ForceNextState()
     {
+        Logger.Info($"ForceNextState: ZoneGroup {ZoneGroupId} current={CurrentZoneState}, PeaceMin={PeaceMin}");
         if (CurrentZoneState < ZoneConflictType.Peace)
         {
             if (CurrentZoneState == ZoneConflictType.War && PeaceMin <= 0)
