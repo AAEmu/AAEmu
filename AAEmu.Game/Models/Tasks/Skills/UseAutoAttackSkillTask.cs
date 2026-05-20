@@ -3,6 +3,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.Skills;
@@ -12,16 +13,19 @@ public class UseAutoAttackSkillTask : SkillTask
     private readonly Character _caster;
     private readonly Skill _mainhandSkill;
 
-    // Offhand skill — only set when dual-wielding (two 1H weapons in mainhand + offhand)
+    /// <summary>
+    /// Cached offhand auto-attack skill instance. Template never changes, so we build
+    /// it on demand once and reuse. Whether it actually FIRES per tick is decided
+    /// fresh in Execute() based on current offhand equipment — see ResolveOffhandSkill().
+    /// </summary>
     private Skill _offhandSkill;
+    private SkillTemplate _offhandSkillTemplate;
 
     public UseAutoAttackSkillTask(Skill skill, Character caster) : base(skill)
     {
         _mainhandSkill = skill;
         _caster = caster;
         Cancelled = false;
-
-        DetectDualWield();
     }
 
     public override void Execute()
@@ -58,13 +62,16 @@ public class UseAutoAttackSkillTask : SkillTask
         // Fire mainhand attack
         _mainhandSkill.Use(_caster, casterCaster, targetCaster, skillObject, true, out _);
 
-        // Dual-wield: fire offhand attack on the same swing
-        if (_offhandSkill != null)
+        // Dual-wield: check the current equipment on every tick (not just at task
+        // construction). If the player swaps weapons mid-fight, the offhand swing
+        // appears / disappears immediately on the next tick.
+        var offhandSkill = ResolveOffhandSkill();
+        if (offhandSkill != null)
         {
             var offCaster = new SkillCasterUnit(_caster.ObjId);
             var offTarget = new SkillCastUnitTarget(target.ObjId);
             var offSkillObject = SkillObject.GetByType(SkillObjectType.None);
-            _offhandSkill.Use(_caster, offCaster, offTarget, offSkillObject, true, out _);
+            offhandSkill.Use(_caster, offCaster, offTarget, offSkillObject, true, out _);
         }
 
         // Adjust delay if attack speed changed (buff/debuff/weapon swap)
@@ -74,24 +81,30 @@ public class UseAutoAttackSkillTask : SkillTask
     }
 
     /// <summary>
-    /// If we wield a melee weapon mainhand AND another weapon (not shield) offhand,
-    /// queue the offhand auto-attack skill (id 3) on the same swing as mainhand (id 2).
+    /// Decide per tick whether an offhand auto-attack should fire alongside the
+    /// mainhand. Returns the offhand Skill if and only if:
+    ///   • mainhand task is the melee skill (id 2)
+    ///   • offhand currently holds a weapon (anything that's not a shield / empty)
+    /// The Skill instance itself is cached lazily on first hit.
     /// </summary>
-    private void DetectDualWield()
+    private Skill ResolveOffhandSkill()
     {
-        // Only for melee mainhand (skill 2)
         if (_mainhandSkill.Template.Id != 2)
-            return;
+            return null;
 
         var offhandItem = _caster.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Offhand);
         if (offhandItem?.Template is not WeaponTemplate)
-            return; // Shield, empty, or non-weapon — not dual-wield
+            return null;
 
-        var offhandTemplate = SkillManager.Instance.GetSkillTemplate(3);
-        if (offhandTemplate == null)
-            return;
+        if (_offhandSkill != null)
+            return _offhandSkill;
 
-        _offhandSkill = new Skill(offhandTemplate);
+        _offhandSkillTemplate ??= SkillManager.Instance.GetSkillTemplate(3);
+        if (_offhandSkillTemplate == null)
+            return null;
+
+        _offhandSkill = new Skill(_offhandSkillTemplate);
+        return _offhandSkill;
     }
 
     private void StopAutoAttack()
