@@ -292,7 +292,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         };
         if (newTeam.AddMember(activeInvitation.Owner).Item1 == null || newTeam.AddMember(activeInvitation.Target).Item1 == null) return;
 
-        _activeTeams.Add(newTeam.Id, newTeam);
+        lock (_activeTeams)
+        {
+            _activeTeams.Add(newTeam.Id, newTeam);
+        }
 
         activeInvitation.Owner.SendPacket(new SCJoinedTeamPacket(newTeam));
         activeInvitation.Owner.InParty = true;
@@ -331,7 +334,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         };
         if (newTeam.AddMember(character).Item1 == null) return;
 
-        _activeTeams.Add(newTeam.Id, newTeam);
+        lock (_activeTeams)
+        {
+            _activeTeams.Add(newTeam.Id, newTeam);
+        }
 
         character.SendPacket(new SCJoinedTeamPacket(newTeam));
         character.InParty = asParty;
@@ -429,7 +435,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                 }
             }
 
-            _activeTeams.Remove(teamId);
+            lock (_activeTeams)
+            {
+                _activeTeams.Remove(teamId);
+            }
         }
         // TODO: Add this to a timer or trigger instead of calling on a party/raid disband. But is good enough and functional for now
         chatManager.CleanUpChannels();
@@ -461,13 +470,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         // Once the party becomes a raid, members spread out across the world, so the
         // client must know everyone's ObjId for the raid UI even when out of render.
-        // Refresh each member's view against every other — RefreshTeamMemberObjIds
-        // already skips pairs that are still in render distance.
-        foreach (var m in activeTeam.Members)
-        {
-            if (m?.Character?.IsOnline == true)
-                RefreshTeamMemberObjIds(activeTeam, m.Character);
-        }
+        // Walk the upper-triangle pairs so each (a,b) pair is refreshed exactly once
+        // (avoids the O(N²) duplicate-send problem of calling RefreshTeamMemberObjIds
+        // per member, which would send both directions for every pair twice).
+        RefreshAllTeamMemberObjIds(activeTeam);
         // TODO: Handle raids in dungeons
     }
 
@@ -608,13 +614,25 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         unit.SendPacket(new SCJoinedTeamPacket(activeTeam));
         unit.InParty = true;
 
-        // Reconnect: send a bulk Remote-Members update to everyone in the team so the
-        // re-joining client gets all current HP/MP/positions in one shot, AND refresh
-        // ObjIds for out-of-range pairs. Avoids the "Member XYZ joined" chat spam
-        // that SCTeamMemberJoinedPacket would otherwise produce on a real reconnect.
+        // 1) Reconnecting player gets a single bulk snapshot of every team-mate's
+        //    current HP/MP/position/ObjId so the raid UI is fully populated.
         var allMembers = activeTeam.Members.Where(m => m?.Character != null).ToArray();
         if (allMembers.Length > 0)
-            activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket(allMembers));
+            unit.SendPacket(new SCTeamRemoteMembersExPacket(allMembers));
+
+        // 2) Existing team-mates get the explicit "back online" signal
+        //    (SCTeamMemberJoinedPacket — counterpart to SCTeamMemberDisconnectedPacket
+        //    sent in SetOffline) plus *only* the reconnecting player's snapshot,
+        //    not all 50 frames. Without the JoinedPacket the client party-frame
+        //    stays stuck on the offline indicator even though HP/MP keep updating.
+        var idx = activeTeam.GetIndex(unit.Id);
+        if (idx >= 0)
+        {
+            var reconnectingMember = activeTeam.Members[idx];
+            var partyIndex = Team.GetParty(idx);
+            activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, reconnectingMember, partyIndex), unit.Id);
+            activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket([reconnectingMember]), unit.Id);
+        }
 
         RefreshTeamMemberObjIds(activeTeam, unit);
 
@@ -753,6 +771,36 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
             m.Character.SendPacket(new SCRefreshTeamMemberPacket(team.Id, newMember.Id, newMember.ObjId));
             newMember.SendPacket(new SCRefreshTeamMemberPacket(team.Id, m.Character.Id, m.Character.ObjId));
+        }
+    }
+
+    /// <summary>
+    /// Refresh ObjIds for every out-of-render-distance pair in the team exactly once.
+    /// Used by <see cref="ConvertToRaid"/> where the whole team needs to learn each
+    /// other's ObjIds; iterating with <see cref="RefreshTeamMemberObjIds"/> per member
+    /// would double every pair (O(N²) duplicates — ~4,900 redundant packets for a
+    /// 50-member raid). Upper-triangle traversal (i &lt; j) avoids that.
+    /// </summary>
+    private static void RefreshAllTeamMemberObjIds(Team team)
+    {
+        if (team == null) return;
+
+        var online = new List<Character>();
+        foreach (var m in team.Members)
+        {
+            if (m?.Character != null && m.Character.IsOnline)
+                online.Add(m.Character);
+        }
+
+        for (var i = 0; i < online.Count; i++)
+        {
+            for (var j = i + 1; j < online.Count; j++)
+            {
+                if (AreInRenderDistance(online[i], online[j]))
+                    continue;
+                online[i].SendPacket(new SCRefreshTeamMemberPacket(team.Id, online[j].Id, online[j].ObjId));
+                online[j].SendPacket(new SCRefreshTeamMemberPacket(team.Id, online[i].Id, online[i].ObjId));
+            }
         }
     }
 
