@@ -430,22 +430,25 @@ public class TaskManagerTests
     #region Restart/Initialize Tests
 
     [Test]
-    public async Task Initialize_ClearsQueue()
+    public async Task Initialize_PreservesQueue()
     {
         var mockTick = Mock.Of<ITickManager>();
         mockTick.OnTick.Returns(new TickManager.TickEventHandler());
 
         var manager = new TaskManager(mockTick.Object);
 
-        // Add some tasks first
         var task = new TestTask();
         manager.Schedule(task, TimeSpan.FromSeconds(60));
         await Assert.That(manager.GetQueueCount()).IsEqualTo(1);
 
-        // Initialize should clear the queue
+        // Initialize() is intentionally a no-op for the queue: in the orchestrated
+        // boot, ILoadable.Load() runs in Stage 2 and may schedule tasks (e.g.
+        // ZoneManager queues the initial Conflict→War→Peace timer chain) before
+        // Initialize() runs in Stage 4. Clearing the queue here used to wipe those
+        // boot-time tasks and break the zone-conflict cycle.
         manager.Initialize();
 
-        await Assert.That(manager.GetQueueCount()).IsEqualTo(0);
+        await Assert.That(manager.GetQueueCount()).IsEqualTo(1);
     }
 
     [Test]
