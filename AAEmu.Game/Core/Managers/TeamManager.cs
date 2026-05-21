@@ -831,11 +831,22 @@ public sealed record MemberSyncState(
     uint ObjId,
     DateTime LastSyncTime)
 {
-    /// <summary>True when every field except <see cref="LastSyncTime"/> matches.</summary>
+    /// <summary>
+    /// Position-equality tolerance for the delta-cache comparison. Anything below
+    /// this is sub-centimetre physics jitter that wouldn't be visible on the raid
+    /// UI; using strict <c>==</c> here would defeat the delta cache for stationary
+    /// raid mates whose solver still produces tiny floating-point wobble each tick.
+    /// </summary>
+    private const float PositionEpsilon = 0.01f;
+
+    /// <summary>True when every field except <see cref="LastSyncTime"/> matches
+    /// (position fields compared with <see cref="PositionEpsilon"/> tolerance).</summary>
     public bool HasSameSnapshotAs(MemberSyncState other) =>
         Hp == other.Hp && MaxHp == other.MaxHp &&
         Mp == other.Mp && MaxMp == other.MaxMp &&
-        X == other.X && Y == other.Y && Z == other.Z &&
+        MathF.Abs(X - other.X) < PositionEpsilon &&
+        MathF.Abs(Y - other.Y) < PositionEpsilon &&
+        MathF.Abs(Z - other.Z) < PositionEpsilon &&
         ObjId == other.ObjId;
 }
 

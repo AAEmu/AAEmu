@@ -127,6 +127,11 @@ public class Tagging(Unit owner)
         }
 
         var result = new HashSet<Character>();
+        // Skip re-resolving the same team when multiple dealers are in the same party
+        // or raid — GetTeamByObjId is an O(teams*members) scan, so on a busy mob
+        // where several damage dealers share one raid we'd otherwise pay that cost
+        // once per dealer.
+        var visitedTeams = new HashSet<uint>();
         foreach (var dealer in dealers)
         {
             if (dealer == null || !dealer.IsOnline) continue;
@@ -137,7 +142,7 @@ public class Tagging(Unit owner)
             // Pull in party / raid mates within range
             if (!dealer.InParty) continue;
             var team = TeamManager.Instance.GetTeamByObjId(dealer.ObjId);
-            if (team == null) continue;
+            if (team == null || !visitedTeams.Add(team.Id)) continue;
 
             foreach (var member in team.Members)
             {
