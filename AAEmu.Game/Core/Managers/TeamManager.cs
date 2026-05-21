@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Collections.Concurrent;
+
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -37,7 +39,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     /// </summary>
     private readonly Dictionary<(uint recipientId, uint sourceId), MemberSyncState> _lastSyncState = [];
 
-    private readonly Dictionary<uint, Team> _activeTeams = []; // teamId, Team
+    // ConcurrentDictionary so the 500ms UpdateAllTeams tick can enumerate the team
+    // set while game-handler threads concurrently join/disband. Reads (TryGetValue,
+    // Values) are lock-free; mutations (TryAdd, TryRemove) are internally synced.
+    private readonly ConcurrentDictionary<uint, Team> _activeTeams = new(); // teamId, Team
     private readonly Dictionary<uint, InvitationTemplate> _activeInvitations = []; // targetId, InvitationTemplate
 
     public Team GetActiveTeamByUnit(uint unitId)
@@ -292,10 +297,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         };
         if (newTeam.AddMember(activeInvitation.Owner).Item1 == null || newTeam.AddMember(activeInvitation.Target).Item1 == null) return;
 
-        lock (_activeTeams)
-        {
-            _activeTeams.Add(newTeam.Id, newTeam);
-        }
+        _activeTeams.TryAdd(newTeam.Id, newTeam);
 
         activeInvitation.Owner.SendPacket(new SCJoinedTeamPacket(newTeam));
         activeInvitation.Owner.InParty = true;
@@ -334,10 +336,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         };
         if (newTeam.AddMember(character).Item1 == null) return;
 
-        lock (_activeTeams)
-        {
-            _activeTeams.Add(newTeam.Id, newTeam);
-        }
+        _activeTeams.TryAdd(newTeam.Id, newTeam);
 
         character.SendPacket(new SCJoinedTeamPacket(newTeam));
         character.InParty = asParty;
@@ -435,10 +434,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                 }
             }
 
-            lock (_activeTeams)
-            {
-                _activeTeams.Remove(teamId);
-            }
+            _activeTeams.TryRemove(teamId, out _);
         }
         // TODO: Add this to a timer or trigger instead of calling on a party/raid disband. But is good enough and functional for now
         chatManager.CleanUpChannels();
@@ -669,18 +665,11 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     {
         var now = DateTime.UtcNow;
 
-        // Snapshot the team list so a parallel Add/Remove on _activeTeams can't
-        // invalidate the enumerator while we tick (defence-in-depth even with
-        // useAsync: false — disband/join handlers may still run on other threads).
-        Team[] teams;
-        lock (_activeTeams)
-        {
-            if (_activeTeams.Count == 0) return;
-            teams = new Team[_activeTeams.Count];
-            _activeTeams.Values.CopyTo(teams, 0);
-        }
+        if (_activeTeams.IsEmpty) return;
 
-        foreach (var team in teams)
+        // ConcurrentDictionary.Values returns a snapshot, so the enumeration
+        // cannot be invalidated by a parallel Add/Remove during the tick.
+        foreach (var team in _activeTeams.Values)
         {
             _onlineMembersScratch.Clear();
             foreach (var m in team.Members)
