@@ -994,8 +994,14 @@ public partial class Npc : Unit
         // quest progress fans out.
         if (AppConfiguration.Instance.World.TagShareEnabled)
         {
+            // The killer was credited above ONLY when eligiblePlayers was empty
+            // (the killer-only fallback path at line ~872 fires DoOnMonsterHuntEvents
+            // on the killer directly). If a tag team exists and the killing blow
+            // came from a player *outside* that team, the killer is NOT in
+            // eligiblePlayers and was NOT credited — they're a damage dealer who
+            // should receive TagShare credit, so don't pre-mark them as credited.
             var alreadyCredited = new HashSet<Character>(eligiblePlayers);
-            if (killer is Character ck)
+            if (eligiblePlayers.Count == 0 && killer is Character ck)
             {
                 alreadyCredited.Add(ck);
             }
