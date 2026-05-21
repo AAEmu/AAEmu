@@ -217,7 +217,13 @@ public partial class Character
         }
 
         if (victimZone != null)
-            killer.SendPacket(new SCConflictZoneHonorPointSumPacket((ushort)victimZone.ZoneKey, (int)killer.HonorGainedInCombat));
+        {
+            // The conflict-zone honor UI keys on ZoneGroupId (same identifier the
+            // sister SCConflictZoneStatePacket carries), not on the per-cell ZoneKey.
+            // Sending ZoneKey here makes the client unable to match the packet to
+            // any conflict zone, so the displayed honor never updates after a kill.
+            killer.SendPacket(new SCConflictZoneHonorPointSumPacket((ushort)victimZone.GroupId, (int)killer.HonorGainedInCombat));
+        }
     }
 
     /// <summary>
