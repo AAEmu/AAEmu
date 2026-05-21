@@ -167,9 +167,23 @@ public partial class Character
         conflictData?.AddZoneKill();
 
         var pvpRate = AppConfiguration.Instance.World.PvpHonorRate;
-        var assists = CollectAssists(killer);
+        var assistIds = CollectAssists(killer);
 
-        if (assists.Count > 0)
+        // Resolve to online assistants *before* choosing the kill path. The recorded
+        // assist IDs are from the rolling damage/heal/CC window and may all be offline
+        // by the time the victim dies. If none of them are reachable, fall back to
+        // the solo award — otherwise the killer would only get killerShareHonor and
+        // the unawarded assist share would be silently discarded (e.g. War solo with
+        // one offline assist: 20 solo − 16 killer-share = 14 honor lost).
+        var onlineAssists = new List<Character>(assistIds.Count);
+        foreach (var assistId in assistIds)
+        {
+            var assistant = WorldManager.Instance.GetCharacterById(assistId);
+            if (assistant is { IsOnline: true })
+                onlineAssists.Add(assistant);
+        }
+
+        if (onlineAssists.Count > 0)
         {
             var killerHonor = (int)Math.Round(killerShareHonor * pvpRate);
             if (killerHonor > 0)
@@ -182,12 +196,8 @@ public partial class Character
             var assistHonor = (int)Math.Round(assistShareHonor * pvpRate);
             if (assistHonor > 0)
             {
-                foreach (var assistId in assists)
+                foreach (var assistant in onlineAssists)
                 {
-                    var assistant = WorldManager.Instance.GetCharacterById(assistId);
-                    if (assistant is not { IsOnline: true })
-                        continue;
-
                     assistant.ChangeGamePoints(GamePointKind.Honor, assistHonor);
                     assistant.HonorGainedInCombat += (uint)assistHonor;
                     Logger.Debug($"PvP Assist: {assistant.Name} assisted {killer.Name} killing {Name} — {assistHonor} honor");
