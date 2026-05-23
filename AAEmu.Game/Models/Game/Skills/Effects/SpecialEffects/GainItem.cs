@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 
@@ -20,12 +21,26 @@ public class GainItem : SpecialEffectAction
         int value4
     )
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: GainItem value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is not Character character)
+            return;
 
-        if (caster is Character character)
+        Logger.Debug("Special effects: GainItem value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+
+        if (value1 <= 0)
         {
-            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, (uint)value1, 1, 0);
+            Logger.Warn("Special effects: GainItem ignored invalid item template id {0}", value1);
+            return;
         }
+
+        var itemId = (uint)value1;
+        var itemCount = value2 > 0 ? value2 : 1;
+        var taskType = ItemTaskType.SkillEffectGainItem;
+
+        // TryAddNewItem internally routes tradepacks to TryEquipNewBackPack and
+        // regular items to Bag.AcquireDefaultItem, so a single call handles both paths.
+        var acquired = character.Inventory.TryAddNewItem(taskType, itemId, itemCount, 0);
+
+        if (!acquired)
+            Logger.Warn("Special effects: GainItem failed to give item {0} x{1} to character {2}", itemId, itemCount, character.Id);
     }
 }
