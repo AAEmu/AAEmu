@@ -36,13 +36,9 @@ public class GainItem : SpecialEffectAction
         var itemCount = value2 > 0 ? value2 : 1;
         var taskType = ItemTaskType.SkillEffectGainItem;
 
-        // Keep the historical behaviour for regular inventory items: they are still
-        // created directly in the bag. Only auto-equip backpacks/tradepacks must go
-        // through Inventory.TryAddNewItem(), otherwise ItemContainer rejects them
-        // because tradepacks cannot be stored in the normal inventory bag.
-        var acquired = ItemManager.Instance.IsAutoEquipTradePack(itemId)
-            ? character.Inventory.TryAddNewItem(taskType, itemId, itemCount, 0)
-            : character.Inventory.Bag.AcquireDefaultItem(taskType, itemId, itemCount, 0);
+        // TryAddNewItem internally routes tradepacks to TryEquipNewBackPack and
+        // regular items to Bag.AcquireDefaultItem, so a single call handles both paths.
+        var acquired = character.Inventory.TryAddNewItem(taskType, itemId, itemCount, 0);
 
         if (!acquired)
             Logger.Warn("Special effects: GainItem failed to give item {0} x{1} to character {2}", itemId, itemCount, character.Id);
