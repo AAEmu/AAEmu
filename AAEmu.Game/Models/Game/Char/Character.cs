@@ -1945,6 +1945,10 @@ public partial class Character : Unit, ICharacter
             value = 0;
         }
 
+        // PvP assist tracking: remember who hit us recently
+        if (attacker is Character enemyChar && value > 0 && enemyChar.Id != this.Id)
+            RecordPvpDamageFrom(enemyChar);
+
         base.ReduceCurrentHp(attacker, value, killReason);
     }
 
@@ -2168,6 +2172,8 @@ public partial class Character : Unit, ICharacter
                     character.JuryPoint = reader.GetInt32("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
+                    character.DiedInPvp = reader.GetBoolean("died_in_pvp");
+                    character.DiedInPvpWarZone = reader.GetBoolean("died_in_pvp_war_zone");
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
@@ -2285,6 +2291,8 @@ public partial class Character : Unit, ICharacter
                     character.JuryPoint = reader.GetInt16("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
+                    character.DiedInPvp = reader.GetBoolean("died_in_pvp");
+                    character.DiedInPvpWarZone = reader.GetBoolean("died_in_pvp_war_zone");
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
@@ -2523,6 +2531,7 @@ public partial class Character : Unit, ICharacter
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
                     "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
+                    "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
                     "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`" +
                     ") VALUES (" +
@@ -2531,6 +2540,7 @@ public partial class Character : Unit, ICharacter
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
                     "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
+                    "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
                     "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time)";
 
@@ -2577,6 +2587,8 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@jury_point", JuryPoint);
                 command.Parameters.AddWithValue("@hostile_faction_kills", HostileFactionKills);
                 command.Parameters.AddWithValue("@pvp_honor", HonorGainedInCombat);
+                command.Parameters.AddWithValue("@died_in_pvp", DiedInPvp);
+                command.Parameters.AddWithValue("@died_in_pvp_war_zone", DiedInPvpWarZone);
                 command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
                 command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
                 command.Parameters.AddWithValue("@delete_time", DeleteTime);

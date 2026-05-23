@@ -55,8 +55,8 @@ public class Skill
     /// </summary>
     public float CastTimeMultiplier { get; set; } = 1f;
 
-    //public bool isAutoAttack;
-    //public SkillTask autoAttackTask;
+    /// <summary>Counter for auto-attack animation cycling (incremented each attack)</summary>
+    public int AutoAttackIndex { get; set; }
 
     public Skill()
     {
@@ -835,10 +835,16 @@ public class Skill
         if (Template.FireAnim != null && Template.UseAnimTime)
             totalDelay += (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
 
-        caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+        // Determine weapon-based animation for auto-attacks (skill 2/3/4).
+        // 0 means "no override" — packet keeps its default (skill template's FireAnim).
+        var weaponAnimId = GetWeaponAttackAnimId(caster);
+        var firedPacket = new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
         {
             ComputedDelay = (short)totalDelay
-        }, true);
+        };
+        if (weaponAnimId > 0)
+            firedPacket.FireAnimId = weaponAnimId;
+        caster.BroadcastPacket(firedPacket, true);
 
         if (totalDelay > 0)
         {
@@ -850,6 +856,51 @@ public class Skill
             ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
             EndSkill(caster);
         }
+    }
+
+    /// <summary>
+    /// Get the weapon-based attack animation ID for auto-attack skills (2/3/4).
+    /// Returns 0 for non-auto-attack skills (packet will use FireAnim from template).
+    /// NPCs cycle between melee animation IDs 1 and 2 so AI mobs always have a visible swing.
+    /// </summary>
+    private uint GetWeaponAttackAnimId(BaseUnit caster)
+    {
+        if (Template.Id is not (2 or 3 or 4))
+            return 0;
+
+        if (caster is NPChar.Npc)
+        {
+            // NPCs cycle between two melee attack animations (side strikes).
+            // Without this, NPC auto-attacks would inherit the skill template's
+            // FireAnim — often null or wrong, causing the "AI feels broken" symptom.
+            var npcAnim = (uint)((AutoAttackIndex % 2) + 1); // animation IDs 1 and 2
+            AutoAttackIndex++;
+            return npcAnim;
+        }
+
+        if (caster is not Character character)
+            return 0;
+
+        var slot = Template.Id switch
+        {
+            3 => EquipmentItemSlot.Offhand,
+            4 => EquipmentItemSlot.Ranged,
+            _ => EquipmentItemSlot.Mainhand
+        };
+
+        var weapon = character.Equipment?.GetItemBySlot((int)slot);
+        if (weapon?.Template is WeaponTemplate wt && wt.HoldableTemplate != null)
+        {
+            var leftHand = Template.Id == 3; // Offhand = left hand
+            var animId = wt.HoldableTemplate.GetAttackAnimId(AutoAttackIndex, leftHand);
+            AutoAttackIndex++;
+            return animId;
+        }
+
+        // No weapon equipped — fist animations (cycle between 1 and 2)
+        var fistAnim = (AutoAttackIndex % 2 == 0) ? 1u : 2u;
+        AutoAttackIndex++;
+        return fistAnim;
     }
 
     private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)

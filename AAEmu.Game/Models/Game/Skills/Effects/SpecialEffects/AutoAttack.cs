@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -18,7 +19,20 @@ public class AutoAttack : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO start auto attack...
-        if (caster is Character) { Logger.Debug("Special effects: AutoAttack value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is not Character character)
+            return;
+
+        if (character.IsAutoAttack)
+            return;
+
+        // value1 = skillId to auto-attack with (2=melee, 3=offhand, 4=ranged), 0 = melee default
+        var attackSkillId = (uint)(value1 > 0 ? value1 : 2);
+        var attackTemplate = SkillManager.Instance.GetSkillTemplate(attackSkillId);
+        if (attackTemplate == null)
+            return;
+
+        var attackSkill = new Skill(attackTemplate);
+        character.IsAutoAttack = true;
+        character.StartAutoSkill(attackSkill);
     }
 }

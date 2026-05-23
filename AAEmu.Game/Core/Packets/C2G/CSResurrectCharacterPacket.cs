@@ -1,9 +1,12 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
@@ -12,6 +15,9 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectCharacterPacket, 1)
 {
+    /// <summary>Duration of the post-revive Respawn-Cooldown debuff in milliseconds (5 min).</summary>
+    private const int RespawnCooldownDurationMs = 300_000;
+
     public override void Read(PacketStream stream)
     {
         var inPlace = stream.ReadBoolean();
@@ -44,7 +50,7 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             var currentZone = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Transform.ZoneId);
             if (currentZone != null)
             {
-                var conflictData = ZoneManager.Instance.GetConflicts()?.FirstOrDefault(c => c.ZoneGroupId == currentZone.GroupId);
+                var conflictData = ZoneManager.Instance.GetConflicts().FirstOrDefault(c => c.ZoneGroupId == currentZone.GroupId);
                 if (conflictData?.CurrentZoneState == ZoneConflictType.War)
                 {
                     switch (Connection.ActiveChar.Faction.MotherId)
@@ -64,7 +70,7 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             {
                 portal = PortalManager.Instance.GetRespawnById(usePortalId);
             }
-            
+
             // Find the closest return portal (in the world) for the player if none has been found yet
             if (usePortalId == 0 || portal == null)
             {
@@ -122,8 +128,66 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             ),
             true
         );
+
+        // Route death-debuffs based on death context (set by Character.DoDie).
+        ApplyRevivalDebuffs(Connection.ActiveChar, inPlace);
+
         Connection.ActiveChar.IsUnderWater = false;
         //Connection.ActiveChar.StartRegen();
         Connection.ActiveChar.Breath = Connection.ActiveChar.LungCapacity;
+    }
+
+    /// <summary>
+    /// Apply post-revive debuffs based on the death context:
+    ///   inPlace (player-res) → no debuffs at all
+    ///   DiedInPvpWarZone     → Leech + 5 min Respawn-CD
+    ///   DiedInPvp            → 5 min Respawn-CD only (no Weakened Body)
+    ///   PvE death            → Weakened Body + 5 min Respawn-CD
+    /// </summary>
+    private static void ApplyRevivalDebuffs(Character character, bool inPlace)
+    {
+        if (inPlace)
+        {
+            // Player-resurrected (e.g. by another player's resurrect skill): no debuffs.
+            character.DiedInPvpWarZone = false;
+            character.DiedInPvp = false;
+            return;
+        }
+
+        var casterObj = new SkillCasterUnit(character.ObjId);
+
+        if (character.DiedInPvpWarZone)
+        {
+            // PvP death in War zone → Leech + Respawn-CD
+            character.DiedInPvpWarZone = false;
+            character.DiedInPvp = false;
+            ApplyBuff(character, casterObj, (uint)BuffConstants.WarZoneLeech);
+            ApplyBuff(character, casterObj, (uint)BuffConstants.RespawnCooldown, RespawnCooldownDurationMs);
+        }
+        else if (character.DiedInPvp)
+        {
+            // PvP death outside War zone → Respawn-CD only (no Weakened Body)
+            character.DiedInPvp = false;
+            ApplyBuff(character, casterObj, (uint)BuffConstants.RespawnCooldown, RespawnCooldownDurationMs);
+        }
+        else
+        {
+            // PvE death → Weakened Body + Respawn-CD
+            ApplyBuff(character, casterObj, (uint)BuffConstants.WeakenedBody);
+            ApplyBuff(character, casterObj, (uint)BuffConstants.RespawnCooldown, RespawnCooldownDurationMs);
+        }
+    }
+
+    private static void ApplyBuff(Character character, SkillCasterUnit casterObj, uint buffId, int forcedDurationMs = 0)
+    {
+        var template = SkillManager.Instance.GetBuffTemplate(buffId);
+        if (template == null)
+            return;
+
+        var buff = new Buff(character, character, casterObj, template, null, DateTime.UtcNow);
+        if (forcedDurationMs > 0)
+            character.Buffs.AddBuff(buff, forcedDuration: forcedDurationMs);
+        else
+            character.Buffs.AddBuff(buff);
     }
 }

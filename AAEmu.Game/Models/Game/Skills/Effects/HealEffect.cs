@@ -146,6 +146,14 @@ public class HealEffect : EffectTemplate
         trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
         trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
 
+        // PvP assist tracking: a healer on the target's side earns assist credit
+        // for the target's next PvP kill (within 30s window).
+        if (caster is Character healerChar && trg is Character targetChar &&
+            healerChar.Id != targetChar.Id && targetChar.IsInBattle)
+        {
+            targetChar.RecordPvpHealFrom(healerChar);
+        }
+
         trg.Events.OnHealed(this, new OnHealedArgs { Healer = (Unit)caster, HealAmount = value });
         trg.PostUpdateCurrentHp(trg, oldHp, trg.Hp, KillReason.Unknown);
     }

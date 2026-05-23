@@ -19,7 +19,12 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
 
     public void Initialize()
     {
-        _queue.Clear();
+        // NOTE: _queue is intentionally NOT cleared here. In the orchestrated boot,
+        // ILoadable.Load() runs in Stage 2 and may schedule tasks (e.g. ZoneManager
+        // queues the initial Conflict→War→Peace timer chain). Initialize() runs in
+        // Stage 4, AFTER those tasks are already queued — clearing the queue here
+        // wiped the boot-time tasks and broke the zone-conflict cycle.
+        // The queue is already empty after the field initializer, so no clear needed.
     }
 
     public void Start()

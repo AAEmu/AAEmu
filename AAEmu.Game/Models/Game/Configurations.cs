@@ -45,6 +45,11 @@ public class WorldConfig
     public double HonorRate { get; set; } = 1.0;
 
     /// <summary>
+    /// Separate multiplier for PvP Honor Points (kills in Conflict/War zones). Independent of HonorRate.
+    /// </summary>
+    public double PvpHonorRate { get; set; } = 1.0;
+
+    /// <summary>
     /// Server-side Vocation Badge multiplier (on top of buffs)
     /// </summary>
     public double VocationRate { get; set; } = 1.0;

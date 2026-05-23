@@ -67,6 +67,11 @@ public sealed class GameService : IHostedService, IDisposable
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
+        // --- Auto-Attack system: ensure compact.sqlite3 has the 6 weapon-anim columns ---
+        // The shipped ArcheAge compact.sqlite3 already contains these. This is a defensive
+        // check for stripped/custom DBs and is a no-op if the columns are already present.
+        Utils.DB.HoldablesSchemaCheck.EnsureColumns();
+
         // --- ID managers ---
         // All ID managers implement ILoadable and are handled by the orchestrator in Stage 2.
         // SkillTlIdManager.Instance.Initialize(); // static class, not migrated
