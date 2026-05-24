@@ -53,7 +53,7 @@ public class SkillControllerTemplate : EffectTemplate
 #pragma warning restore CA1508
         {
             if (ownerUnit.ActiveSkillController != null)
-                ownerUnit.ActiveSkillController.End();
+                ownerUnit.ActiveSkillController.End(force: true);
             ownerUnit.ActiveSkillController = sc;
             sc.Execute();
         }

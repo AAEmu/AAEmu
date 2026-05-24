@@ -302,7 +302,7 @@ public class BuffTemplate
                 {
                     sc.SourceBuffId = Id;
                     if (ownerUnit.ActiveSkillController != null)
-                        ownerUnit.ActiveSkillController.End();
+                        ownerUnit.ActiveSkillController.End(force: true);
                     ownerUnit.ActiveSkillController = sc;
                     sc.Execute();
                 }
@@ -331,7 +331,7 @@ public class BuffTemplate
             var sc = new SkillControllers.FloatingSkillController(null, owner, caster, 0f, liftHeight, liftSpeed, GlidingLiftDuration);
             sc.SourceBuffId = Id;
             if (liftUnit.ActiveSkillController != null)
-                liftUnit.ActiveSkillController.End();
+                liftUnit.ActiveSkillController.End(force: true);
             liftUnit.ActiveSkillController = sc;
             sc.Execute();
         }
@@ -346,7 +346,7 @@ public class BuffTemplate
             var sc = new SkillControllers.FloatingSkillController(null, owner, caster, PsychokinesisSpeed);
             sc.SourceBuffId = Id;
             if (psychoUnit.ActiveSkillController != null)
-                psychoUnit.ActiveSkillController.End();
+                psychoUnit.ActiveSkillController.End(force: true);
             psychoUnit.ActiveSkillController = sc;
             sc.Execute();
         }

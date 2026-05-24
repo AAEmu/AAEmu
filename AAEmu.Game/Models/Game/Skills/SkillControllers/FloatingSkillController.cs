@@ -114,10 +114,13 @@ public class FloatingSkillController : SkillController
         }
     }
 
-    public override void End()
+    public override void End(bool force = false)
     {
         // Lift→Fall transition: switch to fall phase instead of teleporting to ground.
-        if (_isLiftMode && !_isFalling && Owner != null && !Owner.IsDead)
+        // Skipped when force=true (the caller is about to replace this SC with a new
+        // one — keeping the fall phase alive would let the old controller keep ticking
+        // alongside the new one and produce conflicting movement broadcasts).
+        if (!force && _isLiftMode && !_isFalling && Owner != null && !Owner.IsDead)
         {
             var groundZ = GetGroundHeight();
             if (groundZ > 0 && Owner.Transform.Local.Position.Z > groundZ + 0.5f)
@@ -131,7 +134,7 @@ public class FloatingSkillController : SkillController
             }
         }
 
-        base.End();
+        base.End(force);
         TickManager.Instance.OnTick.UnSubscribe(Tick);
     }
 

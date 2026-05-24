@@ -120,9 +120,9 @@ public class LeapSkillController : SkillController
         TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100));
     }
 
-    public override void End()
+    public override void End(bool force = false)
     {
-        base.End();
+        base.End(force);
         TickManager.Instance.OnTick.UnSubscribe(Tick);
     }
 

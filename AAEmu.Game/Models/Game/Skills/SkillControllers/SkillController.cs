@@ -36,7 +36,16 @@ public class SkillController
         Logger.Trace($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering execute state={State}");
     }
 
-    public virtual void End()
+    /// <summary>
+    /// End this controller. Pass <paramref name="force"/> = <c>true</c> when the
+    /// controller is being replaced by another (the caller is about to assign a
+    /// new ActiveSkillController) — in that mode FloatingSkillController skips
+    /// its lift-to-fall transition so the old SC does not keep ticking
+    /// alongside the new one and broadcasting conflicting movement packets.
+    /// Default (false) is the buff-dispel / natural-end path where the fall
+    /// transition is desired so the lifted NPC descends smoothly.
+    /// </summary>
+    public virtual void End(bool force = false)
     {
         State = SCState.Ended;
         // Owner can be null on this path — Floating's Tick / Wandering's Tick
