@@ -573,12 +573,19 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         activeTeam.BroadcastPacket(new SCTeamMemberDisconnectedPacket(activeTeam.Id, unit.Id, memberInfo));
 
-        // Tell every team-mate's client-side world cache that this ObjId is gone so
-        // raid-frame click-routing can't keep firing CSMoveUnitPacket(target=oldObjId)
-        // after the character was Deleted from the world. Without this we'd see
-        // "Invalid target {old objId} from X" warnings every time someone tried to
-        // follow an offline raid mate, until the team-mate's client restarts.
-        activeTeam.BroadcastPacket(new SCUnitsRemovedPacket([unit.ObjId]), unit.Id);
+        // Tell every OUT-OF-RENDER team-mate's client-side world cache that this
+        // ObjId is gone so raid-frame click-routing stops firing
+        // CSMoveUnitPacket(target=oldObjId) after the character was Deleted from
+        // the world. Mates in the same region already receive SCUnitsRemovedPacket
+        // via Region.RemoveObject when activeChar.Delete() runs later in the
+        // disconnect path — sending again would just be a duplicate.
+        foreach (var member in activeTeam.Members)
+        {
+            if (member?.Character == null || !member.Character.IsOnline) continue;
+            if (member.Character.Id == unit.Id) continue;
+            if (AreInRenderDistance(member.Character, unit)) continue;
+            member.Character.SendPacket(new SCUnitsRemovedPacket([unit.ObjId]));
+        }
 
         // Drop any cached remote-sync state about this character so it doesn't leak.
         ClearSyncState(unit.Id);
@@ -628,12 +635,25 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         var activeTeam = GetActiveTeamByUnit(unit.Id);
         if (activeTeam == null) return;
 
-        activeTeam.ChangeStatus(unit);
+        // Lock against a concurrent DisbandOfflineTeam: it holds team.SyncLock
+        // across its re-verify + member-wipe + TryRemove. Once we hold the lock,
+        // re-check that the team is still in _activeTeams — if a disband ran to
+        // completion between GetActiveTeamByUnit and the lock acquisition, we'd
+        // otherwise reconnect against a dead team and end up with
+        // InParty = true on a Character that has no live team backing it.
+        lock (activeTeam.SyncLock)
+        {
+            if (!_activeTeams.ContainsKey(activeTeam.Id))
+                return;
+
+            // Cancel the zombie-team disband timer — at least one member is back online.
+            activeTeam.AllOfflineSince = DateTime.MinValue;
+
+            activeTeam.ChangeStatus(unit);
+        }
+
         unit.SendPacket(new SCJoinedTeamPacket(activeTeam));
         unit.InParty = true;
-
-        // Cancel the zombie-team disband timer — at least one member is back online.
-        activeTeam.AllOfflineSince = DateTime.MinValue;
 
         // 1) Reconnecting player gets a single bulk snapshot of every team-mate's
         //    current HP/MP/position/ObjId so the raid UI is fully populated.
@@ -810,29 +830,37 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     /// </summary>
     private void DisbandOfflineTeam(Team team)
     {
-        // Re-verify under the latest member state before wiping anything. The tick
-        // is decoupled from SetOffline / UpdateAtLogin by a multi-minute grace
-        // window, and the SetOffline check/write pair (MembersOnlineCount() ≤ 0,
-        // then assign AllOfflineSince) is not atomic — a concurrent UpdateAtLogin
-        // landing in between can leave AllOfflineSince armed with a stale "now"
-        // even though a member is currently online. Without this re-check the
-        // tick would silently set InParty = false on a live online player and
-        // pull the team out of _activeTeams while their raid UI still pointed
-        // at it.
-        if (team.MembersOnlineCount() > 0)
+        // Hold the team's SyncLock across the re-verify check AND the member-wipe
+        // loop so a concurrent UpdateAtLogin cannot land in the gap between them
+        // (it would otherwise mark a member online after our check, then receive
+        // InParty = false from the wipe). UpdateAtLogin takes the same lock and
+        // additionally re-checks _activeTeams membership, so it gracefully bails
+        // when this disband has already pulled the team out.
+        lock (team.SyncLock)
         {
-            team.AllOfflineSince = DateTime.MinValue;
-            return;
+            // Re-verify under the latest member state before wiping anything. The
+            // tick is decoupled from SetOffline / UpdateAtLogin by a multi-minute
+            // grace window, and the SetOffline check/write pair
+            // (MembersOnlineCount() ≤ 0, then assign AllOfflineSince) is not
+            // atomic — a concurrent UpdateAtLogin landing in between can leave
+            // AllOfflineSince armed with a stale "now" even though a member is
+            // currently online.
+            if (team.MembersOnlineCount() > 0)
+            {
+                team.AllOfflineSince = DateTime.MinValue;
+                return;
+            }
+
+            foreach (var member in team.Members)
+            {
+                if (member?.Character == null) continue;
+                member.Character.InParty = false;
+                ClearSyncState(member.Character.Id);
+            }
+
+            _activeTeams.TryRemove(team.Id, out _);
         }
 
-        foreach (var member in team.Members)
-        {
-            if (member?.Character == null) continue;
-            member.Character.InParty = false;
-            ClearSyncState(member.Character.Id);
-        }
-
-        _activeTeams.TryRemove(team.Id, out _);
         chatManager.CleanUpChannels();
         Logger.Info("Disbanded zombie team {0} after {1} of all-offline", team.Id, OfflineTeamDisbandGrace);
     }

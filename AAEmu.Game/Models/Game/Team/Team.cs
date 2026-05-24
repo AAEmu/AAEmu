@@ -41,6 +41,15 @@ public class Team : PacketMarshaler
     }
     private long _allOfflineSinceTicks; // backing field for AllOfflineSince
 
+    /// <summary>
+    /// Mutex held by <c>TeamManager.DisbandOfflineTeam</c> and <c>UpdateAtLogin</c>
+    /// to keep the zombie-disband wipe loop and a concurrent reconnect from
+    /// interleaving. Without this, a reconnect that lands between the disband's
+    /// re-verify check and the per-member InParty wipe would be silently corrupted
+    /// (live player ends up with InParty = false and no backing team).
+    /// </summary>
+    public readonly object SyncLock = new();
+
     public Team()
     {
         Members = new TeamMember[50];
