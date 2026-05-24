@@ -63,6 +63,11 @@ public class DashSkillController : SkillController
 
     public void Tick(TimeSpan delta)
     {
+        if (Owner == null)
+        {
+            End();
+            return;
+        }
         if (Owner.IsDead)
         {
             End();

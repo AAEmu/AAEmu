@@ -181,12 +181,12 @@ public class FloatingSkillController : SkillController
         var currentPos = Owner.Transform.Local.Position;
         var currentHeight = currentPos.Z - _startZ;
 
-        if (currentHeight >= _liftHeight)
-        {
-            Logger.Debug("FloatingSC [LIFT]: owner={0} reached lift height {1:F1}, holding", Owner.ObjId, _liftHeight);
-            return;
-        }
-
+        // Duration check FIRST so the timed descent fires regardless of whether
+        // the NPC is still ascending or already at hold height. If this sat
+        // after the height-hold early-return below, the descent timer would
+        // only ever trigger during the brief ascent window and never during
+        // the hold itself — the buff dispel would then be the only path that
+        // ever ended the lift.
         if (_liftDuration > 0f)
         {
             var elapsed = (DateTime.UtcNow - _liftStartTime).TotalSeconds;
@@ -196,6 +196,12 @@ public class FloatingSkillController : SkillController
                 End();
                 return;
             }
+        }
+
+        if (currentHeight >= _liftHeight)
+        {
+            Logger.Debug("FloatingSC [LIFT]: owner={0} reached lift height {1:F1}, holding", Owner.ObjId, _liftHeight);
+            return;
         }
 
         var oldPosition = Owner.Transform.Local.ClonePosition();
