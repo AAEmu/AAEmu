@@ -25,7 +25,7 @@ public class PhysicalExplosionEffect : EffectTemplate
         Logger.Debug("PhysicalExplosionEffect: caster={0}, target={1}, radius={2}, pressure={3}",
             caster?.ObjId, target?.ObjId, Radius, Pressure);
 
-        if (target == null || (target is Unit tgtUnit && tgtUnit.IsDead))
+        if (caster == null || target == null || (target is Unit tgtUnit && tgtUnit.IsDead))
             return;
 
         if (target.Buffs.HasEffectsMatchingCondition(e => e.Template.KnockbackImmune || e.Template.NonPushable))
