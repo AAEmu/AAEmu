@@ -316,6 +316,25 @@ public class BuffTemplate
                 Logger.Warn("BuffTemplate.Start: buff {0} SC template not found for sc_id={1}", Id, SkillControllerId);
             }
         }
+        // Gliding/Bubbletrap fallback: buffs that set Gliding=true (sometimes
+        // with no SkillControllerId at all in the data) should lift the target
+        // up to GlidingLiftHeight. Without this branch a Gliding-only buff
+        // would fall through to the Psychokinesis pull below and incorrectly
+        // pull the target toward the caster instead of lifting it.
+        else if (SkillControllerId == 0 && Gliding
+                 && owner is Unit liftUnit && owner is not Character && caster != null)
+        {
+            var liftHeight = GlidingLiftHeight > 0f ? GlidingLiftHeight : 5f;
+            var liftSpeed = GlidingLiftSpeed > 0f ? GlidingLiftSpeed : 3f;
+            Logger.Info("BuffTemplate.Start: buff {0} Gliding lift (no SC id) for NPC owner={1} height={2} speed={3} duration={4}",
+                Id, owner.ObjId, liftHeight, liftSpeed, GlidingLiftDuration);
+            var sc = new SkillControllers.FloatingSkillController(null, owner, caster, 0f, liftHeight, liftSpeed, GlidingLiftDuration);
+            sc.SourceBuffId = Id;
+            if (liftUnit.ActiveSkillController != null)
+                liftUnit.ActiveSkillController.End();
+            liftUnit.ActiveSkillController = sc;
+            sc.Execute();
+        }
         // Psychokinesis fallback: some pull buffs use Psychokinesis=true +
         // PsychokinesisSpeed instead of a full SkillControllerId. Spawn a
         // FloatingSkillController in pull mode directly.
