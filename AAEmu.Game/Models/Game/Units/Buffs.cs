@@ -244,6 +244,43 @@ public class Buffs : IBuffs
 
         return false;
     }
+
+    /// <summary>
+    /// Same as <see cref="CheckBuffs"/> but ignores any active buff that ALSO carries
+    /// one of <paramref name="excludedTagIds"/>. Used by the NPC movement gate to
+    /// stop on pure Shackle / Snare roots but allow movement when the buff additionally
+    /// carries the DecreaseMoveSpeed tag (slow debuffs that ride the Shackle family
+    /// — e.g. Charged Bolt — should slow, not stop).
+    /// </summary>
+    public bool CheckBuffsExcludingTags(List<uint> ids, uint[] excludedTagIds)
+    {
+        if (ids is not { Count: not 0 })
+            return false;
+
+        var buffIdsSet = new HashSet<uint>(ids);
+
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        foreach (var effect in effects)
+        {
+            if (effect?.Template?.BuffId is null or 0)
+                continue;
+            if (!buffIdsSet.Contains(effect.Template.BuffId))
+                continue;
+
+            var tags = SkillManager.Instance.GetBuffTags(effect.Template.BuffId);
+            if (tags != null && excludedTagIds.Any(ex => tags.Contains(ex)))
+                continue;
+
+            return true;
+        }
+
+        return false;
+    }
     public int GetBuffCountById(uint buffId)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating

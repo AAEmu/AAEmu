@@ -13,6 +13,7 @@ public interface IBuffs
     bool CheckBuff(uint id);
     bool CheckBuffImmune(uint buffId);
     bool CheckBuffs(List<uint> ids);
+    bool CheckBuffsExcludingTags(List<uint> ids, uint[] excludedTagIds);
     bool CheckBuffTag(uint tagId);
     bool CheckDamageImmune(DamageType damageType);
     IEnumerable<Buff> GetAbsorptionEffects();
