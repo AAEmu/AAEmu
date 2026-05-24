@@ -292,6 +292,8 @@ public class BuffTemplate
                 // Default to 5m lift so the controller actually enters lift mode.
                 var effectiveLiftHeight = GlidingLiftHeight > 0f ? GlidingLiftHeight
                     : (Gliding ? 5f : 0f);
+                Logger.Info("BuffTemplate.Start: buff {0} creating SC sc_id={1} kind={2} for owner={3} caster={4} psychoSpeed={5} liftH={6}",
+                    Id, SkillControllerId, scTemplate.KindId, owner.ObjId, caster?.ObjId, PsychokinesisSpeed, effectiveLiftHeight);
                 var sc = SkillControllers.SkillController.CreateSkillController(scTemplate, owner, caster,
                     PsychokinesisSpeed, effectiveLiftHeight, GlidingLiftSpeed, GlidingLiftDuration);
 #pragma warning disable CA1508 // Factory can return null for unimplemented controller kinds
@@ -304,6 +306,14 @@ public class BuffTemplate
                     ownerUnit.ActiveSkillController = sc;
                     sc.Execute();
                 }
+                else
+                {
+                    Logger.Warn("BuffTemplate.Start: buff {0} SC factory returned null for kind={1} — controller class not implemented", Id, scTemplate.KindId);
+                }
+            }
+            else
+            {
+                Logger.Warn("BuffTemplate.Start: buff {0} SC template not found for sc_id={1}", Id, SkillControllerId);
             }
         }
         // Psychokinesis fallback: some pull buffs use Psychokinesis=true +
@@ -312,6 +322,8 @@ public class BuffTemplate
         else if (SkillControllerId == 0 && Psychokinesis && PsychokinesisSpeed > 0
                  && owner is Unit psychoUnit && owner is not Character && caster != null)
         {
+            Logger.Info("BuffTemplate.Start: buff {0} Psychokinesis pull (no SC id) for NPC owner={1} toward caster={2} speed={3}",
+                Id, owner.ObjId, caster.ObjId, PsychokinesisSpeed);
             var sc = new SkillControllers.FloatingSkillController(null, owner, caster, PsychokinesisSpeed);
             sc.SourceBuffId = Id;
             if (psychoUnit.ActiveSkillController != null)

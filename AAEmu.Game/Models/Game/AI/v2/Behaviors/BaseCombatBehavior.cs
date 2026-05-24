@@ -237,6 +237,12 @@ public abstract class BaseCombatBehavior : Behavior
     {
         get
         {
+            // Never trigger return while a SkillController (Fear, Lift, Pull, Dash, Leap)
+            // is actively driving the NPC. The SC owns movement until the buff expires;
+            // a return decision here would tear it out mid-flight and teleport home.
+            if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+                return false;
+
             var returnDistance = 50f;
             var absoluteReturnDistance = 200f;
 
@@ -273,6 +279,14 @@ public abstract class BaseCombatBehavior : Behavior
         {
             return false;
         }
+
+        // Don't update / change target while a SkillController is running (Fear, Lift).
+        // SetTarget below would broadcast SCTargetChangedPacket, which the 1.2 client
+        // turns into a "look at target" facing overlay — so a fear'd NPC visually keeps
+        // looking straight at the player even while running away from them.
+        if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+            return Ai.Owner.CurrentTarget != null;
+
         // We might want to optimize this somehow.
         var aggroList = Ai.Owner.AggroTable.Values;
         var abusers = aggroList.OrderByDescending(o => o.TotalAggro).Select(o => o.Owner).ToList();
