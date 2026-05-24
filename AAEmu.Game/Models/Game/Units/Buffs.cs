@@ -20,6 +20,13 @@ public class Buffs : IBuffs
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private const int MinimumBuffDurationToSave = 60000;
 
+    // [GEAR-SLOT-FIX] Slot reserved in Unit.Bonuses for gear bonuses (see Unit.UpdateGearBonuses,
+    // which does `Bonuses[1] = []`). The buff allocator MUST skip this index, otherwise the first
+    // passive buff applied at character load collides with gear and is wiped at login.
+    // _nextIndex therefore starts at GearBonusesIndex + 1 and wraps back to it after uint.MaxValue.
+    public const uint GearBonusesIndex = 1;
+    private const uint FirstBuffIndex = GearBonusesIndex + 1;
+
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _lock = new();
     private uint _nextIndex;
@@ -30,7 +37,7 @@ public class Buffs : IBuffs
 
     public Buffs()
     {
-        _nextIndex = 1;
+        _nextIndex = FirstBuffIndex; // [GEAR-SLOT-FIX] skip GearBonusesIndex
         _effects = [];
         _toleranceCounters = [];
     }
@@ -38,7 +45,7 @@ public class Buffs : IBuffs
     public Buffs(BaseUnit owner)
     {
         SetOwner(owner);
-        _nextIndex = 1;
+        _nextIndex = FirstBuffIndex; // [GEAR-SLOT-FIX] skip GearBonusesIndex
         _effects = [];
         _toleranceCounters = [];
     }
@@ -308,7 +315,7 @@ public class Buffs : IBuffs
                 buff.Index = _nextIndex; // TODO need safe increment...
 
                 if (++_nextIndex == uint.MaxValue)
-                    _nextIndex = 1;
+                    _nextIndex = FirstBuffIndex; // [GEAR-SLOT-FIX] skip GearBonusesIndex on wrap
             }
             else
             {
