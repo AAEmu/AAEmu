@@ -1118,6 +1118,12 @@ public partial class Npc : Unit
     /// <returns>True if withing rangeTolerance of other</returns>
     public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
     {
+        if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+            return false;
+
+        if (DisplacedUntil.HasValue && DisplacedUntil.Value > DateTime.UtcNow)
+            return false;
+
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
             return false;
@@ -1139,9 +1145,6 @@ public partial class Npc : Unit
         {
             return false;
         }
-
-        if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
-            return false;
 
         var oldPosition = Transform.Local.ClonePosition();
 

@@ -31,6 +31,9 @@ public abstract class BaseCombatBehavior : Behavior
         if (Ai?.Owner == null)
             return;
 
+        if (Ai.Owner.DisplacedUntil.HasValue && Ai.Owner.DisplacedUntil.Value > DateTime.UtcNow)
+            return;
+
         if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e =>
                 e.Template.Stun
                 || e.Template.Sleep

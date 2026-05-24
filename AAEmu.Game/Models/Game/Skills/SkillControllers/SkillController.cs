@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
@@ -21,6 +21,10 @@ public class SkillController
 
     public SCState State { get; protected set; }
 
+    // Set when a SkillController is created from a buff so CC checks inside
+    // the controller can ignore the buff that started its own displacement.
+    public uint SourceBuffId { get; set; }
+
     protected SkillController()
     {
 
@@ -38,7 +42,8 @@ public class SkillController
         Logger.Trace($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering end state={State}");
     }
 
-    public static SkillController CreateSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
+    public static SkillController CreateSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target,
+        float psychokinesisSpeed = 0f, float liftHeight = 0f, float liftSpeed = 0f, float liftDuration = 0f)
     {
         if (template == null)
         {
@@ -49,16 +54,19 @@ public class SkillController
         {
             case SkillControllerKind.Floating:
                 Logger.Trace($"SkillController: create FloatingSkillController");
-                return null; // TODO: Add Floating (telekinesis, bubble ?)
+                return new FloatingSkillController(template, owner, target,
+                    psychokinesisSpeed, liftHeight, liftSpeed, liftDuration) { State = SCState.Created };
             case SkillControllerKind.Wandering:
                 Logger.Trace($"SkillController: create WanderingSkillController");
-                return null;// TODO: Add Wandering (Fear ?)
+                return new WanderingSkillController(template, owner, target) { State = SCState.Created };
             case SkillControllerKind.Leap:
                 Logger.Trace($"SkillController: create LeapSkillController");
-                var ctrl = new LeapSkillController(template, owner, target) { State = SCState.Created };
-                return ctrl;
+                return new LeapSkillController(template, owner, target) { State = SCState.Created };
+            case SkillControllerKind.Dash:
+                Logger.Trace($"SkillController: create DashSkillController");
+                return new DashSkillController(template, owner, target) { State = SCState.Created };
             default:
-                Logger.Trace($"SkillController: create defaultSkillController");
+                Logger.Trace($"SkillController: create defaultSkillController kind={template.KindId}");
                 return null;
         }
     }
