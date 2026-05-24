@@ -19,7 +19,6 @@ public class EnterWorldManager(
     IAccountManager accountManager,
     IStreamManager streamManager,
     IQuestManager questManager,
-    ITeamManager teamManager,
     IChatManager chatManager,
     IFamilyManager familyManager,
     IWorldManager worldManager) : Singleton<EnterWorldManager>, IEnterWorldManager
@@ -179,8 +178,13 @@ public class EnterWorldManager(
             // Check if still mounted on somebody else's mount and dismount that if needed
             activeChar.ForceDismount(/*AttachUnitReason.PrefabChanged*/); // Dismounting a mount because of unsummoning sends "10" for this
 
-            // Remove from Team (raid/party)
-            teamManager.MemberRemoveFromTeam(activeChar, activeChar, RiskyAction.Leave);
+            // NOTE: do NOT MemberRemoveFromTeam here. Setting IsOnline = false above
+            // already routed through TeamManager.SetOffline, which broadcasts
+            // SCTeamMemberDisconnectedPacket so team-mates see the player as offline
+            // while the TeamMember entry stays in Team.Members[] for a clean reconnect
+            // via UpdateAtLogin. Calling MemberRemoveFromTeam here used to immediately
+            // overwrite the offline indicator with a "left the team" broadcast and
+            // wipe the slot — which is what made every disconnect look like a kick.
 
             // Remove from all Chat
             chatManager.LeaveAllChannels(activeChar);

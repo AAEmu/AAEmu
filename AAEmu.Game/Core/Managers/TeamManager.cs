@@ -566,6 +566,13 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         activeTeam.BroadcastPacket(new SCTeamMemberDisconnectedPacket(activeTeam.Id, unit.Id, memberInfo));
 
+        // Tell every team-mate's client-side world cache that this ObjId is gone so
+        // raid-frame click-routing can't keep firing CSMoveUnitPacket(target=oldObjId)
+        // after the character was Deleted from the world. Without this we'd see
+        // "Invalid target {old objId} from X" warnings every time someone tried to
+        // follow an offline raid mate, until the team-mate's client restarts.
+        activeTeam.BroadcastPacket(new SCUnitsRemovedPacket([unit.ObjId]), unit.Id);
+
         // Drop any cached remote-sync state about this character so it doesn't leak.
         ClearSyncState(unit.Id);
     }
@@ -630,7 +637,13 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
             activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket([reconnectingMember]), unit.Id);
         }
 
-        RefreshTeamMemberObjIds(activeTeam, unit);
+        // Reconnect: force the ObjId refresh on EVERY online team-mate, not just
+        // the out-of-render ones. The reconnecting player gets a fresh ObjId from
+        // the pool (the old one is preserved but never re-allocated), and team-mates'
+        // raid frames still have the stale ObjId cached — without an explicit
+        // SCRefreshTeamMemberPacket the next click-to-follow on either side fires
+        // CSMoveUnitPacket(target=old objId) and the server logs "Invalid target".
+        RefreshTeamMemberObjIds(activeTeam, unit, force: true);
 
         if (!activeTeam.IsParty)
             chatManager.GetRaidChat(activeTeam).JoinChannel(unit);
@@ -779,10 +792,12 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
     /// <summary>
     /// Send <see cref="SCRefreshTeamMemberPacket"/> in both directions so every
-    /// existing team-mate learns the new member's ObjId — but only for mate-pairs
-    /// that are NOT already in render distance (those already know each other).
+    /// existing team-mate learns the new member's ObjId. By default skips pairs
+    /// already in render distance (those learn the ObjId via the world spawn
+    /// flow); pass <paramref name="force"/> = <c>true</c> on reconnect, where the
+    /// in-range world flow doesn't reliably overwrite cached raid-frame ObjIds.
     /// </summary>
-    private static void RefreshTeamMemberObjIds(Team team, Character newMember)
+    private static void RefreshTeamMemberObjIds(Team team, Character newMember, bool force = false)
     {
         if (team == null || newMember == null) return;
 
@@ -791,7 +806,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
             if (m?.Character == null || m.Character.Id == newMember.Id || !m.Character.IsOnline)
                 continue;
 
-            if (AreInRenderDistance(m.Character, newMember))
+            if (!force && AreInRenderDistance(m.Character, newMember))
                 continue;
 
             m.Character.SendPacket(new SCRefreshTeamMemberPacket(team.Id, newMember.Id, newMember.ObjId));

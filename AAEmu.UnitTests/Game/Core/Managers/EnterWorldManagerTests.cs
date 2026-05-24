@@ -11,7 +11,6 @@ public class EnterWorldManagerTests
         var mockAccount = Mock.Of<IAccountManager>();
         var mockStream = Mock.Of<IStreamManager>();
         var mockQuest = Mock.Of<IQuestManager>();
-        var mockTeam = Mock.Of<ITeamManager>();
         var mockChat = Mock.Of<IChatManager>();
         var mockFamily = Mock.Of<IFamilyManager>();
         var mockWorld = Mock.Of<IWorldManager>();
@@ -20,7 +19,6 @@ public class EnterWorldManagerTests
             mockAccount.Object,
             mockStream.Object,
             mockQuest.Object,
-            mockTeam.Object,
             mockChat.Object,
             mockFamily.Object,
             mockWorld.Object);
@@ -29,7 +27,6 @@ public class EnterWorldManagerTests
         Mock.VerifyNoOtherCalls(mockAccount);
         Mock.VerifyNoOtherCalls(mockStream);
         Mock.VerifyNoOtherCalls(mockQuest);
-        Mock.VerifyNoOtherCalls(mockTeam);
         Mock.VerifyNoOtherCalls(mockChat);
         Mock.VerifyNoOtherCalls(mockFamily);
         Mock.VerifyNoOtherCalls(mockWorld);
