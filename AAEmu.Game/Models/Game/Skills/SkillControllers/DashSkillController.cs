@@ -12,8 +12,6 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
 public class DashSkillController : SkillController
 {
-    public int Angle { get; set; }
-    public int Speed { get; set; }
     public int Duration { get; set; }
     public int DistanceOffset { get; set; }
 
@@ -35,8 +33,10 @@ public class DashSkillController : SkillController
         Owner = owner as Unit;
         Target = target as Unit;
 
-        Angle = template.Value[0];
-        Speed = template.Value[1];
+        // template.Value[0] (Angle) and template.Value[1] (Speed) are intentionally
+        // ignored: the dash direction is fixed (caster -> target, optionally flipped
+        // 180° for BackwardOnly) and the speed is derived from DistanceOffset /
+        // Duration so the dash always lands in exactly the configured time.
         Duration = template.Value[2];
         DistanceOffset = template.Value[3];
         Direction = (DashDirection)template.Value[6];

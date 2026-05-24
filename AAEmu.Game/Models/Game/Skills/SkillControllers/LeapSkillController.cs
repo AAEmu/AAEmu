@@ -16,8 +16,6 @@ public class LeapSkillController : SkillController
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public int Angle { get; set; }
-    public int Speed { get; set; }
     public int Duration { get; set; }
     public int DistanceOffset { get; set; }
 
@@ -37,8 +35,10 @@ public class LeapSkillController : SkillController
         Owner = owner as Unit;
         Target = target as Unit;
 
-        Angle = template.Value[0];
-        Speed = template.Value[1];
+        // template.Value[0] (Angle) and template.Value[1] (Speed) are intentionally
+        // ignored: the leap direction comes from the caster -> target bearing with
+        // a sign flip via DistanceOffset, and the speed is derived from
+        // DistanceOffset / Duration so the leap lands in the configured time.
         Duration = template.Value[2];
         DistanceOffset = template.Value[3];
         Direction = (LeapDirection)template.Value[6];
