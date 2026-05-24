@@ -39,6 +39,12 @@ public class SkillController
     public virtual void End()
     {
         State = SCState.Ended;
+        // Drop the back-reference on the owning Unit so this controller can be
+        // GC'd once subscribers unsubscribe. Subclasses that keep the controller
+        // alive past End() (Floating's lift -> fall) deliberately do not call
+        // base.End here and invoke their own FinalEnd later.
+        if (Owner != null && Owner.ActiveSkillController == this)
+            Owner.ActiveSkillController = null;
         Logger.Trace($"SkillController: Npc {Owner.Name}:{Owner.ObjId} entering end state={State}");
     }
 

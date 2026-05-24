@@ -192,7 +192,8 @@ public class FloatingSkillController : SkillController
             var elapsed = (DateTime.UtcNow - _liftStartTime).TotalSeconds;
             if (elapsed >= _liftDuration)
             {
-                Logger.Debug("FloatingSC [LIFT]: owner={0} lift duration expired after {1:F1}s", Owner.ObjId, elapsed);
+                Logger.Debug("FloatingSC [LIFT]: owner={0} lift duration expired after {1:F1}s — descending", Owner.ObjId, elapsed);
+                End();
                 return;
             }
         }
@@ -217,7 +218,7 @@ public class FloatingSkillController : SkillController
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
         moveType.ActorFlags = 5; // Airborne/Floating
-        moveType.Flags = MoveTypeFlags.Moving;
+        moveType.Flags = MoveTypeFlags.Moving | (Owner is Npc combatNpc && combatNpc.IsInBattle ? MoveTypeFlags.InCombat : 0);
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
@@ -271,7 +272,7 @@ public class FloatingSkillController : SkillController
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
         moveType.ActorFlags = 5;
-        moveType.Flags = MoveTypeFlags.Moving;
+        moveType.Flags = MoveTypeFlags.Moving | (Owner is Npc combatNpc && combatNpc.IsInBattle ? MoveTypeFlags.InCombat : 0);
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
@@ -340,7 +341,7 @@ public class FloatingSkillController : SkillController
         moveType.RotationY = ry;
         moveType.RotationZ = rz;
         moveType.ActorFlags = 4;
-        moveType.Flags = MoveTypeFlags.Moving;
+        moveType.Flags = MoveTypeFlags.Moving | (Owner is Npc combatNpc && combatNpc.IsInBattle ? MoveTypeFlags.InCombat : 0);
         moveType.DeltaMovement = new sbyte[3];
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 127;
