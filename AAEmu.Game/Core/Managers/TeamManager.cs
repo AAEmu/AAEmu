@@ -680,11 +680,15 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         }
 
         // Reconnect: force the ObjId refresh on EVERY online team-mate, not just
-        // the out-of-render ones. The reconnecting player gets a fresh ObjId from
-        // the pool (the old one is preserved but never re-allocated), and team-mates'
-        // raid frames still have the stale ObjId cached — without an explicit
-        // SCRefreshTeamMemberPacket the next click-to-follow on either side fires
-        // CSMoveUnitPacket(target=old objId) and the server logs "Invalid target".
+        // the out-of-render ones. SetOffline's SCTeamMemberDisconnectedPacket
+        // carries WritePerson(IsOnline ? ObjId : 0) — i.e. ObjId = 0 after the
+        // P1 setter-order fix — so each team-mate's raid-frame slot for this
+        // player is currently keyed to 0. The reconnecting player gets the
+        // SAME ObjId back via Character.UsedCharacterObjIds, but the in-range
+        // world Spawn flow does not push the raid-frame re-mapping on its own;
+        // without an explicit SCRefreshTeamMemberPacket the next click-to-
+        // follow fires CSMoveUnitPacket(target=0) and the server logs
+        // "Invalid target".
         RefreshTeamMemberObjIds(activeTeam, unit, force: true);
 
         if (!activeTeam.IsParty)
