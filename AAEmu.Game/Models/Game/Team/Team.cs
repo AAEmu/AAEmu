@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Threading;
+
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -24,7 +26,20 @@ public class Team : PacketMarshaler
     /// (or the team has not yet reached the all-offline state). Reset to MinValue
     /// whenever a member reconnects.
     /// </summary>
-    public DateTime AllOfflineSince { get; set; } = DateTime.MinValue;
+    /// <remarks>
+    /// Backed by <see cref="Interlocked.Read"/> / <see cref="Interlocked.Exchange"/>
+    /// on a <see cref="long"/> ticks field because the write happens from the
+    /// game-handler thread (in <c>SetOffline</c> / <c>UpdateAtLogin</c>) while the
+    /// read happens from the <c>UpdateAllTeams</c> tick thread — without atomic
+    /// access a 64-bit value's halves could tear on 32-bit hosts and visibility is
+    /// not guaranteed by the C# memory model on any host.
+    /// </remarks>
+    public DateTime AllOfflineSince
+    {
+        get => new(Interlocked.Read(ref _allOfflineSinceTicks));
+        set => Interlocked.Exchange(ref _allOfflineSinceTicks, value.Ticks);
+    }
+    private long _allOfflineSinceTicks; // backing field for AllOfflineSince
 
     public Team()
     {

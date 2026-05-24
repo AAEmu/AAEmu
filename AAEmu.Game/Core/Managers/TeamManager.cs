@@ -798,19 +798,23 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
     /// <summary>
     /// Auto-disband a team that has been fully offline past the grace window.
-    /// Mirrors the cleanup that <see cref="AskRiskyTeam"/> does on its auto-disband
-    /// branch, but without broadcasting <c>SCTeamDismissedPacket</c> (nobody online
-    /// to receive it; on next reconnect <see cref="UpdateAtLogin"/> sees no team
-    /// and the client lands without raid UI, which is the desired end state).
+    /// Mirrors the per-member cleanup that <see cref="AskRiskyTeam"/> does on its
+    /// auto-disband branch — most importantly resetting <c>Character.InParty</c>
+    /// so a Character object that survives the disband (e.g. cached across a fast
+    /// reconnect) cannot leave <c>InParty = true</c> with no backing team, which
+    /// would break null-unchecked call sites like
+    /// <c>Tagging.AddTagger → TeamManager.GetTeamByObjId</c>.
+    /// <c>SCTeamDismissedPacket</c> is skipped because nobody is online to receive
+    /// it; on next reconnect <see cref="UpdateAtLogin"/> sees no team and the
+    /// client lands without raid UI, which is the desired end state.
     /// </summary>
     private void DisbandOfflineTeam(Team team)
     {
         foreach (var member in team.Members)
         {
             if (member?.Character == null) continue;
+            member.Character.InParty = false;
             ClearSyncState(member.Character.Id);
-            // Character.InParty is already false on offline members (handled by the
-            // logout path / setter); no further per-member packets needed.
         }
 
         _activeTeams.TryRemove(team.Id, out _);
