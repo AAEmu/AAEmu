@@ -209,7 +209,13 @@ public class GameConnection
         // mirror it here or the next reconnect will TryAddCharacter on a stale slot
         // and end up with a divergent _characters[id] = OLD vs _baseUnits[id] = NEW,
         // so any later operation on the ghost reference Deletes the live character.
-        WorldManager.Instance.TryRemoveCharacter(activeChar.ObjId);
+        //
+        // Guard with an identity check so the cleanup stays safe if ObjId recycling
+        // is ever re-enabled: only remove the slot if _characters still maps this
+        // ObjId to OUR character — never evict a freshly-spawned entity that
+        // happened to inherit the recycled ObjId.
+        if (WorldManager.Instance.GetCharacterByObjId(activeChar.ObjId) == activeChar)
+            WorldManager.Instance.TryRemoveCharacter(activeChar.ObjId);
 
         // Do a manual save here as it's no longer in _characters at this point
         // TODO: might need a better option like saving this transaction for later to be used by the SaveManager

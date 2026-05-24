@@ -655,9 +655,13 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         unit.SendPacket(new SCJoinedTeamPacket(activeTeam));
         unit.InParty = true;
 
-        // 1) Reconnecting player gets a single bulk snapshot of every team-mate's
-        //    current HP/MP/position/ObjId so the raid UI is fully populated.
-        var allMembers = activeTeam.Members.Where(m => m?.Character != null).ToArray();
+        // 1) Reconnecting player gets a single bulk snapshot of every OTHER team-
+        //    mate's current HP/MP/position/ObjId so the raid UI is fully populated.
+        //    Self is excluded — the client already knows its own state and a
+        //    self-entry in SCTeamRemoteMembersExPacket would just be wasted bytes.
+        var allMembers = activeTeam.Members
+            .Where(m => m?.Character != null && m.Character.Id != unit.Id)
+            .ToArray();
         if (allMembers.Length > 0)
             unit.SendPacket(new SCTeamRemoteMembersExPacket(allMembers));
 
