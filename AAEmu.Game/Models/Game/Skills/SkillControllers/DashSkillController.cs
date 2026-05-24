@@ -8,30 +8,28 @@ using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
 
-public class LeapSkillController : SkillController
+public class DashSkillController : SkillController
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     public int Angle { get; set; }
     public int Speed { get; set; }
     public int Duration { get; set; }
     public int DistanceOffset { get; set; }
 
     private readonly float _calculatedSpeed;
-    private Vector3 _endPosition;
-    public enum LeapDirection
+    private readonly Vector3 _endPosition;
+
+    public enum DashDirection
     {
         Both = 0,
         ForwardOnly = 1,
         BackwardOnly = 2
     }
-    public LeapDirection Direction { get; set; }
 
-    public LeapSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
+    public DashDirection Direction { get; set; }
+
+    public DashSkillController(SkillControllerTemplate template, BaseUnit owner, BaseUnit target)
     {
         Template = template;
         Owner = owner as Unit;
@@ -41,82 +39,47 @@ public class LeapSkillController : SkillController
         Speed = template.Value[1];
         Duration = template.Value[2];
         DistanceOffset = template.Value[3];
-        Direction = (LeapDirection)template.Value[6];
+        Direction = (DashDirection)template.Value[6];
 
-        var ownerPos = owner.Transform.World.Position;
-        var targetPos = target.Transform.World.Position;
-        var distToTarget = MathUtil.CalculateDistance(ownerPos, targetPos, true);
+        var angleDeg = (float)MathUtil.CalculateAngleFrom(owner.Transform.World.Position, target.Transform.World.Position);
+        var distMeters = DistanceOffset / 1000f;
 
-        // CalculateAngleFrom returns DEGREES; sign of DistanceOffset distinguishes pull vs push.
-        var angleDeg = (float)MathUtil.CalculateAngleFrom(ownerPos, targetPos);
+        if (Direction == DashDirection.BackwardOnly)
+            angleDeg += 180f;
+
         var angleRad = (float)(angleDeg * Math.PI / 180.0);
-        var offsetMeters = DistanceOffset / 1000f;
 
         (_endPosition.X, _endPosition.Y) = MathUtil.AddDistanceToFront(
-            offsetMeters, targetPos.X, targetPos.Y, angleRad);
-        _endPosition.Z = targetPos.Z;
+            distMeters,
+            owner.Transform.World.Position.X,
+            owner.Transform.World.Position.Y,
+            angleRad);
+        _endPosition.Z = owner.Transform.World.Position.Z;
 
-        if (Direction == LeapDirection.BackwardOnly)
-        {
-            var endDistToTarget = MathUtil.CalculateDistance(_endPosition, targetPos, true);
-            if (endDistToTarget < distToTarget)
-            {
-                Logger.Debug("LeapSC: owner={0} BackwardOnly constraint violated — endpoint closer to target, not moving",
-                    owner.ObjId);
-                _endPosition = ownerPos;
-            }
-        }
-        else if (Direction == LeapDirection.ForwardOnly)
-        {
-            var endDistToTarget = MathUtil.CalculateDistance(_endPosition, targetPos, true);
-            if (endDistToTarget > distToTarget)
-            {
-                Logger.Debug("LeapSC: owner={0} ForwardOnly constraint violated — endpoint further from target, not moving",
-                    owner.ObjId);
-                _endPosition = ownerPos;
-            }
-        }
-
-        var distance = MathUtil.CalculateDistance(ownerPos, _endPosition, true);
+        var totalDist = MathUtil.CalculateDistance(owner.Transform.World.Position, _endPosition, true);
         var durationSec = Duration > 0 ? Duration / 1000f : 0.5f;
-        _calculatedSpeed = distance / durationSec;
-
-        Logger.Debug("LeapSC: owner={0} target={1} dist={2:F1} offset={3:F1}m dir={4} dur={5}ms endPos=({6:F1},{7:F1},{8:F1}) speed={9:F1}",
-            owner.ObjId, target.ObjId, distToTarget, offsetMeters, Direction, Duration,
-            _endPosition.X, _endPosition.Y, _endPosition.Z, _calculatedSpeed);
+        _calculatedSpeed = totalDist / durationSec;
     }
 
     public void Tick(TimeSpan delta)
     {
-        if (Owner == null)
-        {
-            Logger.Warn("LeapSC.Tick: Owner is null, ending");
-            End();
-            return;
-        }
-        // SourceBuffId > 0 → forced (buff-triggered pull/grip), ignore CC.
-        // SourceBuffId == 0 → voluntary leap, external stun/sleep cancels.
         if (Owner.IsDead)
         {
-            Logger.Debug("LeapSC.Tick: owner={0} dead, ending", Owner.ObjId);
             End();
             return;
         }
         if (SourceBuffId == 0 && Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
         {
-            Logger.Debug("LeapSC.Tick: owner={0} stunned/sleeping (voluntary leap), ending", Owner.ObjId);
             End();
             return;
         }
-        var moveDist = _calculatedSpeed * (float)(delta.TotalMilliseconds / 1000f);
-        MoveTowards(moveDist);
+
+        MoveTowards(_calculatedSpeed * (float)(delta.TotalMilliseconds / 1000f));
     }
 
     public override void Execute()
     {
         base.Execute();
-        Logger.Debug("LeapSC.Execute: owner={0} target={1} state={2} endPos=({3:F1},{4:F1},{5:F1}) speed={6:F1}",
-            Owner?.ObjId, Target?.ObjId, State, _endPosition.X, _endPosition.Y, _endPosition.Z, _calculatedSpeed);
         TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100));
     }
 
@@ -138,11 +101,8 @@ public class LeapSkillController : SkillController
             }
 
             if (Owner.Buffs.HasEffectsMatchingCondition(e =>
-                    e.Template.Stun
-                    || e.Template.Sleep
-                    || e.Template.Root
-                    || e.Template.Knockdown
-                    || e.Template.Fastened)
+                    e.Template.Stun || e.Template.Sleep || e.Template.Root
+                    || e.Template.Knockdown || e.Template.Fastened)
                 || Owner.IsDead)
             {
                 return;
@@ -157,7 +117,7 @@ public class LeapSkillController : SkillController
 
         var oldPosition = Owner.Transform.Local.ClonePosition();
         var targetDist = MathUtil.CalculateDistance(Owner.Transform.Local.Position, _endPosition, true);
-        if (targetDist <= 1f)
+        if (targetDist <= 0.5f)
         {
             End();
             return;
@@ -166,7 +126,8 @@ public class LeapSkillController : SkillController
         var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
         var travelDist = Math.Min(targetDist, distance);
 
-        var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Owner.Transform.Local.Position, _endPosition);
+        var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(
+            travelDist, targetDist, Owner.Transform.Local.Position, _endPosition);
         Owner.Transform.Local.SetPosition(newX, newY, newZ);
 
         var updZ = Owner.ParentWorld.Template.GeoData.GetHeight(Owner.Transform.World.Position);
