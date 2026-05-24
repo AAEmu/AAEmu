@@ -262,8 +262,13 @@ public partial class Character : Unit, ICharacter
             if (_isOnline == value) return;
             // TODO - GUILD STATUS CHANGE
             FriendMananger.Instance.SendStatusChange(this, true, value);
-            if (!value) TeamManager.Instance.SetOffline(this);
+            // Set _isOnline BEFORE the SetOffline side-effect so anything it triggers
+            // (SetOffline → SCTeamMemberDisconnectedPacket → TeamMember.WritePerson)
+            // observes the new state. Otherwise WritePerson's "ObjId or 0 if offline"
+            // ternary would still see IsOnline = true on disconnect and write the live
+            // ObjId into a packet that is supposed to carry the explicit offline marker.
             _isOnline = value;
+            if (!value) TeamManager.Instance.SetOffline(this);
         }
     }
     // public FishSchool FishSchool { get; set; }

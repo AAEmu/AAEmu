@@ -40,10 +40,13 @@ public class Tagging(Unit owner)
 
     public void ClearAllTaggers()
     {
-        _taggers = [];
-        _tagger = null;
-        _tagTeam = 0;
-        // _totalDamage = 0;
+        lock (_lock)
+        {
+            _taggers = [];
+            _tagger = null;
+            _tagTeam = 0;
+            // _totalDamage = 0;
+        }
     }
 
     public void AddTagger(Unit checkUnit, int damage)

@@ -654,6 +654,9 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     /// <summary>Reusable scratch list to avoid per-tick allocations inside <see cref="UpdateAllTeams"/>.</summary>
     private readonly List<TeamMember> _onlineMembersScratch = [];
 
+    /// <summary>Reusable per-recipient buffer of source members whose snapshots changed this tick.</summary>
+    private readonly Dictionary<TeamMember, List<TeamMember>> _perRecipientScratch = [];
+
     /// <summary>
     /// 500ms tick: walk every active team and broadcast HP/MP/position to members
     /// that are NOT in render distance of each other. Members in render distance
@@ -661,6 +664,12 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     /// skipped. Delta-cache (<see cref="_lastSyncState"/>) skips identical
     /// packets so a stationary raid produces no traffic.
     /// </summary>
+    /// <remarks>
+    /// Pair-walk is upper-triangle (i &lt; j) — <see cref="AreInRenderDistance"/> is
+    /// symmetric so each pair only needs one neighbour check, not two. Sends are
+    /// coalesced per recipient into one <see cref="SCTeamRemoteMembersExPacket"/>:
+    /// a spread-out 50-man raid produces ~50 packets/tick instead of ~2,450.
+    /// </remarks>
     private void UpdateAllTeams(TimeSpan delta)
     {
         var now = DateTime.UtcNow;
@@ -680,43 +689,70 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
             if (_onlineMembersScratch.Count <= 1)
                 continue;
 
-            foreach (var recipient in _onlineMembersScratch)
+            _perRecipientScratch.Clear();
+
+            for (var i = 0; i < _onlineMembersScratch.Count; i++)
             {
-                foreach (var source in _onlineMembersScratch)
+                var a = _onlineMembersScratch[i];
+                for (var j = i + 1; j < _onlineMembersScratch.Count; j++)
                 {
-                    if (source.Character.Id == recipient.Character.Id)
-                        continue;
+                    var b = _onlineMembersScratch[j];
 
                     // Same/neighbouring region — normal broadcast already covers them
-                    if (AreInRenderDistance(recipient.Character, source.Character))
+                    if (AreInRenderDistance(a.Character, b.Character))
                         continue;
 
-                    var key = (recipient.Character.Id, source.Character.Id);
-                    var pos = source.Character.Transform.World.Position;
-                    var nextState = new MemberSyncState(
-                        source.Character.Hp,
-                        source.Character.MaxHp,
-                        source.Character.Mp,
-                        source.Character.MaxMp,
-                        pos.X, pos.Y, pos.Z,
-                        source.Character.ObjId,
-                        now);
-
-                    lock (_lastSyncState)
-                    {
-                        if (_lastSyncState.TryGetValue(key, out var prev) &&
-                            prev.HasSameSnapshotAs(nextState) &&
-                            (now - prev.LastSyncTime).TotalMilliseconds < ForcedResyncIntervalMs)
-                        {
-                            continue;
-                        }
-                        _lastSyncState[key] = nextState;
-                    }
-
-                    recipient.Character.SendPacket(new SCTeamRemoteMembersExPacket([source]));
+                    // Each direction has its own (recipient, source) cache entry; check
+                    // both, but the expensive region walk above only runs once per pair.
+                    if (TryClaimSnapshot(a, b, now)) AddSnapshotTarget(a, b);
+                    if (TryClaimSnapshot(b, a, now)) AddSnapshotTarget(b, a);
                 }
             }
+
+            foreach (var (recipient, sources) in _perRecipientScratch)
+            {
+                recipient.Character.SendPacket(new SCTeamRemoteMembersExPacket(sources.ToArray()));
+            }
         }
+    }
+
+    /// <summary>
+    /// Per-(recipient, source) delta-cache check. Returns true when the source's
+    /// current snapshot differs from the cached one (or the forced-resync window
+    /// has elapsed), and atomically updates the cache so subsequent ticks see the
+    /// new state.
+    /// </summary>
+    private bool TryClaimSnapshot(TeamMember recipient, TeamMember source, DateTime now)
+    {
+        var key = (recipient.Character.Id, source.Character.Id);
+        var pos = source.Character.Transform.World.Position;
+        var nextState = new MemberSyncState(
+            source.Character.Hp,
+            source.Character.MaxHp,
+            source.Character.Mp,
+            source.Character.MaxMp,
+            pos.X, pos.Y, pos.Z,
+            source.Character.ObjId,
+            now);
+
+        lock (_lastSyncState)
+        {
+            if (_lastSyncState.TryGetValue(key, out var prev) &&
+                prev.HasSameSnapshotAs(nextState) &&
+                (now - prev.LastSyncTime).TotalMilliseconds < ForcedResyncIntervalMs)
+            {
+                return false;
+            }
+            _lastSyncState[key] = nextState;
+            return true;
+        }
+    }
+
+    private void AddSnapshotTarget(TeamMember recipient, TeamMember source)
+    {
+        if (!_perRecipientScratch.TryGetValue(recipient, out var list))
+            _perRecipientScratch[recipient] = list = [];
+        list.Add(source);
     }
 
     /// <summary>
