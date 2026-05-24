@@ -1140,14 +1140,19 @@ public partial class Npc : Unit
             return false;
         }
 
-        // Shackle (160) is the broad "root family" tag — pure roots and snares both
-        // ride it. The exclude list strips buffs that ALSO have the DecreaseMoveSpeed
-        // (161) tag, which is how slow debuffs like Charged Bolt are encoded: they
-        // ship as Shackle + DecreaseMoveSpeed, mean "slow, not stop", and without
-        // this exclusion the NPC would be fully rooted by every slow it gets hit by.
+        // Shackle (160) is the broad "root family" tag — most snares ride it.
+        // The exclude list strips buffs that ALSO have the DecreaseMoveSpeed
+        // (161) tag, which is how slow debuffs like Charged Bolt are encoded:
+        // they ship as Shackle + DecreaseMoveSpeed, mean "slow, not stop", and
+        // without this exclusion the NPC would be fully rooted by every slow it
+        // gets hit by. The dedicated Snare (27) check is kept alongside to
+        // catch any Snare-only-tagged buffs that don't ride the Shackle family —
+        // matches the dual-check pattern in DashSkillController and
+        // LeapSkillController so all three gates agree.
         if (Ai.Owner.Buffs.CheckBuffsExcludingTags(
                 SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle),
-                [(uint)SkillConstants.DecreaseMoveSpeed]))
+                [(uint)SkillConstants.DecreaseMoveSpeed]) ||
+            Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
         {
             return false;
         }

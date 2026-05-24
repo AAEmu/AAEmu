@@ -281,7 +281,7 @@ public class BuffTemplate
         // (Floating, Wandering, Leap, Dash). Skip Characters — the 1.2 client
         // moves itself from the buff payload and running the server-side SC on
         // top of that produces double-displacement.
-        if (SkillControllerId > 0 && owner is Unit ownerUnit && owner is not Character)
+        if (SkillControllerId > 0 && owner is Unit ownerUnit && owner is not Character && caster != null)
         {
             var scTemplate = SkillManager.Instance.GetEffectTemplate(SkillControllerId, "SkillController")
                 as SkillControllerTemplate;
@@ -293,7 +293,7 @@ public class BuffTemplate
                 var effectiveLiftHeight = GlidingLiftHeight > 0f ? GlidingLiftHeight
                     : (Gliding ? 5f : 0f);
                 Logger.Info("BuffTemplate.Start: buff {0} creating SC sc_id={1} kind={2} for owner={3} caster={4} psychoSpeed={5} liftH={6}",
-                    Id, SkillControllerId, scTemplate.KindId, owner.ObjId, caster?.ObjId, PsychokinesisSpeed, effectiveLiftHeight);
+                    Id, SkillControllerId, scTemplate.KindId, owner.ObjId, caster.ObjId, PsychokinesisSpeed, effectiveLiftHeight);
                 var sc = SkillControllers.SkillController.CreateSkillController(scTemplate, owner, caster,
                     PsychokinesisSpeed, effectiveLiftHeight, GlidingLiftSpeed, GlidingLiftDuration);
 #pragma warning disable CA1508 // Factory can return null for unimplemented controller kinds
