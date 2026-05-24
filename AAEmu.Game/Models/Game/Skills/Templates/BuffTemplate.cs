@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -93,6 +93,9 @@ public class BuffTemplate
     public bool RemoveOnLand { get; init; }
     public bool Gliding { get; init; }
     public int GlidingRotateSpeed { get; init; }
+    public float GlidingLiftHeight { get; init; }
+    public float GlidingLiftSpeed { get; init; }
+    public float GlidingLiftDuration { get; init; }
     public bool Knockdown { get; init; }
     public bool TickAreaExcludeSource { get; init; }
     public bool FallDamageImmune { get; init; }
@@ -272,6 +275,51 @@ public class BuffTemplate
         if (!buff.Passive)
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
 
+        // Buff-driven SkillController for NPCs: pull / lift / fear / leap / dash
+        // skills carry their displacement via a buff. SkillControllerId resolves
+        // to a SkillControllerTemplate whose KindId picks the controller class
+        // (Floating, Wandering, Leap, Dash). Skip Characters — the 1.2 client
+        // moves itself from the buff payload and running the server-side SC on
+        // top of that produces double-displacement.
+        if (SkillControllerId > 0 && owner is Unit ownerUnit && owner is not Character)
+        {
+            var scTemplate = SkillManager.Instance.GetEffectTemplate(SkillControllerId, "SkillController")
+                as SkillControllerTemplate;
+            if (scTemplate != null)
+            {
+                // Bubbletrap-style buffs set Gliding=true but leave GlidingLiftHeight=0
+                // in the DB, which would make the controller resolve to pull mode.
+                // Default to 5m lift so the controller actually enters lift mode.
+                var effectiveLiftHeight = GlidingLiftHeight > 0f ? GlidingLiftHeight
+                    : (Gliding ? 5f : 0f);
+                var sc = SkillControllers.SkillController.CreateSkillController(scTemplate, owner, caster,
+                    PsychokinesisSpeed, effectiveLiftHeight, GlidingLiftSpeed, GlidingLiftDuration);
+#pragma warning disable CA1508 // Factory can return null for unimplemented controller kinds
+                if (sc is not null)
+#pragma warning restore CA1508
+                {
+                    sc.SourceBuffId = Id;
+                    if (ownerUnit.ActiveSkillController != null)
+                        ownerUnit.ActiveSkillController.End();
+                    ownerUnit.ActiveSkillController = sc;
+                    sc.Execute();
+                }
+            }
+        }
+        // Psychokinesis fallback: some pull buffs use Psychokinesis=true +
+        // PsychokinesisSpeed instead of a full SkillControllerId. Spawn a
+        // FloatingSkillController in pull mode directly.
+        else if (SkillControllerId == 0 && Psychokinesis && PsychokinesisSpeed > 0
+                 && owner is Unit psychoUnit && owner is not Character && caster != null)
+        {
+            var sc = new SkillControllers.FloatingSkillController(null, owner, caster, PsychokinesisSpeed);
+            sc.SourceBuffId = Id;
+            if (psychoUnit.ActiveSkillController != null)
+                psychoUnit.ActiveSkillController.End();
+            psychoUnit.ActiveSkillController = sc;
+            sc.Execute();
+        }
+
         // Special properties handling
         if (owner is Character character)
         {
@@ -365,7 +413,25 @@ public class BuffTemplate
 
     public void Dispel(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced = false)
     {
-        RemoveBonuses(owner, buff);
+        // Stop the SkillController that this buff started. End() may keep
+        // State=Running for Floating's fall phase, so we deliberately do NOT
+        // null ActiveSkillController here — the controller clears itself
+        // from Unit on FinalEnd after the descent lands.
+        if (owner is Unit dispelUnit
+            && dispelUnit.ActiveSkillController != null
+            && dispelUnit.ActiveSkillController.SourceBuffId == Id)
+        {
+            dispelUnit.ActiveSkillController.End();
+        }
+        DispelCore(caster, owner, buff, replaced);
+    }
+
+    private void DispelCore(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced)
+    {
+        foreach (var template in Bonuses)
+            owner.RemoveBonus(buff.Index, template.Attribute);
+        foreach (var template in DynamicBonuses)
+            owner.RemoveDynamicBonus(buff.Index, template.Attribute);
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
             requiringBuff.Exit();
