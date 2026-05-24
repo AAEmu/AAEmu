@@ -35,6 +35,18 @@ public class SkillControllerTemplate : EffectTemplate
         if (caster is Character)
             return;
 
+        // Pull / Leap / Dash constructors deref target.Transform.World.Position
+        // immediately. Without a reference target (area aura, spawn effect, or
+        // target disconnected between cast and apply) those three SC kinds would
+        // NRE on construction. Wandering does not need a target but bailing
+        // here for the missing target is the safer default — a target-less
+        // displacement has no defined direction anyway.
+        if (target == null)
+        {
+            Logger.Warn("SkillControllerTemplate.Apply: target is null for sc_id={0} kind={1}, skipping", Id, KindId);
+            return;
+        }
+
         var sc = SkillController.CreateSkillController(this, caster, target);
 #pragma warning disable CA1508 // Factory can return null for unimplemented controller kinds
         if (sc is not null)
