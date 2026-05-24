@@ -810,6 +810,21 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     /// </summary>
     private void DisbandOfflineTeam(Team team)
     {
+        // Re-verify under the latest member state before wiping anything. The tick
+        // is decoupled from SetOffline / UpdateAtLogin by a multi-minute grace
+        // window, and the SetOffline check/write pair (MembersOnlineCount() ≤ 0,
+        // then assign AllOfflineSince) is not atomic — a concurrent UpdateAtLogin
+        // landing in between can leave AllOfflineSince armed with a stale "now"
+        // even though a member is currently online. Without this re-check the
+        // tick would silently set InParty = false on a live online player and
+        // pull the team out of _activeTeams while their raid UI still pointed
+        // at it.
+        if (team.MembersOnlineCount() > 0)
+        {
+            team.AllOfflineSince = DateTime.MinValue;
+            return;
+        }
+
         foreach (var member in team.Members)
         {
             if (member?.Character == null) continue;
