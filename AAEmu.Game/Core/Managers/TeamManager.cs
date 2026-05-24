@@ -31,6 +31,13 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     private const int TeamSyncIntervalMs = 500;
     /// <summary>Force a fresh broadcast even if state didn't change (paranoia against packet loss).</summary>
     private const int ForcedResyncIntervalMs = 5000;
+    /// <summary>
+    /// Grace window after the last online member of a team goes offline before the
+    /// team is auto-disbanded. Lets brief crash-then-reconnect cycles preserve the
+    /// team while keeping <c>_activeTeams</c> from accumulating zombie entries on
+    /// long-running servers.
+    /// </summary>
+    private static readonly TimeSpan OfflineTeamDisbandGrace = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Per-(recipient,source) snapshot of the last values broadcast to that recipient.
@@ -575,6 +582,14 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         // Drop any cached remote-sync state about this character so it doesn't leak.
         ClearSyncState(unit.Id);
+
+        // Arm the zombie-team disband timer once the last online member goes offline.
+        // The 500ms UpdateAllTeams tick checks the grace window and removes the team
+        // from _activeTeams if it stays fully offline — otherwise the entry would
+        // live forever because LeaveWorldTask no longer calls MemberRemoveFromTeam
+        // (which used to be the only path that hit AskRiskyTeam's auto-disband).
+        if (activeTeam.MembersOnlineCount() <= 0)
+            activeTeam.AllOfflineSince = DateTime.UtcNow;
     }
 
     public void MemberRemoveFromTeam(Character unit, Character source, RiskyAction leaveType)
@@ -616,6 +631,9 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         activeTeam.ChangeStatus(unit);
         unit.SendPacket(new SCJoinedTeamPacket(activeTeam));
         unit.InParty = true;
+
+        // Cancel the zombie-team disband timer — at least one member is back online.
+        activeTeam.AllOfflineSince = DateTime.MinValue;
 
         // 1) Reconnecting player gets a single bulk snapshot of every team-mate's
         //    current HP/MP/position/ObjId so the raid UI is fully populated.
@@ -693,6 +711,16 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         // cannot be invalidated by a parallel Add/Remove during the tick.
         foreach (var team in _activeTeams.Values)
         {
+            // Zombie-team cleanup: every member offline for longer than the grace
+            // window → disband and free the slot. Done before the per-member walk so
+            // the tick doesn't pay the snapshot cost on a doomed team.
+            if (team.AllOfflineSince != DateTime.MinValue &&
+                now - team.AllOfflineSince >= OfflineTeamDisbandGrace)
+            {
+                DisbandOfflineTeam(team);
+                continue;
+            }
+
             _onlineMembersScratch.Clear();
             foreach (var m in team.Members)
             {
@@ -766,6 +794,28 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         if (!_perRecipientScratch.TryGetValue(recipient, out var list))
             _perRecipientScratch[recipient] = list = [];
         list.Add(source);
+    }
+
+    /// <summary>
+    /// Auto-disband a team that has been fully offline past the grace window.
+    /// Mirrors the cleanup that <see cref="AskRiskyTeam"/> does on its auto-disband
+    /// branch, but without broadcasting <c>SCTeamDismissedPacket</c> (nobody online
+    /// to receive it; on next reconnect <see cref="UpdateAtLogin"/> sees no team
+    /// and the client lands without raid UI, which is the desired end state).
+    /// </summary>
+    private void DisbandOfflineTeam(Team team)
+    {
+        foreach (var member in team.Members)
+        {
+            if (member?.Character == null) continue;
+            ClearSyncState(member.Character.Id);
+            // Character.InParty is already false on offline members (handled by the
+            // logout path / setter); no further per-member packets needed.
+        }
+
+        _activeTeams.TryRemove(team.Id, out _);
+        chatManager.CleanUpChannels();
+        Logger.Info("Disbanded zombie team {0} after {1} of all-offline", team.Id, OfflineTeamDisbandGrace);
     }
 
     /// <summary>

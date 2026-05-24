@@ -17,6 +17,15 @@ public class Team : PacketMarshaler
     public (byte, uint)[] MarksList { get; set; }
     public WorldSpawnPosition PingPosition { get; set; }
 
+    /// <summary>
+    /// Timestamp when the team transitioned to "every member offline" so the 500ms
+    /// remote-sync tick in <c>TeamManager</c> can disband zombie teams after a grace
+    /// period. <see cref="DateTime.MinValue"/> means at least one member is online
+    /// (or the team has not yet reached the all-offline state). Reset to MinValue
+    /// whenever a member reconnects.
+    /// </summary>
+    public DateTime AllOfflineSince { get; set; } = DateTime.MinValue;
+
     public Team()
     {
         Members = new TeamMember[50];
