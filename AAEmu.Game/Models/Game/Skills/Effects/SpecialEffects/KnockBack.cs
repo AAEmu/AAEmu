@@ -27,7 +27,7 @@ public class KnockBack : SpecialEffectAction
         Logger.Debug("Special effects: KnockBack caster={0}, target={1}, value1={2}, value2={3}, value3={4}, value4={5}",
             caster?.ObjId, target?.ObjId, value1, value2, value3, value4);
 
-        if (caster == null || target == null || (target is Unit tgtUnit && tgtUnit.IsDead))
+        if (caster == null || target == null)
             return;
 
         if (target.Buffs.HasEffectsMatchingCondition(e => e.Template.KnockbackImmune || e.Template.NonPushable))

@@ -34,7 +34,7 @@ public class ImpulseEffect : EffectTemplate
         Logger.Debug("ImpulseEffect: caster={0}, target={1}, impulse=({2},{3},{4}), velImpulse=({5},{6},{7})",
             caster?.ObjId, target?.ObjId, ImpulseX, ImpulseY, ImpulseZ, VelImpulseX, VelImpulseY, VelImpulseZ);
 
-        if (caster == null || target == null || (target is Unit tgtUnit && tgtUnit.IsDead))
+        if (caster == null || target == null)
             return;
 
         if (target.Buffs.HasEffectsMatchingCondition(e => e.Template.KnockbackImmune || e.Template.NonPushable))
