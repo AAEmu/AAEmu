@@ -145,12 +145,14 @@ public class LeapSkillController : SkillController
                     || e.Template.Fastened)
                 || Owner.IsDead)
             {
+                End();
                 return;
             }
 
             if (Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
                 Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
             {
+                End();
                 return;
             }
         }
