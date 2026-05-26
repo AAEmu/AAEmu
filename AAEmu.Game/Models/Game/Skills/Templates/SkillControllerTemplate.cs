@@ -23,7 +23,7 @@ public class SkillControllerTemplate : EffectTemplate
         // target = the reference point (e.g. the player pulling). Naming is
         // inverted from the buff path because here "caster" is whoever the
         // skill applies the effect TO, not whoever cast the parent skill.
-        Logger.Info("SkillControllerTemplate.Apply: sc_id={0} kind={1} caster={2} target={3}",
+        Logger.Debug("SkillControllerTemplate.Apply: sc_id={0} kind={1} caster={2} target={3}",
             Id, KindId, caster?.ObjId, target?.ObjId);
 
         if (caster is not Unit ownerUnit)

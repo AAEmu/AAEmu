@@ -37,23 +37,11 @@ public class PhysicalExplosionEffect : EffectTemplate
         var casterPos = caster.Transform.World.Position;
         var targetPos = target.Transform.World.Position;
 
-        var direction = targetPos - casterPos;
-        direction.Z = 0;
-        var dist = direction.Length();
-
-        if (dist > Radius || dist < HoleSize)
+        var displacement = ComputeKnockDisplacement(casterPos, targetPos, Radius, HoleSize, Pressure);
+        if (!displacement.HasValue)
             return;
 
-        if (direction.LengthSquared() < 0.01f)
-            direction = new Vector3(1, 0, 0);
-        direction = Vector3.Normalize(direction);
-
-        var falloff = 1f - (dist / Radius);
-        var knockDist = (Pressure / 1000f) * falloff;
-        if (knockDist < 0.5f)
-            return;
-
-        var endPos = targetPos + direction * knockDist;
+        var endPos = targetPos + displacement.Value;
 
         if (target is Npc npc)
         {
@@ -86,5 +74,32 @@ public class PhysicalExplosionEffect : EffectTemplate
 
             npc.CheckMovedPosition(oldPosition);
         }
+    }
+
+    /// <summary>
+    /// Computes the knock displacement vector from an explosion. Returns null when the
+    /// target is outside the explosion radius, inside the dead-zone hole, or when the
+    /// resulting knock distance is below a perceptible threshold (0.5m).
+    /// </summary>
+    internal static Vector3? ComputeKnockDisplacement(
+        Vector3 casterPos, Vector3 targetPos, float radius, float holeSize, float pressure)
+    {
+        var direction = targetPos - casterPos;
+        direction.Z = 0;
+        var dist = direction.Length();
+
+        if (dist > radius || dist < holeSize)
+            return null;
+
+        if (direction.LengthSquared() < 0.01f)
+            direction = new Vector3(1, 0, 0);
+        direction = Vector3.Normalize(direction);
+
+        var falloff = radius > 0f ? 1f - (dist / radius) : 0f;
+        var knockDist = (pressure / 1000f) * falloff;
+        if (knockDist < 0.5f)
+            return null;
+
+        return direction * knockDist;
     }
 }

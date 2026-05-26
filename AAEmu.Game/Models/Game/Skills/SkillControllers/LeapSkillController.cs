@@ -56,25 +56,12 @@ public class LeapSkillController : SkillController
             offsetMeters, targetPos.X, targetPos.Y, angleRad);
         _endPosition.Z = targetPos.Z;
 
-        if (Direction == LeapDirection.BackwardOnly)
+        var constrained = ApplyDirectionConstraint(Direction, ownerPos, _endPosition, targetPos);
+        if (constrained != _endPosition)
         {
-            var endDistToTarget = MathUtil.CalculateDistance(_endPosition, targetPos, true);
-            if (endDistToTarget < distToTarget)
-            {
-                Logger.Debug("LeapSC: owner={0} BackwardOnly constraint violated — endpoint closer to target, not moving",
-                    owner.ObjId);
-                _endPosition = ownerPos;
-            }
-        }
-        else if (Direction == LeapDirection.ForwardOnly)
-        {
-            var endDistToTarget = MathUtil.CalculateDistance(_endPosition, targetPos, true);
-            if (endDistToTarget > distToTarget)
-            {
-                Logger.Debug("LeapSC: owner={0} ForwardOnly constraint violated — endpoint further from target, not moving",
-                    owner.ObjId);
-                _endPosition = ownerPos;
-            }
+            Logger.Debug("LeapSC: owner={0} {1} constraint violated — staying at owner position",
+                owner.ObjId, Direction);
+            _endPosition = constrained;
         }
 
         var distance = MathUtil.CalculateDistance(ownerPos, _endPosition, true);
@@ -201,5 +188,28 @@ public class LeapSkillController : SkillController
 
         Owner.CheckMovedPosition(oldPosition);
         Owner.BroadcastPacket(new SCOneUnitMovementPacket(Owner.ObjId, moveType), false);
+    }
+
+    /// <summary>
+    /// Enforces the leap's directional constraint. ForwardOnly leaps that would land
+    /// farther from the target than the owner started (and BackwardOnly leaps that
+    /// would land closer) collapse to the owner's current position so the SC ticks
+    /// out cleanly without moving the unit. Both is unconstrained.
+    /// </summary>
+    internal static Vector3 ApplyDirectionConstraint(
+        LeapDirection direction, Vector3 ownerPos, Vector3 candidateEnd, Vector3 targetPos)
+    {
+        var ownerToTarget = MathUtil.CalculateDistance(ownerPos, targetPos, true);
+        var endToTarget = MathUtil.CalculateDistance(candidateEnd, targetPos, true);
+
+        switch (direction)
+        {
+            case LeapDirection.BackwardOnly:
+                return endToTarget < ownerToTarget ? ownerPos : candidateEnd;
+            case LeapDirection.ForwardOnly:
+                return endToTarget > ownerToTarget ? ownerPos : candidateEnd;
+            default:
+                return candidateEnd;
+        }
     }
 }

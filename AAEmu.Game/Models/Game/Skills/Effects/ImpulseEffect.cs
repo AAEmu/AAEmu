@@ -50,20 +50,9 @@ public class ImpulseEffect : EffectTemplate
         if (impulse.LengthSquared() < 0.01f)
             return;
 
-        var displacement = impulse / 1000f;
-
         var casterPos = caster.Transform.World.Position;
         var targetPos = target.Transform.World.Position;
-        var dir = targetPos - casterPos;
-        dir.Z = 0;
-        if (dir.LengthSquared() > 0.01f)
-        {
-            dir = Vector3.Normalize(dir);
-            var right = new Vector3(-dir.Y, dir.X, 0);
-            // X=right, Y=forward, Z=up
-            var worldDisplacement = right * displacement.X + dir * displacement.Y + Vector3.UnitZ * displacement.Z;
-            displacement = worldDisplacement;
-        }
+        var displacement = LocalImpulseToWorldDisplacement(impulse, casterPos, targetPos);
 
         var endPos = targetPos + displacement;
 
@@ -98,5 +87,26 @@ public class ImpulseEffect : EffectTemplate
 
             npc.CheckMovedPosition(oldPosition);
         }
+    }
+
+    /// <summary>
+    /// Converts a caster-target local impulse (X=right, Y=forward, Z=up, units = 1/1000 m)
+    /// into a world-space displacement vector. When the caster→target direction is
+    /// degenerate (caster on top of target) the impulse is returned unchanged in world
+    /// space; the small-impulse early-exit lives in the caller.
+    /// </summary>
+    internal static Vector3 LocalImpulseToWorldDisplacement(
+        Vector3 localImpulse, Vector3 casterPos, Vector3 targetPos)
+    {
+        var displacement = localImpulse / 1000f;
+
+        var dir = targetPos - casterPos;
+        dir.Z = 0;
+        if (dir.LengthSquared() <= 0.01f)
+            return displacement;
+
+        dir = Vector3.Normalize(dir);
+        var right = new Vector3(-dir.Y, dir.X, 0);
+        return right * displacement.X + dir * displacement.Y + Vector3.UnitZ * displacement.Z;
     }
 }
