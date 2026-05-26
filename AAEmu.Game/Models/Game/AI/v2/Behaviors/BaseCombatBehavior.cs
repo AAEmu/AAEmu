@@ -45,7 +45,15 @@ public abstract class BaseCombatBehavior : Behavior
             return;
         }
 
-        if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+        // Combat chase runs BEFORE Npc.MoveTowards in the AI tick. A plain Shackle
+        // check here would hard-root the NPC for every slow that rides the Shackle
+        // tag (e.g. Charged Bolt — Shackle + DecreaseMoveSpeed), turning a slow
+        // into a full root during combat. Exclude buffs that also carry the
+        // DecreaseMoveSpeed tag so they slow rather than stop, matching the gate
+        // in Npc.MoveTowards. The Snare-only check is kept alongside.
+        if (Ai.Owner.Buffs.CheckBuffsExcludingTags(
+                SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle),
+                [(uint)SkillConstants.DecreaseMoveSpeed]) ||
             Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
         {
             return;
