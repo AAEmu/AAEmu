@@ -136,7 +136,13 @@ public class LeapSkillController : SkillController
                 return;
             }
 
-            if (Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+            // Exclude DecreaseMoveSpeed-tagged Shackle buffs (slow debuffs ride the Shackle
+            // family). A pure slow should NOT end the leap — the speed multiplier is already
+            // applied above, so the leap continues at reduced speed. Pure Shackle / Snare
+            // (hard root) still ends. Matches Npc.MoveTowards + BaseCombatBehavior.MoveInRange.
+            if (Owner.Buffs.CheckBuffsExcludingTags(
+                    SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle),
+                    [(uint)SkillConstants.DecreaseMoveSpeed]) ||
                 Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
             {
                 End();

@@ -114,7 +114,14 @@ public class DashSkillController : SkillController
                 return;
             }
 
-            if (Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+            // Exclude DecreaseMoveSpeed-tagged Shackle buffs (slow debuffs like Charged Bolt
+            // ride the Shackle family). A pure slow should NOT end the dash — the speed
+            // multiplier is already applied via Owner.MoveSpeedMul above, so the dash
+            // continues at reduced speed. Pure Shackle / Snare (hard root) still ends.
+            // Matches the gate in Npc.MoveTowards and BaseCombatBehavior.MoveInRange.
+            if (Owner.Buffs.CheckBuffsExcludingTags(
+                    SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle),
+                    [(uint)SkillConstants.DecreaseMoveSpeed]) ||
                 Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
             {
                 End();
