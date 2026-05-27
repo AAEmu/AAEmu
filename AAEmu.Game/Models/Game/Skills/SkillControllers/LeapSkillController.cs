@@ -2,6 +2,8 @@ using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
@@ -136,14 +138,26 @@ public class LeapSkillController : SkillController
                 return;
             }
 
-            // Exclude DecreaseMoveSpeed-tagged Shackle buffs (slow debuffs ride the Shackle
-            // family). A pure slow should NOT end the leap — the speed multiplier is already
-            // applied above, so the leap continues at reduced speed. Pure Shackle / Snare
-            // (hard root) still ends. Matches Npc.MoveTowards + BaseCombatBehavior.MoveInRange.
-            if (Owner.Buffs.CheckBuffsExcludingTags(
+            // Player-source leap: ends on combat engagement (per Zeromus on PR #1439).
+            // Same reasoning as DashSkillController — a player cannot leap while in
+            // combat, so the trigger that ends a voluntary leap mid-flight is "entered
+            // combat", not "got snared". Hostile snares flag the player into combat
+            // via aggro, so the practical outcome on a snare is unchanged.
+            if (Owner is Character && Owner.IsInBattle)
+            {
+                End();
+                return;
+            }
+
+            // NPC voluntary leap (rare): IsInBattle never changes for an already-
+            // fighting NPC, so keep the hard-root gate to prevent a snared NPC from
+            // running forever mid-leap. Slow debuffs ride along via the
+            // DecreaseMoveSpeed exclusion.
+            if (Owner is Npc && (
+                Owner.Buffs.CheckBuffsExcludingTags(
                     SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle),
                     [(uint)SkillConstants.DecreaseMoveSpeed]) ||
-                Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
+                Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare))))
             {
                 End();
                 return;
