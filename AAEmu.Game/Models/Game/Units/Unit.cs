@@ -27,6 +27,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
+using static AAEmu.Game.Models.Game.Units.Buffs;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -1040,8 +1041,7 @@ public class Unit : BaseUnit, IUnit
 
     public void UpdateGearBonuses(Item itemAdded, Item itemRemoved)
     {
-        // We use index 1 for gear bonuses. Will make this a constant later, or do it properly. Right now the expected behavior is to have key == buff id, which doesn't work when you have items.
-        Bonuses[1] = [];
+        Bonuses[GearBonusesIndex] = [];
 
         foreach (var item in Equipment.Items)
         {
@@ -1050,12 +1050,12 @@ public class Unit : BaseUnit, IUnit
 
             // Mods on the gear Itself
             foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
-                AddBonus(1, new Bonus { Template = template, Value = template.Value });
+                AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
 
             // Mods from equipped Gems
             foreach (var gem in ei.GemIds)
                 foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
-                    AddBonus(1, new Bonus { Template = template, Value = template.Value });
+                    AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
         }
 
         // Apply Equipment Effects
