@@ -295,9 +295,10 @@ public partial class Character : Unit, ICharacter
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var result = formula.Evaluate(parameters);
             var res = result;
-            foreach (var item in Inventory.Equipment.Items)
-                if (item is EquipItem equip)
-                    res += equip.Str;
+            if (Inventory?.Equipment?.Items != null)
+                foreach (var item in Inventory.Equipment.Items)
+                    if (item is EquipItem equip)
+                        res += equip.Str;
             res = CalculateWithBonuses(res, UnitAttribute.Str);
 
             return (int)res;
@@ -312,9 +313,10 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dex);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            foreach (var item in Inventory.Equipment.Items)
-                if (item is EquipItem equip)
-                    res += equip.Dex;
+            if (Inventory?.Equipment?.Items != null)
+                foreach (var item in Inventory.Equipment.Items)
+                    if (item is EquipItem equip)
+                        res += equip.Dex;
             res = CalculateWithBonuses(res, UnitAttribute.Dex);
 
             return (int)res;
@@ -329,9 +331,10 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Sta);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            foreach (var item in Inventory.Equipment.Items)
-                if (item is EquipItem equip)
-                    res += equip.Sta;
+            if (Inventory?.Equipment?.Items != null)
+                foreach (var item in Inventory.Equipment.Items)
+                    if (item is EquipItem equip)
+                        res += equip.Sta;
             res = CalculateWithBonuses(res, UnitAttribute.Sta);
 
             return (int)res;
@@ -346,9 +349,10 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Int);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            foreach (var item in Inventory.Equipment.Items)
-                if (item is EquipItem equip)
-                    res += equip.Int;
+            if (Inventory?.Equipment?.Items != null)
+                foreach (var item in Inventory.Equipment.Items)
+                    if (item is EquipItem equip)
+                        res += equip.Int;
             res = CalculateWithBonuses(res, UnitAttribute.Int);
 
             return (int)res;
@@ -363,9 +367,10 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Spi);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            foreach (var item in Inventory.Equipment.Items)
-                if (item is EquipItem equip)
-                    res += equip.Spi;
+            if (Inventory?.Equipment?.Items != null)
+                foreach (var item in Inventory.Equipment.Items)
+                    if (item is EquipItem equip)
+                        res += equip.Spi;
             res = CalculateWithBonuses(res, UnitAttribute.Spi);
 
             return (int)res;
@@ -1695,6 +1700,13 @@ public partial class Character : Unit, ICharacter
 
     public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
+        // During Character.Load(), Transform.ZoneId is assigned before Inventory is created.
+        // Applying a zone-group buff at this point can evaluate MaxHp/Str and crash on
+        // Inventory.Equipment.Items. CSSelectCharacterPacket calls OnZoneChange again after
+        // inventory, passive buffs and persistent buffs are loaded, so defer zone handling.
+        if (Inventory?.Equipment?.Items == null)
+            return;
+
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
         var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
@@ -2561,13 +2573,28 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@ability2", (byte)Ability2);
                 command.Parameters.AddWithValue("@ability3", (byte)Ability3);
                 command.Parameters.AddWithValue("@world_id", ServerId);
-                command.Parameters.AddWithValue("@zone_id", MainWorldPosition?.ZoneId ?? Transform.ZoneId);
-                command.Parameters.AddWithValue("@x", MainWorldPosition?.World.Position.X ?? Transform.World.Position.X);
-                command.Parameters.AddWithValue("@y", MainWorldPosition?.World.Position.Y ?? Transform.World.Position.Y);
-                command.Parameters.AddWithValue("@z", MainWorldPosition?.World.Position.Z ?? Transform.World.Position.Z);
-                command.Parameters.AddWithValue("@roll", MainWorldPosition?.World.Rotation.X ?? Transform.World.Rotation.X);
-                command.Parameters.AddWithValue("@pitch", MainWorldPosition?.World.Rotation.Y ?? Transform.World.Rotation.Y);
-                command.Parameters.AddWithValue("@yaw", MainWorldPosition?.World.Rotation.Z ?? Transform.World.Rotation.Z);
+                // Position saving rule (portal / small world fix):
+                // MainWorldPosition is set when a player enters a system instance (dungeon /
+                // small world) and is used as the return point. The stock code preferred
+                // MainWorldPosition whenever it was non-null. The problem: MainWorldPosition
+                // stays non-null AFTER leaving an instance (it is reused by Return/portal
+                // logic), so once a player had visited an instance, every later save wrote the
+                // stale instance-return position instead of the player's real current position
+                // -- which teleported the player back to the exit portal on reconnect.
+                //
+                // Fix: only fall back to MainWorldPosition when the player is *currently* inside
+                // a non-default instance. When back in the main world, always save the live
+                // Transform.
+                var saveFromInstanceReturn =
+                    MainWorldPosition != null &&
+                    Transform.InstanceId != WorldManager.DefaultInstanceId;
+                command.Parameters.AddWithValue("@zone_id", saveFromInstanceReturn ? MainWorldPosition.ZoneId : Transform.ZoneId);
+                command.Parameters.AddWithValue("@x", saveFromInstanceReturn ? MainWorldPosition.World.Position.X : Transform.World.Position.X);
+                command.Parameters.AddWithValue("@y", saveFromInstanceReturn ? MainWorldPosition.World.Position.Y : Transform.World.Position.Y);
+                command.Parameters.AddWithValue("@z", saveFromInstanceReturn ? MainWorldPosition.World.Position.Z : Transform.World.Position.Z);
+                command.Parameters.AddWithValue("@roll", saveFromInstanceReturn ? MainWorldPosition.World.Rotation.X : Transform.World.Rotation.X);
+                command.Parameters.AddWithValue("@pitch", saveFromInstanceReturn ? MainWorldPosition.World.Rotation.Y : Transform.World.Rotation.Y);
+                command.Parameters.AddWithValue("@yaw", saveFromInstanceReturn ? MainWorldPosition.World.Rotation.Z : Transform.World.Rotation.Z);
                 command.Parameters.AddWithValue("@faction_id", Faction.Id);
                 command.Parameters.AddWithValue("@faction_name", FactionName);
                 command.Parameters.AddWithValue("@expedition_id", Expedition?.Id ?? 0);
