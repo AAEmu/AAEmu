@@ -295,7 +295,7 @@ public partial class Character : Unit, ICharacter
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var result = formula.Evaluate(parameters);
             var res = result;
-            if (Inventory?.Equipment?.Items != null)
+            if (Inventory?.Equipment != null)
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Str;
@@ -313,7 +313,7 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dex);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment?.Items != null)
+            if (Inventory?.Equipment != null)
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Dex;
@@ -331,7 +331,7 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Sta);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment?.Items != null)
+            if (Inventory?.Equipment != null)
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Sta;
@@ -349,7 +349,7 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Int);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment?.Items != null)
+            if (Inventory?.Equipment != null)
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Int;
@@ -367,7 +367,7 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Spi);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment?.Items != null)
+            if (Inventory?.Equipment != null)
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Spi;
@@ -1704,7 +1704,10 @@ public partial class Character : Unit, ICharacter
         // Applying a zone-group buff at this point can evaluate MaxHp/Str and crash on
         // Inventory.Equipment.Items. CSSelectCharacterPacket calls OnZoneChange again after
         // inventory, passive buffs and persistent buffs are loaded, so defer zone handling.
-        if (Inventory?.Equipment?.Items == null)
+        // This guard is the canonical barrier -- other attribute getters that iterate over
+        // Inventory.Equipment.Items (Armor, MagicResistance, ...) rely on it rather than
+        // duplicating null-checks.
+        if (Inventory?.Equipment == null)
             return;
 
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
