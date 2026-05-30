@@ -1040,8 +1040,7 @@ public class Unit : BaseUnit, IUnit
 
     public void UpdateGearBonuses(Item itemAdded, Item itemRemoved)
     {
-        // We use index 1 for gear bonuses. Will make this a constant later, or do it properly. Right now the expected behavior is to have key == buff id, which doesn't work when you have items.
-        Bonuses[1] = [];
+        Bonuses[AAEmu.Game.Models.Game.Units.Buffs.GearBonusesIndex] = [];
 
         foreach (var item in Equipment.Items)
         {
