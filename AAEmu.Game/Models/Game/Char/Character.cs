@@ -295,10 +295,9 @@ public partial class Character : Unit, ICharacter
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var result = formula.Evaluate(parameters);
             var res = result;
-            if (Inventory?.Equipment != null)
-                foreach (var item in Inventory.Equipment.Items)
-                    if (item is EquipItem equip)
-                        res += equip.Str;
+            foreach (var item in Equipment.Items)
+                if (item is EquipItem equip)
+                    res += equip.Str;
             res = CalculateWithBonuses(res, UnitAttribute.Str);
 
             return (int)res;
@@ -313,10 +312,9 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dex);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment != null)
-                foreach (var item in Inventory.Equipment.Items)
-                    if (item is EquipItem equip)
-                        res += equip.Dex;
+            foreach (var item in Equipment.Items)
+                if (item is EquipItem equip)
+                    res += equip.Dex;
             res = CalculateWithBonuses(res, UnitAttribute.Dex);
 
             return (int)res;
@@ -331,10 +329,9 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Sta);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment != null)
-                foreach (var item in Inventory.Equipment.Items)
-                    if (item is EquipItem equip)
-                        res += equip.Sta;
+            foreach (var item in Equipment.Items)
+                if (item is EquipItem equip)
+                    res += equip.Sta;
             res = CalculateWithBonuses(res, UnitAttribute.Sta);
 
             return (int)res;
@@ -349,10 +346,9 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Int);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment != null)
-                foreach (var item in Inventory.Equipment.Items)
-                    if (item is EquipItem equip)
-                        res += equip.Int;
+            foreach (var item in Equipment.Items)
+                if (item is EquipItem equip)
+                    res += equip.Int;
             res = CalculateWithBonuses(res, UnitAttribute.Int);
 
             return (int)res;
@@ -367,10 +363,9 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Spi);
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
-            if (Inventory?.Equipment != null)
-                foreach (var item in Inventory.Equipment.Items)
-                    if (item is EquipItem equip)
-                        res += equip.Spi;
+            foreach (var item in Equipment.Items)
+                if (item is EquipItem equip)
+                    res += equip.Spi;
             res = CalculateWithBonuses(res, UnitAttribute.Spi);
 
             return (int)res;
@@ -1096,7 +1091,7 @@ public partial class Character : Unit, ICharacter
                 ["fai"] = Fai
             };
             var res = (int)formula.Evaluate(parameters);
-            foreach (var item in Inventory.Equipment.Items)
+            foreach (var item in Equipment.Items)
             {
                 switch (item)
                 {
@@ -1136,7 +1131,7 @@ public partial class Character : Unit, ICharacter
                 ["fai"] = Fai
             };
             var res = (int)formula.Evaluate(parameters);
-            foreach (var item in Inventory.Equipment.Items)
+            foreach (var item in Equipment.Items)
             {
                 switch (item)
                 {
@@ -1700,16 +1695,6 @@ public partial class Character : Unit, ICharacter
 
     public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
-        // During Character.Load(), Transform.ZoneId is assigned before Inventory is created.
-        // Applying a zone-group buff at this point can evaluate MaxHp/Str and crash on
-        // Inventory.Equipment.Items. CSSelectCharacterPacket calls OnZoneChange again after
-        // inventory, passive buffs and persistent buffs are loaded, so defer zone handling.
-        // This guard is the canonical barrier -- other attribute getters that iterate over
-        // Inventory.Equipment.Items (Armor, MagicResistance, ...) rely on it rather than
-        // duplicating null-checks.
-        if (Inventory?.Equipment == null)
-            return;
-
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
         var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
