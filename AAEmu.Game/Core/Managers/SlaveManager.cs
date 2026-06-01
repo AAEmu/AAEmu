@@ -605,6 +605,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
                 Data = (byte)doodadBinding.AttachPointId, // copy of AttachPointId
                 ParentObj = summonedSlave,
+                ParentWorld = summonedSlave.ParentWorld, // FIX: Spawn() throws "no owning parent world" without this
                 Faction = summonedSlave.Faction,
                 Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
                 Spawner = null,
@@ -1009,6 +1010,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                     Template = DoodadManager.Instance.GetTemplate(healBinding.DoodadId),
                     Data = (byte)wreckPointLocation, // copy of AttachPointId
                     ParentObj = slave,
+                    ParentWorld = slave.ParentWorld, // FIX: Spawn() throws "no owning parent world" without this
                     Faction = slave.Faction, // FactionManager.Instance.GetFaction(FactionsEnum.Friendly),
                     Type2 = 1u, // Flag: No idea why it's 1 for slave's doodads, seems to be 0 for everything else
                     Spawner = null,
