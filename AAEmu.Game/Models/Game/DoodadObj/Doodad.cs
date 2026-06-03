@@ -411,6 +411,23 @@ public class Doodad : BaseUnit
             return;
         }
 
+        // Fix #1443: Prevent interaction with a doodad that has been scheduled for despawn.
+        // When a slave (e.g. a Merchant Schooner) is being un-summoned, its attached doodads (such
+        // as trade pack slots) get a Despawn timestamp set by SlaveManager.Delete(), but they
+        // remain visible/interactive during the despawn animation (PortalTime). Without this guard,
+        // a player could still place a trade pack on a slot during that window: the trade pack
+        // would then be silently deleted when the doodad is finally cleaned up by SpawnManager
+        // (Doodad.Delete() removes the associated item).
+        if (Despawn > DateTime.MinValue)
+        {
+            if (caster is Character despawningCaster)
+            {
+                Logger.Debug($"Use refused: doodad {ObjId} (TemplateId {TemplateId}) is scheduled for despawn, ignoring use from {despawningCaster.Name}");
+                despawningCaster.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
+            }
+            return;
+        }
+
         if (funcGroupId > 0)
         {
             FuncGroupId = (uint)funcGroupId;
