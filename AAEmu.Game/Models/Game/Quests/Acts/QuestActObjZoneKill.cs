@@ -62,7 +62,7 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
         var player = questAct.QuestComponent.Parent.Parent.Owner;
 
         // If Party kills is not allowed, only allow kills from self
-        if (!IsParty && args.Killer.Id == player.Id)
+        if (!IsParty && args.Killer.Id != player.Id)
             return;
 
         // Ignore if victim is the killer (e.g. death from fall-damage)

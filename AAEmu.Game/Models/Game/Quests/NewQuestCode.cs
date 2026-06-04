@@ -275,7 +275,7 @@ public partial class Quest
 
                 if (thisObjectiveStatus < totalResultStatusMin)
                 {
-                    totalResultStatusMax = thisObjectiveStatus;
+                    totalResultStatusMin = thisObjectiveStatus;
                 }
                 if (thisObjectiveStatus > totalResultStatusMax)
                 {
