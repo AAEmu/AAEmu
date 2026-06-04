@@ -41,7 +41,7 @@ public class CharacterCraft(Character owner)
         }
 
         // Check if we have enough materials
-        var hasMaterials = craft.CraftMaterials.Count == 0 || craft.CraftMaterials.Any(craftMaterial => Owner.Inventory.GetItemsCount(craftMaterial.ItemId) >= craftMaterial.Amount);
+        var hasMaterials = craft.CraftMaterials.Count == 0 || craft.CraftMaterials.All(craftMaterial => Owner.Inventory.GetItemsCount(craftMaterial.ItemId) >= craftMaterial.Amount);
         if (!hasMaterials)
         {
             // TODO not verified
