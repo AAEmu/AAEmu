@@ -254,22 +254,28 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // Deleting the children immediately closes that race window (the children no longer exist
         // for the duration of the animation), while the slave itself still benefits from a
         // delayed despawn for the portal animation set below.
+        //
+        // Note on ordering: Delete() is called BEFORE ObjectIdManager.ReleaseId() to match the
+        // canonical pattern in SpawnManager.CheckRespawns (lines 1078-1084). Releasing the ObjId
+        // first would allow it to be recycled to a freshly spawning object while Delete() is
+        // still broadcasting SCDoodadRemovedPacket / SCUnitsRemovedPacket and calling
+        // ParentWorld.RemoveObject(this) using that same ObjId.
         foreach (var doodad in slaveInfo.AttachedDoodads)
         {
-            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
             // We un-check the persistent flag here, or else the doodad will delete itself from
             // the DB as well, which is not desired for player owned slaves.
             if (owner != null)
                 doodad.IsPersistent = false;
             doodad.Delete();
+            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
         }
 
         foreach (var attachedSlave in slaveInfo.AttachedSlaves)
         {
-            ObjectIdManager.Instance.ReleaseId(attachedSlave.ObjId);
             lock (_slaveListLock)
                 World.RemoveObject(attachedSlave);
             attachedSlave.Delete();
+            ObjectIdManager.Instance.ReleaseId(attachedSlave.ObjId);
         }
 
         var world = WorldManager.Instance.GetWorld(slaveInfo.Transform.InstanceId);

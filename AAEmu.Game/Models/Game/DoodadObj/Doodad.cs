@@ -422,10 +422,10 @@ public class Doodad : BaseUnit
         // during that window.
         if (Despawn > DateTime.MinValue)
         {
-            if (caster is Character despawningCaster)
+            if (caster is Character interactingCharacter)
             {
-                Logger.Debug($"Use refused: doodad {ObjId} (TemplateId {TemplateId}) is scheduled for despawn, ignoring use from {despawningCaster.Name}");
-                despawningCaster.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
+                Logger.Debug($"Use refused: doodad {ObjId} (TemplateId {TemplateId}) is scheduled for despawn, ignoring use from {interactingCharacter.Name}");
+                interactingCharacter.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
             }
             return;
         }
