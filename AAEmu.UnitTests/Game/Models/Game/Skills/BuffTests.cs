@@ -396,4 +396,60 @@ public class BuffTests
     }
 
     #endregion
+
+    #region Bonus Application
+
+    private static Buff CreateBonusBuff(Unit owner, Unit caster, BuffTemplate template, uint index)
+    {
+        return new Buff(owner, caster, new SkillCasterUnit(1), template, null, DateTime.UtcNow)
+        {
+            Index = index,
+            Passive = true, // skip the SCBuffCreatedPacket broadcast inside Start()
+            AbLevel = 1
+        };
+    }
+
+    [Test]
+    public async Task Start_AppliesBonusOnce()
+    {
+        // Arrange
+        var owner = new Unit();
+        var caster = new Unit();
+        var template = new BuffTemplate();
+        template.Bonuses.Add(new BonusTemplate { Attribute = UnitAttribute.Str, Value = 100 });
+        var buff = CreateBonusBuff(owner, caster, template, index: 10u);
+
+        // Act
+        template.Start(caster, owner, buff);
+
+        // Assert
+        var bonuses = owner.GetBonuses(UnitAttribute.Str);
+        await Assert.That(bonuses.Count).IsEqualTo(1);
+        await Assert.That(bonuses[0].Value).IsEqualTo(100);
+    }
+
+    [Test]
+    public async Task Start_CalledTwice_DoesNotDuplicateBonuses()
+    {
+        // a refresh runs OverwriteWith -> UpdateEffect -> Start a second time for the same buff.Index.
+        // Unit.AddBonus appends, so without Start being idempotent the bonus
+        // list (and the owner's stats) doubled on every refresh.
+        // Arrange
+        var owner = new Unit();
+        var caster = new Unit();
+        var template = new BuffTemplate();
+        template.Bonuses.Add(new BonusTemplate { Attribute = UnitAttribute.Str, Value = 100 });
+        var buff = CreateBonusBuff(owner, caster, template, index: 10u);
+
+        // Act — initial application followed by a refresh
+        template.Start(caster, owner, buff);
+        template.Start(caster, owner, buff);
+
+        // Assert — still a single +100 Str bonus, not duplicated
+        var bonuses = owner.GetBonuses(UnitAttribute.Str);
+        await Assert.That(bonuses.Count).IsEqualTo(1);
+        await Assert.That(bonuses[0].Value).IsEqualTo(100);
+    }
+
+    #endregion
 }

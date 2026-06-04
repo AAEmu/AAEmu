@@ -208,8 +208,22 @@ public class BuffTemplate
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source.Skill, time) { AbLevel = abLevel });
     }
 
+    /// <summary>
+    /// Removes the static and dynamic unit bonuses this buff registered under <paramref name="buff"/>.Index.
+    /// Shared by <see cref="Start"/> (to stay idempotent across refreshes) and <see cref="Dispel"/>.
+    /// </summary>
+    private void RemoveBonuses(BaseUnit owner, Buff buff)
+    {
+        foreach (var template in Bonuses)
+            owner.RemoveBonus(buff.Index, template.Attribute);
+        foreach (var template in DynamicBonuses)
+            owner.RemoveDynamicBonus(buff.Index, template.Attribute);
+    }
+
     public void Start(BaseUnit caster, BaseUnit owner, Buff buff)
     {
+        RemoveBonuses(owner, buff);
+
         foreach (var template in Bonuses)
         {
             var bonus = new Bonus { Template = template, Value = (int)Math.Round(template.Value + template.LinearLevelBonus * (buff.AbLevel / 100f)) };
@@ -351,10 +365,7 @@ public class BuffTemplate
 
     public void Dispel(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced = false)
     {
-        foreach (var template in Bonuses)
-            owner.RemoveBonus(buff.Index, template.Attribute);
-        foreach (var template in DynamicBonuses)
-            owner.RemoveDynamicBonus(buff.Index, template.Attribute);
+        RemoveBonuses(owner, buff);
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
             requiringBuff.Exit();
