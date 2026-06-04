@@ -1174,7 +1174,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                 while (reader.Read())
                 {
                     var actId = reader.GetUInt32("id");
-                    var parentComponent = GetComponentByActTemplate("QuestActObjDoodadPhaseCheck", actId);
+                    var parentComponent = GetComponentByActTemplate("QuestActObjEffectFire", actId);
                     if (parentComponent == null)
                         continue;
                     var template = new QuestActObjEffectFire(parentComponent)
@@ -1377,7 +1377,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                 while (reader.Read())
                 {
                     var actId = reader.GetUInt32("id");
-                    var parentComponent = GetComponentByActTemplate("QuestActObjLevel", actId);
+                    var parentComponent = GetComponentByActTemplate("QuestActObjMateLevel", actId);
                     if (parentComponent == null)
                         continue;
                     var template = new QuestActObjMateLevel(parentComponent)
