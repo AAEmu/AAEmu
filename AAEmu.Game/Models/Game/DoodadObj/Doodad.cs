@@ -411,13 +411,15 @@ public class Doodad : BaseUnit
             return;
         }
 
-        // Fix #1443: Prevent interaction with a doodad that has been scheduled for despawn.
-        // When a slave (e.g. a Merchant Schooner) is being un-summoned, its attached doodads (such
-        // as trade pack slots) get a Despawn timestamp set by SlaveManager.Delete(), but they
-        // remain visible/interactive during the despawn animation (PortalTime). Without this guard,
-        // a player could still place a trade pack on a slot during that window: the trade pack
-        // would then be silently deleted when the doodad is finally cleaned up by SpawnManager
-        // (Doodad.Delete() removes the associated item).
+        // Fix #1443 (defense in depth): Refuse interaction with any doodad that has been
+        // scheduled for despawn (Despawn > DateTime.MinValue). The primary fix for #1443 is in
+        // SlaveManager.Delete, which now deletes child doodads immediately (mirroring DoDie's
+        // DestroyAttachedItems), so the cargo slots of a despawning ship no longer exist during
+        // the portal animation. This guard remains as a safety net in case other code paths ever
+        // leave a doodad scheduled-but-not-yet-deleted (e.g. a future feature, an unforeseen
+        // race between threads, etc.). Without it, Doodad.Delete()'s expired-item cleanup
+        // (ItemId > 0 branch) would silently destroy any item that had been placed in the slot
+        // during that window.
         if (Despawn > DateTime.MinValue)
         {
             if (caster is Character despawningCaster)
