@@ -244,38 +244,28 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             }
         }
 
+        var despawnDelayedTime = DateTime.UtcNow.AddSeconds(slaveInfo.Template.PortalTime - 0.5f);
+
         slaveInfo.Transform.DetachAll();
 
-        // Fix #1443: Immediately delete child doodads and attached slaves to match the behaviour
-        // of Slave.DoDie's DestroyAttachedItems. The previous code scheduled them for a *delayed*
-        // despawn (PortalTime ≈ 4.5 s), which left the cargo slots visible and interactive during
-        // the portal animation; a player could place a trade pack in a slot during that window
-        // and the pack would then be silently destroyed by Doodad.Delete()'s expired-item cleanup.
-        // Deleting the children immediately closes that race window (the children no longer exist
-        // for the duration of the animation), while the slave itself still benefits from a
-        // delayed despawn for the portal animation set below.
-        //
-        // Note on ordering: Delete() is called BEFORE ObjectIdManager.ReleaseId() to match the
-        // canonical pattern in SpawnManager.CheckRespawns (lines 1078-1084). Releasing the ObjId
-        // first would allow it to be recycled to a freshly spawning object while Delete() is
-        // still broadcasting SCDoodadRemovedPacket / SCUnitsRemovedPacket and calling
-        // ParentWorld.RemoveObject(this) using that same ObjId.
         foreach (var doodad in slaveInfo.AttachedDoodads)
         {
-            // We un-check the persistent flag here, or else the doodad will delete itself from
-            // the DB as well, which is not desired for player owned slaves.
+            // Note, we un-check the persistent flag here, or else the doodad will delete itself from DB as well
+            // This is not desired for player owned slaves
             if (owner != null)
                 doodad.IsPersistent = false;
-            doodad.Delete();
-            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            doodad.Despawn = despawnDelayedTime;
+            World.SpawnManager.AddDespawn(doodad);
+            // doodad.Delete();
         }
 
         foreach (var attachedSlave in slaveInfo.AttachedSlaves)
         {
             lock (_slaveListLock)
                 World.RemoveObject(attachedSlave);
-            attachedSlave.Delete();
-            ObjectIdManager.Instance.ReleaseId(attachedSlave.ObjId);
+            attachedSlave.Despawn = despawnDelayedTime;
+            World.SpawnManager.AddDespawn(attachedSlave);
+            //attachedSlave.Delete();
         }
 
         var world = WorldManager.Instance.GetWorld(slaveInfo.Transform.InstanceId);
