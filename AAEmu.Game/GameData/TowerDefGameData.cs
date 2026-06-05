@@ -4,13 +4,27 @@ using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 
+using NLog;
+
 namespace AAEmu.Game.GameData;
 
 [GameData]
 public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     private Dictionary<uint, TowerDef> _towerDefs;
     private Dictionary<uint, TowerDefProg> _towerDefProgs;
+
+    public TowerDef GetTowerDef(uint id)
+    {
+        return _towerDefs != null && _towerDefs.TryGetValue(id, out var def) ? def : null;
+    }
+
+    public IReadOnlyCollection<TowerDef> GetAllTowerDefs()
+    {
+        return (IReadOnlyCollection<TowerDef>)_towerDefs?.Values ?? Array.Empty<TowerDef>();
+    }
 
     public void Load(SqliteConnection connection)
     {
@@ -53,7 +67,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                 {
                     var towerDefId = reader.GetUInt32("tower_def_id");
                     if (!_towerDefs.TryGetValue(towerDefId, out var towerDef))
-                        return;
+                        continue;
 
                     var template = new TowerDefProg
                     {
@@ -81,7 +95,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                 {
                     var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                     if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
-                        return;
+                        continue;
 
                     var template = new TowerDefProgSpawnTarget
                     {
@@ -107,7 +121,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                 {
                     var towerDefProgId = reader.GetUInt32("tower_def_prog_id");
                     if (!_towerDefProgs.TryGetValue(towerDefProgId, out var towerDefProg))
-                        return;
+                        continue;
 
                     var template = new TowerDefProgKillTarget
                     {
@@ -126,5 +140,33 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 
     public void PostLoad()
     {
+        // Quick sanity log so we can verify the loader works end-to-end after a server restart.
+        // Each TowerDef row should now carry its progs + spawn/kill targets.
+        var defs = _towerDefs?.Count ?? 0;
+        var progs = _towerDefProgs?.Count ?? 0;
+        var spawnRows = 0;
+        var killRows = 0;
+        if (_towerDefProgs != null)
+        {
+            foreach (var p in _towerDefProgs.Values)
+            {
+                spawnRows += p.SpawnTargets?.Count ?? 0;
+                killRows += p.KillTargets?.Count ?? 0;
+            }
+        }
+        Logger.Info($"TowerDefGameData: {defs} tower_defs / {progs} progs / {spawnRows} spawn-targets / {killRows} kill-targets");
+
+        // Halcyona War (id=18) deep-check: dump its prog layout so we can spot wiring bugs at a glance.
+        if (_towerDefs != null && _towerDefs.TryGetValue(18u, out var halcyona))
+        {
+            Logger.Info($"  Halcyona War (id=18): {halcyona.Progs?.Count ?? 0} progs, force_end={halcyona.ForceEndTime}s, target_npc_spawner={halcyona.TargetNpcSpawnId}");
+            if (halcyona.Progs != null)
+            {
+                foreach (var prog in halcyona.Progs)
+                {
+                    Logger.Info($"    prog id={prog.Id} cond_to_next={prog.CondToNextTime}s and={prog.CondCompByAnd} spawn={prog.SpawnTargets?.Count ?? 0} kill={prog.KillTargets?.Count ?? 0}");
+                }
+            }
+        }
     }
 }
