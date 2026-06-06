@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -121,6 +122,39 @@ public class BaseUnit : GameObject, IBaseUnit
             player.SendMessage(ChatType.Shout, $"CanAttack? in Zone:{zoneFaction.Name} => {player.Name} {player.Faction?.Name} => {targetName} ({target.ObjId}) {target.Faction?.Name} = {relation}");
         }
         */
+
+        // Halcyona War hostility bridge — same root cause for two distinct symptoms:
+        //  - Auto-Cannons (13648 Nuia / 13662 Harani) ignore opposite-side players.
+        //  - War Golems (13796 Nuia / 13798 Harani) walk past each other instead of fighting.
+        // Both groups spawn on faction 148/149, but the static relation 148 ↔ 149 in
+        // system_faction_relations (id 907) is state=1 = FRIENDLY. Retail evidently flips this
+        // dynamically during the war state; vanilla AAEmu never replicated that. Layer a narrow
+        // override that applies hostility between the four Halcyona-only templates and against
+        // opposite-coalition Characters, leaving every other 148/149 NPC pair alone.
+        if (this.Faction != null && target.Faction != null
+            && (TemplateId == 13648u || TemplateId == 13662u
+                || TemplateId == 13796u || TemplateId == 13798u))
+        {
+            var mySide = (uint)this.Faction.Id;
+            // Opposite-coalition Character (player) — Cannons + Golems alike should engage.
+            if (target is Character hwTargetChar && hwTargetChar.Faction != null)
+            {
+                var targetMother = (uint)hwTargetChar.Faction.MotherId;
+                if (mySide == 148u && targetMother == 149u) return true;
+                if (mySide == 149u && targetMother == 148u) return true;
+            }
+            // Opposite-coalition Halcyona NPC — pairs (Nuia Golem ↔ Harani Golem) and
+            // (any Nuia camp Halcyona NPC ↔ any Harani camp Halcyona NPC).
+            if (target is Npc hwTargetNpc
+                && (hwTargetNpc.TemplateId == 13648u || hwTargetNpc.TemplateId == 13662u
+                    || hwTargetNpc.TemplateId == 13796u || hwTargetNpc.TemplateId == 13798u)
+                && hwTargetNpc.Faction != null)
+            {
+                var targetSide = (uint)hwTargetNpc.Faction.Id;
+                if (mySide == 148u && targetSide == 149u) return true;
+                if (mySide == 149u && targetSide == 148u) return true;
+            }
+        }
 
         return relation == RelationState.Hostile;
     }

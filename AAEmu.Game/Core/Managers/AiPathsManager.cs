@@ -103,4 +103,19 @@ public class AiPathsManager : Singleton<AiPathsManager>, IAiPathsManager
             PathsCache.Clear();
         }
     }
+
+    /// <summary>
+    /// Removes a single path file's cached entry so the next LoadAiPathPoints call re-reads it
+    /// from disk. Used by /pathrec save and /pathrec reverse so newly-written .path files take
+    /// effect without a full server restart.
+    /// </summary>
+    public void ClearCacheForFile(string aiPathFileName)
+    {
+        if (string.IsNullOrWhiteSpace(aiPathFileName))
+            return;
+        lock (_lock)
+        {
+            PathsCache.Remove(aiPathFileName);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
@@ -164,14 +165,18 @@ public abstract class Behavior
         switch (skill.Template.TargetType)
         {
             case SkillTargetType.Pos:
-                var pos = Ai.Owner.Transform.World.Position;
+                // Use the TARGET's position, not the caster's. Halcyona War Auto-Cannons cast
+                // skill 21762 with TargetType.Pos (a 140 m AoE) — pointing it at the cannon
+                // itself made the shell land on the turret. Standard Pos-targeted AoE skills
+                // (artillery, ground-targeted spells) all want the impact at the marker.
+                var pos = target.Transform.World.Position;
                 skillCastTarget = new SkillCastPositionTarget
                 {
                     ObjId = Ai.Owner.ObjId,
                     PosX = pos.X,
                     PosY = pos.Y,
                     PosZ = pos.Z,
-                    PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z // (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ) //Is this rotation right?
+                    PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z
                 };
                 break;
             default:
@@ -414,6 +419,17 @@ public abstract class Behavior
             {
                 minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
                 maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+            }
+            else if (unit is not Character)
+            {
+                // Turret-style NPCs (Halcyona War Auto-Cannons 13648/13662) have no equipped
+                // weapon but their attack skill carries a real 140 m AoE range. Falling back
+                // to the 3 m fist default would cap them at melee distance — they aim but
+                // never fire. Use the skill's declared MinRange/MaxRange so the range gate
+                // matches the intent. Characters keep the fist fallback (intentional unarmed
+                // punch behavior).
+                minWeaponRange = skill.Template.MinRange;
+                maxWeaponRange = (float)skillRange;
             }
 
             minRangeCheck = minWeaponRange;

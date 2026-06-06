@@ -97,11 +97,15 @@ public class AiPathHandler(NpcAi aiOwner)
         // We know where to go? Then go that direction
         if (TargetPosition != Vector3.Zero)
         {
-            var moveSpeed = Owner.GetRealMovementSpeed(AiPathSpeed);
-            // var moveFlags = Owner.GetRealMovementFlags(moveSpeed);
-            moveSpeed *= delta.Milliseconds / 1000.0;
+            // AiPathSpeed is documented as a "Speed multiplier" (line 26) — so it must scale the
+            // NPC's actual BaseMoveSpeed, not be used as a raw m/s value. The previous code
+            // dropped BaseMoveSpeed entirely, leaving every path-walker at ~1 m/s regardless of
+            // template. Halcyona War Golems crawled the 860 m route at walking pace; mob
+            // patrols looked stuck. Restore the BaseMoveSpeed factor (matches the commented
+            // alternative immediately below) and use TotalSeconds for tick-length robustness.
+            var moveSpeed = Owner.GetRealMovementSpeed(AiPathSpeed * Owner.Owner.BaseMoveSpeed);
+            moveSpeed *= delta.TotalSeconds;
             Owner.Owner.MoveTowards(TargetPosition, (float)moveSpeed, AiPathActorFlags);
-            // Owner.Owner.MoveTowards(TargetPosition, AiPathSpeed * Owner.Owner.BaseMoveSpeed * (delta.Milliseconds / 1000.0f), AiPathStanceFlags);
 
             // Move the idle "home" location along with the path, so it doesn't immediately trigger a return to home state when going into combat
             Owner.IdlePosition = Owner.Owner.Transform.World.Position;

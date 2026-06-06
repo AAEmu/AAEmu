@@ -244,6 +244,18 @@ public partial class Npc
 
             if (skill is null) { continue; }
 
+            // Halcyona War Golems (13796 Nuia / 13798 Harihara): the data-driven OnSpawn skill
+            // 23507 applies buff 6772 (Immobilize) with the DB's permanent (duration=0) timer.
+            // TowerDefManager re-applies 6772 with a 5-min forcedDuration so the golem auto-
+            // mobilizes after 5 minutes; running 23507 alongside would either stack a permanent
+            // copy or race the timer. Skip it for these two templates — TowerDefManager owns
+            // the Immobilize/Mobilize lifecycle for them.
+            if ((npc.TemplateId == 13796u || npc.TemplateId == 13798u) && skill.Id == 23507u)
+            {
+                Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} skipping OnSpawn skill 23507 — Halcyona Golem lifecycle owned by TowerDefManager");
+                continue;
+            }
+
             var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
             skillCaster.ObjId = npc.ObjId;
 

@@ -1,10 +1,14 @@
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks.World;
 
 using NLog;
 
@@ -77,6 +81,13 @@ public class TowerDefManager : Singleton<TowerDefManager>
             var hasProgs = def.Progs != null && def.Progs.Count > 0;
 
             var forceEnd = def.ForceEndTime > 0f ? def.ForceEndTime : 4800f;
+            // Victory follow-up tower_defs (19 Nuia, 20 Harani) have a single trivial prog whose
+            // purpose is just to wrap the 1-hour celebration window. Auto-advancing it broadcasts
+            // SCTowerDefWaveStartPacket which immediately overrides the Victory banner+message on
+            // the client. Suppress AdvanceProg for those — Start sends the banner, ForceEnd
+            // closes the event, and the Victory Envoy stays put for the full ForceEndTime.
+            var isVictoryFollowup = towerDefId == NuiaVictoryTowerDefId
+                                 || towerDefId == HarihiraVictoryTowerDefId;
             runner = new TowerDefRunner
             {
                 Def = def,
@@ -86,9 +97,10 @@ public class TowerDefManager : Singleton<TowerDefManager>
                 StartTime = DateTime.UtcNow,
                 ForceEndTime = DateTime.UtcNow.AddSeconds(forceEnd),
                 // First wave fires after FirstWaveAfter seconds; before that the start
-                // packet is on screen and players can rally. No progs → NextProgTime = MaxValue,
-                // so AdvanceProg never runs and the runner only ends on ForceEnd.
-                NextProgTime = hasProgs
+                // packet is on screen and players can rally. No progs OR victory followup
+                // → NextProgTime = MaxValue, so AdvanceProg never runs and the runner only
+                // ends on ForceEnd (preserves the on-screen Victory banner full 1 hour).
+                NextProgTime = (hasProgs && !isVictoryFollowup)
                     ? DateTime.UtcNow.AddSeconds(def.FirstWaveAfter)
                     : DateTime.MaxValue
             };
@@ -115,26 +127,10 @@ public class TowerDefManager : Singleton<TowerDefManager>
             }
         }
 
-        // Halcyona War: spawn the static camp guards + war-ground actors for the whole event.
-        // In retail these are driven by the Defense Flag's skill chain (NpcSpawnerSpawnEffect
-        // → SpawnerId 123124..123142, 123712, 123715) but those rows are missing from this
-        // compact.sqlite3 dump. Fallback: manager spawns them directly here, despawned at Stop.
-        if (towerDefId == HalcyonaWarTowerDefId)
-        {
-            foreach (var guardSpawnerId in HalcyonaCampGuardSpawnerIds)
-            {
-                try
-                {
-                    var spawned = SpawnAnchorSpawner(guardSpawnerId);
-                    if (spawned.Count > 0)
-                        runner.SpawnedByProgSpawnTargetId[uint.MaxValue - guardSpawnerId] = spawned;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, $"Halcyona War: guard spawn fallback failed for spawner {guardSpawnerId}");
-                }
-            }
-        }
+        // Halcyona War camp-guard spawning moved to AdvanceProg() when prog 104 fires (after the
+        // FirstWaveAfter announce delay = 300s) so retail behaviour ("erste 5 min keine NPCs, NPCs
+        // erst nach Announce") is preserved. The Start() call still announces via SCTowerDefStart
+        // and spawns the (invisible hellgate-model) War Anchor via TargetNpcSpawnId above.
 
         return true;
     }
@@ -190,8 +186,24 @@ public class TowerDefManager : Singleton<TowerDefManager>
     private const uint NuiaRelicTemplateId = 13647u;   // killing this → Harani wins → run def 20
     private const uint HaraniRelicTemplateId = 13661u; // killing this → Nuia wins → run def 19
     private const uint HalcyonaRelicProgId = 105u;     // tower_def 18 prog that needs relics in world
+    private const uint HalcyonaDefenseFlagProgId = 104u; // tower_def 18 first prog (Defense Flag) — camp guards spawn here after FirstWaveAfter delay
     private const uint NuiaRelicSpawnerId = 15200u;    // npc_spawner that holds NPC 13647
     private const uint HaraniRelicSpawnerId = 15214u;  // npc_spawner that holds NPC 13661
+
+    // Halcyona War Golems — 5min Immobilize → auto-Mobilize → walk path,
+    // 10min hard-respawn on death (skipping the 5min phase).
+    private const uint NuiaGolemTemplateId = 13796u;
+    private const uint HarihiraGolemTemplateId = 13798u;
+    internal const uint NuiaGolemSpawnerId = 15355u;
+    internal const uint HarihiraGolemSpawnerId = 15357u;
+    private const uint GolemImmobilizeBuffId = 6772u;  // "정지 상태" — stun=t + root=t
+    // Mobilizing buff per camp. 6784 → ai_command_set 322 → "nuia_golem_move" (W→E).
+    // 6785 → ai_command_set 323 → "harihara_golem_move" (E→W, reverse of the Nuia path).
+    // Applying the wrong one makes both golems walk the same direction and pass each other.
+    private const uint NuiaGolemMobilizingBuffId = 6784u;
+    private const uint HarihiraGolemMobilizingBuffId = 6785u;
+    private const int GolemImmobilizeDurationMs = 5 * 60 * 1000;
+    private static readonly TimeSpan GolemRespawnDelay = TimeSpan.FromMinutes(10);
 
     /// <summary>
     /// Camp guards + extras spawned for the whole Halcyona War. The broken skill chain on the
@@ -366,6 +378,35 @@ public class TowerDefManager : Singleton<TowerDefManager>
         BroadcastWaveStart(r, (uint)nextIndex);
         Logger.Info($"TowerDef {r.Def.Id} prog #{nextIndex} (id={prog.Id}) — {prog.SpawnTargets.Count} spawn / {prog.KillTargets.Count} kill targets; auto={(prog.CondToNextTime > 0 ? prog.CondToNextTime + "s" : "kill-only")}");
 
+        // Halcyona War: prog 104 is the Defense Flag phase, fired ~5 minutes after the
+        // Conflict→War announce (tower_defs.first_wave_after = 300s). Retail behaviour: NPCs
+        // do NOT appear until the Defense Flag spawns. Spawn the camp guards + extras here
+        // so they appear in sync with the visible "phase" change instead of immediately at
+        // war start (which would break retail timing — Will: "ersten 5 min keine NPCs").
+        if (r.Def.Id == HalcyonaWarTowerDefId && prog.Id == HalcyonaDefenseFlagProgId)
+        {
+            foreach (var guardSpawnerId in HalcyonaCampGuardSpawnerIds)
+            {
+                try
+                {
+                    var spawned = SpawnAnchorSpawner(guardSpawnerId);
+                    if (spawned.Count > 0)
+                    {
+                        r.SpawnedByProgSpawnTargetId[uint.MaxValue - guardSpawnerId] = spawned;
+                        // Golem spawners need extra wiring: 5min Immobilize timer that auto-
+                        // flips into Mobilized + FollowPath, and an OnDeath handler that
+                        // schedules a 10min skip-immobilize respawn.
+                        if (guardSpawnerId == NuiaGolemSpawnerId || guardSpawnerId == HarihiraGolemSpawnerId)
+                            WireFreshlySpawnedGolems(spawned, skipImmobilize: false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $"Halcyona War: guard spawn fallback failed for spawner {guardSpawnerId}");
+                }
+            }
+        }
+
         // Halcyona War: prog 105 is the relic-spawn phase. In retail the Battle Marker NPC
         // (13678) casts a skill that fires NpcSpawnerSpawnEffect to spawn the two relics — but
         // in this vanilla DB the skill's target SpawnerIds (123122/123132) don't exist in
@@ -461,6 +502,163 @@ public class TowerDefManager : Singleton<TowerDefManager>
             else allOk = false;
         }
         return prog.CondCompByAnd ? allOk : anyOk;
+    }
+
+    /// <summary>
+    /// Walks a list of NpcSpawners that just had <see cref="NpcSpawner.DoSpawn"/> called for
+    /// the two Halcyona War Golem spawners (15355 Nuia / 15357 Harihara), finds the freshly-
+    /// spawned Golem instance(s), and arms the Immobilize→Mobilize→Respawn lifecycle.
+    /// </summary>
+    /// <param name="spawners">NpcSpawner instances returned by <see cref="SpawnAnchorSpawner"/>.</param>
+    /// <param name="skipImmobilize">true → respawn path (apply Mobilized immediately, no Immobilize phase).</param>
+    private void WireFreshlySpawnedGolems(IEnumerable<NpcSpawner> spawners, bool skipImmobilize)
+    {
+        foreach (var sp in spawners)
+        {
+            if (sp == null) continue;
+            if (!sp.SpawnedNpcs.TryGetValue(sp.SpawnerId, out var list) || list.Count == 0)
+                continue;
+            // The newly spawned golem is the last entry — DoSpawn appended it.
+            var npc = list[^1];
+            if (npc == null) continue;
+            if (npc.TemplateId != NuiaGolemTemplateId && npc.TemplateId != HarihiraGolemTemplateId)
+                continue;
+
+            // Disable the engine-driven respawn poll so it doesn't race our 10min TaskManager
+            // pipeline (would otherwise re-spawn alongside the skip-immobilize path).
+            if (npc.Spawner != null)
+                npc.Spawner.RespawnTime = 0;
+
+            AttachGolemBehaviour(npc, skipImmobilize, sp.SpawnerId);
+        }
+    }
+
+    /// <summary>
+    /// Per-instance lifecycle wiring for a Halcyona War Golem. Applies the 5-min Immobilize
+    /// buff (forced duration — DB row has duration=0), subscribes a one-shot OnTimeout that
+    /// flips to Mobilized when the immobilize naturally expires (or is dispelled by Motor
+    /// activation — RemoveBuff also routes through StopEffectTask which fires OnTimeout),
+    /// and subscribes a one-shot OnDeath that schedules the 10-min respawn.
+    /// </summary>
+    private void AttachGolemBehaviour(Npc npc, bool skipImmobilize, uint spawnerId)
+    {
+        if (skipImmobilize)
+        {
+            Logger.Info($"[Halcyona Golem] respawn ObjId={npc.ObjId} template={npc.TemplateId} spawner={spawnerId} — skipping Immobilize, applying Mobilized immediately");
+            // The OnSpawn np_skills hook (skill 23507) would have applied 6772 with permanent
+            // duration. We disable that hook in NpcEvents for these two templates, but as a
+            // belt-and-braces guard, also strip it here in case anything else added it.
+            try { npc.Buffs?.RemoveBuff(GolemImmobilizeBuffId); } catch { /* best-effort */ }
+            ApplyMobilized(npc);
+        }
+        else
+        {
+            try
+            {
+                var immobTemplate = SkillManager.Instance.GetBuffTemplate(GolemImmobilizeBuffId);
+                if (immobTemplate == null)
+                {
+                    Logger.Warn($"[Halcyona Golem] buff template {GolemImmobilizeBuffId} not found — cannot arm Immobilize timer");
+                }
+                else
+                {
+                    var caster = new SkillCasterUnit(npc.ObjId);
+                    var buff = new Buff(npc, npc, caster, immobTemplate, null, DateTime.UtcNow);
+                    npc.Buffs.AddBuff(buff, 0, forcedDuration: GolemImmobilizeDurationMs);
+
+                    // One-shot OnTimeout: covers natural 5-min expiry AND Motor-item dispel
+                    // (RemoveBuff → Buff.Exit → StopEffectTask → OnTimeout fires either way).
+                    EventHandler<OnTimeoutArgs> onTimeout = null;
+                    onTimeout = (s, a) =>
+                    {
+                        buff.Events.OnTimeout -= onTimeout;
+                        ApplyMobilized(npc);
+                    };
+                    buff.Events.OnTimeout += onTimeout;
+                    Logger.Info($"[Halcyona Golem] spawn ObjId={npc.ObjId} template={npc.TemplateId} spawner={spawnerId} — Immobilize armed (mobilize at {DateTime.UtcNow.AddMilliseconds(GolemImmobilizeDurationMs):HH:mm:ss})");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"[Halcyona Golem] failed to arm Immobilize for ObjId={npc.ObjId}");
+            }
+        }
+
+        // One-shot OnDeath: schedule the 10-min respawn job for this spawner.
+        // Captures spawnerId only — npc reference goes out of scope after Despawn.
+        EventHandler<OnDeathArgs> onDeath = null;
+        onDeath = (s, a) =>
+        {
+            npc.Events.OnDeath -= onDeath;
+            try
+            {
+                var task = new HalcyonaGolemRespawnTask(spawnerId);
+                TaskManager.Instance.Schedule(task, GolemRespawnDelay);
+                Logger.Info($"[Halcyona Golem] died ObjId={npc.ObjId} template={npc.TemplateId} spawner={spawnerId} — respawn in {GolemRespawnDelay.TotalSeconds:F0}s");
+                // NOTE: TaskManager state is in-memory — a server restart inside the 10min
+                // respawn window will lose this timer; the golem will only re-appear with the
+                // next Halcyona War event.
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"[Halcyona Golem] failed to schedule respawn for spawner {spawnerId}");
+            }
+        };
+        npc.Events.OnDeath += onDeath;
+    }
+
+    /// <summary>
+    /// Applies the side-correct Mobilizing buff to a golem. The buff's Started trigger
+    /// (buff_triggers id 4187/4188) routes through NpcControlEffect → RunCommandSet which
+    /// reads the FollowPath filename from ai_commands. Picking the wrong side's buff = wrong
+    /// path = both golems walking in the same direction. Guarded against double-apply and
+    /// corpse-cast.
+    /// </summary>
+    private static void ApplyMobilized(Npc npc)
+    {
+        if (npc == null || npc.IsDead || npc.Region == null) return;
+        if (npc.Buffs == null) return;
+        var mobilizingBuffId = npc.TemplateId == HarihiraGolemTemplateId
+            ? HarihiraGolemMobilizingBuffId
+            : NuiaGolemMobilizingBuffId;
+        if (npc.Buffs.CheckBuff(mobilizingBuffId)) return;
+        try
+        {
+            npc.Buffs.AddBuff(mobilizingBuffId, npc);
+            Logger.Info($"[Halcyona Golem] mobilized ObjId={npc.ObjId} template={npc.TemplateId} — FollowPath chain armed via buff {mobilizingBuffId}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"[Halcyona Golem] AddBuff({mobilizingBuffId}) threw for ObjId={npc.ObjId}");
+        }
+    }
+
+    /// <summary>
+    /// Public entry point invoked by <see cref="HalcyonaGolemRespawnTask"/> ~10 min after a
+    /// golem dies. Re-runs the camp guard spawner and wires the new instance with
+    /// skipImmobilize=true so it walks the path immediately.
+    /// </summary>
+    public void RespawnHalcyonaGolem(uint spawnerId)
+    {
+        if (spawnerId != NuiaGolemSpawnerId && spawnerId != HarihiraGolemSpawnerId)
+        {
+            Logger.Warn($"[Halcyona Golem] RespawnHalcyonaGolem called with non-golem spawner {spawnerId}");
+            return;
+        }
+        try
+        {
+            var spawned = SpawnAnchorSpawner(spawnerId);
+            if (spawned.Count == 0)
+            {
+                Logger.Warn($"[Halcyona Golem] respawn for spawner {spawnerId} produced 0 NPCs — skipping wire");
+                return;
+            }
+            WireFreshlySpawnedGolems(spawned, skipImmobilize: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"[Halcyona Golem] respawn pipeline threw for spawner {spawnerId}");
+        }
     }
 
     private static void DespawnAll(TowerDefRunner r)

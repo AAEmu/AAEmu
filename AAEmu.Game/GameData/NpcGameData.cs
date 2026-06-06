@@ -34,6 +34,13 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
     /// List of SpawnerTemplateIds grouped by NpcTempalteId
     /// </summary>
     private Dictionary<uint, List<uint>> NpcMemberAndSpawnerTemplateIds { get; } = [];
+    /// <summary>
+    /// Skill list grouped by npc_interaction_set_id. Drives CSStartInteractionPacket — when a
+    /// player right-clicks an NPC whose template has a non-zero NpcInteractionSetId, the server
+    /// returns this list of skill IDs and the client renders a button per skill (e.g. Halcyona
+    /// War Golem "기동" + "무기 장착").
+    /// </summary>
+    private Dictionary<uint, List<uint>> NpcInteractionSetSkills { get; } = [];
 
     /// <summary>
     /// Loads static Npc related data
@@ -46,6 +53,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
         NpcSpawnerTemplateNpcs.Clear();
         NpcSpawnerTemplates.Clear();
         NpcMemberAndSpawnerTemplateIds.Clear();
+        NpcInteractionSetSkills.Clear();
 
         using (var command = connection.CreateCommand())
         {
@@ -149,6 +157,31 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
                 NpcSpawnerTemplates[nsn.NpcSpawnerTemplateId].Npcs.Add(nsn);
             }
         }
+
+        // npc_interactions: each row binds a skill_id to an npc_interaction_set_id. NPCs reference
+        // a set via npcs.npc_interaction_set_id and we surface those skills on right-click via
+        // CSStartInteractionPacket. Halcyona War Golem uses sets 31/32 with 2 skills each
+        // (Mobilize + Equip Weapon), but the same wiring powers every interactable boss/quest NPC.
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT npc_interaction_set_id, skill_id FROM npc_interactions";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var setId = reader.GetUInt32("npc_interaction_set_id");
+                var skillId = reader.GetUInt32("skill_id");
+                if (skillId == 0 || setId == 0)
+                    continue;
+                if (!NpcInteractionSetSkills.TryGetValue(setId, out var list))
+                {
+                    list = [];
+                    NpcInteractionSetSkills[setId] = list;
+                }
+                list.Add(skillId);
+            }
+        }
     }
 
     /// <summary>
@@ -215,6 +248,15 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
     public NpcSpawnerTemplate GetNpcSpawnerTemplate(uint npcSpawnerTemplateId)
     {
         return NpcSpawnerTemplates.GetValueOrDefault(npcSpawnerTemplateId);
+    }
+
+    /// <summary>
+    /// Returns the skill list for an npc_interaction_set_id, or null if the set is unknown / empty.
+    /// Order matches DB row order (which is the order the client renders the buttons in).
+    /// </summary>
+    public List<uint> GetNpcInteractionSetSkills(uint setId)
+    {
+        return setId == 0 ? null : NpcInteractionSetSkills.GetValueOrDefault(setId);
     }
 
     /// <summary>

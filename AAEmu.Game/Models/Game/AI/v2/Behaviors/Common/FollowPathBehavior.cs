@@ -29,6 +29,12 @@ public class FollowPathBehavior : BaseCombatBehavior
 
         Ai.Owner.IsInPatrol = true;
         Ai.Owner.Simulation.MoveToPathEnabled = true;
+        // Run-mode so the path is walked at AiMoveSpeedRun (not the default AiMoveSpeedWalk
+        // that the Relaxed stance forces above) and the client sees the run animation. War
+        // golems on the Halcyona route covered ~860m at walk speed = ~7 min; with run mode it's
+        // ~2.5 min which matches retail timing. Mob patrol routes that reuse FollowPathBehavior
+        // also benefit — slow patrols are visibly out of sync with their move templates.
+        Ai.Owner.Simulation.RunningMode = true;
         Ai.Owner.Simulation.GoToPath(Ai.Owner, true);
 
         _enter = true;

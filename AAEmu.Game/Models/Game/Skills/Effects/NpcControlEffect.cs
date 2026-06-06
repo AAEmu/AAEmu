@@ -64,48 +64,14 @@ public class NpcControlEffect : EffectTemplate
                         var cmds = AiGameData.Instance.GetAiCommands(ParamInt);
                         if (cmds is { Count: > 0 })
                         {
+                            // EnqueueAiCommands hands the cmd_set off to the AI driver
+                            // (RunCommandSetBehavior → FollowPathBehavior). Previously we ALSO
+                            // started Simulation.GoToPath here directly, which raced the AI path:
+                            // both paths set MoveToPathEnabled, the second flip toggled it back
+                            // off, and Simulation.StopMove froze the NPC mid-walk (Workflow
+                            // diagnosis for Halcyona Golem: "wakes up, doesn't walk path").
+                            // Let the AI win.
                             targetNpc.Ai?.EnqueueAiCommands(cmds);
-
-                            foreach (var aiCommands in cmds)
-                            {
-                                switch (aiCommands.CmdId)
-                                {
-                                    case AiCommandCategory.FollowUnit:
-                                        break;
-                                    case AiCommandCategory.FollowPath:
-                                        if (string.IsNullOrEmpty(fileName))
-                                        {
-                                            fileName = aiCommands.Param2;
-                                        }
-                                        else
-                                        {
-                                            fileName2 = aiCommands.Param2;
-                                        }
-                                        break;
-                                    case AiCommandCategory.UseSkill:
-                                        skillId = aiCommands.Param1;
-                                        break;
-                                    case AiCommandCategory.Timeout:
-                                        timeout = aiCommands.Param1;
-                                        break;
-                                    default:
-                                        throw new NotSupportedException(nameof(aiCommands.CmdId));
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(fileName))
-                            {
-                                if (targetNpc.IsInPatrol) { return; }
-                                targetNpc.IsInPatrol = true;
-                                if (targetNpc.Simulation != null)
-                                {
-                                    targetNpc.Simulation.RunningMode = false;
-                                    targetNpc.Simulation.Cycle = false;
-                                    targetNpc.Simulation.MoveToPathEnabled = false;
-                                    targetNpc.Simulation.MoveFileName = fileName;
-                                    targetNpc.Simulation.MoveFileName2 = fileName2;
-                                    targetNpc.Simulation.GoToPath(targetNpc, true, skillId, timeout);
-                                }
-                            }
                         }
                         break;
                     }
