@@ -27,7 +27,7 @@ public class PathRec : ICommand
     public string[] CommandNames { get; set; } = ["pathrec", "pathrecord"];
 
     /// <summary>Active recording sessions keyed by character ObjId. In-memory only — server restart wipes them.</summary>
-    private static readonly Dictionary<uint, Session> _sessions = new();
+    private static readonly Dictionary<uint, PathRecordingSession> _sessions = new();
     private static readonly object _lock = new();
     private static bool _tickSubscribed;
 
@@ -97,7 +97,7 @@ public class PathRec : ICommand
                     var startPos = character.Transform.World.Position;
                     lock (_lock)
                     {
-                        _sessions[character.ObjId] = new Session
+                        _sessions[character.ObjId] = new PathRecordingSession
                         {
                             Name = name,
                             CharacterObjId = character.ObjId,
@@ -117,19 +117,18 @@ public class PathRec : ICommand
             case "wp":
             case "waypoint":
                 {
-                    Session sess;
+                    var pos = character.Transform.World.Position;
                     lock (_lock)
                     {
-                        if (!_sessions.TryGetValue(character.ObjId, out sess))
+                        if (!_sessions.TryGetValue(character.ObjId, out var sess))
                         {
                             CommandManager.SendErrorText(this, messageOutput, "No active session — /pathrec start <filename> first.");
                             return;
                         }
+                        AppendWaypoint(sess, pos, manual: true);
+                        CommandManager.SendNormalText(this, messageOutput,
+                            $"Manual WP #{sess.Points.Count}: ({pos.X:F2}, {pos.Y:F2}, {pos.Z:F2})");
                     }
-                    var pos = character.Transform.World.Position;
-                    AppendWaypoint(sess, pos, manual: true);
-                    CommandManager.SendNormalText(this, messageOutput,
-                        $"Manual WP #{sess.Points.Count}: ({pos.X:F2}, {pos.Y:F2}, {pos.Z:F2})");
                     return;
                 }
 
@@ -150,32 +149,32 @@ public class PathRec : ICommand
 
             case "list":
                 {
-                    Session sess;
                     lock (_lock)
                     {
-                        if (!_sessions.TryGetValue(character.ObjId, out sess))
+                        if (!_sessions.TryGetValue(character.ObjId, out var sess))
                         {
                             CommandManager.SendErrorText(this, messageOutput, "No active session.");
                             return;
                         }
-                    }
-                    CommandManager.SendNormalText(this, messageOutput,
-                        $"Session '{sess.Name}': {sess.Points.Count} waypoints");
-                    for (var i = 0; i < sess.Points.Count; i++)
-                    {
-                        var p = sess.Points[i];
                         CommandManager.SendNormalText(this, messageOutput,
-                            $"  #{i + 1}: ({p.X:F2}, {p.Y:F2}, {p.Z:F2})");
+                            $"Session '{sess.Name}': {sess.Points.Count} waypoints");
+                        for (var i = 0; i < sess.Points.Count; i++)
+                        {
+                            var p = sess.Points[i];
+                            CommandManager.SendNormalText(this, messageOutput,
+                                $"  #{i + 1}: ({p.X:F2}, {p.Y:F2}, {p.Z:F2})");
+                        }
                     }
                     return;
                 }
 
             case "save":
                 {
-                    Session sess;
+                    string sessName;
+                    List<Vector3> sessPoints;
                     lock (_lock)
                     {
-                        if (!_sessions.TryGetValue(character.ObjId, out sess))
+                        if (!_sessions.TryGetValue(character.ObjId, out var sess))
                         {
                             CommandManager.SendErrorText(this, messageOutput, "No active session.");
                             return;
@@ -185,23 +184,25 @@ public class PathRec : ICommand
                             CommandManager.SendErrorText(this, messageOutput, $"Need at least 2 waypoints, have {sess.Points.Count}.");
                             return;
                         }
+                        sessName = sess.Name;
+                        sessPoints = new List<Vector3>(sess.Points);
                         _sessions.Remove(character.ObjId);
                         MaybeUnsubscribeTick();
                     }
                     try
                     {
-                        var path = Path.Combine("Data", "Path", $"{sess.Name}.path");
+                        var path = Path.Combine("Data", "Path", $"{sessName}.path");
                         using (var writer = new StreamWriter(path, false))
                         {
-                            foreach (var p in sess.Points)
+                            foreach (var p in sessPoints)
                                 writer.WriteLine($"|{p.X:F2}|{p.Y:F2}|{p.Z:F2}|");
                         }
                         // Invalidate AiPathsManager cache for this file — without this, the next
                         // GoToPath that resolves through AiPathsManager keeps using the prior boot's
                         // cached entries and the new waypoints don't take effect until restart.
-                        AAEmu.Game.Core.Managers.AiPathsManager.Instance.ClearCacheForFile(sess.Name);
+                        AAEmu.Game.Core.Managers.AiPathsManager.Instance.ClearCacheForFile(sessName);
                         CommandManager.SendNormalText(this, messageOutput,
-                            $"Saved {sess.Points.Count} waypoints to {path} (cache invalidated, hot-reloads on next path lookup)");
+                            $"Saved {sessPoints.Count} waypoints to {path} (cache invalidated, hot-reloads on next path lookup)");
                     }
                     catch (Exception ex)
                     {
@@ -309,7 +310,7 @@ public class PathRec : ICommand
     /// </summary>
     private static void Tick(TimeSpan delta)
     {
-        List<Session> snapshot;
+        List<PathRecordingSession> snapshot;
         lock (_lock)
         {
             if (_sessions.Count == 0)
@@ -335,7 +336,7 @@ public class PathRec : ICommand
         }
     }
 
-    private static void AppendWaypoint(Session sess, Vector3 pos, bool manual)
+    private static void AppendWaypoint(PathRecordingSession sess, Vector3 pos, bool manual)
     {
         lock (_lock)
         {
@@ -372,11 +373,4 @@ public class PathRec : ICommand
         return string.IsNullOrWhiteSpace(input) ? null : input;
     }
 
-    private sealed class Session
-    {
-        public string Name;
-        public uint CharacterObjId;
-        public List<Vector3> Points;
-        public DateTime LastSampleAt;
-    }
 }
