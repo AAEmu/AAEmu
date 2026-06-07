@@ -251,21 +251,35 @@ public class PathRec : ICommand
                     }
                     try
                     {
-                        // Read the lines verbatim — Simulation's loader parses pipe-separated
-                        // |X|Y|Z|. Reversing the line order is enough; no need to re-parse.
-                        var lines = File.ReadAllLines(srcPath)
+                        // Simulation's loader parses pipe-separated |X|Y|Z| waypoints, plus an
+                        // optional |Speed|0|0|0|<mult> directive that MUST stay at the top of
+                        // the file (the loader scans from line 0 and applies the directive to
+                        // every subsequent waypoint). Strip any |Speed|… prefix lines before
+                        // reversing the rest, then re-prepend them in their original order.
+                        // Without this guard a /pathrec reverse on a 0.55-speed path would
+                        // bury the directive at EOF and the reversed run would default to 1.0.
+                        var allLines = File.ReadAllLines(srcPath)
                             .Where(l => !string.IsNullOrWhiteSpace(l))
+                            .ToList();
+                        var speedDirectives = allLines
+                            .Where(l => l.TrimStart().StartsWith("|Speed", StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                        var waypoints = allLines
+                            .Where(l => !l.TrimStart().StartsWith("|Speed", StringComparison.OrdinalIgnoreCase))
                             .Reverse()
-                            .ToArray();
-                        if (lines.Length < 2)
+                            .ToList();
+                        if (waypoints.Count < 2)
                         {
-                            CommandManager.SendErrorText(this, messageOutput, $"Source has only {lines.Length} valid lines — nothing to reverse.");
+                            CommandManager.SendErrorText(this, messageOutput, $"Source has only {waypoints.Count} waypoints — nothing to reverse.");
                             return;
                         }
-                        File.WriteAllLines(dstPath, lines);
+                        var output = new List<string>(speedDirectives.Count + waypoints.Count);
+                        output.AddRange(speedDirectives);
+                        output.AddRange(waypoints);
+                        File.WriteAllLines(dstPath, output);
                         AAEmu.Game.Core.Managers.AiPathsManager.Instance.ClearCacheForFile(dstName);
                         CommandManager.SendNormalText(this, messageOutput,
-                            $"Mirrored {lines.Length} waypoints {srcName} → {dstName}. File: {dstPath} (cache invalidated)");
+                            $"Mirrored {waypoints.Count} waypoints {srcName} → {dstName} ({speedDirectives.Count} speed directive(s) preserved). File: {dstPath} (cache invalidated)");
                     }
                     catch (Exception ex)
                     {

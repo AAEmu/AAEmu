@@ -869,23 +869,33 @@ public class TowerDefManager : Singleton<TowerDefManager>
     {
         if (caster == null) return;
         if (AppConfiguration.Instance.World.HalcyonaWarMode != WorldConfig.HalcyonaWarModeValues.OG) return;
-        var runner = GetActiveRunner(HalcyonaWarTowerDefId);
-        if (runner == null) return;
 
-        switch (skillId)
+        // Hold the manager lock around the whole runner lookup + plant/pull mutation so we
+        // can't race Stop() → DespawnAll, which removes the runner from _activeRunners AND
+        // iterates+clears runner.SpawnedByProgSpawnTargetId under _lock. Without this guard
+        // a pole cast that arrives the same tick the war ends throws
+        // InvalidOperationException ("Collection was modified") on DespawnAll's foreach, or
+        // silently leaks a freshly-added entry into a dictionary that just got cleared.
+        lock (_lock)
         {
-            case NuiaPolePlantSkillId:
-                TryPlantFlagOnPole(runner, caster, NuiaCannonSpawnerId, "Nuia");
-                break;
-            case HarihiraPolePlantSkillId:
-                TryPlantFlagOnPole(runner, caster, HarihiraCannonSpawnerId, "Harihara");
-                break;
-            case NuiaPolePullSkillId:
-                TryPullFlagFromPole(runner, caster, NuiaCannonSpawnerId, "Nuia");
-                break;
-            case HarihiraPolePullSkillId:
-                TryPullFlagFromPole(runner, caster, HarihiraCannonSpawnerId, "Harihara");
-                break;
+            if (!_activeRunners.TryGetValue(HalcyonaWarTowerDefId, out var runner) || runner == null)
+                return;
+
+            switch (skillId)
+            {
+                case NuiaPolePlantSkillId:
+                    TryPlantFlagOnPole(runner, caster, NuiaCannonSpawnerId, "Nuia");
+                    break;
+                case HarihiraPolePlantSkillId:
+                    TryPlantFlagOnPole(runner, caster, HarihiraCannonSpawnerId, "Harihara");
+                    break;
+                case NuiaPolePullSkillId:
+                    TryPullFlagFromPole(runner, caster, NuiaCannonSpawnerId, "Nuia");
+                    break;
+                case HarihiraPolePullSkillId:
+                    TryPullFlagFromPole(runner, caster, HarihiraCannonSpawnerId, "Harihara");
+                    break;
+            }
         }
     }
 
