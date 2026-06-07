@@ -607,6 +607,24 @@ public class Skill
     {
         if (caster is not Unit unit) { return; }
 
+        // Halcyona War OG mode pole skills (23088/23266 plant, 23546/23547 pull) — fires only
+        // after the cast bar completes (this method is the cast-complete callback scheduled
+        // from Use(), so a cancelled/interrupted cast never reaches here). TowerDefManager
+        // owns the side-resolution, item consume/grant, and the actual cannon spawner
+        // spawn/despawn — the DB effects on these skills reference non-existent spawners.
+        if (caster is Character halcyonaPoleCaster && Template != null)
+        {
+            var sid = Template.Id;
+            if (sid == AAEmu.Game.Core.Managers.World.TowerDefManager.NuiaPolePlantSkillId
+                || sid == AAEmu.Game.Core.Managers.World.TowerDefManager.HarihiraPolePlantSkillId
+                || sid == AAEmu.Game.Core.Managers.World.TowerDefManager.NuiaPolePullSkillId
+                || sid == AAEmu.Game.Core.Managers.World.TowerDefManager.HarihiraPolePullSkillId)
+            {
+                try { AAEmu.Game.Core.Managers.World.TowerDefManager.Instance.OnHalcyonaPoleSkill(sid, halcyonaPoleCaster); }
+                catch (Exception ex) { Logger.Warn(ex, $"Halcyona War OG pole skill {sid} hook threw"); }
+            }
+        }
+
         if (!_bypassGcd)
         {
             var gcd = Template.CustomGcd;

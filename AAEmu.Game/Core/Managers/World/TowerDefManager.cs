@@ -1,7 +1,12 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -189,13 +194,27 @@ public class TowerDefManager : Singleton<TowerDefManager>
     private const uint HalcyonaDefenseFlagProgId = 104u; // tower_def 18 first prog (Defense Flag) — camp guards spawn here after FirstWaveAfter delay
     private const uint NuiaRelicSpawnerId = 15200u;    // npc_spawner that holds NPC 13647
     private const uint HaraniRelicSpawnerId = 15214u;  // npc_spawner that holds NPC 13661
+    // 2.0 mode only: when a relic NPC dies, drop a lootable "Relic Remains" doodad at the
+    // kill position. The winner side can interact with it to claim the trophy.
+    // Doodad 7181 ("성물의 잔해") drops where the Harani relic (13661) fell.
+    // Doodad 7182 ("성물의 잔해") drops where the Nuia relic (13647) fell.
+    private const uint HarihiraRelicRemainsDoodadId = 7181u;
+    private const uint NuiaRelicRemainsDoodadId = 7182u;
 
     // Halcyona War Golems — 5min Immobilize → auto-Mobilize → walk path,
     // 10min hard-respawn on death (skipping the 5min phase).
-    private const uint NuiaGolemTemplateId = 13796u;
-    private const uint HarihiraGolemTemplateId = 13798u;
-    internal const uint NuiaGolemSpawnerId = 15355u;
-    internal const uint HarihiraGolemSpawnerId = 15357u;
+    internal const uint NuiaGolemTemplateId = 13796u;       // referenced by BaseUnit.CanAttack + NpcEvents.OnSpawn
+    internal const uint HarihiraGolemTemplateId = 13798u;   // referenced by BaseUnit.CanAttack + NpcEvents.OnSpawn
+    private const uint NuiaGolemSpawnerId = 15355u;
+    private const uint HarihiraGolemSpawnerId = 15357u;
+    // Halcyona Auto-Cannon templates — referenced by BaseUnit.CanAttack hostility bridge so
+    // they can target opposite-coalition Characters (148 ↔ 149 is statically Friendly in
+    // system_faction_relations, retail flips it dynamically during war).
+    internal const uint NuiaCannonTemplateId = 13648u;
+    internal const uint HarihiraCannonTemplateId = 13662u;
+    // OnSpawn np_skill that lands the permanent (duration=0) Immobilize on the golems; we
+    // suppress it in NpcEvents and let TowerDefManager apply 6772 with a forced 5min duration.
+    internal const uint GolemOnSpawnImmobilizeSkillId = 23507u;
     private const uint GolemImmobilizeBuffId = 6772u;  // "정지 상태" — stun=t + root=t
     // Mobilizing buff per camp. 6784 → ai_command_set 322 → "nuia_golem_move" (W→E).
     // 6785 → ai_command_set 323 → "harihara_golem_move" (E→W, reverse of the Nuia path).
@@ -204,6 +223,45 @@ public class TowerDefManager : Singleton<TowerDefManager>
     private const uint HarihiraGolemMobilizingBuffId = 6785u;
     private const int GolemImmobilizeDurationMs = 5 * 60 * 1000;
     private static readonly TimeSpan GolemRespawnDelay = TimeSpan.FromMinutes(10);
+
+    // Halcyona War OG mode (capture-the-flag). At Defense Flag prog 104 the central flag
+    // doodad spawns; turrets stay un-spawned until a player carries the flag (tradepack
+    // item 29142) into their faction's base camp. War golems are not part of OG at all.
+    private const uint NuiaCannonSpawnerId = 15201u;        // 13648 Nuia auto-cannons
+    private const uint HarihiraCannonSpawnerId = 15215u;    // 13662 Harani auto-cannons
+    // Central neutral flag at the war centre — players use it to pick up the carry tradepack.
+    private const uint HalcyonaCentralFlagDoodadId = 7035u;        // "황금평원 중앙 깃발"
+    private const uint HalcyonaCentralFlagVisiblePhase = 18885u;   // FuncGroup with the visible "golden_plain_war_flag" model
+    private const uint HalcyonaFlagTradepackItemId = 29142u;       // "황금 평원 중앙 깃발" — carry tradepack on the back
+    private static readonly System.Numerics.Vector3 HalcyonaCentralFlagPos = new(9442f, 10300f, 189f); // midpoint between camps, ground-clamped
+
+    // Faction-side flag poles where the carrier inserts the tradepack to spawn cannons.
+    // Skills: 23088 (plant Nuia) / 23266 (plant Harani), 23546 (pull Nuia) / 23547 (pull Harani).
+    private const uint NuiaFlagPoleDoodadId = 7034u;        // "누이아 연합 중앙 깃발 기둥"
+    private const uint NuiaFlagPoleVisiblePhase = 18883u;
+    private const uint HarihiraFlagPoleDoodadId = 7094u;    // "하리하라 연합 중앙 깃발 기둥"
+    private const uint HarihiraFlagPoleVisiblePhase = 19049u;
+    // Skills cast on the poles — plant inserts the tradepack and spawns cannons; pull removes
+    // the cannons and returns the tradepack to the player's back.
+    internal const uint NuiaPolePlantSkillId = 23088u;
+    internal const uint HarihiraPolePlantSkillId = 23266u;
+    internal const uint NuiaPolePullSkillId = 23546u;
+    internal const uint HarihiraPolePullSkillId = 23547u;
+    // Pole positions (3m offset from the relic spawn so the doodads don't clip into each other).
+    // Nuia relic is at (8996.29, 10012.59, 182.99). Harani relic at (9885.13, 10590.17, 209.49).
+    private static readonly System.Numerics.Vector3 NuiaFlagPolePos = new(8999.5f, 10015.5f, 183.0f);
+    private static readonly System.Numerics.Vector3 HarihiraFlagPolePos = new(9888.5f, 10593.0f, 209.5f);
+
+    // Relic-remains lootable doodads dropped where the relic NPC fell (both OG and 2.0).
+    private const uint HarihiraRelicRemainsVisiblePhase = 19393u;
+    private const uint NuiaRelicRemainsVisiblePhase = 19389u;
+
+    // Auto-despawn timeout for unused flags/poles. Force-deleted earlier by Stop() when the war ends.
+    private static readonly TimeSpan HalcyonaFlagAutoDespawn = TimeSpan.FromMinutes(80);
+    // Relic remains drop on relic-death and persist 5 min so the winner can loot them.
+    // NOT added to TowerDefRunner.HalcyonaOgDoodads — Stop() fires immediately after the
+    // relic falls, and we want the remains to outlive the runner teardown.
+    private static readonly TimeSpan HalcyonaRelicRemainsAutoDespawn = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Camp guards + extras spawned for the whole Halcyona War. The broken skill chain on the
@@ -385,18 +443,31 @@ public class TowerDefManager : Singleton<TowerDefManager>
         // war start (which would break retail timing — Will: "ersten 5 min keine NPCs").
         if (r.Def.Id == HalcyonaWarTowerDefId && prog.Id == HalcyonaDefenseFlagProgId)
         {
+            var halcyonaMode = AppConfiguration.Instance.World.HalcyonaWarMode;
+            var isOg = halcyonaMode == WorldConfig.HalcyonaWarModeValues.OG;
+            Logger.Info($"Halcyona War: Defense Flag prog 104 fired in {halcyonaMode} mode");
+
             foreach (var guardSpawnerId in HalcyonaCampGuardSpawnerIds)
             {
+                // OG mode skips both golem spawners entirely (no war golems in OG) and both
+                // cannon spawners until the central flag is carried into a base.
+                if (isOg && (guardSpawnerId == NuiaGolemSpawnerId
+                          || guardSpawnerId == HarihiraGolemSpawnerId
+                          || guardSpawnerId == NuiaCannonSpawnerId
+                          || guardSpawnerId == HarihiraCannonSpawnerId))
+                    continue;
+
                 try
                 {
                     var spawned = SpawnAnchorSpawner(guardSpawnerId);
                     if (spawned.Count > 0)
                     {
                         r.SpawnedByProgSpawnTargetId[uint.MaxValue - guardSpawnerId] = spawned;
-                        // Golem spawners need extra wiring: 5min Immobilize timer that auto-
-                        // flips into Mobilized + FollowPath, and an OnDeath handler that
-                        // schedules a 10min skip-immobilize respawn.
-                        if (guardSpawnerId == NuiaGolemSpawnerId || guardSpawnerId == HarihiraGolemSpawnerId)
+                        // 2.0 mode only: Golem spawners need extra wiring: 5min Immobilize timer
+                        // that auto-flips into Mobilized + FollowPath, and an OnDeath handler
+                        // that schedules a 10min skip-immobilize respawn.
+                        if ((guardSpawnerId == NuiaGolemSpawnerId || guardSpawnerId == HarihiraGolemSpawnerId)
+                            && !isOg)
                             WireFreshlySpawnedGolems(spawned, skipImmobilize: false);
                     }
                 }
@@ -404,6 +475,18 @@ public class TowerDefManager : Singleton<TowerDefManager>
                 {
                     Logger.Error(ex, $"Halcyona War: guard spawn fallback failed for spawner {guardSpawnerId}");
                 }
+            }
+
+            // OG mode: spawn the central neutral flag (7035) at the war centre AND the two
+            // faction flag poles (7034 next to the Nuia relic, 7094 next to the Harani relic).
+            // The central flag yields the carry tradepack (item 29142) on FakeUse; the player
+            // runs it to a pole and casts the plant skill to spawn that side's cannons.
+            if (isOg)
+            {
+                try { SpawnHalcyonaCentralFlag(r); }
+                catch (Exception ex) { Logger.Error(ex, "Halcyona War OG: failed to spawn central flag doodad 7035"); }
+                try { SpawnHalcyonaFlagPoles(r); }
+                catch (Exception ex) { Logger.Error(ex, "Halcyona War OG: failed to spawn flag poles 7034/7094"); }
             }
         }
 
@@ -472,6 +555,23 @@ public class TowerDefManager : Singleton<TowerDefManager>
                     (killedTemplateId == NuiaRelicTemplateId || killedTemplateId == HaraniRelicTemplateId))
                 {
                     r.WinnerRelicTemplateId = killedTemplateId;
+
+                    // Drop a lootable "Relic Remains" doodad at the kill position in BOTH
+                    // modes — the winner side claims the trophy regardless of which game
+                    // mode the war ran in. 7181 ↔ Harani relic, 7182 ↔ Nuia relic. The
+                    // remains persist 5 min so the winners have time to find and loot them
+                    // even after Stop() has torn the rest of the war down.
+                    var remainsDoodadId = killedTemplateId == HaraniRelicTemplateId
+                        ? HarihiraRelicRemainsDoodadId
+                        : NuiaRelicRemainsDoodadId;
+                    try
+                    {
+                        SpawnRelicRemains(npc, remainsDoodadId);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, $"Halcyona War: failed to spawn remains doodad {remainsDoodadId} for relic {killedTemplateId}");
+                    }
                 }
             }
             if (!matched)
@@ -544,7 +644,6 @@ public class TowerDefManager : Singleton<TowerDefManager>
     {
         if (skipImmobilize)
         {
-            Logger.Info($"[Halcyona Golem] respawn ObjId={npc.ObjId} template={npc.TemplateId} spawner={spawnerId} — skipping Immobilize, applying Mobilized immediately");
             // The OnSpawn np_skills hook (skill 23507) would have applied 6772 with permanent
             // duration. We disable that hook in NpcEvents for these two templates, but as a
             // belt-and-braces guard, also strip it here in case anything else added it.
@@ -575,7 +674,6 @@ public class TowerDefManager : Singleton<TowerDefManager>
                         ApplyMobilized(npc);
                     };
                     buff.Events.OnTimeout += onTimeout;
-                    Logger.Info($"[Halcyona Golem] spawn ObjId={npc.ObjId} template={npc.TemplateId} spawner={spawnerId} — Immobilize armed (mobilize at {DateTime.UtcNow.AddMilliseconds(GolemImmobilizeDurationMs):HH:mm:ss})");
                 }
             }
             catch (Exception ex)
@@ -594,7 +692,6 @@ public class TowerDefManager : Singleton<TowerDefManager>
             {
                 var task = new HalcyonaGolemRespawnTask(spawnerId);
                 TaskManager.Instance.Schedule(task, GolemRespawnDelay);
-                Logger.Info($"[Halcyona Golem] died ObjId={npc.ObjId} template={npc.TemplateId} spawner={spawnerId} — respawn in {GolemRespawnDelay.TotalSeconds:F0}s");
                 // NOTE: TaskManager state is in-memory — a server restart inside the 10min
                 // respawn window will lose this timer; the golem will only re-appear with the
                 // next Halcyona War event.
@@ -624,13 +721,259 @@ public class TowerDefManager : Singleton<TowerDefManager>
         if (npc.Buffs.CheckBuff(mobilizingBuffId)) return;
         try
         {
-            npc.Buffs.AddBuff(mobilizingBuffId, npc);
-            Logger.Info($"[Halcyona Golem] mobilized ObjId={npc.ObjId} template={npc.TemplateId} — FollowPath chain armed via buff {mobilizingBuffId}");
+            // Construct the buff manually so we can set Passive=true. BuffTemplate.Start
+            // gates the SCBuffCreated/SCBuffRemoved broadcasts on !buff.Passive, so flipping
+            // it makes the buff icon disappear from anyone targeting the golem while the
+            // server-side trigger chain (buff_triggers 4187/4188 → NpcControlEffect →
+            // FollowPath) keeps working unchanged.
+            var template = SkillManager.Instance.GetBuffTemplate(mobilizingBuffId);
+            if (template == null)
+            {
+                Logger.Warn($"[Halcyona Golem] mobilizing buff template {mobilizingBuffId} not found for ObjId={npc.ObjId}");
+                return;
+            }
+            var caster = new SkillCasterUnit(npc.ObjId);
+            var buff = new Buff(npc, npc, caster, template, null, DateTime.UtcNow) { Passive = true };
+            npc.Buffs.AddBuff(buff);
         }
         catch (Exception ex)
         {
             Logger.Error(ex, $"[Halcyona Golem] AddBuff({mobilizingBuffId}) threw for ObjId={npc.ObjId}");
         }
+    }
+
+    /// <summary>
+    /// Halcyona 2.0 mode: drop a lootable "Relic Remains" doodad at the position where a
+    /// relic NPC just died. Used by <see cref="OnUnitKilled"/> when 13647 (Nuia) or 13661
+    /// (Harani) fall. The doodad already carries its own DoodadFuncUse for the loot
+    /// interaction, so no extra wiring beyond spawning it in the right phase.
+    /// </summary>
+    private static void SpawnRelicRemains(Npc relicNpc, uint remainsDoodadId)
+    {
+        var world = relicNpc.ParentWorld;
+        if (world == null)
+        {
+            Logger.Warn($"Halcyona War: relic {relicNpc.TemplateId} ObjId={relicNpc.ObjId} has no ParentWorld — can't drop remains");
+            return;
+        }
+        var pos = relicNpc.Transform?.World?.Position ?? System.Numerics.Vector3.Zero;
+        var visiblePhase = remainsDoodadId == HarihiraRelicRemainsDoodadId
+            ? HarihiraRelicRemainsVisiblePhase
+            : NuiaRelicRemainsVisiblePhase;
+        var doodad = SpawnPhasedDoodad(world, remainsDoodadId, visiblePhase, pos);
+        if (doodad == null)
+            return;
+
+        // 5-min lifetime, independent of the runner — DespawnAll fires immediately on Stop()
+        // when the relic falls, but the trophy should outlive the runner so the winners can
+        // walk over and loot it without racing the cleanup.
+        try { TaskManager.Instance.Schedule(new HalcyonaFlagDespawnTask(doodad), HalcyonaRelicRemainsAutoDespawn); }
+        catch (Exception ex) { Logger.Warn(ex, $"Halcyona War: failed to schedule 5min auto-despawn for remains doodad ObjId={doodad.ObjId}"); }
+
+        Logger.Info($"Halcyona War: spawned remains doodad {remainsDoodadId} at ({pos.X:F1},{pos.Y:F1},{pos.Z:F1}) where relic {relicNpc.TemplateId} died (5min lifetime)");
+    }
+
+    /// <summary>
+    /// Halcyona OG mode: spawn the central neutral capture flag doodad (7035) — players use
+    /// the FakeUse on it to receive the carry tradepack (item 29142) on their back. The
+    /// tradepack is then taken to one of the two faction flag poles to spawn cannons.
+    /// Tracked on the runner so Stop() force-cleans + an 80-min auto-despawn task fires.
+    /// </summary>
+    private static void SpawnHalcyonaCentralFlag(TowerDefRunner r)
+    {
+        foreach (var world in WorldManager.Instance.GetWorlds())
+        {
+            if (world == null) continue;
+            var doodad = SpawnPhasedDoodad(world, HalcyonaCentralFlagDoodadId, HalcyonaCentralFlagVisiblePhase, HalcyonaCentralFlagPos);
+            if (doodad == null) continue;
+            r.HalcyonaOgDoodads.Add(doodad);
+            ScheduleHalcyonaFlagAutoDespawn(doodad);
+            Logger.Info($"Halcyona War OG: central flag doodad {HalcyonaCentralFlagDoodadId} spawned at ({HalcyonaCentralFlagPos.X:F1},{HalcyonaCentralFlagPos.Y:F1},{HalcyonaCentralFlagPos.Z:F1}) in world {world.Id} ObjId={doodad.ObjId}");
+        }
+    }
+
+    /// <summary>
+    /// Halcyona OG mode: spawn the two faction flag poles (7034 Nuia / 7094 Harani) next to
+    /// the corresponding relic NPCs. Players walk to the pole carrying the tradepack and
+    /// cast the plant skill (23088 / 23266) to deposit the flag — cannons spawn, pack is
+    /// removed from their back. Cast the pull skill (23546 / 23547) to retrieve the flag —
+    /// cannons despawn, pack returns to their back.
+    /// </summary>
+    private static void SpawnHalcyonaFlagPoles(TowerDefRunner r)
+    {
+        foreach (var world in WorldManager.Instance.GetWorlds())
+        {
+            if (world == null) continue;
+            var nuiaPole = SpawnPhasedDoodad(world, NuiaFlagPoleDoodadId, NuiaFlagPoleVisiblePhase, NuiaFlagPolePos);
+            if (nuiaPole != null)
+            {
+                r.HalcyonaOgDoodads.Add(nuiaPole);
+                ScheduleHalcyonaFlagAutoDespawn(nuiaPole);
+                Logger.Info($"Halcyona War OG: Nuia flag pole {NuiaFlagPoleDoodadId} spawned at ({NuiaFlagPolePos.X:F1},{NuiaFlagPolePos.Y:F1},{NuiaFlagPolePos.Z:F1}) in world {world.Id} ObjId={nuiaPole.ObjId}");
+            }
+            var harihiraPole = SpawnPhasedDoodad(world, HarihiraFlagPoleDoodadId, HarihiraFlagPoleVisiblePhase, HarihiraFlagPolePos);
+            if (harihiraPole != null)
+            {
+                r.HalcyonaOgDoodads.Add(harihiraPole);
+                ScheduleHalcyonaFlagAutoDespawn(harihiraPole);
+                Logger.Info($"Halcyona War OG: Harihara flag pole {HarihiraFlagPoleDoodadId} spawned at ({HarihiraFlagPolePos.X:F1},{HarihiraFlagPolePos.Y:F1},{HarihiraFlagPolePos.Z:F1}) in world {world.Id} ObjId={harihiraPole.ObjId}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Schedule the 80-minute idle auto-despawn for a Halcyona OG flag/pole doodad. The task
+    /// is a no-op if the doodad has already been removed (e.g. by Stop()/DespawnAll force-clean,
+    /// or by the FakeUse phase chain cycling it back to invisible).
+    /// </summary>
+    private static void ScheduleHalcyonaFlagAutoDespawn(Doodad doodad)
+    {
+        try { TaskManager.Instance.Schedule(new HalcyonaFlagDespawnTask(doodad), HalcyonaFlagAutoDespawn); }
+        catch (Exception ex) { Logger.Warn(ex, $"Halcyona War OG: failed to schedule auto-despawn for doodad ObjId={doodad.ObjId}"); }
+    }
+
+    /// <summary>
+    /// Canonical spawn helper for static-phase doodads. Default <c>Create(..., false)</c> path
+    /// lands on the first Start FuncGroup, which for our Halcyona doodads is always the
+    /// invisible env.invisible phase — the spawn is then silent and clients render nothing.
+    /// Mirrors the SpawnManager.cs pattern: Create with skipPhaseInitialization=true, set
+    /// FuncGroupId to the desired visible phase, then InitDoodad() + Spawn() so the phase-
+    /// change packet broadcasts the visible model.
+    /// </summary>
+    private static Doodad SpawnPhasedDoodad(WorldInstance world, uint doodadTemplateId, uint visiblePhase, System.Numerics.Vector3 pos)
+    {
+        var doodad = DoodadManager.Instance.Create(world, 0, doodadTemplateId, null, true);
+        if (doodad == null)
+        {
+            Logger.Warn($"Halcyona War: doodad template {doodadTemplateId} not found in world {world.Id}");
+            return null;
+        }
+        doodad.Transform.Local.SetPosition(pos.X, pos.Y, pos.Z);
+        doodad.Transform.Local.SetRotation(0f, 0f, 0f);
+        doodad.FuncGroupId = visiblePhase;
+        doodad.SetScale(1f);
+        doodad.PlantTime = DateTime.UtcNow;
+        doodad.InitDoodad();
+        doodad.Spawn();
+        return doodad;
+    }
+
+    /// <summary>
+    /// Pole skill dispatch — invoked from <see cref="Skill.Cast"/> when a player casts any of
+    /// the four Halcyona pole skills. Resolves the side from the skill id (23088/23546 = Nuia,
+    /// 23266/23547 = Harani), then either plants the flag (consumes tradepack 29142, spawns
+    /// cannons) or pulls it (despawns cannons, returns the tradepack to the carrier's back).
+    /// No-op outside OG mode or without an active war.
+    /// </summary>
+    public void OnHalcyonaPoleSkill(uint skillId, Character caster)
+    {
+        if (caster == null) return;
+        if (AppConfiguration.Instance.World.HalcyonaWarMode != WorldConfig.HalcyonaWarModeValues.OG) return;
+        var runner = GetActiveRunner(HalcyonaWarTowerDefId);
+        if (runner == null) return;
+
+        switch (skillId)
+        {
+            case NuiaPolePlantSkillId:
+                TryPlantFlagOnPole(runner, caster, NuiaCannonSpawnerId, "Nuia");
+                break;
+            case HarihiraPolePlantSkillId:
+                TryPlantFlagOnPole(runner, caster, HarihiraCannonSpawnerId, "Harihara");
+                break;
+            case NuiaPolePullSkillId:
+                TryPullFlagFromPole(runner, caster, NuiaCannonSpawnerId, "Nuia");
+                break;
+            case HarihiraPolePullSkillId:
+                TryPullFlagFromPole(runner, caster, HarihiraCannonSpawnerId, "Harihara");
+                break;
+        }
+    }
+
+    private void TryPlantFlagOnPole(TowerDefRunner runner, Character caster, uint cannonSpawnerId, string sideName)
+    {
+        var key = uint.MaxValue - cannonSpawnerId;
+        if (runner.SpawnedByProgSpawnTargetId.ContainsKey(key))
+        {
+            Logger.Info($"Halcyona War OG: {caster.Name} planted on {sideName} pole but cannons already online — no-op");
+            return;
+        }
+        // Locate the tradepack on the player's back. RemoveItem returns true on success.
+        if (!RemoveHalcyonaFlagTradepack(caster))
+        {
+            Logger.Info($"Halcyona War OG: {caster.Name} planted on {sideName} pole without the carry tradepack — cannons not spawned");
+            return;
+        }
+        try
+        {
+            var spawned = SpawnAnchorSpawner(cannonSpawnerId);
+            if (spawned.Count > 0)
+            {
+                runner.SpawnedByProgSpawnTargetId[key] = spawned;
+                Logger.Info($"Halcyona War OG: {caster.Name} planted flag on {sideName} pole → spawned cannons (spawner {cannonSpawnerId}, {spawned.Count} instances)");
+            }
+            else
+            {
+                Logger.Warn($"Halcyona War OG: spawner {cannonSpawnerId} produced 0 cannons after plant — refunding tradepack to {caster.Name}");
+                GiveHalcyonaFlagTradepack(caster);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Halcyona War OG: plant on {sideName} pole threw, refunding tradepack to {caster.Name}");
+            try { GiveHalcyonaFlagTradepack(caster); } catch { /* best-effort */ }
+        }
+    }
+
+    private void TryPullFlagFromPole(TowerDefRunner runner, Character caster, uint cannonSpawnerId, string sideName)
+    {
+        var key = uint.MaxValue - cannonSpawnerId;
+        if (!runner.SpawnedByProgSpawnTargetId.TryGetValue(key, out var spawners))
+        {
+            Logger.Info($"Halcyona War OG: {caster.Name} pulled {sideName} pole but no cannons tracked — no-op");
+            return;
+        }
+        var failures = 0;
+        foreach (var sp in spawners)
+        {
+            try { sp?.DespawnNpcsNow(); }
+            catch (Exception ex) { failures++; Logger.Error(ex, $"Halcyona War OG: despawn cannon spawner {sp?.Id} threw"); }
+        }
+        runner.SpawnedByProgSpawnTargetId.Remove(key); // allow re-planting
+        GiveHalcyonaFlagTradepack(caster);
+        Logger.Info($"Halcyona War OG: {caster.Name} pulled flag from {sideName} pole → despawned cannons ({spawners.Count} instances, {failures} failures), tradepack returned");
+    }
+
+    /// <summary>
+    /// Consumes one of <see cref="HalcyonaFlagTradepackItemId"/> from the player's equipment
+    /// or inventory (the carry pack sits on the back slot in retail but defensively we accept
+    /// either). Returns false if the player isn't carrying it.
+    /// </summary>
+    private static bool RemoveHalcyonaFlagTradepack(Character character)
+    {
+        if (character?.Inventory == null) return false;
+        var equipmentItem = character.Inventory.Equipment?.Items?
+            .FirstOrDefault(i => i?.TemplateId == HalcyonaFlagTradepackItemId);
+        if (equipmentItem != null
+            && character.Inventory.Equipment.ConsumeItem(AAEmu.Game.Models.Game.Items.Actions.ItemTaskType.SkillReagents, HalcyonaFlagTradepackItemId, 1, equipmentItem) > 0)
+            return true;
+        var bagItem = character.Inventory.Bag?.Items?
+            .FirstOrDefault(i => i?.TemplateId == HalcyonaFlagTradepackItemId);
+        if (bagItem != null
+            && character.Inventory.Bag.ConsumeItem(AAEmu.Game.Models.Game.Items.Actions.ItemTaskType.SkillReagents, HalcyonaFlagTradepackItemId, 1, bagItem) > 0)
+            return true;
+        return false;
+    }
+
+    private static void GiveHalcyonaFlagTradepack(Character character)
+    {
+        if (character?.Inventory == null) return;
+        character.Inventory.Bag?.AcquireDefaultItem(AAEmu.Game.Models.Game.Items.Actions.ItemTaskType.SkillReagents, HalcyonaFlagTradepackItemId, 1);
+    }
+
+    private TowerDefRunner GetActiveRunner(uint towerDefId)
+    {
+        lock (_lock)
+            return _activeRunners.TryGetValue(towerDefId, out var r) ? r : null;
     }
 
     /// <summary>
@@ -678,6 +1021,17 @@ public class TowerDefManager : Singleton<TowerDefManager>
             }
         }
         r.SpawnedByProgSpawnTargetId.Clear();
+
+        // Halcyona OG mode: force-clean the central flag + faction poles + any other
+        // static-state doodads we tracked on the runner. The HalcyonaFlagDespawnTask scheduled
+        // at spawn-time would eventually delete them after 80 min, but war end means
+        // immediately — someone won (or force-end fired) and the field should clear.
+        foreach (var doodad in r.HalcyonaOgDoodads)
+        {
+            try { doodad?.Delete(); }
+            catch (Exception ex) { Logger.Error(ex, $"DespawnAll: failed to delete Halcyona OG doodad ObjId={doodad?.ObjId}"); }
+        }
+        r.HalcyonaOgDoodads.Clear();
     }
 
     private static void BroadcastStart(TowerDefRunner r)
@@ -733,4 +1087,8 @@ internal sealed class TowerDefRunner
     /// <summary>Halcyona War: the relic NPC template id that died and ended prog 105.
     /// 13647 (Nuia) → Harani wins; 13661 (Harani) → Nuia wins. 0 = none yet / not applicable.</summary>
     public uint WinnerRelicTemplateId;
+
+    /// <summary>Halcyona OG mode static-state doodads (central flag, faction poles).
+    /// Auto-despawn after 80 min via HalcyonaFlagDespawnTask; force-deleted on war end.</summary>
+    public readonly List<AAEmu.Game.Models.Game.DoodadObj.Doodad> HalcyonaOgDoodads = new();
 }

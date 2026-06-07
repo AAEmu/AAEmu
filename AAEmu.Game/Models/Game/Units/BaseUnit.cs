@@ -112,28 +112,15 @@ public class BaseUnit : GameObject, IBaseUnit
             //     return false;
         }
 
-        /*
-        // Debug info for player on attacking
-        if (this is Character player)
-        {
-            var targetName = target.Name;
-            if (target is Npc npc)
-                targetName = "@NPC_NAME(" + npc.TemplateId.ToString() + ")";
-            player.SendMessage(ChatType.Shout, $"CanAttack? in Zone:{zoneFaction.Name} => {player.Name} {player.Faction?.Name} => {targetName} ({target.ObjId}) {target.Faction?.Name} = {relation}");
-        }
-        */
-
         // Halcyona War hostility bridge — same root cause for two distinct symptoms:
-        //  - Auto-Cannons (13648 Nuia / 13662 Harani) ignore opposite-side players.
-        //  - War Golems (13796 Nuia / 13798 Harani) walk past each other instead of fighting.
+        //  - Auto-Cannons (Nuia/Harihara) ignore opposite-side players.
+        //  - War Golems (Nuia/Harihara) walk past each other instead of fighting.
         // Both groups spawn on faction 148/149, but the static relation 148 ↔ 149 in
         // system_faction_relations (id 907) is state=1 = FRIENDLY. Retail evidently flips this
         // dynamically during the war state; vanilla AAEmu never replicated that. Layer a narrow
         // override that applies hostility between the four Halcyona-only templates and against
         // opposite-coalition Characters, leaving every other 148/149 NPC pair alone.
-        if (this.Faction != null && target.Faction != null
-            && (TemplateId == 13648u || TemplateId == 13662u
-                || TemplateId == 13796u || TemplateId == 13798u))
+        if (this.Faction != null && target.Faction != null && IsHalcyonaCombatant(TemplateId))
         {
             var mySide = (uint)this.Faction.Id;
             // Opposite-coalition Character (player) — Cannons + Golems alike should engage.
@@ -145,10 +132,7 @@ public class BaseUnit : GameObject, IBaseUnit
             }
             // Opposite-coalition Halcyona NPC — pairs (Nuia Golem ↔ Harani Golem) and
             // (any Nuia camp Halcyona NPC ↔ any Harani camp Halcyona NPC).
-            if (target is Npc hwTargetNpc
-                && (hwTargetNpc.TemplateId == 13648u || hwTargetNpc.TemplateId == 13662u
-                    || hwTargetNpc.TemplateId == 13796u || hwTargetNpc.TemplateId == 13798u)
-                && hwTargetNpc.Faction != null)
+            if (target is Npc hwTargetNpc && IsHalcyonaCombatant(hwTargetNpc.TemplateId) && hwTargetNpc.Faction != null)
             {
                 var targetSide = (uint)hwTargetNpc.Faction.Id;
                 if (mySide == 148u && targetSide == 149u) return true;
@@ -158,6 +142,12 @@ public class BaseUnit : GameObject, IBaseUnit
 
         return relation == RelationState.Hostile;
     }
+
+    private static bool IsHalcyonaCombatant(uint templateId) =>
+        templateId == TowerDefManager.NuiaCannonTemplateId
+        || templateId == TowerDefManager.HarihiraCannonTemplateId
+        || templateId == TowerDefManager.NuiaGolemTemplateId
+        || templateId == TowerDefManager.HarihiraGolemTemplateId;
 
     /// <summary>
     /// Checks if target should be visible to this Unit by checking stealth

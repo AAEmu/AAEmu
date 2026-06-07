@@ -250,11 +250,10 @@ public partial class Npc
             // mobilizes after 5 minutes; running 23507 alongside would either stack a permanent
             // copy or race the timer. Skip it for these two templates — TowerDefManager owns
             // the Immobilize/Mobilize lifecycle for them.
-            if ((npc.TemplateId == 13796u || npc.TemplateId == 13798u) && skill.Id == 23507u)
-            {
-                Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} skipping OnSpawn skill 23507 — Halcyona Golem lifecycle owned by TowerDefManager");
+            if ((npc.TemplateId == AAEmu.Game.Core.Managers.World.TowerDefManager.NuiaGolemTemplateId
+                 || npc.TemplateId == AAEmu.Game.Core.Managers.World.TowerDefManager.HarihiraGolemTemplateId)
+                && skill.Id == AAEmu.Game.Core.Managers.World.TowerDefManager.GolemOnSpawnImmobilizeSkillId)
                 continue;
-            }
 
             var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
             skillCaster.ObjId = npc.ObjId;
