@@ -998,6 +998,16 @@ public class TowerDefManager : Singleton<TowerDefManager>
             Logger.Warn($"[Halcyona Golem] RespawnHalcyonaGolem called with non-golem spawner {spawnerId}");
             return;
         }
+        // Bail if the war is no longer running. A golem that dies inside the final 10-min
+        // window of the war would otherwise: respawn after Stop() cleared the runner →
+        // WireFreshlySpawnedGolems attaches a fresh OnDeath handler → next death schedules
+        // another 10-min respawn → orphaned NPCs loop indefinitely outside any active war.
+        // Also gates against a Stop() that fired while the TaskManager job was pending.
+        if (!IsRunning(HalcyonaWarTowerDefId))
+        {
+            Logger.Info($"[Halcyona Golem] RespawnHalcyonaGolem({spawnerId}) skipped — Halcyona War no longer running");
+            return;
+        }
         try
         {
             var spawned = SpawnAnchorSpawner(spawnerId);

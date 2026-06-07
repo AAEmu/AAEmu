@@ -339,7 +339,17 @@ public class PathRec : ICommand
             if (character == null)
                 continue;
             var pos = character.Transform.World.Position;
-            var last = sess.Points[^1];
+            // Snapshot the last waypoint while holding the lock. Without this guard a
+            // concurrent /pathrec undo that drained the list to zero would either index
+            // a stale element OR throw IndexOutOfRangeException on Points[^1]. If the
+            // list is empty after undo, skip this tick — the next auto-sample will reseed.
+            Vector3 last;
+            lock (_lock)
+            {
+                if (sess.Points.Count == 0)
+                    continue;
+                last = sess.Points[^1];
+            }
             var dx = pos.X - last.X;
             var dy = pos.Y - last.Y;
             var dz = pos.Z - last.Z;
