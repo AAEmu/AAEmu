@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -26,5 +28,53 @@ public class ImpulseEffect : EffectTemplate
         CompressedGamePackets packetBuilder = null)
     {
         Logger.Trace("ImpulseEffect");
+
+        var impulseTarget = ResolveImpulseTarget(caster, target);
+        if (impulseTarget == null || impulseTarget is Unit { IsDead: true })
+            return;
+
+        var packet = new SCUnitImpulsePacket(
+            impulseTarget.ObjId,
+            VelImpulseX,
+            VelImpulseY,
+            VelImpulseZ,
+            AngvelImpulseX,
+            AngvelImpulseY,
+            AngvelImpulseZ,
+            ImpulseX,
+            ImpulseY,
+            ImpulseZ,
+            AngImpulseX,
+            AngImpulseY,
+            AngImpulseZ);
+
+        impulseTarget.BroadcastPacket(packet, impulseTarget is Character);
+    }
+
+    private static BaseUnit ResolveImpulseTarget(BaseUnit caster, BaseUnit target)
+    {
+        if (target is Slave)
+            return target;
+
+        if (caster is Slave)
+            return caster;
+
+        if (target == caster && caster is Character character)
+        {
+            var slave = GetCharacterSlave(character);
+            if (slave != null)
+                return slave;
+        }
+
+        return target;
+    }
+
+    private static Slave GetCharacterSlave(Character character)
+    {
+        if (character.ParentWorld == null)
+            return null;
+
+        return character.ParentWorld.SlaveManager.GetIsMounted(character.ObjId, out _)
+               ?? character.ParentWorld.SlaveManager.GetActiveSlaveByOwnerObjId(character.ObjId);
     }
 }
