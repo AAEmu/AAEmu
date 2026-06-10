@@ -333,16 +333,25 @@ public class Skill
         }
         else
         {
-            // Immediate skill: still broadcast a SCSkillStartedPacket with cast time 0 so the
-            // client renders the windup/fire animation. Without this packet the client never
-            // ties the upcoming SCSkillFiredPacket / SCUnitDamagedPacket to a visible cast on
-            // the caster — e.g. Halcyona War Auto-Cannons (skill 21762, casting_time=0) deal
-            // damage but the turret stayed idle and no projectile appeared.
-            caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+            // Immediate-cast NPC skill: broadcast a SCSkillStartedPacket with cast time 0 so
+            // the client renders the windup/fire animation. Without this packet the client
+            // never ties the upcoming SCSkillFiredPacket / SCUnitDamagedPacket to a visible
+            // cast on the caster — e.g. Halcyona War Auto-Cannons (skill 21762, casting_time=0)
+            // dealt damage but the turret stayed idle and no projectile appeared.
+            //
+            // Gated on `caster is Npc` because player instant-cast skills (instant buffs,
+            // instant nukes) have always worked without this packet on the existing emulator
+            // codepath, and broadcasting it for them could trigger double-animation or other
+            // undefined client behaviour on the well-trodden player skill path. (Greptile
+            // #1447 P1 round 3)
+            if (caster is Npc)
             {
-                BaseCastTimeDiv10 = 0,
-                RealCastTimeDiv10 = 0,
-            }, true);
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+                {
+                    BaseCastTimeDiv10 = 0,
+                    RealCastTimeDiv10 = 0,
+                }, true);
+            }
 
             // Immediate skill
             Cast(caster, casterCaster, target, targetCaster, skillObject);
