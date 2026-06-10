@@ -408,11 +408,12 @@ public class TowerDefManager : Singleton<TowerDefManager>
             }
         }
 
-        r.CurrentProgIndex = nextIndex;
         var prog = r.Def.Progs[nextIndex];
 
         // Spawn the new prog's NpcSpawner targets — reuse SpawnAnchorSpawner so the per-spawner
-        // diagnostic (pre/post count + ObjId/position) lands in HalcyonaWar.log.
+        // diagnostic (pre/post count + ObjId/position) lands in HalcyonaWar.log. Done before
+        // we publish the new prog index so OnUnitKilled never observes "new index" while the
+        // spawns are still in flight.
         foreach (var st in prog.SpawnTargets)
         {
             if (!string.Equals(st.SpawnTargetType, "NpcSpawner", StringComparison.OrdinalIgnoreCase))
@@ -423,11 +424,14 @@ public class TowerDefManager : Singleton<TowerDefManager>
                 r.SpawnedByProgSpawnTargetId[st.Id] = spawnedList;
         }
 
-        // Reset kill counters; only the active prog's targets matter. Hold the manager lock
-        // so the Clear()+re-seed doesn't race the OnUnitKilled read-modify-write path that
-        // also touches KillsByTemplateId (Greptile #1447 P1).
+        // Publish CurrentProgIndex AND reset kill counters under the same lock so OnUnitKilled
+        // can't see the new index while the counters still belong to the previous prog (which
+        // would let an in-flight kill increment the new prog's counter just before we Clear()
+        // it). Greptile #1447 P1 — first round only locked the Clear+re-seed; this round
+        // includes the index publication.
         lock (_lock)
         {
+            r.CurrentProgIndex = nextIndex;
             r.KillsByTemplateId.Clear();
             foreach (var kt in prog.KillTargets)
                 r.KillsByTemplateId[kt.KillTargetId] = 0;
