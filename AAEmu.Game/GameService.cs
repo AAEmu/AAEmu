@@ -15,6 +15,7 @@ using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Events;
 using AAEmu.Game.Utils.Scripts;
 
 using Microsoft.Extensions.Hosting;
@@ -106,6 +107,7 @@ public sealed class GameService : IHostedService, IDisposable
         // Start main_world and other static instances
         WorldManager.Instance.CreateStaticInstances();
         WorldManager.Instance.Initialize();
+        CrimsonRift.Instance.Register();
 
         CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();

@@ -4,6 +4,7 @@ public class TowerDefProg
 {
     public uint Id { get; set; }
     public TowerDef TowerDef { get; set; }
+    public string Msg { get; set; }
     // I presume this is how long the step lasts
     public float CondToNextTime { get; set; }
     // This probably is to know wether the conditions have been completed by NextTime ?
