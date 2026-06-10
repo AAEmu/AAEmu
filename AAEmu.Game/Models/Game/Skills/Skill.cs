@@ -644,7 +644,7 @@ public class Skill
                 if (sc != null)
                 {
                     if (unit.ActiveSkillController != null)
-                        unit.ActiveSkillController.End();
+                        unit.ActiveSkillController.End(force: true);
                     unit.ActiveSkillController = sc;
                     sc.Execute();
                 }

@@ -31,6 +31,9 @@ public abstract class BaseCombatBehavior : Behavior
         if (Ai?.Owner == null)
             return;
 
+        if (Ai.Owner.DisplacedUntil.HasValue && Ai.Owner.DisplacedUntil.Value > DateTime.UtcNow)
+            return;
+
         if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e =>
                 e.Template.Stun
                 || e.Template.Sleep
@@ -42,7 +45,15 @@ public abstract class BaseCombatBehavior : Behavior
             return;
         }
 
-        if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+        // Combat chase runs BEFORE Npc.MoveTowards in the AI tick. A plain Shackle
+        // check here would hard-root the NPC for every slow that rides the Shackle
+        // tag (e.g. Charged Bolt — Shackle + DecreaseMoveSpeed), turning a slow
+        // into a full root during combat. Exclude buffs that also carry the
+        // DecreaseMoveSpeed tag so they slow rather than stop, matching the gate
+        // in Npc.MoveTowards. The Snare-only check is kept alongside.
+        if (Ai.Owner.Buffs.CheckBuffsExcludingTags(
+                SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle),
+                [(uint)SkillConstants.DecreaseMoveSpeed]) ||
             Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
         {
             return;
@@ -234,6 +245,12 @@ public abstract class BaseCombatBehavior : Behavior
     {
         get
         {
+            // Never trigger return while a SkillController (Fear, Lift, Pull, Dash, Leap)
+            // is actively driving the NPC. The SC owns movement until the buff expires;
+            // a return decision here would tear it out mid-flight and teleport home.
+            if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+                return false;
+
             var returnDistance = 50f;
             var absoluteReturnDistance = 200f;
 
@@ -270,6 +287,14 @@ public abstract class BaseCombatBehavior : Behavior
         {
             return false;
         }
+
+        // Don't update / change target while a SkillController is running (Fear, Lift).
+        // SetTarget below would broadcast SCTargetChangedPacket, which the 1.2 client
+        // turns into a "look at target" facing overlay — so a fear'd NPC visually keeps
+        // looking straight at the player even while running away from them.
+        if ((Ai.Owner.ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+            return Ai.Owner.CurrentTarget != null;
+
         // We might want to optimize this somehow.
         var aggroList = Ai.Owner.AggroTable.Values;
         var abusers = aggroList.OrderByDescending(o => o.TotalAggro).Select(o => o.Owner).ToList();

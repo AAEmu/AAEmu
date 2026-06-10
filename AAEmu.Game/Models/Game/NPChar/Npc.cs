@@ -1118,6 +1118,12 @@ public partial class Npc : Unit
     /// <returns>True if withing rangeTolerance of other</returns>
     public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
     {
+        if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+            return false;
+
+        if (DisplacedUntil.HasValue && DisplacedUntil.Value > DateTime.UtcNow)
+            return false;
+
         distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
             return false;
@@ -1134,14 +1140,22 @@ public partial class Npc : Unit
             return false;
         }
 
-        if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+        // Shackle (160) is the broad "root family" tag — most snares ride it.
+        // The exclude list strips buffs that ALSO have the DecreaseMoveSpeed
+        // (161) tag, which is how slow debuffs like Charged Bolt are encoded:
+        // they ship as Shackle + DecreaseMoveSpeed, mean "slow, not stop", and
+        // without this exclusion the NPC would be fully rooted by every slow it
+        // gets hit by. The dedicated Snare (27) check is kept alongside to
+        // catch any Snare-only-tagged buffs that don't ride the Shackle family —
+        // matches the dual-check pattern in DashSkillController and
+        // LeapSkillController so all three gates agree.
+        if (Ai.Owner.Buffs.CheckBuffsExcludingTags(
+                SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle),
+                [(uint)SkillConstants.DecreaseMoveSpeed]) ||
             Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
         {
             return false;
         }
-
-        if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
-            return false;
 
         var oldPosition = Transform.Local.ClonePosition();
 

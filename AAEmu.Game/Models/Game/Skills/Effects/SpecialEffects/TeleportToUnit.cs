@@ -1,7 +1,11 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+﻿using System.Numerics;
+
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -23,8 +27,8 @@ public class TeleportToUnit : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: TeleportToUnit value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        Logger.Debug("Special effects: TeleportToUnit caster={0} target={1} value1 {2}, value2 {3}, value3 {4}, value4 {5}",
+            caster?.ObjId, target?.ObjId, value1, value2, value3, value4);
 
         if (target == null)
         {
@@ -48,8 +52,38 @@ public class TeleportToUnit : SpecialEffectAction
                 character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, targetPosition.Z));
                 break;
             case Npc npc:
-                npc.MoveTowards(targetPosition, 10000);
-                npc.StopMovement();
+                // Pull / Charge / Leap onto another NPC: replicate the Character blink path
+                // server-side. MoveTowards walks the NPC over time and cancels itself with
+                // StopMovement, so the original code was effectively a no-op for NPC pulls.
+                var oldPosition = npc.Transform.Local.ClonePosition();
+
+                var endZ = targetPosition.Z;
+                var groundZ = npc.ParentWorld?.Template.GeoData.GetHeight(new Vector3(endX, endY, endZ)) ?? 0f;
+                if (groundZ > 0 && Math.Abs(endZ - groundZ) < 5f)
+                    endZ = groundZ;
+
+                npc.Transform.Local.SetPosition(endX, endY, endZ);
+
+                npc.BroadcastPacket(new SCBlinkUnitPacket(npc.ObjId, 0f, 0f, endX, endY, endZ), false);
+
+                var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+                moveType.X = endX;
+                moveType.Y = endY;
+                moveType.Z = endZ;
+                moveType.VelX = 0;
+                moveType.VelY = 0;
+                moveType.VelZ = 0;
+                moveType.RotationX = 0;
+                moveType.RotationY = 0;
+                moveType.RotationZ = npc.Transform.Local.ToRollPitchYawSBytesMovement().Item3;
+                moveType.Flags = MoveTypeFlags.Stopping | (npc.IsInBattle ? MoveTypeFlags.InCombat : 0);
+                moveType.DeltaMovement = new sbyte[3];
+                moveType.Stance = npc.CurrentGameStance;
+                moveType.Alertness = npc.CurrentAlertness;
+                moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
+                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), false);
+
+                npc.CheckMovedPosition(oldPosition);
                 break;
         }
     }
