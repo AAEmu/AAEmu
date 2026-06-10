@@ -333,6 +333,17 @@ public class Skill
         }
         else
         {
+            // Immediate skill: still broadcast a SCSkillStartedPacket with cast time 0 so the
+            // client renders the windup/fire animation. Without this packet the client never
+            // ties the upcoming SCSkillFiredPacket / SCUnitDamagedPacket to a visible cast on
+            // the caster — e.g. Halcyona War Auto-Cannons (skill 21762, casting_time=0) deal
+            // damage but the turret stayed idle and no projectile appeared.
+            caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+            {
+                BaseCastTimeDiv10 = 0,
+                RealCastTimeDiv10 = 0,
+            }, true);
+
             // Immediate skill
             Cast(caster, casterCaster, target, targetCaster, skillObject);
         }

@@ -764,13 +764,19 @@ public class TowerDefManager : Singleton<TowerDefManager>
         if (doodad == null)
             return;
 
+        // Keep the doodad alive across the full 5-min window even after each loot interaction
+        // (skill 23534/23535). Without this flag, Doodad.DoFunc deletes on the first cast because
+        // the loot func's NextPhase is -1. HalcyonaRelicLootedBy guards against double-loot by the
+        // same character; DoodadFuncUse consults both fields before re-casting the loot skill.
+        doodad.SkipDeleteOnUseFinish = true;
+
         // 5-min lifetime, independent of the runner — DespawnAll fires immediately on Stop()
         // when the relic falls, but the trophy should outlive the runner so the winners can
         // walk over and loot it without racing the cleanup.
         try { TaskManager.Instance.Schedule(new HalcyonaFlagDespawnTask(doodad), HalcyonaRelicRemainsAutoDespawn); }
         catch (Exception ex) { Logger.Warn(ex, $"Halcyona War: failed to schedule 5min auto-despawn for remains doodad ObjId={doodad.ObjId}"); }
 
-        Logger.Info($"Halcyona War: spawned remains doodad {remainsDoodadId} at ({pos.X:F1},{pos.Y:F1},{pos.Z:F1}) where relic {relicNpc.TemplateId} died (5min lifetime)");
+        Logger.Info($"Halcyona War: spawned remains doodad {remainsDoodadId} at ({pos.X:F1},{pos.Y:F1},{pos.Z:F1}) where relic {relicNpc.TemplateId} died (5min lifetime, multi-loot)");
     }
 
     /// <summary>

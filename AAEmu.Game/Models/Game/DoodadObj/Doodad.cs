@@ -318,6 +318,23 @@ public class Doodad : BaseUnit
     public bool ToNextPhase { get; set; }
 
     /// <summary>
+    /// Halcyona War Relic Remains opt-out: when true, <see cref="DoFunc"/> will NOT delete the
+    /// doodad after a DoodadFuncUse-style interaction whose <c>NextPhase == -1</c>. Multiple
+    /// winner-alliance members must be able to loot the trophy during its 5-minute window, and
+    /// the shared default in DoFunc would otherwise delete it on the first cast of skill 23534/23535.
+    /// Set by <see cref="Core.Managers.World.TowerDefManager.SpawnRelicRemains"/>; the auto-despawn
+    /// is handled separately by HalcyonaFlagDespawnTask.
+    /// </summary>
+    public bool SkipDeleteOnUseFinish { get; set; }
+
+    /// <summary>
+    /// Tracks character IDs that have already looted this Halcyona Relic Remains doodad, so each
+    /// winner-alliance member can claim the trophy at most once. Only populated when
+    /// <see cref="SkipDeleteOnUseFinish"/> is set.
+    /// </summary>
+    public HashSet<uint> HalcyonaRelicLootedBy { get; } = new();
+
+    /// <summary>
     /// Used for ratio calculations on random triggers
     /// </summary>
     public int PhaseRatio { get; private set; }
@@ -576,7 +593,7 @@ public class Doodad : BaseUnit
             {
                 // We don't need to change phase, we stay in the current phase.
                 // the check is needed for Windstone id=1473
-                if (!HasOnlyGroupKindStart())
+                if (!HasOnlyGroupKindStart() && !SkipDeleteOnUseFinish)
                 {
                     if (FuncTask != null)
                     {

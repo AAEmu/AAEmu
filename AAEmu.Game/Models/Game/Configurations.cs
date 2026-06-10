@@ -132,10 +132,11 @@ public class WorldConfig
     /// <item><c>2.0</c>: auto-golem lifecycle — Defense Flag prog spawns the war golems, they sit Immobilized for 5 minutes,
     /// auto-Mobilize and march their paths, fight on contact, respawn 10 minutes after death.</item>
     /// </list>
-    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.HalcyonaWarMode</c>. Default: <c>2.0</c>.
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.HalcyonaWarMode</c>. Default: <c>OG</c>
+    /// (matches retail 1.2 behaviour).
     /// Allowed values are listed in <see cref="HalcyonaWarModeValues"/>.
     /// </summary>
-    public string HalcyonaWarMode { get; set; } = HalcyonaWarModeValues.TwoPointZero;
+    public string HalcyonaWarMode { get; set; } = HalcyonaWarModeValues.OG;
 
     /// <summary>
     /// Server-side Actability Points multiplier (on top of buffs)

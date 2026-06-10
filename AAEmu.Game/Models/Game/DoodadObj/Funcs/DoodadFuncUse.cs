@@ -68,6 +68,19 @@ public class DoodadFuncUse : DoodadFuncTemplate
             }
         }
 
+        // Halcyona Relic Remains: one trophy per winner-alliance character. Refuse a re-loot from
+        // the same character and let everyone else through during the 5-minute window. The doodad
+        // itself is kept alive by SkipDeleteOnUseFinish so DoFunc won't delete it after this call.
+        if (owner.SkipDeleteOnUseFinish && caster is Character lootingCharacter)
+        {
+            if (!owner.HalcyonaRelicLootedBy.Add(lootingCharacter.Id))
+            {
+                lootingCharacter.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
+                owner.ToNextPhase = false;
+                return;
+            }
+        }
+
         // TODO: check skill references and consume items if items are required for skills
         // Make caster cast skill ?
         if (SkillId > 0)

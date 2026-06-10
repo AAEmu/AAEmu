@@ -165,19 +165,37 @@ public abstract class Behavior
         switch (skill.Template.TargetType)
         {
             case SkillTargetType.Pos:
-                // Use the TARGET's position, not the caster's. Halcyona War Auto-Cannons cast
-                // skill 21762 with TargetType.Pos (a 140 m AoE) — pointing it at the cannon
-                // itself made the shell land on the turret. Standard Pos-targeted AoE skills
-                // (artillery, ground-targeted spells) all want the impact at the marker.
-                var pos = target.Transform.World.Position;
-                skillCastTarget = new SkillCastPositionTarget
+                // Default position-target cast (ground-targeted AoE — artillery, fireball).
+                // Client uses local skill data + PosX/Y/Z to render the trajectory; ObjIds stay
+                // zero so the client treats it as a pure ground cast. Matches Gimmick.cs.
+                //
+                // Exception: NPC-driven Pos-skills that carry a projectile_id and have a real
+                // unit victim (Halcyona War Auto-Cannons skill 21762, ProjectileId=170). The
+                // client refuses to render the cannonball flying to a ground marker for these —
+                // other working cannons (Morpheus 15171, Auto-Cannon 12378) all use
+                // TargetType.Hostile (Unit-target) instead, which keys the projectile pipeline
+                // on caster↔victim ObjIds. Route the cast through a Unit target so the client
+                // gets both ObjIds and renders the projectile flight; the DamageEffect still
+                // lands because the target unit IS the victim we want to hit.
+                if (skill.Template.ProjectileId > 0 && target is Unit)
                 {
-                    ObjId = Ai.Owner.ObjId,
-                    PosX = pos.X,
-                    PosY = pos.Y,
-                    PosZ = pos.Z,
-                    PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z
-                };
+                    skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                    skillCastTarget.ObjId = target.ObjId;
+                }
+                else
+                {
+                    var pos = target.Transform.World.Position;
+                    skillCastTarget = new SkillCastPositionTarget
+                    {
+                        ObjId = 0,
+                        ObjId1 = 0,
+                        ObjId2 = 0,
+                        PosX = pos.X,
+                        PosY = pos.Y,
+                        PosZ = pos.Z,
+                        PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z
+                    };
+                }
                 break;
             default:
                 skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
@@ -225,7 +243,21 @@ public abstract class Behavior
         }
 
         var res = false;
-        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, Ai.Owner.Template.AttackStartRangeScale * 10f);
+        // Halcyona War cannons (13648/13662) have AttackStartRangeScale=2 → default scan radius
+        // would be only 20m, far too short for a stationary tower-defense weapon. Extend their
+        // scan radius to 60m so they can proactively detect opposing-side players approaching the
+        // camp instead of relying solely on AggroLink from the guards (which itself caps at
+        // ~30m helpDist). Golems (13796/13798) also benefit during a march path.
+        var scanScale = 10f;
+        var tid = Ai.Owner.TemplateId;
+        if (tid == Core.Managers.World.TowerDefManager.NuiaCannonTemplateId
+            || tid == Core.Managers.World.TowerDefManager.HarihiraCannonTemplateId
+            || tid == Core.Managers.World.TowerDefManager.NuiaGolemTemplateId
+            || tid == Core.Managers.World.TowerDefManager.HarihiraGolemTemplateId)
+        {
+            scanScale = 30f;
+        }
+        var nearbyUnits = WorldManager.GetAround<Unit>(Ai.Owner, Ai.Owner.Template.AttackStartRangeScale * scanScale);
 
         // Sort by distance
         var unitsWithDistance = new List<(Unit, float)>();
