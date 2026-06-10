@@ -459,10 +459,7 @@ public class BuffTemplate
 
     private void DispelCore(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced)
     {
-        foreach (var template in Bonuses)
-            owner.RemoveBonus(buff.Index, template.Attribute);
-        foreach (var template in DynamicBonuses)
-            owner.RemoveDynamicBonus(buff.Index, template.Attribute);
+        RemoveBonuses(owner, buff);
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
             requiringBuff.Exit();
