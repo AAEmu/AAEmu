@@ -318,19 +318,28 @@ public class Doodad : BaseUnit
     public bool ToNextPhase { get; set; }
 
     /// <summary>
-    /// Halcyona War Relic Remains opt-out: when true, <see cref="DoFunc"/> will NOT delete the
-    /// doodad after a DoodadFuncUse-style interaction whose <c>NextPhase == -1</c>. Multiple
-    /// winner-alliance members must be able to loot the trophy during its 5-minute window, and
-    /// the shared default in DoFunc would otherwise delete it on the first cast of skill 23534/23535.
-    /// Set by <see cref="Core.Managers.World.TowerDefManager.SpawnRelicRemains"/>; the auto-despawn
-    /// is handled separately by HalcyonaFlagDespawnTask.
+    /// Generic opt-out of the <see cref="DoFunc"/> delete path for <c>NextPhase == -1</c>
+    /// interactions. When true the doodad survives DoodadFuncUse skill casts that would
+    /// normally trigger the shared delete. Use this on its own when a doodad must outlive
+    /// repeat interactions (e.g. quest podiums, persistent altars) — it carries no
+    /// Halcyona-specific behaviour by itself. Halcyona relic remains additionally set
+    /// <see cref="IsHalcyonaRelicRemains"/> for the per-character loot gate.
     /// </summary>
     public bool SkipDeleteOnUseFinish { get; set; }
 
     /// <summary>
+    /// True on the relic-remains doodads spawned by Halcyona War on relic death (7181 Harani /
+    /// 7182 Nuia). Routes the per-character single-loot guard in DoodadFuncUse — kept
+    /// separate from the generic <see cref="SkipDeleteOnUseFinish"/> so future doodads that
+    /// just want to survive an interaction don't accidentally inherit the loot lockout.
+    /// (Greptile #1447 P2)
+    /// </summary>
+    public bool IsHalcyonaRelicRemains { get; set; }
+
+    /// <summary>
     /// Tracks character IDs that have already looted this Halcyona Relic Remains doodad, so each
     /// winner-alliance member can claim the trophy at most once. Only populated when
-    /// <see cref="SkipDeleteOnUseFinish"/> is set.
+    /// <see cref="IsHalcyonaRelicRemains"/> is set.
     /// </summary>
     public HashSet<uint> HalcyonaRelicLootedBy { get; } = new();
 

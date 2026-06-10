@@ -423,10 +423,15 @@ public class TowerDefManager : Singleton<TowerDefManager>
                 r.SpawnedByProgSpawnTargetId[st.Id] = spawnedList;
         }
 
-        // Reset kill counters; only the active prog's targets matter.
-        r.KillsByTemplateId.Clear();
-        foreach (var kt in prog.KillTargets)
-            r.KillsByTemplateId[kt.KillTargetId] = 0;
+        // Reset kill counters; only the active prog's targets matter. Hold the manager lock
+        // so the Clear()+re-seed doesn't race the OnUnitKilled read-modify-write path that
+        // also touches KillsByTemplateId (Greptile #1447 P1).
+        lock (_lock)
+        {
+            r.KillsByTemplateId.Clear();
+            foreach (var kt in prog.KillTargets)
+                r.KillsByTemplateId[kt.KillTargetId] = 0;
+        }
 
         // Timer for "auto-advance" — 0 means "advance only on kill condition".
         r.NextProgTime = prog.CondToNextTime > 0f
@@ -533,57 +538,59 @@ public class TowerDefManager : Singleton<TowerDefManager>
 
         foreach (var r in snapshot)
         {
-            if (r.CurrentProgIndex < 0 || r.CurrentProgIndex >= r.Def.Progs.Count)
-                continue;
-            var prog = r.Def.Progs[r.CurrentProgIndex];
-
-            var matched = false;
-            foreach (var kt in prog.KillTargets)
+            // Hold the manager lock for the kill-counter read-modify-write so simultaneous raid
+            // kills can't race AdvanceProg's KillsByTemplateId.Clear() / re-seed call on the
+            // Tick thread. Greptile #1447 P1 — Dictionary<uint,uint> isn't thread-safe and the
+            // soFar+1 increment was non-atomic. Side-effects (SpawnRelicRemains, NextProgTime
+            // assignment) stay outside the lock to keep the event hot-path tight.
+            bool matched;
+            bool needAdvance;
+            uint remainsDoodadIdToSpawn = 0;
+            lock (_lock)
             {
-                if (!string.Equals(kt.KillTargetType, "Npc", StringComparison.OrdinalIgnoreCase))
+                if (r.CurrentProgIndex < 0 || r.CurrentProgIndex >= r.Def.Progs.Count)
                     continue;
-                if (kt.KillTargetId != killedTemplateId)
-                    continue;
-                r.KillsByTemplateId.TryGetValue(kt.KillTargetId, out var soFar);
-                r.KillsByTemplateId[kt.KillTargetId] = soFar + 1;
-                matched = true;
+                var prog = r.Def.Progs[r.CurrentProgIndex];
 
-                // Halcyona War: remember WHICH relic fell so Stop() can chain to the right
-                // victory follow-up. This must be set before KillsByTemplateId is cleared on
-                // the next AdvanceProg.
-                if (r.Def.Id == HalcyonaWarTowerDefId &&
-                    (killedTemplateId == NuiaRelicTemplateId || killedTemplateId == HaraniRelicTemplateId))
+                matched = false;
+                foreach (var kt in prog.KillTargets)
                 {
-                    r.WinnerRelicTemplateId = killedTemplateId;
+                    if (!string.Equals(kt.KillTargetType, "Npc", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (kt.KillTargetId != killedTemplateId)
+                        continue;
+                    r.KillsByTemplateId.TryGetValue(kt.KillTargetId, out var soFar);
+                    r.KillsByTemplateId[kt.KillTargetId] = soFar + 1;
+                    matched = true;
 
-                    // Drop a lootable "Relic Remains" doodad at the kill position in BOTH
-                    // modes — the winner side claims the trophy regardless of which game
-                    // mode the war ran in. 7181 ↔ Harani relic, 7182 ↔ Nuia relic. The
-                    // remains persist 5 min so the winners have time to find and loot them
-                    // even after Stop() has torn the rest of the war down.
-                    var remainsDoodadId = killedTemplateId == HaraniRelicTemplateId
-                        ? HarihiraRelicRemainsDoodadId
-                        : NuiaRelicRemainsDoodadId;
-                    try
+                    // Halcyona War: remember WHICH relic fell so Stop() can chain to the right
+                    // victory follow-up. Must be set before KillsByTemplateId is cleared on
+                    // the next AdvanceProg.
+                    if (r.Def.Id == HalcyonaWarTowerDefId &&
+                        (killedTemplateId == NuiaRelicTemplateId || killedTemplateId == HaraniRelicTemplateId))
                     {
-                        SpawnRelicRemains(npc, remainsDoodadId);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex, $"Halcyona War: failed to spawn remains doodad {remainsDoodadId} for relic {killedTemplateId}");
+                        r.WinnerRelicTemplateId = killedTemplateId;
+                        remainsDoodadIdToSpawn = killedTemplateId == HaraniRelicTemplateId
+                            ? HarihiraRelicRemainsDoodadId
+                            : NuiaRelicRemainsDoodadId;
                     }
                 }
+                needAdvance = matched && IsKillConditionSatisfied(prog, r);
+                if (needAdvance)
+                    r.NextProgTime = DateTime.UtcNow;
             }
+
             if (!matched)
                 continue;
 
-            if (IsKillConditionSatisfied(prog, r))
+            // Side-effects outside the lock.
+            if (remainsDoodadIdToSpawn != 0)
             {
-                // Fast-track: next tick advances. We don't advance inline here to keep
-                // mutation out of the kill event hot path.
-                r.NextProgTime = DateTime.UtcNow;
-                Logger.Info($"TowerDef {r.Def.Id} prog #{r.CurrentProgIndex} kill condition satisfied (npc {killedTemplateId})");
+                try { SpawnRelicRemains(npc, remainsDoodadIdToSpawn); }
+                catch (Exception ex) { Logger.Error(ex, $"Halcyona War: failed to spawn remains doodad {remainsDoodadIdToSpawn} for relic {killedTemplateId}"); }
             }
+            if (needAdvance)
+                Logger.Info($"TowerDef {r.Def.Id} prog #{r.CurrentProgIndex} kill condition satisfied (npc {killedTemplateId})");
         }
     }
 
@@ -764,11 +771,14 @@ public class TowerDefManager : Singleton<TowerDefManager>
         if (doodad == null)
             return;
 
-        // Keep the doodad alive across the full 5-min window even after each loot interaction
-        // (skill 23534/23535). Without this flag, Doodad.DoFunc deletes on the first cast because
-        // the loot func's NextPhase is -1. HalcyonaRelicLootedBy guards against double-loot by the
-        // same character; DoodadFuncUse consults both fields before re-casting the loot skill.
+        // SkipDeleteOnUseFinish keeps Doodad.DoFunc from deleting the doodad after each loot
+        // interaction (skill 23534/23535) — the loot func's NextPhase is -1, which would
+        // otherwise trigger the shared delete path. IsHalcyonaRelicRemains routes the per-
+        // character single-loot guard in DoodadFuncUse (HalcyonaRelicLootedBy). Two flags
+        // because they cover orthogonal concerns: the first is generic, the second is the
+        // Halcyona-only behaviour. (Greptile #1447 P2)
         doodad.SkipDeleteOnUseFinish = true;
+        doodad.IsHalcyonaRelicRemains = true;
 
         // 5-min lifetime, independent of the runner — DespawnAll fires immediately on Stop()
         // when the relic falls, but the trophy should outlive the runner so the winners can
@@ -949,14 +959,26 @@ public class TowerDefManager : Singleton<TowerDefManager>
             return;
         }
         var failures = 0;
+        var successes = 0;
         foreach (var sp in spawners)
         {
-            try { sp?.DespawnNpcsNow(); }
+            try { sp?.DespawnNpcsNow(); successes++; }
             catch (Exception ex) { failures++; Logger.Error(ex, $"Halcyona War OG: despawn cannon spawner {sp?.Id} threw"); }
+        }
+
+        // If EVERY despawn call threw, the cannons are still alive — releasing the tracking
+        // key now would let the carrier re-plant and spawn a second wave of cannons on top
+        // of the existing ones, and refunding the tradepack would compound it by handing
+        // back the trigger item too. Keep state intact, log loud, and bail. The player can
+        // try again. (Greptile #1447 P2)
+        if (successes == 0 && failures > 0)
+        {
+            Logger.Error($"Halcyona War OG: {caster.Name} pulled flag from {sideName} pole but ALL {failures} cannon spawner despawn(s) failed — leaving tracking + tradepack untouched to prevent double-spawn");
+            return;
         }
         runner.SpawnedByProgSpawnTargetId.Remove(key); // allow re-planting
         GiveHalcyonaFlagTradepack(caster);
-        Logger.Info($"Halcyona War OG: {caster.Name} pulled flag from {sideName} pole → despawned cannons ({spawners.Count} instances, {failures} failures), tradepack returned");
+        Logger.Info($"Halcyona War OG: {caster.Name} pulled flag from {sideName} pole → despawned cannons ({successes}/{spawners.Count} succeeded, {failures} failures), tradepack returned");
     }
 
     /// <summary>
