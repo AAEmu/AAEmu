@@ -579,6 +579,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             RemoveOnLand = reader.GetBoolean("remove_on_land", true),
                             Gliding = reader.GetBoolean("gliding", true),
                             GlidingRotateSpeed = reader.GetInt32("gliding_rotate_speed"),
+                            GlidingLiftHeight = reader.GetFloat("gliding_lift_height", 0f),
+                            GlidingLiftSpeed = reader.GetFloat("gliding_lift_speed", 0f),
+                            GlidingLiftDuration = reader.GetFloat("gliding_lift_duration", 0f),
                             Knockdown = reader.GetBoolean("knock_down", true),
                             TickAreaExcludeSource = reader.GetBoolean("tick_area_exclude_source", true),
                             // TODO 

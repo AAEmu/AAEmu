@@ -40,6 +40,10 @@ public class Unit : BaseUnit, IUnit
     public uint ModelId { get; set; }
     public SkillController ActiveSkillController { get; set; }
 
+    // Set after a knockback/impulse so AI movement is suppressed until expiry,
+    // giving the displacement animation time to play on clients.
+    public DateTime? DisplacedUntil { get; set; }
+
     public override float ModelSize
     {
         get
