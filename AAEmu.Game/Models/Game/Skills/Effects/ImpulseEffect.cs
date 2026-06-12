@@ -32,35 +32,40 @@ public class ImpulseEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
+        Logger.Debug("ImpulseEffect: caster={0}, target={1}, impulse=({2},{3},{4}), velImpulse=({5},{6},{7})",
+            caster?.ObjId, target?.ObjId, ImpulseX, ImpulseY, ImpulseZ, VelImpulseX, VelImpulseY, VelImpulseZ);
+
         var impulseTarget = ResolveImpulseTarget(caster, target);
-
-        Logger.Debug("ImpulseEffect: caster={0}, target={1}, impulseTarget={2}, impulse=({3},{4},{5}), velImpulse=({6},{7},{8})",
-            caster?.ObjId, target?.ObjId, impulseTarget?.ObjId, ImpulseX, ImpulseY, ImpulseZ,
-            VelImpulseX, VelImpulseY, VelImpulseZ);
-
         if (impulseTarget == null || impulseTarget is Unit { IsDead: true })
             return;
 
-        if (impulseTarget.Buffs.HasEffectsMatchingCondition(e => e.Template.KnockbackImmune || e.Template.NonPushable))
+        if (target?.Buffs.HasEffectsMatchingCondition(e => e.Template.KnockbackImmune || e.Template.NonPushable) == true)
             return;
 
-        if (impulseTarget is Npc npcTarget && npcTarget.Template.NonPushableByActor)
+        if (target is Npc npcTarget && npcTarget.Template.NonPushableByActor)
+            return;
+
+        BroadcastImpulsePacket(impulseTarget);
+
+        if (caster == null || target == null)
             return;
 
         var impulse = new Vector3(ImpulseX + VelImpulseX, ImpulseY + VelImpulseY, ImpulseZ + VelImpulseZ);
 
-        if (impulseTarget is Npc npc)
-        {
-            if (caster == null || impulse.LengthSquared() < 0.01f)
-                return;
+        if (impulse.LengthSquared() < 0.01f)
+            return;
 
+        var casterPos = caster.Transform.World.Position;
+        var targetPos = target.Transform.World.Position;
+        var displacement = LocalImpulseToWorldDisplacement(impulse, casterPos, targetPos);
+
+        var endPos = targetPos + displacement;
+
+        if (target is Npc npc)
+        {
             npc.DisplacedUntil = DateTime.UtcNow.AddMilliseconds(600);
 
             var oldPosition = npc.Transform.Local.ClonePosition();
-            var targetPos = npc.Transform.World.Position;
-            var casterPos = caster.Transform.World.Position;
-            var displacement = LocalImpulseToWorldDisplacement(impulse, casterPos, targetPos);
-            var endPos = targetPos + displacement;
 
             var groundZ = npc.ParentWorld.Template.GeoData.GetHeight(new Vector3(endPos.X, endPos.Y, endPos.Z));
             if (groundZ > 0 && Math.Abs(endPos.Z - groundZ) < 5f)
@@ -86,9 +91,11 @@ public class ImpulseEffect : EffectTemplate
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), false);
 
             npc.CheckMovedPosition(oldPosition);
-            return;
         }
+    }
 
+    private void BroadcastImpulsePacket(BaseUnit impulseTarget)
+    {
         var packet = new SCUnitImpulsePacket(
             impulseTarget.ObjId,
             VelImpulseX,
@@ -135,8 +142,9 @@ public class ImpulseEffect : EffectTemplate
     }
 
     /// <summary>
-    /// Converts a caster-target local impulse (X = right, Y = forward, Z = up, units = 1/1000 m)
-    /// into a world-space displacement vector.
+    /// Converts a caster-target local impulse (X=right, Y=forward, Z=up, units = 1/1000 m)
+    /// into a world-space displacement vector. When the caster-to-target direction is
+    /// degenerate, the impulse is returned unchanged in world space.
     /// </summary>
     internal static Vector3 LocalImpulseToWorldDisplacement(
         Vector3 localImpulse, Vector3 casterPos, Vector3 targetPos)
