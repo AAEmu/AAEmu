@@ -23,7 +23,7 @@ public sealed class OneShotVelocityKick : ForceGenerator
             return;
         _applied = true;
 
-        if (_body is { MotionType: MotionType.Static })
+        if (_body is { MotionType: MotionType.Dynamic })
             _body.Velocity += _deltaV;
 
         RemoveEffect();
