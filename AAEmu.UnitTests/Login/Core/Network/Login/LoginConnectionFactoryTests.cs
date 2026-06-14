@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using System.IO.Pipelines;
 using System.Net;
@@ -171,11 +171,11 @@ public class LoginConnectionFactoryTests
             _loggerFactory);
 
         // Create context where local and remote are the same IP
-        var mockContext = Mock.OfPartial<ConnectionContext>();
+        var mockContext = Mock.Of<ConnectionContext>();
         var endpoint = new IPEndPoint(IPAddress.Loopback, 12345);
-        mockContext.LocalEndPoint.Returns(endpoint);
-        mockContext.RemoteEndPoint.Returns(endpoint);
-        mockContext.Transport.Returns(CreateMockDuplexPipe().Object);
+        mockContext.Object.LocalEndPoint = endpoint;
+        mockContext.Object.RemoteEndPoint = endpoint;
+        mockContext.Object.Transport = CreateMockDuplexPipe().Object;
 
         // Act
         var connection = factory.Create(mockContext.Object);
@@ -201,10 +201,10 @@ public class LoginConnectionFactoryTests
             _loggerFactory);
 
         // Create context where local and remote are different IPs
-        var mockContext = Mock.OfPartial<ConnectionContext>();
-        mockContext.LocalEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 12345));
-        mockContext.RemoteEndPoint.Returns(new IPEndPoint(IPAddress.Parse("192.168.1.1"), 54321));
-        mockContext.Transport.Returns(CreateMockDuplexPipe().Object);
+        var mockContext = Mock.Of<ConnectionContext>();
+        mockContext.Object.LocalEndPoint = new IPEndPoint(IPAddress.Loopback, 12345);
+        mockContext.Object.RemoteEndPoint = new IPEndPoint(IPAddress.Parse("192.168.1.1"), 54321);
+        mockContext.Object.Transport = CreateMockDuplexPipe().Object;
 
         // Act
         var connection = factory.Create(mockContext.Object);
@@ -215,10 +215,10 @@ public class LoginConnectionFactoryTests
 
     private static Mock<ConnectionContext> CreateMockConnectionContext()
     {
-        var mockContext = Mock.OfPartial<ConnectionContext>();
-        mockContext.RemoteEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 12345));
-        mockContext.LocalEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 1234));
-        mockContext.Transport.Returns(CreateMockDuplexPipe().Object);
+        var mockContext = Mock.Of<ConnectionContext>();
+        mockContext.Object.RemoteEndPoint = new IPEndPoint(IPAddress.Loopback, 12345);
+        mockContext.Object.LocalEndPoint = new IPEndPoint(IPAddress.Loopback, 1234);
+        mockContext.Object.Transport = CreateMockDuplexPipe().Object;
         return mockContext;
     }
 

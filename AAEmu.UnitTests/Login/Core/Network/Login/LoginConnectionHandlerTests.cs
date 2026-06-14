@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using System.Net;
 using AAEmu.Login.Core.Network.Connections;
@@ -97,7 +97,7 @@ public class LoginConnectionHandlerTests
 
     private static Mock<ConnectionContext> CreateMockConnectionContext()
     {
-        var mockContext = Mock.OfPartial<ConnectionContext>();
+        var mockContext = Mock.Of<ConnectionContext>();
         mockContext.RemoteEndPoint.Returns(new IPEndPoint(IPAddress.Loopback, 12345));
         mockContext.ConnectionId.Returns("test-connection-id");
         // DisposeAsync() returns ValueTask by default — no .Returns() needed
