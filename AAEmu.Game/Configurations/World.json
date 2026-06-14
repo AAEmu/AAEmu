@@ -19,6 +19,7 @@
         "WindModel": "Official",
         "ActabilityRate": 1.0,
         "UsePersistentHouseDoodads": false,
-        "PvpHonorRate": 1.0
+        "PvpHonorRate": 1.0,
+        "TagShareEnabled": false
     }
 }

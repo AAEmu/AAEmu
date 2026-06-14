@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Threading;
+
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -16,6 +18,37 @@ public class Team : PacketMarshaler
     public LootingRule LootingRule { get; set; }
     public (byte, uint)[] MarksList { get; set; }
     public WorldSpawnPosition PingPosition { get; set; }
+
+    /// <summary>
+    /// Timestamp when the team transitioned to "every member offline" so the 500ms
+    /// remote-sync tick in <c>TeamManager</c> can disband zombie teams after a grace
+    /// period. <see cref="DateTime.MinValue"/> means at least one member is online
+    /// (or the team has not yet reached the all-offline state). Reset to MinValue
+    /// whenever a member reconnects.
+    /// </summary>
+    /// <remarks>
+    /// Backed by <see cref="Interlocked.Read"/> / <see cref="Interlocked.Exchange"/>
+    /// on a <see cref="long"/> ticks field because the write happens from the
+    /// game-handler thread (in <c>SetOffline</c> / <c>UpdateAtLogin</c>) while the
+    /// read happens from the <c>UpdateAllTeams</c> tick thread — without atomic
+    /// access a 64-bit value's halves could tear on 32-bit hosts and visibility is
+    /// not guaranteed by the C# memory model on any host.
+    /// </remarks>
+    public DateTime AllOfflineSince
+    {
+        get => new(Interlocked.Read(ref _allOfflineSinceTicks));
+        set => Interlocked.Exchange(ref _allOfflineSinceTicks, value.Ticks);
+    }
+    private long _allOfflineSinceTicks; // backing field for AllOfflineSince
+
+    /// <summary>
+    /// Mutex held by <c>TeamManager.DisbandOfflineTeam</c> and <c>UpdateAtLogin</c>
+    /// to keep the zombie-disband wipe loop and a concurrent reconnect from
+    /// interleaving. Without this, a reconnect that lands between the disband's
+    /// re-verify check and the per-member InParty wipe would be silently corrupted
+    /// (live player ends up with InParty = false and no backing team).
+    /// </summary>
+    public readonly object SyncLock = new();
 
     public Team()
     {

@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -982,6 +983,40 @@ public partial class Npc : Unit
                 QuestManager.Instance.DoOnMonsterHuntEvents(pl, this);
             }
         }
+
+        // ── Tag Share toggle ──────────────────────────────────────────────
+        // When enabled, fan out monster-hunt quest events to every player
+        // that dealt damage (plus their party / raid mates in range). This
+        // runs AFTER both branches above (eligible-players loop AND the
+        // killer-only fallback) so two parties or two raids hitting the
+        // same mob can both progress kill quests, even when neither broke
+        // the 50% HP tag threshold. XP and loot are NOT affected — only
+        // quest progress fans out.
+        if (AppConfiguration.Instance.World.TagShareEnabled)
+        {
+            // The killer was credited above ONLY when eligiblePlayers was empty
+            // (the killer-only fallback path at line ~872 fires DoOnMonsterHuntEvents
+            // on the killer directly). If a tag team exists and the killing blow
+            // came from a player *outside* that team, the killer is NOT in
+            // eligiblePlayers and was NOT credited — they're a damage dealer who
+            // should receive TagShare credit, so don't pre-mark them as credited.
+            var alreadyCredited = new HashSet<Character>(eligiblePlayers);
+            if (eligiblePlayers.Count == 0 && killer is Character ck)
+            {
+                alreadyCredited.Add(ck);
+            }
+
+            var contributors = CharacterTagging.GetAllContributors(LootingContainer.MaxLootingRange);
+            foreach (var contributor in contributors)
+            {
+                if (!alreadyCredited.Add(contributor))
+                {
+                    continue;
+                }
+                QuestManager.Instance.DoOnMonsterHuntEvents(contributor, this);
+            }
+        }
+
         base.DoDie(killer, killReason);
         ClearAllAggroTargetsAndCheckCombatState();
         // AggroTable.Clear();

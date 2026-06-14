@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Collections.Concurrent;
+
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +9,10 @@ using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+
+using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -19,7 +24,32 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
      * RE-DO LEAVE / KICK / DISMISS
      */
 
-    private readonly Dictionary<uint, Team> _activeTeams = []; // teamId, Team
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+    // ── Remote-member sync (see Party/Raid remote sync design) ────────────
+    /// <summary>Tick interval for the periodic remote-member sync.</summary>
+    private const int TeamSyncIntervalMs = 500;
+    /// <summary>Force a fresh broadcast even if state didn't change (paranoia against packet loss).</summary>
+    private const int ForcedResyncIntervalMs = 5000;
+    /// <summary>
+    /// Grace window after the last online member of a team goes offline before the
+    /// team is auto-disbanded. Lets brief crash-then-reconnect cycles preserve the
+    /// team while keeping <c>_activeTeams</c> from accumulating zombie entries on
+    /// long-running servers.
+    /// </summary>
+    private static readonly TimeSpan OfflineTeamDisbandGrace = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Per-(recipient,source) snapshot of the last values broadcast to that recipient.
+    /// Used to skip identical packets ("delta-update") so a stationary raid produces zero
+    /// remote-sync traffic.
+    /// </summary>
+    private readonly Dictionary<(uint recipientId, uint sourceId), MemberSyncState> _lastSyncState = [];
+
+    // ConcurrentDictionary so the 500ms UpdateAllTeams tick can enumerate the team
+    // set while game-handler threads concurrently join/disband. Reads (TryGetValue,
+    // Values) are lock-free; mutations (TryAdd, TryRemove) are internally synced.
+    private readonly ConcurrentDictionary<uint, Team> _activeTeams = new(); // teamId, Team
     private readonly Dictionary<uint, InvitationTemplate> _activeInvitations = []; // targetId, InvitationTemplate
 
     public Team GetActiveTeamByUnit(uint unitId)
@@ -190,6 +220,9 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                 target.InParty = true;
                 target.SendPacket(new SCTeamPingPosPacket(true, activeTeam.PingPosition, 0));
                 activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newTeamMember, party), target.Id);
+
+                // Make sure team-mates outside render distance learn each other's ObjId
+                RefreshTeamMemberObjIds(activeTeam, target);
             }
         }
 
@@ -271,7 +304,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         };
         if (newTeam.AddMember(activeInvitation.Owner).Item1 == null || newTeam.AddMember(activeInvitation.Target).Item1 == null) return;
 
-        _activeTeams.Add(newTeam.Id, newTeam);
+        _activeTeams.TryAdd(newTeam.Id, newTeam);
 
         activeInvitation.Owner.SendPacket(new SCJoinedTeamPacket(newTeam));
         activeInvitation.Owner.InParty = true;
@@ -288,6 +321,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         // Trigger events
         activeInvitation.Owner.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Owner });
         activeInvitation.Target.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Target });
+
+        // Owner and target may be out of each other's render distance — make sure
+        // both clients know each other's ObjId.
+        RefreshTeamMemberObjIds(newTeam, activeInvitation.Target);
     }
 
     public void CreateSoloTeam(Character character, bool asParty)
@@ -306,7 +343,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         };
         if (newTeam.AddMember(character).Item1 == null) return;
 
-        _activeTeams.Add(newTeam.Id, newTeam);
+        _activeTeams.TryAdd(newTeam.Id, newTeam);
 
         character.SendPacket(new SCJoinedTeamPacket(newTeam));
         character.InParty = asParty;
@@ -364,6 +401,9 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                 target.SendPacket(new SCLeavedTeamPacket(teamId, riskyAction == RiskyAction.Kick, false));
                 target.Events?.OnTeamLeave(target, new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = target });
             }
+
+            // Drop cached remote-sync state for the leaver
+            ClearSyncState(targetId);
         }
 
         // Disband if only one member left in Party (not raid)
@@ -395,10 +435,13 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                         // trigger event
                         member.Character.Events?.OnTeamLeave(member.Character, new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = member.Character });
                     }
+
+                    // Drop cached remote-sync state per disbanded member
+                    ClearSyncState(member.Character.Id);
                 }
             }
 
-            _activeTeams.Remove(teamId);
+            _activeTeams.TryRemove(teamId, out _);
         }
         // TODO: Add this to a timer or trigger instead of calling on a party/raid disband. But is good enough and functional for now
         chatManager.CleanUpChannels();
@@ -421,9 +464,19 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         activeTeam.IsParty = false;
         activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
+
         foreach (var m in activeTeam.Members)
-            if (m != null && m.Character != null)
+        {
+            if (m?.Character != null)
                 chatManager.GetRaidChat(activeTeam).JoinChannel(m.Character);
+        }
+
+        // Once the party becomes a raid, members spread out across the world, so the
+        // client must know everyone's ObjId for the raid UI even when out of render.
+        // Walk the upper-triangle pairs so each (a,b) pair is refreshed exactly once
+        // (avoids the O(N²) duplicate-send problem of calling RefreshTeamMemberObjIds
+        // per member, which would send both directions for every pair twice).
+        RefreshAllTeamMemberObjIds(activeTeam);
         // TODO: Handle raids in dungeons
     }
 
@@ -519,6 +572,31 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         }
 
         activeTeam.BroadcastPacket(new SCTeamMemberDisconnectedPacket(activeTeam.Id, unit.Id, memberInfo));
+
+        // Tell every OUT-OF-RENDER team-mate's client-side world cache that this
+        // ObjId is gone so raid-frame click-routing stops firing
+        // CSMoveUnitPacket(target=oldObjId) after the character was Deleted from
+        // the world. Mates in the same region already receive SCUnitsRemovedPacket
+        // via Region.RemoveObject when activeChar.Delete() runs later in the
+        // disconnect path — sending again would just be a duplicate.
+        foreach (var member in activeTeam.Members)
+        {
+            if (member?.Character == null || !member.Character.IsOnline) continue;
+            if (member.Character.Id == unit.Id) continue;
+            if (AreInRenderDistance(member.Character, unit)) continue;
+            member.Character.SendPacket(new SCUnitsRemovedPacket([unit.ObjId]));
+        }
+
+        // Drop any cached remote-sync state about this character so it doesn't leak.
+        ClearSyncState(unit.Id);
+
+        // Arm the zombie-team disband timer once the last online member goes offline.
+        // The 500ms UpdateAllTeams tick checks the grace window and removes the team
+        // from _activeTeams if it stays fully offline — otherwise the entry would
+        // live forever because LeaveWorldTask no longer calls MemberRemoveFromTeam
+        // (which used to be the only path that hit AskRiskyTeam's auto-disband).
+        if (activeTeam.MembersOnlineCount() <= 0)
+            activeTeam.AllOfflineSince = DateTime.UtcNow;
     }
 
     public void MemberRemoveFromTeam(Character unit, Character source, RiskyAction leaveType)
@@ -557,11 +635,62 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         var activeTeam = GetActiveTeamByUnit(unit.Id);
         if (activeTeam == null) return;
 
-        var newInfo = activeTeam.ChangeStatus(unit);
+        // Lock against a concurrent DisbandOfflineTeam: it holds team.SyncLock
+        // across its re-verify + member-wipe + TryRemove. Once we hold the lock,
+        // re-check that the team is still in _activeTeams — if a disband ran to
+        // completion between GetActiveTeamByUnit and the lock acquisition, we'd
+        // otherwise reconnect against a dead team and end up with
+        // InParty = true on a Character that has no live team backing it.
+        lock (activeTeam.SyncLock)
+        {
+            if (!_activeTeams.ContainsKey(activeTeam.Id))
+                return;
+
+            // Cancel the zombie-team disband timer — at least one member is back online.
+            activeTeam.AllOfflineSince = DateTime.MinValue;
+
+            activeTeam.ChangeStatus(unit);
+        }
+
         unit.SendPacket(new SCJoinedTeamPacket(activeTeam));
         unit.InParty = true;
-        activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newInfo, Team.GetParty(activeTeam.GetIndex(unit.Id))));
-        //activeTeam.BroadcastPacket(new SCRefreshTeamMemberPacket(activeTeam.Id, unit.Id, unit.ObjId));
+
+        // 1) Reconnecting player gets a single bulk snapshot of every OTHER team-
+        //    mate's current HP/MP/position/ObjId so the raid UI is fully populated.
+        //    Self is excluded — the client already knows its own state and a
+        //    self-entry in SCTeamRemoteMembersExPacket would just be wasted bytes.
+        var allMembers = activeTeam.Members
+            .Where(m => m?.Character != null && m.Character.Id != unit.Id)
+            .ToArray();
+        if (allMembers.Length > 0)
+            unit.SendPacket(new SCTeamRemoteMembersExPacket(allMembers));
+
+        // 2) Existing team-mates get the explicit "back online" signal
+        //    (SCTeamMemberJoinedPacket — counterpart to SCTeamMemberDisconnectedPacket
+        //    sent in SetOffline) plus *only* the reconnecting player's snapshot,
+        //    not all 50 frames. Without the JoinedPacket the client party-frame
+        //    stays stuck on the offline indicator even though HP/MP keep updating.
+        var idx = activeTeam.GetIndex(unit.Id);
+        if (idx >= 0)
+        {
+            var reconnectingMember = activeTeam.Members[idx];
+            var partyIndex = Team.GetParty(idx);
+            activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, reconnectingMember, partyIndex), unit.Id);
+            activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket([reconnectingMember]), unit.Id);
+        }
+
+        // Reconnect: force the ObjId refresh on EVERY online team-mate, not just
+        // the out-of-render ones. SetOffline's SCTeamMemberDisconnectedPacket
+        // carries WritePerson(IsOnline ? ObjId : 0) — i.e. ObjId = 0 after the
+        // P1 setter-order fix — so each team-mate's raid-frame slot for this
+        // player is currently keyed to 0. The reconnecting player gets the
+        // SAME ObjId back via Character.UsedCharacterObjIds, but the in-range
+        // world Spawn flow does not push the raid-frame re-mapping on its own;
+        // without an explicit SCRefreshTeamMemberPacket the next click-to-
+        // follow fires CSMoveUnitPacket(target=0) and the server logs
+        // "Invalid target".
+        RefreshTeamMemberObjIds(activeTeam, unit, force: true);
+
         if (!activeTeam.IsParty)
             chatManager.GetRaidChat(activeTeam).JoinChannel(unit);
         chatManager.GetPartyChat(activeTeam, unit).JoinChannel(unit);
@@ -569,8 +698,312 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
     public void Load()
     {
-        // Nothing special to do here
+        // Synchronous tick (useAsync: false). UpdateAllTeams iterates _activeTeams +
+        // _lastSyncState, which are mutated by game-handler threads on player join/
+        // leave/disband. Running synchronously on the tick thread keeps these
+        // reads simple and consistent with the rest of the manager.
+        TickManager.Instance.OnTick.Subscribe(UpdateAllTeams, TimeSpan.FromMilliseconds(TeamSyncIntervalMs), false);
+        Logger.Info("TeamManager loaded with {0}ms remote-sync interval", TeamSyncIntervalMs);
     }
+
+    // ──────────────────────────────────────────────────────────────────────
+    //  Remote-member sync
+    // ──────────────────────────────────────────────────────────────────────
+
+    /// <summary>Reusable scratch list to avoid per-tick allocations inside <see cref="UpdateAllTeams"/>.</summary>
+    private readonly List<TeamMember> _onlineMembersScratch = [];
+
+    /// <summary>Reusable per-recipient buffer of source members whose snapshots changed this tick.</summary>
+    private readonly Dictionary<TeamMember, List<TeamMember>> _perRecipientScratch = [];
+
+    /// <summary>
+    /// 500ms tick: walk every active team and broadcast HP/MP/position to members
+    /// that are NOT in render distance of each other. Members in render distance
+    /// already receive that data via the normal Broadcast* pipeline, so they are
+    /// skipped. Delta-cache (<see cref="_lastSyncState"/>) skips identical
+    /// packets so a stationary raid produces no traffic.
+    /// </summary>
+    /// <remarks>
+    /// Pair-walk is upper-triangle (i &lt; j) — <see cref="AreInRenderDistance"/> is
+    /// symmetric so each pair only needs one neighbour check, not two. Sends are
+    /// coalesced per recipient into one <see cref="SCTeamRemoteMembersExPacket"/>:
+    /// a spread-out 50-man raid produces ~50 packets/tick instead of ~2,450.
+    /// </remarks>
+    private void UpdateAllTeams(TimeSpan delta)
+    {
+        var now = DateTime.UtcNow;
+
+        if (_activeTeams.IsEmpty) return;
+
+        // ConcurrentDictionary.Values returns a snapshot, so the enumeration
+        // cannot be invalidated by a parallel Add/Remove during the tick.
+        foreach (var team in _activeTeams.Values)
+        {
+            // Zombie-team cleanup: every member offline for longer than the grace
+            // window → disband and free the slot. Done before the per-member walk so
+            // the tick doesn't pay the snapshot cost on a doomed team.
+            if (team.AllOfflineSince != DateTime.MinValue &&
+                now - team.AllOfflineSince >= OfflineTeamDisbandGrace)
+            {
+                DisbandOfflineTeam(team);
+                continue;
+            }
+
+            _onlineMembersScratch.Clear();
+            foreach (var m in team.Members)
+            {
+                if (m?.Character?.IsOnline == true)
+                    _onlineMembersScratch.Add(m);
+            }
+            if (_onlineMembersScratch.Count <= 1)
+                continue;
+
+            _perRecipientScratch.Clear();
+
+            for (var i = 0; i < _onlineMembersScratch.Count; i++)
+            {
+                var a = _onlineMembersScratch[i];
+                for (var j = i + 1; j < _onlineMembersScratch.Count; j++)
+                {
+                    var b = _onlineMembersScratch[j];
+
+                    // Same/neighbouring region — normal broadcast already covers them
+                    if (AreInRenderDistance(a.Character, b.Character))
+                        continue;
+
+                    // Each direction has its own (recipient, source) cache entry; check
+                    // both, but the expensive region walk above only runs once per pair.
+                    if (TryClaimSnapshot(a, b, now)) AddSnapshotTarget(a, b);
+                    if (TryClaimSnapshot(b, a, now)) AddSnapshotTarget(b, a);
+                }
+            }
+
+            foreach (var (recipient, sources) in _perRecipientScratch)
+            {
+                recipient.Character.SendPacket(new SCTeamRemoteMembersExPacket(sources.ToArray()));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Per-(recipient, source) delta-cache check. Returns true when the source's
+    /// current snapshot differs from the cached one (or the forced-resync window
+    /// has elapsed), and atomically updates the cache so subsequent ticks see the
+    /// new state.
+    /// </summary>
+    private bool TryClaimSnapshot(TeamMember recipient, TeamMember source, DateTime now)
+    {
+        var key = (recipient.Character.Id, source.Character.Id);
+        var pos = source.Character.Transform.World.Position;
+        var nextState = new MemberSyncState(
+            source.Character.Hp,
+            source.Character.MaxHp,
+            source.Character.Mp,
+            source.Character.MaxMp,
+            pos.X, pos.Y, pos.Z,
+            source.Character.ObjId,
+            now);
+
+        lock (_lastSyncState)
+        {
+            if (_lastSyncState.TryGetValue(key, out var prev) &&
+                prev.HasSameSnapshotAs(nextState) &&
+                (now - prev.LastSyncTime).TotalMilliseconds < ForcedResyncIntervalMs)
+            {
+                return false;
+            }
+            _lastSyncState[key] = nextState;
+            return true;
+        }
+    }
+
+    private void AddSnapshotTarget(TeamMember recipient, TeamMember source)
+    {
+        if (!_perRecipientScratch.TryGetValue(recipient, out var list))
+            _perRecipientScratch[recipient] = list = [];
+        list.Add(source);
+    }
+
+    /// <summary>
+    /// Auto-disband a team that has been fully offline past the grace window.
+    /// Mirrors the per-member cleanup that <see cref="AskRiskyTeam"/> does on its
+    /// auto-disband branch — most importantly resetting <c>Character.InParty</c>
+    /// so a Character object that survives the disband (e.g. cached across a fast
+    /// reconnect) cannot leave <c>InParty = true</c> with no backing team, which
+    /// would break null-unchecked call sites like
+    /// <c>Tagging.AddTagger → TeamManager.GetTeamByObjId</c>.
+    /// <c>SCTeamDismissedPacket</c> is skipped because nobody is online to receive
+    /// it; on next reconnect <see cref="UpdateAtLogin"/> sees no team and the
+    /// client lands without raid UI, which is the desired end state.
+    /// </summary>
+    private void DisbandOfflineTeam(Team team)
+    {
+        // Hold the team's SyncLock across the re-verify check AND the member-wipe
+        // loop so a concurrent UpdateAtLogin cannot land in the gap between them
+        // (it would otherwise mark a member online after our check, then receive
+        // InParty = false from the wipe). UpdateAtLogin takes the same lock and
+        // additionally re-checks _activeTeams membership, so it gracefully bails
+        // when this disband has already pulled the team out.
+        lock (team.SyncLock)
+        {
+            // Re-verify under the latest member state before wiping anything. The
+            // tick is decoupled from SetOffline / UpdateAtLogin by a multi-minute
+            // grace window, and the SetOffline check/write pair
+            // (MembersOnlineCount() ≤ 0, then assign AllOfflineSince) is not
+            // atomic — a concurrent UpdateAtLogin landing in between can leave
+            // AllOfflineSince armed with a stale "now" even though a member is
+            // currently online.
+            if (team.MembersOnlineCount() > 0)
+            {
+                team.AllOfflineSince = DateTime.MinValue;
+                return;
+            }
+
+            foreach (var member in team.Members)
+            {
+                if (member?.Character == null) continue;
+                member.Character.InParty = false;
+                ClearSyncState(member.Character.Id);
+            }
+
+            _activeTeams.TryRemove(team.Id, out _);
+        }
+
+        chatManager.CleanUpChannels();
+        Logger.Info("Disbanded zombie team {0} after {1} of all-offline", team.Id, OfflineTeamDisbandGrace);
+    }
+
+    /// <summary>
+    /// Drop every cached sync-state entry mentioning <paramref name="characterId"/>
+    /// as either recipient or source. Called whenever a character leaves the team
+    /// (offline / leave / kick / disband) so the cache cannot leak.
+    /// </summary>
+    internal void ClearSyncState(uint characterId)
+    {
+        lock (_lastSyncState)
+        {
+            if (_lastSyncState.Count == 0) return;
+
+            var toRemove = new List<(uint, uint)>();
+            foreach (var key in _lastSyncState.Keys)
+            {
+                if (key.recipientId == characterId || key.sourceId == characterId)
+                    toRemove.Add(key);
+            }
+            foreach (var key in toRemove)
+                _lastSyncState.Remove(key);
+        }
+    }
+
+    /// <summary>
+    /// Send <see cref="SCRefreshTeamMemberPacket"/> in both directions so every
+    /// existing team-mate learns the new member's ObjId. By default skips pairs
+    /// already in render distance (those learn the ObjId via the world spawn
+    /// flow); pass <paramref name="force"/> = <c>true</c> on reconnect, where the
+    /// in-range world flow doesn't reliably overwrite cached raid-frame ObjIds.
+    /// </summary>
+    private static void RefreshTeamMemberObjIds(Team team, Character newMember, bool force = false)
+    {
+        if (team == null || newMember == null) return;
+
+        foreach (var m in team.Members)
+        {
+            if (m?.Character == null || m.Character.Id == newMember.Id || !m.Character.IsOnline)
+                continue;
+
+            if (!force && AreInRenderDistance(m.Character, newMember))
+                continue;
+
+            m.Character.SendPacket(new SCRefreshTeamMemberPacket(team.Id, newMember.Id, newMember.ObjId));
+            newMember.SendPacket(new SCRefreshTeamMemberPacket(team.Id, m.Character.Id, m.Character.ObjId));
+        }
+    }
+
+    /// <summary>
+    /// Refresh ObjIds for every out-of-render-distance pair in the team exactly once.
+    /// Used by <see cref="ConvertToRaid"/> where the whole team needs to learn each
+    /// other's ObjIds; iterating with <see cref="RefreshTeamMemberObjIds"/> per member
+    /// would double every pair (O(N²) duplicates — ~4,900 redundant packets for a
+    /// 50-member raid). Upper-triangle traversal (i &lt; j) avoids that.
+    /// </summary>
+    private static void RefreshAllTeamMemberObjIds(Team team)
+    {
+        if (team == null) return;
+
+        var online = new List<Character>();
+        foreach (var m in team.Members)
+        {
+            if (m?.Character != null && m.Character.IsOnline)
+                online.Add(m.Character);
+        }
+
+        for (var i = 0; i < online.Count; i++)
+        {
+            for (var j = i + 1; j < online.Count; j++)
+            {
+                if (AreInRenderDistance(online[i], online[j]))
+                    continue;
+                online[i].SendPacket(new SCRefreshTeamMemberPacket(team.Id, online[j].Id, online[j].ObjId));
+                online[j].SendPacket(new SCRefreshTeamMemberPacket(team.Id, online[i].Id, online[i].ObjId));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Symmetric region-based render-distance check: returns true if <paramref name="a"/>
+    /// and <paramref name="b"/> share a Region or are listed as neighbours from either
+    /// side. The bidirectional test guards against edge-of-world Regions whose
+    /// <c>GetNeighbors()</c> set may not be symmetric.
+    /// </summary>
+    private static bool AreInRenderDistance(Character a, Character b)
+    {
+        if (a?.Region == null || b?.Region == null) return false;
+        if (a.Region == b.Region) return true;
+
+        foreach (var neighbour in a.Region.GetNeighbors())
+        {
+            if (neighbour == b.Region) return true;
+        }
+        foreach (var neighbour in b.Region.GetNeighbors())
+        {
+            if (neighbour == a.Region) return true;
+        }
+        return false;
+    }
+}
+
+/// <summary>
+/// Snapshot of a team-member's last broadcast state, keyed by (recipientId, sourceId).
+/// Used by the delta-cache to suppress identical remote-member sync packets.
+/// </summary>
+public sealed record MemberSyncState(
+    int Hp,
+    int MaxHp,
+    int Mp,
+    int MaxMp,
+    float X,
+    float Y,
+    float Z,
+    uint ObjId,
+    DateTime LastSyncTime)
+{
+    /// <summary>
+    /// Position-equality tolerance for the delta-cache comparison. Anything below
+    /// this is sub-centimetre physics jitter that wouldn't be visible on the raid
+    /// UI; using strict <c>==</c> here would defeat the delta cache for stationary
+    /// raid mates whose solver still produces tiny floating-point wobble each tick.
+    /// </summary>
+    private const float PositionEpsilon = 0.01f;
+
+    /// <summary>True when every field except <see cref="LastSyncTime"/> matches
+    /// (position fields compared with <see cref="PositionEpsilon"/> tolerance).</summary>
+    public bool HasSameSnapshotAs(MemberSyncState other) =>
+        Hp == other.Hp && MaxHp == other.MaxHp &&
+        Mp == other.Mp && MaxMp == other.MaxMp &&
+        MathF.Abs(X - other.X) < PositionEpsilon &&
+        MathF.Abs(Y - other.Y) < PositionEpsilon &&
+        MathF.Abs(Z - other.Z) < PositionEpsilon &&
+        ObjId == other.ObjId;
 }
 
 public class InvitationTemplate

@@ -22,21 +22,33 @@ public class TeamMember(Character character = null) : PacketMarshaler
         return stream;
     }
 
+    /// <summary>
+    /// Writes a 50-byte "remote team member" snapshot used by SCTeamRemoteMembersExPacket
+    /// and SCTeamMemberDisconnectedPacket. The ObjId is carried explicitly (0 when offline)
+    /// so the client can correlate the member against units it has already learned about,
+    /// even when the member is outside its render distance.
+    /// </summary>
     public PacketStream WritePerson(PacketStream stream)
     {
-        stream.Write(Character.Id);
-        stream.Write((ulong)0); // zi
-        stream.Write(Character.Level);
-        stream.Write(Character.Hp);
-        stream.Write(Character.MaxHp);
-        stream.Write(Character.Mp);
-        stream.Write(Character.MaxMp);
-        stream.WritePosition(Character.Transform.World.Position);
-        stream.Write((double)Character.Transform.World.Rotation.Z.RadToDeg()); // angZ
-        stream.Write((byte)Character.Ability1);
-        stream.Write((byte)Character.Ability2);
-        stream.Write((byte)Character.Ability3);
-        stream.Write(!Character.IsOnline);
-        return stream;
+        stream.Write(Character.Id);                                             // uint   (4)
+        stream.Write(Character.Transform.ZoneId);                               // uint   (4) - zone id
+        stream.Write(Character.Transform.InstanceId);                           // uint   (4) - instance id
+        stream.Write(Character.Level);                                          // byte   (1)
+        stream.Write(Character.Hp);                                             // int    (4)
+        stream.Write(Character.MaxHp);                                          // int    (4)
+        stream.Write(Character.Mp);                                             // int    (4)
+        stream.Write(Character.MaxMp);                                          // int    (4)
+        stream.WritePosition(Character.Transform.World.Position);               // bytes  (9)
+        stream.WriteBc(Character.IsOnline ? Character.ObjId : 0);               // bc     (3) - ObjId or 0 if offline
+        stream.Write((byte)0);                                                  // byte   (1) - padding
+        stream.Write((byte)Character.Ability1);                                 // byte   (1)
+        stream.Write((byte)Character.Ability2);                                 // byte   (1)
+        stream.Write((byte)Character.Ability3);                                 // byte   (1)
+        stream.Write((byte)0);                                                  // byte   (1)
+        stream.Write((byte)0);                                                  // byte   (1)
+        stream.Write((byte)0);                                                  // byte   (1)
+        stream.Write((byte)0);                                                  // byte   (1)
+        stream.Write((byte)0);                                                  // byte   (1)
+        return stream;                                                          // total: 50 bytes
     }
 }

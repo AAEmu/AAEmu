@@ -40,10 +40,13 @@ public class Tagging(Unit owner)
 
     public void ClearAllTaggers()
     {
-        _taggers = [];
-        _tagger = null;
-        _tagTeam = 0;
-        // _totalDamage = 0;
+        lock (_lock)
+        {
+            _taggers = [];
+            _tagger = null;
+            _tagTeam = 0;
+            // _totalDamage = 0;
+        }
     }
 
     public void AddTagger(Unit checkUnit, int damage)
@@ -105,5 +108,52 @@ public class Tagging(Unit owner)
             }
             // TODO: packet to set red-but-not-aggro HP bar for taggers, "dull red" HP bar for not-taggers
         }
+    }
+
+    /// <summary>
+    /// Returns every player who dealt damage to this NPC plus their party / raid
+    /// mates that are within <paramref name="range"/>. Used by the TagShareEnabled
+    /// feature in <c>Npc.DoDie</c> to fan out quest credit to all contributors —
+    /// even ones who didn't pass the 50% HP threshold that <see cref="Tagger"/> uses.
+    /// Loot and XP are NOT routed through this list; only quest events.
+    /// </summary>
+    public HashSet<Character> GetAllContributors(float range)
+    {
+        // Snapshot the damage-dealer keys under the tagging lock, then resolve teams
+        // outside the lock to avoid holding the tagging lock while reaching into
+        // TeamManager (which has its own lock domain).
+        Character[] dealers;
+        lock (_lock)
+        {
+            dealers = new Character[_taggers.Count];
+            _taggers.Keys.CopyTo(dealers, 0);
+        }
+
+        var result = new HashSet<Character>();
+        // Skip re-resolving the same team when multiple dealers are in the same party
+        // or raid — GetTeamByObjId is an O(teams*members) scan, so on a busy mob
+        // where several damage dealers share one raid we'd otherwise pay that cost
+        // once per dealer.
+        var visitedTeams = new HashSet<uint>();
+        foreach (var dealer in dealers)
+        {
+            if (dealer == null || !dealer.IsOnline) continue;
+            if (dealer.GetDistanceTo(Owner, true) > range) continue;
+
+            result.Add(dealer);
+
+            // Pull in party / raid mates within range
+            if (!dealer.InParty) continue;
+            var team = TeamManager.Instance.GetTeamByObjId(dealer.ObjId);
+            if (team == null || !visitedTeams.Add(team.Id)) continue;
+
+            foreach (var member in team.Members)
+            {
+                if (member?.Character == null || !member.Character.IsOnline) continue;
+                if (member.Character.GetDistanceTo(Owner, true) > range) continue;
+                result.Add(member.Character);
+            }
+        }
+        return result;
     }
 }

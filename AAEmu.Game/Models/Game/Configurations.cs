@@ -123,6 +123,14 @@ public class WorldConfig
     public double ActabilityRate { get; set; } = 1.0;
 
     /// <summary>
+    /// When true, monster kill credits and quest progress are shared across every
+    /// player that dealt damage to the mob plus their party / raid mates that are
+    /// within 200m at time of death. When false (default = vanilla behaviour), only
+    /// the killer (and the killer's team for tagged kills) earns the credit.
+    /// </summary>
+    public bool TagShareEnabled { get; set; } = false;
+
+    /// <summary>
     /// When true, housing bound doodads (doors, windows, planters, drills, animals) are saved to the
     /// database and their state (open/closed, fill level, growth phase) is restored on server restart.
     /// When false (default), bound doodads are re-created fresh from template data on every restart,
