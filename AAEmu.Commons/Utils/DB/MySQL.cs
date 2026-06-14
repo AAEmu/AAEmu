@@ -53,7 +53,7 @@ public static class MySQL
             AllowZeroDateTime = true,
             ConvertZeroDateTime = true,
             DefaultCommandTimeout = 180,
-            SslMode = MySqlSslMode.Prefered
+            SslMode = MySqlSslMode.Preferred
         };
         s_connectionString = builder.ConnectionString;
     }
