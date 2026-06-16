@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using System.Numerics;
 
@@ -293,7 +293,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         // Set Mass
         Hull.SetMassInertia(ShipModel.Mass);
         Hull.DeactivationTime = TimeSpan.MaxValue;
-        Hull.IsStatic = false;
+        Hull.MotionType = MotionType.Dynamic;
         Hull.SetActivationState(true);
     }
 
@@ -498,8 +498,6 @@ public class ShipController(World world, ShipModelV1 shipModel)
             var target = escapeThrottleSignOnGround * targetEscapeSpeed;
             slave.Speed += (target - slave.Speed) * escapeA;
         }
-
-
 
         // When wind bonus disappears (especially Official "hard cutoff"), max speed can drop instantly.
         // Hard-clamping causes a visible speed snap. Instead, smoothly converge back to the new cap unless

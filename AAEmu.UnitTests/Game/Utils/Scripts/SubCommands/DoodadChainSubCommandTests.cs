@@ -10,7 +10,7 @@ public class DoodadChainSubCommandTests
     public void PreExecute_WhenChain_ShouldCallChainSubCommand()
     {
         var mockSubCommand = Mock.Of<ICommandV2>();
-        var mockUnitCustomModelParams = Mock.OfPartial<UnitCustomModelParams>(UnitCustomModelType.None);
+        var mockUnitCustomModelParams = Mock.Of<UnitCustomModelParams>(UnitCustomModelType.None);
         var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
         var command = new TestCommand(new Dictionary<ICommandV2, string[]>
@@ -29,7 +29,7 @@ public class DoodadChainSubCommandTests
     public void PreExecute_WhenChain_ShouldCallChainSubSubCommand()
     {
         var mockSubSubCommand = Mock.Of<ICommandV2>();
-        var mockUnitCustomModelParams = Mock.OfPartial<UnitCustomModelParams>(UnitCustomModelType.None);
+        var mockUnitCustomModelParams = Mock.Of<UnitCustomModelParams>(UnitCustomModelType.None);
         var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
         var subCommand = new SubTestCommand(new Dictionary<ICommandV2, string[]>
@@ -54,7 +54,7 @@ public class DoodadChainSubCommandTests
     [Test]
     public void Execute_WhenOnlyCommand_ShouldNotThrowException()
     {
-        var mockUnitCustomModelParams = Mock.OfPartial<UnitCustomModelParams>(UnitCustomModelType.None);
+        var mockUnitCustomModelParams = Mock.Of<UnitCustomModelParams>(UnitCustomModelType.None);
         var fakeCharacter = new Character(mockUnitCustomModelParams.Object);
 
         var mockMessageOutput = Mock.Of<IMessageOutput>();

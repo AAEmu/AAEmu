@@ -195,7 +195,7 @@ public class DoodadManagerTests
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
 
-        var mockWorld = Mock.OfPartial<WorldInstance>(new WorldTemplate { Id = 1, Name = "TestWorld" }, 1u, false, 1u);
+        var mockWorld = Mock.Of<WorldInstance>(new WorldTemplate { Id = 1, Name = "TestWorld" }, 1u, false, 1u);
 
         // Act
         var result = manager.Create(mockWorld.Object, 0, 999, null, true);

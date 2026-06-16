@@ -1,5 +1,6 @@
 ﻿using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
+using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 
 namespace AAEmu.Game.Physics.HeightMaps;
@@ -26,7 +27,7 @@ public class HeightmapDetection : IBroadPhaseFilter
 
         var collider = shapeA == _shape ? shapeB : shapeA;
 
-        if (collider is not RigidBodyShape rbs || rbs.RigidBody.Data.IsStaticOrInactive) return false;
+        if (collider is not RigidBodyShape rbs || rbs.RigidBody.Data.MotionType == MotionType.Static || !rbs.RigidBody.Data.IsActive) return false;
 
         ref var body = ref rbs.RigidBody!.Data;
 
