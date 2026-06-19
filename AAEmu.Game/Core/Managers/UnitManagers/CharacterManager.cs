@@ -427,9 +427,20 @@ public class CharacterManager(
         Logger.Info("Loaded {0} character templates", _templates.Count);
     }
 
+    /// <summary>
+    /// Rolls a die for the player and broadcasts the result.
+    /// </summary>
+    /// <param name="player">The player making the roll.</param>
+    /// <param name="max">The highest possible value, inclusive.</param>
     public void PlayerRoll(Character player, int max)
     {
-        var roll = Random.Shared.Next(1, max);
+        if (max < 1)
+        {
+            Logger.Warn("{0} attempted to roll a die with an invalid max of {1}", player.Name, max);
+            return;
+        }
+
+        var roll = Random.Shared.Next(0, max) + 1;
         player.BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"{player.Name} rolled {roll}."), true);
     }
 

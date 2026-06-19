@@ -8,8 +8,7 @@ public class CSRollDicePacket() : GamePacket(CSOffsets.CSRollDicePacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-
-        var max = stream.ReadUInt32();
-        CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, int.Parse(max.ToString()));
+        var max = stream.ReadInt32();
+        CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, max);
     }
 }
