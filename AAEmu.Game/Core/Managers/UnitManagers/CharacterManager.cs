@@ -11,7 +11,6 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -441,7 +440,7 @@ public class CharacterManager(
         }
 
         var roll = Random.Shared.Next(0, max) + 1;
-        player.BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"{player.Name} rolled {roll}."), true);
+        player.BroadcastPacket(new SCDiceValuePacket(player.Name, max, roll), true);
     }
 
     public int GetEffectiveAccessLevel(Character character)
