@@ -11,7 +11,6 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -427,10 +426,21 @@ public class CharacterManager(
         Logger.Info("Loaded {0} character templates", _templates.Count);
     }
 
+    /// <summary>
+    /// Rolls a die for the player and broadcasts the result.
+    /// </summary>
+    /// <param name="player">The player making the roll.</param>
+    /// <param name="max">The highest possible value, inclusive.</param>
     public void PlayerRoll(Character player, int max)
     {
-        var roll = Random.Shared.Next(1, max);
-        player.BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"{player.Name} rolled {roll}."), true);
+        if (max < 1)
+        {
+            Logger.Warn("{0} attempted to roll a die with an invalid max of {1}", player.Name, max);
+            return;
+        }
+
+        var roll = Random.Shared.Next(0, max) + 1;
+        player.BroadcastPacket(new SCDiceValuePacket(player.Name, max, roll), true);
     }
 
     public int GetEffectiveAccessLevel(Character character)
