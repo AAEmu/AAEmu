@@ -266,6 +266,7 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
                 Logger.Debug($"TrialStep.Cleanup - {trialData.Id}");
                 trialData.Step = TrialStep.Cleanup;
                 trialData.CurrentStepEndTime = DateTime.MaxValue;
+                trialData.CourtRoom.TrialChatChannel.LeaveChannel(trialData.Defendant); // Remove defendant from chat if not already so
 
                 foreach (var juryEntry in trialData.Jury.Values)
                 {
@@ -300,7 +301,7 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
                             // Update trials attended count
                             juryEntry.JuryMember.JuryPoint++;
                         }
-                        
+                        trialData.CourtRoom.TrialChatChannel.LeaveChannel(juryEntry.JuryMember); // Remove Jury from courtroom chat
                     }
                 }
             }
@@ -687,11 +688,11 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
             Logger.Warn($"Trial is null for {defendant}");
             return;
         }
-
         Logger.Debug($"TrialStep.EndTrial - {trial.Id}");
         trial.Step = pleadGuilty ? TrialStep.PleadGuilty : TrialStep.EndTrial;
         trial.CurrentStepEndTime = DateTime.UtcNow.AddSeconds(EndTrialSeconds);
         trial.SendPackets(new SCChangeTrialStatePacket(trial.Id, (byte)trial.Step, trial.GetActiveJuryCount(), trial.RemainingCurrentStepTime));
+        trial.CourtRoom.TrialChatChannel.LeaveChannel(defendant);
 
         // Find jail to go to
         var targetJail = AppConfiguration.Instance.Justice.Jails.FirstOrDefault(x => x.Faction == trial.CourtRoom.Faction);

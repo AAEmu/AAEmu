@@ -143,6 +143,7 @@ public class TrialData
 
         // Summon defendant packet (starts trial cycle for client?)
         defendant.SendPacket(new SCSummonDefendantPacket(Id));
+        courtRoom.TrialChatChannel.JoinChannel(defendant);
 
         // Jury Wait Status 
         defendant.SendPacket(new SCJuryWaitStatusPacket(0, Jury.Values.Count, JailTime * 60_000));
@@ -241,7 +242,7 @@ public class TrialData
                 // Seat them down
                 player.SendPacket(new SCJuryBeSeatedPacket(CourtRegion == CourtRoomRegion.Haranyan, Id, (int)CourtRoom.Id, juryEntry.SeatId));
 
-                
+                CourtRoom.TrialChatChannel.JoinChannel(player);
                 // TODO: Remove the hardcoded attachment and bound Ids by grabbing them from the chair's DoodadFuncAttachment
                 /*
                 var attachFuncsSelect = juryEntry.Seat.CurrentFuncs.Where(x => x.FuncType == "DoodadFuncAttachment").ToList();
