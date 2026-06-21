@@ -270,4 +270,15 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
         // Check if it's in there
         return zoneClimates.Contains(doodad.Template.ClimateId);
     }
+
+    public bool IsPirateDesperadoZone(uint zoneKey)
+    {
+        var zone = GetZoneByKey(zoneKey);
+        if (zone == null)
+            return false;
+        var group = GetZoneGroupById(zone.GroupId);
+        if (group == null)
+            return false;
+        return group.PirateDesperado;
+    }
 }

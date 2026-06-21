@@ -110,6 +110,8 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
             return false;
 
         // Faction check is not done here and will prevent the player from actually getting in a queue if needed
+        if (GetParticipatingTrial(character) != null)
+            return false;
 
         return true;
     }
@@ -367,6 +369,18 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
     }
 
     /// <summary>
+    /// Removes a player from all jury queues
+    /// </summary>
+    /// <param name="player"></param>
+    public void RemovePlayerFromQueue(Character player)
+    {
+        foreach (var juryQueuesValue in JuryQueues.Values)
+        {
+            juryQueuesValue.Remove(player.Id);
+        }
+    }
+
+    /// <summary>
     /// Generates a list of elegible players for jury duty
     /// </summary>
     /// <param name="trial"></param>
@@ -553,11 +567,18 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
     {
         // TODO: Implement better support for player nations
         var criminalCourtRegion = GetCourtRoomRegionByFaction(criminal.Faction.MotherId);
-        var arrestorCourtRegion = GetCourtRoomRegionByFaction(criminal.Faction.MotherId);
+        var arrestorCourtRegion = GetCourtRoomRegionByFaction(arrestor.Faction.MotherId);
         if (criminalCourtRegion == CourtRoomRegion.Invalid && arrestorCourtRegion == CourtRoomRegion.Invalid)
         {
             // Likely both pirates, ignore
+            Logger.Debug($"ArrestCriminal: {arrestor.Name} cannot arrest {criminal.Name}, both fall outside of justice system");
             return;
+        }
+        // If criminal doesn't have a court region, use the arrestor's region instead
+        // TODO: Verify if this is retail behaviour, or if it uses the original nation of the player
+        if (criminalCourtRegion == CourtRoomRegion.Invalid)
+        {
+            criminalCourtRegion = arrestorCourtRegion;
         }
 
         // Find a courtroom to use
@@ -929,5 +950,36 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
             }
         }
         Logger.Debug($"{player?.Name ?? "unknown"} tried to leave the courtroom audience but was not part of it");
+    }
+
+    public TrialData GetParticipatingTrial(Character player)
+    {
+        foreach (var courtRoom in CourtRooms.Values)
+        {
+            if (courtRoom.CurrentTrial == null)
+            {
+                continue;
+            }
+
+            if (courtRoom.CurrentTrial.Defendant == player)
+            {
+                return courtRoom.CurrentTrial;
+            }
+            foreach (var juryValue in courtRoom.CurrentTrial.Jury.Values)
+            {
+                if (juryValue.JuryMember == player)
+                {
+                    return courtRoom.CurrentTrial;
+                }
+            }
+            foreach (var audience in courtRoom.AudienceMembers)
+            {
+                if (audience == player)
+                {
+                    return courtRoom.CurrentTrial;
+                }
+            }
+        }
+        return null;
     }
 }

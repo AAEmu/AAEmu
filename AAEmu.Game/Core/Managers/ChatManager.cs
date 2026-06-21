@@ -436,6 +436,12 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     public ChatChannel GetTrialChat(Character character)
     {
         var courtRegion = TrialManager.Instance.GetCourtRoomRegionByFaction(character.Faction.MotherId);
+        if (courtRegion == CourtRoomRegion.Invalid)
+        {
+            // We don't have a home trial channel, try to check what we are part of
+            var trial = TrialManager.Instance.GetParticipatingTrial(character);
+            return CourtRoomChannels.GetValueOrDefault(trial.CourtRegion);
+        }
         return CourtRoomChannels.GetValueOrDefault(courtRegion);
     }
 

@@ -131,6 +131,9 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
             case ChatType.Ally: //faction (by current allegiance)
                 ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).SendMessage(Connection.ActiveChar, message, ability, languageType);
                 break;
+            case ChatType.Judge: //faction (by current allegiance)
+                ChatManager.Instance.GetTrialChat(Connection.ActiveChar)?.SendMessage(Connection.ActiveChar, message, ability, languageType);
+                break;
             default:
                 Logger.Warn("Unsupported chat type {0} from {1}", type, Connection.ActiveChar.Name);
                 break;

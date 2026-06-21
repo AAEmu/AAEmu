@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
@@ -51,13 +52,25 @@ public class TrialData
         DefendantId = defendant.Id;
         DefendantName = defendant.Name;
 
+        // Make sure criminal is alive
+        defendant.Hp = Math.Max(1, defendant.Hp);
+        defendant.BroadcastPacket(
+            new SCCharacterResurrectedPacket(defendant.ObjId, defendant.Transform.World.Position.X,
+                defendant.Transform.World.Position.Y, defendant.Transform.World.Position.Z,
+                defendant.Transform.World.Rotation.Z), true);
+        defendant.BroadcastPacket(
+            new SCUnitPointsPacket(defendant.ObjId, defendant.Hp, defendant.Mp), true);
+        defendant.PostUpdateCurrentHp(defendant, 0, defendant.Hp, KillReason.PvpEnemy);        
+
         // Teleport criminal to the local jail
         defendant.SendPacket(new SCTeleportUnitPacket(TeleportReason.Lockup, 0, temporaryCourtRoom.Jail.X, temporaryCourtRoom.Jail.Y, temporaryCourtRoom.Jail.Z, temporaryCourtRoom.Jail.Yaw.DegToRad()));
 
         // Haranya -> returnDistrict: 427, resurrectionDistrict: 68
+        /*
         var returnDistrict = 427u;
         var resurrectionDistrict = 68u;
         defendant.SendPacket(new SCCharacterBoundPacket(defendant.Id, returnDistrict, resurrectionDistrict, false, 0, string.Empty, 0, Vector3.Zero, 0f, false));
+        */
 
         // Send guilty/trial question to player
         // TODO: Not yet sure if this sends CrimePoint or CrimeRecord or just 50 of the threshold
@@ -108,9 +121,9 @@ public class TrialData
 
         JailTime = defaultMinutes; // (Defendant.CrimePoint / 5);
         JailTime *= (1 + (Defendant.InfamyPoint / 1000));
-        if (Defendant.Faction.MotherId == FactionsEnum.Pirate)
+        if (Defendant.Faction.Id == FactionsEnum.Pirate)
         {
-            JailTime = Math.Max(JailTime, 40); // Not correct, but good enough for now
+            JailTime = 40; // Math.Min(40, Math.Max(JailTime, 15)); // Not correct, but good enough for now
         }
     }
 
@@ -227,6 +240,7 @@ public class TrialData
             if (juryEntry.JuryMember == null)
             {
                 juryEntry.JuryMember = player;
+                TrialManager.Instance.RemovePlayerFromQueue(juryEntry.JuryMember);
 
                 // Save current position to return to after the trial (or if you disconnected)
                 player.MainWorldPosition = player.Transform.CloneDetached(player);

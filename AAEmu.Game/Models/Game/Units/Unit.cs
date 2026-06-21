@@ -948,6 +948,14 @@ public class Unit : BaseUnit, IUnit
             // BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
             BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFactionId, Faction.Id, false), true);
+            if (Faction.Id == FactionsEnum.Pirate)
+            {
+                Buffs.AddBuff((uint)BuffConstants.Contemptuous, this);
+            }
+            else
+            {
+                Buffs.RemoveBuff((uint)BuffConstants.Contemptuous);
+            }
         }
 
         // TODO added for quest Id=2486
